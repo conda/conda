@@ -1603,8 +1603,9 @@ dependencies:
 
 
     def test_conda_pip_interop_conda_editable_package(self):
-        with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
+        with env_vars({"CONDA_REPORT_ERRORS": "false"},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env("python=3.9", "pip", "git", use_restricted_unicode=on_win) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1635,7 +1636,7 @@ dependencies:
                         "pysocks !=1.5.7,<2.0,>=1.5.6"
                     ],
                     "depends": [
-                        "python 2.7.*"
+                        "python 3.9.*"
                     ],
                     "fn": "urllib3-1.19.1-dev_0",
                     "name": "urllib3",
@@ -1650,6 +1651,7 @@ dependencies:
                                                 use_exception_handler=True)
                 assert not stderr
                 json_obj = json_loads(stdout)
+
                 assert "UNLINK" not in json_obj["actions"]
                 link_dists = json_obj["actions"]["LINK"]
                 assert len(link_dists) == 1
