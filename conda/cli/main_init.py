@@ -28,10 +28,6 @@ def execute(args, parser):
         return initialize_dev(selected_shells[0])
 
     else:
-        if args.user is None:
-            # default cannot easily be set in argparse because both --user and
-            # --no-user set args.user
-            args.user = True
         for_user = args.user
         if not (args.install and args.user and args.system):
             for_user = True
