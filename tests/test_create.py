@@ -139,20 +139,20 @@ class IntegrationTests(BaseTestCase):
                     assert args[i] == line.replace('\r', '')
 
     def test_create_install_update_remove_smoketest(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.9") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.12')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12.2')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.0.1')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.UPDATE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=0.12.2')
+            assert not package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
@@ -249,7 +249,7 @@ class IntegrationTests(BaseTestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json", "--dry-run", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json", "--dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
 
             # regression test for #5825
@@ -258,37 +258,37 @@ class IntegrationTests(BaseTestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json")
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json")
             assert_json_parsable(stdout)
             assert not stderr
             json_obj = json.loads(stdout)
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=0.12', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=2.0.1', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             # Test force reinstall
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.0.1', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.UPDATE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.12.2')
+            assert not package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.REMOVE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.*')
+            assert not package_is_installed(prefix, 'flask=2.*')
             assert package_is_installed(prefix, 'python=3')
 
             # regression test for #5825
@@ -582,8 +582,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json')
+        with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.1.3', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
@@ -1432,6 +1432,7 @@ dependencies:
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
+    # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
     @pytest.mark.skipif(context.subdir == "win-32", reason="metadata is wrong; give python2.7")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
@@ -1927,7 +1928,7 @@ dependencies:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                    with make_temp_channel(['flask-0.12.2']) as channel:
+                    with make_temp_channel(['flask-2.1.3']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
                         run_command(Commands.CLEAN, "", "--index-cache", "--yes")
@@ -2123,19 +2124,19 @@ dependencies:
                 assert not package_is_installed(prefix, 'openssl')
 
     def test_transactional_rollback_upgrade_downgrade(self):
-        with make_temp_env("python=3.5", no_capture=True) as prefix:
+        with make_temp_env("python=3.8", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.12.2')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.1.3')
 
             from conda.core.path_actions import CreatePrefixRecordAction
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
-                    run_command(Commands.INSTALL, prefix, 'flask=1.0.2')
-                assert package_is_installed(prefix, 'flask=0.12.2')
+                    run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
+                assert package_is_installed(prefix, 'flask=2.1.3')
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2284,9 +2285,14 @@ dependencies:
     @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_legacy_repodata(self):
         channel = join(dirname(abspath(__file__)), 'data', 'legacy_repodata')
-        with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'moto=1.3.7')
+        subdir = context.subdir
+        if subdir not in ("win-64", "linux-64", "osx-64"):
+            # run test even though default subdir doesn't have dependencies
+            subdir = "linux-64"
+        with env_var("CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
+                assert exists(join(prefix, PYTHON_BINARY))
+                assert package_is_installed(prefix, 'moto=1.3.7')
 
     @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_cross_channel_incompatibility(self):
