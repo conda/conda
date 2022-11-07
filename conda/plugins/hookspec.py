@@ -17,7 +17,7 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 class CondaSpecs:
 
     @_hookspec
-    def conda_subcommands() -> Iterable[CondaSubcommand]:
+    def conda_subcommands(self) -> Iterable[CondaSubcommand]:
         """
         Register external subcommands in conda.
 
@@ -45,7 +45,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
         """
         Register virtual packages in Conda.
 
