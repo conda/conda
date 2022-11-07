@@ -29,8 +29,6 @@ def execute(args, parser):
 
     else:
         for_user = args.user
-        if not (args.install and args.user and args.system):
-            for_user = True
 
         anaconda_prompt = on_win and args.anaconda_prompt
         return initialize(context.conda_prefix, selected_shells, for_user, args.system,
