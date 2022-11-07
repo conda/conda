@@ -58,9 +58,8 @@ from ..common.configuration import (
     MapParameter,
     ParameterLoader,
     PrimitiveParameter,
-    SequenceParameter,
     ValidationError,
-    UnionSequenceParameter,
+    SequenceParameter,
 )
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
@@ -172,7 +171,8 @@ class Context(Configuration):
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
     create_default_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str)))
+        SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str))
+    )
     default_python = ParameterLoader(
         PrimitiveParameter(default_python_default(),
                            element_type=(str, NoneType),
@@ -204,9 +204,11 @@ class Context(Configuration):
     # Safety & Security
     _aggressive_update_packages = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=str),
-            DEFAULT_AGGRESSIVE_UPDATE_PACKAGES),
-        aliases=('aggressive_update_packages',))
+            primitive_type=PrimitiveParameter("", element_type=str),
+            default=DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+        ),
+        aliases=("aggressive_update_packages",),
+    )
     safety_checks = ParameterLoader(PrimitiveParameter(SafetyChecks.warn))
     extra_safety_checks = ParameterLoader(PrimitiveParameter(False))
     _signing_metadata_url_base = ParameterLoader(
@@ -214,32 +216,42 @@ class Context(Configuration):
         aliases=('signing_metadata_url_base',))
     path_conflict = ParameterLoader(PrimitiveParameter(PathConflict.clobber))
 
-    pinned_packages = ParameterLoader(SequenceParameter(
-        PrimitiveParameter("", element_type=str),
-        string_delimiter='&'))  # TODO: consider a different string delimiter  # NOQA
+    pinned_packages = ParameterLoader(
+        SequenceParameter(
+            primitive_type=PrimitiveParameter("", element_type=str), string_delimiter="&"
+        )
+    )  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=str), string_delimiter='&'),
-        aliases=('disallow',))
+            primitive_type=PrimitiveParameter("", element_type=str), string_delimiter="&"
+        ),
+        aliases=("disallow",),
+    )
     rollback_enabled = ParameterLoader(PrimitiveParameter(True))
     track_features = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str)))
+        SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str))
+    )
     use_index_cache = ParameterLoader(PrimitiveParameter(False))
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
     _root_prefix = ParameterLoader(PrimitiveParameter(""), aliases=('root_dir', 'root_prefix'))
     _envs_dirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str),
-                          string_delimiter=os.pathsep),
-        aliases=('envs_dirs', 'envs_path'),
-        expandvars=True)
-    _pkgs_dirs = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)),
-                                 aliases=('pkgs_dirs',),
-                                 expandvars=True)
-    _subdir = ParameterLoader(PrimitiveParameter(''), aliases=('subdir',))
+        SequenceParameter(
+            primitive_type=PrimitiveParameter("", element_type=str), string_delimiter=os.pathsep
+        ),
+        aliases=("envs_dirs", "envs_path"),
+        expandvars=True,
+    )
+    _pkgs_dirs = ParameterLoader(
+        SequenceParameter(primitive_type=PrimitiveParameter("", str)),
+        aliases=("pkgs_dirs",),
+        expandvars=True,
+    )
+    _subdir = ParameterLoader(PrimitiveParameter(""), aliases=("subdir",))
     _subdirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", str)), aliases=('subdirs',))
+        SequenceParameter(primitive_type=PrimitiveParameter("", str)), aliases=("subdirs",)
+    )
 
     local_repodata_ttl = ParameterLoader(PrimitiveParameter(1, element_type=(bool, int)))
     # number of seconds to cache repodata locally
@@ -282,9 +294,9 @@ class Context(Configuration):
         expandvars=True)
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        UnionSequenceParameter(
+        SequenceParameter(
             primitive_type=PrimitiveParameter("", element_type=str),
-            map_type=PrimitiveParameter("", element_type=str),
+            map_type=MapParameter(PrimitiveParameter("", element_type=str)),
             default=(DEFAULTS_CHANNEL_NAME,),
         ),
         aliases=('channels', 'channel',),
@@ -294,15 +306,18 @@ class Context(Configuration):
         aliases=('custom_channels',),
         expandvars=True)
     _custom_multichannels = ParameterLoader(
-        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str))),
+        MapParameter(SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str))),
         aliases=('custom_multichannels',),
         expandvars=True)
     _default_channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str), DEFAULT_CHANNELS),
-        aliases=('default_channels',),
-        expandvars=True)
+        SequenceParameter(
+            primitive_type=PrimitiveParameter("", element_type=str), default=DEFAULT_CHANNELS
+        ),
+        aliases=("default_channels",),
+        expandvars=True,
+    )
     _migrated_channel_aliases = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str)),
         aliases=('migrated_channel_aliases',))
     migrated_custom_channels = ParameterLoader(
         MapParameter(PrimitiveParameter("", element_type=str)),
@@ -311,16 +326,19 @@ class Context(Configuration):
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
     allowlist_channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str)),
         aliases=("whitelist_channels",),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=str),
-            ("current_repodata.json", REPODATA_FN)))
-    _use_only_tar_bz2 = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)),
-                                        aliases=('use_only_tar_bz2',))
+            primitive_type=PrimitiveParameter("", element_type=str),
+            default=("current_repodata.json", REPODATA_FN),
+        )
+    )
+    _use_only_tar_bz2 = ParameterLoader(
+        PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=("use_only_tar_bz2",)
+    )
 
     always_softlink = ParameterLoader(PrimitiveParameter(False), aliases=('softlink',))
     always_copy = ParameterLoader(PrimitiveParameter(False), aliases=('copy',))

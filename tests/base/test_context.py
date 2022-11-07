@@ -578,7 +578,7 @@ def test_condarc_file_with_bad_parameters():
     a semi-actionable error message or at least make it easier to troubleshoot.
     """
     with temp_context(INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1) as context_obj:
-        valid_types = "UnionSequence[PrimitiveParameter],UnionSequence[MapParameter]"
+        valid_types = "Sequence[PrimitiveParameter],Sequence[MapParameter]"
         with pytest.raises(InvalidTypeError) as exc_info:
             getattr(context_obj, "channels")
         assert exc_info.value.valid_types == valid_types
@@ -591,7 +591,7 @@ def test_condarc_file_with_single_channel():
     condarc = "channels: testing"
 
     with temp_context(condarc) as context_obj:
-        valid_types = "UnionSequence[PrimitiveParameter],UnionSequence[MapParameter]"
+        valid_types = "Sequence[PrimitiveParameter],Sequence[MapParameter]"
         with pytest.raises(InvalidTypeError) as exc_info:
             getattr(context_obj, "channels")
         assert exc_info.value.valid_types == valid_types
