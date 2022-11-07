@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixed a confusing case where [name=...] could overwrite the name specified outside of brackets. (#12062)
+* Prefer the outer name when a MatchSpec specifies a package's name twice package-name[name=package-name] (#12062)
 
 ### Deprecations
 
