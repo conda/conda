@@ -28,7 +28,6 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
-            from conda.plugins.types import CondaSubcommand
 
 
             def example_command(args):
@@ -37,7 +36,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_subcommands():
-                yield CondaSubcommand(
+                yield plugins.CondaSubcommand(
                     name="example",
                     summary="example command",
                     action=example_command,
@@ -56,12 +55,10 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
-            from conda.plugins.types import CondaVirtualPackage
-
 
             @plugins.hookimpl
             def conda_virtual_packages():
-                yield CondaVirtualPackage(
+                yield plugins.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
                 )
