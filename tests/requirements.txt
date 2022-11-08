@@ -22,7 +22,7 @@ pip
 pluggy
 pkginfo
 pycosat
-pycrypto
+pycryptodome
 pyflakes
 pytest
 pytest-cov
