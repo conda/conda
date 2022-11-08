@@ -38,7 +38,7 @@ def plugin(plugin_manager):
     return plugin
 
 
-def test_invoked(plugin, cli_main):
+def test_invoked(plugin):
     index = conda.core.index.get_reduced_index(
         context.default_prefix,
         context.default_channels,
@@ -54,7 +54,7 @@ def test_invoked(plugin, cli_main):
     assert packages["__ghi"].version == "789"
 
 
-def test_duplicated(plugin_manager, cli_main, capsys):
+def test_duplicated(plugin_manager):
     plugin_manager.register(VirtualPackagesPlugin())
     plugin_manager.register(VirtualPackagesPlugin())
 
@@ -75,12 +75,12 @@ def test_cuda_detection(clear_cuda_version):
 
 
 def test_cuda_override(clear_cuda_version):
-    with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
+    with env_var("CONDA_OVERRIDE_CUDA", "4.5"):
         version = cuda.cached_cuda_version()
         assert version == "4.5"
 
 
 def test_cuda_override_none(clear_cuda_version):
-    with env_var('CONDA_OVERRIDE_CUDA', ''):
+    with env_var("CONDA_OVERRIDE_CUDA", ""):
         version = cuda.cuda_version()
         assert version is None
