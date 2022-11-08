@@ -69,10 +69,10 @@ function conda --inherit-variable CONDA_EXE
         set -e argv[1]
         switch $cmd
             case activate deactivate
-                eval ($CONDA_EXE shell.fish $cmd $argv)
+                $CONDA_EXE shell.fish $cmd $argv | source || return $status
             case install update upgrade remove uninstall
-                $CONDA_EXE $cmd $argv
-                and eval ($CONDA_EXE shell.fish reactivate)
+                $CONDA_EXE $cmd $argv || return $status
+                $CONDA_EXE shell.fish reactivate | source || return $status
             case '*'
                 $CONDA_EXE $cmd $argv
         end
