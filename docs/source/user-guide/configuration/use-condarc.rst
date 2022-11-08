@@ -347,6 +347,9 @@ here overrides that default:
   proxy_servers:
       http: http://user:pass@corp.com:8080
       https: https://user:pass@corp.com:8080
+      
+If this results in a ``ProxyError``,
+try changing ``https: https://`` to ``https: http://``.
 
 To give a proxy for a specific scheme and host, use the
 scheme://hostname form for the key. This matches for any request
