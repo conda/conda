@@ -11,4 +11,4 @@ Developer guide
    deep-dives/index
    writing-tests/index
    releasing
-   plugin-api/index
+   plugins/index
