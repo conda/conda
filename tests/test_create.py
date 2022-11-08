@@ -1604,8 +1604,13 @@ dependencies:
 
 
     def test_conda_pip_interop_conda_editable_package(self):
-        with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
+        with env_vars(
+            {"CONDA_REPORT_ERRORS": "false", "CONDA_RESTORE_FREE_CHANNEL": True},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            with make_temp_env(
+                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
+            ) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
