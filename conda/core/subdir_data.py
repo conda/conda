@@ -24,7 +24,7 @@ from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepoInterface,
-    RepodataIsNone,
+    RepodataIsEmpty,
     Response304ContentUnchanged,
 )
 
@@ -310,7 +310,7 @@ class SubdirData(metaclass=SubdirDataType):
         try:
             try:
                 raw_repodata_str = self._repo.repodata(mod_etag_headers)
-            except RepodataIsNone:
+            except RepodataIsEmpty:
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata_str = None
 

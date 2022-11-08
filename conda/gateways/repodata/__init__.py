@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-class RepodataIsNone(UnavailableInvalidChannel):
+class RepodataIsEmpty(UnavailableInvalidChannel):
     """
     Subclass used to determine when empty repodata should be cached, e.g. for a
     channel that doesn't provide current_repodata.json
@@ -162,12 +162,16 @@ Exception: {e}
     except (ConnectionError, HTTPError) as e:
         status_code = getattr(e.response, "status_code", None)
         if status_code in (403, 404):
-            # conda may retry in these specific cases
             if not url.endswith("/noarch"):
                 log.info(
                     "Unable to retrieve repodata (response: %d) for %s",
                     status_code,
                     url + "/" + repodata_fn,
+                )
+                raise RepodataIsEmpty(
+                    Channel(dirname(url)),
+                    status_code,
+                    response=e.response,
                 )
             else:
                 if context.allow_non_channel_urls:
@@ -176,12 +180,17 @@ Exception: {e}
                         status_code,
                         url + "/" + repodata_fn,
                     )
-
-            raise RepodataIsNone(
-                Channel(dirname(url)),
-                status_code,
-                response=e.response,
-            )
+                    raise RepodataIsEmpty(
+                        Channel(dirname(url)),
+                        status_code,
+                        response=e.response,
+                    )
+                else:
+                    raise UnavailableInvalidChannel(
+                        Channel(dirname(url)),
+                        status_code,
+                        response=e.response,
+                    )
 
         elif status_code == 401:
             channel = Channel(url)
