@@ -303,18 +303,7 @@ class SubdirData(metaclass=SubdirDataType):
             )
 
         try:
-
-            try:
-                raw_repodata_str = self._repo.repodata(mod_etag_headers)
-            except UnavailableInvalidChannel as e:
-                # complex logic to allow retries in certain cases
-                if e.status_code in (403, 404) and (
-                    (not self.url_w_credentials.endswith("/noarch"))
-                    or context.allow_non_channel_urls
-                ):
-                    raw_repodata_str = None
-                else:
-                    raise
+            raw_repodata_str = self._repo.repodata(mod_etag_headers)
 
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
