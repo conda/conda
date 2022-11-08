@@ -307,7 +307,7 @@ class SubdirData(metaclass=SubdirDataType):
                 raw_repodata_str = self._repo.repodata(mod_etag_headers)
             except UnavailableInvalidChannel as e:
                 # the surrounding try/except/else will cache "{}"
-                if e.status_code in (403, 404):
+                if getattr(e, "repodata_is_None", False):
                     raw_repodata_str = None
                 else:
                     raise

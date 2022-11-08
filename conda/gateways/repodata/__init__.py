@@ -168,11 +168,13 @@ Exception: {e}
                         url + "/" + repodata_fn,
                     )
 
-            raise UnavailableInvalidChannel(
+            unavailable = UnavailableInvalidChannel(
                 Channel(dirname(url)),
                 status_code,
                 response=e.response,
             )
+            unavailable.repodata_is_none = True
+            raise unavailable
 
         elif status_code == 401:
             channel = Channel(url)
