@@ -45,7 +45,7 @@ from ..trust.signature_verification import signature_verification
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderrlog")
 
-REPODATA_PICKLE_VERSION = 28
+REPODATA_PICKLE_VERSION = 29
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
