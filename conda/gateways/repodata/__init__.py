@@ -36,6 +36,15 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
+class RepodataIsNone(UnavailableInvalidChannel):
+    """
+    Subclass used to determine when empty repodata should be cached, e.g. for a
+    channel that doesn't provide current_repodata.json
+    """
+
+    pass
+
+
 class RepoInterface(abc.ABC):
     # TODO: Support async operations
     # TODO: Support progress bars
@@ -168,13 +177,11 @@ Exception: {e}
                         url + "/" + repodata_fn,
                     )
 
-            unavailable = UnavailableInvalidChannel(
+            raise RepodataIsNone(
                 Channel(dirname(url)),
                 status_code,
                 response=e.response,
             )
-            unavailable.repodata_is_none = True
-            raise unavailable
 
         elif status_code == 401:
             channel = Channel(url)

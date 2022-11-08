@@ -21,7 +21,12 @@ from time import time
 from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
-from conda.gateways.repodata import CondaRepoInterface, RepoInterface, Response304ContentUnchanged
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepoInterface,
+    RepodataIsNone,
+    Response304ContentUnchanged,
+)
 
 from .. import CondaError
 from .._vendor.boltons.setutils import IndexedSet
@@ -305,12 +310,9 @@ class SubdirData(metaclass=SubdirDataType):
         try:
             try:
                 raw_repodata_str = self._repo.repodata(mod_etag_headers)
-            except UnavailableInvalidChannel as e:
+            except RepodataIsNone:
                 # the surrounding try/except/else will cache "{}"
-                if getattr(e, "repodata_is_None", False):
-                    raw_repodata_str = None
-                else:
-                    raise
+                raw_repodata_str = None
 
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
