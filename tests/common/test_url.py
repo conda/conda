@@ -3,6 +3,7 @@
 
 
 from logging import getLogger
+import os
 from typing import NamedTuple, Union
 
 import pytest
@@ -155,6 +156,18 @@ def test_split_scheme_auth_token():
     answer = split_scheme_auth_token("https://u:p@conda.io/t/x1029384756/more/path")
     assert answer == ("conda.io/more/path", "https", "u:p", "x1029384756")
 
+
+def test_split_scheme_auth_token_envvars():
+    os.environ["CONDA_TEST_USER"] = "u"
+    os.environ["CONDA_TEST_PASS"] = "p"
+    os.environ["CONDA_TEST_TOKEN"] = "x1029384756"
+    answer = split_scheme_auth_token(
+        "https://${CONDA_TEST_USER}:${CONDA_TEST_PASS}@conda.io/t/${CONDA_TEST_TOKEN}/more/path"
+    )
+    assert answer == ("conda.io/more/path", "https", "u:p", "x1029384756")
+    del os.environ["CONDA_TEST_USER"]
+    del os.environ["CONDA_TEST_PASS"]
+    del os.environ["CONDA_TEST_TOKEN"]
 
 def test_url_to_s3_info():
     answer = url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
