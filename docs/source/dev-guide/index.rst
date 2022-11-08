@@ -12,3 +12,4 @@ Developer guide
    writing-tests/index
    releasing
    plugins/index
+   specs/index
