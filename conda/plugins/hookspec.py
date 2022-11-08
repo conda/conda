@@ -56,6 +56,7 @@ class CondaSpecs:
 
             from conda import plugins
 
+
             @plugins.hookimpl
             def conda_virtual_packages():
                 yield plugins.CondaVirtualPackage(
