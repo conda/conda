@@ -48,7 +48,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_subcommands() -> Iterable[CondaSubcommand]:
+    def conda_subcommands(self) -> Iterable[CondaSubcommand]:
         """
         Register external subcommands in conda.
 
@@ -67,7 +67,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_subcommands(self):
+            def conda_subcommands():
                 yield CondaSubcommand(
                     name="example",
                     summary="example command",
@@ -76,7 +76,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
         """
         Register virtual packages in Conda.
 
@@ -91,7 +91,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_virtual_packages(self):
+            def conda_virtual_packages():
                 yield CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
