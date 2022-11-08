@@ -1,0 +1,20 @@
+### Enhancements
+
+* In configuration files, channels can now be defined as a either a list of strings or a list of strings and mappings.
+  This allows us to attach arbitrary configuration parameters to individual channels.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -1026,7 +1026,7 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
-    def cuda_version(self) -> Optional[str]:
+    def cuda_version(self) -> str | None:
         """
         Retrieves the current cuda version.
         """
@@ -1282,6 +1282,9 @@ class Context(Configuration):
             channels=dals(
                 """
                 The list of conda channels to include for relevant operations.
+                Optionally, these channels can be defined as mappings containing further channel
+                specific configuration options. String and mapping values can exist alongside
+                each other.
                 """
             ),
             client_ssl_cert=dals(

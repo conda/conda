@@ -992,10 +992,17 @@ class PrimitiveParameter(Parameter):
         super().__init__(default, validation)
 
     def load(self, name, match):
+        value = match.value(self._element_type)
+
+        if not isinstance(value, primitive_types) and not isinstance(value, Enum):
+            raise InvalidTypeError(
+                name, value, match.source, value.__class__.__name__, self._type.__name__
+            )
+
         return PrimitiveLoadedParameter(
             name,
             self._type,
-            match.value(self._element_type),
+            value,
             match.keyflag(),
             match.valueflags(self._element_type),
             validation=self._validation)
@@ -1111,7 +1118,8 @@ class SequenceParameter(Parameter):
 
     def get_all_matches(self, name, names, instance):
         """
-        Copied from the SequenceParameter.get_all_matches
+        This is necessary to handle argparse `action="append"`, which can't be set to a
+        default value of NULL it also config settings like `channels: ~`
         """
         matches, exceptions = super().get_all_matches(name, names, instance)
         matches = tuple(m for m in matches if m._raw_value is not None)

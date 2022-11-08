@@ -570,15 +570,18 @@ def test_reading_channel_parameters_valid_parameters():
         assert local_channel_params["test_param"] == "test-value"
 
 
-@pytest.mark.skip("Fails for now, but we need to revisit to give this a better error message.")
 def test_condarc_file_with_bad_parameters():
     """
-    Tests that the appropriate error is thrown when reading a condarc file that
+    This test checks that the appropriate error is thrown when reading a condarc file that
     has channel parameters defined in an incorrect way. The goal here is to give users
     a semi-actionable error message or at least make it easier to troubleshoot.
+
+    This error that this misconfiguration generates right now is pretty ugly, but it is
+    better than blowing up in a stack trace. This tests helps ensure at least
+    that doesn't happen.
     """
     with temp_context(INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1) as context_obj:
-        valid_types = "Sequence[PrimitiveParameter],Sequence[MapParameter]"
+        valid_types = "str"
         with pytest.raises(InvalidTypeError) as exc_info:
             getattr(context_obj, "channels")
         assert exc_info.value.valid_types == valid_types
