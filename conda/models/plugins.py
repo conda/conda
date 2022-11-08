@@ -23,7 +23,7 @@ class CondaSubcommand(NamedTuple):
 
 class CondaVirtualPackage(NamedTuple):
     """
-    A conda subcommand.
+    A conda virtual package.
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).

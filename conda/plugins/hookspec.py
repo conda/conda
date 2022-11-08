@@ -17,7 +17,7 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 class CondaSpecs:
 
     @_hookspec
-    def conda_solvers() -> Iterable[CondaSolver]:
+    def conda_solvers(self) -> Iterable[CondaSolver]:
         """
         Register solvers in conda.
 
@@ -39,7 +39,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_solvers(self):
+            def conda_solvers():
                 yield CondaSolver(
                     name="verbose-classic",
                     backend=VerboseSolver,
