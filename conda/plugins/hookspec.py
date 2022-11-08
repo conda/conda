@@ -31,8 +31,8 @@ class CondaSpecs:
             from conda.core import solve
             from conda.models.plugins import CondaSolver
 
-            class VerboseSolver(solve.Solver):
 
+            class VerboseSolver(solve.Solver):
                 def solve_final_state(self, *args, **kwargs):
                     log.info("My verbose solver!")
                     return super().solve_final_state(*args, **kwargs)
