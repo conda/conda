@@ -19,12 +19,6 @@ from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
-
-try:
-    from tlz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from conda._vendor.toolz.itertoolz import concatv  # NOQA
-
 from conda.common.iterators import groupby_to_dict as groupby
 
 
@@ -119,6 +113,7 @@ def from_environment(
     variables = pd.get_environment_env_vars()
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
+
     if from_history:
         # subset precs to those in history
         hist = History(prefix).get_requested_specs_map()
@@ -126,11 +121,12 @@ def from_environment(
         precs = tuple(prec for prec in precs if prec.name in hist_keys)
 
     grouped_precs = groupby(lambda x: x.package_type, precs)
+
     conda_precs = sorted(
-        concatv(
-            grouped_precs.get(None, ()),
-            grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
-            grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+        (
+            *grouped_precs.get(None, ()),
+            *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+            *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
         ),
         key=lambda x: x.name,
     )
@@ -139,8 +135,6 @@ def from_environment(
         dependencies = ["=".join((a.name, a.version)) for a in conda_precs]
     else:
         dependencies = ['='.join((a.name, a.version, a.build)) for a in conda_precs]
-    if pip_precs:
-        dependencies.append({"pip": [f"{a.name}=={a.version}" for a in pip_precs]})
 
     channels = list(context.channels)
     if not ignore_channels:
@@ -154,11 +148,10 @@ def from_environment(
         full_precs = precs if not from_history else tuple(PrefixGraph(pd.iter_records()).graph)
         grouped_precs = groupby(lambda x: x.package_type, full_precs)
         pip_precs = sorted(
-            concatv(
-                grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-                grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-                grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-                # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
+            (
+                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
             ),
             key=lambda x: x.name,
         )
