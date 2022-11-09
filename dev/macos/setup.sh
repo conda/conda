@@ -7,6 +7,7 @@ then
     curl -LO https://dl.minio.io/server/minio/release/darwin-amd64/minio
 fi
 chmod +x minio
+sudo mkdir -p /usr/local/bin
 sudo cp minio /usr/local/bin/minio
 
 # restoring the default for changeps1 to have parity with dev
@@ -15,4 +16,4 @@ conda config --set changeps1 true
 conda config --set use_only_tar_bz2 true
 # install all test requirements
 conda install --quiet --name conda-test-env --yes --file tests/requirements.txt
-conda update openssl ca-certificates certifi
+#conda update openssl ca-certificates certifi --yes

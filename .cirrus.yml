@@ -1,0 +1,21 @@
+macos_instance:
+  image: ghcr.io/cirruslabs/macos-ventura-base:latest
+
+env:
+  CIRRUS_CLONE_DEPTH: '0'
+
+task:
+  name: macos-m1
+  #only_if: $CIRRUS_BRANCH == 'main' || $CIRRUS_BRANCH == 'feature/.*' || $CIRRUS_BRANCH =~ 'pull/.*'
+  environment:
+    PYTHON: '3.10'
+    TEST_SPLITS: '3'
+    TEST_GROUP: '1'
+  test_script: |
+    wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p $HOME/miniconda3
+    source $HOME/miniconda3/etc/profile.d/conda.sh
+    conda create --name conda-test-env "python=${PYTHON}" -y
+    conda activate conda-test-env
+    ./dev/macos/setup.sh
+    ./dev/macos/unit.sh
