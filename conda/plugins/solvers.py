@@ -1,22 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import sys
 from functools import lru_cache
-
-import pluggy
 
 from . import hookimpl, CondaSolver
 from ..auxlib.ish import dals
 from ..base.constants import CLASSIC_SOLVER
 from ..common.io import dashlist
 from ..exceptions import PluginError
-
-
-def register(pm: pluggy.PluginManager) -> None:
-    """
-    Please add a nice doc string too explaining why this function exists!
-    """
-    pm.register(sys.modules[__name__])
 
 
 @hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
