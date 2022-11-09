@@ -1,16 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import os
 import platform
 import re
 
-from conda import plugins
-from conda.common._os.linux import linux_get_libc_version
-from conda.models.plugins import CondaVirtualPackage
+from ...common._os.linux import linux_get_libc_version
+from .. import hookimpl, CondaVirtualPackage
 
 
-@plugins.hookimpl
+@hookimpl
 def conda_virtual_packages():
     if platform.system() != "Linux":
         return

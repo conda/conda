@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 from conda import plugins
-from conda.models.plugins import CondaSubcommand
+from conda.plugins.types import CondaSubcommand
 
 
 class SubcommandPlugin:
