@@ -604,6 +604,7 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
 
 
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
+    # this function should no longer be used by conda but is kept for API stability
     warnings.warn(
         "fetch_repodata_remote_request",
         PendingDeprecationWarning,
@@ -612,14 +613,14 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        return subdir._repo.repodata({"_etag": etag, "_mtime": mod_stamp})
-    except UnavailableInvalidChannel as e:
-        # complex logic to allow retries in certain cases
-        if e.status_code in (403, 404) and (
-            (not url.endswith("/noarch")) or context.allow_non_channel_urls
-        ):
-            return None
-        raise
+        raw_repodata_str = subdir._repo.repodata({"_etag": etag, "_mtime": mod_stamp})
+    except RepodataIsEmpty:
+        if repodata_fn != REPODATA_FN:
+            raise  # is UnavailableInvalidChannel subclass
+        # the surrounding try/except/else will cache "{}"
+        raw_repodata_str = None
+
+    return raw_repodata_str
 
 
 def create_cache_dir():
