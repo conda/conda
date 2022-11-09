@@ -468,14 +468,7 @@ class UnavailableInvalidChannel(ChannelError):
             reason = reason.upper()
 
         super().__init__(
-            dals(
-                f"""
-                HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>
-
-                """
-            )
-            # since message may include newlines don't include in f-string/dals above
-            + message,
+            f"HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n{message}",
             channel_name=channel_name,
             channel_url=channel_url,
             status_code=status_code,
@@ -1044,6 +1037,10 @@ class EnvironmentFileNotDownloaded(CondaError):
 class SpecNotFound(CondaError):
     def __init__(self, msg, *args, **kwargs):
         super().__init__(msg, *args, **kwargs)
+
+
+class PluginError(CondaError):
+    pass
 
 
 def maybe_raise(error, context):

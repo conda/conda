@@ -19,6 +19,7 @@ nbformat
 perl
 pexpect
 pip
+pluggy
 pkginfo
 pycosat
 pycrypto
@@ -33,3 +34,4 @@ requests
 responses
 ruamel.yaml
 toolz
+tqdm

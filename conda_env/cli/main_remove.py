@@ -4,7 +4,7 @@
 from argparse import Namespace, RawDescriptionHelpFormatter
 
 from conda.cli.conda_argparse import add_output_and_prompt_options, add_parser_prefix, \
-    add_parser_experimental_solver
+    add_parser_solver
 
 _help = "Remove an environment"
 _description = _help + """
@@ -32,7 +32,7 @@ def configure_parser(sub_parsers):
     )
 
     add_parser_prefix(p)
-    add_parser_experimental_solver(p)
+    add_parser_solver(p)
     add_output_and_prompt_options(p)
 
     p.set_defaults(func='.main_remove.execute')

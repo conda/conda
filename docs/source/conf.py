@@ -44,6 +44,7 @@ extensions = [
     "sphinxarg.ext",
     "sphinxcontrib.programoutput",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx.ext.graphviz",
@@ -231,3 +232,5 @@ plantuml_jarfile_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "_build", "plantuml.jar")
 )
 plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
+
+add_module_names = False

@@ -7,6 +7,7 @@ from argparse import (
     RawDescriptionHelpFormatter,
     SUPPRESS,
     Action,
+    _StoreAction,
     _CountAction,
     _HelpAction,
 )
@@ -16,13 +17,17 @@ from os.path import abspath, expanduser, join
 from subprocess import Popen
 import sys
 from textwrap import dedent
+import warnings
 
 from .. import __version__
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
-    UpdateModifier, ExperimentalSolverChoice
+    UpdateModifier, SolverChoice
 from ..common.constants import NULL
+from ..common.io import dashlist
+from ..exceptions import PluginError
+from ..plugins.manager import get_plugin_manager
 
 log = getLogger(__name__)
 
@@ -111,6 +116,42 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
+        pm = get_plugin_manager()
+        self._subcommands = sorted(
+            (
+                subcommand
+                for subcommands in pm.hook.conda_subcommands()
+                for subcommand in subcommands
+            ),
+            key=lambda subcommand: subcommand.name,
+        )
+
+        # Check for conflicts
+        seen = set()
+        conflicts = [
+            subcommand
+            for subcommand in self._subcommands
+            if subcommand.name in seen or seen.add(subcommand.name)
+        ]
+        if conflicts:
+            raise PluginError(
+                dals(
+                    f"""
+                    Conflicting entries found for the following subcommands:
+                    {dashlist(conflicts)}
+                    Multiple conda plugins are registering these subcommands via the
+                    `conda_subcommands` hook; please make sure that
+                    you do not have any incompatible plugins installed.
+                    """
+                )
+            )
+
+        if self._subcommands:
+            self.epilog = 'conda commands available from other packages:' + ''.join(
+                f'\n {subcommand.name} - {subcommand.summary}'
+                for subcommand in self._subcommands
+            )
+
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
@@ -146,6 +187,18 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
+                        # Run the subcommand from plugins
+                        for subcommand in self._subcommands:
+                            if cmd == subcommand.name:
+                                sys.exit(subcommand.action(sys.argv[2:]))
+                        # Run the subcommand from executables; legacy path
+                        warnings.warn(
+                            (
+                                "Loading conda subcommands via executables is "
+                                "pending deprecation in favor of the plugin system. "
+                            ),
+                            PendingDeprecationWarning,
+                        )
                         executable = find_executable('conda-' + cmd)
                         if not executable:
                             from ..exceptions import CommandNotFoundError
@@ -164,7 +217,7 @@ class ArgumentParser(ArgumentParserBase):
             other_commands = find_commands()
             if other_commands:
                 builder = ['']
-                builder.append("conda commands available from other packages:")
+                builder.append("conda commands available from other packages (legacy):")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
 
@@ -241,6 +294,22 @@ class ExtendConstAction(Action):
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
 
+
+class PendingDeprecationAction(_StoreAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        warnings.warn(
+            f"Option {self.option_strings} is pending deprecation.",
+            PendingDeprecationWarning,
+        )
+        super().__call__(parser, namespace, values, option_string)
+
+
+class DeprecatedAction(_StoreAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        warnings.warn(f"Option {self.option_strings} is deprecated!", DeprecationWarning)
+        super().__call__(parser, namespace, values, option_string)
+
+
 # #############################################################################################
 #
 # sub-parsers
@@ -267,7 +336,7 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         "-a", "--all",
         action="store_true",
-        help="Remove index cache, lock files, unused cache packages, and tarballs.",
+        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
     )
     removal_target_options.add_argument(
         "-i", "--index-cache",
@@ -608,7 +677,7 @@ def configure_parser_create(sub_parsers):
         p, prefix_required=True
     )
     add_parser_default_packages(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -810,7 +879,7 @@ def configure_parser_install(sub_parsers):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1088,7 +1157,7 @@ def configure_parser_remove(sub_parsers, aliases):
              "<TARGET_ENVIRONMENT>/conda-meta/pinned.",
     )
     add_parser_prune(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
 
     add_parser_networking(p)
     add_output_and_prompt_options(p)
@@ -1329,7 +1398,7 @@ def configure_parser_update(sub_parsers, aliases):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1766,19 +1835,28 @@ def add_parser_prune(p):
     )
 
 
-def add_parser_experimental_solver(p):
+def add_parser_solver(p):
     """
     Add a command-line flag for alternative solver backends.
 
-    See ``context.experimental_solver`` for more info.
+    See ``context.solver`` for more info.
 
     TODO: This will be replaced by a proper plugin mechanism in the future.
     """
-    p.add_argument(
+    group = p.add_mutually_exclusive_group()
+    group.add_argument(
+        "--solver",
+        dest="solver",
+        choices=[v.value for v in SolverChoice],
+        help="Choose which solver backend to use.",
+        default=NULL,
+    )
+    group.add_argument(
         "--experimental-solver",
-        dest="experimental_solver",
-        choices=[v.value for v in ExperimentalSolverChoice],
-        help="EXPERIMENTAL. Choose which solver backend to use.",
+        action=PendingDeprecationAction,
+        dest="solver",
+        choices=[v.value for v in SolverChoice],
+        help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )
 

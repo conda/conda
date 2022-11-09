@@ -92,6 +92,10 @@ class IntegrationTests(BaseTestCase):
     def setUp(self):
         PackageCacheData.clear()
 
+    @pytest.mark.skipif(
+        context.subdir not in ["linux-64", "osx-64", "win-32", "win-64", "linux-32"],
+        reason="Skip unsupported platforms",
+    )
     def test_install_python2_and_search(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             log.warning(f"Creating empty temporary environment txt file {env_txt}")
@@ -102,8 +106,7 @@ class IntegrationTests(BaseTestCase):
             with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
                 with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     assert exists(join(prefix, PYTHON_BINARY))
-                    assert package_is_installed(prefix, 'python=2')
-
+                    assert package_is_installed(prefix, "python=2")
                     run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
 
                     # regression test for #4513
@@ -325,7 +328,8 @@ class IntegrationTests(BaseTestCase):
             assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
 
     def test_noarch_python_package_with_entry_points(self):
-        with make_temp_env("-c", "conda-test", "flask") as prefix:
+        # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
+        with make_temp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
@@ -1111,10 +1115,10 @@ dependencies:
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
-            flask_python = '3.6'
-            with make_temp_env("python=3.7", use_restricted_unicode=True) as prefix:
+            flask_python = '3.8' # oldest available for osx-arm64
+            with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
 
-                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
+                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
                 run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
                 run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)

@@ -247,7 +247,7 @@ from . import NULL
 from .._vendor.boltons.timeutils import isoparse
 from .._vendor.frozendict import frozendict
 from .collection import AttrDict, make_immutable
-from .compat import integer_types, isiterable, odict
+from .compat import isiterable, odict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
@@ -513,14 +513,14 @@ BoolField = BooleanField
 
 
 class IntegerField(Field):
-    _type = integer_types
+    _type = int
 
 
 IntField = IntegerField
 
 
 class NumberField(Field):
-    _type = integer_types + (float, complex)
+    _type = (int, float, complex)
 
 
 class StringField(Field):
