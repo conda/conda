@@ -38,7 +38,6 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..plugins.manager import get_plugin_manager
-from ..plugins.solvers import get_available_solvers
 from ..resolve import Resolve
 
 log = getLogger(__name__)
@@ -51,7 +50,7 @@ def _get_solver_class(key=None):
     See ``context.solver`` for more details.
     """
     pm = get_plugin_manager()
-    solvers = get_available_solvers(pm)
+    solvers = pm.get_registered_plugins("solvers")
     key = (key or context.solver).lower()
 
     solvers_mapping = {}

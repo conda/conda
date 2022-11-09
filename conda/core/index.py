@@ -174,7 +174,7 @@ def _supplement_index_with_system(index):
     """
     registered_names = []
     pm = get_plugin_manager()
-    for package in chain(*pm.hook.conda_virtual_packages()):
+    for package in pm.get_registered_plugins("virtual_packages"):
         if package.name in registered_names:
             raise PluginError(
                 "Conflicting virtual package entries found for the "

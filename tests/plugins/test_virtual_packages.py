@@ -58,7 +58,7 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(VirtualPackagesPlugin())
     plugin_manager.register(VirtualPackagesPlugin())
 
-    with pytest.raises(PluginError, match=re.escape("Conflicting virtual package entries found")):
+    with pytest.raises(PluginError, match=re.escape("Conflicting `virtual_packages` plugins found")):
         conda.core.index.get_reduced_index(
             context.default_prefix,
             context.default_channels,

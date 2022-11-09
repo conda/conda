@@ -25,8 +25,6 @@ from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier
 from ..common.constants import NULL
-from ..common.io import dashlist
-from ..exceptions import PluginError
 from ..plugins.manager import get_plugin_manager
 
 log = getLogger(__name__)
@@ -117,34 +115,7 @@ class ArgumentParser(ArgumentParserBase):
             self.description += "\n\nOptions:\n"
 
         pm = get_plugin_manager()
-        self._subcommands = sorted(
-            (
-                subcommand
-                for subcommands in pm.hook.conda_subcommands()
-                for subcommand in subcommands
-            ),
-            key=lambda subcommand: subcommand.name,
-        )
-
-        # Check for conflicts
-        seen = set()
-        conflicts = [
-            subcommand
-            for subcommand in self._subcommands
-            if subcommand.name in seen or seen.add(subcommand.name)
-        ]
-        if conflicts:
-            raise PluginError(
-                dals(
-                    f"""
-                    Conflicting entries found for the following subcommands:
-                    {dashlist(conflicts)}
-                    Multiple conda plugins are registering these subcommands via the
-                    `conda_subcommands` hook; please make sure that
-                    you do not have any incompatible plugins installed.
-                    """
-                )
-            )
+        self._subcommands = pm.get_registered_plugins("subcommands")
 
         if self._subcommands:
             self.epilog = 'conda commands available from other packages:' + ''.join(
@@ -1843,9 +1814,8 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    from conda.plugins import manager, solvers
-    pm = manager.get_plugin_manager()
-    solver_choices = [solver.name for solver in solvers.get_available_solvers(pm)]
+    pm = get_plugin_manager()
+    solver_choices = [solver.name for solver in pm.get_registered_plugins("solvers")]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",

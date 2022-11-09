@@ -15,7 +15,6 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 
 
 class CondaSpecs:
-
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:
         """

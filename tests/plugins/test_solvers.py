@@ -8,7 +8,6 @@ import pytest
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda import plugins
-from conda.plugins.solvers import get_available_solvers
 
 
 log = logging.getLogger(__name__)
@@ -75,22 +74,22 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(SolverPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting entries found for the following solvers")
+        PluginError, match=re.escape("Conflicting `solvers` plugins found")
     ):
         solve._get_solver_class()
 
 
-def test_none_get_available_solvers(plugin_manager):
-    assert get_available_solvers(plugin_manager) == []
+def test_get_no_solver(plugin_manager):
+    assert plugin_manager.get_registered_plugins("solvers") == []
 
 
-def test_one_get_available_solvers(plugin_manager):
+def test_get_one_solver(plugin_manager):
     plugin_manager.register(SolverPlugin())
-    solvers = get_available_solvers(plugin_manager)
+    solvers = plugin_manager.get_registered_plugins("solvers")
     assert solvers == [classic_solver]
 
 
-def test_two_get_available_solvers(plugin_manager):
+def test_get_two_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
 
     verbose_classic_solver = plugins.CondaSolver(
@@ -101,15 +100,15 @@ def test_two_get_available_solvers(plugin_manager):
     plugin2 = VerboseSolverPlugin()
     plugin_manager.register(plugin2)
 
-    solvers = get_available_solvers(plugin_manager)
+    solvers = plugin_manager.get_registered_plugins("solvers")
     assert solvers == [classic_solver, verbose_classic_solver]
 
 
-def test_conflicting_get_available_solvers(plugin_manager):
+def test_get_conflicting_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
     plugin_manager.register(SolverPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting entries found for the following solvers")
+        PluginError, match=re.escape("Conflicting `solvers` plugins found")
     ):
-        get_available_solvers(plugin_manager)
+        plugin_manager.get_registered_plugins("solvers")

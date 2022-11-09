@@ -38,11 +38,9 @@ class CondaSolver(NamedTuple):
     """
     A conda solver.
 
-    :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
+    :param name: Solver name (e.g., ``custom-solver``).
     :param backend: Callable that will be instantiated as the solver backend.
     """
+
     name: str
-    backend: Callable[
-        [list[str]],
-        int | None,
-    ]
+    backend: Callable
