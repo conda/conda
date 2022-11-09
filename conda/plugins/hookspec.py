@@ -29,7 +29,6 @@ class CondaSpecs:
 
             from conda import plugins
             from conda.core import solve
-            from conda.models.plugins import CondaSolver
 
 
             class VerboseSolver(solve.Solver):
@@ -40,7 +39,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_solvers():
-                yield CondaSolver(
+                yield plugins.CondaSolver(
                     name="verbose-classic",
                     backend=VerboseSolver,
                 )

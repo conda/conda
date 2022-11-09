@@ -7,7 +7,6 @@ import pytest
 
 from conda.core import solve
 from conda.exceptions import PluginError
-from conda.models.plugins import CondaSolver
 from conda import plugins
 from conda.plugins.solvers import get_available_solvers
 
@@ -25,7 +24,7 @@ class VerboseSolver(solve.Solver):
         return super().solve_final_state(*args, **kwargs)
 
 
-classic_solver = CondaSolver(
+classic_solver = plugins.CondaSolver(
     name="classic",
     backend=Solver,
 )
@@ -40,7 +39,7 @@ class SolverPlugin:
 class VerboseSolverPlugin:
     @plugins.hookimpl
     def conda_solvers(self):
-        yield CondaSolver(
+        yield plugins.CondaSolver(
             name="verbose-classic",
             backend=VerboseSolver,
         )
@@ -94,7 +93,7 @@ def test_one_get_available_solvers(plugin_manager):
 def test_two_get_available_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
 
-    verbose_classic_solver = CondaSolver(
+    verbose_classic_solver = plugins.CondaSolver(
         name="verbose-classic",
         backend=VerboseSolver,
     )
