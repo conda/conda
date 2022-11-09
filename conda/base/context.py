@@ -40,7 +40,6 @@ from .constants import (
     SafetyChecks,
     SatSolverChoice,
     UpdateModifier,
-    CONDA_LOGS_DIR,
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
