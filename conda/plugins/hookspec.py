@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from ..models.plugins import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -59,7 +59,6 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
-            from conda.models.plugins import CondaSubcommand
 
 
             def example_command(args):
@@ -68,11 +67,12 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_subcommands():
-                yield CondaSubcommand(
+                yield plugins.CondaSubcommand(
                     name="example",
                     summary="example command",
                     action=example_command,
                 )
+
         """
 
     @_hookspec
@@ -87,12 +87,11 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
-            from conda.models.plugins import CondaVirtualPackage
 
 
             @plugins.hookimpl
             def conda_virtual_packages():
-                yield CondaVirtualPackage(
+                yield plugins.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
                 )

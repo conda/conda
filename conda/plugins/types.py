@@ -13,6 +13,7 @@ class CondaSubcommand(NamedTuple):
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
     """
+
     name: str
     summary: str
     action: Callable[
@@ -28,6 +29,7 @@ class CondaVirtualPackage(NamedTuple):
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
     """
+
     name: str
     version: str | None
 

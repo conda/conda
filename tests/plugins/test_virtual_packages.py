@@ -8,7 +8,7 @@ import conda.core.index
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.base.context import context
-from conda.models.plugins import CondaVirtualPackage
+from conda.plugins.types import CondaVirtualPackage
 from conda.testing.solver_helpers import package_dict
 from conda import plugins
 from conda.plugins.virtual_packages import cuda
