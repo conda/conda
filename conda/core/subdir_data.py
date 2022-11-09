@@ -312,7 +312,7 @@ class SubdirData(metaclass=SubdirDataType):
                 raw_repodata_str = self._repo.repodata(mod_etag_headers)
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
-                    raise # is UnavailableInvalidChannel subclass
+                    raise  # is UnavailableInvalidChannel subclass
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata_str = None
 
