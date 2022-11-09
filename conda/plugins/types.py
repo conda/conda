@@ -39,7 +39,7 @@ class CondaSolver(NamedTuple):
     A conda solver.
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
-    :param backend: Callable that will instantiated as the solver backend.
+    :param backend: Callable that will be instantiated as the solver backend.
     """
     name: str
     backend: Callable[
