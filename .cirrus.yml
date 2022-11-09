@@ -6,7 +6,7 @@ env:
 
 task:
   name: macos-m1
-  #only_if: $CIRRUS_BRANCH == 'main' || $CIRRUS_BRANCH == 'feature/.*' || $CIRRUS_BRANCH =~ 'pull/.*'
+  only_if: $CIRRUS_BRANCH == 'main' || $CIRRUS_BRANCH == 'feature/.*$' || $CIRRUS_PR != ''
   environment:
     PYTHON: '3.10'
     TEST_SPLITS: '3'
