@@ -5,12 +5,11 @@ from functools import lru_cache
 
 import pluggy
 
-from .. import plugins
+from . import hookimpl, CondaSolver
 from ..auxlib.ish import dals
 from ..base.constants import CLASSIC_SOLVER
 from ..common.io import dashlist
 from ..exceptions import PluginError
-from ..models.plugins import CondaSolver
 
 
 def register(pm: pluggy.PluginManager) -> None:
@@ -20,7 +19,7 @@ def register(pm: pluggy.PluginManager) -> None:
     pm.register(sys.modules[__name__])
 
 
-@plugins.hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
+@hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
 def conda_solvers():
     """
     The classic solver as shipped by default in conda.
