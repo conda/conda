@@ -17,11 +17,15 @@ class CondaPluginManager(pluggy.PluginManager):
     pluggy's default plugin manager.
     """
     def __init__(self, project_name: str | None = None, *args, **kwargs):
+        # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
         super().__init__(project_name, *args, **kwargs)
 
     def load_plugins(self, *plugins) -> list[str]:
+        """
+        Load the provided list of plugins and fail gracefully on failure.
+        """
         plugin_names = []
         for plugin in plugins:
             try:
