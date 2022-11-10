@@ -413,6 +413,11 @@ class Context(Configuration):
         return errors
 
     @property
+    def plugin_manager(self):
+        from ..plugins.manager import get_plugin_manager
+        return get_plugin_manager()
+
+    @property
     def conda_build_local_paths(self):
         # does file system reads to make sure paths actually exist
         return tuple(unique(full_path for full_path in (

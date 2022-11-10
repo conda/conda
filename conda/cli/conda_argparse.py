@@ -24,8 +24,8 @@ from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
     UpdateModifier
+from ..base.context import context
 from ..common.constants import NULL
-from ..plugins.manager import get_plugin_manager
 
 log = getLogger(__name__)
 
@@ -114,8 +114,7 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        pm = get_plugin_manager()
-        self._subcommands = pm.get_registered_plugins("subcommands")
+        self._subcommands = context.plugin_manager.get_registered_plugins("subcommands")
 
         if self._subcommands:
             self.epilog = 'conda commands available from other packages:' + ''.join(
@@ -1814,8 +1813,7 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    pm = get_plugin_manager()
-    solver_choices = [solver.name for solver in pm.get_registered_plugins("solvers")]
+    solver_choices = [solver.name for solver in context.plugin_manager.get_registered_plugins("solvers")]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",

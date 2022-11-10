@@ -37,7 +37,6 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
-from ..plugins.manager import get_plugin_manager
 from ..resolve import Resolve
 
 log = getLogger(__name__)
@@ -49,8 +48,7 @@ def _get_solver_class(key=None):
 
     See ``context.solver`` for more details.
     """
-    pm = get_plugin_manager()
-    solvers = pm.get_registered_plugins("solvers")
+    solvers = context.plugin_manager.get_registered_plugins("solvers")
     key = (key or context.solver).lower()
 
     solvers_mapping = {}
