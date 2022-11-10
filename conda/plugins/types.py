@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Callable, NamedTuple
+from ..core.solve import Solver
 
 
 class CondaSubcommand(NamedTuple):
@@ -43,4 +44,4 @@ class CondaSolver(NamedTuple):
     """
 
     name: str
-    backend: Callable
+    backend: Solver
