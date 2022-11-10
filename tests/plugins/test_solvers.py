@@ -13,10 +13,6 @@ from conda import plugins
 log = logging.getLogger(__name__)
 
 
-class Solver(solve.Solver):
-    pass
-
-
 class VerboseSolver(solve.Solver):
     def solve_final_state(self, *args, **kwargs):
         log.info("My verbose solver!")
@@ -25,7 +21,7 @@ class VerboseSolver(solve.Solver):
 
 classic_solver = plugins.CondaSolver(
     name="classic",
-    backend=Solver,
+    backend=solve.Solver,
 )
 
 
@@ -53,7 +49,7 @@ def plugin(plugin_manager):
 
 def test_get_solver_class(plugin):
     solver_class = solve._get_solver_class()
-    assert solver_class is Solver
+    assert solver_class is solve.Solver
 
 
 def test_get_solver_class_multiple(plugin_manager):
@@ -64,7 +60,7 @@ def test_get_solver_class_multiple(plugin_manager):
     plugin_manager.register(plugin2)
 
     solver_class = solve._get_solver_class()
-    assert solver_class is Solver
+    assert solver_class is solve.Solver
     solver_class = solve._get_solver_class("verbose-classic")
     assert solver_class is VerboseSolver
 

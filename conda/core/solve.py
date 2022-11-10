@@ -29,7 +29,7 @@ from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
+from ..exceptions import (CondaValueError, PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError)
 from ..history import History
 from ..models.channel import Channel
@@ -58,7 +58,7 @@ def _get_solver_class(key=None):
     if key in solvers_mapping:
         return solvers_mapping[key]
     else:
-        raise ValueError(
+        raise CondaValueError(
             f"You have chosen a non-default solver backend ({key}) "
             f"but it was not recognized. Choose one of: "
             f"{', '.join(solvers_mapping.keys())}"

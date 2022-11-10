@@ -180,8 +180,6 @@ class ArgumentParser(ArgumentParserBase):
         super().error(message)
 
     def print_help(self):
-        # This code path is pending deprecation; it should be removed when subcommands
-        # via executables goes away
         super().print_help()
 
         if sys.argv[1:] in ([], [''], ['help'], ['-h'], ['--help']):

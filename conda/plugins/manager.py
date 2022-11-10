@@ -42,9 +42,6 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Return all registered plugins for the given name.
         """
-        if not plugin_name:
-            raise PluginError("A plugin name is required.")
-
         hook_name = f"{self.project_name}_{plugin_name}"  # e.g. conda_solvers
         hook = getattr(self.hook, hook_name, None)
         if hook is None:
