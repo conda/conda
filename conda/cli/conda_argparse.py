@@ -1811,7 +1811,9 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    solver_choices = [solver.name for solver in context.plugin_manager.get_registered_plugins("solvers")]
+    solver_choices = [
+        solver.name for solver in context.plugin_manager.get_registered_plugins("solvers")
+    ]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",
