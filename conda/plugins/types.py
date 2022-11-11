@@ -44,4 +44,4 @@ class CondaSolver(NamedTuple):
     """
 
     name: str
-    backend: Solver
+    backend: type[Solver]
