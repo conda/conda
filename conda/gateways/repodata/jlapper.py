@@ -35,14 +35,14 @@ LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 
 
-def bhfunc(data: bytes, key: bytes):
+def keyed_hash(data: bytes, key: bytes):
     """
     Keyed hash.
     """
     return blake2b(data, key=key, digest_size=DIGEST_SIZE)
 
 
-def hfunc():
+def hash():
     """
     Ordinary hash.
     """
@@ -119,7 +119,7 @@ def process_jlap_response(response, pos=0, iv=b""):
             iv = bytes.fromhex(line.decode("utf-8"))
             buffer = [(0, iv.hex(), iv.hex())]
         else:
-            iv = bhfunc(line, iv).digest()
+            iv = keyed_hash(line, iv).digest()
             buffer.append((pos, line.decode("utf-8"), iv.hex()))
 
     log.info("%d bytes read", pos - initial_pos)  # maybe + length of last line
@@ -243,7 +243,7 @@ def request_url_jlap_state(
         or not (NOMINAL_HASH in state and json_path.exists())
         or state.get(JLAP_UNAVAILABLE)
     ):
-        hasher = hfunc()
+        hasher = hash()
         with timeme("Download "):
             # TODO use Etag, Last-Modified caching headers if file exists
             # otherwise we re-download every time, if jlap is unavailable.
@@ -307,7 +307,7 @@ def request_url_jlap_state(
 
                 with timeme("Write changed "), json_path.open("wb") as repodata:
 
-                    hasher = hfunc()
+                    hasher = hash()
 
                     class hashwriter:
                         def write(self, s):
@@ -343,7 +343,8 @@ def request_url_jlap_state(
             json_new_path = json_path.with_suffix(".json.old")
             log.warning("Rename to %s for debugging", json_new_path)
             json_path.rename(json_new_path)
-            return request_url_jlap(url, get_place=get_place, full_download=True)
+
+            return request_url_jlap_state(url, state, get_place=get_place, full_download=True)
 
 
 if __name__ == "__main__":

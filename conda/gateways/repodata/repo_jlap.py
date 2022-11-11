@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-import pathlib
+from pathlib import Path
 
-from . import jlapper
-from . import RepodataIsEmpty, RepoInterface, conda_http_errors
+from . import RepoInterface, conda_http_errors, jlapper
 
 log = logging.getLogger(__name__)
 
@@ -24,18 +23,25 @@ except ImportError:
 
 
 class JlapRepoInterface(RepoInterface):
-    def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
+    def __init__(
+        self,
+        url: str,
+        repodata_fn: str | None,
+        cache_path_json: str | Path,
+        cache_path_state: str | Path,
+        **kwargs,
+    ) -> None:
         log.debug("Using CondaRepoJLAP")
+
+        # TODO is there a better way to share these paths
+        self._cache_path_json = Path(cache_path_json)
+        self._cache_path_state = Path(cache_path_state)
 
         self._url = url
         self._repodata_fn = repodata_fn
 
         self._log = logging.getLogger(__name__)
         self._stderrlog = logging.getLogger("conda.stderrlog")
-
-        # TODO is there a better way to share these paths
-        self._cache_path_json = pathlib.Path(kwargs["cache_path_json"])
-        self._cache_path_state = pathlib.Path(kwargs["cache_path_state"])
 
     def repodata(self, state: dict) -> str | None:
         console.print_json(data=state)
@@ -57,4 +63,4 @@ class JlapRepoInterface(RepoInterface):
             state["_mod"] = headers.get("last-modified")
             state["_cache_control"] = headers.get("cache-control")
 
-        return pathlib.Path(self._cache_path_json).read_text()
+        return Path(self._cache_path_json).read_text()

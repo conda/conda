@@ -1833,7 +1833,6 @@ def add_parser_solver(p):
     )
 
 
-
 def add_parser_jlap(p):
     """
     Add a command-line flag for incremental repodata.
