@@ -3,6 +3,7 @@
 
 import bz2
 import hashlib
+import itertools
 import json
 import re
 import warnings
@@ -32,7 +33,7 @@ from ..auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL, CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, as_completed, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
@@ -139,7 +140,24 @@ class SubdirData(metaclass=SubdirDataType):
             else partial(ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads)
         )
         with Executor() as executor:
-            result = tuple(concat(executor.map(subdir_query, channel_urls)))
+            futures = []
+            for url in channel_urls:
+                future = executor.submit(subdir_query, url)
+                futures.append(future)
+
+            # This pattern should propagate exceptions to the main thread as
+            # soon as they occur. If all is well the results will be available
+            # immediately in result = ... . If there is an exception,
+            # already-started downloads may still complete though.
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except BaseException:
+                    executor.shutdown(wait=False)
+                    raise
+
+            result = tuple(itertools.chain.from_iterable(future.result() for future in futures))
+
         return result
 
     def query(self, package_ref_or_match_spec):
