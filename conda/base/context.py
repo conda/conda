@@ -414,6 +414,10 @@ class Context(Configuration):
 
     @property
     def plugin_manager(self):
+        """
+        This is the preferred way of accessing the ``PluginManager`` object for this application
+        and is located here to avoid problems with cyclical imports elsewhere in the code.
+        """
         from ..plugins.manager import get_plugin_manager
         return get_plugin_manager()
 
