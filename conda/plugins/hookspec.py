@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSubcommand, CondaVirtualPackage
+from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -15,6 +15,35 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 
 
 class CondaSpecs:
+    @_hookspec
+    def conda_solvers(self) -> Iterable[CondaSolver]:
+        """
+        Register solvers in conda.
+
+        :return: An iterable of solvers entries.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core import solve
+
+
+            class VerboseSolver(solve.Solver):
+                def solve_final_state(self, *args, **kwargs):
+                    log.info("My verbose solver!")
+                    return super().solve_final_state(*args, **kwargs)
+
+
+            @plugins.hookimpl
+            def conda_solvers():
+                yield plugins.CondaSolver(
+                    name="verbose-classic",
+                    backend=VerboseSolver,
+                )
+
+        """
 
     @_hookspec
     def conda_subcommands(self) -> Iterable[CondaSubcommand]:
@@ -41,6 +70,7 @@ class CondaSpecs:
                     summary="example command",
                     action=example_command,
                 )
+
         """
 
     @_hookspec
