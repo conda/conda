@@ -1,6 +1,6 @@
 # Deep dives
 
-This section contains a series of deep dives into particular complex parts
+This section contains a series of deep dives into particularly complex parts
 of conda.
 
 ```{toctree}
