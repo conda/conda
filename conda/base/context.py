@@ -974,6 +974,7 @@ class Context(Configuration):
                 "use_only_tar_bz2",
                 "repodata_threads",
                 "fetch_threads",
+                "experimental_jlap",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1609,6 +1610,12 @@ class Context(Configuration):
                 Sets the number of channel notices to be displayed when running commands
                 the "install", "create", "update", "env create", and "env update" . Defaults
                 to 5. In order to completely suppress channel notices, set this to 0.
+                """
+            ),
+            experimental_jlap=dals(
+                """
+                Use experimental repodata.jlap to reduce bandwidth, by fetching
+                only changes from previous versions of the index.
                 """
             ),
         )
