@@ -65,13 +65,15 @@ def line_and_pos(response: Response, pos=0) -> Iterator[tuple[int, bytes]]:
         pos += len(line) + 1
 
 
-def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True):
-    session = CondaSession()
+def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True, session=None):
     response = request_jlap(url, pos=pos, etag=etag, ignore_etag=ignore_etag, session=session)
     return process_jlap_response(response, pos=pos, iv=iv)
 
 
 def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | None = None):
+    """
+    Return the part of the remote .jlap file we are interested in.
+    """
     # XXX max-age seconds; return dummy buffer if 304 not modified?
     headers = {}
     if pos:
@@ -79,28 +81,27 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     if etag and not ignore_etag:
         headers["if-none-match"] = etag
 
-    log.info("%s", headers)
+    log.debug("%s %s", url, headers)
 
-    if session is None:
-        session = CondaSession()
+    assert session is not None
 
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     response = session.get(url, stream=True, headers=headers, timeout=timeout)
     response.raise_for_status()
 
+    log.debug("request headers: %s", pprint.pformat(response.request.headers))
+    log.debug(
+        "response headers: %s",
+        pprint.pformat(
+            {
+                k: v
+                for k, v in response.headers.items()
+                if any(map(k.lower().__contains__, ("content", "last", "range", "encoding")))
+            }
+        ),
+    )
+    pprint.pprint("status: %d" % response.status_code)
     if "range" in headers:
-        log.debug("request headers: %s", pprint.pformat(response.request.headers))
-        log.debug(
-            "response headers: %s",
-            pprint.pformat(
-                {
-                    k: v
-                    for k, v in response.headers.items()
-                    if any(map(k.lower().__contains__, ("content", "last", "range", "encoding")))
-                }
-            ),
-        )
-        pprint.pprint("status: %d" % response.status_code)
         assert response.status_code == 206, "server returned full response"
 
     log.info("%s", response)
@@ -197,10 +198,11 @@ def download_and_hash(hasher, url, json_path, session: Session):
     """
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     response = session.get(url, stream=True, timeout=timeout)
+    log.debug("%s %s", url, response.headers)
     response.raise_for_status()
     length = 0
     with json_path.open("wb") as repodata:
-        for block in response.iter_content():
+        for block in response.iter_content(chunk_size=1 << 14):
             hasher.update(block)
             repodata.write(block)
             length += len(block)
@@ -208,19 +210,23 @@ def download_and_hash(hasher, url, json_path, session: Session):
         log.info("Download %d bytes %r", length, response.request.headers)
 
 
-def request_url_jlap(url, get_place=get_place, full_download=False):
+def request_url_jlap(url, get_place=get_place):
     """
     Complete save complete json / save place / update with jlap sequence.
     """
     state_path = get_place(url, ".s")
     try:
         state = json.loads(state_path.read_text())
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         state = {}
 
-    request_url_jlap_state(url, state, get_place=get_place, full_download=False)
+    request_url_jlap_state(url, state, get_place=get_place)
 
-    state = {k: v for k, v in state.items() if k in (NOMINAL_HASH, ON_DISK_HASH, JLAP)}
+    log.info("unfiltered state %s", state)
+
+    state = {
+        k: v for k, v in state.items() if k in (NOMINAL_HASH, ON_DISK_HASH, JLAP, JLAP_UNAVAILABLE)
+    }
 
     state_path.write_text(json.dumps(state, indent=True))
 
@@ -229,7 +235,13 @@ def request_url_jlap_state(
     url, state: dict, get_place=get_place, full_download=False, session: Session | None = None
 ):
     if session is None:
-        session = CondaSession()
+        session = Session()
+
+    assert not isinstance(session, CondaSession), "CondaSession mangles .jlap URLs"
+
+    # We can't use CondaSession here
+    # Channel.from_value("https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap")
+    # mangles the URL (works fine with repodata.json, or a package filename)
 
     jlap_state = state.get(JLAP, {})
     headers = jlap_state.get(HEADERS, {})
@@ -244,14 +256,14 @@ def request_url_jlap_state(
         or state.get(JLAP_UNAVAILABLE)
     ):
         hasher = hash()
-        with timeme("Download "):
+        with timeme(f"Download complete {url} "):
             # TODO use Etag, Last-Modified caching headers if file exists
             # otherwise we re-download every time, if jlap is unavailable.
             download_and_hash(hasher, withext(url, ".json"), json_path, session=session)
 
         have = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
 
-        # trick code even though there is no jlap yet? buffer with zero patches.
+        # a jlap buffer with zero patches.
         buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
 
     else:
@@ -266,6 +278,7 @@ def request_url_jlap_state(
                 pos=jlap_state.get("pos", 0),
                 etag=headers.get("etag", None),
                 iv=bytes.fromhex(jlap_state.get("iv", "")),
+                session=session,
             )
             need_jlap = False
         except ValueError:
@@ -275,11 +288,13 @@ def request_url_jlap_state(
             # file may have been truncated and we need to fetch from 0
             if e.response.status_code == 404:
                 state[JLAP_UNAVAILABLE] = time.time()
-                return request_url_jlap_state(url, state, get_place=get_place, full_download=True)
+                return request_url_jlap_state(
+                    url, state, get_place=get_place, full_download=True, session=session
+                )
             log.exception("Requests error")
 
         if need_jlap:  # retry for some reason
-            buffer, jlap_state = fetch_jlap(withext(url, ".jlap"))
+            buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
 
         get_place(url).with_suffix(".jlap").write_text("\n".join(b[1] for b in buffer))
 
@@ -300,6 +315,8 @@ def request_url_jlap_state(
 
             if apply:
                 with timeme("Load "), json_path.open() as repodata:
+                    # we haven't loaded repodata yet; it could fail to parse, or
+                    # have the wrong hash.
                     repodata_json = json.load(repodata)  # check have_hash here
                     # if this fails, then we also need to fetch again from 0
 
@@ -327,15 +344,17 @@ def request_url_jlap_state(
             else:
                 assert state["have"] == want
 
-        except LookupError as e:
-            if e.args[0] != "patch not found":
-                raise
-
-            # 'have' hash not mentioned in patchset
-            #
-            # XXX or skip jlap at top of fn; make sure it is not
-            # possible to download the complete json twice
-            log.info("Current repodata.json %s not found in patchset. Re-download repodata.json")
+        except (LookupError, json.JSONDecodeError) as e:
+            if isinstance(e, LookupError):
+                if e.args[0] != "patch not found":
+                    raise
+                # 'have' hash not mentioned in patchset
+                #
+                # XXX or skip jlap at top of fn; make sure it is not
+                # possible to download the complete json twice
+                log.info(
+                    "Current repodata.json %s not found in patchset. Re-download repodata.json"
+                )
 
             assert not full_download, "Recursion error"
 
