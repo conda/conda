@@ -67,8 +67,8 @@ Conda plugins use cases
 
 The new conda plugin API ecosystem brings about many possibilities, including but not limited to:
 
-* Custom subcommands
-* Support for packaging-related topics (*e.g.*, virtual packages)
+* :doc:`Custom subcommands <../../dev-guide/plugins/subcommands>`
+* Support for packaging-related topics (*e.g.*, :doc:`virtual packages <../../dev-guide/plugins/virtual_packages>`)
 * Development environment integrations (*e.g.*, shells)
 * Alternative dependency solver backends
 * Network adapters
