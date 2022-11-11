@@ -40,7 +40,7 @@ class CondaSolver(NamedTuple):
     A conda solver.
 
     :param name: Solver name (e.g., ``custom-solver``).
-    :param backend: Callable that will be instantiated as the solver backend.
+    :param backend: Type that will be instantiated as the solver backend.
     """
 
     name: str
