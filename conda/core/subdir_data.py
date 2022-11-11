@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 import hashlib
 import itertools
 import json
@@ -432,14 +434,16 @@ class SubdirData(metaclass=SubdirDataType):
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str, state={}):
+    def _process_raw_repodata_str(self, raw_repodata_str, state: dict | None = None):
         """
         state contains information that was previously in-band in raw_repodata_str.
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata, state={}):
+    def _process_raw_repodata(self, repodata, state=None):
+        if state is None:
+            state = {}
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
