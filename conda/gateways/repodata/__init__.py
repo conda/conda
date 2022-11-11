@@ -109,6 +109,7 @@ class CondaRepoInterface(RepoInterface):
 
         return json_str
 
+
 def _add_http_value_to_dict(resp, http_key, d, dict_key):
     value = resp.headers.get(http_key)
     if value:

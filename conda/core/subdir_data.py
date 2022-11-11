@@ -25,8 +25,8 @@ from genericpath import getmtime, isfile
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
     CondaRepoInterface,
-    RepoInterface,
     RepodataIsEmpty,
+    RepoInterface,
     Response304ContentUnchanged,
 )
 
@@ -52,9 +52,21 @@ from ..trust.signature_verification import signature_verification
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderrlog")
 
-REPODATA_PICKLE_VERSION = 29
+REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+
+
+def get_repo_interface() -> type[RepoInterface]:
+    if context.experimental_jlap:
+        try:
+            from conda.gateways.repodata.repo_jlap import JlapRepoInterface
+
+            return JlapRepoInterface
+        except ImportError:
+            warnings.warn("Unable to import repo_jlap. Is jsonpatch installed?")
+
+    return CondaRepoInterface
 
 
 class SubdirDataType(type):
@@ -74,7 +86,9 @@ class SubdirDataType(type):
                         return cache_entry
             else:
                 return cache_entry
-        subdir_data_instance = super().__call__(channel, repodata_fn)
+        subdir_data_instance = super().__call__(
+            channel, repodata_fn, RepoInterface=get_repo_interface()
+        )
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
@@ -154,7 +168,7 @@ class SubdirData(metaclass=SubdirDataType):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, repodata_fn=REPODATA_FN):
+    def __init__(self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -166,13 +180,14 @@ class SubdirData(metaclass=SubdirDataType):
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
+        self.RepoInterface = RepoInterface
         self._loaded = False
         self._key_mgr = None
 
     @property
     def _repo(self) -> RepoInterface:
         # XXX one for `current_repodata.json` and one for `repodata.json`
-        return CondaRepoInterface(
+        return self.RepoInterface(
             self.url_w_credentials,
             self.repodata_fn,
             cache_path_json=self.cache_path_json,

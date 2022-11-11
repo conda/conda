@@ -1,75 +1,60 @@
-"""
-Code to handle incremental repodata updates as described in CEP 10.
-"""
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
 import logging
-import warnings
-from pathlib import Path
-
-from ...auxlib.logz import stringify
-from ...base.context import context
-from ..connection import (
-    InsecureRequestWarning,
-)
-from ..connection.session import CondaSession
-from . import RepoInterface, Response304ContentUnchanged, conda_http_errors
-
-log = logging.getLogger(__name__)
-stderrlog = logging.getLogger("conda.stderrlog")
+import pathlib
 
 from . import jlapper
+from . import RepodataIsEmpty, RepoInterface, conda_http_errors
+
+log = logging.getLogger(__name__)
+
+try:
+    from rich.console import Console
+
+    console = Console()
+except ImportError:
+    import pprint
+
+    class console:
+        @staticmethod
+        def print_json(data={}):
+            log.info("%s", pprint.pformat(data))
 
 
 class JlapRepoInterface(RepoInterface):
-    def __init__(self, url: str, repodata_fn: str | Path, cache_path_json: str | Path, cache_path_state: str | Path, **kwargs) -> None:
-        self._url = url
-        self._repodata_fn = Path(repodata_fn)
+    def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
+        log.debug("Using CondaRepoJLAP")
 
-        self.cache_path_json = cache_path_json
-        self.cache_path_state = cache_path_state
+        self._url = url
+        self._repodata_fn = repodata_fn
 
         self._log = logging.getLogger(__name__)
         self._stderrlog = logging.getLogger("conda.stderrlog")
 
+        # TODO is there a better way to share these paths
+        self._cache_path_json = pathlib.Path(kwargs["cache_path_json"])
+        self._cache_path_state = pathlib.Path(kwargs["cache_path_state"])
+
     def repodata(self, state: dict) -> str | None:
-        """
-        Fetch repodata, using adjacent .jlap file for deltas if available.
-        """
-        if not context.ssl_verify:
-            warnings.simplefilter("ignore", InsecureRequestWarning)
+        console.print_json(data=state)
 
-        url = self._url
-        repodata_fn = self._repodata_fn
+        repodata_url = f"{self._url}/{self._repodata_fn}"
+        # jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
 
-        etag = state.get("_etag")
-        mod_stamp = state.get("_mod")
+        def get_place(url, extra=""):
+            if url == repodata_url and extra == "":
+                return self._cache_path_json
+            raise NotImplementedError("Unexpected URL", url)
 
-        session = CondaSession()
+        with conda_http_errors(self._url, self._repodata_fn):
+            jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
 
-        with conda_http_errors(str(url), str(repodata_fn)):
-            timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-            resp = jlapper.request_url_jlap(url)
-            if log.isEnabledFor(logging.DEBUG):
-                log.debug(stringify(resp, content_max_len=256))
+        headers = state.get("jlap", {}).get("headers")
+        if headers:
+            state["_etag"] = headers.get("etag")
+            state["_mod"] = headers.get("last-modified")
+            state["_cache_control"] = headers.get("cache-control")
 
-        if resp.status_code == 304:
-            raise Response304ContentUnchanged()
-
-        json_str = resp.content
-
-        saved_fields = {}
-        _add_http_value_to_dict(resp, "Etag", saved_fields, "_etag")
-        _add_http_value_to_dict(resp, "Last-Modified", saved_fields, "_mod")
-        _add_http_value_to_dict(resp, "Cache-Control", saved_fields, "_cache_control")
-
-        state.update(saved_fields)
-
-        return json_str
-
-
-def _add_http_value_to_dict(resp, http_key, d, dict_key):
-    value = resp.headers.get(http_key)
-    if value:
-        d[dict_key] = value
+        return pathlib.Path(self._cache_path_json).read_text()
