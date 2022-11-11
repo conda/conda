@@ -327,6 +327,7 @@ class Context(Configuration):
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
+    experimental_jlap = ParameterLoader(PrimitiveParameter(False))
 
     # ######################################################
     # ##               Solver Configuration               ##
