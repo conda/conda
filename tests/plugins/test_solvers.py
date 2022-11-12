@@ -6,6 +6,7 @@ import re
 import pytest
 
 from conda.core import solve
+from conda.base.context import context
 from conda.exceptions import PluginError
 from conda import plugins
 
@@ -40,28 +41,23 @@ class VerboseSolverPlugin:
         )
 
 
-@pytest.fixture()
-def plugin(plugin_manager):
+def test_get_solver_backend(plugin_manager):
     plugin = SolverPlugin()
     plugin_manager.register(plugin)
-    return plugin
-
-
-def test_get_solver_class(plugin):
-    solver_class = solve._get_solver_class()
+    solver_class = plugin_manager.get_solver_backend()
     assert solver_class is solve.Solver
 
 
-def test_get_solver_class_multiple(plugin_manager):
+def test_get_solver_backend_multiple(plugin_manager):
     plugin = SolverPlugin()
     plugin_manager.register(plugin)
 
     plugin2 = VerboseSolverPlugin()
     plugin_manager.register(plugin2)
 
-    solver_class = solve._get_solver_class()
+    solver_class = plugin_manager.get_solver_backend()
     assert solver_class is solve.Solver
-    solver_class = solve._get_solver_class("verbose-classic")
+    solver_class = plugin_manager.get_solver_backend("verbose-classic")
     assert solver_class is VerboseSolver
 
 
@@ -72,7 +68,7 @@ def test_duplicated(plugin_manager):
     with pytest.raises(
         PluginError, match=re.escape("Conflicting `solvers` plugins found")
     ):
-        solve._get_solver_class()
+        plugin_manager.get_solver_backend()
 
 
 def test_get_no_solver(plugin_manager):

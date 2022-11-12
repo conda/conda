@@ -29,7 +29,7 @@ from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import (CondaValueError, PackagesNotFoundError, SpecsConfigurationConflictError,
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError)
 from ..history import History
 from ..models.channel import Channel
@@ -48,21 +48,9 @@ def _get_solver_class(key=None):
 
     See ``context.solver`` for more details.
     """
-    solvers = context.plugin_manager.get_registered_plugins("solvers")
-    key = (key or context.solver).lower()
-
-    solvers_mapping = {}
-    for solver in solvers:
-        solvers_mapping[solver.name.lower()] = solver.backend
-
-    if key in solvers_mapping:
-        return solvers_mapping[key]
-    else:
-        raise CondaValueError(
-            f"You have chosen a non-default solver backend ({key}) "
-            f"but it was not recognized. Choose one of: "
-            f"{', '.join(solvers_mapping.keys())}"
-        )
+    from conda.plugins import solvers
+    # TODO add deprecation warning
+    return solvers.get_solver((key or context.solver).lower())
 
 
 class Solver:

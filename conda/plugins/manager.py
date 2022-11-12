@@ -9,7 +9,9 @@ import pluggy
 from . import solvers, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from ..auxlib.ish import dals
-from ..exceptions import PluginError
+from ..base.context import context
+from ..core.solve import Solver
+from ..exceptions import CondaValueError, PluginError
 
 
 class CondaPluginManager(pluggy.PluginManager):
@@ -68,6 +70,31 @@ class CondaPluginManager(pluggy.PluginManager):
                 )
             )
         return plugins
+
+    def get_solver_backend(self, name: str = None) -> type[Solver]:
+        """
+        Load the correct solver backend.
+
+        See ``context.solver`` for more details.
+        """
+        if name is None:
+            name = context.solver
+        name = name.lower()
+
+        solvers_mapping = {
+            solver.name.lower(): solver.backend
+            for solver in self.get_registered_plugins("solvers")
+        }
+
+        backend = solvers_mapping.get(name, None)
+        if backend is None:
+            raise CondaValueError(
+                f"You have chosen a non-default solver backend ({name}) "
+                f"but it was not recognized. Choose one of: "
+                f"{', '.join(solvers_mapping.keys())}"
+            )
+
+        return backend
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

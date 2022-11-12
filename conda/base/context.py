@@ -842,12 +842,11 @@ class Context(Configuration):
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
         if self.solver != "classic":
-            from ..core.solve import _get_solver_class
-
             user_agent_str = "solver/%s" % self.solver
             try:
+                solver_backend = self.plugin_manager.get_solver_backend()
                 # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {_get_solver_class().user_agent()}"
+                user_agent_str += f" {solver_backend().user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
