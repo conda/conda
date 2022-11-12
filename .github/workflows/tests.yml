@@ -176,7 +176,7 @@ jobs:
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           bash -c "source /opt/conda/etc/profile.d/conda.sh; \
-                   sudo conda install --quiet -y -c defaults --file tests/requirements.txt; \
+                   sudo /opt/conda/bin/conda install --quiet -y -c defaults --file tests/requirements.txt; \
                    pytest -k test_DepsModifier_contract"
 
       - name: Upload test results
