@@ -76,19 +76,27 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def _get_solver_backend(self, name: str = None) -> type[Solver]:
         """
-        Load the correct solver backend.
+        Get the solver backend with the given name (or fall back to the
+        name provided in the context).
 
         See ``context.solver`` for more details.
+
+        This is cached with a plugin manager specific LRU cache.
         """
+        # Some light data validation in case name isn't given.
         if name is None:
             name = context.solver
         name = name.lower()
 
+        # Build a mapping between a lower cased backend name and
+        # solver backend class provided by the installed plugins.
         solvers_mapping = {
             solver.name.lower(): solver.backend
             for solver in self.get_registered_plugins("solvers")
         }
 
+        # Look up the solver mapping an fail loudly if it can't
+        # find the requested solver.
         backend = solvers_mapping.get(name, None)
         if backend is None:
             raise CondaValueError(
