@@ -24,6 +24,9 @@ class CondaPluginManager(pluggy.PluginManager):
         # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
+        # Make the cache containers local to the instances so that the
+        # reference from cache to the instance gets garbage collected with the instance
+        self.get_solver_backend = functools.lru_cache()(self._get_solver_backend)
         super().__init__(project_name, *args, **kwargs)
 
     def load_plugins(self, *plugins) -> list[str]:
@@ -71,7 +74,7 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
-    def get_solver_backend(self, name: str = None) -> type[Solver]:
+    def _get_solver_backend(self, name: str = None) -> type[Solver]:
         """
         Load the correct solver backend.
 
