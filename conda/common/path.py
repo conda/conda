@@ -354,8 +354,8 @@ def strip_pkg_extension(path):
         return path[:-6], ".conda"
     elif path[-8:] == ".tar.bz2":
         return path[:-8], ".tar.bz2"
-    elif path[-5:] == ".json":
-        return path[:-5], ".json"
+    elif path[-5:] in (".json", ".jlap"): # no .json.bz2?
+        return path[:-5], path[-5:]
     else:
         return path, None
 
