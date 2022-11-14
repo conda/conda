@@ -172,7 +172,7 @@ def _supplement_index_with_system(index):
     conflict.
     """
     registered_names = []
-    packages = context.plugin_manager.get_registered_plugins("virtual_packages")
+    packages = context.plugin_manager.get_hook_results("virtual_packages")
     for package in packages:
         if package.name in registered_names:
             raise PluginError(
