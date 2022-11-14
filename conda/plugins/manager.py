@@ -112,6 +112,10 @@ class CondaPluginManager(pluggy.PluginManager):
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
+    """
+    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
+    instance, with the built-in and the entrypoints provided plugins loaded.
+    """
     pm = CondaPluginManager()
     pm.add_hookspecs(CondaSpecs)
     pm.load_plugins(solvers, *virtual_packages.plugins)
