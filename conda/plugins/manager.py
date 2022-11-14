@@ -19,6 +19,9 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to
     pluggy's default plugin manager.
     """
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
+    #: method.
+    get_cached_solver_backend = None
 
     def __init__(self, project_name: str | None = None, *args, **kwargs) -> None:
         # Setting the default project name to the spec name for ease of use
@@ -31,7 +34,9 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def load_plugins(self, *plugins) -> list[str]:
         """
-        Load the provided list of plugins and fail gracefully on failure.
+        Load the provided list of plugins and fail gracefully on error.
+        The provided list plugins can either be classes or modules with
+        ``conda.plugins.hook_impl`
         """
         plugin_names = []
         for plugin in plugins:
@@ -46,9 +51,9 @@ class CondaPluginManager(pluggy.PluginManager):
         return plugin_names
 
     def load_setuptools_entrypoints(self, *args, **kwargs) -> int:
-        """"
-        Overloading the parent method to add conda specific exception
         """
+        Overloading the parent method to add conda specific exception
+s        """
         try:
             return super().load_setuptools_entrypoints(*args, **kwargs)
         except Exception as err:

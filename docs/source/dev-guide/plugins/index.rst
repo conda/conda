@@ -101,6 +101,8 @@ the `"Choose an Open Source License"`_ site.
 API reference
 -------------
 
+.. autoattribute:: conda.plugins.hookimpl
+
 .. py:module:: conda.plugins
 
 .. toctree::
