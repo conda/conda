@@ -6,7 +6,7 @@ Some resources that helped draft this document:
 * https://www.anaconda.com/blog/understanding-and-improving-condas-performance
 -->
 
-# Deep dive: conda install
+# `conda install`
 
 In this document we will explore what happens in Conda from the moment a user types their
 installation command until the process is finished successfully. For the sake of completeness,
