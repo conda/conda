@@ -1,6 +1,6 @@
 (deep_dive_context)=
 
-# conda config and context
+# `conda config` and context
 
 The `context` object is central to many parts of the `conda` codebase. It serves as a centralized
 repository of settings. You normally import the singleton and access its (many) attributes directly:
