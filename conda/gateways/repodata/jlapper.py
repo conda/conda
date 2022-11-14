@@ -133,7 +133,7 @@ def process_jlap_response(response, pos=0, iv=b""):
         log.info("Checksum OK")
 
     # new iv == initial iv if nothing changed
-    pos, footer, not_iv = buffer[-2]
+    pos, footer, _ = buffer[-2]
     footer = json.loads(footer)
 
     new_state = {
@@ -316,7 +316,7 @@ def request_url_jlap_state(
 
         get_place(url).with_suffix(".jlap").write_text("\n".join(b[1] for b in buffer))
 
-        state["jlap"] = jlap_state
+        state[JLAP] = jlap_state
 
     with timeme("Apply Patches "):
         # buffer[0] == previous iv
@@ -354,13 +354,13 @@ def request_url_jlap_state(
                     hashwriter().write(json.dumps(repodata_json))
 
                     # actual hash of serialized json
-                    state["have_hash"] = hasher.hexdigest()
+                    state[ON_DISK_HASH] = hasher.hexdigest()
 
                     # hash of equivalent upstream json
-                    state["have"] = want
+                    state[NOMINAL_HASH] = want
 
             else:
-                assert state["have"] == want
+                assert state[NOMINAL_HASH] == want
 
         except (LookupError, json.JSONDecodeError) as e:
             if isinstance(e, LookupError):

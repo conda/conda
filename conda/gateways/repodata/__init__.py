@@ -89,6 +89,9 @@ class CondaRepoInterface(RepoInterface):
             resp.raise_for_status()
 
         if resp.status_code == 304:
+            # should we save cache-control to state here to put another n
+            # seconds on the "make a remote request" clock and/or touch cache
+            # mtime
             raise Response304ContentUnchanged()
 
         def maybe_decompress(filename, resp_content):
