@@ -47,7 +47,7 @@ class Solver:
                 The set of package specs to remove from the prefix.
 
         """
-        solver_backend = context.plugin_manager.get_solver_backend()
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
         self._internal = solver_backend(prefix, channels, subdirs, specs_to_add, specs_to_remove)
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,

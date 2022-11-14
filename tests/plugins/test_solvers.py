@@ -6,9 +6,10 @@ import re
 import pytest
 
 from conda.core import solve
-from conda.base.context import context
 from conda.exceptions import PluginError
 from conda import plugins
+from conda.plugins.hookspec import CondaSpecs
+from conda.plugins.manager import CondaPluginManager
 
 
 log = logging.getLogger(__name__)
@@ -48,6 +49,19 @@ def test_get_solver_backend(plugin_manager):
     assert solver_class is solve.Solver
 
 
+def test_get_cached_solver_backend(plugin_manager, mocker):
+    mocked = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_solver_backend", side_effect=classic_solver
+    )
+    plugin_manager = CondaPluginManager()
+    plugin_manager.add_hookspecs(CondaSpecs)
+    plugin = SolverPlugin()
+    plugin_manager.register(plugin)
+    plugin_manager.get_cached_solver_backend()
+    plugin_manager.get_cached_solver_backend()
+    assert mocked.call_count == 1  # real caching!
+
+
 def test_get_solver_backend_multiple(plugin_manager):
     plugin = SolverPlugin()
     plugin_manager.register(plugin)
@@ -65,9 +79,7 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(SolverPlugin())
     plugin_manager.register(SolverPlugin())
 
-    with pytest.raises(
-        PluginError, match=re.escape("Conflicting `solvers` plugins found")
-    ):
+    with pytest.raises(PluginError, match=re.escape("Conflicting `solvers` plugins found")):
         plugin_manager.get_solver_backend()
 
 
@@ -100,7 +112,5 @@ def test_get_conflicting_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
     plugin_manager.register(SolverPlugin())
 
-    with pytest.raises(
-        PluginError, match=re.escape("Conflicting `solvers` plugins found")
-    ):
+    with pytest.raises(PluginError, match=re.escape("Conflicting `solvers` plugins found")):
         plugin_manager.get_registered_plugins("solvers")

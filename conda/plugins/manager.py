@@ -20,14 +20,14 @@ class CondaPluginManager(pluggy.PluginManager):
     pluggy's default plugin manager.
     """
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs):
+    def __init__(self, project_name: str | None = None, *args, **kwargs) -> None:
         # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
+        super().__init__(project_name, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
-        self.get_solver_backend = functools.lru_cache()(self._get_solver_backend)
-        super().__init__(project_name, *args, **kwargs)
+        self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(self.get_solver_backend)
 
     def load_plugins(self, *plugins) -> list[str]:
         """
@@ -74,14 +74,16 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
-    def _get_solver_backend(self, name: str = None) -> type[Solver]:
+    def get_solver_backend(self, name: str = None) -> type[Solver]:
         """
         Get the solver backend with the given name (or fall back to the
         name provided in the context).
 
         See ``context.solver`` for more details.
 
-        This is cached with a plugin manager specific LRU cache.
+        Please use the cached version of this method called
+        ``cached_solver_backend`` for high-throughput code paths
+        which is set up as a instance-specific LRU cache.
         """
         # Some light data validation in case name isn't given.
         if name is None:

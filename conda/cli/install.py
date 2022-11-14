@@ -245,7 +245,7 @@ def install(args, parser, command='install'):
                 unlink_link_transaction = revert_actions(prefix, get_revision(args.revision),
                                                          index)
             else:
-                solver_backend = context.plugin_manager.get_solver_backend()
+                solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
                     prefix,
                     context.channels,

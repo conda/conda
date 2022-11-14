@@ -26,7 +26,7 @@ def _solve(prefix, specs, args, env, *_, **kwargs):
     channels = IndexedSet(Channel(url) for url in _channel_priority_map)
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
-    solver_backend = context.plugin_manager.get_solver_backend()
+    solver_backend = context.plugin_manager.get_cached_solver_backend()
     solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 

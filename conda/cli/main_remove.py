@@ -83,7 +83,7 @@ def execute(args, parser):
             specs = specs_from_args(args.package_names)
         channel_urls = ()
         subdirs = ()
-        solver_backend = context.plugin_manager.get_solver_backend()
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
         solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
         txn = solver.solve_for_transaction()
         handle_txn(txn, prefix, args, False, True)

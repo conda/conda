@@ -844,7 +844,7 @@ class Context(Configuration):
         if self.solver != "classic":
             user_agent_str = "solver/%s" % self.solver
             try:
-                solver_backend = self.plugin_manager.get_solver_backend()
+                solver_backend = self.plugin_manager.get_cached_solver_backend()
                 # Solver.user_agent has to be a static or class method
                 user_agent_str += f" {solver_backend().user_agent()}"
             except Exception as exc:
