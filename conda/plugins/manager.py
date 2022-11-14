@@ -33,19 +33,33 @@ class CondaPluginManager(pluggy.PluginManager):
             try:
                 plugin_name = self.register(plugin)
             except ValueError as err:
-                raise PluginError(f"Error while registering conda plugins: {err}")
+                raise PluginError(
+                    f"Error while loading conda plugins from {plugins}: {err}"
+                )
             else:
                 plugin_names.append(plugin_name)
         return plugin_names
 
-    def get_registered_plugins(self, plugin_name: str) -> list:
+    def load_setuptools_entrypoints(self, *args, **kwargs) -> int:
+        """"
+        Overloading the parent method to add conda specific exception
         """
-        Return all registered plugins for the given name.
+        try:
+            return super().load_setuptools_entrypoints(*args, **kwargs)
+        except Exception as err:
+            raise PluginError(
+                f"Error while loading conda plugins from entrypoints: {err}"
+            )
+
+    def get_hook_results(self, name: str) -> list:
         """
-        hook_name = f"{self.project_name}_{plugin_name}"  # e.g. conda_solvers
-        hook = getattr(self.hook, hook_name, None)
+        Return results of the plugin hooks with the given name and
+        raise an error if there is an conflict.
+        """
+        specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
+        hook = getattr(self.hook, specname, None)
         if hook is None:
-            raise PluginError(f"Could not load `{hook_name}` plugins.")
+            raise PluginError(f"Could not load `{specname}` plugins.")
 
         plugins = sorted(
             (item for items in hook() for item in items),
@@ -58,11 +72,11 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 dals(
                     f"""
-                    Conflicting `{plugin_name}` plugins found:
+                    Conflicting `{name}` plugins found:
 
                     {', '.join([str(conflict) for conflict in conflicts])}
 
-                    Multiple conda plugins are registered via the `{hook_name}` hook.
+                    Multiple conda plugins are registered via the `{specname}` hook.
                     Please make sure that you don't have any incompatible plugins installed.
                     """
                 )
@@ -72,8 +86,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
-    pm = CondaPluginManager()
-    pm.add_hookspecs(CondaSpecs)
-    pm.load_plugins(solvers, *virtual_packages.plugins)
-    pm.load_setuptools_entrypoints(spec_name)
-    return pm
+    plugin_manager = CondaPluginManager()
+    plugin_manager.add_hookspecs(CondaSpecs)
+    plugin_manager.load_plugins(solvers, *virtual_packages.plugins)
+    plugin_manager.load_setuptools_entrypoints(spec_name)
+    return plugin_manager
