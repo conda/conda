@@ -11,4 +11,7 @@ sudo /opt/conda/bin/conda install --quiet -y -c defaults --file tests/requiremen
 conda info
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
 sudo rm -rf /opt/conda/pkgs/*-*-*
-pytest -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+# put temporary files on same filesystem
+export TMP=$HOME/pytesttmp
+mkdir -p $TMP
+pytest --basetemp=$TMP -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
