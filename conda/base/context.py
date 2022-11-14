@@ -8,7 +8,7 @@ from functools import lru_cache
 from logging import getLogger
 from typing import Optional
 import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
+from os.path import abspath, expanduser, isdir, isfile, join, split as path_split
 import platform
 import sys
 import struct
@@ -475,7 +475,13 @@ class Context(Configuration):
 
     @property
     def conda_private(self):
-        return conda_in_private_env()
+        warnings.warn(
+            "`conda.base.context.context.conda_private` is pending deprecation and will be "
+            "removed in a future release. It's meaningless and any special meaning it may have "
+            "held is now void.",
+            PendingDeprecationWarning,
+        )
+        return False
 
     @property
     def platform(self):
@@ -629,8 +635,6 @@ class Context(Configuration):
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
-        elif conda_in_private_env():
-            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
@@ -1610,12 +1614,6 @@ class Context(Configuration):
                 """
             ),
         )
-
-
-def conda_in_private_env():
-    # conda is located in its own private environment named '_conda_'
-    envs_dir, env_name = path_split(sys.prefix)
-    return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
