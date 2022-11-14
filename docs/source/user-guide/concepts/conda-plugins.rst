@@ -33,7 +33,7 @@ Below is an example of a very basic plugin "hook":
    import conda.plugins
 
 
-   @conda.plugins.register
+   @conda.plugins.hookimpl
    def conda_subcommands():
        ...
 
