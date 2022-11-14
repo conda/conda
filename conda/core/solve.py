@@ -51,7 +51,7 @@ def _get_solver_class(key=None):
     """
     warnings.warn(
         "`conda.core.solve._get_solver_class` is pending deprecation and will be removed in a "
-        "future release. Please use `conda.base.context.plugin_manager.get_cached_solver_backend ",
+        "future release. Please use `conda.base.context.plugin_manager.get_cached_solver_backend "
         "instead.",
         PendingDeprecationWarning,
     )
