@@ -76,12 +76,12 @@ def test_duplicated(plugin_manager):
 
 
 def test_get_no_solver(plugin_manager):
-    assert plugin_manager.get_registered_plugins("solvers") == []
+    assert plugin_manager.get_hook_results("solvers") == []
 
 
 def test_get_one_solver(plugin_manager):
     plugin_manager.register(SolverPlugin())
-    solvers = plugin_manager.get_registered_plugins("solvers")
+    solvers = plugin_manager.get_hook_results("solvers")
     assert solvers == [classic_solver]
 
 
@@ -96,7 +96,7 @@ def test_get_two_solvers(plugin_manager):
     plugin2 = VerboseSolverPlugin()
     plugin_manager.register(plugin2)
 
-    solvers = plugin_manager.get_registered_plugins("solvers")
+    solvers = plugin_manager.get_hook_results("solvers")
     assert solvers == [classic_solver, verbose_classic_solver]
 
 
@@ -107,4 +107,4 @@ def test_get_conflicting_solvers(plugin_manager):
     with pytest.raises(
         PluginError, match=re.escape("Conflicting `solvers` plugins found")
     ):
-        plugin_manager.get_registered_plugins("solvers")
+        plugin_manager.get_hook_results("solvers")

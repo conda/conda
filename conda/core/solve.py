@@ -48,7 +48,7 @@ def _get_solver_class(key=None):
 
     See ``context.solver`` for more details.
     """
-    solvers = context.plugin_manager.get_registered_plugins("solvers")
+    solvers = context.plugin_manager.get_hook_results("solvers")
     key = (key or context.solver).lower()
 
     solvers_mapping = {}
