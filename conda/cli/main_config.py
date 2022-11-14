@@ -19,7 +19,7 @@ from conda.common.iterators import groupby_to_dict as groupby
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier, SatSolverChoice, SolverChoice)
+                              UpdateModifier, SatSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
@@ -396,9 +396,6 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
-        yaml.representer.RoundTripRepresenter.add_representer(
-            SolverChoice, enum_representer
-        )
 
         try:
             with open(rc_path, 'w') as rc:

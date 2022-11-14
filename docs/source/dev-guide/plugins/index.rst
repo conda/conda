@@ -106,6 +106,7 @@ API reference
 .. toctree::
    :maxdepth: 1
 
+   solvers
    subcommands
    virtual_packages
 

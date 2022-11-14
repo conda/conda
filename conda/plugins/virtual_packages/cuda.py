@@ -1,14 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import ctypes
 import functools
 import platform
 from contextlib import suppress
 
-from conda import plugins
-from conda.common.decorators import env_override
-from conda.models.plugins import CondaVirtualPackage
+from ...common.decorators import env_override
+from .. import hookimpl, CondaVirtualPackage
 
 
 @env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)
@@ -84,6 +82,6 @@ def cached_cuda_version():
     return cuda_version()
 
 
-@plugins.hookimpl
+@hookimpl
 def conda_virtual_packages():
     yield CondaVirtualPackage("cuda", cached_cuda_version())

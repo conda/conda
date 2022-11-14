@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 from conda import plugins
-from conda.models.plugins import CondaSubcommand
+from conda.plugins.types import CondaSubcommand
 
 
 class SubcommandPlugin:
@@ -52,4 +52,4 @@ def test_duplicated(plugin_manager, cli_main, capsys):
     cli_main()
     stdout, stderr = capsys.readouterr()
 
-    assert "Conflicting entries found for the following subcommands" in stderr
+    assert "Conflicting `subcommands` plugins found" in stderr

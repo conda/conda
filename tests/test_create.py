@@ -1115,10 +1115,10 @@ dependencies:
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
-            flask_python = '3.6'
-            with make_temp_env("python=3.7", use_restricted_unicode=True) as prefix:
+            flask_python = '3.8' # oldest available for osx-arm64
+            with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
 
-                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
+                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
                 run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
                 run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)
