@@ -49,14 +49,13 @@ def _get_solver_class(key=None):
 
     See ``context.solver`` for more details.
     """
-    from conda.plugins import solvers
-
     warnings.warn(
         "`conda.core.solve._get_solver_class` is pending deprecation and will be removed in a "
-        "future release.",
+        "future release. Please use `conda.base.context.plugin_manager.get_cached_solver_backend ",
+        "instead.",
         PendingDeprecationWarning,
     )
-    return solvers.get_solver((key or context.solver).lower())
+    return context.plugin_manager.get_cached_solver_backend(key or context.solver)
 
 
 class Solver:

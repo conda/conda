@@ -463,7 +463,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         from .core.prefix_data import PrefixData
         PrefixData._cache_.clear()
 
-        solver_backend = context.plugin_manager.get_solver_backend()
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
         solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
         if index:
             solver._index = {prec: prec for prec in index.values()}
