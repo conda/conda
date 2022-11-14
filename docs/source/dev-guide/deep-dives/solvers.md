@@ -1,4 +1,4 @@
-# Deep dive: solvers
+# Solvers
 
 The guide {doc}`install` didn't go into details of the solver black box. It did mention
 the high-level `Solver` API and how `conda` expects a transaction out of it, but we never got to
