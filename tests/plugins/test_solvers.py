@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from conda.base.context import context
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda import plugins
@@ -15,10 +16,17 @@ from conda.plugins.manager import CondaPluginManager
 log = logging.getLogger(__name__)
 
 
+verbose_user_agent = "verbose-solver/1.0"
+
+
 class VerboseSolver(solve.Solver):
     def solve_final_state(self, *args, **kwargs):
         log.info("My verbose solver!")
         return super().solve_final_state(*args, **kwargs)
+
+    @staticmethod
+    def user_agent():
+        return verbose_user_agent
 
 
 classic_solver = plugins.CondaSolver(
@@ -60,6 +68,13 @@ def test_get_cached_solver_backend(plugin_manager, mocker):
     plugin_manager.get_cached_solver_backend()
     plugin_manager.get_cached_solver_backend()
     assert mocked.call_count == 1  # real caching!
+
+
+def test_solver_user_agent(plugin_manager, monkeypatch):
+    plugin = VerboseSolverPlugin()
+    plugin_manager.register(plugin)
+    monkeypatch.setattr(context, "solver", "verbose-classic")
+    assert verbose_user_agent in context.user_agent
 
 
 def test_get_solver_backend_multiple(plugin_manager):
