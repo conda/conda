@@ -6,6 +6,7 @@ from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
+import warnings
 from textwrap import dedent
 
 try:
@@ -49,7 +50,12 @@ def _get_solver_class(key=None):
     See ``context.solver`` for more details.
     """
     from conda.plugins import solvers
-    # TODO add deprecation warning
+
+    warnings.warn(
+        "`conda.core.solve._get_solver_class` is pending deprecation and will be removed in a "
+        "future release.",
+        PendingDeprecationWarning,
+    )
     return solvers.get_solver((key or context.solver).lower())
 
 
