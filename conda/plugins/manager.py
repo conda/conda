@@ -96,7 +96,7 @@ class CondaPluginManager(pluggy.PluginManager):
         See ``context.solver`` for more details.
 
         Please use the cached version of this method called
-        ``cached_solver_backend`` for high-throughput code paths
+        ``get_cached_solver_backend`` for high-throughput code paths
         which is set up as a instance-specific LRU cache.
         """
         # Some light data validation in case name isn't given.
