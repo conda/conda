@@ -192,12 +192,22 @@ def timeme(message):
     log.info("%sTook %0.02fs", message, end - begin)
 
 
-def download_and_hash(hasher, url, json_path, session: Session):
+def download_and_hash(hasher, url, json_path, session: Session, state: dict | None):
     """
     Download url if it doesn't exist, passing bytes through hasher.update()
     """
+    state = state or {}
+    headers = {}
+
+    # XXX check cache-control May be caller's job to compare with 'have_hash'
+    # saved on previous download to detect cache tampering
+    if json_path.exists():
+        etag = state.get("_etag")
+        if etag:
+            headers["if-none-match"] = etag
+
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-    response = session.get(url, stream=True, timeout=timeout)
+    response = session.get(url, stream=True, timeout=timeout, headers=headers)
     log.debug("%s %s", url, response.headers)
     response.raise_for_status()
     length = 0
@@ -208,6 +218,7 @@ def download_and_hash(hasher, url, json_path, session: Session):
             length += len(block)
     if response.request:
         log.info("Download %d bytes %r", length, response.request.headers)
+    return response  # can be 304 not modified
 
 
 def request_url_jlap(url, get_place=get_place):
@@ -259,7 +270,14 @@ def request_url_jlap_state(
         with timeme(f"Download complete {url} "):
             # TODO use Etag, Last-Modified caching headers if file exists
             # otherwise we re-download every time, if jlap is unavailable.
-            download_and_hash(hasher, withext(url, ".json"), json_path, session=session)
+            response = download_and_hash(
+                hasher, withext(url, ".json"), json_path, session=session, state=state
+            )
+            state["_url"] = url  # should we strip repodata.json as the old code does?
+            # will we use state['headers'] for caching against
+            state["_mod"] = response.headers.get("last-modified")
+            state["_etag"] = response.headers.get("etag")
+            state["_cache_control"] = response.headers.get("cache-control")
 
         have = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
 

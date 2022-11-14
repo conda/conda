@@ -17,6 +17,7 @@ filelock
 flake8
 conda-forge::flask >=2.2
 git
+jsonpatch
 nbformat
 perl
 pexpect

@@ -19,7 +19,7 @@ from werkzeug.serving import WSGIRequestHandler, make_server, prepare_socket
 
 app = flask.Flask(__name__)
 
-base = Path(__file__).parents[1] / "data" / "conda_format_repo"
+base = Path(__file__).parents[0] / "data" / "conda_format_repo"
 
 LATENCY = 0
 
@@ -42,12 +42,12 @@ def latency(delay):
 
 # flask.send_from_directory(directory, path, **kwargs)
 # Send a file from within a directory using send_file().
-@app.route("/<subdir>/<path:name>")
+@app.route("/test/<subdir>/<path:name>")
 def download_file(subdir, name):
     time.sleep(LATENCY)
     # conditional=True is the default
     # Could have layers, and while raises NotFound (check next base directory)
-    return flask.send_from_directory(base, name)
+    return flask.send_from_directory(Path(base, subdir), name)
 
 
 class NoLoggingWSGIRequestHandler(WSGIRequestHandler):
