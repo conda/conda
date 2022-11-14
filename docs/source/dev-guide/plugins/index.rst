@@ -101,11 +101,15 @@ the `"Choose an Open Source License"`_ site.
 API reference
 -------------
 
-.. py:module:: conda.plugins
+.. autoattribute:: conda.plugins::hookimpl
+   :no-value:
+
+   Conda plugin hook implementation marker.
 
 .. toctree::
    :maxdepth: 1
 
+   manager
    solvers
    subcommands
    virtual_packages

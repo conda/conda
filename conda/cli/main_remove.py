@@ -11,7 +11,6 @@ from ..base.context import context
 from ..core.envs_manager import unregister_env
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
-from ..core.solve import _get_solver_class
 from ..exceptions import CondaEnvironmentError, CondaValueError, DirectoryNotACondaEnvironmentError
 from ..gateways.disk.delete import rm_rf, path_is_clean
 from ..models.match_spec import MatchSpec
@@ -84,7 +83,8 @@ def execute(args, parser):
             specs = specs_from_args(args.package_names)
         channel_urls = ()
         subdirs = ()
-        solver = _get_solver_class()(prefix, channel_urls, subdirs, specs_to_remove=specs)
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
         txn = solver.solve_for_transaction()
         handle_txn(txn, prefix, args, False, True)
 

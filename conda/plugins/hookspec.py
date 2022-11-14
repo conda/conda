@@ -15,6 +15,10 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 
 
 class CondaSpecs:
+    """
+    The conda plugin hookspecs, to be used by developers.
+    """
+
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:
         """
