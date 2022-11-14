@@ -101,9 +101,10 @@ the `"Choose an Open Source License"`_ site.
 API reference
 -------------
 
-.. autoattribute:: conda.plugins.hookimpl
+.. autoattribute:: conda.plugins::hookimpl
+   :no-value:
 
-.. py:module:: conda.plugins
+   Conda plugin hook implementation marker.
 
 .. toctree::
    :maxdepth: 1

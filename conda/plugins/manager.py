@@ -36,7 +36,7 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Load the provided list of plugins and fail gracefully on error.
         The provided list plugins can either be classes or modules with
-        ``conda.plugins.hook_impl`
+        :attr:`~conda.plugins.hook_impl`.
         """
         plugin_names = []
         for plugin in plugins:
@@ -52,8 +52,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def load_setuptools_entrypoints(self, *args, **kwargs) -> int:
         """
-        Overloading the parent method to add conda specific exception
-s        """
+        Overloading the parent method from pluggy to add conda specific exceptions.
+
+        See :meth:`pluggy.PluginManager.load_setuptools_entrypoints` for
+        more information.
+        """
         try:
             return super().load_setuptools_entrypoints(*args, **kwargs)
         except Exception as err:
@@ -101,7 +104,7 @@ s        """
         See ``context.solver`` for more details.
 
         Please use the cached version of this method called
-        ``get_cached_solver_backend`` for high-throughput code paths
+        :meth:`get_cached_solver_backend` for high-throughput code paths
         which is set up as a instance-specific LRU cache.
         """
         # Some light data validation in case name isn't given.
