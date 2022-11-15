@@ -241,7 +241,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _load_state(self) -> dict:
         """
-        Replaces old in-band mod_and_etag headers
+        Cache headers and additional data needed to keep track of the cache are
+        stored separately, instead of the previous "added to repodata.json"
+        arrangement.
         """
         try:
             state_path = pathlib.Path(self.cache_path_state)
