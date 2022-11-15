@@ -3,19 +3,15 @@
 
 
 import json
+import sys
+from unittest.mock import patch
 
 import pytest
-import sys
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
 from conda.testing.helpers import assert_equals, assert_in
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from unittest.mock import Mock, patch
 
 
 def test_info():

@@ -50,6 +50,7 @@ extensions = [
     "sphinx.ext.graphviz",
     "sphinx.ext.ifconfig",
     "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.intersphinx",
     "sphinxcontrib.plantuml",
     "conda_umls",
     "sphinx_sitemap",
@@ -234,3 +235,9 @@ plantuml_jarfile_path = os.path.abspath(
 plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
 
 add_module_names = False
+
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'pluggy': ('https://pluggy.readthedocs.io/en/stable/', None),
+}

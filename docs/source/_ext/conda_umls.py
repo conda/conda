@@ -72,7 +72,7 @@ def generate_pumls(app, config):
     packages = ["conda"]
 
     for package in packages:
-        output_path = os.path.join(here, "..", "umls")
+        output_path = os.path.join(here, "..", "dev-guide", "umls")
         output_format = "puml"
         files = [
             f"packages_{package}.{output_format}",
