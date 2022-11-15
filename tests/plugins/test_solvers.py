@@ -70,14 +70,21 @@ def test_get_cached_solver_backend(plugin_manager, mocker):
     assert mocked.call_count == 1  # real caching!
 
 
-def test_solver_user_agent(plugin_manager, monkeypatch):
-    plugin = VerboseSolverPlugin()
-    plugin_manager.register(plugin)
+def clear_user_agent():
+    if "__user_agent" in context._cache_:
+        del context._cache_["__user_agent"]
+
+
+def test_solver_user_agent(monkeypatch, plugin_manager, request):
+    # setting the solver to the verbose classic version defined in this module
     monkeypatch.setattr(context, "solver", "verbose-classic")
     # context.user_agent is a memoizedproperty, which may have been cached from
     # previous test runs. We're checking here and clear the cache if needed.
-    if "__user_agent" in context._cache_:
-        del context._cache_["__user_agent"]
+    request.addfinalizer(clear_user_agent)
+    clear_user_agent()
+
+    plugin = VerboseSolverPlugin()
+    plugin_manager.register(plugin)
     assert verbose_user_agent in context.user_agent
 
 
