@@ -239,8 +239,8 @@ class SubdirData(metaclass=SubdirDataType):
             log.debug("Could not load state", exc_info=True)
             return {}
 
-    def _save_state(self, state: dict) -> None:
-        pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
+    def _save_state(self, state: dict):
+        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
 
     def _load(self):
         try:
