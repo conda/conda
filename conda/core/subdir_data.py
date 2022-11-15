@@ -57,7 +57,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]' 
 
 
 def get_repo_interface() -> type[RepoInterface]:
-    if context.experimental_jlap:
+    if "jlap" in context.experimental:
         try:
             from conda.gateways.repodata.repo_jlap import JlapRepoInterface
 

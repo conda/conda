@@ -1690,7 +1690,7 @@ def add_parser_channels(p):
               "is added for you automatically. For more information, see "
               "conda config --describe repodata_fns.")
     )
-    add_parser_jlap(channel_customization_options)
+    add_parser_experimental(channel_customization_options)
     return channel_customization_options
 
 
@@ -1831,16 +1831,16 @@ def add_parser_solver(p):
     )
 
 
-def add_parser_jlap(p):
+def add_parser_experimental(p):
     """
     Add a command-line flag for incremental repodata.
     """
     group = p.add_mutually_exclusive_group()
     group.add_argument(
-        "--experimental-jlap",
-        action="store_true",
-        help="Download incremental package index data from repodata.jlap.",
-        default=NULL,
+        "--experimental",
+        action="append",
+        choices=["jlap"],
+        help="jlap: Download incremental package index data from repodata.jlap.",
     )
 
 
