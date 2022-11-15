@@ -7,7 +7,7 @@ from pathlib import Path
 
 import requests
 
-from conda.gateways.repodata import repo_jlap
+from conda.gateways.repodata import jlapper, repo_jlap
 
 
 def test_server_available(package_server):
@@ -16,7 +16,7 @@ def test_server_available(package_server):
     assert response.status_code == 404
 
 
-def test_jlap_fetch(package_server, tmpdir):
+def test_jlap_fetch(package_server, tmpdir, mocker):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
 
@@ -28,8 +28,19 @@ def test_jlap_fetch(package_server, tmpdir):
         cache_path_state=Path(tmpdir, "repodata.state.json"),
     )
 
+    patched = mocker.patch(
+        "conda.gateways.repodata.jlapper.download_and_hash", wraps=jlapper.download_and_hash
+    )
+
     state = {}
     data_json = repo.repodata(state)
 
+    assert patched.call_count == 1
+
     # second will try to fetch (non-existent) .jlap, then fall back to .json
     data_json = repo.repodata(state)  # a 304?
+
+    data_json = repo.repodata(state)
+
+    # TODO more useful assertions
+    assert patched.call_count == 3
