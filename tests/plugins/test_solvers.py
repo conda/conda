@@ -74,6 +74,10 @@ def test_solver_user_agent(plugin_manager, monkeypatch):
     plugin = VerboseSolverPlugin()
     plugin_manager.register(plugin)
     monkeypatch.setattr(context, "solver", "verbose-classic")
+    # context.user_agent is a memoizedproperty, which may have been cached from
+    # previous test runs. We're checking here and clear the cache if needed.
+    if "__user_agent" in context._cache_:
+        del context._cache_["__user_agent"]
     assert verbose_user_agent in context.user_agent
 
 
