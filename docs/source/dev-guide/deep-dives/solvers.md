@@ -1,8 +1,6 @@
-(deep_dive_solvers)=
+# Solvers
 
-# Deep dive: solvers
-
-The guide {ref}`deep_dive_install` didn't go into details of the solver black box. It did mention
+The guide {doc}`install` didn't go into details of the solver black box. It did mention
 the high-level `Solver` API and how `conda` expects a transaction out of it, but we never got to
 learn what happens _inside_ the solver itself. We only covered these three steps:
 
@@ -56,9 +54,7 @@ between three types, all of them useful:
 So the solver takes `MatchSpec` objects, queries the index for the best match and returns
 `PackageRecord` objects. Perfect. What's the index? It's the result of aggregating the
 requested conda channels in a single entity. For more information, check
-{ref}`deep_dive_install_index`.
-
-(deep_dive_solvers_local_state)=
+[](install.md#fetching-the-index).
 
 ## Local state: the prefix and context
 
@@ -90,13 +86,13 @@ All of those sources of information produce a number a of `MatchSpec` objects, w
 combined and modified in very specific ways depending on the command line flags and their origin
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate and will be covered in the next sections. A more technical
-description is also available in {ref}`solver_state_specification`.
+description is also available in {doc}`/dev-guide/techspec-solver-state`.
 
 ```{figure} /img/solver-deep-dive-1.png
 :name: solver-local-variables
 
 Local variables affect the solving process explicitly and implicitly. As seen in
-{ref}`in the conda install deep dive <deep_dive_install>`, the main actor is the
+{doc}`in the conda install deep dive <install>`, the main actor is the
 `conda.core.solve.Solver` class. Before invoking the SAT solver, we can describe nine steps:
 
 1.  Instantiate the `Solver` class with the user-requested packages and the active environment
@@ -135,9 +131,9 @@ The full solver logic does not start at the `conda.core.solve.Solver` API, but b
 way up in the `conda.cli.install` module. Here, some important decisions are already made:
 
 * Whether the solver is not needed at all because:
-    * The operation is an explicit package install
-    * The user requested to roll back to a history checkpoint
-    * We are just creating a copy of an existing environment (cloning)
+  * The operation is an explicit package install
+  * The user requested to roll back to a history checkpoint
+  * We are just creating a copy of an existing environment (cloning)
 * Which `repodata` source to use (see {ref}`here <index_reduction_tricks>`). It not only depends on
   the current configuration (via `.condarc` or command line flags), but also on the value
   of `use_only_tar_bz2`.
@@ -289,8 +285,8 @@ This is currently implemented in the `conda.core.solve.Solver` class. Its main g
 populate the `specs_map` dictionary, which maps package names (`str`) to `MatchSpec` objects.
 This happens at the beginning of the `.solve_final_state()` method. The full details of the
 `specs_map` population are covered in the
-{ref}`solver state technical specification <solver_state_specification>`, but here's a little map
-of what submethods are involved:
+{doc}`solver state technical specification </dev-guide/techspec-solver-state>`, but here's a little
+map of what submethods are involved:
 
 1. Initialization of the `SolverStateContainer`: Often abbreviated as `ssc`, it's a helper
    class to store some state across attempts (remember there are several retry loops). Most
@@ -509,7 +505,6 @@ So, in essence, the SAT solver takes the `MatchSpec` objects to select which `Pa
 satisfy the user request in the best way. The necessary computations are part of the "Solving
 environment..." step in the CLI report.
 ```
-
 
 <!-- Links -->
 [conda_package_spec]: https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/pkg-specs.html#package-match-specifications

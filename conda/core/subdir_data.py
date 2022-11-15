@@ -50,7 +50,6 @@ from ..models.records import PackageRecord
 from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
-stderrlog = getLogger("conda.stderrlog")
 
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
@@ -186,7 +185,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def _repo(self) -> RepoInterface:
-        # XXX one for `current_repodata.json` and one for `repodata.json`
+        """
+        Changes as we mutate self.repodata_fn.
+        """
         return self.RepoInterface(
             self.url_w_credentials,
             self.repodata_fn,
@@ -253,18 +254,22 @@ class SubdirData(metaclass=SubdirDataType):
             self.load()
         return iter(self._package_records)
 
-    # replaces old in-band mod_and_etag headers
-    def _load_state(self):
+    def _load_state(self) -> dict:
+        """
+        Cache headers and additional data needed to keep track of the cache are
+        stored separately, instead of the previous "added to repodata.json"
+        arrangement.
+        """
         try:
             state_path = pathlib.Path(self.cache_path_state)
             state = json.loads(state_path.read_text())
             log.debug("Load state from %s", state_path)
             return state
-        except:
+        except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
             return {}
 
-    def _save_state(self, state):
+    def _save_state(self, state: dict):
         return pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
 
     def _load(self):
