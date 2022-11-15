@@ -25,7 +25,6 @@ from genericpath import getmtime, isfile
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
     CondaRepoInterface,
-    RepoInterface,
     RepodataIsEmpty,
     Response304ContentUnchanged,
 )
@@ -50,7 +49,6 @@ from ..models.records import PackageRecord
 from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
-stderrlog = getLogger("conda.stderrlog")
 
 REPODATA_PICKLE_VERSION = 29
 MAX_REPODATA_VERSION = 1
@@ -169,16 +167,6 @@ class SubdirData(metaclass=SubdirDataType):
         self._loaded = False
         self._key_mgr = None
 
-    @property
-    def _repo(self) -> RepoInterface:
-        # XXX one for `current_repodata.json` and one for `repodata.json`
-        return CondaRepoInterface(
-            self.url_w_credentials,
-            self.repodata_fn,
-            cache_path_json=self.cache_path_json,
-            cache_path_state=self.cache_path_state,
-        )
-
     def reload(self):
         self._loaded = False
         self.load()
@@ -238,19 +226,21 @@ class SubdirData(metaclass=SubdirDataType):
             self.load()
         return iter(self._package_records)
 
-    # replaces old in-band mod_and_etag headers
-    def _load_state(self):
+    def _load_state(self) -> dict:
+        """
+        Replaces old in-band mod_and_etag headers
+        """
         try:
             state_path = pathlib.Path(self.cache_path_state)
             state = json.loads(state_path.read_text())
             log.debug("Load state from %s", state_path)
             return state
-        except:
+        except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
             return {}
 
-    def _save_state(self, state):
-        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
+    def _save_state(self, state: dict) -> None:
+        pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
 
     def _load(self):
         try:
@@ -311,7 +301,8 @@ class SubdirData(metaclass=SubdirDataType):
 
         try:
             try:
-                raw_repodata_str = self._repo.repodata(mod_etag_headers)
+                repodata = CondaRepoInterface(self.url_w_repodata_fn, self.repodata_fn)
+                raw_repodata_str = repodata.fetch_repodata(mod_etag_headers)
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
@@ -617,7 +608,8 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        raw_repodata_str = subdir._repo.repodata({"_etag": etag, "_mtime": mod_stamp})
+        repodata = CondaRepoInterface(subdir.url_w_repodata_fn, subdir.repodata_fn)
+        raw_repodata_str = repodata.fetch_repodata({"_etag": etag, "_mtime": mod_stamp})
     except RepodataIsEmpty:
         if repodata_fn != REPODATA_FN:
             raise  # is UnavailableInvalidChannel subclass

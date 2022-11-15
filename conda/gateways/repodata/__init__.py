@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from os.path import dirname
 
 from conda.auxlib.logz import stringify
-from conda.base.constants import CONDA_HOMEPAGE_URL
+from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
 from conda.common.compat import ensure_text_type
 from conda.common.url import join_url, maybe_unquote
@@ -42,13 +42,11 @@ class RepodataIsEmpty(UnavailableInvalidChannel):
     channel that doesn't provide current_repodata.json
     """
 
-    pass
-
 
 class RepoInterface(abc.ABC):
     # TODO: Support async operations
     # TODO: Support progress bars
-    def repodata(self, state: dict) -> str:
+    def fetch_repodata(self, state: dict) -> str:
         ...
 
 
@@ -57,14 +55,21 @@ class Response304ContentUnchanged(Exception):
 
 
 class CondaRepoInterface(RepoInterface):
-    def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
+    """
+    Provides an interface for retrieving repodata data from channels
+    """
+
+    #: Channel URL
+    _url: str
+
+    #: Filename of the repodata file; defaults to value of conda.base.constants.REPODATA_FN
+    _repodata_fn: str | None
+
+    def __init__(self, url: str, repodata_fn: str | None) -> None:
         self._url = url
-        self._repodata_fn = repodata_fn
+        self._repodata_fn = repodata_fn or REPODATA_FN
 
-        self._log = logging.getLogger(__name__)
-        self._stderrlog = logging.getLogger("conda.stderrlog")
-
-    def repodata(self, state: dict) -> str | None:
+    def fetch_repodata(self, state: dict) -> str | None:
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -84,21 +89,21 @@ class CondaRepoInterface(RepoInterface):
         with conda_http_errors(self._url, filename):
             timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
             resp = session.get(url, headers=headers, proxies=session.proxies, timeout=timeout)
-            if self._log.isEnabledFor(logging.DEBUG):
-                self._log.debug(stringify(resp, content_max_len=256))
+            if log.isEnabledFor(logging.DEBUG):
+                log.debug(stringify(resp, content_max_len=256))
             resp.raise_for_status()
 
         if resp.status_code == 304:
             raise Response304ContentUnchanged()
 
-        def maybe_decompress(filename, resp_content):
+        def decompress_if_bzip2(_filename, resp_content):
             return ensure_text_type(
-                bz2.decompress(resp_content) if filename.endswith(".bz2") else resp_content
+                bz2.decompress(resp_content) if _filename.endswith(".bz2") else resp_content
             ).strip()
 
-        json_str = maybe_decompress(filename, resp.content)
+        json_str = decompress_if_bzip2(filename, resp.content)
 
-        # We explictly no longer add these tags to the large `resp.content` json
+        # We no longer add these tags explicitly to the large `resp.content` json
         saved_fields = {"_url": self._url}
         _add_http_value_to_dict(resp, "Etag", saved_fields, "_etag")
         _add_http_value_to_dict(resp, "Last-Modified", saved_fields, "_mod")
@@ -108,6 +113,7 @@ class CondaRepoInterface(RepoInterface):
         state.update(saved_fields)
 
         return json_str
+
 
 def _add_http_value_to_dict(resp, http_key, d, dict_key):
     value = resp.headers.get(http_key)
