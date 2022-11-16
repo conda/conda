@@ -7,7 +7,7 @@ the plugin system. This mechanism lets users write plugins that provide
 version identification for proprieties only known at runtime (e.g., OS
 information).
 
-.. autoclass:: conda.models.plugins.CondaVirtualPackage
+.. autoclass:: conda.plugins.types.CondaVirtualPackage
    :members:
    :undoc-members:
 

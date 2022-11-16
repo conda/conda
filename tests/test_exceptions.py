@@ -4,6 +4,7 @@
 
 import json
 from unittest import TestCase
+from unittest.mock import patch
 
 import sys
 import os
@@ -31,12 +32,6 @@ from conda.exceptions import (
     conda_exception_handler,
     ExceptionHandler,
 )
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from unittest.mock import Mock, patch
-
 
 def _raise_helper(exception):
     raise exception

@@ -24,7 +24,6 @@ from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
-from ..plugins.manager import get_plugin_manager
 
 log = getLogger(__name__)
 
@@ -173,8 +172,8 @@ def _supplement_index_with_system(index):
     conflict.
     """
     registered_names = []
-    pm = get_plugin_manager()
-    for package in chain(*pm.hook.conda_virtual_packages()):
+    packages = context.plugin_manager.get_hook_results("virtual_packages")
+    for package in packages:
         if package.name in registered_names:
             raise PluginError(
                 "Conflicting virtual package entries found for the "
