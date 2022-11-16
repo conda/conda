@@ -224,6 +224,9 @@ def download_and_hash(hasher, url, json_path, session: Session, state: dict | No
 def request_url_jlap(url, get_place=get_place):
     """
     Complete save complete json / save place / update with jlap sequence.
+
+    Will only be called by tests; load/save state is also implemented in
+    repo_jlap.py
     """
     state_path = get_place(url, ".s")
     try:
@@ -314,6 +317,7 @@ def request_url_jlap_state(
         if need_jlap:  # retry for some reason
             buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
 
+        # XXX debugging
         get_place(url).with_suffix(".jlap").write_text("\n".join(b[1] for b in buffer))
 
         state[JLAP] = jlap_state
