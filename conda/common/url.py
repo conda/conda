@@ -403,7 +403,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
     _, ext = strip_pkg_extension(cleaned_url)
-    cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext else (cleaned_url, None)
+    cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext and '/' in cleaned_url else (cleaned_url, None)
 
     # TODO: split out namespace using regex
     url_parts = urlparse(cleaned_url)
