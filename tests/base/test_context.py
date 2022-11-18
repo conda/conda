@@ -283,7 +283,7 @@ class ContextCustomRcTests(TestCase):
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
 
     def test_aggressive_update_packages(self):
-        assert context.aggressive_update_packages == tuple()
+        assert context.aggressive_update_packages == ()
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), stack_callback=conda_tests_ctxt_mgmt_def_pol):
             assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
