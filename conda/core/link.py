@@ -272,7 +272,7 @@ class UnlinkLinkTransaction:
                 for msg_file in all_msg_subdir:
                     print(f"  File {msg_file.name}:\n")
                     print(indent(msg_file.read_text(), "  "))
-                    print("")
+                    print()
         if flag_pre_link:
             confirm_yn()
 
