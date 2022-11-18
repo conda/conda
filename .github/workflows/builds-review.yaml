@@ -52,31 +52,31 @@ jobs:
           clean: true
           fetch-depth: 0
 
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-activate-base: true
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-activate-base: true
 
-    - name: Build & upload package
-      # make sure we don't run on forks
-      id: build
-      shell: bash -l {0}
-      run: |
-        echo "::group::Setting up environment"
-        set -euo pipefail
-        conda activate
-        conda update --yes --quiet conda
-        conda install --yes --quiet conda-build anaconda-client git
-        echo "::endgroup::"
+      - name: Build & upload package
+        # make sure we don't run on forks
+        id: build
+        shell: bash -l {0}
+        run: |
+          echo "::group::Setting up environment"
+          set -euo pipefail
+          conda activate
+          conda update --yes --quiet conda
+          conda install --yes --quiet conda-build anaconda-client git
+          echo "::endgroup::"
 
-        echo "::group::Debugging information"
-        conda info
-        conda config --show-sources
-        conda list
-        echo "::endgroup::"
+          echo "::group::Debugging information"
+          conda info
+          conda config --show-sources
+          conda list
+          echo "::endgroup::"
 
-        echo "::group::Building package"
-        conda build --croot=./pkgs recipe
-        echo "::endgroup::"
+          echo "::group::Building package"
+          conda build --croot=./pkgs recipe
+          echo "::endgroup::"
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
