@@ -93,7 +93,7 @@ class IntegrationTests(BaseTestCase):
         PackageCacheData.clear()
 
     @pytest.mark.skipif(
-        context.subdir not in ["linux-64", "osx-64", "win-32", "win-64", "linux-32"],
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
         reason="Skip unsupported platforms",
     )
     def test_install_python2_and_search(self):
@@ -1897,7 +1897,7 @@ dependencies:
                     # corresponding HTTP header. This test is supposed to test
                     # whether the --use-index-cache causes the cache to be used.
                     result = orig_get(self, url, **kwargs)
-                    for header in ['Etag', 'Last-Modified', 'Cache-Control']:
+                    for header in ("Etag", "Last-Modified", "Cache-Control"):
                         if header in result.headers:
                             del result.headers[header]
                     return result
