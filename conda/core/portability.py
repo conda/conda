@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from logging import getLogger
-from os.path import realpath
+from os.path import realpath, basename
+import os
 import re
 import struct
 import subprocess
@@ -242,26 +243,48 @@ def replace_long_shebang(mode, data):
     return data
 
 
-def generate_shebang_for_entry_point(executable):
+def generate_shebang_for_entry_point(executable, with_usr_bin_env=False):
+    """
+    This function can be used to generate a shebang line for Python entry points.
+
+    Use cases:
+    - At install/link time, to generate the `noarch: python` entry points.
+    - conda init uses it to create its own entry point during conda-build
+    """
     shebang = f"#!{executable}\n"
-    # In principle, this shebang ^ will work as long as the path
+    if os.environ.get("CONDA_BUILD") == "1" and "/_h_env_placehold" in executable:
+        # This is being used during a conda-build process,
+        # which uses long prefixes on purpose. This will be replaced
+        # with the real environment prefix at install time. Do not
+        # do nothing for now.
+        return shebang
+
+    # In principle, the naive shebang will work as long as the path
     # to the python executable does not contain spaces AND it's not
-    # longer than 127 characters. But if it does, we can fix it.
-    # Following method inspired by `pypa/distlib`
-    # https://github.com/pypa/distlib/blob/91aa92e64/distlib/scripts.py#L129
-    # Explanation: these lines are both valid Python and shell :)
-    # 1. Python will read it as a triple-quoted multiline string; end of story
-    # 2. The shell will see:
-    #       * '' (empty string)
-    #       * 'exec' "path/with spaces/to/python" "this file" "arguments"
-    #       * ' ''' (quoted space followed by empty string)
-    if len(shebang) > MAX_SHEBANG_LENGTH or " " in shebang:
-        shebang = dals(
-            f"""
-            #!/bin/sh
-            '''exec' "{executable}" "$0" "$@"
-            ' '''
-            """
-        )
+    # longer than 127 characters. Otherwise, we must fix it
+    if len(shebang) > MAX_SHEBANG_LENGTH or " " in executable:
+        if with_usr_bin_env:
+            # This approach works well for all cases BUT it requires
+            # the executable to be in PATH. In other words, the environment
+            # needs to be activated!
+            shebang = f"#!/usr/bin/env {basename(executable)}\n"
+        else:
+            # This approach follows a method inspired by `pypa/distlib`
+            # https://github.com/pypa/distlib/blob/91aa92e64/distlib/scripts.py#L129
+            # Explanation: these lines are both valid Python and shell :)
+            # 1. Python will read it as a triple-quoted string; end of story
+            # 2. The shell will see:
+            #    * '' (empty string)
+            #    * 'exec' "path/with spaces/to/python" "this file" "arguments"
+            #    * # ''' (inline comment with three quotes, ignored by shell)
+            # This method works well BUT in some shells, $PS1 is dropped, which
+            # makes the prompt disappear. This is very problematic for the conda
+            # entry point! Details: https://github.com/conda/conda/issues/11885
+            shebang = dals(
+                f"""
+                #!/bin/sh
+                '''exec' "{executable}" "$0" "$@" #'''
+                """
+            )
 
     return shebang

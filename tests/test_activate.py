@@ -2012,7 +2012,7 @@ class InteractiveShell:
 
         p = PopenSpawn(
             quote_for_shell(shell_found, *args),
-            timeout=12,
+            timeout=30,
             maxread=5000,
             searchwindowsize=None,
             logfile=sys.stdout,
