@@ -988,8 +988,7 @@ class ChannelMatch(GlobStrMatch):
         else:
             # assert ChannelMatch('pkgs/free').match('defaults') is False
             # assert ChannelMatch('defaults').match('pkgs/free') is True
-            return (self._raw_value.name == _other_val.name
-                    or self._raw_value.name == _other_val.canonical_name)
+            return self._raw_value.name in (_other_val.name, _other_val.canonical_name)
 
     def __str__(self):
         try:

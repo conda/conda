@@ -2177,8 +2177,8 @@ class ShellWrapperIntegrationTests(TestCase):
 
     def basic_posix(self, shell):
 
-        if shell.shell_name == 'zsh' or shell.shell_name == 'dash':
-            conda_is_a_function = 'conda is a shell function'
+        if shell.shell_name in ("zsh", "dash"):
+            conda_is_a_function = "conda is a shell function"
         else:
             conda_is_a_function = 'conda is a function'
 
