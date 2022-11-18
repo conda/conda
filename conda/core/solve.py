@@ -795,8 +795,9 @@ class Solver:
         while conflicting_specs:
             specs_modified = False
             if log.isEnabledFor(DEBUG):
-                log.debug("conflicting specs: %s", dashlist(
-                    s.target if s.target else s for s in conflicting_specs))
+                log.debug(
+                    "conflicting specs: %s", dashlist(s.target or s for s in conflicting_specs)
+                )
 
             # Are all conflicting specs in specs_map? If not, that means they're in
             # track_features_specs or pinned_specs, which we should raise an error on.

@@ -728,7 +728,7 @@ def _parse_spec_str(spec_str):
 
     # Step 8. now compile components together
     components = {}
-    components['name'] = name if name else '*'
+    components["name"] = name or "*"
 
     if channel is not None:
         components['channel'] = channel
