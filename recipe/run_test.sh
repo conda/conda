@@ -11,9 +11,6 @@ unset CONDA_EXE
 # Peek into shebang
 head "$CONDA_PREFIX/bin/conda"
 
-# Used to rewrite the entry point script so it points to the correct python interpreter
-conda init --all
-
 # Used to interactively load shell functions
 eval "$(python -m conda shell.bash hook)"
 
