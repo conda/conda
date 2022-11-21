@@ -8,9 +8,6 @@ unset _CE_CONDA
 unset _CE_M
 unset CONDA_EXE
 
-# # Peek into shebang
-# head "$CONDA_PREFIX/bin/conda"
-
 # Used to interactively load shell functions
 eval "$(python -m conda shell.bash hook)"
 
