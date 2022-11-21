@@ -10,5 +10,5 @@ if [[ $(uname) =~ MINGW* ]]; then
   sed -i "s|CONDA_EXE=.*|CONDA_EXE=\'${PREFIXW//\\/\\\\}\\\\Scripts\\\\conda.exe\'|g" $PREFIX/etc/profile.d/conda.sh
 fi
 
-# Peek into shebang
-head "$PREFIX/bin/conda"
+# # Peek into shebang
+# head "$PREFIX/bin/conda"
