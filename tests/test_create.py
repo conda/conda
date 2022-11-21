@@ -471,7 +471,7 @@ class IntegrationTests(BaseTestCase):
         # We elect to test the more complex of the two options.
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
@@ -494,7 +494,7 @@ class IntegrationTests(BaseTestCase):
         from conda.exports import rm_rf as _rm_rf
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
