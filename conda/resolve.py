@@ -64,7 +64,7 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     else:
         log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
         return sat_solver
-    for solver_choice, sat_solver in _sat_solvers.items():
+    for sat_solver in _sat_solvers.values():
         try:
             try_out_solver(sat_solver)
         except Exception as e:
