@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
+from __future__ import annotations
 
+from json import JSONEncoder
 import os
 from os.path import abspath, dirname
 import sys
 import warnings
-
-from json import JSONEncoder
 
 from .auxlib.packaging import get_version
 
@@ -148,3 +148,85 @@ def _default(self, obj):
 
 _default.default = JSONEncoder().default
 JSONEncoder.default = _default
+
+
+# inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
+# CPython's warnings._deprecated
+class _deprecated:
+    def __init__(
+        self,
+        deprecate_in: str,
+        remove_in: str,
+        addendum: str | None = None,
+        _current: str | None = None,
+    ):
+        """
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            addendum: Additional messaging. Useful to indicate what should be used instead.
+            _current: Testing variable, shouldn't be used in practice.
+        """
+        from packaging import version
+
+        self.deprecate_version = version.parse(deprecate_in)
+        self.remove_version = version.parse(remove_in)
+        self.current_version = version.parse(_current or __version__)
+        self.addendum = f" {addendum.strip()}" if addendum else ""
+
+    def __call__(self, func):
+        """Deprecation decorator for functions & methods."""
+        from functools import wraps
+
+        name = f"{func.__module__}.{func.__name__}"
+        if self.current_version < self.deprecate_version:
+
+            @wraps(func)
+            def inner(*args, **kwargs):
+                warnings.warn(self._pending_msg(name), PendingDeprecationWarning, stacklevel=5)
+                return func(*args, **kwargs)
+
+            return inner
+        elif self.current_version < self.remove_version:
+
+            @wraps(func)
+            def inner(*args, **kwargs):
+                warnings.warn(self._deprecated_msg(name), DeprecationWarning, stacklevel=5)
+                return func(*args, **kwargs)
+
+            return inner
+        else:
+            raise RuntimeError(self._remove_msg(name))
+
+    @classmethod
+    def module(cls, *args, **kwargs):
+        """Deprecation function for modules."""
+        import inspect
+
+        self = cls(*args, **kwargs)
+
+        frame = inspect.stack()[1]
+        module = inspect.getmodule(frame[0])
+        name = module.__name__
+
+        if self.current_version < self.deprecate_version:
+            warnings.warn(self._pending_msg(name), PendingDeprecationWarning, stacklevel=3)
+        elif self.current_version < self.remove_version:
+            warnings.warn(self._deprecated_msg(name), DeprecationWarning, stacklevel=3)
+        else:
+            raise RuntimeError(self._remove_msg(name))
+
+    def _pending_msg(self, name: str) -> None:
+        return (
+            f"{name} is pending deprecation and will be removed in {self.remove_version}."
+            f"{self.addendum}"
+        )
+
+    def _deprecated_msg(self, name: str) -> None:
+        return (
+            f"{name} is deprecated and will be removed in {self.remove_version}."
+            f"{self.addendum}"
+        )
+
+    def _remove_msg(self, name: str) -> None:
+        return f"{name} was slated for removal in {self.remove_version}." f"{self.addendum}"
