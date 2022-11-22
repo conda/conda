@@ -1,0 +1,21 @@
+### Enhancements
+
+* Add support for incremental repodata.json updates with `--experimental=jlap`
+  (#12090). Note switching from "use jlap" back to "don't use jlap" invalidates
+  the cache.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
