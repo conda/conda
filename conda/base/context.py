@@ -8,12 +8,11 @@ from functools import lru_cache
 from logging import getLogger
 from typing import Optional
 import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
+from os.path import abspath, expanduser, isdir, isfile, join, split as path_split
 import platform
 import sys
 import struct
 from contextlib import contextmanager
-from datetime import datetime
 import warnings
 
 try:
@@ -30,6 +29,7 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_SOLVER,
     DepsModifier,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
@@ -39,9 +39,7 @@ from .constants import (
     SEARCH_PATH,
     SafetyChecks,
     SatSolverChoice,
-    SolverChoice,
     UpdateModifier,
-    CONDA_LOGS_DIR,
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
@@ -338,8 +336,8 @@ class Context(Configuration):
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
     solver = ParameterLoader(
-        PrimitiveParameter(SolverChoice.CLASSIC, element_type=SolverChoice),
-        aliases=('experimental_solver',),
+        PrimitiveParameter(DEFAULT_SOLVER),
+        aliases=("experimental_solver",),
     )
 
     @property
@@ -347,7 +345,7 @@ class Context(Configuration):
         # TODO: Remove in a later release
         warnings.warn(
             "'context.experimental_solver' is pending deprecation and will be removed. "
-            "Please consider use 'context.solver' instead.",
+            "Please consider using 'context.solver' instead.",
             PendingDeprecationWarning
         )
         return self.solver
@@ -415,6 +413,15 @@ class Context(Configuration):
         return errors
 
     @property
+    def plugin_manager(self):
+        """
+        This is the preferred way of accessing the ``PluginManager`` object for this application
+        and is located here to avoid problems with cyclical imports elsewhere in the code.
+        """
+        from ..plugins.manager import get_plugin_manager
+        return get_plugin_manager()
+
+    @property
     def conda_build_local_paths(self):
         # does file system reads to make sure paths actually exist
         return tuple(unique(full_path for full_path in (
@@ -468,7 +475,13 @@ class Context(Configuration):
 
     @property
     def conda_private(self):
-        return conda_in_private_env()
+        warnings.warn(
+            "`conda.base.context.context.conda_private` is pending deprecation and will be "
+            "removed in a future release. It's meaningless and any special meaning it may have "
+            "held is now void.",
+            PendingDeprecationWarning,
+        )
+        return False
 
     @property
     def platform(self):
@@ -476,15 +489,15 @@ class Context(Configuration):
 
     @property
     def default_threads(self) -> Optional[int]:
-        return self._default_threads if self._default_threads else None
+        return self._default_threads or None
 
     @property
     def repodata_threads(self) -> Optional[int]:
-        return self._repodata_threads if self._repodata_threads else self.default_threads
+        return self._repodata_threads or self.default_threads
 
     @property
     def fetch_threads(self) -> Optional[int]:
-        return self._fetch_threads if self._fetch_threads else self.default_threads
+        return self._fetch_threads or self.default_threads
 
     @property
     def verify_threads(self) -> Optional[int]:
@@ -520,7 +533,7 @@ class Context(Configuration):
 
     @property
     def subdirs(self):
-        return self._subdirs if self._subdirs else (self.subdir, 'noarch')
+        return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
     def known_subdirs(self):
@@ -583,21 +596,6 @@ class Context(Configuration):
         mkdir_p(trash_dir)
         return trash_dir
 
-    @memoizedproperty
-    def _logfile_path(self):
-        # TODO: This property is only temporary during libmamba experimental release phase
-        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
-        from ..core.package_cache_data import PackageCacheData
-
-        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
-        logs = join(pkgs_dir, CONDA_LOGS_DIR)
-        from ..gateways.disk.create import mkdir_p
-
-        mkdir_p(logs)
-
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
-        return os.path.join(logs, f"{timestamp}.log")
-
     @property
     def default_prefix(self):
         if self.active_prefix:
@@ -637,8 +635,6 @@ class Context(Configuration):
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
-        elif conda_in_private_env():
-            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
@@ -849,17 +845,16 @@ class Context(Configuration):
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
-        if self.solver.value != "classic":
-            from ..core.solve import _get_solver_class
-
-            user_agent_str = "solver/%s" % self.solver.value
+        if self.solver != "classic":
+            user_agent_str = "solver/%s" % self.solver
             try:
+                solver_backend = self.plugin_manager.get_cached_solver_backend()
                 # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {_get_solver_class().user_agent()}"
+                user_agent_str += f" {solver_backend.user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
-                    self.solver.value,
+                    self.solver,
                     exc_info=exc
                 )
             builder.append(user_agent_str)
@@ -1619,12 +1614,6 @@ class Context(Configuration):
                 """
             ),
         )
-
-
-def conda_in_private_env():
-    # conda is located in its own private environment named '_conda_'
-    envs_dir, env_name = path_split(sys.prefix)
-    return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):

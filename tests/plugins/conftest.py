@@ -14,8 +14,7 @@ from conda.plugins.hookspec import CondaSpecs
 def plugin_manager(mocker):
     pm = CondaPluginManager()
     pm.add_hookspecs(CondaSpecs)
-    mocker.patch("conda.core.index.get_plugin_manager", return_value=pm)
-    mocker.patch("conda.cli.conda_argparse.get_plugin_manager", return_value=pm)
+    mocker.patch("conda.plugins.manager.get_plugin_manager", return_value=pm)
     return pm
 
 

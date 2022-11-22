@@ -43,7 +43,7 @@ def validate_keys(data, kwargs):
               "".format(filename=filename, plural=plural, verb=verb))
         for key in invalid_keys:
             print(f" - {key}")
-        print("")
+        print()
 
     deps = data.get('dependencies', [])
     depsplit = re.compile(r"[<>~\s=]")

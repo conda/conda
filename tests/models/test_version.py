@@ -231,7 +231,7 @@ class TestVersionSpec(unittest.TestCase):
         assert hash(v1) == hash(v2) == hash(v3)
 
     def test_match(self):
-        for vspec, res in [
+        for vspec, res in (
             ('1.7.*', True),   ('1.7.1', True),    ('1.7.0', False),
             ('1.7', False),   ('1.5.*', False),    ('>=1.5', True),
             ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
@@ -246,7 +246,7 @@ class TestVersionSpec(unittest.TestCase):
             ('1.6.*|^0.*$|1.7.1', True), ('^0.*$|1.7.1', True),
             (r'1.6.*|^.*\.7\.1$|0.7.1', True), ('*', True), ('1.*.1', True),
             ('1.5.*|>1.7,<1.8', True), ('1.5.*|>1.7,<1.7.1', False),
-        ]:
+        ):
             m = VersionSpec(vspec)
             assert VersionSpec(m) is m
             assert str(m) == vspec

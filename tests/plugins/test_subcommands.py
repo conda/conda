@@ -52,4 +52,4 @@ def test_duplicated(plugin_manager, cli_main, capsys):
     cli_main()
     stdout, stderr = capsys.readouterr()
 
-    assert "Conflicting entries found for the following subcommands" in stderr
+    assert "Conflicting `subcommands` plugins found" in stderr

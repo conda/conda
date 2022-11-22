@@ -775,7 +775,7 @@ def make_entry_point(target_path, conda_prefix, module, func):
         new_ep_content = ""
     else:
         python_path = join(conda_prefix, get_python_short_path())
-        new_ep_content = generate_shebang_for_entry_point(python_path)
+        new_ep_content = generate_shebang_for_entry_point(python_path, with_usr_bin_env=True)
 
     conda_extra = dals("""
     # Before any more imports, leave cwd out of sys.path for internal 'conda shell.*' commands.
