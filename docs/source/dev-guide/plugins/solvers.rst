@@ -7,7 +7,7 @@ The conda solvers can be extended with additional backends with the
 for configuration with the ``solver`` configuration and ``--solver``
 command line option.
 
-.. autoclass:: conda.models.plugins.CondaSolver
+.. autoclass:: conda.plugins.types.CondaSolver
    :members:
    :undoc-members:
 

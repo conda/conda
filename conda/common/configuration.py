@@ -444,7 +444,7 @@ class DefaultValueRawParameter(RawParameter):
         if isinstance(self._raw_value, Mapping):
             return frozendict()
         elif isiterable(self._raw_value):
-            return tuple()
+            return ()
         elif isinstance(self._raw_value, ConfigurationObject):
             return None
         elif isinstance(self._raw_value, Enum):
@@ -1168,7 +1168,7 @@ class SequenceParameter(Parameter):
         if value is None:
             return SequenceLoadedParameter(
                 name,
-                tuple(),
+                (),
                 self._element_type,
                 match.keyflag(),
                 tuple(),
@@ -1228,7 +1228,7 @@ class ObjectParameter(Parameter):
                 None,
                 validation=self._validation)
 
-        if not (isinstance(value, Mapping) or isinstance(value, ConfigurationObject)):
+        if not isinstance(value, (Mapping, ConfigurationObject)):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
                                    self._type.__name__)
 
@@ -1374,7 +1374,7 @@ class Configuration(metaclass=ConfigurationType):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = odict()
-        self._cache_ = dict()
+        self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
@@ -1424,7 +1424,7 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def _reset_cache(self):
-        self._cache_ = dict()
+        self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
         return self

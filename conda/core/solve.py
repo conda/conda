@@ -6,6 +6,7 @@ from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
+import warnings
 from textwrap import dedent
 
 try:
@@ -29,7 +30,7 @@ from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import (CondaValueError, PackagesNotFoundError, SpecsConfigurationConflictError,
+from ..exceptions import (PackagesNotFoundError, SpecsConfigurationConflictError,
                           UnsatisfiableError)
 from ..history import History
 from ..models.channel import Channel
@@ -48,21 +49,13 @@ def _get_solver_class(key=None):
 
     See ``context.solver`` for more details.
     """
-    solvers = context.plugin_manager.get_registered_plugins("solvers")
-    key = (key or context.solver).lower()
-
-    solvers_mapping = {}
-    for solver in solvers:
-        solvers_mapping[solver.name.lower()] = solver.backend
-
-    if key in solvers_mapping:
-        return solvers_mapping[key]
-    else:
-        raise CondaValueError(
-            f"You have chosen a non-default solver backend ({key}) "
-            f"but it was not recognized. Choose one of: "
-            f"{', '.join(solvers_mapping.keys())}"
-        )
+    warnings.warn(
+        "`conda.core.solve._get_solver_class` is pending deprecation and will be removed in a "
+        "future release. Please use `conda.base.context.plugin_manager.get_cached_solver_backend "
+        "instead.",
+        PendingDeprecationWarning,
+    )
+    return context.plugin_manager.get_cached_solver_backend(key or context.solver)
 
 
 class Solver:
@@ -100,7 +93,7 @@ class Solver:
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
-        self.neutered_specs = tuple()
+        self.neutered_specs = ()
         self._command = command
 
         assert all(s in context.known_subdirs for s in self.subdirs)
@@ -602,7 +595,7 @@ class Solver:
                 tuple(record.to_match_spec() for record in ssc.prefix_data.iter_records()),
                 self.specs_to_add,
             )
-            or tuple()
+            or ()
         )
         conflict_specs = {_.name for _ in conflict_specs}
 
@@ -802,8 +795,9 @@ class Solver:
         while conflicting_specs:
             specs_modified = False
             if log.isEnabledFor(DEBUG):
-                log.debug("conflicting specs: %s", dashlist(
-                    s.target if s.target else s for s in conflicting_specs))
+                log.debug(
+                    "conflicting specs: %s", dashlist(s.target or s for s in conflicting_specs)
+                )
 
             # Are all conflicting specs in specs_map? If not, that means they're in
             # track_features_specs or pinned_specs, which we should raise an error on.

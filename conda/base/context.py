@@ -9,7 +9,7 @@ from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
+from os.path import abspath, expanduser, isdir, isfile, join, split as path_split
 import platform
 import sys
 import struct
@@ -504,7 +504,13 @@ class Context(Configuration):
 
     @property
     def conda_private(self):
-        return conda_in_private_env()
+        warnings.warn(
+            "`conda.base.context.context.conda_private` is pending deprecation and will be "
+            "removed in a future release. It's meaningless and any special meaning it may have "
+            "held is now void.",
+            PendingDeprecationWarning,
+        )
+        return False
 
     @property
     def platform(self):
@@ -512,15 +518,15 @@ class Context(Configuration):
 
     @property
     def default_threads(self) -> int | None:
-        return self._default_threads if self._default_threads else None
+        return self._default_threads or None
 
     @property
     def repodata_threads(self) -> int | None:
-        return self._repodata_threads if self._repodata_threads else self.default_threads
+        return self._repodata_threads or self.default_threads
 
     @property
     def fetch_threads(self) -> int | None:
-        return self._fetch_threads if self._fetch_threads else self.default_threads
+        return self._fetch_threads or self.default_threads
 
     @property
     def verify_threads(self) -> int | None:
@@ -556,7 +562,7 @@ class Context(Configuration):
 
     @property
     def subdirs(self):
-        return self._subdirs if self._subdirs else (self.subdir, 'noarch')
+        return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
     def known_subdirs(self):
@@ -658,8 +664,6 @@ class Context(Configuration):
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
-        elif conda_in_private_env():
-            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
@@ -921,12 +925,11 @@ class Context(Configuration):
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
         if self.solver != "classic":
-            from ..core.solve import _get_solver_class
-
             user_agent_str = "solver/%s" % self.solver
             try:
+                solver_backend = self.plugin_manager.get_cached_solver_backend()
                 # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {_get_solver_class().user_agent()}"
+                user_agent_str += f" {solver_backend.user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
@@ -1693,12 +1696,6 @@ class Context(Configuration):
                 """
             ),
         )
-
-
-def conda_in_private_env():
-    # conda is located in its own private environment named '_conda_'
-    envs_dir, env_name = path_split(sys.prefix)
-    return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):

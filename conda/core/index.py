@@ -67,7 +67,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         unknown = True
 
     channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    del LAST_CHANNEL_URLS[:]
+    LAST_CHANNEL_URLS.clear()
     LAST_CHANNEL_URLS.extend(channel_urls)
 
     check_allowlist(channel_urls)
@@ -172,7 +172,7 @@ def _supplement_index_with_system(index):
     conflict.
     """
     registered_names = []
-    packages = context.plugin_manager.get_registered_plugins("virtual_packages")
+    packages = context.plugin_manager.get_hook_results("virtual_packages")
     for package in packages:
         if package.name in registered_names:
             raise PluginError(

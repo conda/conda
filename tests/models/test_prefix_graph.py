@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-
 from functools import lru_cache
 from pprint import pprint
 
@@ -15,11 +14,6 @@ from conda.models.records import PackageRecord
 from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
 
 import pytest
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from unittest.mock import Mock, patch
 
 
 @lru_cache(maxsize=None)
@@ -700,11 +694,11 @@ def test_windows_sort_orders_2(tmpdir):
             conda.models.prefix_graph.on_win = old_on_win
 
 
-def test_sort_without_prep(tmpdir):
+def test_sort_without_prep(tmpdir, mocker):
     # Test the _toposort_prepare_graph method, here by not running it at all.
     # The method is invoked in every other test.  This is what happens when it's not invoked.
 
-    with patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
+    with mocker.patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
         records, specs = get_windows_conda_build_record_set(tmpdir)
         graph = PrefixGraph(records, specs)
 

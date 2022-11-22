@@ -59,7 +59,7 @@ def print_result(args, prefix, result):
                 actions["PIP"] = result["pip"]
             stdout_json_success(prefix=prefix, actions=actions)
     else:
-        cli_install.print_activate(args.name if args.name else prefix)
+        cli_install.print_activate(args.name or prefix)
 
 
 def get_filename(filename):

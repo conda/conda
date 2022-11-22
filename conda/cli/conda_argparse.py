@@ -114,7 +114,7 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        self._subcommands = context.plugin_manager.get_registered_plugins("subcommands")
+        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
 
         if self._subcommands:
             self.epilog = 'conda commands available from other packages:' + ''.join(
@@ -1812,7 +1812,7 @@ def add_parser_solver(p):
     See ``context.solver`` for more info.
     """
     solver_choices = [
-        solver.name for solver in context.plugin_manager.get_registered_plugins("solvers")
+        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
     ]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
