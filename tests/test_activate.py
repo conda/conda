@@ -1907,8 +1907,8 @@ class InteractiveShell:
         },
         'bash': {
             # MSYS2's login scripts handle mounting the filesystem. Without it, /c is /cygdrive.
-            'args': ('-l',) if on_win else tuple(),
-            'base_shell': 'posix',  # inheritance implemented in __init__
+            "args": ("-l",) if on_win else (),
+            "base_shell": "posix",  # inheritance implemented in __init__
         },
         'dash': {
             'base_shell': 'posix',  # inheritance implemented in __init__
@@ -2008,7 +2008,7 @@ class InteractiveShell:
         # 2. For some reason, passing just self.shell_name (which is `bash`) runs WSL
         #    bash instead of MSYS2's, even when MSYS2 appears before System32 on PATH.
         shell_found = which(self.shell_name) or self.shell_name
-        args = list(self.args) if hasattr(self, 'args') else list()
+        args = list(self.args) if hasattr(self, "args") else []
 
         p = PopenSpawn(
             quote_for_shell(shell_found, *args),
@@ -2177,8 +2177,8 @@ class ShellWrapperIntegrationTests(TestCase):
 
     def basic_posix(self, shell):
 
-        if shell.shell_name == 'zsh' or shell.shell_name == 'dash':
-            conda_is_a_function = 'conda is a shell function'
+        if shell.shell_name in ("zsh", "dash"):
+            conda_is_a_function = "conda is a shell function"
         else:
             conda_is_a_function = 'conda is a function'
 

@@ -16,20 +16,32 @@ from conda.testing.helpers import assert_equals, assert_in
 
 def test_info():
     conda_info_out, conda_info_err, rc = run_command(Commands.INFO)
-    assert_equals(conda_info_err, '')
-    for name in ['platform', 'conda version',
-                 'envs directories', 'package cache',
-                 'channel URLs', 'config file', 'offline mode']:
+    assert_equals(conda_info_err, "")
+    for name in (
+        "platform",
+        "conda version",
+        "envs directories",
+        "package cache",
+        "channel URLs",
+        "config file",
+        "offline mode",
+    ):
         assert_in(name, conda_info_out)
 
     conda_info_e_out, conda_info_e_err, rc = run_command(Commands.INFO, '-e')
     assert_in('base', conda_info_e_out)
     assert_equals(conda_info_e_err, '')
 
-    conda_info_s_out, conda_info_s_err, rc = run_command(Commands.INFO, '-s')
-    assert_equals(conda_info_s_err, '')
-    for name in ['sys.version', 'sys.prefix', 'sys.executable', 'conda location',
-                 'conda-build', 'PATH']:
+    conda_info_s_out, conda_info_s_err, rc = run_command(Commands.INFO, "-s")
+    assert_equals(conda_info_s_err, "")
+    for name in (
+        "sys.version",
+        "sys.prefix",
+        "sys.executable",
+        "conda location",
+        "conda-build",
+        "PATH",
+    ):
         assert_in(name, conda_info_s_out)
 
     conda_info_all_out, conda_info_all_err, rc = run_command(Commands.INFO, '--all')

@@ -217,7 +217,7 @@ def install(args, parser, command='install'):
 
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
+        print_activate(args.name or prefix)
         return
 
     repodata_fns = args.repodata_fns
@@ -365,7 +365,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if newenv:
         touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
+        print_activate(args.name or prefix)
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
