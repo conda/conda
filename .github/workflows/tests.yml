@@ -326,6 +326,9 @@ jobs:
 
       - name: Create and upload canary build
         uses: conda/actions/canary-release@v22.10.0
+        env:
+          # Run conda-build in isolated activation to properly package conda
+          _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}

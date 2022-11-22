@@ -8,12 +8,6 @@ unset _CE_CONDA
 unset _CE_M
 unset CONDA_EXE
 
-# Peek into shebang
-head "$CONDA_PREFIX/bin/conda"
-
-# Used to rewrite the entry point script so it points to the correct python interpreter
-conda init --all
-
 # Used to interactively load shell functions
 eval "$(python -m conda shell.bash hook)"
 
@@ -33,4 +27,4 @@ conda activate ./built-conda-test-env
 echo "$CONDA_PREFIX"
 [ "$CONDA_PREFIX" = "$PWD/built-conda-test-env" ] || exit 1
 [ $(python -c "import sys; print(sys.version_info[1])") = ${TEST_MINOR_VER} ] || exit 1
-conda deactivate
+# conda deactivate

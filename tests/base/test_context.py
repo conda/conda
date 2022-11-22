@@ -283,7 +283,7 @@ class ContextCustomRcTests(TestCase):
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
 
     def test_aggressive_update_packages(self):
-        assert context.aggressive_update_packages == tuple()
+        assert context.aggressive_update_packages == ()
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), stack_callback=conda_tests_ctxt_mgmt_def_pol):
             assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
@@ -422,26 +422,26 @@ class ContextCustomRcTests(TestCase):
         ssl_verify = _get_expandvars_context("ssl_verify", "${TEST_VAR}", "yes")
         assert ssl_verify
 
-        for attr, env_value in [
+        for attr, env_value in (
             ("client_ssl_cert", "foo"),
             ("client_ssl_cert_key", "foo"),
             ("channel_alias", "http://foo"),
-        ]:
+        ):
             value = _get_expandvars_context(attr, "${TEST_VAR}", env_value)
             assert value == env_value
 
-        for attr in [
+        for attr in (
             "migrated_custom_channels",
             "proxy_servers",
-        ]:
+        ):
             value = _get_expandvars_context("proxy_servers", "{'x': '${TEST_VAR}'}", "foo")
             assert value == {"x": "foo"}
 
-        for attr in [
+        for attr in (
             "channels",
             "default_channels",
             "allowlist_channels",
-        ]:
+        ):
             value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
             assert value == ("foo",)
 

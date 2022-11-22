@@ -411,4 +411,3 @@ def execute_config(args, parser):
             warnings=json_warnings,
             get=json_get
         )
-    return

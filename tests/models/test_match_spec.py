@@ -43,7 +43,7 @@ def DPkg(s, **kwargs):
 class MatchSpecTests(TestCase):
 
     def test_match_1(self):
-        for spec, result in [
+        for spec, result in (
             ('numpy 1.7*', True),          ('numpy 1.7.1', True),
             ('numpy 1.7', False),          ('numpy 1.5*', False),
             ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
@@ -59,7 +59,7 @@ class MatchSpecTests(TestCase):
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
             ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
             ('python', False),
-        ]:
+        ):
             m = MatchSpec(spec)
             assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
             assert 'name' in m
