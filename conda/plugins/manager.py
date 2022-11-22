@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 
 import pluggy
+from requests import Session  # TODO: should we just define our own ABC for this instead?
 
 from . import solvers, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -31,6 +32,9 @@ class CondaPluginManager(pluggy.PluginManager):
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(self.get_solver_backend)
+
+        #: Registered conda session classes for handling network requests
+        self._registered_conda_session_classes: dict[Session] = {}
 
     def load_plugins(self, *plugins) -> list[str]:
         """
@@ -130,6 +134,22 @@ class CondaPluginManager(pluggy.PluginManager):
             )
 
         return backend
+
+    def get_session_class(self, name: str = None) -> type[Session]:
+        """
+        Get the session class with the given name (or fall back to the
+        default CondaSession class).
+        """
+        if name:
+            session_classes = self.get_hook_results("session_classes")
+            matches = tuple(item for item in session_classes if item.name == name)
+
+            if len(matches) > 0:
+                return matches[0]
+
+        from ..gateways.connection.session import CondaSession
+
+        return CondaSession
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

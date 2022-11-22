@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from typing import Callable, NamedTuple
+
+from requests import Session
+
 from ..core.solve import Solver
 
 
@@ -45,3 +48,16 @@ class CondaSolver(NamedTuple):
 
     name: str
     backend: type[Solver]
+
+
+class CondaSession(NamedTuple):
+    """
+    A conda session.
+
+    :param name: Session name (e.g., ``basic-auth-session``). This name should be unique
+                 and only one may be registered at a time.
+    :param session: Type that will be instantiated as the conda session.
+    """
+
+    name: str
+    session: type[Session]

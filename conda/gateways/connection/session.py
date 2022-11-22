@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from collections import defaultdict
 from logging import getLogger
 from threading import local
 
@@ -29,6 +30,11 @@ CONDA_SESSION_SCHEMES = frozenset((
     "file",
 ))
 
+#: Use for storing variables local to threads
+#: More information here: https://docs.python.org/3/library/threading.html#thread-local-data
+__THREAD_LOCAL = local()
+
+
 class EnforceUnusedAdapter(BaseAdapter):
 
     def send(self, request, *args, **kwargs):
@@ -42,6 +48,25 @@ class EnforceUnusedAdapter(BaseAdapter):
         raise NotImplementedError()
 
 
+def get_channel_name_from_url(url: str) -> str:
+    """
+    Given a URL, determine the channel it belongs to and return its name.
+    """
+    return "defaults"
+
+
+def session_manager(url: str) -> Session:  # TODO: we might want to implement our own ABC class
+    """
+    Class decorator that determines the correct Session object to returned
+    based on the channel that is passed in.
+    """
+    channel_name = get_channel_name_from_url(url)
+    session_type = context.get_channel_parameters(channel_name).get("session_type")
+    session_class = context.plugin_manager.get_session_class(session_type)
+
+    return session_class()
+
+
 class CondaSessionType(type):
     """
     Takes advice from https://github.com/requests/requests/issues/1871#issuecomment-33327847
@@ -52,17 +77,18 @@ class CondaSessionType(type):
         dct['_thread_local'] = local()
         return super().__new__(mcs, name, bases, dct)
 
-    def __call__(cls):
+    def __call__(cls, channel_name: str = None):
         try:
-            return cls._thread_local.session
+            return cls._thread_local.sessions.get(channel_name)
         except AttributeError:
-            session = cls._thread_local.session = super().__call__()
+            cls._thread_local.sessions = defaultdict()
+            session = cls._thread_local.sessions = super().__call__()
             return session
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
 
-    def __init__(self):
+    def __init__(self, channel_name: str = None):
         super().__init__()
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?

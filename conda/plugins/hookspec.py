@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage, CondaSession
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -98,4 +98,34 @@ class CondaSpecs:
                     version="1.2.3",
                 )
 
+        """
+
+    @_hookspec
+    def conda_session_classes(self) -> Iterable[CondaSession]:
+        """
+        Register session classes in conda. This session be a sub-class
+        of ``requests.Session`` to maintain compatibility. This could also
+        just directly subclass ``conda.gateways.connection.session.CondaSession``.
+
+        :return: An iterable of conda session classes
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+            from requests import Session
+
+
+            class MyCustomSession(Session):
+                def __init__(self, *args, **kwargs):
+                    self.custom_param = "custom-name"
+
+
+            @plugins.hookimpl
+            def conda_session_classes():
+                yield plugins.CondaSession(
+                    name="my-custom-session",
+                    session=MyCustomSession,
+                )
         """
