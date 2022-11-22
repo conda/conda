@@ -583,7 +583,6 @@ class ConfigurationTests(TestCase):
     def test_nested(self):
         config = SampleConfiguration()._set_raw_data(
             load_from_string_data('nestedFile1', 'nestedFile2'))
-        # breakpoint()
         assert config.nested_seq == (
             {"key3": "c1", "key4": "d1"},  # top item from nestedFile1
             {"key1": "a2", "key2": "b2"},
