@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Added a new plugin mechanism.
+* Add a new plugin mechanism. (#11435)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added corresponding documentation for the new plugins mechanism. (#11435)
+* Add corresponding documentation for the new plugins mechanism. (#11435)
 
 ### Other
 

@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Fixed bad URL to Introduction to conda for Data Scientists course in conda docs. (#9782)
+* Fix bad URL to "Introduction to conda for Data Scientists" course in conda docs. (#9782)
 
 ### Other
 

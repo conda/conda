@@ -12,7 +12,8 @@
 
 ### Docs
 
-* Remove `allow_other_channels` config option from documentation, as the option no longer exists. (#11866)
+* Document conda-build package format v2, also known as the `.conda`-format.
+  (#11881)
 
 ### Other
 

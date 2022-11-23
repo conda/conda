@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list. (#10665)
+* Stop using `toolz.accumulate`. (#12020)
 
 ### Bug fixes
 

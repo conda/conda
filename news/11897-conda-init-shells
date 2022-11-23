@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list. (#10665)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Refactor `conda init SHELLS` as argparse choices. (#11897)

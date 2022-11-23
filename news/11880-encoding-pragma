@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list. (#10665)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,5 @@
 
 ### Other
 
-* <news item>
+* Remove encoding pragma in file headers, as it's not needed in Python 3
+  anymore. (#11880)

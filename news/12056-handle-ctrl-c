@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list. (#10665)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Handle `CTRL+C` during package downloading more gracefully. (#12056)
 
 ### Deprecations
 

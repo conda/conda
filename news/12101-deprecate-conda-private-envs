@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list. (#10665)
+* <news item>
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `context.conda_private` as pending deprecation. (#12101)
 
 ### Docs
 

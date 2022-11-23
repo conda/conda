@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list. (#10665)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Serve package files needed for testing using local server. (#12024)

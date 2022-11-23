@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Several user facing MatchSpec crashes were identified by fuzzing efforts. (#11999) Apply minimal fixes to deal with these (and similar) crashes. (#12014)
+* Several user facing MatchSpec crashes were identified by fuzzing efforts. (#11999)
+* Apply minimal fixes to deal with these (and similar) crashes. (#12014)
 
 ### Deprecations
 
