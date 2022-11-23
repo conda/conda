@@ -1,4 +1,0 @@
-### Enhancements
-
-* Add an informative message if explicit install fails due to requested
-  packages not being in the cache. (#11591)
