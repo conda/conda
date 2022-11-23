@@ -238,7 +238,12 @@ def make_menu(prefix, file_path, remove=False):
 
     try:
         import menuinst
-        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
+        menuinst.install(
+            join(prefix, win_path_ok(file_path)), 
+            remove=remove, 
+            prefix=prefix, 
+            root_prefix=context.root_prefix
+        )
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
