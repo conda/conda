@@ -76,30 +76,29 @@ ask for user input for that case.  (#11818)
 
 ### Contributors
 
-* @arq0017
+* @arq0017 made their first contribution in https://github.com/conda/conda/pull/11810
 * @beeankha
 * @conda-bot
 * @dbast
 * @dholth
 * @erykoff
-* @consideRatio
+* @consideRatio made their first contribution in https://github.com/conda/conda/pull/12028
 * @jaimergp
 * @jezdez
 * @kathatherine
 * @kenodegard
-* @ForgottenProgramme
-* @hmaarrfk
-* @NikhilRaverkar
-* @pavelzw
-* @pkmooreanaconda
-* @fragmede
-* @SatyamVyas04
+* @ForgottenProgramme made their first contribution in https://github.com/conda/conda/pull/11926
+* @hmaarrfk made their first contribution in https://github.com/conda/conda/pull/9946
+* @NikhilRaverkar made their first contribution in https://github.com/conda/conda/pull/11842
+* @pavelzw made their first contribution in https://github.com/conda/conda/pull/11849
+* @pkmooreanaconda made their first contribution in https://github.com/conda/conda/pull/12014
+* @fragmede made their first contribution in https://github.com/conda/conda/pull/11818
+* @SatyamVyas04 made their first contribution in https://github.com/conda/conda/pull/11870
 * @timhoffm
 * @travishathaway
-* @dependabot[bot]
+* @dependabot made their first contribution in https://github.com/conda/conda/pull/11965
 * @pre-commit-ci[bot]
 * @wulmer
-
 
 
 ## 22.9.0 (2022-09-14)
