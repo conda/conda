@@ -92,7 +92,8 @@ ENV_VARS_FILE = '''
   "env_vars": {
     "ENV_ONE": "one",
     "ENV_TWO": "you",
-    "ENV_THREE": "me"
+    "ENV_THREE": "me",
+    "ENV_WITH_SAME_VALUE": "with_same_value"
   }
 }'''
 
@@ -1010,7 +1011,8 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_PREFIX': old_prefix,
                 'PATH': old_path,
                 'CONDA_ENV_PROMPT': '({default_env})',
-                'ENV_ONE': 'already_set_env_var'
+                'ENV_ONE': 'already_set_env_var',
+                'ENV_WITH_SAME_VALUE': 'with_same_value'
             }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 activator = PosixActivator()
                 builder = activator.build_activate(td)
@@ -1037,6 +1039,7 @@ class ActivatorUnitTests(TestCase):
                     ('ENV_ONE', 'one'),
                     ('ENV_TWO', 'you'),
                     ('ENV_THREE', 'me'),
+                    ('ENV_WITH_SAME_VALUE', 'with_same_value'),
                     ('__CONDA_SHLVL_1_ENV_ONE', 'already_set_env_var')
                 ))
                 export_vars, _ = activator.add_export_unset_vars(export_vars, None)
@@ -1061,7 +1064,8 @@ class ActivatorUnitTests(TestCase):
                     'PKG_A_ENV': 'yerp',
                     'ENV_ONE': 'one',
                     'ENV_TWO': 'you',
-                    'ENV_THREE': 'me'
+                    'ENV_THREE': 'me',
+                    'ENV_WITH_SAME_VALUE': 'with_same_value'
                 }):
                     activator = PosixActivator()
                     builder = activator.build_deactivate()
@@ -1072,7 +1076,8 @@ class ActivatorUnitTests(TestCase):
                         'PKG_B_ENV',
                         'ENV_ONE',
                         'ENV_TWO',
-                        'ENV_THREE'
+                        'ENV_THREE',
+                        "ENV_WITH_SAME_VALUE"
                     ]
                     assert builder['set_vars'] == {
                         'PS1': '(/old/prefix)',
