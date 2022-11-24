@@ -260,8 +260,6 @@ class PythonDistribution:
                     if cleaned_path not in seen and row[0]:
                         seen.append(cleaned_path)
                         records.append((cleaned_path, checksum, size))
-                    else:
-                        continue
                 return tuple(records)
 
             csv_delimiter = ','
