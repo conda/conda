@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from copy import copy
 from itertools import chain
@@ -508,8 +509,8 @@ def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
 
 
-def get_channel_objs(ctx: Context):
-    """Return current channels as Channel objects"""
+def get_channel_objs(ctx: Context) -> tuple[Channel | MultiChannel, ...]:
+    """Return current channels as Channel or MultiChannel objects"""
     return tuple(Channel(chn) for chn in ctx.channels)
 
 

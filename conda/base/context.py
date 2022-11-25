@@ -803,6 +803,11 @@ class Context(Configuration):
         return tuple(IndexedSet((*local_add, *self._channels)))
 
     @property
+    def channel_parameters(self) -> dict[str, dict[str, str]]:
+        """Mock method"""
+        return {"http://localhost:8042": {"session_type": "basic-auth"}}
+
+    @property
     def config_files(self):
         return tuple(path for path in context.collect_all()
                      if path not in ('envvars', 'cmd_line'))

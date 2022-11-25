@@ -17,11 +17,13 @@ from tempfile import gettempdir, mkdtemp
 from uuid import uuid4
 from pathlib import Path
 from unittest.mock import patch
+from collections.abc import Generator
 
 from .. import cli
-from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol, Context
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
+from ..common.configuration import YamlRawParameter, yaml_round_trip_load
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..gateways.disk.delete import rm_rf
@@ -836,3 +838,20 @@ def convert_to_dist_str(solution):
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_cached_solver_backend()
+
+
+@contextmanager
+def temp_context(condarc: str) -> Generator[Context, None, None]:
+    """
+    Context manager that resets the context with the provided `condarc` string.
+    This string should be in the YAML format.
+    """
+    context_obj = reset_context(())
+    rd = dict(
+        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
+    )
+    context._set_raw_data(rd)
+
+    yield context_obj
+
+    reset_context()
