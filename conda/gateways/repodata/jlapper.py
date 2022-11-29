@@ -21,11 +21,12 @@ from conda.base.context import context
 from conda.gateways.connection import Response, Session
 from conda.gateways.connection.session import CondaSession
 
+from .jlapcore import jlap_buffer, write_jlap_buffer
+
 log = logging.getLogger(__name__)
 
 
 DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
-MAX_LINEID_BYTES = 64
 
 JLAP = "jlap"
 HEADERS = "headers"
@@ -49,53 +50,6 @@ def get_place(url, extra=""):
     if "current_repodata" in url:
         extra = f".c{extra}"
     return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
-
-
-def keyed_hash(data: bytes, key: bytes):
-    """
-    Keyed hash.
-    """
-    return blake2b(data, key=key, digest_size=DIGEST_SIZE)
-
-
-def line_and_pos(lines: Iterator[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
-    """
-    lines: iterator over input split by '\n', with '\n' removed.
-    pos: initial position
-    """
-    for line in lines:
-        yield pos, line
-        pos += len(line) + 1
-
-
-def jlap_buffer(lines: Iterator[bytes], iv: bytes, pos=0) -> list[tuple[int, str, str]]:
-    """
-    :param lines: iterator over input split by b'\n', with b'\n' removed
-    :param pos: initial position
-    :param iv: initialization vector (first line of .jlap stream, hex decoded)
-
-    :return: list of (offset, line, checksum)
-    """
-    # save initial iv in case there were no new lines
-    buffer: list[tuple[int, str, str]] = [(-1, iv.hex(), iv.hex())]
-    initial_pos = pos
-
-    for pos, line in line_and_pos(lines, pos=pos):
-        if pos == 0:
-            iv = bytes.fromhex(line.decode("utf-8"))
-            buffer = [(0, iv.hex(), iv.hex())]
-        else:
-            iv = keyed_hash(line, iv).digest()
-            buffer.append((pos, line.decode("utf-8"), iv.hex()))
-
-    log.info("%d bytes read", pos - initial_pos)  # maybe + length of last line
-
-    if buffer[-1][1] != buffer[-2][-1]:
-        raise ValueError("checksum mismatch")
-    else:
-        log.info("Checksum OK")
-
-    return buffer
 
 
 def process_jlap_response(response: Response, pos=0, iv=b""):
@@ -334,7 +288,7 @@ def request_url_jlap_state(
             buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
 
         # XXX debugging
-        get_place(url).with_suffix(".jlap").write_text("\n".join(b[1] for b in buffer))
+        write_jlap_buffer(get_place(url).with_suffix(".jlap"), buffer)
 
         state[JLAP] = jlap_state
 
