@@ -34,11 +34,15 @@ def line_and_pos(lines: Iterator[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
         pos += len(line) + 1
 
 
-def jlap_buffer(lines: Iterator[bytes], iv: bytes, pos=0) -> list[tuple[int, str, str]]:
+def jlap_buffer(
+    lines: Iterator[bytes], iv: bytes, pos=0, verify=True
+) -> list[tuple[int, str, str]]:
     """
     :param lines: iterator over input split by b'\n', with b'\n' removed
     :param pos: initial position
-    :param iv: initialization vector (first line of .jlap stream, hex decoded)
+    :param iv: initialization vector (first line of .jlap stream, hex decoded). Ignored if pos==0.
+    :param verify: assert last line equals computed checksum of previous line.
+        Useful for writing new .jlap files if False.
 
     :raises ValueError: if trailing and computed checksums do not match
 
@@ -58,10 +62,11 @@ def jlap_buffer(lines: Iterator[bytes], iv: bytes, pos=0) -> list[tuple[int, str
 
     log.info("%d bytes read", pos - initial_pos)  # maybe + length of last line
 
-    if buffer[-1][1] != buffer[-2][-1]:
-        raise ValueError("checksum mismatch")
-    else:
-        log.info("Checksum OK")
+    if verify:
+        if buffer[-1][1] != buffer[-2][-1]:
+            raise ValueError("checksum mismatch")
+        else:
+            log.info("Checksum OK")
 
     return buffer
 
@@ -70,4 +75,4 @@ def write_jlap_buffer(path: Path, buffer: list[tuple[int, str, str]]):
     """
     Write buffer from jlap_buffer() to path.
     """
-    path.write_text("\n".join(b[1] for b in buffer))
+    path.write_text("\n".join(b[1] for b in buffer), encoding="utf-8", newline="\n")
