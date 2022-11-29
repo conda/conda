@@ -1131,7 +1131,7 @@ class SequenceParameter(Parameter):
         Returns a string representation for the valid types this parameter accepts.
         This is primarily used for error messages.
         """
-        valid_types = tuple(f"Sequence[{typ.__class__.__name__}]" for typ in element_types)
+        valid_types = tuple(f"Sequence[{typ.__class__.__name__}]" for typ in element_types if typ)
         self._valid_types = ",".join(valid_types)
 
     def _get_element_type_from_value(

@@ -1,17 +1,28 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import pytest
 
 from conda.common.io import env_var, env_vars
 
 from conda.auxlib.ish import dals
 from conda.common.compat import odict
-from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
-                                        ParameterFlag, ParameterLoader, PrimitiveParameter,
-                                        MapParameter, SequenceParameter, YamlRawParameter,
-                                        load_file_configs, InvalidTypeError, CustomValidationError)
+from conda.common.configuration import (
+    Configuration,
+    ConfigurationObject,
+    ObjectParameter,
+    ParameterFlag,
+    ParameterLoader,
+    PrimitiveParameter,
+    MapParameter,
+    SequenceParameter,
+    YamlRawParameter,
+    load_file_configs,
+    InvalidTypeError,
+    CustomValidationError,
+    ValidationError,
+    InvalidElementTypeError,
+)
 from conda.common.serialize import yaml_round_trip_load
-from conda.common.configuration import ValidationError
-from conda._vendor.frozendict import frozendict
 
 from os import environ, mkdir
 from os.path import join
@@ -21,7 +32,8 @@ from tempfile import mkdtemp
 from unittest import TestCase
 
 test_yaml_raw = {
-    'file1': dals("""
+    "file1": dals(
+        """
         always_yes: no
 
         proxy_servers:
@@ -33,8 +45,10 @@ test_yaml_raw = {
           - bugs
           - daffy
           - tweety
-    """),
-    'file2': dals("""
+    """
+    ),
+    "file2": dals(
+        """
         always_yes: yes
         changeps1: no
 
@@ -46,8 +60,10 @@ test_yaml_raw = {
           - porky
           - bugs
           - elmer
-    """),
-    'file3': dals("""
+    """
+    ),
+    "file3": dals(
+        """
         always_yes_altname2: yes  #!final
 
         proxy_servers:
@@ -59,8 +75,10 @@ test_yaml_raw = {
           - wile   #!top
           - daffy
           - foghorn
-    """),
-    'file4': dals("""
+    """
+    ),
+    "file4": dals(
+        """
         always_yes: yes  #!final
         changeps1: no  #!final
 
@@ -72,47 +90,61 @@ test_yaml_raw = {
           - pepé
           - marv
           - sam
-    """),
-    'file5': dals("""
+    """
+    ),
+    "file5": dals(
+        """
         channels:
           - pepé
           - marv   #!top
           - sam
-    """),
-    'file6': dals("""
+    """
+    ),
+    "file6": dals(
+        """
         channels:
           - elmer
           - marv  #!bottom
           - bugs
-    """),
-    'file7': dals("""
+    """
+    ),
+    "file7": dals(
+        """
         channels:
           - wile
           - daffy  #!top
           - sam    #!top
           - foghorn
-    """),
-    'file8': dals("""
+    """
+    ),
+    "file8": dals(
+        """
         channels:
           - pepé  #!bottom
           - marv  #!top
           - wile
           - sam
-    """),
-    'file9': dals("""
+    """
+    ),
+    "file9": dals(
+        """
         channels: #!final
           - sam
           - pepé
           - marv   #!top
           - daffy  #!bottom
-    """),
-    'bad_boolean': "always_yes: yeah",
-    'too_many_aliases': dals("""
+    """
+    ),
+    "bad_boolean": "always_yes: yeah",
+    "too_many_aliases": dals(
+        """
         always_yes: yes
         always_yes_altname2: yes
-    """),
-    'not_an_int': "always_an_int: nope",
-    'good_boolean_map': dals("""
+    """
+    ),
+    "not_an_int": "always_an_int: nope",
+    "good_boolean_map": dals(
+        """
         boolean_map:
           a_true: true
           a_yes: yes
@@ -120,8 +152,10 @@ test_yaml_raw = {
           a_false: False
           a_no: no
           a_0: 0
-    """),
-    'bad_boolean_map': dals("""
+    """
+    ),
+    "bad_boolean_map": dals(
+        """
         boolean_map:
           a_string: not true
           an_int: 2
@@ -129,14 +163,18 @@ test_yaml_raw = {
           a_complex: 1+2j
         proxy_servers:
         channels:
-    """),
-    'commented_map': dals("""
+    """
+    ),
+    "commented_map": dals(
+        """
         commented_map:
           key:
             # comment
             value
-    """),
-    'env_vars': dals("""
+    """
+    ),
+    "env_vars": dals(
+        """
         env_var_map:
           expanded: $EXPANDED_VAR
           unexpanded: $UNEXPANDED_VAR
@@ -149,8 +187,10 @@ test_yaml_raw = {
           - $EXPANDED_VAR
           - $UNEXPANDED_VAR
           - regular_var
-    """),
-    'nestedFile1': dals("""
+    """
+    ),
+    "nestedFile1": dals(
+        """
         nested_map:
             key1:
                 - a1
@@ -167,8 +207,10 @@ test_yaml_raw = {
             - #!top
                 key3: c1
                 key4: d1
-    """),
-    'nestedFile2': dals("""
+    """
+    ),
+    "nestedFile2": dals(
+        """
         nested_map:
             key1:
                 - a2
@@ -186,8 +228,10 @@ test_yaml_raw = {
             -
                 key3: c2
                 key4: d2
-    """),
-    'objectFile1': dals("""
+    """
+    ),
+    "objectFile1": dals(
+        """
         test_object:
             int_field: 10
             str_field: sample
@@ -198,8 +242,10 @@ test_yaml_raw = {
                 - a1
                 - b1
                 - c1
-    """),
-    'objectFile2': dals("""
+    """
+    ),
+    "objectFile2": dals(
+        """
         test_object:
             int_field: 10
             str_field: override
@@ -209,7 +255,16 @@ test_yaml_raw = {
             seq_field:
                 - a2
                 - b2
-    """),
+    """
+    ),
+    "invalid_config_object": dals(
+        """
+    env_var_list:
+        -
+            - test_one
+            - test_two
+"""
+    ),
 }
 
 
@@ -606,3 +661,14 @@ class ConfigurationTests(TestCase):
             "key3": "c2"
         }
         assert test_object.seq_field == ("a2", "b2", "a1", "b1", "c1")
+
+    def test_invalid_config_for_sequence(self):
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("invalid_config_object")
+        )
+        valid_types = "Sequence[PrimitiveParameter]"
+
+        with pytest.raises(InvalidElementTypeError) as exc_info:
+            assert config.env_var_list == ()
+
+        assert exc_info.value.valid_types == valid_types
