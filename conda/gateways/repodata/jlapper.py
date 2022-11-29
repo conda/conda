@@ -35,13 +35,6 @@ LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 
 
-def keyed_hash(data: bytes, key: bytes):
-    """
-    Keyed hash.
-    """
-    return blake2b(data, key=key, digest_size=DIGEST_SIZE)
-
-
 def hash():
     """
     Ordinary hash.
@@ -58,11 +51,71 @@ def get_place(url, extra=""):
     return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
 
 
-def line_and_pos(response: Response, pos=0) -> Iterator[tuple[int, bytes]]:
-    for line in response.iter_lines(delimiter=b"\n"):
-        # iter_lines yields either bytes or str
-        yield pos, line  # type: ignore
+def keyed_hash(data: bytes, key: bytes):
+    """
+    Keyed hash.
+    """
+    return blake2b(data, key=key, digest_size=DIGEST_SIZE)
+
+
+def line_and_pos(lines: Iterator[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
+    """
+    lines: iterator over input split by '\n', with '\n' removed.
+    pos: initial position
+    """
+    for line in lines:
+        yield pos, line
         pos += len(line) + 1
+
+
+def jlap_buffer(lines: Iterator[bytes], iv: bytes, pos=0) -> list[tuple[int, str, str]]:
+    """
+    :param lines: iterator over input split by b'\n', with b'\n' removed
+    :param pos: initial position
+    :param iv: initialization vector (first line of .jlap stream, hex decoded)
+
+    :return: list of (offset, line, checksum)
+    """
+    # save initial iv in case there were no new lines
+    buffer: list[tuple[int, str, str]] = [(-1, iv.hex(), iv.hex())]
+    initial_pos = pos
+
+    for pos, line in line_and_pos(lines, pos=pos):
+        if pos == 0:
+            iv = bytes.fromhex(line.decode("utf-8"))
+            buffer = [(0, iv.hex(), iv.hex())]
+        else:
+            iv = keyed_hash(line, iv).digest()
+            buffer.append((pos, line.decode("utf-8"), iv.hex()))
+
+    log.info("%d bytes read", pos - initial_pos)  # maybe + length of last line
+
+    if buffer[-1][1] != buffer[-2][-1]:
+        raise ValueError("checksum mismatch")
+    else:
+        log.info("Checksum OK")
+
+    return buffer
+
+
+def process_jlap_response(response: Response, pos=0, iv=b""):
+    def lines() -> Iterator[bytes]:
+        yield from response.iter_lines(delimiter=b"\n")  # type: ignore
+
+    buffer = jlap_buffer(lines(), iv, pos)
+
+    # new iv == initial iv if nothing changed
+    pos, footer, _ = buffer[-2]
+    footer = json.loads(footer)
+
+    new_state = {
+        "headers": {k.lower(): v for k, v in response.headers.items()},
+        "iv": buffer[-3][-1],
+        "pos": pos,
+        "footer": footer,
+    }
+
+    return buffer, new_state
 
 
 def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True, session=None):
@@ -107,43 +160,6 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     log.info("%s", response)
 
     return response
-
-
-def process_jlap_response(response, pos=0, iv=b""):
-    # save initial iv in case there were no new lines
-    # maybe unless pos==0
-    buffer: list[tuple[int, str, str]] = [(-1, iv.hex(), iv.hex())]
-    initial_pos = pos
-
-    for pos, line in line_and_pos(response, pos=pos):
-        if pos == 0:
-            iv = bytes.fromhex(line.decode("utf-8"))
-            buffer = [(0, iv.hex(), iv.hex())]
-        else:
-            iv = keyed_hash(line, iv).digest()
-            buffer.append((pos, line.decode("utf-8"), iv.hex()))
-
-    log.info("%d bytes read", pos - initial_pos)  # maybe + length of last line
-
-    if buffer[-1][1] != buffer[-2][-1]:
-        # pprint.pprint(buffer[-10:])
-        # dump to file?
-        raise ValueError("checksum mismatch")
-    else:
-        log.info("Checksum OK")
-
-    # new iv == initial iv if nothing changed
-    pos, footer, _ = buffer[-2]
-    footer = json.loads(footer)
-
-    new_state = {
-        "headers": {k.lower(): v for k, v in response.headers.items()},
-        "iv": buffer[-3][-1],
-        "pos": pos,
-        "footer": footer,
-    }
-
-    return buffer, new_state
 
 
 def hf(hash):
