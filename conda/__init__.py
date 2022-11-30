@@ -285,7 +285,6 @@ class _deprecated:
 
         # detect calling module
         module, fullname = self._get_module()
-        print(module)
 
         # alert developer that it's time to remove something
         if not self._category:
