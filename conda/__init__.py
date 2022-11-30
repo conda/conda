@@ -7,7 +7,6 @@ from functools import wraps
 from json import JSONEncoder
 import os
 from os.path import abspath, dirname
-import packaging.version
 import sys
 from types import ModuleType
 import warnings
@@ -156,7 +155,7 @@ JSONEncoder.default = _default
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class _deprecated:
-    _current_version: packaging.version.Version = packaging.version.parse(__version__)
+    _version: str = __version__
     _category: Warning
     _message: Callable[str, str]
     _argument: str | None = None
@@ -176,14 +175,17 @@ class _deprecated:
             remove_in: Version in which code is expected to be removed.
             addendum: Optional additional messaging. Useful to indicate what to do instead.
         """
-        deprecate_version = packaging.version.parse(deprecate_in)
-        remove_version = packaging.version.parse(remove_in)
+        from .models.version import normalized_version
+
+        deprecate_version = normalized_version(deprecate_in)
+        remove_version = normalized_version(remove_in)
+        current_version = normalized_version(self._version)
 
         addendum = f" {addendum}" if addendum else ""
-        if self._current_version < deprecate_version:
+        if current_version < deprecate_version:
             self._category = PendingDeprecationWarning
             message = f"{{name}} is pending deprecation and will be removed in {remove_in}."
-        elif self._current_version < remove_version:
+        elif current_version < remove_version:
             self._category = DeprecationWarning
             message = f"{{name}} is deprecated and will be removed in {remove_in}."
         else:
@@ -306,6 +308,6 @@ class _deprecated:
     @classmethod
     def _factory(cls, version: str) -> _deprecated:
         class _deprecated(cls):
-            _current_version = packaging.version.parse(version)
+            _version = version
 
         return _deprecated
