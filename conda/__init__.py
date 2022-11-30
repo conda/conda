@@ -3,10 +3,13 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import annotations
 
+from functools import wraps
 from json import JSONEncoder
 import os
 from os.path import abspath, dirname
+import packaging.version
 import sys
+from types import ModuleType
 import warnings
 
 from .auxlib.packaging import get_version
@@ -152,96 +155,157 @@ JSONEncoder.default = _default
 
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
-def _deprecated_factory(version: str) -> type[_deprecated_base]:
-    class _deprecated:
-        def __init__(
-            self,
-            deprecate_in: str,
-            remove_in: str,
-            addendum: str | None = None,
-        ):
-            """
-            Args:
-                deprecate_in: Version in which code will be marked as deprecated.
-                remove_in: Version in which code is expected to be removed.
-                addendum: Additional messaging. Useful to indicate what should be used instead.
-            """
-            import packaging.version
+class _deprecated:
+    _current_version: packaging.version.Version = packaging.version.parse(__version__)
+    _category: Warning
+    _message: Callable[str, str]
+    _argument: str | None = None
+    _rename: str | None = None
 
-            self.deprecate_version = packaging.version.parse(deprecate_in)
-            self.remove_version = packaging.version.parse(remove_in)
-            self.current_version = packaging.version.parse(version)
-            self.addendum = f" {addendum.strip()}" if addendum else ""
+    def __init__(
+        self,
+        deprecate_in: str,
+        remove_in: str,
+        *,
+        addendum: str | None = None,
+    ):
+        """Deprecation decorator for functions, methods, & classes.
 
-        def __call__(self, func):
-            """Deprecation decorator for functions & methods."""
-            from functools import wraps
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            addendum: Optional additional messaging. Useful to indicate what to do instead.
+        """
+        deprecate_version = packaging.version.parse(deprecate_in)
+        remove_version = packaging.version.parse(remove_in)
 
-            # detect function name
-            name = f"{func.__module__}.{func.__name__}"
+        addendum = f" {addendum}" if addendum else ""
+        if self._current_version < deprecate_version:
+            self._category = PendingDeprecationWarning
+            message = f"{{name}} is pending deprecation and will be removed in {remove_in}."
+        elif self._current_version < remove_version:
+            self._category = DeprecationWarning
+            message = f"{{name}} is deprecated and will be removed in {remove_in}."
+        else:
+            self._category = None
+            message = f"{{name}} was slated for removal in {remove_in}."
+        self._message = lambda name: f"{message}{addendum}".format(name=name)
 
-            # alert user based on where we are in the deprecation cycle
-            if self.current_version < self.deprecate_version:
+    def __call__(self, func: Callable) -> Callable:
+        """Deprecation decorator for functions, methods, & classes."""
+        # detect function name
+        fullname = f"{func.__module__}.{func.__name__}"
+        if self._argument:
+            fullname = f"{func.__module__}.{func.__name__}({self._argument})"
 
-                @wraps(func)
-                def inner(*args, **kwargs):
-                    warnings.warn(self._pending_msg(name), PendingDeprecationWarning, stacklevel=5)
-                    return func(*args, **kwargs)
+        # alert developer that it's time to remove something
+        if not self._category:
+            raise RuntimeError(self._message(fullname))
 
-                return inner
-            elif self.current_version < self.remove_version:
+        # alert user that it's time to remove something
+        @wraps(func)
+        def inner(*args, **kwargs):
+            # always warn if not deprecating an argument
+            # only warn about argument deprecations if the argument is used
+            if not self._argument or self._argument in kwargs:
+                warnings.warn(self._message(fullname), self._category, stacklevel=2)
 
-                @wraps(func)
-                def inner(*args, **kwargs):
-                    warnings.warn(self._deprecated_msg(name), DeprecationWarning, stacklevel=5)
-                    return func(*args, **kwargs)
+                # rename argument deprecations as needed
+                value = kwargs.pop(self._argument, None)
+                if self._rename:
+                    kwargs.setdefault(self._rename, value)
 
-                return inner
-            else:
-                raise RuntimeError(self._remove_msg(name))
+            return func(*args, **kwargs)
 
-        @classmethod
-        def module(cls, *args, **kwargs):
-            """Deprecation function for modules."""
-            import inspect
+        return inner
 
-            self = cls(*args, **kwargs)
+    @classmethod
+    def argument(
+        cls,
+        deprecate_in: str,
+        remove_in: str,
+        argument: str,
+        *,
+        rename: str | None = None,
+        addendum: str | None = None,
+    ) -> None:
+        """Deprecation decorator for keyword arguments."""
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
 
-            # detect module name
-            try:
-                frame = inspect.stack()[1]
-                try:
-                    module = inspect.getmodule(frame[0])
-                    name = module.__name__
-                except (IndexError, AttributeError):
-                    name = frame.filename
-            except (IndexError, AttributeError):
-                name = "<unknown>"
+        # provide a default addendum if renaming and no addendum is provided
+        if rename and not addendum:
+            addendum = f"Use '{rename}' instead."
 
-            # alert user based on where we are in the deprecation cycle
-            if self.current_version < self.deprecate_version:
-                warnings.warn(self._pending_msg(name), PendingDeprecationWarning, stacklevel=3)
-            elif self.current_version < self.remove_version:
-                warnings.warn(self._deprecated_msg(name), DeprecationWarning, stacklevel=3)
-            else:
-                raise RuntimeError(self._remove_msg(name))
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
+        self._argument = argument
+        self._rename = rename
 
-        def _pending_msg(self, name: str) -> None:
-            return (
-                f"{name} is pending deprecation and will be removed in {self.remove_version}."
-                f"{self.addendum}"
-            )
+        return self
 
-        def _deprecated_msg(self, name: str) -> None:
-            return (
-                f"{name} is deprecated and will be removed in {self.remove_version}."
-                f"{self.addendum}"
-            )
+    @staticmethod
+    def _get_module() -> tuple[ModuleType, str]:
+        import inspect  # expensive
 
-        def _remove_msg(self, name: str) -> None:
-            return f"{name} was slated for removal in {self.remove_version}." f"{self.addendum}"
+        try:
+            frame = inspect.stack()[2]
+            module = inspect.getmodule(frame[0])
+            return (module, module.__name__)
+        except (IndexError, AttributeError):
+            raise RuntimeError("unable to determine the calling module") from None
 
-    return _deprecated
+    @classmethod
+    def module(cls, deprecate_in: str, remove_in: str, *, addendum: str | None = None) -> None:
+        """Deprecation function for modules."""
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
 
+        # detect calling module
+        _, fullname = self._get_module()
 
-_deprecated = _deprecated_factory(__version__)
+        # alert developer that it's time to remove something
+        if not self._category:
+            raise RuntimeError(self._message(fullname))
+
+        # alert user that it's time to remove something
+        warnings.warn(self._message(fullname), self._category, stacklevel=3)
+
+    @classmethod
+    def constant(
+        cls,
+        deprecate_in: str,
+        remove_in: str,
+        constant: str,
+        value: Any,
+        *,
+        addendum: str | None = None,
+    ) -> None:
+        """Deprecation function for module constant (global)."""
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
+
+        # detect calling module
+        module, fullname = self._get_module()
+        print(module)
+
+        # alert developer that it's time to remove something
+        if not self._category:
+            raise RuntimeError(self._message(f"{fullname}.{constant}"))
+
+        super_getattr = getattr(module, "__getattr__", None)
+
+        def __getattr__(name: str) -> Any:
+            if name == constant:
+                warnings.warn(self._message(f"{fullname}.{name}"), self._category, stacklevel=2)
+                return value
+
+            if super_getattr:
+                return super_getattr(name)
+
+            raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
+
+        module.__getattr__ = __getattr__
+
+    @classmethod
+    def _factory(cls, version: str) -> _deprecated:
+        class _deprecated(cls):
+            _current_version = packaging.version.parse(version)
+
+        return _deprecated
