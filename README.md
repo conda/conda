@@ -128,6 +128,7 @@ to add).
 - [Slack](https://conda.slack.com)
 - [Bug Reports/Feature Requests](https://github.com/conda/conda/issues)
 - [Installer/Package Issues](https://github.com/ContinuumIO/anaconda-issues/issues)
+- [Discourse](https://conda.discourse.group/)
 
 ## Contributing
 
