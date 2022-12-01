@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from collections import OrderedDict
 
 from errno import ENOENT
 from functools import lru_cache
 from logging import getLogger
-from typing import Optional
 import os
 from os.path import abspath, expanduser, isdir, isfile, join, split as path_split
 import platform
@@ -488,19 +488,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, 'unknown')
 
     @property
-    def default_threads(self) -> Optional[int]:
+    def default_threads(self) -> int | None:
         return self._default_threads or None
 
     @property
-    def repodata_threads(self) -> Optional[int]:
+    def repodata_threads(self) -> int | None:
         return self._repodata_threads or self.default_threads
 
     @property
-    def fetch_threads(self) -> Optional[int]:
+    def fetch_threads(self) -> int | None:
         return self._fetch_threads or self.default_threads
 
     @property
-    def verify_threads(self) -> Optional[int]:
+    def verify_threads(self) -> int | None:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -951,7 +951,7 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
-    def cuda_version(self) -> Optional[str]:
+    def cuda_version(self) -> str | None:
         """
         Retrieves the current cuda version.
         """
