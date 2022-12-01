@@ -16,6 +16,7 @@ on:
       - tests/**
       - '*.py'
       - recipe/**
+      - .github/workflows/tests.yml
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
@@ -26,6 +27,7 @@ on:
       - tests/**
       - '*.py'
       - recipe/**
+      - .github/workflows/tests.yml
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
