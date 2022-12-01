@@ -12,7 +12,7 @@ import warnings
 from ..base.context import context
 from ..common.url import join_url
 from ..gateways.connection import HTTPError, InsecureRequestWarning
-from ..gateways.connection.session import CondaSession
+from ..gateways.connection.session import session_manager
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 try:
@@ -165,15 +165,11 @@ class _SignatureVerification:
 
         return trusted
 
-    # FUTURE: Python 3.8+, replace with functools.cached_property
-    @property
-    @lru_cache(maxsize=None)
-    def session(self):
-        return CondaSession()
-
     def _fetch_channel_signing_data(self, signing_data_url, filename, etag=None, mod_stamp=None):
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
+
+        session = session_manager(signing_data_url)
 
         headers = {
             "Accept-Encoding": "gzip, deflate, compress, identity",
@@ -192,10 +188,10 @@ class _SignatureVerification:
             #
             # TODO: Figure how to handle authn for obtaining trust metadata,
             # independently of the authn used to access package repositories.
-            resp = self.session.get(
+            resp = session.get(
                 join_url(signing_data_url, filename),
                 headers=headers,
-                proxies=self.session.proxies,
+                proxies=session.proxies,
                 auth=lambda r: r,
                 timeout=(context.remote_connect_timeout_secs, context.remote_read_timeout_secs),
             )

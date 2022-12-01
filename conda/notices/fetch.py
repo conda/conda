@@ -8,7 +8,7 @@ from typing import Sequence, Tuple, Optional
 import requests
 
 from ..common.io import Spinner
-from ..gateways.connection.session import CondaSession
+from ..gateways.connection.session import session_manager
 
 from .cache import cached_response
 from .types import ChannelNoticeResponse
@@ -53,7 +53,7 @@ def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeRe
     additional channel information to use. If the response was invalid we suppress/log
     and error message.
     """
-    session = CondaSession()
+    session = session_manager(url)
     try:
         resp = session.get(url, allow_redirects=False, timeout=5)  # timeout: connect, read
     except requests.exceptions.Timeout:

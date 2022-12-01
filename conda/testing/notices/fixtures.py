@@ -26,7 +26,7 @@ def notices_cache_dir(tmpdir):
 
 @pytest.fixture(scope="function")
 def notices_mock_http_session_get():
-    with mock.patch("conda.gateways.connection.session.CondaSession.get") as session_get:
+    with mock.patch("conda.gateways.connection.session.session_manager.get") as session_get:
         yield session_get
 
 

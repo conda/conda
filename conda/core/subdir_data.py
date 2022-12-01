@@ -53,7 +53,7 @@ from ..gateways.connection import (
     RequestsProxyError,
     SSLError,
 )
-from ..gateways.connection.session import CondaSession
+from ..gateways.connection.session import session_manager
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
@@ -554,7 +554,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     if not context.ssl_verify:
         warnings.simplefilter("ignore", InsecureRequestWarning)
 
-    session = CondaSession()
+    session = session_manager(url)
 
     headers = {}
     if etag:

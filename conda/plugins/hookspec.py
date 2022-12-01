@@ -7,7 +7,13 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage, CondaSession
+from .types import (
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+    CondaSessionClass,
+    CondaBeforeAction,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -101,13 +107,13 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_session_classes(self) -> Iterable[CondaSession]:
+    def conda_session_classes(self) -> Iterable[CondaSessionClass]:
         """
         Register session classes in conda. This session be a sub-class
         of ``requests.Session`` to maintain compatibility. This could also
         just directly subclass ``conda.gateways.connection.session.CondaSession``.
 
-        :return: An iterable of conda session classes
+        :return: An iterable of CondaSession classes
 
         Example:
 
@@ -128,4 +134,13 @@ class CondaSpecs:
                     name="my-custom-session",
                     session=MyCustomSession,
                 )
+        """
+
+    @_hookspec
+    def conda_before_actions(self) -> Iterable[CondaBeforeAction]:
+        """
+        Register before actions that will be called by conda before executing
+        and command. This is useful for gather information (e.g. user credentials)
+        that will be used throughout the program or any other initialization that
+        a plugin needs to make.
         """

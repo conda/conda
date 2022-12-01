@@ -805,7 +805,11 @@ class Context(Configuration):
     @property
     def channel_parameters(self) -> dict[str, dict[str, str]]:
         """Mock method"""
-        return {"http://localhost:8042": {"session_type": "basic-auth"}}
+        mock_channel = "http://thathforge"
+        mock_params = {mock_channel: {"session_type": "basic-auth"}}
+        if mock_channel in self.channels:
+            return mock_params
+        return {}
 
     @property
     def config_files(self):

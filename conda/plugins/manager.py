@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Iterable
 
 import pluggy
 from requests import Session  # TODO: should we just define our own ABC for this instead?
 
-from . import solvers, virtual_packages
+from . import solvers, virtual_packages, session
+from .types import CondaSessionClass
 from .hookspec import CondaSpecs, spec_name
 from ..auxlib.ish import dals
 from ..base.context import context
@@ -141,11 +143,11 @@ class CondaPluginManager(pluggy.PluginManager):
         default CondaSession class).
         """
         if name:
-            session_classes = self.get_hook_results("session_classes")
+            session_classes: Iterable[CondaSessionClass] = self.get_hook_results("session_classes")
             matches = tuple(item for item in session_classes if item.name == name)
 
             if len(matches) > 0:
-                return matches[0]
+                return matches[0].session_class
 
         from ..gateways.connection.session import CondaSession
 
@@ -160,6 +162,6 @@ def get_plugin_manager() -> CondaPluginManager:
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
-    plugin_manager.load_plugins(solvers, *virtual_packages.plugins)
+    plugin_manager.load_plugins(solvers, *virtual_packages.plugins, *session.plugins)
     plugin_manager.load_setuptools_entrypoints(spec_name)
     return plugin_manager
