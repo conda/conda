@@ -143,4 +143,24 @@ class CondaSpecs:
         and command. This is useful for gather information (e.g. user credentials)
         that will be used throughout the program or any other initialization that
         a plugin needs to make.
+
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def do_this_first():
+                # Any code in here will be executed before the primary command
+                print("Hello")
+
+
+            @plugins.hookimpl
+            def conda_before_actions():
+                yield plugins.CondaBeforeAction(
+                    name="my-custom-before-action",
+                    session=do_this_first,
+                )
         """
