@@ -233,9 +233,7 @@ def test_cache_names_appear_as_expected(
         assert os.path.basename(cache_files[0]) == expected_cache_filename
 
 
-def test_notices_appear_once_when_running_decorated_commands(
-    tmpdir, env_one, notices_cache_dir, pre_link_messages_package
-):
+def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, notices_cache_dir):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
     that the channels are only appearing according to the specified interval in:
@@ -251,11 +249,14 @@ def test_notices_appear_once_when_running_decorated_commands(
 
     with mock.patch(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
-    ) as fetch_mock:
+    ) as fetch_mock, mock.patch("conda.cli.main_install.install") as mock_install:
         # First run of install; notices should be retrieved
         run(
             f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
         )
+
+        mock_install.assert_called_once()
+        mock_install.reset_mock()
 
         # make sure our fetch function was called correctly
         fetch_mock.assert_called_once()
@@ -275,6 +276,7 @@ def test_notices_appear_once_when_running_decorated_commands(
             f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
         )
 
+        mock_install.assert_called_once()
         fetch_mock.assert_not_called()
 
 
