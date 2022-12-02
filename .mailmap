@@ -40,6 +40,7 @@ Antony Lee <anntzer.lee@gmail.com>
 Anže Starič <anze.staric@gmail.com>
 ApurvaWavhal <a.r.wavhal@gmail.com>
 Armin Burgmeier <aburgmeier@bloomberg.net> Armin Burgmeier <armin@arbur.net>
+Arqam Hussain <70997750+arq0017@users.noreply.github.com>
 Attila Nagy <58312016+rulerofthehuns@users.noreply.github.com> rulerofthehuns <58312016+rulerofthehuns@users.noreply.github.com>
 Aurelien Vallee <vallee.aurelien@gmail.com>
 Avalon <77029455+uwuvalon@users.noreply.github.com> avalon (they/them) <77029455+uwuvalon@users.noreply.github.com>
@@ -160,6 +161,7 @@ Ed Reed <ed.r.reed@lmco.com>
 Eli Rykoff <erykoff@stanford.edu>
 Eric Dill <edill@bnl.gov> Eric Dill <eric.dill@maxpoint.com>
 Eric Prestat <eric.prestat@gmail.com>
+Erik Sundell <erik.i.sundell@gmail.com>
 Ernst Reissner <rei3ner@arcor.de>
 Eugene Van den Bulke <eugene.vandenbulke@gmail.com>
 Faustin Carter <faustin.carter@gmail.com>
@@ -269,6 +271,7 @@ Lori A. Burns <lori.burns@gmail.com>
 Luc J. Bourhis <luc_j_bourhis@mac.com>
 Luis Gutierrez <lg@luisg.net>
 Maggie Mari <maggie.mari@continuum.io>
+Mahe Iram Khan <65779580+ForgottenProgramme@users.noreply.github.com>
 Majid alDosari <majid.aldosari@gmail.com> majidaldo <majidaldosar-github@yahoo.com>
 Majid alDosari <majid.aldosari@gmail.com> majidaldo <majidaldosari-github@yahoo.com>
 Mak Sze Chun <makszechun@gmail.com> makbigc <makszechun@gmail.com>
@@ -283,6 +286,7 @@ Marco Rossi <developer@marco-rossi.com>
 Marcos Vanetta <marcosvanetta@gmail.com>
 Marcus Caisey <marcus@teckna.com>
 Mario Juric <mjuric@astro.washington.edu>
+Mark Harfouche <mark.harfouche@gmail.com>
 Mark Wiebe <mwiebe@continuum.io> Mark Wiebe <mwwiebe@gmail.com>
 Markus Gerstel <markus.gerstel@diamond.ac.uk>
 Marland Sitt <marland.sitt@gmail.com>
@@ -342,6 +346,7 @@ Ni Huang <nh3@users.noreply.github.com> nh3 <nh3@users.noreply.github.com>
 Nicholas Pierotti <npierotti@0288-npierotti.local>
 Nick Eubank <nickeubank@users.noreply.github.com>
 Nikhil Dhandre <ndhandre@redhat.com> NIKHIL DHANDRE <ndhandre@redhat.com>
+Nikhil Raverkar <raverkar.nikhil@gmail.com>
 Niklas Holm <niklas.holm.271@gmail.com> Niklas Holm <jadedcyborg@gmail.com>
 Nir Ganani <nganani@gmail.com>
 Nitin Madnani <nmadnani@gmail.com>
@@ -356,6 +361,7 @@ Orion Poplawski <orion@nwra.com>
 Patricio Hubmann <phubmann@machinalis.com>
 Patrick Snape <patrick.snape08@imperial.ac.uk>
 Paul Yim <pseudoyim@users.noreply.github.com>
+Pavel Zwerschke <pavelzw@gmail.com>
 Pete Bachant <petebachant@gmail.com>
 Peter Cable <petercable@gmail.com>
 Peter Williams <peter@newton.cx>
@@ -364,6 +370,7 @@ Philip Thomas <pthomas.v3@gmail.com> psthomas <pthomas.v3@gmail.com>
 Philippe Mathieu <71FIL@users.noreply.github.com>
 Philippe Ombredanne <pombredanne@gmail.com>
 Pradipta Ghosh <pradghos@in.ibm.com>
+Preston Moore <111530217+pkmooreanaconda@users.noreply.github.com>
 Rachel Rigdon <45607889+rrigdon@users.noreply.github.com> rrigdon <rrigdon@anaconda.com>
 Rachel Rigdon <45607889+rrigdon@users.noreply.github.com> Rachel <rrigdon@anaconda.com>
 Rafael de Barros <rdebarros@gmail.com>
@@ -388,12 +395,14 @@ Saad Parwaiz <saad.parwaiz1@gmail.com>
 Sachin G Biradar <sachin@wirelessprvnat-172-16-196-108.near.illinois.edu>
 Sam Davis <samgd@users.noreply.github.com>
 Sam Nicholls <samstudio8+github@gmail.com>
+Samson Yeung <samson_gh@onepatchdown.net>
 Samuel Debionne <samuel.debionne@esrf.fr>
 Samuel Walters-Nevet <SamuelWN@users.noreply.github.com>
 Santi Villalba <sdvillal@gmail.com> santi <sdvillal@gmail.com>
 Santiago Castro <sacastro@umich.edu>
 Sarah Bird <github@birdsbits.com>
 Saranya Mahalingam <smahalingam@anaconda.com>
+Satyam Vyas <vyas.satyam.04@gmail.com>
 Sauco Cano Navarro <saucoide@gmail.com> saucoide <saucoide@gmail.com>
 Scott Evtuch <scott@evtuch.net>
 Sean Ross-Ross <srossross@gmail.com> srossross <srossross@gmail.com>
@@ -472,6 +481,7 @@ Zach Heaton <zheaton@gmail.com>
 Zahari <zaharid@gmail.com>
 Zhiwei Liang <zhiwei.liang@asu.edu>
 Zongyuan Zuo <eternalphane@gmail.com>
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
 endolith <endolith@gmail.com>
 giumas <giumas@yahoo.it>
 kanehira <etcxngsy813@gmail.com>
@@ -484,4 +494,5 @@ pre-commit CI <66853113+pre-commit-ci[bot]@users.noreply.github.com> pre-commit-
 saraneem <smahalingam@continuum.io>
 shadow_walker <shadowwalkersb@gmail.com>
 ugurthemaster <ugurthemaster@gmail.com>
+wulmer <wulmer@users.noreply.github.com>
 Øystein Idema Torget <oysteinidema.torget@statkraft.com>
