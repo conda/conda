@@ -6,6 +6,8 @@ Command reference
    :local:
    :depth: 1
 
+Testing non-code change
+
 Conda provides many commands for managing packages and environments.
 The links on this page provide help for each command.
 You can also access help from the command line with the

@@ -136,3 +136,5 @@ to add).
 
 Contributions to conda are welcome. See the [contributing](CONTRIBUTING.md) documentation
 for instructions on setting up a development environment.
+
+# Testing non-code change
