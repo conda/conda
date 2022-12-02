@@ -22,9 +22,9 @@ DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to user
 
 def get_test_notices(
     messages: Sequence[str],
-    level: Optional[str] = "info",
-    created_at: Optional[datetime.datetime] = None,
-    expired_at: Optional[datetime.datetime] = None,
+    level: str | None = "info",
+    created_at: datetime.datetime | None = None,
+    expired_at: datetime.datetime | None = None,
 ) -> dict:
     created_at = created_at or datetime.datetime.now(datetime.timezone.utc)
     expired_at = expired_at or created_at + datetime.timedelta(days=7)
@@ -59,7 +59,7 @@ def add_resp_to_mock(
         yield MockResponse(status_code, messages_json, raise_exc=raise_exc)
 
     chn = chain(one_200(), forever_404())
-    mock_session.side_effect = tuple(next(chn) for _ in range(100))
+    mock_session().get.side_effect = tuple(next(chn) for _ in range(100))
 
 
 def create_notice_cache_files(
@@ -97,7 +97,7 @@ class DummyArgs:
 
 
 def notices_decorator_assert_message_in_stdout(
-    captured, messages: Sequence[str], dummy_mesg: Optional[str] = None, not_in: bool = False
+    captured, messages: Sequence[str], dummy_mesg: str | None = None, not_in: bool = False
 ):
     """
     Tests a run of notices decorator where we expect to see the messages

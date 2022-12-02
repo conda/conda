@@ -17,10 +17,9 @@ from tempfile import gettempdir, mkdtemp
 from uuid import uuid4
 from pathlib import Path
 from unittest.mock import patch
-from collections.abc import Generator
 
 from .. import cli
-from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol, Context
+from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
 from ..common.configuration import YamlRawParameter, yaml_round_trip_load
@@ -841,7 +840,7 @@ def solver_class():
 
 
 @contextmanager
-def temp_context(condarc: str) -> Generator[Context, None, None]:
+def temp_context(condarc: str):
     """
     Context manager that resets the context with the provided `condarc` string.
     This string should be in the YAML format.

@@ -42,7 +42,7 @@ def test_main_notices(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_session_manager,
 ):
     """
     Test the full working path through the code. We vary the test based on the status code
@@ -54,7 +54,7 @@ def test_main_notices(
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_http_session_get, status_code, messages_json)
+    add_resp_to_mock(notices_mock_fetch_session_manager, status_code, messages_json)
 
     notices.execute(args, parser)
 
@@ -71,7 +71,7 @@ def test_main_notices(
 
 
 def test_main_notices_reads_from_cache(
-    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_fetch_session_manager
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -99,7 +99,7 @@ def test_main_notices_reads_from_cache(
 
 
 def test_main_notices_reads_from_expired_cache(
-    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_fetch_session_manager
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -125,7 +125,7 @@ def test_main_notices_reads_from_expired_cache(
     # different messages
     messages_different_json = get_test_notices(messages_different)
     add_resp_to_mock(
-        notices_mock_http_session_get, status_code=200, messages_json=messages_different_json
+        notices_mock_fetch_session_manager, status_code=200, messages_json=messages_different_json
     )
 
     notices.execute(args, parser)
@@ -140,7 +140,7 @@ def test_main_notices_reads_from_expired_cache(
 
 
 def test_main_notices_handles_bad_expired_at_field(
-    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_fetch_session_manager
 ):
     """
     This test ensures that an incorrectly defined `notices.json` file doesn't completely break
@@ -164,7 +164,7 @@ def test_main_notices_handles_bad_expired_at_field(
         ]
     }
     add_resp_to_mock(
-        notices_mock_http_session_get, status_code=200, messages_json=bad_notices_json
+        notices_mock_fetch_session_manager, status_code=200, messages_json=bad_notices_json
     )
 
     create_notice_cache_files(notices_cache_dir, [cache_file], [bad_notices_json])
@@ -200,7 +200,7 @@ def test_cache_names_appear_as_expected(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_session_manager,
 ):
     """
     This is a test to make sure the cache filenames appear as we expect them to.
@@ -213,7 +213,7 @@ def test_cache_names_appear_as_expected(
         args, parser = conda_notices_args_n_parser
         messages = ("Test One", "Test Two")
         messages_json = get_test_notices(messages)
-        add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+        add_resp_to_mock(notices_mock_fetch_session_manager, 200, messages_json)
 
         notices.execute(args, parser)
 
@@ -233,9 +233,7 @@ def test_cache_names_appear_as_expected(
         assert os.path.basename(cache_files[0]) == expected_cache_filename
 
 
-def test_notices_appear_once_when_running_decorated_commands(
-    tmpdir, env_one, notices_cache_dir, pre_link_messages_package
-):
+def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, notices_cache_dir):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
     that the channels are only appearing according to the specified interval in:
@@ -251,11 +249,14 @@ def test_notices_appear_once_when_running_decorated_commands(
 
     with mock.patch(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
-    ) as fetch_mock:
+    ) as fetch_mock, mock.patch("conda.cli.main_install.install") as install_mock:
         # First run of install; notices should be retrieved
         run(
             f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
         )
+
+        install_mock.assert_called_once()
+        install_mock.reset_mock()
 
         # make sure our fetch function was called correctly
         fetch_mock.assert_called_once()
@@ -275,22 +276,24 @@ def test_notices_appear_once_when_running_decorated_commands(
             f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
         )
 
+        install_mock.assert_called_once()
+
         fetch_mock.assert_not_called()
 
 
-def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
+def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_fetch_session_manager):
     """
     As a user, I want notices to be correctly retrieved from channels with s3 URLs.
     """
     s3_channel = "s3://conda-org"
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+    add_resp_to_mock(notices_mock_fetch_session_manager, 200, messages_json)
 
     run(f"conda notices -c {s3_channel} --override-channels")
 
-    notices_mock_http_session_get.assert_called_once()
-    args, kwargs = notices_mock_http_session_get.call_args
+    notices_mock_fetch_session_manager().get.assert_called_once()
+    args, kwargs = notices_mock_fetch_session_manager().get.call_args
 
     arg_1, *_ = args
     assert arg_1 == "s3://conda-org/notices.json"
