@@ -11,4 +11,4 @@ def conda_virtual_packages():
     if platform.system() != "Windows":
         return
 
-    yield CondaVirtualPackage("win", None)
+    yield CondaVirtualPackage("win", None, None)
