@@ -8,5 +8,5 @@ def conda_virtual_packages():
     from ...core.index import get_archspec_name
 
     archspec_name = get_archspec_name()
-    if archspec_name is not None:
+    if archspec_name:
         yield CondaVirtualPackage("archspec", "1", archspec_name)
