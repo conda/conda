@@ -174,6 +174,8 @@ def _supplement_index_with_system(index):
     registered_names = []
     packages = context.plugin_manager.get_hook_results("virtual_packages")
     for package in packages:
+        if package.name is None:
+            continue
         if package.name in registered_names:
             raise PluginError(
                 "Conflicting virtual package entries found for the "
@@ -184,9 +186,8 @@ def _supplement_index_with_system(index):
             )
         registered_names.append(package.name)
 
-        if package.name is not None:
-            rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
-            index[rec] = rec
+        rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
+        index[rec] = rec
 
 
 def get_archspec_name():
