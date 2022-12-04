@@ -23,7 +23,7 @@ from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
-from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
+from ...exceptions import BasicClobberError, CondaOSError, maybe_raise, NotWritableError
 from ...models.enums import LinkType
 
 
@@ -432,7 +432,7 @@ def create_package_cache_directory(pkgs_dir):
         sudo_safe = expand(pkgs_dir).startswith(expand('~'))
         touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
         touch(join(pkgs_dir, 'urls'), sudo_safe=sudo_safe)
-    except OSError as e:
+    except NotWritableError as e:
         if e.errno in (EACCES, EPERM, EROFS):
             log.trace("cannot create package cache directory '%s'", pkgs_dir)
             return False
