@@ -13,7 +13,7 @@ def conda_virtual_packages():
     if platform.system() != "Linux":
         return
 
-    yield CondaVirtualPackage("unix", None)
+    yield CondaVirtualPackage("unix", None, None)
 
     # By convention, the kernel release string should be three or four
     # numeric components, separated by dots, followed by vendor-specific
@@ -23,11 +23,11 @@ def conda_virtual_packages():
     # development (`-rcN`) kernels, but that can be a TODO for later.
     dist_version = os.environ.get("CONDA_OVERRIDE_LINUX", platform.release())
     m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
-    yield CondaVirtualPackage("linux", m.group() if m else "0")
+    yield CondaVirtualPackage("linux", m.group() if m else "0", None)
 
     libc_family, libc_version = linux_get_libc_version()
     if not (libc_family and libc_version):
         # Default to glibc when using CONDA_SUBDIR var
         libc_family = "glibc"
     libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
-    yield CondaVirtualPackage(libc_family, libc_version)
+    yield CondaVirtualPackage(libc_family, libc_version, None)
