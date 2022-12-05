@@ -11,7 +11,7 @@ def conda_virtual_packages():
     if platform.system() != "Darwin":
         return
 
-    yield CondaVirtualPackage("unix", None)
+    yield CondaVirtualPackage("unix", None, None)
 
     dist_version = os.environ.get("CONDA_OVERRIDE_OSX", platform.mac_ver()[0])
-    yield CondaVirtualPackage("osx", dist_version)
+    yield CondaVirtualPackage("osx", dist_version, None)

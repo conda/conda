@@ -29,10 +29,12 @@ class CondaVirtualPackage(NamedTuple):
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
+    :param version: Virtual package build string (e.g., ``x86_64``).
     """
 
     name: str
     version: str | None
+    build: str | None
 
 
 class CondaSolver(NamedTuple):

@@ -96,6 +96,7 @@ class CondaSpecs:
                 yield plugins.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
+                    build="x86_64",
                 )
 
         """
