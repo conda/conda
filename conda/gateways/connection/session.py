@@ -65,7 +65,7 @@ def get_channel_name_from_url(url: str) -> str | None:
 
 def session_manager(url: str) -> Session:  # TODO: we might want to implement our own ABC class
     """
-    decorator that determines the correct Session object to returned
+    Function that determines the correct Session object to be returned
     based on the channel that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
