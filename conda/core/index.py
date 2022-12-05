@@ -145,12 +145,12 @@ def _supplement_index_with_cache(index):
             index[pcrec] = pcrec
 
 
-def _make_virtual_package(name, version=None, build_string='0'):
+def _make_virtual_package(name, version=None, build_string=None):
     return PackageRecord(
             package_type=PackageType.VIRTUAL_SYSTEM,
             name=name,
             version=version or '0',
-            build_string=build_string,
+            build_string=build_string or '0',
             channel='@',
             subdir=context.subdir,
             md5="12345678901234567890123456789012",
@@ -174,6 +174,8 @@ def _supplement_index_with_system(index):
     registered_names = []
     packages = context.plugin_manager.get_hook_results("virtual_packages")
     for package in packages:
+        if package.name is None:
+            continue
         if package.name in registered_names:
             raise PluginError(
                 "Conflicting virtual package entries found for the "
@@ -184,10 +186,8 @@ def _supplement_index_with_system(index):
             )
         registered_names.append(package.name)
 
-        rec = _make_virtual_package(f"__{package.name}", package.version)
-
-        if package.version is not None:
-            index[rec] = rec
+        rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
+        index[rec] = rec
 
 
 def get_archspec_name():
