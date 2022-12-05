@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add `--mach` and `--arch` options to `dev/start`. (#11851)
+* Skip test suite for non-code changes. (#12141)
