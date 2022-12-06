@@ -216,12 +216,14 @@ class Context(Configuration):
 
     pinned_packages = ParameterLoader(
         SequenceParameter(
-            primitive_type=PrimitiveParameter("", element_type=str), string_delimiter="&"
+            primitive_type=PrimitiveParameter("", element_type=str),
+            string_delimiter="&",
         )
     )  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = ParameterLoader(
         SequenceParameter(
-            primitive_type=PrimitiveParameter("", element_type=str), string_delimiter="&"
+            primitive_type=PrimitiveParameter("", element_type=str),
+            string_delimiter="&",
         ),
         aliases=("disallow",),
     )
@@ -236,7 +238,8 @@ class Context(Configuration):
     _root_prefix = ParameterLoader(PrimitiveParameter(""), aliases=('root_dir', 'root_prefix'))
     _envs_dirs = ParameterLoader(
         SequenceParameter(
-            primitive_type=PrimitiveParameter("", element_type=str), string_delimiter=os.pathsep
+            primitive_type=PrimitiveParameter("", element_type=str),
+            string_delimiter=os.pathsep,
         ),
         aliases=("envs_dirs", "envs_path"),
         expandvars=True,
@@ -248,7 +251,8 @@ class Context(Configuration):
     )
     _subdir = ParameterLoader(PrimitiveParameter(""), aliases=("subdir",))
     _subdirs = ParameterLoader(
-        SequenceParameter(primitive_type=PrimitiveParameter("", str)), aliases=("subdirs",)
+        SequenceParameter(primitive_type=PrimitiveParameter("", str)),
+        aliases=("subdirs",),
     )
 
     local_repodata_ttl = ParameterLoader(PrimitiveParameter(1, element_type=(bool, int)))
@@ -335,7 +339,8 @@ class Context(Configuration):
         )
     )
     _use_only_tar_bz2 = ParameterLoader(
-        PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=("use_only_tar_bz2",)
+        PrimitiveParameter(None, element_type=(bool, NoneType)),
+        aliases=("use_only_tar_bz2",),
     )
 
     always_softlink = ParameterLoader(PrimitiveParameter(False), aliases=('softlink',))
