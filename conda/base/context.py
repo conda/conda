@@ -840,29 +840,9 @@ class Context(Configuration):
             if argparse_channels and not channel_in_config_files:
                 return tuple(IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME)))
 
-        channels = self._get_channel_names()
+        channels = self.channel_parameters.keys()
 
         return tuple(IndexedSet((*local_add, *channels)))
-
-    def _get_channel_names(self) -> tuple[str, ...]:
-        """
-        Iterates through the self._channel property to retrieve  just the names of the
-        channels. This is necessary because channels can appear as either strings or
-        mappings in the config file. When they are set  as mappings, we grab the first
-        key (there should only be one key) and use that as the channel name.
-        """
-        channel_names = []
-
-        for channel in self._channels:
-            if isinstance(channel, Mapping):
-                keys = channel.keys()
-                if len(keys) > 0:
-                    name, *_ = keys
-                    channel_names.append(name)
-            else:
-                channel_names.append(channel)
-
-        return tuple(channel_names)
 
     @property
     def channel_parameters(self) -> frozendict:
@@ -871,13 +851,15 @@ class Context(Configuration):
         It will be an empty frozendict if there are no parameters.
         """
         channel_params = {}
-        channel_names = self._get_channel_names()
 
-        for name, raw_value in zip(channel_names, self._channels):
-            if isinstance(raw_value, Mapping):
-                channel_params[name] = raw_value.get(name)
+        for channel in self._channels:
+            if isinstance(channel, Mapping):
+                keys = channel.keys()
+                if len(keys) > 0:
+                    name, *_ = keys
+                    channel_params[name] = channel.get(name)
             else:
-                channel_params[name] = frozendict()
+                channel_params[channel] = frozendict()
 
         return frozendict(channel_params)
 
