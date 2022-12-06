@@ -10,7 +10,7 @@ import os
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol, non_x86_machines
 from conda.common.compat import on_win, on_mac, on_linux
 from conda.common.io import env_vars
 from conda.core.index import check_allowlist, get_index, get_reduced_index, _supplement_index_with_system
@@ -40,6 +40,36 @@ def test_check_allowlist():
         check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
 
     check_allowlist(("conda-canary",))
+
+
+def test_supplement_index_with_system():
+    index = {}
+    _supplement_index_with_system(index)
+
+    has_virtual_pkgs = {
+        rec.name
+        for rec in index
+        if rec.package_type == PackageType.VIRTUAL_SYSTEM
+    }.issuperset
+    if on_win:
+        assert has_virtual_pkgs({"__win"})
+    elif on_mac:
+        assert has_virtual_pkgs({"__osx", "__unix"})
+    elif on_linux:
+        assert has_virtual_pkgs({"__glibc", "__linux", "__unix"})
+
+
+@pytest.mark.skipif(
+    context.subdir.split("-", 1)[1] not in {"32", "64", *non_x86_machines},
+    reason=f"archspec not available for subdir {context.subdir}",
+)
+def test_supplement_index_with_system_archspec():
+    index = {}
+    _supplement_index_with_system(index)
+    assert any(
+        rec.package_type == PackageType.VIRTUAL_SYSTEM and rec.name == "__archspec"
+        for rec in index
+    )
 
 
 def test_supplement_index_with_system_cuda(clear_cuda_version):
