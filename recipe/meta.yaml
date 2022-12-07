@@ -51,7 +51,7 @@ requirements:
     - conda-env >=2.6
     - conda-content-trust >=0.1.1
     - cytoolz >=0.8.1
-    - conda-libmamba-solver >=22.11.0
+    - conda-libmamba-solver >=22.12.0
 
 test:
   source_files:
