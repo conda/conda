@@ -1,6 +1,6 @@
 [//]: # (current developments)
 
-## 22.11.1 (2022-12-05)
+## 22.11.1 (2022-12-06)
 
 ### Bug fixes
 
@@ -12,7 +12,13 @@
 
 * Skip test suite for non-code changes. (#12141)
 
+### Contributors
 
+* @LtDan33
+* @jezdez
+* @kenodegard
+* @mbargull
+* @travishathaway
 
 ## 22.11.0 (2022-11-23)
 
