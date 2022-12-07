@@ -431,7 +431,7 @@
   first_commit: 2016-06-16 19:44:13
 - name: Dan Meador
   email: danmeador33@gmail.com
-  num_commits: 4
+  num_commits: 5
   first_commit: 2021-08-26 19:24:11
   github: LtDan33
   alternate_emails:
@@ -1516,7 +1516,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 84
+  num_commits: 82
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1693,7 +1693,7 @@
   - codepage949
 - name: Marcel Bargull
   email: mbargull@users.noreply.github.com
-  num_commits: 132
+  num_commits: 133
   first_commit: 2018-02-22 14:55:06
   github: mbargull
   alternate_emails:
@@ -1954,7 +1954,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 191
+  num_commits: 193
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2098,7 +2098,7 @@
 - name: Travis Hathaway
   email: travis.j.hathaway@gmail.com
   github: travishathaway
-  num_commits: 16
+  num_commits: 17
   first_commit: 2022-03-31 12:01:37
 - name: Tom Hu
   email: 88201630+thomasrockhu-codecov@users.noreply.github.com
