@@ -339,6 +339,7 @@ class _Activator:
 
         # get clobbered environment variables
         clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
+        clobber_vars = set(filter(lambda var: env_vars[var] != os.environ[var], clobber_vars))
         if clobber_vars:
             print("WARNING: overwriting environment variables set in the machine", file=sys.stderr)
             print(f"overwriting variable {clobber_vars}", file=sys.stderr)
