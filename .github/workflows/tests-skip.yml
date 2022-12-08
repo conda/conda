@@ -45,4 +45,4 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - run: 'echo "Nothing to analyze"'
+      - run: 'echo "No Source Changes and Skipping `test.yml`"'
