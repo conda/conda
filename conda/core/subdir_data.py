@@ -20,7 +20,7 @@ from genericpath import getmtime, isfile
 
 from itertools import islice
 
-from conda.common.iterators import groupby_to_dict as groupby
+from conda.common.iterators import concat, groupby_to_dict as groupby
 
 from .. import CondaError
 from .._vendor.boltons.setutils import IndexedSet
