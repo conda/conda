@@ -247,7 +247,10 @@ class SubdirData(metaclass=SubdirDataType):
         """
         try:
             state_path = pathlib.Path(self.cache_path_state)
-            state = json.loads(state_path.read_text())
+            # efficient according to scalene profiler; about equal to
+            # json.loads(state_path.read_text()) and better that open("rb")
+            with state_path.open("r") as s:
+                state = json.load(s)
             log.debug("Load state from %s", state_path)
             return state
         except (json.JSONDecodeError, OSError):
