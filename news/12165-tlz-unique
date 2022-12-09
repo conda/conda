@@ -16,4 +16,5 @@
 
 ### Other
 
-* Use toolz.itertoolz.unique instead of copy
+* Use toolz unique instead of copy
+* Use islice instead of toolz take
