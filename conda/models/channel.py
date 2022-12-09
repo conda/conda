@@ -5,10 +5,7 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
+from conda.common.iterators import concat
 
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL

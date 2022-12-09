@@ -9,10 +9,7 @@ import sys
 import warnings
 from textwrap import dedent
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
+from conda.common.iterators import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
