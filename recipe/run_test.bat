@@ -22,5 +22,5 @@ ECHO %CONDA_PREFIX%
 IF NOT "%CONDA_PREFIX%"=="%TEMP%\built-conda-test-env" EXIT /B 1
 FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[1])"') DO set "ENV_PYTHON_MINOR_VERSION=%%i"
 IF NOT "%ENV_PYTHON_MINOR_VERSION%" == "%TEST_MINOR_VER%" EXIT /B 1
-CALL conda deactivate
+@REM CALL conda deactivate
 rd /s /q "%TEMP%\built-conda-test-env"

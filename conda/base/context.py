@@ -489,15 +489,15 @@ class Context(Configuration):
 
     @property
     def default_threads(self) -> Optional[int]:
-        return self._default_threads if self._default_threads else None
+        return self._default_threads or None
 
     @property
     def repodata_threads(self) -> Optional[int]:
-        return self._repodata_threads if self._repodata_threads else self.default_threads
+        return self._repodata_threads or self.default_threads
 
     @property
     def fetch_threads(self) -> Optional[int]:
-        return self._fetch_threads if self._fetch_threads else self.default_threads
+        return self._fetch_threads or self.default_threads
 
     @property
     def verify_threads(self) -> Optional[int]:
@@ -533,7 +533,7 @@ class Context(Configuration):
 
     @property
     def subdirs(self):
-        return self._subdirs if self._subdirs else (self.subdir, 'noarch')
+        return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
     def known_subdirs(self):
