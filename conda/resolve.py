@@ -64,7 +64,7 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     else:
         log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
         return sat_solver
-    for solver_choice, sat_solver in _sat_solvers.items():
+    for sat_solver in _sat_solvers.values():
         try:
             try_out_solver(sat_solver)
         except Exception as e:
@@ -691,7 +691,7 @@ class Resolve:
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
         specs_by_name_seed = OrderedDict()
         for s in explicit_specs:
-            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
+            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, []) + [s]
         for explicit_spec in explicit_specs:
             add_these_precs2 = tuple(
                 prec for prec in self.find_matches(explicit_spec)
@@ -715,7 +715,7 @@ class Resolve:
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
-                    specs = specs_by_name.get(dep.name, list())
+                    specs = specs_by_name.get(dep.name, [])
                     if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
@@ -748,8 +748,9 @@ class Resolve:
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, tuple(specs_by_name.get(new_ms.name, tuple())))):
+                                if "track_features" not in new_ms and not self._broader(
+                                    new_ms, tuple(specs_by_name.get(new_ms.name, ()))
+                                ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
@@ -1257,7 +1258,7 @@ class Resolve:
             log.debug('Solving for: %s', dlist)
 
         if not specs:
-            return tuple()
+            return ()
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")

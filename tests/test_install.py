@@ -31,7 +31,7 @@ class TestBinaryReplace(unittest.TestCase):
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_simple(self):
-        for encoding in ["utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"]:
+        for encoding in ("utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"):
             a = "aaaaa".encode(encoding)
             b = "bbbb".encode(encoding)
             data = "xxxaaaaaxyz\0zz".encode(encoding)

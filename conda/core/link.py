@@ -272,7 +272,7 @@ class UnlinkLinkTransaction:
                 for msg_file in all_msg_subdir:
                     print(f"  File {msg_file.name}:\n")
                     print(indent(msg_file.read_text(), "  "))
-                    print("")
+                    print()
         if flag_pre_link:
             confirm_yn()
 
@@ -496,10 +496,12 @@ class UnlinkLinkTransaction:
                 elif isinstance(link_path_action, CreateNonadminAction):
                     continue
                 else:
-                    target_short_paths = ((link_path_action.target_short_path, )
-                                          if not hasattr(link_path_action, 'link_type') or
-                                          link_path_action.link_type != LinkType.directory
-                                          else tuple())
+                    target_short_paths = (
+                        (link_path_action.target_short_path,)
+                        if not hasattr(link_path_action, "link_type")
+                        or link_path_action.link_type != LinkType.directory
+                        else ()
+                    )
                 for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)

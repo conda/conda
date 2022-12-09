@@ -93,7 +93,7 @@ class IntegrationTests(BaseTestCase):
         PackageCacheData.clear()
 
     @pytest.mark.skipif(
-        context.subdir not in ["linux-64", "osx-64", "win-32", "win-64", "linux-32"],
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
         reason="Skip unsupported platforms",
     )
     def test_install_python2_and_search(self):
@@ -471,7 +471,7 @@ class IntegrationTests(BaseTestCase):
         # We elect to test the more complex of the two options.
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
@@ -494,7 +494,7 @@ class IntegrationTests(BaseTestCase):
         from conda.exports import rm_rf as _rm_rf
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
@@ -1897,7 +1897,7 @@ dependencies:
                     # corresponding HTTP header. This test is supposed to test
                     # whether the --use-index-cache causes the cache to be used.
                     result = orig_get(self, url, **kwargs)
-                    for header in ['Etag', 'Last-Modified', 'Cache-Control']:
+                    for header in ("Etag", "Last-Modified", "Cache-Control"):
                         if header in result.headers:
                             del result.headers[header]
                     return result
