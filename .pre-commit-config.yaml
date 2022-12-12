@@ -39,7 +39,7 @@ repos:
     rev: 1.5.1
     hooks:
       - id: darker
-        additional_dependencies: [black]
+        additional_dependencies: [black==22.10.0]
   - repo: https://github.com/asottile/blacken-docs
     rev: v1.12.1
     hooks:
