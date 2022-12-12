@@ -16,5 +16,5 @@
 
 ### Other
 
-* Use toolz unique instead of copy
-* Use islice instead of toolz take
+* Use `toolz.unique` instead of vendored copy. (#12165)
+* Use `itertools.islice` instead of `toolz.take`. (#12165)
