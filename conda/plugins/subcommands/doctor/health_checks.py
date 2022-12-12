@@ -7,7 +7,7 @@ import conda.plugins
 
 from pathlib import Path
 
-from conda.base import context
+from conda.base.context import context
 
 active_prefix = context.active_prefix
 

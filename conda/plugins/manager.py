@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 
 import pluggy
+from . import subcommands
 
 from . import solvers, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -140,6 +141,8 @@ def get_plugin_manager() -> CondaPluginManager:
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
-    plugin_manager.load_plugins(solvers, *virtual_packages.plugins)
+    plugin_manager.load_plugins(
+        solvers, *virtual_packages.plugins, subcommands.doctor.health_checks
+    )
     plugin_manager.load_setuptools_entrypoints(spec_name)
     return plugin_manager
