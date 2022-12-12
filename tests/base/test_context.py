@@ -10,7 +10,6 @@ from tempfile import gettempdir
 from unittest import TestCase, mock
 
 import pytest
-from tlz.itertoolz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
@@ -21,7 +20,7 @@ from conda.base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     validate_prefix_name,
 )
-from conda.common.compat import odict, on_win
+from conda.common.compat import odict
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
@@ -171,10 +170,15 @@ class ContextCustomRcTests(TestCase):
                 assert channel.scheme is None
                 assert channel.canonical_name == "local"
                 assert channel.url() is None
-                urls = list(concat((
-                               join_url(url, context.subdir),
-                               join_url(url, 'noarch'),
-                           ) for url in context.conda_build_local_urls))
+                urls = list(
+                    chain.from_iterable(
+                        (
+                            join_url(url, context.subdir),
+                            join_url(url, "noarch"),
+                        )
+                        for url in context.conda_build_local_urls
+                    )
+                )
                 assert channel.urls() == urls
 
                 channel = Channel(conda_bld_url)

@@ -3,15 +3,11 @@
 
 from collections import defaultdict, OrderedDict, deque
 import copy
+import itertools
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
 from conda.common.iterators import groupby_to_dict as groupby
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
@@ -780,9 +776,9 @@ class Resolve:
         spec_name = spec.get_exact_value('name')
         if spec_name:
             candidate_precs = self.groups.get(spec_name, ())
-        elif spec.get_exact_value('track_features'):
-            feature_names = spec.get_exact_value('track_features')
-            candidate_precs = concat(
+        elif spec.get_exact_value("track_features"):
+            feature_names = spec.get_exact_value("track_features")
+            candidate_precs = itertools.chain.from_iterable(
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
@@ -822,10 +818,12 @@ class Resolve:
     @staticmethod
     def _make_channel_priorities(channels):
         priorities_map = {}
-        for priority_counter, chn in enumerate(concat(
-            (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-            for c in (Channel(c) for c in channels)
-        )):
+        for priority_counter, chn in enumerate(
+            itertools.chain.from_iterable(
+                (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+                for c in (Channel(c) for c in channels)
+            )
+        ):
             channel_name = chn.name
             if channel_name in priorities_map:
                 continue

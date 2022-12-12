@@ -5,16 +5,12 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 from collections.abc import Mapping
 from functools import reduce
+from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 import warnings
 import re
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -468,10 +464,11 @@ class MatchSpec(metaclass=MatchSpecType):
         unmergeable = name_groups.pop('*', []) + name_groups.pop(None, [])
 
         merged_specs = []
-        mergeable_groups = tuple(concat(
-            groupby(lambda s: s.optional, group).values()
-            for group in name_groups.values()
-        ))
+        mergeable_groups = tuple(
+            chain.from_iterable(
+                groupby(lambda s: s.optional, group).values() for group in name_groups.values()
+            )
+        )
         for group in mergeable_groups:
             target_groups = groupby(attrgetter('target'), group)
             target_groups.pop(None, None)
