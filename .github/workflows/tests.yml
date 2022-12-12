@@ -1,3 +1,6 @@
+# this is the sibling workflow to docs.yml, it is required to work around
+# the skipped but required checks issue:
+#   https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
 name: Tests
 
 on:
@@ -7,10 +10,24 @@ on:
     branches:
       - main
       - feature/**
+    paths:  # run if src/tests/recipe are modified
+      - conda/**
+      - conda_env/**
+      - tests/**
+      - '*.py'
+      - recipe/**
+      - .github/workflows/tests.yml
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
+    paths:
+      - conda/**
+      - conda_env/**
+      - tests/**
+      - '*.py'
+      - recipe/**
+      - .github/workflows/tests.yml
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -264,7 +281,7 @@ jobs:
           retention-days: 1
 
   analyze:
-    name: Analyze test results
+    name: Analyze results
     needs: [windows, linux, linux-qemu, macos]
     if: always()
     runs-on: ubuntu-latest
@@ -286,6 +303,7 @@ jobs:
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
 
+      # required check
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
