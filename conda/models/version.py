@@ -382,7 +382,7 @@ def treeify(spec_str):
     if stack:
         raise InvalidVersionSpec(spec_str, "unable to convert to expression tree: %s" % stack)
     if not output:
-        raise InvalidVersionSpec(spec_str, "unable to determin version from spec")
+        raise InvalidVersionSpec(spec_str, "unable to determine version from spec")
     return output[0]
 
 
