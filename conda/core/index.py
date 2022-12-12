@@ -7,10 +7,7 @@ import platform
 import sys
 import warnings
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
+from conda.common.iterators import concat
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData

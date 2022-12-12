@@ -9,10 +9,7 @@ import re
 import sys
 from uuid import uuid4
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
+from conda.common.iterators import concat
 
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
 from .portability import _PaddingError, update_prefix

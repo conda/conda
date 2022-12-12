@@ -16,10 +16,7 @@ from sys import platform
 from tarfile import ReadError
 from functools import partial
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
+from conda.common.iterators import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
