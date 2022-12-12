@@ -562,10 +562,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
             rx = vspec_str.replace('.', r'\.').replace('+', r'\+').replace('*', r'.*')
             rx = r'^(?:%s)$' % rx
 
-            try:
-                self.regex = re.compile(rx)
-            except re.error as e:
-                raise InvalidVersionSpec(vspec_str, f"contains an invalid regular expression: {e}")
+            self.regex = re.compile(rx)
             matcher = self.regex_match
             is_exact = False
         elif vspec_str[-1] == '*':
@@ -651,12 +648,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpec(vspec_str, "regex specs must start "
                                                     "with '^' and end with '$'")
-            try:
-                self.regex = re.compile(vspec_str)
-            except re.error as e:
-                raise InvalidVersionSpec(
-                    vspec_str, f"Contains an invalid regular expression. '{e}'"
-                )
+            self.regex = re.compile(vspec_str)
 
             matcher = self.regex_match
             is_exact = False
