@@ -1,45 +1,44 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from collections.abc import Callable
-from typing import NamedTuple
+import json
+import pprint
 
-from ....history import History
+import conda.plugins
 
+from pathlib import Path
 
-class HealthCheckStatus(NamedTuple):
-    message: str
-    error: bool
-
-
-class HealthCheck(NamedTuple):
-    title: str
-    description: str
-    name: str
-    check_function: Callable[..., HealthCheckStatus]
+# from conda.base import context
 
 
-def get_current_packages():
-    pass
-
-
-def find_missing_packages():
-    pass
-
-
-def format_error_message():
-    pass
-
-
-def check_for_missing_files_from_packages(prefix: str) -> HealthCheckStatus:
+def find_packages_with_missing_files(prefix: str):
     """
-    Checks to see if all files listed by conda list exist
+    List the missing files in the various packages in the environment
     """
-    history = History(prefix)
-    current_packages = get_current_packages(history)
-    missing_packages = find_missing_packages(current_packages)
+    packages = {}
+    prefix = Path(prefix)
+    conda_meta = prefix.joinpath("conda-meta")
+    for file in conda_meta.iterdir():
+        if file.name.endswith(".json"):
+            packages[file.name] = []
+            with file.open() as f:
+                data = json.load(f)
+            for file_name in data.get("files", ()):
+                # Add warnings if json file has missing "files"
+                existance = prefix.joinpath(file_name).exists()
+                if not existance:
+                    packages[file.name].append(file_name)
 
-    if len(missing_packages) > 0:
-        error_message = format_error_message(missing_packages)
-        return HealthCheckStatus(message=error_message, error=True)
+    return format_message(packages)
 
-    return HealthCheckStatus(message="Status Okay!", error=False)
+
+def format_message(packages: dict):
+    pprint.pprint(packages)
+
+
+@conda.plugins.hookimpl
+def conda_subcommands():
+    yield conda.plugins.CondaSubcommand(
+        name="doctor",
+        summary="A subcommand that displays environment health report",
+        action=find_packages_with_missing_files,
+    )
