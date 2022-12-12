@@ -16,4 +16,4 @@
 
 ### Other
 
-* Use itertools.chain.from_iterable instead of equivalent tlz.concat
+* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`
