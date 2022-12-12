@@ -7,8 +7,9 @@ import conda.plugins
 
 from pathlib import Path
 
-# from conda.base import context
+from conda.base import context
 
+active_prefix = context.active_prefix
 
 def find_packages_with_missing_files(prefix: str):
     """
@@ -35,10 +36,14 @@ def format_message(packages: dict):
     pprint.pprint(packages)
 
 
+def run_health_checks(prefix: str):
+    find_packages_with_missing_files(active_prefix)
+
+
 @conda.plugins.hookimpl
 def conda_subcommands():
     yield conda.plugins.CondaSubcommand(
         name="doctor",
         summary="A subcommand that displays environment health report",
-        action=find_packages_with_missing_files,
+        action=run_health_checks,
     )
