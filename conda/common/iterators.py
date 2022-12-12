@@ -18,7 +18,3 @@ def groupby_to_dict(keyfunc, sequence):
     for key, group in itertools.groupby(sequence, keyfunc):
         result[key].extend(group)
     return dict(result)
-
-
-def concat(seqs):
-    return itertools.chain.from_iterable(seqs)

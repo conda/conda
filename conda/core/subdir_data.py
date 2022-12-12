@@ -18,9 +18,9 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-from itertools import islice
+from itertools import islice, chain
 
-from conda.common.iterators import concat, groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .. import CondaError
 from .._vendor.boltons.setutils import IndexedSet
@@ -136,7 +136,7 @@ class SubdirData(metaclass=SubdirDataType):
             else partial(ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads)
         )
         with Executor() as executor:
-            result = tuple(concat(executor.map(subdir_query, channel_urls)))
+            result = tuple(chain.from_iterable(executor.map(subdir_query, channel_urls)))
         return result
 
     def query(self, package_ref_or_match_spec):
@@ -153,7 +153,7 @@ class SubdirData(metaclass=SubdirDataType):
                         yield prec
             elif param.get_exact_value("track_features"):
                 track_features = param.get_exact_value("track") or ()
-                candidates = concat(
+                candidates = chain.from_iterable(
                     self._track_features_index[feature_name] for feature_name in track_features
                 )
                 for prec in candidates:
