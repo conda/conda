@@ -10,11 +10,37 @@ from rich.table import Table
 
 from conda.base.context import context
 
+
+REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
+
 active_prefix = context.active_prefix
+
+
+def condensed_missing_files(prefix: str):
+    """Print number of missing files for each package"""
+    packages_with_missing_files = find_packages_with_missing_files(prefix)
+
+    if packages_with_missing_files:
+        number_of_missing_files = {k: len(v) for k, v in packages_with_missing_files.items()}
+
+        table = Table(title="Packages With Missing Files")
+
+        table.add_column("Package Name", justify="right", style="cyan", no_wrap=True)
+        table.add_column("No. of Missing Files", style="magenta")
+
+        for k in number_of_missing_files:
+            table.add_row(str(k), str(number_of_missing_files[k]))
+
+        console = Console()
+        console.print(table)
+
+    else:
+        print("There are no packages with missing files.")
+
 
 def find_packages_with_missing_files(prefix: str):
     """
-    List the missing files in the various packages in the environment
+    Finds packages listed in conda-meta with missing files
     """
     packages = {}
     prefix = Path(prefix)
@@ -31,23 +57,13 @@ def find_packages_with_missing_files(prefix: str):
                     packages[file.name].append(file_name)
 
     packages_with_missing_files = {k: v for k, v in packages.items() if v}
-    number_of_missing_files = {k: len(v) for k, v in packages_with_missing_files.items()}
 
-    table = Table(title="Packages With Missing Files")
-
-    table.add_column("Package Name", justify="right", style="cyan", no_wrap=True)
-    table.add_column("No. of Missing Files", style="magenta")
-
-    for k in number_of_missing_files:
-        table.add_row(str(k), str(number_of_missing_files[k]))
-
-    console = Console()
-    console.print(table)
+    return packages_with_missing_files
 
 
 def run_health_checks(prefix: str):
-    print("\nHealth Report for Your Active Environment\n")
-    find_packages_with_missing_files(active_prefix)
+    print(REPORT_TITLE)
+    condensed_missing_files(active_prefix)
 
 
 @conda.plugins.hookimpl
