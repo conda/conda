@@ -3,17 +3,15 @@
 
 from collections import defaultdict, OrderedDict, deque
 import copy
+import itertools
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
-try:
-    from tlz.itertoolz import concat, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
-from ._vendor.tqdm import tqdm
+from tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
@@ -62,7 +60,7 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     else:
         log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
         return sat_solver
-    for solver_choice, sat_solver in _sat_solvers.items():
+    for sat_solver in _sat_solvers.values():
         try:
             try_out_solver(sat_solver)
         except Exception as e:
@@ -100,7 +98,7 @@ class Resolve:
         self._channel_priority = context.channel_priority
         self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
-        groups = groupby("name", index.values())
+        groups = groupby(lambda x: x.name, index.values())
         trackers = defaultdict(list)
 
         for name in groups:
@@ -689,7 +687,7 @@ class Resolve:
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
         specs_by_name_seed = OrderedDict()
         for s in explicit_specs:
-            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
+            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, []) + [s]
         for explicit_spec in explicit_specs:
             add_these_precs2 = tuple(
                 prec for prec in self.find_matches(explicit_spec)
@@ -713,7 +711,7 @@ class Resolve:
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
-                    specs = specs_by_name.get(dep.name, list())
+                    specs = specs_by_name.get(dep.name, [])
                     if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
@@ -746,8 +744,9 @@ class Resolve:
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, tuple(specs_by_name.get(new_ms.name, tuple())))):
+                                if "track_features" not in new_ms and not self._broader(
+                                    new_ms, tuple(specs_by_name.get(new_ms.name, ()))
+                                ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
@@ -777,9 +776,9 @@ class Resolve:
         spec_name = spec.get_exact_value('name')
         if spec_name:
             candidate_precs = self.groups.get(spec_name, ())
-        elif spec.get_exact_value('track_features'):
-            feature_names = spec.get_exact_value('track_features')
-            candidate_precs = concat(
+        elif spec.get_exact_value("track_features"):
+            feature_names = spec.get_exact_value("track_features")
+            candidate_precs = itertools.chain.from_iterable(
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
@@ -819,10 +818,12 @@ class Resolve:
     @staticmethod
     def _make_channel_priorities(channels):
         priorities_map = {}
-        for priority_counter, chn in enumerate(concat(
-            (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-            for c in (Channel(c) for c in channels)
-        )):
+        for priority_counter, chn in enumerate(
+            itertools.chain.from_iterable(
+                (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+                for c in (Channel(c) for c in channels)
+            )
+        ):
             channel_name = chn.name
             if channel_name in priorities_map:
                 continue
@@ -1255,7 +1256,7 @@ class Resolve:
             log.debug('Solving for: %s', dlist)
 
         if not specs:
-            return tuple()
+            return ()
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")

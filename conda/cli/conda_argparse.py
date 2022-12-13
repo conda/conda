@@ -7,6 +7,7 @@ from argparse import (
     RawDescriptionHelpFormatter,
     SUPPRESS,
     Action,
+    _StoreAction,
     _CountAction,
     _HelpAction,
 )
@@ -16,12 +17,14 @@ from os.path import abspath, expanduser, join
 from subprocess import Popen
 import sys
 from textwrap import dedent
+import warnings
 
 from .. import __version__
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
-    UpdateModifier, ExperimentalSolverChoice
+    UpdateModifier
+from ..base.context import context
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -57,10 +60,8 @@ def generate_parser():
     sub_parsers = p.add_subparsers(
         metavar='command',
         dest='cmd',
+        required=True,
     )
-    # http://bugs.python.org/issue9253
-    # http://stackoverflow.com/a/18283730/1599393
-    sub_parsers.required = True
 
     configure_parser_clean(sub_parsers)
     configure_parser_compare(sub_parsers)
@@ -71,13 +72,11 @@ def generate_parser():
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
-    configure_parser_remove(sub_parsers)
+    configure_parser_remove(sub_parsers, aliases=["uninstall"])
     configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
-    configure_parser_remove(sub_parsers, name="uninstall")
-    configure_parser_update(sub_parsers)
-    configure_parser_update(sub_parsers, name='upgrade')
+    configure_parser_update(sub_parsers, aliases=["upgrade"])
     configure_parser_notices(sub_parsers)
 
     return p
@@ -115,6 +114,14 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
+        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
+
+        if self._subcommands:
+            self.epilog = 'conda commands available from other packages:' + ''.join(
+                f'\n {subcommand.name} - {subcommand.summary}'
+                for subcommand in self._subcommands
+            )
+
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
@@ -150,6 +157,18 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
+                        # Run the subcommand from plugins
+                        for subcommand in self._subcommands:
+                            if cmd == subcommand.name:
+                                sys.exit(subcommand.action(sys.argv[2:]))
+                        # Run the subcommand from executables; legacy path
+                        warnings.warn(
+                            (
+                                "Loading conda subcommands via executables is "
+                                "pending deprecation in favor of the plugin system. "
+                            ),
+                            PendingDeprecationWarning,
+                        )
                         executable = find_executable('conda-' + cmd)
                         if not executable:
                             from ..exceptions import CommandNotFoundError
@@ -168,7 +187,7 @@ class ArgumentParser(ArgumentParserBase):
             other_commands = find_commands()
             if other_commands:
                 builder = ['']
-                builder.append("conda commands available from other packages:")
+                builder.append("conda commands available from other packages (legacy):")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
 
@@ -245,6 +264,22 @@ class ExtendConstAction(Action):
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
 
+
+class PendingDeprecationAction(_StoreAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        warnings.warn(
+            f"Option {self.option_strings} is pending deprecation.",
+            PendingDeprecationWarning,
+        )
+        super().__call__(parser, namespace, values, option_string)
+
+
+class DeprecatedAction(_StoreAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        warnings.warn(f"Option {self.option_strings} is deprecated!", DeprecationWarning)
+        super().__call__(parser, namespace, values, option_string)
+
+
 # #############################################################################################
 #
 # sub-parsers
@@ -271,7 +306,7 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         "-a", "--all",
         action="store_true",
-        help="Remove index cache, lock files, unused cache packages, and tarballs.",
+        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
     )
     removal_target_options.add_argument(
         "-i", "--index-cache",
@@ -612,7 +647,7 @@ def configure_parser_create(sub_parsers):
         p, prefix_required=True
     )
     add_parser_default_packages(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
     p.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -815,7 +850,7 @@ def configure_parser_install(sub_parsers):
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1022,48 +1057,42 @@ def configure_parser_package(sub_parsers):
     p.set_defaults(func='.main_package.execute')
 
 
-def configure_parser_remove(sub_parsers, name='remove'):
-    help = "%s a list of packages from a specified conda environment."
-    descr = dedent(help + """
+def configure_parser_remove(sub_parsers, aliases):
+    help_ = "Remove a list of packages from a specified conda environment."
+    descr = dals(
+        f"""
+        {help_}
 
-    This command will also remove any package that depends on any of the
-    specified packages as well, unless a replacement can be found without
-    that dependency. If you wish to skip this dependency checking and remove
-    just the requested packages, add the '--force' option. Note however that
-    this may result in a broken environment, so use this with caution.
-    """)
-    example = dedent("""
-    Examples:
+        This command will also remove any package that depends on any of the
+        specified packages as well---unless a replacement can be found without
+        that dependency. If you wish to skip this dependency checking and remove
+        just the requested packages, add the '--force' option. Note however that
+        this may result in a broken environment, so use this with caution.
+        """
+    )
+    example = dals(
+        """
+        Examples:
 
-    Remove the package 'scipy' from the currently-active environment::
+        Remove the package 'scipy' from the currently-active environment::
 
-        conda %(name)s scipy
+            conda remove scipy
 
-    Remove a list of packages from an environemnt 'myenv'::
+        Remove a list of packages from an environemnt 'myenv'::
 
-        conda %(name)s -n myenv scipy curl wheel
+            conda remove -n myenv scipy curl wheel
 
-    """)
-
-    uninstall_help = "Alias for conda remove."
-    if name == 'remove':
-        p = sub_parsers.add_parser(
-            name,
-            formatter_class=RawDescriptionHelpFormatter,
-            description=descr % name.capitalize(),
-            help=help % name.capitalize(),
-            epilog=example % {"name": name},
-            add_help=False,
-        )
-    else:
-        p = sub_parsers.add_parser(
-            name,
-            formatter_class=RawDescriptionHelpFormatter,
-            description=uninstall_help,
-            help=uninstall_help,
-            epilog=example % {"name": name},
-            add_help=False,
-        )
+        """
+    )
+    p = sub_parsers.add_parser(
+        "remove",
+        formatter_class=RawDescriptionHelpFormatter,
+        description=descr,
+        help=help_,
+        epilog=example,
+        add_help=False,
+        aliases=aliases,
+    )
     add_parser_help(p)
     add_parser_pscheck(p)
 
@@ -1074,12 +1103,12 @@ def configure_parser_remove(sub_parsers, name='remove'):
     solver_mode_options.add_argument(
         "--all",
         action="store_true",
-        help="%s all packages, i.e., the entire environment." % name.capitalize(),
+        help="Remove all packages, i.e., the entire environment.",
     )
     solver_mode_options.add_argument(
         "--features",
         action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
+        help="Remove features (instead of packages).",
     )
     solver_mode_options.add_argument(
         "--force-remove", "--force",
@@ -1099,7 +1128,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
              "<TARGET_ENVIRONMENT>/conda-meta/pinned.",
     )
     add_parser_prune(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
 
     add_parser_networking(p)
     add_output_and_prompt_options(p)
@@ -1109,7 +1138,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
         metavar='package_name',
         action="store",
         nargs='*',
-        help="Package names to %s from the environment." % name,
+        help="Package names to remove from the environment.",
     )
     p.add_argument(
         "--dev",
@@ -1304,46 +1333,43 @@ def configure_parser_search(sub_parsers):
     p.set_defaults(func='.main_search.execute')
 
 
-def configure_parser_update(sub_parsers, name='update'):
-    help = "Updates conda packages to the latest compatible version."
-    descr = dedent(help + """
+def configure_parser_update(sub_parsers, aliases):
+    help_ = "Updates conda packages to the latest compatible version."
+    descr = dals(
+        f"""
+        {help_}
 
-    This command accepts a list of package names and updates them to the latest
-    versions that are compatible with all other packages in the environment.
+        This command accepts a list of package names and updates them to the latest
+        versions that are compatible with all other packages in the environment.
 
-    Conda attempts to install the newest versions of the requested packages. To
-    accomplish this, it may update some packages that are already installed, or
-    install additional packages. To prevent existing packages from updating,
-    use the --no-update-deps option. This may force conda to install older
-    versions of the requested packages, and it does not prevent additional
-    dependency packages from being installed.
-    """)
-    example = dedent("""
-    Examples::
+        Conda attempts to install the newest versions of the requested packages. To
+        accomplish this, it may update some packages that are already installed, or
+        install additional packages. To prevent existing packages from updating,
+        use the --no-update-deps option. This may force conda to install older
+        versions of the requested packages, and it does not prevent additional
+        dependency packages from being installed.
+        """
+    )
+    example = dals(
+        """
+        Examples:
 
-        conda %s -n myenv scipy
+            conda update -n myenv scipy
 
-    """)
+        """
+    )
 
-    alias_help = "Alias for conda update."
-    if name == 'update':
-        p = sub_parsers.add_parser(
-            'update',
-            description=descr,
-            help=help,
-            epilog=example % name,
-        )
-    else:
-        p = sub_parsers.add_parser(
-            name,
-            description=alias_help,
-            help=alias_help,
-            epilog=example % name,
-        )
+    p = sub_parsers.add_parser(
+        "update",
+        description=descr,
+        help=help_,
+        epilog=example,
+        aliases=aliases,
+    )
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
-    add_parser_experimental_solver(solver_mode_options)
+    add_parser_solver(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
         action="store_true",
@@ -1780,19 +1806,29 @@ def add_parser_prune(p):
     )
 
 
-def add_parser_experimental_solver(p):
+def add_parser_solver(p):
     """
     Add a command-line flag for alternative solver backends.
 
-    See ``context.experimental_solver`` for more info.
-
-    TODO: This will be replaced by a proper plugin mechanism in the future.
+    See ``context.solver`` for more info.
     """
-    p.add_argument(
+    solver_choices = [
+        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
+    ]
+    group = p.add_mutually_exclusive_group()
+    group.add_argument(
+        "--solver",
+        dest="solver",
+        choices=solver_choices,
+        help="Choose which solver backend to use.",
+        default=NULL,
+    )
+    group.add_argument(
         "--experimental-solver",
-        dest="experimental_solver",
-        choices=[v.value for v in ExperimentalSolverChoice],
-        help="EXPERIMENTAL. Choose which solver backend to use.",
+        action=PendingDeprecationAction,
+        dest="solver",
+        choices=solver_choices,
+        help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )
 

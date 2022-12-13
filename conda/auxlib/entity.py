@@ -247,7 +247,7 @@ from . import NULL
 from .._vendor.boltons.timeutils import isoparse
 from .._vendor.frozendict import frozendict
 from .collection import AttrDict, make_immutable
-from .compat import integer_types, isiterable, odict
+from .compat import isiterable, odict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
@@ -513,14 +513,14 @@ BoolField = BooleanField
 
 
 class IntegerField(Field):
-    _type = integer_types
+    _type = int
 
 
 IntField = IntegerField
 
 
 class NumberField(Field):
-    _type = integer_types + (float, complex)
+    _type = (int, float, complex)
 
 
 class StringField(Field):
@@ -717,7 +717,7 @@ class EntityType(type):
                                        for base in entity_subclasses)]
             dct[KEY_OVERRIDES_MAP] = {key: dct.pop(key) for key in keys_to_override}
         else:
-            dct[KEY_OVERRIDES_MAP] = dict()
+            dct[KEY_OVERRIDES_MAP] = {}
 
         return super().__new__(mcs, name, bases, dct)
 
@@ -777,7 +777,7 @@ class Entity(metaclass=EntityType):
 
     @classmethod
     def from_objects(cls, *objects, **override_fields):
-        init_vars = dict()
+        init_vars = {}
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
         for key, field in cls.__fields__.items():

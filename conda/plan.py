@@ -14,21 +14,17 @@ from collections import defaultdict
 from logging import getLogger
 import sys
 
-try:
-    from tlz.itertoolz import concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concatv, groupby
-
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
 from .common.io import dashlist, env_vars, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
+from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -247,7 +243,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         print("\nThe following empty environments will be CREATED:\n")
         print(actions['PREFIX'])
 
-    print('')
+    print()
 
 
 def add_unlink(actions, dist):
@@ -415,20 +411,20 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # unlink
     menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
+        unlink_dists = (
+            *unlink_dists[:menuinst_idx],
+            *unlink_dists[menuinst_idx + 1 :],
+            *unlink_dists[menuinst_idx : menuinst_idx + 1],
+        )
 
     # link
     menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
+        link_dists = (
+            *link_dists[menuinst_idx : menuinst_idx + 1],
+            *link_dists[:menuinst_idx],
+            *link_dists[menuinst_idx + 1 :],
+        )
 
     return unlink_dists, link_dists
 
@@ -445,7 +441,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     }, stack_callback=stack_context_default):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
-        from .core.solve import _get_solver_class
         from .models.channel import Channel
         from .models.dist import Dist
         if channel_priority_map:
@@ -468,7 +463,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         from .core.prefix_data import PrefixData
         PrefixData._cache_.clear()
 
-        solver = _get_solver_class()(prefix, channels, subdirs, specs_to_add=specs)
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
         if index:
             solver._index = {prec: prec for prec in index.values()}
         txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)

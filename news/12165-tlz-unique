@@ -16,4 +16,5 @@
 
 ### Other
 
-* Add `--mach` and `--arch` options to `dev/start`. (#11851)
+* Use `toolz.unique` instead of vendored copy. (#12165)
+* Use `itertools.islice` instead of `toolz.take`. (#12165)

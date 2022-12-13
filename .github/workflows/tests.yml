@@ -1,7 +1,7 @@
-# NOTE: jobs in this workflow are required checks (see https://github.com/conda/conda/settings/branch_protection_rules/773550)
-# remember to mirror changes here in ci-skip.yml to circumvent skipped required checks issue
-# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
-name: CI tests
+# this is the sibling workflow to docs.yml, it is required to work around
+# the skipped but required checks issue:
+#   https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
+name: Tests
 
 on:
   # NOTE: github.event context is push payload:
@@ -9,10 +9,25 @@ on:
   push:
     branches:
       - main
+      - feature/**
+    paths:  # run if src/tests/recipe are modified
+      - conda/**
+      - conda_env/**
+      - tests/**
+      - '*.py'
+      - recipe/**
+      - .github/workflows/tests.yml
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
+    paths:
+      - conda/**
+      - conda_env/**
+      - tests/**
+      - '*.py'
+      - recipe/**
+      - .github/workflows/tests.yml
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -40,9 +55,31 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      # for cache
+      - if: ${{ runner.os == 'Windows' }}
+        name: Use GNU tar
+        shell: cmd
+        run: |
+          echo "Adding GNU tar to PATH"
+          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
+
+      - name: Cache conda packages
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 2
+        with:
+          # setup.bat makes a directory junction from \conda_bin to
+          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+          # at this stage.
+          path: C:\Miniconda\envs\conda-test-env\pkgs
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
+            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
@@ -61,7 +98,7 @@ jobs:
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -92,7 +129,7 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -105,7 +142,7 @@ jobs:
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -138,7 +175,7 @@ jobs:
       OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -184,19 +221,30 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # - name: Cache conda
-      #   uses: actions/cache@v2
-      #   env:
-      #     # Increase this value to reset cache if tests/requirements.txt has not changed
-      #     CACHE_NUMBER: 0
-      #   with:
-      #     path: ~/conda_pkgs_dir
-      #     key:
-      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('tests/requirements.txt') }}
+      - name: Cache conda packages
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
+            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+
+      - name: Cache minio
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 0
+        with:
+          path: minio
+          key:
+            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -215,7 +263,7 @@ jobs:
         run: |
           ./dev/macos/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: ${{ matrix.test-type }}
           env_vars: OS,PYTHON
@@ -233,8 +281,8 @@ jobs:
           retention-days: 1
 
   analyze:
+    name: Analyze results
     needs: [windows, linux, linux-qemu, macos]
-    name: Analyze test results
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -251,11 +299,57 @@ jobs:
           retention-days: 90  # default: 90
 
       - name: Test Summary
-        uses: test-summary/action@v1
+        uses: test-summary/action@v2
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
 
+      # required check
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
           jobs: ${{ toJSON(needs) }}
+
+  build:
+    name: Canary Build
+    needs: [analyze]
+    # only build canary build if
+    # - prior steps succeeded,
+    # - this is the main repo, and
+    # - we are on the main (or feature) branch
+    if: >-
+      success()
+      && !github.event.repository.fork
+      && (
+        github.ref_name == 'main'
+        || startsWith(github.ref_name, 'feature/')
+      )
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            subdir: linux-64
+          - runner: macos-latest
+            subdir: osx-64
+          - runner: windows-latest
+            subdir: win-64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      # Clean checkout of specific git ref needed for package metadata version
+      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+          clean: true
+          fetch-depth: 0
+
+      - name: Create and upload canary build
+        uses: conda/actions/canary-release@v22.10.0
+        env:
+          # Run conda-build in isolated activation to properly package conda
+          _CONDA_BUILD_ISOLATED_ACTIVATION: 1
+        with:
+          package-name: ${{ github.event.repository.name }}
+          subdir: ${{ matrix.subdir }}
+          anaconda-org-channel: conda-canary
+          anaconda-org-label: ${{ github.ref_name == 'main' && 'dev' || github.ref_name }}
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}

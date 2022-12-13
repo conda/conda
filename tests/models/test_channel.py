@@ -941,8 +941,11 @@ class UrlChannelTests(TestCase):
                 for subdir in subdirs:
                     yield join_url(channel.base_url, subdir)
 
-        with env_vars(dict({'CONDA_SUBDIRS': ','.join(subdirs)}), stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            c = Channel('defaults')
+        with env_vars(
+            {"CONDA_SUBDIRS": ",".join(subdirs)},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            c = Channel("defaults")
             assert c.urls() == list(_channel_urls())
 
             c = Channel('conda-forge')

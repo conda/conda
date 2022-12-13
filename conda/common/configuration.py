@@ -26,13 +26,11 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import unique
     from tlz.dicttoolz import merge, merge_with
-    from tlz.functoolz import excepts
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
-    from conda._vendor.toolz import excepts
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
@@ -107,7 +105,7 @@ class MultipleKeysError(ValidationError):
         self.source = source
         self.keys = keys
         msg = ("Multiple aliased keys in file %s:\n"
-               "%s"
+               "%s\n"
                "Must declare only one. Prefer '%s'" % (source, pretty_list(keys), preferred_key))
         super().__init__(preferred_key, None, source, msg=msg)
 
@@ -341,16 +339,18 @@ class YamlRawParameter(RawParameter):
         except (AttributeError, KeyError):
             return None
 
-    @staticmethod
-    def _get_yaml_list_comments(value):
-        items = value.ca.items
-        raw_comment_lines = tuple(excepts((AttributeError, IndexError, KeyError, TypeError),
-                                          lambda q: YamlRawParameter._get_yaml_list_comment_item(
-                                              items[q]),
-                                          lambda _: None  # default value on exception
-                                          )(q)
-                                  for q in range(len(value)))
-        return raw_comment_lines
+    @classmethod
+    def _get_yaml_list_comments(cls, value):
+        # value is a ruamel.yaml CommentedSeq, len(value) is the number of lines in the sequence,
+        # value.ca is the comment object for the sequence and the comments themselves are stored as
+        # a sparse dict
+        list_comments = []
+        for i in range(len(value)):
+            try:
+                list_comments.append(cls._get_yaml_list_comment_item(value.ca.items[i]))
+            except (AttributeError, IndexError, KeyError, TypeError):
+                list_comments.append(None)
+        return tuple(list_comments)
 
     @staticmethod
     def _get_yaml_list_comment_item(item):
@@ -363,14 +363,13 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(value):
-        return {
-            key: excepts(
-                (AttributeError, KeyError),
-                lambda k: value.ca.items[k][2].value.strip() or None,
-                lambda _: None,  # default value on exception
-            )(key)
-            for key in value
-        }
+        map_comments = {}
+        for key in value:
+            try:
+                map_comments[key] = value.ca.items[key][2].value.strip() or None
+            except (AttributeError, KeyError):
+                map_comments[key] = None
+        return map_comments
 
     @classmethod
     def make_raw_parameters(cls, source, from_map):
@@ -443,7 +442,7 @@ class DefaultValueRawParameter(RawParameter):
         if isinstance(self._raw_value, Mapping):
             return frozendict()
         elif isiterable(self._raw_value):
-            return tuple()
+            return ()
         elif isinstance(self._raw_value, ConfigurationObject):
             return None
         elif isinstance(self._raw_value, Enum):
@@ -719,8 +718,9 @@ class MapLoadedParameter(LoadedParameter):
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(
+            merge((merged_values, *reversed(important_maps)))
+        )
 
         # create new parameter for the merged values
         return MapLoadedParameter(
@@ -769,32 +769,39 @@ class SequenceLoadedParameter(LoadedParameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_marked_lines(match, marker):
-            return tuple(line
-                         for line, flag in zip(match.value,
-                                               match.value_flags)
-                         if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m, _ in
-                           relevant_matches_and_values)
+            return (
+                tuple(line for line, flag in zip(match.value, match.value_flags) if flag is marker)
+                if match
+                else ()
+            )
+
+        top_lines = chain.from_iterable(
+            get_marked_lines(m, ParameterFlag.top) for m, _ in relevant_matches_and_values
+        )
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
-        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m, _ in
-                              reversed(relevant_matches_and_values))
+        bottom_lines = tuple(
+            chain.from_iterable(
+                get_marked_lines(match, ParameterFlag.bottom)
+                for match, _ in reversed(relevant_matches_and_values)
+            )
+        )
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
+        all_lines = chain.from_iterable(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
-        top_deduped = tuple(unique(concatv(top_lines, all_lines)))
+        top_deduped = tuple(unique((*top_lines, *all_lines)))
 
         # take the top-deduped lines, reverse them, and concat with reversed bottom_lines
         # this gives us the reverse of the order we want, but almost there
         # NOTE: for a line value marked both top and bottom, the bottom marker will win out
         #       for the top marker to win out, we'd need one additional de-dupe step
-        bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
+        bottom_deduped = tuple(unique((*reversed(bottom_lines), *reversed(top_deduped))))
         # just reverse, and we're good to go
-        merged_values = tuple(reversed(tuple(bottom_deduped)))
+        merged_values = tuple(reversed(bottom_deduped))
 
         return SequenceLoadedParameter(
             self._name,
@@ -862,8 +869,9 @@ class ObjectLoadedParameter(LoadedParameter):
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(
+            merge((merged_values, *reversed(important_maps)))
+        )
 
         # copy object and replace Parameter with LoadedParameter fields
         object_copy = copy.deepcopy(self._element_type)
@@ -1075,11 +1083,12 @@ class SequenceParameter(Parameter):
         if value is None:
             return SequenceLoadedParameter(
                 name,
-                tuple(),
+                (),
                 self._element_type,
                 match.keyflag(),
-                tuple(),
-                validation=self._validation)
+                (),
+                validation=self._validation,
+            )
 
         if not isiterable(value):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
@@ -1132,7 +1141,7 @@ class ObjectParameter(Parameter):
                 None,
                 validation=self._validation)
 
-        if not (isinstance(value, Mapping) or isinstance(value, ConfigurationObject)):
+        if not isinstance(value, (Mapping, ConfigurationObject)):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
                                    self._type.__name__)
 
@@ -1278,7 +1287,7 @@ class Configuration(metaclass=ConfigurationType):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = odict()
-        self._cache_ = dict()
+        self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
@@ -1328,7 +1337,7 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def _reset_cache(self):
-        self._cache_ = dict()
+        self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
         return self

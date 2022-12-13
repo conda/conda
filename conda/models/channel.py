@@ -5,11 +5,6 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
-try:
-    from tlz.itertoolz import concat, concatv
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
-
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context, Context
@@ -156,10 +151,13 @@ class Channel(metaclass=ChannelType):
                 cn = self.__canonical_name = self.name
                 return cn
 
-        if any(c.location == self.location for c in concatv(
-                (context.channel_alias,),
-                context.migrated_channel_aliases,
-        )):
+        if any(
+            alias.location == self.location
+            for alias in (
+                context.channel_alias,
+                *context.migrated_channel_aliases,
+            )
+        ):
             cn = self.__canonical_name = self.name
             return cn
 
@@ -481,8 +479,10 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
     #   urls as the key, and a tuple of canonical channel name and channel priority
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
-    channels = concat((Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-                      for c in (Channel(c) for c in channels))
+    channels = chain.from_iterable(
+        (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+        for c in (Channel(c) for c in channels)
+    )
     result = odict()
     for priority_counter, chn in enumerate(channels):
         channel = Channel(chn)

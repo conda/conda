@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add LD_PRELOAD to env variable list
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`. (#12165)

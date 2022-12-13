@@ -14,10 +14,7 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
-try:
-    from tlz.itertoolz import groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
@@ -471,14 +468,7 @@ class UnavailableInvalidChannel(ChannelError):
             reason = reason.upper()
 
         super().__init__(
-            dals(
-                f"""
-                HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>
-
-                """
-            )
-            # since message may include newlines don't include in f-string/dals above
-            + message,
+            f"HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n{message}",
             channel_name=channel_name,
             channel_url=channel_url,
             status_code=status_code,
@@ -1047,6 +1037,10 @@ class EnvironmentFileNotDownloaded(CondaError):
 class SpecNotFound(CondaError):
     def __init__(self, msg, *args, **kwargs):
         super().__init__(msg, *args, **kwargs)
+
+
+class PluginError(CondaError):
+    pass
 
 
 def maybe_raise(error, context):
