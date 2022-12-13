@@ -19,7 +19,7 @@ import sys
 from textwrap import dedent
 import warnings
 
-from .. import __version__
+from .. import __version__, _deprecated
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
@@ -162,12 +162,11 @@ class ArgumentParser(ArgumentParserBase):
                             if cmd == subcommand.name:
                                 sys.exit(subcommand.action(sys.argv[2:]))
                         # Run the subcommand from executables; legacy path
-                        warnings.warn(
-                            (
-                                "Loading conda subcommands via executables is "
-                                "pending deprecation in favor of the plugin system. "
-                            ),
-                            PendingDeprecationWarning,
+                        _deprecated.topic(
+                            "23.3",
+                            "23.9",
+                            topic="Loading conda subcommands via executables",
+                            addendum="Use the plugin system instead.",
                         )
                         executable = find_executable('conda-' + cmd)
                         if not executable:

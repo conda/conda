@@ -134,3 +134,21 @@ def test_constant_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
     with pytest.raises(RuntimeError):
         deprecated_v3.constant("2.0", "3.0", "SOME_CONSTANT", 42)
+
+
+def test_topic_pending(deprecated_v1):
+    # alerting user to pending deprecation
+    with pytest.deprecated_call(match="pending deprecation"):
+        deprecated_v1.topic("2.0", "3.0", topic="Some special topic")
+
+
+def test_topic_deprecated(deprecated_v2):
+    # alerting user to pending deprecation
+    with pytest.deprecated_call(match="deprecated"):
+        deprecated_v2.topic("2.0", "3.0", topic="Some special topic")
+
+
+def test_topic_remove(deprecated_v3):
+    # alerting developer that a module needs to be removed
+    with pytest.raises(RuntimeError):
+        deprecated_v3.topic("2.0", "3.0", topic="Some special topic")

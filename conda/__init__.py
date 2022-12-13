@@ -233,45 +233,47 @@ class _deprecated:
         *,
         rename: str | None = None,
         addendum: str | None = None,
+        stack: int = 0,
     ) -> None:
         """Deprecation decorator for keyword arguments."""
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
-
         # provide a default addendum if renaming and no addendum is provided
         if rename and not addendum:
             addendum = f"Use '{rename}' instead."
 
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum, stack=stack)
         self._argument = argument
         self._rename = rename
 
         return self
 
     @staticmethod
-    def _get_module() -> tuple[ModuleType, str]:
+    def _get_module(stack: int) -> tuple[ModuleType, str]:
         import inspect  # expensive
 
         try:
-            frame = inspect.stack()[2]
+            frame = inspect.stack()[2 + stack]
             module = inspect.getmodule(frame[0])
             return (module, module.__name__)
         except (IndexError, AttributeError):
             raise RuntimeError("unable to determine the calling module") from None
 
     @classmethod
-    def module(cls, deprecate_in: str, remove_in: str, *, addendum: str | None = None) -> None:
+    def module(
+        cls,
+        deprecate_in: str,
+        remove_in: str,
+        *,
+        addendum: str | None = None,
+        stack: int = 0,
+    ) -> None:
         """Deprecation function for modules."""
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
-
-        # detect calling module
-        _, fullname = self._get_module()
-
-        # alert developer that it's time to remove something
-        if not self._category:
-            raise RuntimeError(self._message(fullname))
-
-        # alert user that it's time to remove something
-        warnings.warn(self._message(fullname), self._category, stacklevel=3)
+        cls.topic(
+            deprecate_in=deprecate_in,
+            remove_in=remove_in,
+            topic=cls._get_module(stack)[1],
+            addendum=addendum,
+            stack=stack + 2,
+        )
 
     @classmethod
     def constant(
@@ -282,22 +284,26 @@ class _deprecated:
         value: Any,
         *,
         addendum: str | None = None,
+        stack: int = 0,
     ) -> None:
         """Deprecation function for module constant (global)."""
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum)
-
         # detect calling module
-        module, fullname = self._get_module()
+        module, fullname = cls._get_module(stack)
+
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum, stack=stack)
 
         # alert developer that it's time to remove something
         if not self._category:
             raise RuntimeError(self._message(f"{fullname}.{constant}"))
 
+        # patch module level __getattr__ to alert user that it's time to remove something
         super_getattr = getattr(module, "__getattr__", None)
 
         def __getattr__(name: str) -> Any:
             if name == constant:
-                warnings.warn(self._message(f"{fullname}.{name}"), self._category, stacklevel=2)
+                warnings.warn(
+                    self._message(f"{fullname}.{name}"), self._category, stacklevel=2 + self._stack
+                )
                 return value
 
             if super_getattr:
@@ -306,6 +312,26 @@ class _deprecated:
             raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
 
         module.__getattr__ = __getattr__
+
+    @classmethod
+    def topic(
+        cls,
+        deprecate_in: str,
+        remove_in: str,
+        *,
+        topic: str,
+        addendum: str | None = None,
+        stack: int = 0,
+    ) -> None:
+        """Deprecation function for a topic."""
+        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum, stack=stack)
+
+        # alert developer that it's time to remove something
+        if not self._category:
+            raise RuntimeError(self._message(topic))
+
+        # alert user that it's time to remove something
+        warnings.warn(self._message(topic), self._category, stacklevel=2 + self._stack)
 
     @classmethod
     def _factory(cls, version: str) -> _deprecated:
