@@ -7,13 +7,12 @@ import functools
 import os
 import sys
 import threading
-import warnings
 
 # necessary for conda-build
 from io import StringIO  # noqa: F401
 from builtins import input  # noqa: F401
 
-from . import CondaError  # noqa: F401
+from . import CondaError, _deprecated  # noqa: F401
 from .base.context import reset_context
 
 reset_context()  # initialize context when conda.exports is imported
@@ -31,10 +30,8 @@ from .common.toposort import _toposort  # noqa: F401
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.connection.download import TmpDownload, download as _download  # noqa: F401
 
-handle_proxy_407 = lambda x, y: warnings.warn(
-    "The `conda.exports.handle_proxy_407` is pending deprecation and will be removed in a "
-    "future release. Now handled by CondaSession.",
-    PendingDeprecationWarning,
+handle_proxy_407 = _deprecated("23.3", "23.9", addendum="Handled by CondaSession.")(
+    lambda x, y: None
 )
 
 from .core.package_cache_data import rm_fetched  # noqa: F401
@@ -134,19 +131,13 @@ class InstalledPackages:
     pass
 
 
+@_deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
 class memoized:  # pragma: no cover
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
     (not reevaluated).
     """
     def __init__(self, func):
-        warnings.warn(
-            "The `conda.exports.memoized` decorator is pending deprecation and will be removed in "
-            "a future release. Please use `functools.lru_cache` instead.",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-
         self.func = func
         self.cache = {}
         self.lock = threading.Lock()

@@ -5,8 +5,8 @@ from itertools import chain
 from logging import getLogger
 import platform
 import sys
-import warnings
 
+from .. import _deprecated
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
@@ -23,12 +23,8 @@ from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, Pref
 log = getLogger(__name__)
 
 
+@_deprecated("23.3", "23.9", addendum="Use `conda.core.index.check_allowlist` instead.")
 def check_whitelist(channel_urls):
-    warnings.warn(
-        "`conda.core.index.check_whitelist` is pending deprecation and will be removed in a "
-        "future release. Please use `conda.core.index.check_allowlist` instead.",
-        PendingDeprecationWarning,
-    )
     return check_allowlist(channel_urls)
 
 

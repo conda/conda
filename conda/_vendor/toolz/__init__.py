@@ -1,9 +1,6 @@
-import warnings
-warnings.warn(
-    "`conda._vendor.toolz` is pending deprecation and will be removed in a future "
-    "release. Please depend on `toolz`/`cytoolz` instead.",
-    PendingDeprecationWarning,
-)
+from ... import _deprecated
+
+_deprecated.module("23.3", "23.9", addendum="Use `toolz`/`cytoolz` instead.")
 
 try:
     from cytoolz import __version__ as cytoolz_version

@@ -5,8 +5,8 @@ from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
-from warnings import warn
 
+from .. import _deprecated
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
@@ -63,11 +63,8 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     return True
 
 
+@_deprecated("23.3", "23.9")
 def ensure_name_or_prefix(args, command):
-    warn(
-        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
-        PendingDeprecationWarning,
-    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'

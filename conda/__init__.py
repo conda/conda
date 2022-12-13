@@ -40,17 +40,6 @@ CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 #: or otherwise uninstalled this is the git repo.
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
 
-def another_to_unicode(val):
-    warnings.warn(
-        "`conda.another_to_unicode` is pending deprecation and will be removed in a "
-        "future release.",
-        PendingDeprecationWarning,
-    )
-    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-    if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
-        return unicode(val, encoding='utf-8')  # NOQA
-    return val
-
 class CondaError(Exception):
     return_code = 1
     reportable = False  # Exception may be reported to core maintainers
@@ -320,3 +309,11 @@ class _deprecated:
 
 # initialize conda's deprecation decorator with the current version
 _deprecated = _deprecated._factory(__version__)
+
+
+@_deprecated("23.3", "23.9")
+def another_to_unicode(val):
+    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
+    if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
+        return unicode(val, encoding="utf-8")  # NOQA
+    return val

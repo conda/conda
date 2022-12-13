@@ -11,11 +11,9 @@ import re
 import subprocess
 from typing import Iterable, Sequence
 from urllib.parse import urlsplit
-import warnings
 
 from .compat import on_win
-from .. import CondaError
-from ..auxlib import NULL
+from .. import CondaError, _deprecated
 from distutils.spawn import find_executable
 
 
@@ -111,18 +109,10 @@ def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(
-    child_directories: Iterable[tuple[str, ...]],
-    already_split: bool | NULL = NULL,
-) -> set[str]:
+@_deprecated.argument("23.3", "23.9", "already_split")
+def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str]:
     # get all directories including parents
     # child_directories must already be split with os.path.split
-    if already_split is not NULL:
-        warnings.warn(
-            "`conda.common.path.explode_directories`'s `already_split` argument is pending "
-            "deprecation and will be removed in a future release.",
-            PendingDeprecationWarning,
-        )
     return set(
         chain.from_iterable(
             accumulate(directory, join) for directory in child_directories if directory
