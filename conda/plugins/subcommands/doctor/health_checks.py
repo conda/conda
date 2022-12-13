@@ -1,11 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
-import pprint
 
 import conda.plugins
 
 from pathlib import Path
+from rich.console import Console
+from rich.table import Table
 
 from conda.base.context import context
 
@@ -29,14 +30,23 @@ def find_packages_with_missing_files(prefix: str):
                 if not existance:
                     packages[file.name].append(file_name)
 
-    return format_message(packages)
+    packages_with_missing_files = {k: v for k, v in packages.items() if v}
+    number_of_missing_files = {k: len(v) for k, v in packages_with_missing_files.items()}
 
+    table = Table(title="Packages With Missing Files")
 
-def format_message(packages: dict):
-    pprint.pprint(packages)
+    table.add_column("Package Name", justify="right", style="cyan", no_wrap=True)
+    table.add_column("No. of Missing Files", style="magenta")
+
+    for k in number_of_missing_files:
+        table.add_row(str(k), str(number_of_missing_files[k]))
+
+    console = Console()
+    console.print(table)
 
 
 def run_health_checks(prefix: str):
+    print("\nHealth Report for Your Active Environment\n")
     find_packages_with_missing_files(active_prefix)
 
 
