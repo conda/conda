@@ -155,11 +155,23 @@ JSONEncoder.default = _default
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class _deprecated:
-    _version: str = __version__
+    _version: tuple[int, ...]
     _category: Warning
     _message: Callable[str, str]
     _argument: str | None = None
     _rename: str | None = None
+
+    @staticmethod
+    def _parse_version(version: str) -> tuple[int, ...]:
+        """A naive version parser to avoid circular imports. Do not use for other purposes."""
+
+        def try_int(string: str) -> int | str:
+            try:
+                return int(string)
+            except ValueError:
+                return string
+
+        return tuple(map(try_int, version.split(".")))
 
     def __init__(
         self,
@@ -175,17 +187,14 @@ class _deprecated:
             remove_in: Version in which code is expected to be removed.
             addendum: Optional additional messaging. Useful to indicate what to do instead.
         """
-        from .models.version import normalized_version
-
-        deprecate_version = normalized_version(deprecate_in)
-        remove_version = normalized_version(remove_in)
-        current_version = normalized_version(self._version)
+        deprecate_version = self._parse_version(deprecate_in)
+        remove_version = self._parse_version(remove_in)
 
         addendum = f" {addendum}" if addendum else ""
-        if current_version < deprecate_version:
+        if self._version < deprecate_version:
             self._category = PendingDeprecationWarning
             message = f"{{name}} is pending deprecation and will be removed in {remove_in}."
-        elif current_version < remove_version:
+        elif self._version < remove_version:
             self._category = DeprecationWarning
             message = f"{{name}} is deprecated and will be removed in {remove_in}."
         else:
@@ -306,7 +315,8 @@ class _deprecated:
 
     @classmethod
     def _factory(cls, version: str) -> _deprecated:
-        class _deprecated(cls):
-            _version = version
+        return type("_deprecated", (cls,), {"_version": cls._parse_version(version)})
 
-        return _deprecated
+
+# initialize conda's deprecation decorator with the current version
+_deprecated = _deprecated._factory(__version__)
