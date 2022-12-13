@@ -481,7 +481,7 @@ def remove_auth(url: str) -> str:
     return str(url_no_auth)
 
 
-@_deprecated("23.3", "23.9", addendum="This function now lives within conda-libmamba-solve.")
+@_deprecated("23.3", "23.9", addendum="This function now lives in conda-libmamba-solve.")
 def escape_channel_url(channel):
     if channel.startswith("file:"):
         if "%" in channel:  # it's escaped already

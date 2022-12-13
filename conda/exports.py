@@ -30,9 +30,10 @@ from .common.toposort import _toposort  # noqa: F401
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.connection.download import TmpDownload, download as _download  # noqa: F401
 
-handle_proxy_407 = _deprecated("23.3", "23.9", addendum="Handled by CondaSession.")(
-    lambda x, y: None
-)
+@_deprecated("23.3", "23.9", addendum="Handled by CondaSession.")
+def handle_proxy_407(x, y):
+    pass
+
 
 from .core.package_cache_data import rm_fetched  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401

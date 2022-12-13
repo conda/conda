@@ -940,6 +940,7 @@ class Context(Configuration):
         "23.3",
         "23.9",
         addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+        stack=+1,
     )
     def cuda_version(self) -> Optional[str]:
         """

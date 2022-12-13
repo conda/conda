@@ -149,6 +149,7 @@ class _deprecated:
     _message: Callable[str, str]
     _argument: str | None = None
     _rename: str | None = None
+    _stack: int
 
     @staticmethod
     def _parse_version(version: str) -> tuple[int, ...]:
@@ -168,6 +169,7 @@ class _deprecated:
         remove_in: str,
         *,
         addendum: str | None = None,
+        stack: int = 0,
     ):
         """Deprecation decorator for functions, methods, & classes.
 
@@ -175,6 +177,7 @@ class _deprecated:
             deprecate_in: Version in which code will be marked as deprecated.
             remove_in: Version in which code is expected to be removed.
             addendum: Optional additional messaging. Useful to indicate what to do instead.
+            stack: Optional stacklevel increment.
         """
         deprecate_version = self._parse_version(deprecate_in)
         remove_version = self._parse_version(remove_in)
@@ -191,12 +194,14 @@ class _deprecated:
             message = f"{{name}} was slated for removal in {remove_in}."
         self._message = lambda name: f"{message}{addendum}".format(name=name)
 
+        self._stack = stack
+
     def __call__(self, func: Callable) -> Callable:
         """Deprecation decorator for functions, methods, & classes."""
         # detect function name
-        fullname = f"{func.__module__}.{func.__name__}"
+        fullname = f"{func.__module__}.{func.__qualname__}"
         if self._argument:
-            fullname = f"{func.__module__}.{func.__name__}({self._argument})"
+            fullname = f"{func.__module__}.{func.__qualname__}({self._argument})"
 
         # alert developer that it's time to remove something
         if not self._category:
@@ -208,7 +213,7 @@ class _deprecated:
             # always warn if not deprecating an argument
             # only warn about argument deprecations if the argument is used
             if not self._argument or self._argument in kwargs:
-                warnings.warn(self._message(fullname), self._category, stacklevel=2)
+                warnings.warn(self._message(fullname), self._category, stacklevel=2 + self._stack)
 
                 # rename argument deprecations as needed
                 value = kwargs.pop(self._argument, None)
@@ -313,7 +318,4 @@ _deprecated = _deprecated._factory(__version__)
 
 @_deprecated("23.3", "23.9")
 def another_to_unicode(val):
-    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-    if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
-        return unicode(val, encoding="utf-8")  # NOQA
     return val

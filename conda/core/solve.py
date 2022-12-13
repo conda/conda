@@ -41,7 +41,7 @@ log = getLogger(__name__)
 @_deprecated(
     "23.3",
     "23.9",
-    addendum="Use `conda.base.context.plugin_manager.get_cached_solver_backend instead.",
+    addendum="Use `conda.base.context.plugin_manager.get_cached_solver_backend` instead.",
 )
 def _get_solver_class(key=None):
     """
