@@ -26,10 +26,10 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, unique
+    from tlz.itertoolz import unique
     from tlz.dicttoolz import merge, merge_with
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
+    from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
 
 from .compat import isiterable, odict, primitive_types
@@ -769,17 +769,20 @@ class SequenceLoadedParameter(LoadedParameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_marked_lines(match, marker):
-            return tuple(line
-                         for line, flag in zip(match.value,
-                                               match.value_flags)
-                         if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m, _ in
-                           relevant_matches_and_values)
+            return (
+                tuple(line for line, flag in zip(match.value, match.value_flags) if flag is marker)
+                if match
+                else ()
+            )
+
+        top_lines = chain.from_iterable(
+            get_marked_lines(m, ParameterFlag.top) for m, _ in relevant_matches_and_values
+        )
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
         bottom_lines = tuple(
-            concat(
+            chain.from_iterable(
                 get_marked_lines(match, ParameterFlag.bottom)
                 for match, _ in reversed(relevant_matches_and_values)
             )
@@ -787,7 +790,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
+        all_lines = chain.from_iterable(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
         top_deduped = tuple(unique((*top_lines, *all_lines)))
