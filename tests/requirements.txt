@@ -9,13 +9,11 @@ conda-build
 conda-forge::pre-commit
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
-conda-forge::werkzeug >=2.2
 conda-forge::xdoctest
 conda-package-handling
 conda-verify
 filelock
 flake8
-conda-forge::flask >=2.2
 git
 nbformat
 perl

@@ -248,11 +248,11 @@ class SubdirData(metaclass=SubdirDataType):
         """
         try:
             state_path = pathlib.Path(self.cache_path_state)
+            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
             # efficient according to scalene profiler; about equal to
             # json.loads(state_path.read_text()) and better that open("rb")
             with state_path.open("r") as s:
                 state = json.load(s)
-            log.debug("Load state from %s", state_path)
             return state
         except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
@@ -403,6 +403,18 @@ class SubdirData(metaclass=SubdirDataType):
                 self._pickle_me()
                 return _internal_state
 
+    def _pickle_valid_checks(self, pickled_state, mod, etag):
+        """
+        Throw away the pickle if these don't all match.
+        """
+        yield "_url", pickled_state.get("_url"), self.url_w_credentials
+        yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
+        yield "_add_pip", pickled_state.get("_add_pip"), context.add_pip_as_python_dependency
+        yield "_mod", pickled_state.get("_mod"), mod
+        yield "_etag", pickled_state.get("_etag"), etag
+        yield "_pickle_version", pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
+        yield "fn", pickled_state.get("fn"), self.repodata_fn
+
     def _read_pickled(self, state):
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
@@ -419,17 +431,11 @@ class SubdirData(metaclass=SubdirDataType):
             rm_rf(self.cache_path_pickle)
             return None
 
-        def _pickle_valid_checks():
-            yield "_url", _pickled_state.get("_url"), self.url_w_credentials
-            yield "_schannel", _pickled_state.get("_schannel"), self.channel.canonical_name
-            yield "_add_pip", _pickled_state.get("_add_pip"), context.add_pip_as_python_dependency
-            yield "_mod", _pickled_state.get("_mod"), state.get("_mod")
-            yield "_etag", _pickled_state.get("_etag"), state.get("_etag")
-            yield "_pickle_version", _pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
-            yield "fn", _pickled_state.get("fn"), self.repodata_fn
+        def checks():
+            return self._pickle_valid_checks(_pickled_state, state.get("_mod"), state.get("_etag"))
 
         def _check_pickled_valid():
-            for _, left, right in _pickle_valid_checks():
+            for _, left, right in checks():
                 yield left == right
 
         if not all(_check_pickled_valid()):
@@ -437,7 +443,7 @@ class SubdirData(metaclass=SubdirDataType):
                 "Pickle load validation failed for %s at %s. %r",
                 self.url_w_repodata_fn,
                 self.cache_path_json,
-                tuple(_pickle_valid_checks()),
+                tuple(checks()),
             )
             return None
 
