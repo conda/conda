@@ -37,7 +37,7 @@ jobs:
         # dorny/paths-filter needs git clone for push events
         # https://github.com/marketplace/actions/paths-changes-filter#supported-workflows
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50
         id: filter
         with:
           filters: |
