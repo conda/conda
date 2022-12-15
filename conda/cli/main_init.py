@@ -28,12 +28,7 @@ def execute(args, parser):
         return initialize_dev(selected_shells[0])
 
     else:
-        for_user = args.user
-        if not (args.install and args.user and args.system):
-            for_user = True
-        if args.no_user:
-            for_user = False
-
+        for_user = args.user and not args.system
         anaconda_prompt = on_win and args.anaconda_prompt
         return initialize(context.conda_prefix, selected_shells, for_user, args.system,
                           anaconda_prompt, args.reverse)
