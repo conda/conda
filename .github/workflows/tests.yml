@@ -10,24 +10,10 @@ on:
     branches:
       - main
       - feature/**
-    paths:  # run if src/tests/recipe are modified
-      - conda/**
-      - conda_env/**
-      - tests/**
-      - '*.py'
-      - recipe/**
-      - .github/workflows/tests.yml
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
-    paths:
-      - conda/**
-      - conda_env/**
-      - tests/**
-      - '*.py'
-      - recipe/**
-      - .github/workflows/tests.yml
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -39,7 +25,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # detect whether any code changes are included in this PR
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v3
+        # dorny/paths-filter needs git clone for push events
+        # https://github.com/marketplace/actions/paths-changes-filter#supported-workflows
+        if: github.event_name == 'push'
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'conda/**'
+              - 'conda_env/**'
+              - 'tests/**'
+              - '*.py'
+              - 'recipe/**'
+              - '.github/workflows/tests.yml'
+
+  # windows test suite
   windows:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
     runs-on: windows-2019
     strategy:
       fail-fast: false
@@ -115,7 +130,12 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  # linux test suite
   linux:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -159,7 +179,12 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  # linux-qemu test suite
   linux-qemu:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
     # changed / extended to run specific tests in case there are platform related
@@ -207,7 +232,12 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  # macos test suite
   macos:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -280,6 +310,7 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  # required check
   analyze:
     name: Analyze results
     needs: [windows, linux, linux-qemu, macos]
@@ -303,12 +334,12 @@ jobs:
         with:
           paths: ./test-results-${{ github.sha }}-**/test-report*.xml
 
-      # required check
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
           jobs: ${{ toJSON(needs) }}
 
+  # canary builds
   build:
     name: Canary Build
     needs: [analyze]
