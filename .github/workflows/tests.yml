@@ -313,8 +313,8 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, macos]
-    if: needs.changes.outputs.code == 'true'
+    needs: [changes, windows, linux, linux-qemu, macos]
+    if: needs.changes.outputs.code == 'true' && always()
 
     runs-on: ubuntu-latest
     steps:
