@@ -29,6 +29,11 @@ from conda.models.channel import Channel
 
 log = getLogger(__name__)
 
+# some test dependencies are unavailable on newer platforsm
+OVERRIDE_PLATFORM = (
+    "linux-64" if context.subdir not in ("win-64", "linux-64", "osx-64") else context.subdir
+)
+
 
 def platform_in_record(platform, record):
     return (
@@ -40,7 +45,7 @@ def platform_in_record(platform, record):
 
 @pytest.mark.integration
 class GetRepodataIntegrationTests(TestCase):
-    def test_get_index_no_platform_with_offline_cache(self, platform="linux-64"):
+    def test_get_index_no_platform_with_offline_cache(self, platform=OVERRIDE_PLATFORM):
         import conda.core.subdir_data
 
         with env_vars(
@@ -233,7 +238,7 @@ def test_no_ssl(mocker):
         fetch_repodata_remote_request(url, etag, mod_stamp)
 
 
-def test_subdir_data_prefers_conda_to_tar_bz2(platform="linux-64"):
+def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_vars(
         {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_PLATFORM": platform},
@@ -245,7 +250,7 @@ def test_subdir_data_prefers_conda_to_tar_bz2(platform="linux-64"):
         assert precs[0].fn.endswith(".conda")
 
 
-def test_use_only_tar_bz2(platform="linux-64"):
+def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
     SubdirData.clear_cached_local_channel_data()
     with env_var("CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
@@ -259,7 +264,7 @@ def test_use_only_tar_bz2(platform="linux-64"):
         assert precs[0].fn.endswith(".conda")
 
 
-def test_metadata_cache_works(platform="linux-64"):
+def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
     SubdirData.clear_cached_local_channel_data()
 
@@ -282,7 +287,7 @@ def test_metadata_cache_works(platform="linux-64"):
         assert fetcher.call_count == 1
 
 
-def test_metadata_cache_clearing(platform="linux-64"):
+def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
     SubdirData.clear_cached_local_channel_data()
 
