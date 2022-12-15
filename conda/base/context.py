@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 from errno import ENOENT
 from functools import lru_cache
+from itertools import chain
 from logging import getLogger
 from typing import Optional
 import os
@@ -16,9 +17,9 @@ from contextlib import contextmanager
 import warnings
 
 try:
-    from tlz.itertoolz import concat, unique
+    from tlz.itertoolz import unique
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
+    from conda._vendor.toolz.itertoolz import unique
 
 from .constants import (
     APP_NAME,
@@ -759,7 +760,7 @@ class Context(Configuration):
         return odict(
             (channel.name, channel)
             for channel in (
-                *concat(channel for channel in self.custom_multichannels.values()),
+                *chain.from_iterable(channel for channel in self.custom_multichannels.values()),
                 *(
                     Channel.make_simple_channel(self.channel_alias, url, name)
                     for name, url in self._custom_channels.items()

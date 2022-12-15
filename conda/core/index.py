@@ -7,11 +7,6 @@ import platform
 import sys
 import warnings
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
-
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
@@ -39,9 +34,9 @@ def check_whitelist(channel_urls):
 
 def check_allowlist(channel_urls):
     if context.allowlist_channels:
-        allowlist_channel_urls = tuple(concat(
-            Channel(c).base_urls for c in context.allowlist_channels
-        ))
+        allowlist_channel_urls = tuple(
+            chain.from_iterable(Channel(c).base_urls for c in context.allowlist_channels)
+        )
         for url in channel_urls:
             these_urls = Channel(url).base_urls
             if not all(this_url in allowlist_channel_urls for this_url in these_urls):

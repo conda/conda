@@ -3,16 +3,12 @@
 
 import copy
 from genericpath import exists
+from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
 import warnings
 from textwrap import dedent
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -459,9 +455,12 @@ class Solver:
             # SAT for spec removal determination, we can use the PrefixGraph and simple tree
             # traversal if we're careful about how we handle features. We still invoke sat via
             # `r.solve()` later.
-            _track_fts_specs = (spec for spec in self.specs_to_remove if 'track_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('track_features')
-                                       for spec in _track_fts_specs))
+            _track_fts_specs = (spec for spec in self.specs_to_remove if "track_features" in spec)
+            feature_names = set(
+                chain.from_iterable(
+                    spec.get_raw_value("track_features") for spec in _track_fts_specs
+                )
+            )
             graph = PrefixGraph(ssc.solution_precs, ssc.specs_map.values())
 
             all_removed_records = []
