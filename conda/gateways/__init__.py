@@ -1,5 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 """
 Gateways isolate interaction of conda code with the outside world.  Disk manipulation,
 database interaction, and remote requests should all be through various gateways.  Functions

@@ -1,5 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 """conda is a tool for managing environments and packages.
 
 conda provides the following commands:

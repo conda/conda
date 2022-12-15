@@ -1,7 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
-
 from logging import getLogger
 
 from conda.common.path import (get_major_minor_version, missing_pyc_files, url_to_path,

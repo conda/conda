@@ -1,5 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 """
 The basic idea to nest logical expressions is instead of trying to denest
 things via distribution, we add new variables. So if we have some logical

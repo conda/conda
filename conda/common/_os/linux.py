@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from collections import OrderedDict
 from functools import lru_cache
 from genericpath import exists

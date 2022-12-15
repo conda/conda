@@ -1,5 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 # Attempt to move any conda entries in PATH to the front of it.
 # IDEs have their own ideas about how PATH should be managed and
 # they do dumb stuff like add /usr/bin to the front of it

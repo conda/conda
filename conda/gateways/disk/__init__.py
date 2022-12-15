@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
 import os

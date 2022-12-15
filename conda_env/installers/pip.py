@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 import os
 import os.path as op
 from conda.auxlib.compat import Utf8NamedTemporaryFile

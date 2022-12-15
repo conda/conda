@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from datetime import timedelta
 from errno import ENOSPC
 from functools import lru_cache, partial

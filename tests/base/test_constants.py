@@ -1,7 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
-
 from conda.base.constants import ChannelPriority
 from conda.common.constants import NULL
 from logging import getLogger

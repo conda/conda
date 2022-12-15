@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from collections import defaultdict, OrderedDict
 from logging import getLogger
 

@@ -1,7 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
-
 try:
     from requests import ConnectionError, HTTPError, Session
     from requests.adapters import BaseAdapter, HTTPAdapter

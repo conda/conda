@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
 from json import JSONDecodeError

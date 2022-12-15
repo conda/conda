@@ -1,5 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 # Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
 #   which is MIT licensed by Jason R. Coombs.
 # https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440

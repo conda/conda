@@ -1,7 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
-
 from copy import copy
 from random import shuffle
 import unittest

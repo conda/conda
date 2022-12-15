@@ -1,8 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
-
-
 from glob import glob
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile

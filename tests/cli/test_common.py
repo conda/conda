@@ -1,7 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
-
 import os
 from io import StringIO
 from unittest import TestCase

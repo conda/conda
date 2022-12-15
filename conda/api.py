@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from .base.constants import DepsModifier as _DepsModifier, UpdateModifier as _UpdateModifier
 from .base.context import context
 from .common.constants import NULL

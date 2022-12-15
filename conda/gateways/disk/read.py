@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT

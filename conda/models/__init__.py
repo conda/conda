@@ -1,5 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 """
 Models are data transfer objects or "light-weight" domain objects with no appreciable logic
 other than their own validation. Models are used to pass data between layers of the stack. In

@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 """
 These helpers were originally defined in tests/test_create.py,
 but were refactored here so downstream projects can benefit from

@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Sequence, Tuple, Optional

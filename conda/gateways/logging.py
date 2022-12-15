@@ -1,6 +1,3 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-
 from functools import lru_cache, partial
 import logging
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
