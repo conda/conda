@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Code in ``conda.common`` is not conda-specific.  Technically, it sits *aside* the application
 stack and not *within* the stack.  It is able to stand independently on its own.

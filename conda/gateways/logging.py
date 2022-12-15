@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 from functools import lru_cache, partial
 import logging
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 from ..auxlib import NULL
 
 # Use this NULL object when needing to distinguish a value from None

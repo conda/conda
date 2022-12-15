@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT

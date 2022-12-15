@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 """
 The basic idea to nest logical expressions is instead of trying to denest
 things via distribution, we add new variables. So if we have some logical

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Models are data transfer objects or "light-weight" domain objects with no appreciable logic
 other than their own validation. Models are used to pass data between layers of the stack. In

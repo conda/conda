@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 from conda.common.io import attach_stderr_handler, captured, CaptureTarget
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger

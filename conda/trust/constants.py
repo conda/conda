@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 # You could argue that the signatures being here is not necessary; indeed, we
 # are not necessarily going to be able to check them *properly* (based on some
 # prior expectations) as the user, since this is the beginning of trust

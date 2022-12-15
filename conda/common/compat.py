@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.

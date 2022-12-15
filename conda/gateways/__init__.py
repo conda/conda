@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2012 Continuum Analytics, Inc. <http://continuum.io>
+# SPDX-FileCopyrightText: © 2017 Anaconda, Inc. <https://www.anaconda.com>
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Gateways isolate interaction of conda code with the outside world.  Disk manipulation,
 database interaction, and remote requests should all be through various gateways.  Functions
