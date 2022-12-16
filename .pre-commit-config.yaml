@@ -30,7 +30,7 @@ repos:
       # catch git merge/rebase problems
       - id: check-merge-conflict
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.0
+    rev: v3.3.1
     hooks:
       - id: pyupgrade
         args: ["--py37-plus"]
