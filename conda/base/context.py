@@ -170,7 +170,7 @@ class Context(Configuration):
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
     create_default_packages = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),))
+        SequenceParameter(PrimitiveParameter("", element_type=str))
     )
     default_python = ParameterLoader(
         PrimitiveParameter(default_python_default(),
@@ -203,7 +203,7 @@ class Context(Configuration):
     # Safety & Security
     _aggressive_update_packages = ParameterLoader(
         SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),),
+            PrimitiveParameter("", element_type=str),
             default=DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
         ),
         aliases=("aggressive_update_packages",),
@@ -217,21 +217,19 @@ class Context(Configuration):
 
     pinned_packages = ParameterLoader(
         SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),),
+            PrimitiveParameter("", element_type=str),
             string_delimiter="&",
         )
     )  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = ParameterLoader(
         SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),),
+            PrimitiveParameter("", element_type=str),
             string_delimiter="&",
         ),
         aliases=("disallow",),
     )
     rollback_enabled = ParameterLoader(PrimitiveParameter(True))
-    track_features = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),))
-    )
+    track_features = ParameterLoader(SequenceParameter(PrimitiveParameter("", element_type=str)))
     use_index_cache = ParameterLoader(PrimitiveParameter(False))
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
@@ -239,20 +237,20 @@ class Context(Configuration):
     _root_prefix = ParameterLoader(PrimitiveParameter(""), aliases=('root_dir', 'root_prefix'))
     _envs_dirs = ParameterLoader(
         SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),),
+            PrimitiveParameter("", element_type=str),
             string_delimiter=os.pathsep,
         ),
         aliases=("envs_dirs", "envs_path"),
         expandvars=True,
     )
     _pkgs_dirs = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", str),)),
+        SequenceParameter(PrimitiveParameter("", str)),
         aliases=("pkgs_dirs",),
         expandvars=True,
     )
     _subdir = ParameterLoader(PrimitiveParameter(""), aliases=("subdir",))
     _subdirs = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", str),)),
+        SequenceParameter(PrimitiveParameter("", str)),
         aliases=("subdirs",),
     )
 
@@ -298,7 +296,7 @@ class Context(Configuration):
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(
-            element_types=(
+            (
                 PrimitiveParameter("", element_type=str),
                 MapParameter(MapParameter(PrimitiveParameter("", element_type=str))),
             ),
@@ -311,19 +309,17 @@ class Context(Configuration):
         aliases=('custom_channels',),
         expandvars=True)
     _custom_multichannels = ParameterLoader(
-        MapParameter(SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),))),
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str))),
         aliases=("custom_multichannels",),
         expandvars=True,
     )
     _default_channels = ParameterLoader(
-        SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),), default=DEFAULT_CHANNELS
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=DEFAULT_CHANNELS),
         aliases=("default_channels",),
         expandvars=True,
     )
     _migrated_channel_aliases = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("migrated_channel_aliases",),
     )
     migrated_custom_channels = ParameterLoader(
@@ -333,13 +329,13 @@ class Context(Configuration):
     show_channel_urls = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     use_local = ParameterLoader(PrimitiveParameter(False))
     allowlist_channels = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("whitelist_channels",),
         expandvars=True)
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),),
+            PrimitiveParameter("", element_type=str),
             default=("current_repodata.json", REPODATA_FN),
         )
     )

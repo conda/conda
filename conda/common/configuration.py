@@ -1070,8 +1070,7 @@ SequenceElementTypes = Union[MapParameter, PrimitiveParameter, "SequenceParamete
 class SequenceParameter(Parameter):
     """
     The SequenceParameter class allows you to define a flexible sequence that
-    can accept multiple data types. The simplest use case is not passing in any
-    ``element_types``. In this case, this will be a list of string values.
+    can accept multiple data types.
 
     You can put up to three different values in ``element_types`` for either
     PrimitiveParameter, MapParameter or SequenceParameter types. Combining different
@@ -1083,8 +1082,8 @@ class SequenceParameter(Parameter):
 
     def __init__(
         self,
+        element_type: SequenceElementTypes | Sequence[SequenceElementTypes],
         default: Sequence | None = None,
-        element_types: Sequence[SequenceElementTypes] | None = None,
         validation=None,
         string_delimiter: str = ",",
     ):
@@ -1116,16 +1115,18 @@ class SequenceParameter(Parameter):
             }
         )
         """
-        if element_types is None:
-            self._primitive_type = PrimitiveParameter("", element_type=str)
-            self._map_type = None
-            self._sequence_type = None
-        else:
-            self._primitive_type = self._pick_element_type(PrimitiveParameter, element_types)
-            self._map_type = self._pick_element_type(MapParameter, element_types)
-            self._sequence_type = self._pick_element_type(SequenceParameter, element_types)
+        # Convert to sequence if it is a single element type
+        if isinstance(element_type, (MapParameter, SequenceParameter, PrimitiveParameter)):
+            element_type = (element_type,)
+
+        # Assign possible internal data types
+        self._primitive_type = self._pick_element_type(PrimitiveParameter, element_type)
+        self._map_type = self._pick_element_type(MapParameter, element_type)
+        self._sequence_type = self._pick_element_type(SequenceParameter, element_type)
+
         self._element_type = (self._primitive_type, self._map_type, self._sequence_type)
         self._set_valid_types_str(self._element_type)
+
         self.string_delimiter = string_delimiter  # This is need for parsing environment variables
 
         super().__init__(default, validation)

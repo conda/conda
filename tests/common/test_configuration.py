@@ -285,9 +285,7 @@ class DummyTestObject(ConfigurationObject):
         self.int_field = PrimitiveParameter(0, element_type=int)
         self.str_field = PrimitiveParameter("",element_type=str)
         self.map_field = MapParameter(PrimitiveParameter("", element_type=str))
-        self.seq_field = SequenceParameter(
-            element_types=(PrimitiveParameter("", element_type=str),)
-        )
+        self.seq_field = SequenceParameter(PrimitiveParameter("", element_type=str))
 
 
 class SampleConfiguration(Configuration):
@@ -296,7 +294,7 @@ class SampleConfiguration(Configuration):
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=str)))
     channels = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)),
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("channels_altname",),
     )
 
@@ -309,16 +307,14 @@ class SampleConfiguration(Configuration):
         expandvars=True)
     env_var_str = ParameterLoader(PrimitiveParameter(''), expandvars=True)
     env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
-    normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
-    env_var_list = ParameterLoader(
-        SequenceParameter(element_types=(PrimitiveParameter("", str),)), expandvars=True
-    )
+    normal_str = ParameterLoader(PrimitiveParameter(""), expandvars=False)
+    env_var_list = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)), expandvars=True)
 
     nested_map = ParameterLoader(
-        MapParameter(SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)))
+        MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str)))
     )
     nested_seq = ParameterLoader(
-        SequenceParameter(element_types=(MapParameter(PrimitiveParameter("", element_type=str)),))
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str)))
     )
 
     test_object = ParameterLoader(
@@ -326,8 +322,8 @@ class SampleConfiguration(Configuration):
 
     all_sequence_options = ParameterLoader(
         SequenceParameter(
-            element_types=(
-                SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)),
+            (
+                SequenceParameter(PrimitiveParameter("", element_type=str)),
                 PrimitiveParameter("", element_type=str),
                 MapParameter(MapParameter(PrimitiveParameter("", str))),
             )
