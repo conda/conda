@@ -1061,15 +1061,19 @@ class MapParameter(Parameter):
 
 
 #: These are the allowable types for a SequenceParameter
-SequenceElementTypes = Union[MapParameter, PrimitiveParameter]
+SequenceElementTypes = Union[MapParameter, PrimitiveParameter, "SequenceParameter"]
 
 
 class SequenceParameter(Parameter):
     """
     The SequenceParameter class allows you to define a flexible sequence that
-    can accept multiple data types. The simplest use case is accepting a single
-    PrimitiveParameter, but you can also pass in a map_type that will allow for
-    defining a MapParameter that is also permissible in the sequence.
+    can accept multiple data types. The simplest use case is not passing in any
+    ``element_types``. In this case, this will be a list of string values.
+
+    You can put up to three different values in ``element_types`` for either
+    PrimitiveParameter, MapParameter or SequenceParameter types. Combining different
+    types could, for example, allow you to parse YAML files with mixed data type
+    sequences (e.g. strings and mappings or strings, lists and mappings).
 
     More examples of what this looks like are available in ``tests/common/test_configuration.py``
     """
@@ -1077,8 +1081,7 @@ class SequenceParameter(Parameter):
     def __init__(
         self,
         default: Sequence | None = None,
-        primitive_type: PrimitiveParameter = None,
-        map_type: SequenceElementTypes = None,
+        element_types: Sequence[SequenceElementTypes] | None = None,
         validation=None,
         string_delimiter: str = ",",
     ):
@@ -1089,8 +1092,10 @@ class SequenceParameter(Parameter):
         class MyConfig(Configuration):
             my_config_param = ParameterLoader(
                 SequenceParameter(  # <-- this is where the class is used
-                    primitive_type=PrimitiveParameter("", element_type=str),
-                    map_type=MapParameter(PrimitiveParameter("", element_type=str)),
+                    element_types=(
+                        PrimitiveParameter("", element_type=str),
+                        MapParameter(MapParameter(PrimitiveParameter("", element_type=str)))
+                    ),
                     default=("My default parameter value", )
                 )
             )
@@ -1108,9 +1113,15 @@ class SequenceParameter(Parameter):
             }
         )
         """
-        self.primitive_type = primitive_type or PrimitiveParameter("", element_type=str)
-        self.map_type = MapParameter(map_type) if map_type else None
-        self._element_type = (self.primitive_type, self.map_type)
+        if element_types is None:
+            self._primitive_type = PrimitiveParameter("", element_type=str)
+            self._map_type = None
+            self._sequence_type = None
+        else:
+            self._primitive_type = self._pick_element_type(PrimitiveParameter, element_types)
+            self._map_type = self._pick_element_type(MapParameter, element_types)
+            self._sequence_type = self._pick_element_type(SequenceParameter, element_types)
+        self._element_type = (self._primitive_type, self._map_type, self._sequence_type)
         self._set_valid_types_str(self._element_type)
         self.string_delimiter = string_delimiter  # This is need for parsing environment variables
 
@@ -1145,9 +1156,11 @@ class SequenceParameter(Parameter):
         raw_value = match.value()
 
         if isinstance(raw_value, primitive_types):
-            element_type = self.primitive_type
-        elif self.map_type is not None and isinstance(raw_value, Mapping):
-            element_type = self.map_type
+            element_type = self._primitive_type
+        elif self._map_type is not None and isinstance(raw_value, Mapping):
+            element_type = self._map_type
+        elif self._map_type is not None and isinstance(raw_value, Sequence):
+            element_type = self._sequence_type
 
         if element_type is None:
             raise InvalidElementTypeError(
@@ -1159,6 +1172,15 @@ class SequenceParameter(Parameter):
                 index,
             )
         return element_type
+
+    @staticmethod
+    def _pick_element_type(
+        element_type: type[SequenceElementTypes], elements: Sequence[SequenceElementTypes]
+    ) -> SequenceElementTypes | None:
+        """Iterates over ``elements`` and picks the first ``element_type`` encountered"""
+        for elm in elements:
+            if isinstance(elm, element_type):
+                return elm
 
     def load(self, name: str, match: RawParameter) -> SequenceLoadedParameter:
         """

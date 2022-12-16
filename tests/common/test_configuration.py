@@ -265,6 +265,17 @@ test_yaml_raw = {
             - test_two
 """
     ),
+    "sequence_parameter_full_test": dals(
+        """
+    all_sequence_options:
+        - testing
+        -
+            - test_one
+            - test_two
+        - map_key:
+            map_sub_key: map_value
+"""
+    ),
 }
 
 
@@ -274,7 +285,9 @@ class DummyTestObject(ConfigurationObject):
         self.int_field = PrimitiveParameter(0, element_type=int)
         self.str_field = PrimitiveParameter("",element_type=str)
         self.map_field = MapParameter(PrimitiveParameter("", element_type=str))
-        self.seq_field = SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str))
+        self.seq_field = SequenceParameter(
+            element_types=(PrimitiveParameter("", element_type=str),)
+        )
 
 
 class SampleConfiguration(Configuration):
@@ -283,7 +296,7 @@ class SampleConfiguration(Configuration):
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=str)))
     channels = ParameterLoader(
-        SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str)),
+        SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)),
         aliases=("channels_altname",),
     )
 
@@ -298,18 +311,28 @@ class SampleConfiguration(Configuration):
     env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
     normal_str = ParameterLoader(PrimitiveParameter(''), expandvars=False)
     env_var_list = ParameterLoader(
-        SequenceParameter(primitive_type=PrimitiveParameter("", str)), expandvars=True
+        SequenceParameter(element_types=(PrimitiveParameter("", str),)), expandvars=True
     )
 
     nested_map = ParameterLoader(
-        MapParameter(SequenceParameter(primitive_type=PrimitiveParameter("", element_type=str)))
+        MapParameter(SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)))
     )
     nested_seq = ParameterLoader(
-        SequenceParameter(map_type=PrimitiveParameter("", element_type=str))
+        SequenceParameter(element_types=(MapParameter(PrimitiveParameter("", element_type=str)),))
     )
 
     test_object = ParameterLoader(
         ObjectParameter(DummyTestObject()))
+
+    all_sequence_options = ParameterLoader(
+        SequenceParameter(
+            element_types=(
+                SequenceParameter(element_types=(PrimitiveParameter("", element_type=str),)),
+                PrimitiveParameter("", element_type=str),
+                MapParameter(MapParameter(PrimitiveParameter("", str))),
+            )
+        )
+    )
 
 
 def load_from_string_data(*seq):
@@ -672,3 +695,14 @@ class ConfigurationTests(TestCase):
             assert config.env_var_list == ()
 
         assert exc_info.value.valid_types == valid_types
+
+    def test_all_sequence_options(self):
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("sequence_parameter_full_test")
+        )
+
+        assert config.all_sequence_options == (
+            "testing",
+            ("test_one", "test_two"),
+            {"map_key": {"map_sub_key": "map_value"}},
+        )
