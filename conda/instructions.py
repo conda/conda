@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
 from os.path import isfile, join
@@ -30,7 +28,7 @@ UNLINKLINKTRANSACTION = 'UNLINKLINKTRANSACTION'
 PROGRESSIVEFETCHEXTRACT = 'PROGRESSIVEFETCHEXTRACT'
 
 
-PROGRESS_COMMANDS = set([EXTRACT, RM_EXTRACTED])
+PROGRESS_COMMANDS = {EXTRACT, RM_EXTRACTED}
 ACTION_CODES = (
     CHECK_FETCH,
     FETCH,

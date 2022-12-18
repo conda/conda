@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +6,6 @@ These helpers were originally defined in tests/test_create.py,
 but were refactored here so downstream projects can benefit from
 them too.
 """
-from __future__ import unicode_literals
 
 from contextlib import contextmanager
 from functools import lru_cache
@@ -27,12 +25,7 @@ from subprocess import check_output
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
-import urllib
 
-try:
-    import urllib.parse as urlparse
-except:
-    from urlparse import urlparse
 
 import pytest
 
@@ -149,7 +142,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
 
     try:
         link(src, dst)
-    except (IOError, OSError):
+    except OSError:
         print(
             "\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
             "           not on the same FS as `sys.prefix`:\n           {}\n"
@@ -279,7 +272,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
     init_loggers(context)
-    cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
+    cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % " ".join(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(TEST_LOG_LEVEL, "requests"):
@@ -336,7 +329,7 @@ def make_temp_env(*packages, **kwargs):
             if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
                 rmtree(prefix, ignore_errors=True)
             else:
-                log.warning("CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}".format(prefix))
+                log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {prefix}")
 
 
 @contextmanager
@@ -354,39 +347,6 @@ def make_temp_package_cache():
         rmtree(prefix, ignore_errors=True)
         if pkgs_dir in PackageCacheData._cache_:
             del PackageCacheData._cache_[pkgs_dir]
-
-
-def fixurl(url):
-    # turn string into unicode
-    if not isinstance(url, str):
-        url = url.decode("utf8")
-
-    # parse it
-    parsed = urlparse.urlsplit(url)
-
-    # divide the netloc further
-    userpass, at, hostport = parsed.netloc.rpartition("@")
-    user, colon1, pass_ = userpass.partition(":")
-    host, colon2, port = hostport.partition(":")
-
-    # encode each component
-    scheme = parsed.scheme.encode("utf8")
-    user = urllib.quote(user.encode("utf8"))
-    colon1 = colon1.encode("utf8")
-    pass_ = urllib.quote(pass_.encode("utf8"))
-    at = at.encode("utf8")
-    host = host.encode("idna")
-    colon2 = colon2.encode("utf8")
-    port = port.encode("utf8")
-    path = "/".join(  # could be encoded slashes!
-        urllib.quote(urllib.unquote(pce).encode("utf8"), "") for pce in parsed.path.split("/")
-    )
-    query = urllib.quote(urllib.unquote(parsed.query).encode("utf8"), "=&?/")
-    fragment = urllib.quote(urllib.unquote(parsed.fragment).encode("utf8"))
-
-    # put it back together
-    netloc = "".join((user, colon1, pass_, at, host, colon2, port))
-    return urlparse.urlunsplit((scheme, netloc, path, query, fragment))
 
 
 @contextmanager

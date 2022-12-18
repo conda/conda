@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import print_function
 
 from argparse import RawDescriptionHelpFormatter
 import json
@@ -12,7 +10,7 @@ import textwrap
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
-    add_parser_prefix, add_parser_networking, add_parser_experimental_solver
+    add_parser_prefix, add_parser_networking, add_parser_solver
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
@@ -91,7 +89,7 @@ def configure_parser(sub_parsers):
     )
     add_parser_default_packages(p)
     add_parser_json(p)
-    add_parser_experimental_solver(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_create.execute')
 
 

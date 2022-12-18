@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import re
@@ -45,15 +43,14 @@ class EnvAppDirs:
 
 
 def _get_binstar_token_directory():
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        return EnvAppDirs('binstar', 'ContinuumIO',
-                          os.environ[str('BINSTAR_CONFIG_DIR')]).user_data_dir
+    if "BINSTAR_CONFIG_DIR" in os.environ:
+        return EnvAppDirs("binstar", "ContinuumIO", os.environ["BINSTAR_CONFIG_DIR"]).user_data_dir
     else:
         return AppDirs('binstar', 'ContinuumIO').user_data_dir
 
 
 def read_binstar_tokens():
-    tokens = dict()
+    tokens = {}
     token_dir = _get_binstar_token_directory()
     if not isdir(token_dir):
         return tokens

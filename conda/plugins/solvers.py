@@ -1,0 +1,17 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+from . import hookimpl, CondaSolver
+from ..base.constants import CLASSIC_SOLVER
+
+
+@hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
+def conda_solvers():
+    """
+    The classic solver as shipped by default in conda.
+    """
+    from ..core.solve import Solver
+
+    yield CondaSolver(
+        name=CLASSIC_SOLVER,
+        backend=Solver,
+    )

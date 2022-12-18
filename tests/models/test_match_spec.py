@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from unittest import TestCase
 
@@ -45,7 +43,7 @@ def DPkg(s, **kwargs):
 class MatchSpecTests(TestCase):
 
     def test_match_1(self):
-        for spec, result in [
+        for spec, result in (
             ('numpy 1.7*', True),          ('numpy 1.7.1', True),
             ('numpy 1.7', False),          ('numpy 1.5*', False),
             ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
@@ -61,7 +59,7 @@ class MatchSpecTests(TestCase):
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
             ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
             ('python', False),
-        ]:
+        ):
             m = MatchSpec(spec)
             assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
             assert 'name' in m
@@ -657,6 +655,30 @@ class SpecStrParsingTests(TestCase):
             "build": "3",
         }
 
+        # Ensure 'name' within brackets can't override the name specified outside of brackets
+        assert _parse_spec_str(
+            "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]"
+        ) == {
+            "_original_spec_str": "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]",
+            "name": "tensorflow",
+            "version": "*",
+            "md5": "253b922ecdb5a30884875948b8904983",
+        }
+        assert _parse_spec_str("tensorflow[name=pytorch]") == {
+            "_original_spec_str": "tensorflow[name=pytorch]",
+            "name": "tensorflow",
+        }
+
+        assert _parse_spec_str(
+            "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']"
+        ) == {
+            "_original_spec_str": "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']",
+            "channel": "anaconda",
+            "name": "numpy",
+            "version": ">=1.8,<2|1.9",
+            "build": "3",
+        }
+
     def test_star_name(self):
         assert _parse_spec_str("* 2.7.4") == {
             "_original_spec_str": "* 2.7.4",
@@ -837,14 +859,16 @@ class SpecStrParsingTests(TestCase):
 
     def test_dist_str(self):
         for ext in (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2):
-            m1 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
-            m2 = MatchSpec.from_dist_str("anaconda/{0}::python-3.6.6-0".format(context.subdir))
-            m3 = MatchSpec.from_dist_str("https://someurl.org/anaconda/{0}::python-3.6.6-0{1}".format(context.subdir, ext))
-            m4 = MatchSpec.from_dist_str("python-3.6.6-0{0}".format(ext))
-            m5 = MatchSpec.from_dist_str("https://someurl.org/anaconda::python-3.6.6-0{0}".format(ext))
+            m1 = MatchSpec.from_dist_str(f"anaconda/{context.subdir}::python-3.6.6-0{ext}")
+            m2 = MatchSpec.from_dist_str(f"anaconda/{context.subdir}::python-3.6.6-0")
+            m3 = MatchSpec.from_dist_str(
+                f"https://someurl.org/anaconda/{context.subdir}::python-3.6.6-0{ext}"
+            )
+            m4 = MatchSpec.from_dist_str(f"python-3.6.6-0{ext}")
+            m5 = MatchSpec.from_dist_str(f"https://someurl.org/anaconda::python-3.6.6-0{ext}")
 
-            pref = DPkg("anaconda::python-3.6.6-0{0}".format(ext))
-            pref.url = "https://someurl.org/anaconda/{0}".format(context.subdir)
+            pref = DPkg(f"anaconda::python-3.6.6-0{ext}")
+            pref.url = f"https://someurl.org/anaconda/{context.subdir}"
 
             assert m1.match(pref)
             assert m2.match(pref)
@@ -853,14 +877,14 @@ class SpecStrParsingTests(TestCase):
             pref.url = "https://someurl.org/anaconda"
 
             pref_dict = {
-                'name': 'python',
-                'version': '3.6.6',
-                'build': '0',
-                'build_number': 0,
-                'channel': Channel("anaconda"),
-                'fn': 'python-3.6.6-0{0}'.format(ext),
-                'md5': '012345789',
-                'url': 'https://someurl.org/anaconda'
+                "name": "python",
+                "version": "3.6.6",
+                "build": "0",
+                "build_number": 0,
+                "channel": Channel("anaconda"),
+                "fn": f"python-3.6.6-0{ext}",
+                "md5": "012345789",
+                "url": "https://someurl.org/anaconda",
             }
             assert m5.match(pref_dict)
 
@@ -1003,3 +1027,9 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+    def test_catch_invalid_regexes(self):
+        # Crashing case via fuzzing found via fuzzing. Reported here: https://github.com/conda/conda/issues/11999
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("*/lin(ux-65::f/o>=>1y"))
+        # Inspired by above crasher
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("^(aaaa$"))

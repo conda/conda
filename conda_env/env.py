@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 from itertools import chain
@@ -21,11 +19,12 @@ from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
+from conda.common.iterators import groupby_to_dict as groupby
 
 try:
-    from tlz.itertoolz import concatv, groupby
-except ImportError:  # pragma: no cover
-    from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
+    from tlz.itertoolz import unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import unique
 
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
@@ -48,8 +47,8 @@ def validate_keys(data, kwargs):
               "'{filename}' {verb} invalid and will be ignored:"
               "".format(filename=filename, plural=plural, verb=verb))
         for key in invalid_keys:
-            print(' - {}'.format(key))
-        print('')
+            print(f" - {key}")
+        print()
 
     deps = data.get('dependencies', [])
     depsplit = re.compile(r"[<>~\s=]")
@@ -108,25 +107,31 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_
 
     precs = tuple(PrefixGraph(pd.iter_records()).graph)
     grouped_precs = groupby(lambda x: x.package_type, precs)
-    conda_precs = sorted(concatv(
-        grouped_precs.get(None, ()),
-        grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
-        grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
-    ), key=lambda x: x.name)
+    conda_precs = sorted(
+        (
+            *grouped_precs.get(None, ()),
+            *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+            *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+        ),
+        key=lambda x: x.name,
+    )
 
-    pip_precs = sorted(concatv(
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-        # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
-    ), key=lambda x: x.name)
+    pip_precs = sorted(
+        (
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
+            # *grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
+        ),
+        key=lambda x: x.name,
+    )
 
     if no_builds:
         dependencies = ['='.join((a.name, a.version)) for a in conda_precs]
     else:
         dependencies = ['='.join((a.name, a.version, a.build)) for a in conda_precs]
     if pip_precs:
-        dependencies.append({'pip': ["%s==%s" % (a.name, a.version) for a in pip_precs]})
+        dependencies.append({"pip": [f"{a.name}=={a.version}" for a in pip_precs]})
 
     channels = list(context.channels)
     if not ignore_channels:
@@ -172,7 +177,7 @@ def from_file(filename):
 # TODO test explicitly
 class Dependencies(OrderedDict):
     def __init__(self, raw, *args, **kwargs):
-        super(Dependencies, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.raw = raw
         self.parse()
 
@@ -200,32 +205,7 @@ class Dependencies(OrderedDict):
         self.parse()
 
 
-def unique(seq, key=None):
-    """ Return only unique elements of a sequence
-    >>> tuple(unique((1, 2, 3)))
-    (1, 2, 3)
-    >>> tuple(unique((1, 2, 1, 3)))
-    (1, 2, 3)
-    Uniqueness can be defined by key keyword
-    >>> tuple(unique(['cat', 'mouse', 'dog', 'hen'], key=len))
-    ('cat', 'mouse')
-    """
-    seen = set()
-    seen_add = seen.add
-    if key is None:
-        for item in seq:
-            if item not in seen:
-                seen_add(item)
-                yield item
-    else:  # calculate key
-        for item in seq:
-            val = key(item)
-            if val not in seen:
-                seen_add(val)
-                yield item
-
-
-class Environment(object):
+class Environment:
     def __init__(self, name=None, filename=None, channels=None,
                  dependencies=None, prefix=None, variables=None):
         self.name = name
@@ -260,13 +240,9 @@ class Environment(object):
 
     def to_yaml(self, stream=None):
         d = self.to_dict()
-        out = yaml_safe_dump(d)
+        out = yaml_safe_dump(d, stream)
         if stream is None:
             return out
-        try:
-            stream.write(bytes(out, encoding="utf-8"))
-        except TypeError:
-            stream.write(out)
 
     def save(self):
         with open(self.filename, "wb") as fp:

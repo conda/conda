@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 
@@ -80,7 +78,7 @@ def run_command(command, *arguments, **kwargs):
     stderr = kwargs.pop('stderr', STRING)
     p = generate_parser()
 
-    if len(arguments) > 0 and isinstance(arguments[0], list):
+    if arguments and isinstance(arguments[0], list):
         arguments = arguments[0]
 
     arguments = list(arguments)

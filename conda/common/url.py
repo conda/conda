@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
 from collections import namedtuple
@@ -15,21 +13,15 @@ import warnings
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
-try:  # pragma: py2 no cover
-    # Python 3
-    from urllib.parse import (
-        quote,
-        quote_plus,
-        unquote,
-        unquote_plus,  # NOQA
-        urlparse as _urlparse,
-        urlunparse as _urlunparse,
-        ParseResult,
-    )
-except ImportError:  # pragma: py3 no cover
-    # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                        urlparse as _urlparse, urlunparse as _urlunparse)
+from urllib.parse import (  # NOQA
+    quote,
+    quote_plus,
+    unquote,
+    unquote_plus,
+    urlparse as _urlparse,
+    urlunparse as _urlunparse,
+    ParseResult,
+)
 
 
 def hex_octal_to_int(ho):
@@ -171,7 +163,7 @@ class Url(namedtuple("Url", url_attrs)):
             scheme = scheme.lower()
         if hostname:
             hostname = hostname.lower()
-        return super(Url, cls).__new__(
+        return super().__new__(
             cls, scheme, path, query, fragment, username, password, hostname, port
         )
 
@@ -272,7 +264,7 @@ def is_ipv4_address(string_ip):
     """
     try:
         socket.inet_aton(string_ip)
-    except socket.error:
+    except OSError:
         return False
     return string_ip.count('.') == 3
 
@@ -287,7 +279,7 @@ def is_ipv6_address(string_ip):
     """
     try:
         socket.inet_pton(socket.AF_INET6, string_ip)
-    except socket.error:
+    except OSError:
         return False
     return True
 

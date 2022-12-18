@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
+from functools import wraps
 
 
 def env_override(envvar_name, convert_empty_to_none=False):
@@ -12,6 +12,7 @@ def env_override(envvar_name, convert_empty_to_none=False):
     is the empty string, a None value will be returned.
     '''
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             value = os.environ.get(envvar_name, None)
 
@@ -22,6 +23,5 @@ def env_override(envvar_name, convert_empty_to_none=False):
                     return value
             else:
                 return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
         return wrapper
     return decorator

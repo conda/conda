@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .base.constants import DepsModifier as _DepsModifier, UpdateModifier as _UpdateModifier
+from .base.context import context
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import _get_solver_class
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
@@ -18,7 +16,7 @@ UpdateModifier = _UpdateModifier
 """Flags to enable alternate handling for updates of existing packages in the environment."""
 
 
-class Solver(object):
+class Solver:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -49,8 +47,8 @@ class Solver(object):
                 The set of package specs to remove from the prefix.
 
         """
-        SolverType = _get_solver_class()
-        self._internal = SolverType(prefix, channels, subdirs, specs_to_add, specs_to_remove)
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        self._internal = solver_backend(prefix, channels, subdirs, specs_to_add, specs_to_remove)
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
                           ignore_pinned=NULL, force_remove=NULL):
@@ -151,7 +149,7 @@ class Solver(object):
                                                     ignore_pinned, force_remove, force_reinstall)
 
 
-class SubdirData(object):
+class SubdirData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -241,7 +239,7 @@ class SubdirData(object):
         return self
 
 
-class PackageCacheData(object):
+class PackageCacheData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -369,7 +367,7 @@ class PackageCacheData(object):
         return self
 
 
-class PrefixData(object):
+class PrefixData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 

@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Test for python distribution information and metadata handling."""
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
 from errno import ENOENT
@@ -671,9 +669,8 @@ def test_evaluate_marker():
         ('spam2 = "1.0"', {'spam': '1.0'}, None),
     )
     for marker_expr, context, expected_output in test_cases:
-        output = None
         with pytest.raises(SyntaxError):
-            output = interpret(marker_expr, context)
+            interpret(marker_expr, context)
 
 
 def test_get_default_marker_context():

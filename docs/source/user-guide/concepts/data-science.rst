@@ -23,4 +23,4 @@ Conda’s benefits include:
   without code changes.
 
 `Read more about how conda supports data scientists
-<https://kaust-vislab.github.io/introduction-to-conda-for-data-scientists>`_.
+<https://carpentries-incubator.github.io/introduction-to-conda-for-data-scientists/>`_.

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
 from itertools import islice
 from json import JSONEncoder, dumps
 from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
@@ -57,7 +55,7 @@ class DumpEncoder(JSONEncoder):
         if hasattr(obj, 'dump'):
             return obj.dump()
         # Let the base class default method raise the TypeError
-        return super(DumpEncoder, self).default(obj)
+        return super().default(obj)
 
 
 _DUMPS = DumpEncoder(indent=2, ensure_ascii=False, sort_keys=True).encode
@@ -92,40 +90,50 @@ def response_header_sort_key(item):
 
 def stringify(obj, content_max_len=0):
     def bottle_builder(builder, bottle_object):
-        builder.append("{0} {1}{2} {3}".format(bottle_object.method,
-                                               bottle_object.path,
-                                               bottle_object.environ.get('QUERY_STRING', ''),
-                                               bottle_object.get('SERVER_PROTOCOL')))
-        builder += ["{0}: {1}".format(key, value) for key, value in bottle_object.headers.items()]
+        builder.append(
+            "{} {}{} {}".format(
+                bottle_object.method,
+                bottle_object.path,
+                bottle_object.environ.get("QUERY_STRING", ""),
+                bottle_object.get("SERVER_PROTOCOL"),
+            )
+        )
+        builder += [f"{key}: {value}" for key, value in bottle_object.headers.items()]
         builder.append('')
         body = bottle_object.body.read().strip()
         if body:
             builder.append(body)
 
     def requests_models_PreparedRequest_builder(builder, request_object):
-        builder.append(">>{0} {1} {2}".format(request_object.method, request_object.path_url,
-                                              request_object.url.split(':', 1)[0].upper()))
-        builder.extend("> {0}: {1}".format(key, value)
-                       for key, value in sorted(request_object.headers.items(),
-                                                key=request_header_sort_key))
-        builder.append('')
+        builder.append(
+            ">>{} {} {}".format(
+                request_object.method,
+                request_object.path_url,
+                request_object.url.split(":", 1)[0].upper(),
+            )
+        )
+        builder.extend(
+            f"> {key}: {value}"
+            for key, value in sorted(request_object.headers.items(), key=request_header_sort_key)
+        )
+        builder.append("")
         if request_object.body:
             builder.append(request_object.body)
 
     def requests_models_Response_builder(builder, response_object):
         builder.append(
-            "<<{0} {1} {2}".format(
+            "<<{} {} {}".format(
                 response_object.url.split(":", 1)[0].upper(),
                 response_object.status_code,
                 response_object.reason,
             )
         )
         builder.extend(
-            "< {0}: {1}".format(key, value)
+            f"< {key}: {value}"
             for key, value in sorted(response_object.headers.items(), key=response_header_sort_key)
         )
         elapsed = str(response_object.elapsed).split(":", 1)[-1]
-        builder.append("< Elapsed: {0}".format(elapsed))
+        builder.append(f"< Elapsed: {elapsed}")
         if content_max_len:
             builder.append('')
             content_type = response_object.headers.get('Content-Type')

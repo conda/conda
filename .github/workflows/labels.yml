@@ -19,20 +19,20 @@ jobs:
       GLOBAL: https://raw.githubusercontent.com/conda/infra/main/.github/global.yml
       LOCAL: .github/labels.yml
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: has_local
         uses: andstor/file-existence-action@v1.0.1
         with:
           files: ${{ env.LOCAL }}
       - name: Global Only
-        uses: EndBug/label-sync@v2.1.0
+        uses: EndBug/label-sync@v2.3.0
         if: steps.has_local.outputs.files_exists == 'false'
         with:
           config-file: ${{ env.GLOBAL }}
           delete-other-labels: true
           dry-run: ${{ github.event.inputs.dryrun }}
       - name: Global & Local
-        uses: EndBug/label-sync@v2.1.0
+        uses: EndBug/label-sync@v2.3.0
         if: steps.has_local.outputs.files_exists == 'true'
         with:
           config-file: |

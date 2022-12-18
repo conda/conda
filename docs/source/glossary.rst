@@ -220,6 +220,17 @@ Software files and information about the software, such as its
 name, the specific version, and a description, bundled into a
 file that can be installed and managed by a package manager.
 
+.. _plugins-glossary:
+
+Plugins
+=======
+
+Plugins, sometimes referred to as add-ons or extensions, are software or modules
+that add new functions to a host program (*e.g.*, conda) without directly altering
+the host program itself. Amongst other uses, plugins support is utilized to
+enable third-party developers to extend an application, support easily adding new
+features, and to reduce the size of an application by not loading unused features.
+
 .. _repository-glossary:
 
 Repository

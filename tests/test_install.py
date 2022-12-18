@@ -1,18 +1,14 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-from datetime import datetime
 
 from conda.base.context import context
+from conda.common.compat import on_win
 from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.gateways.disk.delete import move_path_to_trash
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
-from conda.utils import on_win
 from os import chdir, getcwd, makedirs
 from os.path import exists, join, relpath
 import pytest
@@ -22,8 +18,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-
-from conda.testing.helpers import mock
+from unittest import mock
 
 patch = mock.patch if mock else None
 
@@ -36,49 +31,45 @@ class TestBinaryReplace(unittest.TestCase):
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_simple(self):
-        self.assertEqual(
-            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
-            b'xxxbbbbbxyz\x00zz')
+        for encoding in ("utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"):
+            a = "aaaaa".encode(encoding)
+            b = "bbbb".encode(encoding)
+            data = "xxxaaaaaxyz\0zz".encode(encoding)
+            result = "xxxbbbbxyz\0\0zz".encode(encoding)
+            self.assertEqual(binary_replace(data, a, b, encoding=encoding), result)
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_shorter(self):
         self.assertEqual(
-            binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbb'),
-            b'xxxbbbbxyz\x00\x00zz')
+            binary_replace(b"xxxaaaaaxyz\x00zz", b"aaaaa", b"bbbb"), b"xxxbbbbxyz\x00\x00zz"
+        )
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_too_long(self):
-        self.assertRaises(_PaddingError, binary_replace,
-                          b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
+        self.assertRaises(
+            _PaddingError, binary_replace, b"xxxaaaaaxyz\x00zz", b"aaaaa", b"bbbbbbbb"
+        )
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_no_extra(self):
-        self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
-                         b'bbbbb\x00')
+        self.assertEqual(binary_replace(b"aaaaa\x00", b"aaaaa", b"bbbbb"), b"bbbbb\x00")
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_two(self):
         self.assertEqual(
-            binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa',
-                           b'bbbbb'),
-            b'bbbbb\x001234bbbbbcc\x00\x00')
+            binary_replace(b"aaaaa\x001234aaaaacc\x00\x00", b"aaaaa", b"bbbbb"),
+            b"bbbbb\x001234bbbbbcc\x00\x00",
+        )
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_spaces(self):
-        self.assertEqual(
-            binary_replace(b' aaaa \x00', b'aaaa', b'bbbb'),
-            b' bbbb \x00')
+        self.assertEqual(binary_replace(b" aaaa \x00", b"aaaa", b"bbbb"), b" bbbb \x00")
 
     @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_multiple(self):
-        self.assertEqual(
-            binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbbb'),
-            b'bbbbcbbbb\x00')
-        self.assertEqual(
-            binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbb'),
-            b'bbbcbbb\x00\x00\x00')
-        self.assertRaises(_PaddingError, binary_replace,
-                          b'aaaacaaaa\x00', b'aaaa', b'bbbbb')
+        self.assertEqual(binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbb"), b"bbbbcbbbb\x00")
+        self.assertEqual(binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbb"), b"bbbcbbb\x00\x00\x00")
+        self.assertRaises(_PaddingError, binary_replace, b"aaaacaaaa\x00", b"aaaa", b"bbbbb")
 
     @pytest.mark.integration
     @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")
@@ -146,19 +137,18 @@ class FileTests(unittest.TestCase):
             fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python\n'
                      'echo "Hello"\n')
         update_prefix(self.tmpfname, '/usr/local')
-        with open(self.tmpfname, 'r') as fi:
+        with open(self.tmpfname) as fi:
             data = fi.read()
             self.assertEqual(data, '#!/usr/local/bin/python\n'
                                    'echo "Hello"\n')
 
     @pytest.mark.skipif(on_win, reason="test is invalid on windows")
     def test_long_default_text(self):
-        with open(self.tmpfname, 'w') as fo:
-            fo.write('#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n'
-                     'echo "Hello"\n')
-        new_prefix = '/usr/local/{0}'.format('1234567890'*12)
+        with open(self.tmpfname, "w") as fo:
+            fo.write("#!/opt/anaconda1anaconda2anaconda3/bin/python -O\n" 'echo "Hello"\n')
+        new_prefix = "/usr/local/{}".format("1234567890" * 52)
         update_prefix(self.tmpfname, new_prefix)
-        with open(self.tmpfname, 'r') as fi:
+        with open(self.tmpfname) as fi:
             data = fi.read()
             self.assertEqual(data, '#!/usr/bin/env python -O\n'
                                    'echo "Hello"\n')
@@ -179,7 +169,7 @@ class FileTests(unittest.TestCase):
     def test_trash_outside_prefix(self):
         tmp_dir = tempfile.mkdtemp()
         rel = relpath(tmp_dir, context.root_dir)
-        self.assertTrue(rel.startswith(u'..'))
+        self.assertTrue(rel.startswith(".."))
         move_path_to_trash(tmp_dir)
         self.assertFalse(exists(tmp_dir))
         makedirs(tmp_dir)
