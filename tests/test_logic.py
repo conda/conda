@@ -319,5 +319,5 @@ def test_minimal_unsatisfiable_subset():
     clauses = [[1], [-1], [2], [-2], [3, 4], [4]]
     for perm in permutations(clauses):
         res = minimal_unsatisfiable_subset(perm, sat)
-        assert sorted(res) in [[[-1], [1]], [[-2], [2]]]
+        assert sorted(res) in ([[-1], [1]], [[-2], [2]])
         assert not sat(res)

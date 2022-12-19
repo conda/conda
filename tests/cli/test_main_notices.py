@@ -233,9 +233,7 @@ def test_cache_names_appear_as_expected(
         assert os.path.basename(cache_files[0]) == expected_cache_filename
 
 
-def test_notices_appear_once_when_running_decorated_commands(
-    tmpdir, env_one, notices_cache_dir, pre_link_messages_package
-):
+def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, notices_cache_dir):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
     that the channels are only appearing according to the specified interval in:
@@ -246,33 +244,37 @@ def test_notices_appear_once_when_running_decorated_commands(
     To ensure this test runs appropriately, we rely on using a pass-thru mock
     of the `conda.notices.fetch.get_notice_responses` function. If this function
     was called and called correctly we can assume everything is working well.
+
+    This test intentionally does not make any external network calls and never should.
     """
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
     with mock.patch(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     ) as fetch_mock:
-        # First run of install; notices should be retrieved
+        # First run of install; notices should be retrieved; it's okay that this function fails
+        # to install anything.
         run(
-            f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
+            f"conda install -n {env_one} -c local --override-channels -y does_not_exist",
+            disallow_stderr=False,
         )
 
         # make sure our fetch function was called correctly
         fetch_mock.assert_called_once()
         args, kwargs = fetch_mock.call_args
-        # "wraps" probably makes this more nested than it normally would be, but the docs
-        # were not clear on that.
-        ((url, name), *_), *_ = args
 
-        assert url.startswith("file://")
-        assert name == "local"
+        # If we did this correctly, args should be an empty list because our local channel has not
+        # been initialized. This causes no network traffic because there are no URLs to fetch which
+        # is what we want.
+        assert args == ([],)
 
         # Reset our mock for another call to "conda install"
         fetch_mock.reset_mock()
 
         # Second run of install; notices should not be retrieved
         run(
-            f"conda install -n {env_one} -c local --override-channels -y pre_link_messages_package"
+            f"conda install -n {env_one} -c local --override-channels -y does_not_exist",
+            disallow_stderr=False,
         )
 
         fetch_mock.assert_not_called()

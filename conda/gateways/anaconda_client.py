@@ -50,7 +50,7 @@ def _get_binstar_token_directory():
 
 
 def read_binstar_tokens():
-    tokens = dict()
+    tokens = {}
     token_dir = _get_binstar_token_directory()
     if not isdir(token_dir):
         return tokens

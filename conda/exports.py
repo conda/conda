@@ -81,7 +81,6 @@ platform = conda.base.context.context.platform
 root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
-conda_private = conda.base.context.context.conda_private
 conda_build = conda.base.context.context.conda_build
 
 from .models.channel import get_conda_build_local_url  # NOQA

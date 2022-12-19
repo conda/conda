@@ -13,5 +13,8 @@ sudo /opt/conda/bin/conda install --quiet -y -c defaults --file tests/requiremen
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda-build tests/test-recipes/activate_deactivate_package tests/test-recipes/pre_link_messages_package
 conda info
-pytest -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+# put temporary files on same filesystem
+export TMP=$HOME/pytesttmp
+mkdir -p $TMP
+pytest --basetemp=$TMP -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
 python -m conda.common.io

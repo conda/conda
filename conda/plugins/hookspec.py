@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from ..models.plugins import CondaSubcommand, CondaVirtualPackage
+from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -15,9 +15,42 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 
 
 class CondaSpecs:
+    """
+    The conda plugin hookspecs, to be used by developers.
+    """
 
     @_hookspec
-    def conda_subcommands() -> Iterable[CondaSubcommand]:
+    def conda_solvers(self) -> Iterable[CondaSolver]:
+        """
+        Register solvers in conda.
+
+        :return: An iterable of solvers entries.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core import solve
+
+
+            class VerboseSolver(solve.Solver):
+                def solve_final_state(self, *args, **kwargs):
+                    log.info("My verbose solver!")
+                    return super().solve_final_state(*args, **kwargs)
+
+
+            @plugins.hookimpl
+            def conda_solvers():
+                yield plugins.CondaSolver(
+                    name="verbose-classic",
+                    backend=VerboseSolver,
+                )
+
+        """
+
+    @_hookspec
+    def conda_subcommands(self) -> Iterable[CondaSubcommand]:
         """
         Register external subcommands in conda.
 
@@ -28,7 +61,6 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
-            from conda.models.plugins import CondaSubcommand
 
 
             def example_command(args):
@@ -36,16 +68,17 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_subcommands(self):
-                yield CondaSubcommand(
+            def conda_subcommands():
+                yield plugins.CondaSubcommand(
                     name="example",
                     summary="example command",
                     action=example_command,
                 )
+
         """
 
     @_hookspec
-    def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
         """
         Register virtual packages in Conda.
 
@@ -56,14 +89,14 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
-            from conda.models.plugins import CondaVirtualPackage
 
 
             @plugins.hookimpl
-            def conda_virtual_packages(self):
-                yield CondaVirtualPackage(
+            def conda_virtual_packages():
+                yield plugins.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
+                    build="x86_64",
                 )
 
         """

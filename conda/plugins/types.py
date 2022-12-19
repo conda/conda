@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 from typing import Callable, NamedTuple
+from ..core.solve import Solver
 
 
 class CondaSubcommand(NamedTuple):
     """
-    Conda subcommand entry.
+    A conda subcommand.
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
     """
+
     name: str
     summary: str
     action: Callable[
@@ -23,10 +25,25 @@ class CondaSubcommand(NamedTuple):
 
 class CondaVirtualPackage(NamedTuple):
     """
-    Conda subcommand entry.
+    A conda virtual package.
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
+    :param version: Virtual package build string (e.g., ``x86_64``).
     """
+
     name: str
     version: str | None
+    build: str | None
+
+
+class CondaSolver(NamedTuple):
+    """
+    A conda solver.
+
+    :param name: Solver name (e.g., ``custom-solver``).
+    :param backend: Type that will be instantiated as the solver backend.
+    """
+
+    name: str
+    backend: type[Solver]
