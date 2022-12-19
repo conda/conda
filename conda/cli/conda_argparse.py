@@ -740,14 +740,15 @@ def configure_parser_init(sub_parsers):
     setup_type_group.add_argument(
         "--user",
         action="store_true",
+        dest="user",
         help="Initialize conda for the current user (default).",
-        default=NULL,
+        default=True,
     )
     setup_type_group.add_argument(
         "--no-user",
         action="store_false",
-        help="Don't initialize conda for the current user (default).",
-        default=NULL,
+        dest="user",
+        help="Don't initialize conda for the current user.",
     )
     setup_type_group.add_argument(
         "--system",

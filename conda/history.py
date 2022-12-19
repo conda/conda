@@ -16,10 +16,7 @@ import warnings
 
 from conda.common.iterators import groupby_to_dict as groupby
 
-try:
-    from tlz.itertoolz import take
-except ImportError:
-    from conda._vendor.toolz.itertoolz import take
+from itertools import islice
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
@@ -42,9 +39,9 @@ class CondaHistoryWarning(Warning):
 
 
 def write_head(fo):
-    fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
-    fo.write("# cmd: %s\n" % (' '.join(ensure_text_type(s) for s in sys.argv)))
-    fo.write("# conda version: %s\n" % '.'.join(take(3, CONDA_VERSION.split('.'))))
+    fo.write("==> %s <==\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
+    fo.write("# cmd: %s\n" % (" ".join(ensure_text_type(s) for s in sys.argv)))
+    fo.write("# conda version: %s\n" % ".".join(islice(CONDA_VERSION.split("."), 3)))
 
 
 def is_diff(content):
@@ -239,8 +236,8 @@ class History:
                                             if 'conda_version' in x)
         if conda_versions_from_history and not context.allow_conda_downgrades:
             minimum_conda_version = sorted(conda_versions_from_history, key=VersionOrder)[-1]
-            minimum_major_minor = '.'.join(take(2, minimum_conda_version.split('.')))
-            current_major_minor = '.'.join(take(2, CONDA_VERSION.split('.')))
+            minimum_major_minor = ".".join(islice(minimum_conda_version.split("."), 2))
+            current_major_minor = ".".join(islice(CONDA_VERSION.split("."), 2))
             if VersionOrder(current_major_minor) < VersionOrder(minimum_major_minor):
                 message = dals("""
                 This environment has previously been operated on by a conda version that's newer

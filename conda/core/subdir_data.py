@@ -18,10 +18,7 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-try:
-    from tlz.itertoolz import concat, take
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, take
+from itertools import islice, chain
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -139,7 +136,7 @@ class SubdirData(metaclass=SubdirDataType):
             else partial(ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads)
         )
         with Executor() as executor:
-            result = tuple(concat(executor.map(subdir_query, channel_urls)))
+            result = tuple(chain.from_iterable(executor.map(subdir_query, channel_urls)))
         return result
 
     def query(self, package_ref_or_match_spec):
@@ -156,7 +153,7 @@ class SubdirData(metaclass=SubdirDataType):
                         yield prec
             elif param.get_exact_value("track_features"):
                 track_features = param.get_exact_value("track") or ()
-                candidates = concat(
+                candidates = chain.from_iterable(
                     self._track_features_index[feature_name] for feature_name in track_features
                 )
                 for prec in candidates:
@@ -526,7 +523,7 @@ def read_mod_and_etag(path):
     with open(path, "rb") as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
+                match_objects = islice(re.finditer(REPODATA_HEADER_RE, m), 3)
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
         except (BufferError, ValueError):  # pragma: no cover
