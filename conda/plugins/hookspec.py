@@ -29,9 +29,12 @@ class CondaSpecs:
         Example:
 
         .. code-block:: python
-
             from conda import plugins
             from conda.core import solve
+            import logging
+
+
+            log = logging.getLogger(__name__)
 
 
             class VerboseSolver(solve.Solver):
@@ -46,7 +49,6 @@ class CondaSpecs:
                     name="verbose-classic",
                     backend=VerboseSolver,
                 )
-
         """
 
     @_hookspec
