@@ -19,12 +19,12 @@ _CREDENTIALS_CACHE = {}
 PLUGIN_NAME = "basic-auth"
 
 
-def get_channel_user_credentials(channel_name: str) -> tuple[str, str]:
+def set_channel_user_credentials(channel_name: str) -> tuple[str, str]:
     """
-    Retrieve user credentials using a command prompt. Cache this for the running process
+    Set user credentials using a command prompt. Cache this for the running process
     in the module's ``_CREDENTIALS_CACHE`` dictionary.
 
-    :param channel_name: Channel name that these credentials should be associated with
+    :param channel_name: the channel name that these credentials should be associated with
     """
     if _CREDENTIALS_CACHE.get(channel_name) is not None:
         return _CREDENTIALS_CACHE[channel_name]
@@ -35,8 +35,6 @@ def get_channel_user_credentials(channel_name: str) -> tuple[str, str]:
 
     _CREDENTIALS_CACHE[channel_name] = (username, password)
 
-    return username, password
-
 
 def collect_credentials():
     """
@@ -46,7 +44,7 @@ def collect_credentials():
     """
     for channel_name, params in context.channel_parameters.items():
         if params.get("session_type") == PLUGIN_NAME:
-            get_channel_user_credentials(channel_name)
+            set_channel_user_credentials(channel_name)
 
 
 @hookimpl

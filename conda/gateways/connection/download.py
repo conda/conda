@@ -45,6 +45,8 @@ def download(
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         session = session_manager(url)
+        # TODO: proxies and timeout should be removed as arguments and instead be set on
+        #       the session object itself
         resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))

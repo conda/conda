@@ -63,7 +63,9 @@ def get_channel_name_from_url(url: str) -> str | None:
                 return channel.canonical_name
 
 
-def session_manager(url: str) -> Session:  # TODO: we might want to implement our own ABC class
+def session_manager(
+    url: str,
+) -> Session:  # TODO: we might want to implement our own ABC class or Protocol
     """
     Function that determines the correct Session object to be returned
     based on the channel that is passed in.

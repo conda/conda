@@ -568,6 +568,8 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+        # TODO: proxies and timeout should be removed as arguments and instead be set
+        #       on the session object itself
         resp = session.get(
             join_url(url, filename), headers=headers, proxies=session.proxies, timeout=timeout
         )
