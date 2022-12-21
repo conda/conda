@@ -343,7 +343,7 @@ def split_anaconda_token(url):
         (u'https://10.2.3.4:8080/conda', u'tk-123-45')
         >>> os.environ["TOKEN"] = "tk-123-45"
         >>> split_anaconda_token("https://10.2.3.4:8080/conda/t/${TOKEN}/path")
-        (u'https://10.2.3.4:8080/conda', u'tk-123-45')
+        (u'https://10.2.3.4:8080/conda/path', u'tk-123-45')
     """
     url = os.path.expandvars(url)
     _token_match = re.search(r'/t/([a-zA-Z0-9-]*)', url)
