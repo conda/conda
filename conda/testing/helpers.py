@@ -848,10 +848,8 @@ def temp_context(condarc: str) -> Generator[Context, None, None]:
     This string should be in the YAML format.
     """
     context_obj = reset_context(())
-    rd = dict(
-        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
-    )
-    context._set_raw_data(rd)
+    testdata = YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
+    context._set_raw_data({"testdata": testdata})
 
     yield context_obj
 

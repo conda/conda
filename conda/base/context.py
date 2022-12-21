@@ -846,9 +846,7 @@ class Context(Configuration):
             if argparse_channels and not channel_in_config_files:
                 return tuple(IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME)))
 
-        channels = self.channel_parameters.keys()
-
-        return tuple(IndexedSet((*local_add, *channels)))
+        return tuple(IndexedSet((*local_add, *self.channel_parameters)))
 
     @property
     def channel_parameters(self) -> frozendict:
@@ -858,12 +856,10 @@ class Context(Configuration):
         """
         channel_params = {}
 
-        for channel in self._channels:
+        for channel in filter(None, self._channels):
             if isinstance(channel, Mapping):
-                keys = channel.keys()
-                if len(keys) > 0:
-                    name, *_ = keys
-                    channel_params[name] = channel.get(name)
+                name = next(iter(channel))
+                channel_params[name] = channel.get(name)
             else:
                 channel_params[channel] = frozendict()
 
