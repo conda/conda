@@ -30,8 +30,13 @@ class CondaSpecs:
 
         .. code-block:: python
 
+            import logging
+
             from conda import plugins
             from conda.core import solve
+
+
+            log = logging.getLogger(__name__)
 
 
             class VerboseSolver(solve.Solver):
