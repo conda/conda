@@ -36,6 +36,7 @@ except ImportError:
 
 from .compat import isiterable, odict, primitive_types
 from .constants import NULL
+from .iterators import next_instance
 from .path import expand
 from .serialize import yaml_round_trip_load
 from .. import CondaError, CondaMultiError
@@ -1120,9 +1121,9 @@ class SequenceParameter(Parameter):
             element_type = (element_type,)
 
         # Assign possible internal data types
-        self._primitive_type = self._pick_element_type(PrimitiveParameter, element_type)
-        self._map_type = self._pick_element_type(MapParameter, element_type)
-        self._sequence_type = self._pick_element_type(SequenceParameter, element_type)
+        self._primitive_type = next_instance(element_type, PrimitiveParameter)
+        self._map_type = next_instance(element_type, MapParameter)
+        self._sequence_type = next_instance(element_type, SequenceParameter)
 
         self._element_type = (self._primitive_type, self._map_type, self._sequence_type)
         self._set_valid_types_str(self._element_type)
@@ -1176,15 +1177,6 @@ class SequenceParameter(Parameter):
                 index,
             )
         return element_type
-
-    @staticmethod
-    def _pick_element_type(
-        element_type: type[SequenceElementTypes], elements: Sequence[SequenceElementTypes]
-    ) -> SequenceElementTypes | None:
-        """Iterates over ``elements`` and picks the first ``element_type`` encountered"""
-        for elm in elements:
-            if isinstance(elm, element_type):
-                return elm
 
     def load(self, name: str, match: RawParameter) -> SequenceLoadedParameter:
         """
