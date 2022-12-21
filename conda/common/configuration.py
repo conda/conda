@@ -14,6 +14,7 @@ Easily extensible to other source formats, e.g. json and ini
 """
 from __future__ import annotations
 
+import inspect
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
@@ -1532,10 +1533,11 @@ class Configuration(metaclass=ConfigurationType):
         if not isiterable(et):
             et = [et]
 
-        # If it doesn't have  a __name__ attribute it's an object not a class
-        has_name = all(hasattr(element, "__name__") for element in et)
+        is_class = all(inspect.isclass(element) for element in et)
 
-        if isinstance(parameter._element_type, Parameter) or not has_name:
+        # if it's not a Parameter object, we make sure to also exclude all type variables
+        # (i.e. classes) from the next step
+        if isinstance(parameter._element_type, Parameter) or not is_class:
             element_types = tuple(
                 _et.__class__.__name__.lower().replace("parameter", "") for _et in et)
         else:
