@@ -45,7 +45,7 @@ test_yaml_raw = {
           - bugs
           - daffy
           - tweety
-    """
+        """
     ),
     "file2": dals(
         """
@@ -60,7 +60,7 @@ test_yaml_raw = {
           - porky
           - bugs
           - elmer
-    """
+        """
     ),
     "file3": dals(
         """
@@ -75,7 +75,7 @@ test_yaml_raw = {
           - wile   #!top
           - daffy
           - foghorn
-    """
+        """
     ),
     "file4": dals(
         """
@@ -90,7 +90,7 @@ test_yaml_raw = {
           - pepé
           - marv
           - sam
-    """
+        """
     ),
     "file5": dals(
         """
@@ -98,7 +98,7 @@ test_yaml_raw = {
           - pepé
           - marv   #!top
           - sam
-    """
+        """
     ),
     "file6": dals(
         """
@@ -106,7 +106,7 @@ test_yaml_raw = {
           - elmer
           - marv  #!bottom
           - bugs
-    """
+        """
     ),
     "file7": dals(
         """
@@ -115,7 +115,7 @@ test_yaml_raw = {
           - daffy  #!top
           - sam    #!top
           - foghorn
-    """
+        """
     ),
     "file8": dals(
         """
@@ -124,7 +124,7 @@ test_yaml_raw = {
           - marv  #!top
           - wile
           - sam
-    """
+        """
     ),
     "file9": dals(
         """
@@ -133,14 +133,14 @@ test_yaml_raw = {
           - pepé
           - marv   #!top
           - daffy  #!bottom
-    """
+        """
     ),
     "bad_boolean": "always_yes: yeah",
     "too_many_aliases": dals(
         """
         always_yes: yes
         always_yes_altname2: yes
-    """
+        """
     ),
     "not_an_int": "always_an_int: nope",
     "good_boolean_map": dals(
@@ -152,7 +152,7 @@ test_yaml_raw = {
           a_false: False
           a_no: no
           a_0: 0
-    """
+        """
     ),
     "bad_boolean_map": dals(
         """
@@ -163,7 +163,7 @@ test_yaml_raw = {
           a_complex: 1+2j
         proxy_servers:
         channels:
-    """
+        """
     ),
     "commented_map": dals(
         """
@@ -171,7 +171,7 @@ test_yaml_raw = {
           key:
             # comment
             value
-    """
+        """
     ),
     "env_vars": dals(
         """
@@ -187,7 +187,7 @@ test_yaml_raw = {
           - $EXPANDED_VAR
           - $UNEXPANDED_VAR
           - regular_var
-    """
+        """
     ),
     "nestedFile1": dals(
         """
@@ -207,7 +207,7 @@ test_yaml_raw = {
             - #!top
                 key3: c1
                 key4: d1
-    """
+        """
     ),
     "nestedFile2": dals(
         """
@@ -228,7 +228,7 @@ test_yaml_raw = {
             -
                 key3: c2
                 key4: d2
-    """
+        """
     ),
     "objectFile1": dals(
         """
@@ -242,7 +242,7 @@ test_yaml_raw = {
                 - a1
                 - b1
                 - c1
-    """
+        """
     ),
     "objectFile2": dals(
         """
@@ -255,26 +255,26 @@ test_yaml_raw = {
             seq_field:
                 - a2
                 - b2
-    """
+        """
     ),
     "invalid_config_object": dals(
         """
-    env_var_list:
-        -
-            - test_one
-            - test_two
-"""
+        env_var_list:
+            -
+                - test_one
+                - test_two
+        """
     ),
     "sequence_parameter_full_test": dals(
         """
-    all_sequence_options:
-        - testing
-        -
-            - test_one
-            - test_two
-        - map_key:
-            map_sub_key: map_value
-"""
+        all_sequence_options:
+            - testing
+            -
+                - test_one
+                - test_two
+            - map_key:
+                map_sub_key: map_value
+        """
     ),
 }
 
