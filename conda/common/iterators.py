@@ -9,7 +9,7 @@ Replacements for parts of the toolz library.
 import itertools
 import collections
 from collections.abc import Iterable
-from typing import TypeVar
+from typing import TypeVar, Any
 
 
 def groupby_to_dict(keyfunc, sequence):
@@ -26,7 +26,7 @@ def groupby_to_dict(keyfunc, sequence):
 T = TypeVar("T")
 
 
-def next_instance(objects: Iterable[T], object_type: type[T]) -> T | None:
+def next_instance(objects: Iterable[Any], object_type: type[T]) -> T | None:
     """
     Iterates over ``objects`` and picks the first ``object_type`` encountered.
     Returns ``None`` if no instances have been found.

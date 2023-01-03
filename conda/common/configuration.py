@@ -1533,15 +1533,13 @@ class Configuration(metaclass=ConfigurationType):
         if not isiterable(et):
             et = [et]
 
-        is_class = all(inspect.isclass(element) for element in et)
-
-        # if it's not a Parameter object, we make sure to also exclude all type variables
-        # (i.e. classes) from the next step
-        if isinstance(parameter._element_type, Parameter) or not is_class:
-            element_types = tuple(
-                _et.__class__.__name__.lower().replace("parameter", "") for _et in et)
-        else:
-            element_types = tuple(_et.__name__ for _et in et)
+        element_types = tuple(
+            # if a class is found, return its name as is
+            element.__name__ if inspect.isclass(element)
+            # if an instance is found, return a simplified name
+            else element.__class__.__name__.lower().replace("parameter", "")
+            for element in et
+        )
 
         details = {
             'parameter_type': parameter.__class__.__name__.lower().replace("parameter", ""),
