@@ -25,6 +25,6 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
 def display_health_checks(args: argparse.Namespace) -> None:
     if args.verbose:
         print("A more detailed environment health report is given below:")
-        health_checks.run_health_checks(context)
-    else:
         health_checks.run_detailed_health_checks(context)
+    else:
+        health_checks.run_health_checks(context)
