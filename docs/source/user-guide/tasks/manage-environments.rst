@@ -858,7 +858,7 @@ EXAMPLE: A more complex environment file:
    software environment.
 
 .. note::
-   You may occasionally want to specify which channel conda will 
+   You may occasionally want to specify which channel conda will
    use to install a specific package. To accomplish this, use the
    `channel::package` syntax in `dependencies:`, as demonstrated
    above with `conda-forge::numpy` (version numbers optional). The
