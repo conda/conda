@@ -1,6 +1,6 @@
 ### Enhancements
 
-* add environment variable expansion for repository url (#10018)
+* allow the use of environment variables for channel urls in environment.yaml  (#10018)
 
 ### Bug fixes
 

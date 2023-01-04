@@ -154,8 +154,13 @@ def from_yaml(yamlstr, **kwargs):
     if kwargs is not None:
         for key, value in kwargs.items():
             data[key] = value
-
+    _expand_channels(data)
     return Environment(**data)
+
+
+def _expand_channels(data):
+    """Expands environment variables for the channels found in the yaml data"""
+    data["channels"] = [os.path.expandvars(channel) for channel in data.get("channels", [])]
 
 
 def from_file(filename):
