@@ -31,8 +31,6 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-from collections.abc import Iterable
-
 from .conda_argparse import generate_parser
 
 import sys
@@ -54,8 +52,6 @@ def init_loggers(context=None):
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
-    from ..plugins.types import CondaBeforeAction
-
     args = args or ["--help"]
 
     p = generate_parser()
@@ -69,18 +65,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     if post_parse_hook:
         post_parse_hook(args, p)
 
-    # Check for and run any before actions
-    before_actions: Iterable[CondaBeforeAction] = context.plugin_manager.get_hook_results(
-        "before_actions"
-    )
-
-    tuple(
-        before.action()
-        for before in before_actions
-        if before.run_for is None or args.cmd in before.run_for
-    )
-
-    # Run command
     from .conda_argparse import do_call
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
