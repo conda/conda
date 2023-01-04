@@ -842,7 +842,7 @@ EXAMPLE: A more complex environment file:
    dependencies:
      - python=3.9
      - bokeh=2.4.2
-     - numpy=1.21.*
+     - conda-forge::numpy=1.21.*
      - nodejs=16.13.*
      - flask
      - pip
@@ -856,6 +856,15 @@ EXAMPLE: A more complex environment file:
    allows us to use our environment file to update our environment
    to get any bug fixes whilst still maintaining consistency of
    software environment.
+
+.. note::
+   You may occasionally want to specify which channel conda will 
+   use to install a specific package. To accomplish this, use the
+   `channel::package` syntax in `dependencies:`, as demonstrated
+   above with `conda-forge::numpy` (version numbers optional). The
+   specified channel does not need to be present in the `channels:`
+   list, which is useful if you want some—but not *all*—packages
+   installed from a community channel such as `conda-forge`.
 
 You can exclude the default channels by adding ``nodefaults``
 to the channels list.
