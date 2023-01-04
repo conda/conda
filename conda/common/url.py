@@ -5,7 +5,6 @@ import codecs
 from collections import namedtuple
 from functools import lru_cache
 from getpass import getpass
-import os
 from os.path import abspath, expanduser
 import re
 import socket
@@ -341,11 +340,7 @@ def split_anaconda_token(url):
         (u'https://1.2.3.4/path', None)
         >>> split_anaconda_token("https://10.2.3.4:8080/conda/t/tk-123-45")
         (u'https://10.2.3.4:8080/conda', u'tk-123-45')
-        >>> os.environ["TOKEN"] = "tk-123-45"
-        >>> split_anaconda_token("https://10.2.3.4:8080/conda/t/${TOKEN}/path")
-        (u'https://10.2.3.4:8080/conda/path', u'tk-123-45')
     """
-    url = os.path.expandvars(url)
     _token_match = re.search(r'/t/([a-zA-Z0-9-]*)', url)
     token = _token_match.groups()[0] if _token_match else None
     cleaned_url = url.replace('/t/' + token, '', 1) if token is not None else url
