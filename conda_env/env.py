@@ -21,6 +21,11 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
 from conda.common.iterators import groupby_to_dict as groupby
 
+try:
+    from tlz.itertoolz import unique
+except ImportError:
+    from conda._vendor.toolz.itertoolz import unique
+
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
 
@@ -198,31 +203,6 @@ class Dependencies(OrderedDict):
     def add(self, package_name):
         self.raw.append(package_name)
         self.parse()
-
-
-def unique(seq, key=None):
-    """ Return only unique elements of a sequence
-    >>> tuple(unique((1, 2, 3)))
-    (1, 2, 3)
-    >>> tuple(unique((1, 2, 1, 3)))
-    (1, 2, 3)
-    Uniqueness can be defined by key keyword
-    >>> tuple(unique(['cat', 'mouse', 'dog', 'hen'], key=len))
-    ('cat', 'mouse')
-    """
-    seen = set()
-    seen_add = seen.add
-    if key is None:
-        for item in seq:
-            if item not in seen:
-                seen_add(item)
-                yield item
-    else:  # calculate key
-        for item in seq:
-            val = key(item)
-            if val not in seen:
-                seen_add(val)
-                yield item
 
 
 class Environment:
