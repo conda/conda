@@ -625,7 +625,9 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     # this function should no longer be used by conda but is kept for API stability
     warnings.warn(
-        "fetch_repodata_remote_request",
+        "The `conda.core.subdir_data.fetch_repodata_remote_request` function "
+        "is pending deprecation and will be removed in the future. "
+        "Please use `conda.core.subdir_data.SubdirData` instead.",
         PendingDeprecationWarning,
     )
 
