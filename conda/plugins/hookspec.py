@@ -7,13 +7,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import (
-    CondaSolver,
-    CondaSubcommand,
-    CondaVirtualPackage,
-    CondaSessionClass,
-    CondaBeforeAction,
-)
+from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -110,63 +104,4 @@ class CondaSpecs:
                     build="x86_64",
                 )
 
-        """
-
-    @_hookspec
-    def conda_session_classes(self) -> Iterable[CondaSessionClass]:
-        """
-        Register session classes in conda. This session be a sub-class
-        of ``requests.Session`` to maintain compatibility. This could also
-        just directly subclass ``conda.gateways.connection.session.CondaSession``.
-
-        :return: An iterable of CondaSession classes
-
-        Example:
-
-        .. code-block:: python
-
-            from conda import plugins
-            from requests import Session
-
-
-            class MyCustomSession(Session):
-                def __init__(self, *args, **kwargs):
-                    self.custom_param = "custom-name"
-
-
-            @plugins.hookimpl
-            def conda_session_classes():
-                yield plugins.CondaSession(
-                    name="my-custom-session",
-                    session=MyCustomSession,
-                )
-        """
-
-    @_hookspec
-    def conda_before_actions(self) -> Iterable[CondaBeforeAction]:
-        """
-        Register before actions that will be called by conda before executing
-        and command. This is useful for gather information (e.g. user credentials)
-        that will be used throughout the program or any other initialization that
-        a plugin needs to make.
-
-
-        Example:
-
-        .. code-block:: python
-
-            from conda import plugins
-
-
-            def do_this_first():
-                # Any code in here will be executed before the primary command
-                print("Hello")
-
-
-            @plugins.hookimpl
-            def conda_before_actions():
-                yield plugins.CondaBeforeAction(
-                    name="my-custom-before-action",
-                    session=do_this_first,
-                )
         """

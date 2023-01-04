@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Callable, NamedTuple
 
-from requests import Session
-
 from ..core.solve import Solver
 
 
@@ -50,32 +48,3 @@ class CondaSolver(NamedTuple):
 
     name: str
     backend: type[Solver]
-
-
-class CondaSessionClass(NamedTuple):
-    """
-    A conda session.
-
-    :param name: Session name (e.g., ``basic-auth-session``). This name should be unique
-                 and only one may be registered at a time.
-    :param session: Type that will be instantiated as the conda session.
-    """
-
-    name: str
-    session_class: type[Session]
-
-
-class CondaBeforeAction(NamedTuple):
-    """
-    A before action.
-
-    :param name: BeforeAction name (e.g., ``basic-auth-before-action``). This name should be unique
-                 and only one may be registered at a time.
-    :param action: Callable that will be executed during application start-up.
-    :param run_for: The commands that this action should be run on; defaults to running on all
-                    commands.
-    """
-
-    name: str
-    action: Callable
-    run_for: set[str, ...] | None = None

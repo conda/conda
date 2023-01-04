@@ -32,10 +32,6 @@ CONDA_SESSION_SCHEMES = frozenset((
     "file",
 ))
 
-#: Use for storing variables local to threads
-#: More information here: https://docs.python.org/3/library/threading.html#thread-local-data
-# __THREAD_LOCAL = local()
-
 
 class EnforceUnusedAdapter(BaseAdapter):
 
@@ -65,28 +61,16 @@ def get_channel_name_from_url(url: str) -> str | None:
 
 def session_manager(
     url: str,
-) -> Session:  # TODO: we might want to implement our own ABC class or Protocol
+) -> Session:
     """
     Function that determines the correct Session object to be returned
     based on the channel that is passed in.
+
+    For now, this just returns the default ``CondaSession`` object, but in the
+    future it will contain logic that will determine exactly which session class
+    should be returned.
     """
-    channel_name = get_channel_name_from_url(url)
-
-    # If for whatever reason a channel name can't be determined, (should be unlikely)
-    # we just return the default session object.
-    if channel_name is None:
-        return CondaSession()
-
-    channel_params = context.channel_parameters.get(channel_name, {})
-    session_type = channel_params.get("session_type")
-
-    # Return default session object
-    if session_type is None:
-        return CondaSession()
-
-    session_class = context.plugin_manager.get_session_class(session_type)
-
-    return session_class(channel_name=channel_name)
+    return CondaSession()
 
 
 class CondaSessionType(type):
