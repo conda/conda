@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 
-import conda.plugins
-
 from pathlib import Path, PurePath
 from rich.console import Console
 from rich.table import Table
@@ -91,11 +89,3 @@ def run_detailed_health_checks(prefix: str):
     print(REPORT_TITLE)
     print(f"Name: {environment_name}\n")
     get_names_of_missing_files(active_prefix)
-
-@conda.plugins.hookimpl
-def conda_subcommands():
-    yield conda.plugins.CondaSubcommand(
-        name="doctor",
-        summary="A subcommand that displays environment health report",
-        action=run_health_checks,
-    )

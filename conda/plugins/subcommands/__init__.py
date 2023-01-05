@@ -1,3 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from . import doctor  # noqa F401
+from .doctor import cli as doctor
+
+plugins = [doctor]
