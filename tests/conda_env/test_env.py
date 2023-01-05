@@ -99,14 +99,14 @@ class from_file_TestCase(unittest.TestCase):
             env.from_file(
                 "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/does-not-exist.yml"
             )
-            
+
     def test_envvars(self):
         current_conda_token = os.environ.get("CONDA_TOKEN")
         os.environ["CONDA_TOKEN"] = "aaa-12345"
         os.environ["OTHER_KEY"] = "12345-aaa"
-        e = get_environment('channels_with_envvars.yml')        
+        e = get_environment("channels_with_envvars.yml")
         self.assertEqual(
-            set(e.channels), 
+            set(e.channels),
             {'https://localhost/t/aaa-12345/stable', 'https://localhost/t/12345-aaa/stable', 'conda-forge', 'defaults'}
         )
         if current_conda_token:
