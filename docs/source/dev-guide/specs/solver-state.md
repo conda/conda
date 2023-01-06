@@ -1,18 +1,16 @@
----
-orphan: true
----
-
-
 ```{admonition} Work in progress
 This page of the documentation is not yet finished and only contains a draft of the content.
 ```
 
-(solver_state_specification)=
-
 # Technical specification: solver state
 
-> Note: This document is a technical specification, which might not be the best way to learn about
-> how the solver works. For that, refer to {ref}`deep_dive_install` and {ref}`deep_dive_solvers`.
+:::{admonition} Note
+:class: warning
+
+This document is a technical specification, which might not be the best way to learn about
+how the solver works. For that, refer to {doc}`../deep-dives/install` and
+{doc}`../deep-dives/solvers`.
+:::
 
 The `Solver` API will pass a collection of `MatchSpec` objects (from now on, we will refer to
 them as `specs`) to the underlying SAT solver. How this list is built from the prefix state

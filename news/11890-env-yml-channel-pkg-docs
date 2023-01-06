@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Updated conda cheatsheet for the 4.14.0 release. The cheatsheet now includes an example for `conda rename`. (#11768)
+* Documented optional `channel::package` syntax for specifying dependencies in `environment.yml` files. (#11890)
 
 ### Other
 

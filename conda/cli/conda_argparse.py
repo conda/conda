@@ -23,11 +23,9 @@ from .. import __version__
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
-    UpdateModifier, SolverChoice
+    UpdateModifier
+from ..base.context import context
 from ..common.constants import NULL
-from ..common.io import dashlist
-from ..exceptions import PluginError
-from ..plugins.manager import get_plugin_manager
 
 log = getLogger(__name__)
 
@@ -116,35 +114,7 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        pm = get_plugin_manager()
-        self._subcommands = sorted(
-            (
-                subcommand
-                for subcommands in pm.hook.conda_subcommands()
-                for subcommand in subcommands
-            ),
-            key=lambda subcommand: subcommand.name,
-        )
-
-        # Check for conflicts
-        seen = set()
-        conflicts = [
-            subcommand
-            for subcommand in self._subcommands
-            if subcommand.name in seen or seen.add(subcommand.name)
-        ]
-        if conflicts:
-            raise PluginError(
-                dals(
-                    f"""
-                    Conflicting entries found for the following subcommands:
-                    {dashlist(conflicts)}
-                    Multiple conda plugins are registering these subcommands via the
-                    `conda_subcommands` hook; please make sure that
-                    you do not have any incompatible plugins installed.
-                    """
-                )
-            )
+        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
 
         if self._subcommands:
             self.epilog = 'conda commands available from other packages:' + ''.join(
@@ -770,14 +740,15 @@ def configure_parser_init(sub_parsers):
     setup_type_group.add_argument(
         "--user",
         action="store_true",
+        dest="user",
         help="Initialize conda for the current user (default).",
-        default=NULL,
+        default=True,
     )
     setup_type_group.add_argument(
         "--no-user",
         action="store_false",
-        help="Don't initialize conda for the current user (default).",
-        default=NULL,
+        dest="user",
+        help="Don't initialize conda for the current user.",
     )
     setup_type_group.add_argument(
         "--system",
@@ -1840,14 +1811,15 @@ def add_parser_solver(p):
     Add a command-line flag for alternative solver backends.
 
     See ``context.solver`` for more info.
-
-    TODO: This will be replaced by a proper plugin mechanism in the future.
     """
+    solver_choices = [
+        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
+    ]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=[v.value for v in SolverChoice],
+        choices=solver_choices,
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -1855,7 +1827,7 @@ def add_parser_solver(p):
         "--experimental-solver",
         action=PendingDeprecationAction,
         dest="solver",
-        choices=[v.value for v in SolverChoice],
+        choices=solver_choices,
         help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )

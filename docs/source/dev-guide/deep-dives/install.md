@@ -6,9 +6,7 @@ Some resources that helped draft this document:
 * https://www.anaconda.com/blog/understanding-and-improving-condas-performance
 -->
 
-(deep_dive_install)=
-
-# Deep dive: conda install
+# `conda install`
 
 In this document we will explore what happens in Conda from the moment a user types their
 installation command until the process is finished successfully. For the sake of completeness,
@@ -40,7 +38,6 @@ Ok, so... what happens when you run `conda install numpy`? Roughly, these steps:
 6. Integrity verification
 7. Linking and unlinking files
 8. Post-linking and post-activation tasks
-
 
 ```{figure} /img/conda-install-deep-dive.png
 :name: conda-install-figure
@@ -108,8 +105,6 @@ Check the concepts for {ref}`concepts-conda-environments`.
 ```
 
 <!-- TODO: Maybe we do want to explain those checks? -->
-
-(deep_dive_install_index)=
 
 ## Fetching the index
 
@@ -282,7 +277,7 @@ The details are complicated, but in essence, the `Solver` will:
 2. Query the index for the best possible match that satisfy those constraints
 3. Return a list of `PackageRecord` objects
 
-The full details are covered in {ref}`deep_dive_solvers` if you are curious. Just keep in mind that
+The full details are covered in {doc}`solvers` if you are curious. Just keep in mind that
 point (1) is conda-specific, while (2) can be tackled, in principle, by any SAT solver.
 
 (solver_api_transactions)=

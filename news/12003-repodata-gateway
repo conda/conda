@@ -16,4 +16,5 @@
 
 ### Other
 
-* Add `--mach` and `--arch` options to `dev/start`. (#11851)
+* Refactor repodata.json fetching; update on-disk cache format. Based on work by
+  @FFY00. (#11600)

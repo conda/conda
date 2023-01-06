@@ -225,8 +225,7 @@ class PathActionsTests(TestCase):
                     dals(
                         f"""
                         #!/bin/sh
-                        '''exec' "{python_full_path}" "$0" "$@"
-                        ' '''
+                        '''exec' "{python_full_path}" "$0" "$@" #'''
                         """
                     )
                 )

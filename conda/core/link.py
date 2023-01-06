@@ -3,6 +3,7 @@
 
 import itertools
 from collections import defaultdict, namedtuple
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, join
@@ -13,9 +14,9 @@ from textwrap import indent
 import warnings
 
 try:
-    from tlz.itertoolz import concat, interleave
+    from tlz.itertoolz import interleave
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, interleave
+    from conda._vendor.toolz.itertoolz import interleave
 
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
@@ -272,7 +273,7 @@ class UnlinkLinkTransaction:
                 for msg_file in all_msg_subdir:
                     print(f"  File {msg_file.name}:\n")
                     print(indent(msg_file.read_text(), "  "))
-                    print("")
+                    print()
         if flag_pre_link:
             confirm_yn()
 
@@ -282,7 +283,9 @@ class UnlinkLinkTransaction:
 
         assert not context.dry_run
         try:
-            self._execute(tuple(concat(interleave(self.prefix_action_groups.values()))))
+            self._execute(
+                tuple(chain.from_iterable(interleave(self.prefix_action_groups.values())))
+            )
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
@@ -293,7 +296,9 @@ class UnlinkLinkTransaction:
         elif not self.prefix_setups:
             self._pfe = pfe = ProgressiveFetchExtract(())
         else:
-            link_precs = set(concat(stp.link_precs for stp in self.prefix_setups.values()))
+            link_precs = set(
+                chain.from_iterable(stp.link_precs for stp in self.prefix_setups.values())
+            )
             self._pfe = pfe = ProgressiveFetchExtract(link_precs)
         return pfe
 
@@ -435,9 +440,9 @@ class UnlinkLinkTransaction:
 
     @staticmethod
     def _verify_individual_level(prefix_action_group):
-        all_actions = concat(axngroup.actions
-                             for action_groups in prefix_action_group
-                             for axngroup in action_groups)
+        all_actions = chain.from_iterable(
+            axngroup.actions for action_groups in prefix_action_group for axngroup in action_groups
+        )
 
         # run all per-action (per-package) verify methods
         #   one of the more important of these checks is to verify that a file listed in
@@ -496,10 +501,12 @@ class UnlinkLinkTransaction:
                 elif isinstance(link_path_action, CreateNonadminAction):
                     continue
                 else:
-                    target_short_paths = ((link_path_action.target_short_path, )
-                                          if not hasattr(link_path_action, 'link_type') or
-                                          link_path_action.link_type != LinkType.directory
-                                          else tuple())
+                    target_short_paths = (
+                        (link_path_action.target_short_path,)
+                        if not hasattr(link_path_action, "link_type")
+                        or link_path_action.link_type != LinkType.directory
+                        else ()
+                    )
                 for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)

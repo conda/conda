@@ -231,7 +231,7 @@ def print_envs_list(known_conda_prefixes, output=True):
         disp_env(prefix)
 
     if output:
-        print('')
+        print()
 
 
 def check_non_admin():

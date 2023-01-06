@@ -8,6 +8,7 @@ import os
 from collections import defaultdict
 from concurrent.futures import as_completed, ThreadPoolExecutor, Future
 from errno import EACCES, ENOENT, EPERM, EROFS
+from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
@@ -15,11 +16,6 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 from functools import partial
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -167,7 +163,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pkgs_dirs is None:
             pkgs_dirs = context.pkgs_dirs
 
-        return concat(
+        return chain.from_iterable(
             pcache.query(package_ref_or_match_spec)
             for pcache in cls.all_caches_writable_first(pkgs_dirs)
         )
@@ -224,7 +220,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         package_caches = (cls(pd) for pd in context.pkgs_dirs)
         return tuple(
             pc_entry
-            for pc_entry in concat(package_cache.values() for package_cache in package_caches)
+            for pc_entry in chain.from_iterable(
+                package_cache.values() for package_cache in package_caches
+            )
             if pc_entry.is_extracted
         )
 
@@ -556,7 +554,7 @@ class ProgressiveFetchExtract:
         extracted_pcrec = next(
             (
                 pcrec
-                for pcrec in concat(
+                for pcrec in chain.from_iterable(
                     PackageCacheData(pkgs_dir).query(pref_or_spec)
                     for pkgs_dir in context.pkgs_dirs
                 )
@@ -575,7 +573,7 @@ class ProgressiveFetchExtract:
         pcrec_from_writable_cache = next(
             (
                 pcrec
-                for pcrec in concat(
+                for pcrec in chain.from_iterable(
                     pcache.query(pref_or_spec) for pcache in PackageCacheData.writable_caches()
                 )
                 if pcrec.is_fetched
@@ -602,7 +600,7 @@ class ProgressiveFetchExtract:
         pcrec_from_read_only_cache = next(
             (
                 pcrec
-                for pcrec in concat(
+                for pcrec in chain.from_iterable(
                     pcache.query(pref_or_spec) for pcache in PackageCacheData.read_only_caches()
                 )
                 if pcrec.is_fetched

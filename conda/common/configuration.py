@@ -26,10 +26,10 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, unique
+    from tlz.itertoolz import unique
     from tlz.dicttoolz import merge, merge_with
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
+    from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
 
 from .compat import isiterable, odict, primitive_types
@@ -442,7 +442,7 @@ class DefaultValueRawParameter(RawParameter):
         if isinstance(self._raw_value, Mapping):
             return frozendict()
         elif isiterable(self._raw_value):
-            return tuple()
+            return ()
         elif isinstance(self._raw_value, ConfigurationObject):
             return None
         elif isinstance(self._raw_value, Enum):
@@ -769,17 +769,20 @@ class SequenceLoadedParameter(LoadedParameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_marked_lines(match, marker):
-            return tuple(line
-                         for line, flag in zip(match.value,
-                                               match.value_flags)
-                         if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m, _ in
-                           relevant_matches_and_values)
+            return (
+                tuple(line for line, flag in zip(match.value, match.value_flags) if flag is marker)
+                if match
+                else ()
+            )
+
+        top_lines = chain.from_iterable(
+            get_marked_lines(m, ParameterFlag.top) for m, _ in relevant_matches_and_values
+        )
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
         bottom_lines = tuple(
-            concat(
+            chain.from_iterable(
                 get_marked_lines(match, ParameterFlag.bottom)
                 for match, _ in reversed(relevant_matches_and_values)
             )
@@ -787,7 +790,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
+        all_lines = chain.from_iterable(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
         top_deduped = tuple(unique((*top_lines, *all_lines)))
@@ -1080,11 +1083,12 @@ class SequenceParameter(Parameter):
         if value is None:
             return SequenceLoadedParameter(
                 name,
-                tuple(),
+                (),
                 self._element_type,
                 match.keyflag(),
-                tuple(),
-                validation=self._validation)
+                (),
+                validation=self._validation,
+            )
 
         if not isiterable(value):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
@@ -1137,7 +1141,7 @@ class ObjectParameter(Parameter):
                 None,
                 validation=self._validation)
 
-        if not (isinstance(value, Mapping) or isinstance(value, ConfigurationObject)):
+        if not isinstance(value, (Mapping, ConfigurationObject)):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
                                    self._type.__name__)
 
@@ -1283,7 +1287,7 @@ class Configuration(metaclass=ConfigurationType):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = odict()
-        self._cache_ = dict()
+        self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
@@ -1333,7 +1337,7 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def _reset_cache(self):
-        self._cache_ = dict()
+        self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
         return self
