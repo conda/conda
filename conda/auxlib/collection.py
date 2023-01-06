@@ -42,7 +42,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
+def first(seq, key=bool, default=None, apply=lambda x: x):
     """Give the first value that satisfies the key test.
 
     Args:
@@ -79,7 +79,7 @@ def firstitem(map, key=lambda k, v: bool(k), default=None, apply=lambda k, v: (k
     return next((apply(k, v) for k, v in map if key(k, v)), default)
 
 
-def last(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
+def last(seq, key=bool, default=None, apply=lambda x: x):
     return next((apply(x) for x in reversed(seq) if key(x)), default)
 
 

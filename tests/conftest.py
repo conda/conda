@@ -1,10 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from pathlib import Path
 import subprocess
-import sys
+from pathlib import Path
 
 import pytest
+
+from . import http_test_server
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -39,13 +40,26 @@ def clear_cache():
     SubdirData._cache_.clear()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def support_file_server():
     """
     Open a local web server to test remote support files.
     """
     base = Path(__file__).parents[0] / "conda_env" / "support"
-    port = "8928"   # randomly chosen
-    proc = subprocess.Popen([sys.executable, "-m", "http.server", "-b", "127.0.0.1", "--directory", base, port])
-    yield
-    proc.kill()
+    http = http_test_server.run_test_server(str(base))
+    yield http
+    # shutdown is checked at a polling interval, or the daemon thread will shut
+    # down when the test suite exits.
+    http.shutdown()
+
+
+@pytest.fixture
+def support_file_server_port(support_file_server):
+    return support_file_server.socket.getsockname()[1]
+
+
+@pytest.fixture
+def clear_cuda_version():
+    from conda.plugins.virtual_packages import cuda
+
+    cuda.cached_cuda_version.cache_clear()

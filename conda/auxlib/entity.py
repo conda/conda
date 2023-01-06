@@ -717,7 +717,7 @@ class EntityType(type):
                                        for base in entity_subclasses)]
             dct[KEY_OVERRIDES_MAP] = {key: dct.pop(key) for key in keys_to_override}
         else:
-            dct[KEY_OVERRIDES_MAP] = dict()
+            dct[KEY_OVERRIDES_MAP] = {}
 
         return super().__new__(mcs, name, bases, dct)
 
@@ -777,7 +777,7 @@ class Entity(metaclass=EntityType):
 
     @classmethod
     def from_objects(cls, *objects, **override_fields):
-        init_vars = dict()
+        init_vars = {}
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
         for key, field in cls.__fields__.items():

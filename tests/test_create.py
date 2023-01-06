@@ -108,7 +108,7 @@ class IntegrationTests(BaseTestCase):
                     assert args[i] == line.replace('\r', '')
 
     def test_create_install_update_remove_smoketest(self):
-        with make_temp_env("python=3.8") as prefix:
+        with make_temp_env("python=3.9") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
@@ -442,7 +442,7 @@ class IntegrationTests(BaseTestCase):
         # We elect to test the more complex of the two options.
         py_ver = "3.9"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
@@ -465,7 +465,7 @@ class IntegrationTests(BaseTestCase):
         from conda.exports import rm_rf as _rm_rf
         py_ver = "3.9"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
@@ -554,8 +554,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-2.0.2"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.0.2', '--json')
+        with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.1.3', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
@@ -1087,10 +1087,10 @@ dependencies:
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
-            flask_python = '3.6'
-            with make_temp_env("python=3.7", use_restricted_unicode=True) as prefix:
+            flask_python = '3.8' # oldest available for osx-arm64
+            with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
 
-                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
+                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
                 run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
                 run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)
@@ -1404,6 +1404,7 @@ dependencies:
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
+    # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
     @pytest.mark.skipif(context.subdir == "win-32", reason="metadata is wrong; give python2.7")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
@@ -1575,8 +1576,13 @@ dependencies:
 
 
     def test_conda_pip_interop_conda_editable_package(self):
-        with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
+        with env_vars(
+            {"CONDA_REPORT_ERRORS": "false", "CONDA_RESTORE_FREE_CHANNEL": True},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            with make_temp_env(
+                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
+            ) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1869,7 +1875,7 @@ dependencies:
                     # corresponding HTTP header. This test is supposed to test
                     # whether the --use-index-cache causes the cache to be used.
                     result = orig_get(self, url, **kwargs)
-                    for header in ['Etag', 'Last-Modified', 'Cache-Control']:
+                    for header in ("Etag", "Last-Modified", "Cache-Control"):
                         if header in result.headers:
                             del result.headers[header]
                     return result
@@ -1899,7 +1905,7 @@ dependencies:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                    with make_temp_channel(['flask-0.12.2']) as channel:
+                    with make_temp_channel(['flask-2.1.3']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
                         run_command(Commands.CLEAN, "", "--index-cache", "--yes")
@@ -2099,15 +2105,15 @@ dependencies:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
-            assert package_is_installed(prefix, 'flask=2.0.1')
+            run_command(Commands.INSTALL, prefix, 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.1.3')
 
             from conda.core.path_actions import CreatePrefixRecordAction
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
-                    run_command(Commands.INSTALL, prefix, 'flask=2.0.2')
-                assert package_is_installed(prefix, 'flask=2.0.1')
+                    run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
+                assert package_is_installed(prefix, 'flask=2.1.3')
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2256,9 +2262,14 @@ dependencies:
     @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_legacy_repodata(self):
         channel = join(dirname(abspath(__file__)), 'data', 'legacy_repodata')
-        with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'moto=1.3.7')
+        subdir = context.subdir
+        if subdir not in ("win-64", "linux-64", "osx-64"):
+            # run test even though default subdir doesn't have dependencies
+            subdir = "linux-64"
+        with env_var("CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
+                assert exists(join(prefix, PYTHON_BINARY))
+                assert package_is_installed(prefix, 'moto=1.3.7')
 
     @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_cross_channel_incompatibility(self):

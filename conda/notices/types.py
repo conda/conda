@@ -47,7 +47,7 @@ class ChannelNoticeResponse(NamedTuple):
     @property
     def notices(self) -> Sequence[ChannelNotice]:
         if self.json_data:
-            notices = self.json_data.get("notices", tuple())
+            notices = self.json_data.get("notices", ())
 
             return tuple(
                 ChannelNotice(
@@ -63,7 +63,7 @@ class ChannelNoticeResponse(NamedTuple):
             )
 
         # Default value
-        return tuple()
+        return ()
 
     @staticmethod
     def _parse_notice_level(level: Optional[str]) -> NoticeLevel:

@@ -26,7 +26,7 @@ from .path import expand
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
-from .._vendor.tqdm import tqdm
+from tqdm import tqdm
 
 log = getLogger(__name__)
 
