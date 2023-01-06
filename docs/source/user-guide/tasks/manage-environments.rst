@@ -850,6 +850,8 @@ EXAMPLE: A more complex environment file:
        - Flask-Testing
 
 .. note::
+   **Using wildcards**
+
    Note the use of the wildcard * when defining the patch version
    number. Defining the version number by fixing the major and minor
    version numbers while allowing the patch version number to vary
@@ -857,7 +859,8 @@ EXAMPLE: A more complex environment file:
    to get any bug fixes whilst still maintaining consistency of
    software environment.
 
-.. note::
+   **Specifying channels outside of "channels"**
+
    You may occasionally want to specify which channel conda will
    use to install a specific package. To accomplish this, use the
    `channel::package` syntax in `dependencies:`, as demonstrated
