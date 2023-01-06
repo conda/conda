@@ -210,7 +210,7 @@ class RawParameter(metaclass=ABCMeta):
         return str(vars(self))
 
     @abstractmethod
-    def value(self, parameter_obj=None):
+    def value(self, parameter_obj):
         raise NotImplementedError()
 
     @abstractmethod
@@ -231,7 +231,8 @@ class RawParameter(metaclass=ABCMeta):
 class EnvRawParameter(RawParameter):
     source = 'envvars'
 
-    def value(self, parameter_obj=None):
+    def value(self, parameter_obj):
+        breakpoint()
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, 'string_delimiter'):
@@ -273,7 +274,7 @@ class EnvRawParameter(RawParameter):
 class ArgParseRawParameter(RawParameter):
     source = 'cmd_line'
 
-    def value(self, parameter_obj=None):
+    def value(self, parameter_obj):
         # note: this assumes ArgParseRawParameter will only have flat configuration of either
         # primitive or sequential type
         if isiterable(self._raw_value):
@@ -327,7 +328,7 @@ class YamlRawParameter(RawParameter):
             print(type(self._raw_value), self._raw_value, file=sys.stderr)
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
-    def value(self, parameter_obj=None):
+    def value(self, parameter_obj):
         return self._value
 
     def keyflag(self):
@@ -436,7 +437,7 @@ class DefaultValueRawParameter(RawParameter):
         else:
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
-    def value(self, parameter_obj=None):
+    def value(self, parameter_obj):
         return self._value
 
     def keyflag(self):
@@ -1156,13 +1157,13 @@ class SequenceParameter(Parameter):
         to parse it.
         """
         element_type = None
-        raw_value = match.value()
+        raw_value = match.value(None)
 
         if isinstance(raw_value, primitive_types):
             element_type = self._primitive_type
         elif self._map_type is not None and isinstance(raw_value, Mapping):
             element_type = self._map_type
-        elif self._map_type is not None and isinstance(raw_value, Sequence):
+        elif self._sequence_type is not None and isinstance(raw_value, Sequence):
             element_type = self._sequence_type
 
         if element_type is None:

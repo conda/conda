@@ -317,6 +317,10 @@ class SampleConfiguration(Configuration):
         SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str)))
     )
 
+    custom_delimiter = ParameterLoader(
+        SequenceParameter(PrimitiveParameter(""), string_delimiter="#")
+    )
+
     test_object = ParameterLoader(
         ObjectParameter(DummyTestObject()))
 
@@ -702,3 +706,19 @@ class ConfigurationTests(TestCase):
             ("test_one", "test_two"),
             {"map_key": {"map_sub_key": "map_value"}},
         )
+
+    def test_custom_delimiter(self):
+        def make_key(appname, key):
+            return f"{appname.upper()}_{key.upper()}"
+
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, "custom_delimiter")] = "item1#item2"
+
+        try:
+            environ.update(test_dict)
+            assert "MYAPP_CUSTOM_DELIMITER" in environ
+            config = SampleConfiguration()._set_env_vars(appname)
+            assert config.custom_delimiter == ("item1", "item2")
+        finally:
+            [environ.pop(key) for key in test_dict]
