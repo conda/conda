@@ -842,7 +842,7 @@ def solver_class():
 
 
 @contextmanager
-def temp_context(condarc: str) -> Generator[Context, None, None]:
+def context_from_yaml(condarc: str) -> Generator[Context, None, None]:
     """
     Context manager that resets the context with the provide `condarc` string.
     This string should be in the YAML format.

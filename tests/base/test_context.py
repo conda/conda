@@ -8,6 +8,7 @@ from os.path import join, abspath
 from pathlib import Path
 from tempfile import gettempdir
 from unittest import TestCase, mock
+from collections.abc import Sequence
 
 import pytest
 
@@ -36,7 +37,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
-from conda.testing.helpers import tempdir, temp_context
+from conda.testing.helpers import tempdir, context_from_yaml
 
 
 class ContextCustomRcTests(TestCase):
@@ -563,7 +564,7 @@ def test_reading_channel_parameters_valid_parameters():
     Tests the retrieval of channel_parameters from context object with a valid
     condarc file.
     """
-    with temp_context(VALID_CONDARC_WITH_CHANNEL_PARAMETERS) as context_obj:
+    with context_from_yaml(VALID_CONDARC_WITH_CHANNEL_PARAMETERS) as context_obj:
         assert context_obj.channels == ("defaults", "conda-forge", "http://localhost")
 
         local_channel_params = context_obj.channel_parameters.get("http://localhost")
@@ -584,7 +585,7 @@ def test_condarc_file_with_bad_parameters():
     better than blowing up in a stack trace. This tests helps ensure at least
     that doesn't happen.
     """
-    with temp_context(INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1) as context_obj:
+    with context_from_yaml(INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1) as context_obj:
         valid_types = "str"
         with pytest.raises(InvalidTypeError) as exc_info:
             getattr(context_obj, "channels")
@@ -597,7 +598,7 @@ def test_condarc_file_with_single_channel():
     """
     condarc = "channels: testing"
 
-    with temp_context(condarc) as context_obj:
+    with context_from_yaml(condarc) as context_obj:
         valid_types = "Sequence[PrimitiveParameter],Sequence[MapParameter]"
         with pytest.raises(InvalidTypeError) as exc_info:
             getattr(context_obj, "channels")

@@ -1127,11 +1127,16 @@ class SequenceParameter(Parameter):
         self._sequence_type = next_instance(element_type, SequenceParameter)
 
         self._element_type = (self._primitive_type, self._map_type, self._sequence_type)
-        self._set_valid_types_str(self._element_type)
+
+        # String representation of valid types; primarily used for exception messages
+        valid_types = tuple(
+            f"Sequence[{typ.__class__.__name__}]" for typ in self._element_type if typ
+        )
+        self._valid_types = ",".join(valid_types)
 
         self.string_delimiter = string_delimiter  # This is need for parsing environment variables
 
-        super().__init__(default, validation)
+        super().__init__(default or tuple(), validation)
 
     def get_all_matches(self, name, names, instance):
         """
@@ -1143,15 +1148,7 @@ class SequenceParameter(Parameter):
 
         return matches, exceptions
 
-    def _set_valid_types_str(self, element_types: Sequence[SequenceElementTypes]) -> None:
-        """
-        Returns a string representation for the valid types this parameter accepts.
-        This is primarily used for error messages.
-        """
-        valid_types = tuple(f"Sequence[{typ.__class__.__name__}]" for typ in element_types if typ)
-        self._valid_types = ",".join(valid_types)
-
-    def _get_element_type_from_value(
+    def get_element_type_from_value(
         self, name: str, match: RawParameter, index: int
     ) -> SequenceElementTypes:
         """
@@ -1187,7 +1184,7 @@ class SequenceParameter(Parameter):
         if value is None:
             return SequenceLoadedParameter(
                 name,
-                (),
+                tuple(),
                 self._element_type,
                 match.keyflag(),
                 tuple(),
@@ -1201,7 +1198,7 @@ class SequenceParameter(Parameter):
 
         loaded_sequence = []
         for index, child_value in enumerate(value):
-            element_type = self._get_element_type_from_value(name, child_value, index)
+            element_type = self.get_element_type_from_value(name, child_value, index)
             loaded_child_value = element_type.load(name, child_value)
             loaded_sequence.append(loaded_child_value)
 
