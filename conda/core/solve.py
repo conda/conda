@@ -3,16 +3,12 @@
 
 import copy
 from genericpath import exists
+from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
 import warnings
 from textwrap import dedent
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -93,7 +89,7 @@ class Solver:
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
-        self.neutered_specs = tuple()
+        self.neutered_specs = ()
         self._command = command
 
         assert all(s in context.known_subdirs for s in self.subdirs)
@@ -459,9 +455,12 @@ class Solver:
             # SAT for spec removal determination, we can use the PrefixGraph and simple tree
             # traversal if we're careful about how we handle features. We still invoke sat via
             # `r.solve()` later.
-            _track_fts_specs = (spec for spec in self.specs_to_remove if 'track_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('track_features')
-                                       for spec in _track_fts_specs))
+            _track_fts_specs = (spec for spec in self.specs_to_remove if "track_features" in spec)
+            feature_names = set(
+                chain.from_iterable(
+                    spec.get_raw_value("track_features") for spec in _track_fts_specs
+                )
+            )
             graph = PrefixGraph(ssc.solution_precs, ssc.specs_map.values())
 
             all_removed_records = []
@@ -595,7 +594,7 @@ class Solver:
                 tuple(record.to_match_spec() for record in ssc.prefix_data.iter_records()),
                 self.specs_to_add,
             )
-            or tuple()
+            or ()
         )
         conflict_specs = {_.name for _ in conflict_specs}
 
@@ -795,8 +794,9 @@ class Solver:
         while conflicting_specs:
             specs_modified = False
             if log.isEnabledFor(DEBUG):
-                log.debug("conflicting specs: %s", dashlist(
-                    s.target if s.target else s for s in conflicting_specs))
+                log.debug(
+                    "conflicting specs: %s", dashlist(s.target or s for s in conflicting_specs)
+                )
 
             # Are all conflicting specs in specs_map? If not, that means they're in
             # track_features_specs or pinned_specs, which we should raise an error on.

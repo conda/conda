@@ -7,11 +7,6 @@ import platform
 import sys
 import warnings
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
-
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
@@ -39,9 +34,9 @@ def check_whitelist(channel_urls):
 
 def check_allowlist(channel_urls):
     if context.allowlist_channels:
-        allowlist_channel_urls = tuple(concat(
-            Channel(c).base_urls for c in context.allowlist_channels
-        ))
+        allowlist_channel_urls = tuple(
+            chain.from_iterable(Channel(c).base_urls for c in context.allowlist_channels)
+        )
         for url in channel_urls:
             these_urls = Channel(url).base_urls
             if not all(this_url in allowlist_channel_urls for this_url in these_urls):
@@ -67,7 +62,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         unknown = True
 
     channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    del LAST_CHANNEL_URLS[:]
+    LAST_CHANNEL_URLS.clear()
     LAST_CHANNEL_URLS.extend(channel_urls)
 
     check_allowlist(channel_urls)
@@ -145,12 +140,12 @@ def _supplement_index_with_cache(index):
             index[pcrec] = pcrec
 
 
-def _make_virtual_package(name, version=None, build_string='0'):
+def _make_virtual_package(name, version=None, build_string=None):
     return PackageRecord(
             package_type=PackageType.VIRTUAL_SYSTEM,
             name=name,
             version=version or '0',
-            build_string=build_string,
+            build_string=build_string or '0',
             channel='@',
             subdir=context.subdir,
             md5="12345678901234567890123456789012",
@@ -174,6 +169,8 @@ def _supplement_index_with_system(index):
     registered_names = []
     packages = context.plugin_manager.get_hook_results("virtual_packages")
     for package in packages:
+        if package.name is None:
+            continue
         if package.name in registered_names:
             raise PluginError(
                 "Conflicting virtual package entries found for the "
@@ -184,10 +181,8 @@ def _supplement_index_with_system(index):
             )
         registered_names.append(package.name)
 
-        rec = _make_virtual_package(f"__{package.name}", package.version)
-
-        if package.version is not None:
-            index[rec] = rec
+        rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
+        index[rec] = rec
 
 
 def get_archspec_name():

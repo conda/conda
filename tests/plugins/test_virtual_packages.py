@@ -20,14 +20,17 @@ class VirtualPackagesPlugin:
         yield CondaVirtualPackage(
             name="abc",
             version="123",
+            build=None,
         )
         yield CondaVirtualPackage(
             name="def",
             version="456",
+            build=None,
         )
         yield CondaVirtualPackage(
             name="ghi",
             version="789",
+            build="xyz",
         )
 
 
@@ -52,6 +55,7 @@ def test_invoked(plugin):
     assert packages["__abc"].version == "123"
     assert packages["__def"].version == "456"
     assert packages["__ghi"].version == "789"
+    assert packages["__ghi"].build == "xyz"
 
 
 def test_duplicated(plugin_manager):

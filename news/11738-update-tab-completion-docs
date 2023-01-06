@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Fixed bad URL to Introduction to conda for Data Scientists course in conda docs. (#9782)
+* Optional Bash completion support has been removed starting in v4.4.0, and not just deprecated. (#11171)
 
 ### Other
 

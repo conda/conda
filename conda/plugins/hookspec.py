@@ -30,8 +30,13 @@ class CondaSpecs:
 
         .. code-block:: python
 
+            import logging
+
             from conda import plugins
             from conda.core import solve
+
+
+            log = logging.getLogger(__name__)
 
 
             class VerboseSolver(solve.Solver):
@@ -96,6 +101,7 @@ class CondaSpecs:
                 yield plugins.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
+                    build="x86_64",
                 )
 
         """

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-import itertools
 import json
 import pathlib
 import pickle
@@ -15,6 +14,7 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from io import open as io_open
+from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
@@ -134,7 +134,7 @@ class SubdirData(metaclass=SubdirDataType):
             else partial(ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads)
         )
         with Executor() as executor:
-            result = tuple(itertools.chain.from_iterable(executor.map(subdir_query, channel_urls)))
+            result = tuple(chain.from_iterable(executor.map(subdir_query, channel_urls)))
         return result
 
     def query(self, package_ref_or_match_spec):
@@ -151,7 +151,7 @@ class SubdirData(metaclass=SubdirDataType):
                         yield prec
             elif param.get_exact_value("track_features"):
                 track_features = param.get_exact_value("track") or ()
-                candidates = itertools.chain.from_iterable(
+                candidates = chain.from_iterable(
                     self._track_features_index[feature_name] for feature_name in track_features
                 )
                 for prec in candidates:
@@ -262,8 +262,11 @@ class SubdirData(metaclass=SubdirDataType):
         """
         try:
             state_path = pathlib.Path(self.cache_path_state)
-            state = json.loads(state_path.read_text())
-            log.debug("Load state from %s", state_path)
+            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
+            # efficient according to scalene profiler; about equal to
+            # json.loads(state_path.read_text()) and better that open("rb")
+            with state_path.open("r") as s:
+                state = json.load(s)
             return state
         except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
@@ -414,6 +417,18 @@ class SubdirData(metaclass=SubdirDataType):
                 self._pickle_me()
                 return _internal_state
 
+    def _pickle_valid_checks(self, pickled_state, mod, etag):
+        """
+        Throw away the pickle if these don't all match.
+        """
+        yield "_url", pickled_state.get("_url"), self.url_w_credentials
+        yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
+        yield "_add_pip", pickled_state.get("_add_pip"), context.add_pip_as_python_dependency
+        yield "_mod", pickled_state.get("_mod"), mod
+        yield "_etag", pickled_state.get("_etag"), etag
+        yield "_pickle_version", pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
+        yield "fn", pickled_state.get("fn"), self.repodata_fn
+
     def _read_pickled(self, state):
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
@@ -430,17 +445,11 @@ class SubdirData(metaclass=SubdirDataType):
             rm_rf(self.cache_path_pickle)
             return None
 
-        def _pickle_valid_checks():
-            yield "_url", _pickled_state.get("_url"), self.url_w_credentials
-            yield "_schannel", _pickled_state.get("_schannel"), self.channel.canonical_name
-            yield "_add_pip", _pickled_state.get("_add_pip"), context.add_pip_as_python_dependency
-            yield "_mod", _pickled_state.get("_mod"), state.get("_mod")
-            yield "_etag", _pickled_state.get("_etag"), state.get("_etag")
-            yield "_pickle_version", _pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
-            yield "fn", _pickled_state.get("fn"), self.repodata_fn
+        def checks():
+            return self._pickle_valid_checks(_pickled_state, state.get("_mod"), state.get("_etag"))
 
         def _check_pickled_valid():
-            for _, left, right in _pickle_valid_checks():
+            for _, left, right in checks():
                 yield left == right
 
         if not all(_check_pickled_valid()):
@@ -448,7 +457,7 @@ class SubdirData(metaclass=SubdirDataType):
                 "Pickle load validation failed for %s at %s. %r",
                 self.url_w_repodata_fn,
                 self.cache_path_json,
-                tuple(_pickle_valid_checks()),
+                tuple(checks()),
             )
             return None
 
@@ -572,7 +581,7 @@ def read_mod_and_etag(path):
     with open(path, "rb") as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = itertools.islice(re.finditer(REPODATA_HEADER_RE, m), 3)
+                match_objects = islice(re.finditer(REPODATA_HEADER_RE, m), 3)
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
         except (BufferError, ValueError):  # pragma: no cover
@@ -630,7 +639,9 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     # this function should no longer be used by conda but is kept for API stability
     warnings.warn(
-        "fetch_repodata_remote_request",
+        "The `conda.core.subdir_data.fetch_repodata_remote_request` function "
+        "is pending deprecation and will be removed in the future. "
+        "Please use `conda.core.subdir_data.SubdirData` instead.",
         PendingDeprecationWarning,
     )
 

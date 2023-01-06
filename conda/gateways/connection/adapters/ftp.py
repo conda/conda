@@ -223,7 +223,6 @@ def data_callback_factory(variable):
     variable should be a file-like structure."""
     def callback(data):
         variable.write(data)
-        return
 
     return callback
 

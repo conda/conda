@@ -47,6 +47,11 @@ class RepoInterface(abc.ABC):
     # TODO: Support async operations
     # TODO: Support progress bars
     def repodata(self, state: dict) -> str:
+        """
+        Given a mutable state dictionary with information about the cache,
+        return repodata.json (or current_repodata.json) as a str. This function
+        also updates state, which is expected to be saved by the caller.
+        """
         ...
 
 
