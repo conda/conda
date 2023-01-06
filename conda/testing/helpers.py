@@ -18,10 +18,9 @@ from tempfile import gettempdir, mkdtemp
 from uuid import uuid4
 from pathlib import Path
 from unittest.mock import patch
-from collections.abc import Generator
 
 from .. import cli
-from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol, Context
+from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
 from ..common.configuration import YamlRawParameter, yaml_round_trip_load
@@ -841,12 +840,17 @@ def solver_class():
     return context.plugin_manager.get_cached_solver_backend()
 
 
-@contextmanager
-def context_from_yaml(condarc: str) -> Generator[Context, None, None]:
+@pytest.fixture()
+def context_from_yaml(request):
     """
-    Context manager that resets the context with the provide `condarc` string.
+    Fixture that resets the context with the provide `condarc` string.
     This string should be in the YAML format.
+
+    You can pass parameters to this fixture. See the following link for more information:
+    https://docs.pytest.org/en/latest/example/parametrize.html#apply-indirect-on-particular-arguments
     """
+    condarc = request.param
+
     context_obj = reset_context(())
     testdata = YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
     context._set_raw_data({"testdata": testdata})

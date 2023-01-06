@@ -8,7 +8,7 @@ from os.path import join, abspath
 from pathlib import Path
 from tempfile import gettempdir
 from unittest import TestCase, mock
-from collections.abc import Sequence
+from typing import cast
 
 import pytest
 
@@ -37,7 +37,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
-from conda.testing.helpers import tempdir, context_from_yaml
+from conda.testing.helpers import tempdir
 
 
 class ContextCustomRcTests(TestCase):
@@ -559,23 +559,30 @@ channels:
 """
 
 
-def test_reading_channel_parameters_valid_parameters():
+@pytest.mark.parametrize(
+    "context_from_yaml", [VALID_CONDARC_WITH_CHANNEL_PARAMETERS], indirect=True
+)
+def test_reading_channel_parameters_valid_parameters(context_from_yaml):
     """
     Tests the retrieval of channel_parameters from context object with a valid
     condarc file.
     """
-    with context_from_yaml(VALID_CONDARC_WITH_CHANNEL_PARAMETERS) as context_obj:
-        assert context_obj.channels == ("defaults", "conda-forge", "http://localhost")
+    context_from_yaml = cast(context_from_yaml, context)
 
-        local_channel_params = context_obj.channel_parameters.get("http://localhost")
+    assert context_from_yaml.channels == ("defaults", "conda-forge", "http://localhost")
 
-        assert local_channel_params is not None
+    local_channel_params = context_from_yaml.channel_parameters.get("http://localhost")
 
-        assert local_channel_params["authentication"] == "test-auth"
-        assert local_channel_params["test_param"] == "test-value"
+    assert local_channel_params is not None
+
+    assert local_channel_params["authentication"] == "test-auth"
+    assert local_channel_params["test_param"] == "test-value"
 
 
-def test_condarc_file_with_bad_parameters():
+@pytest.mark.parametrize(
+    "context_from_yaml", [INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1], indirect=True
+)
+def test_condarc_file_with_bad_parameters(context_from_yaml):
     """
     This test checks that the appropriate error is thrown when reading a condarc file that
     has channel parameters defined in an incorrect way. The goal here is to give users
@@ -585,21 +592,21 @@ def test_condarc_file_with_bad_parameters():
     better than blowing up in a stack trace. This tests helps ensure at least
     that doesn't happen.
     """
-    with context_from_yaml(INVALID_CONDARC_WITH_CHANNEL_PARAMETERS_1) as context_obj:
-        valid_types = "str"
-        with pytest.raises(InvalidTypeError) as exc_info:
-            getattr(context_obj, "channels")
-        assert exc_info.value.valid_types == valid_types
+    valid_types = "str"
+    with pytest.raises(InvalidTypeError) as exc_info:
+        getattr(context_from_yaml, "channels")
+    assert exc_info.value.valid_types == valid_types
 
 
-def test_condarc_file_with_single_channel():
+BASIC_CONDARC = "channels: testing"
+
+
+@pytest.mark.parametrize("context_from_yaml", [BASIC_CONDARC], indirect=True)
+def test_condarc_file_with_single_channel(context_from_yaml):
     """
     Tests the case where "channels" is defined as a single string value
     """
-    condarc = "channels: testing"
-
-    with context_from_yaml(condarc) as context_obj:
-        valid_types = "Sequence[PrimitiveParameter],Sequence[MapParameter]"
-        with pytest.raises(InvalidTypeError) as exc_info:
-            getattr(context_obj, "channels")
-        assert exc_info.value.valid_types == valid_types
+    valid_types = "Sequence[PrimitiveParameter],Sequence[MapParameter]"
+    with pytest.raises(InvalidTypeError) as exc_info:
+        getattr(context_from_yaml, "channels")
+    assert exc_info.value.valid_types == valid_types
