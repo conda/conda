@@ -14,6 +14,7 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from io import open as io_open
+from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
@@ -21,13 +22,11 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-from itertools import islice, chain
-
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
     CondaRepoInterface,
-    RepoInterface,
     RepodataIsEmpty,
+    RepoInterface,
     Response304ContentUnchanged,
 )
 
@@ -39,6 +38,7 @@ from ..base.context import context
 from ..common.compat import ensure_binary, ensure_unicode
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
+from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
 from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
@@ -533,6 +533,7 @@ class SubdirData(metaclass=SubdirDataType):
             "subdir": subdir,
         }
 
+        channel_url = self.url_w_credentials
         legacy_packages = repodata.get("packages", {})
         conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
 
@@ -572,6 +573,8 @@ class SubdirData(metaclass=SubdirDataType):
 
                 # lazy
                 # package_record = PackageRecord(**info)
+                info["fn"] = fn
+                info["url"] = join_url(channel_url, fn)
                 _package_records.append(info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)
