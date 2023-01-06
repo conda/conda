@@ -23,7 +23,6 @@ from .. import cli
 from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
 from ..common.compat import encode_arguments
 from ..common.io import argv, captured as common_io_captured, env_var
-from ..common.configuration import YamlRawParameter, yaml_round_trip_load
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..gateways.disk.delete import rm_rf
@@ -838,23 +837,3 @@ def convert_to_dist_str(solution):
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_cached_solver_backend()
-
-
-@pytest.fixture()
-def context_from_yaml(request):
-    """
-    Fixture that resets the context with the provide `condarc` string.
-    This string should be in the YAML format.
-
-    You can pass parameters to this fixture. See the following link for more information:
-    https://docs.pytest.org/en/latest/example/parametrize.html#apply-indirect-on-particular-arguments
-    """
-    condarc = request.param
-
-    context_obj = reset_context(())
-    testdata = YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
-    context._set_raw_data({"testdata": testdata})
-
-    yield context_obj
-
-    reset_context()

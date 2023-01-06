@@ -69,3 +69,23 @@ def reset_conda_context():
     yield
 
     reset_context()
+
+
+@pytest.fixture()
+def context_from_yaml(request):
+    """
+    Fixture that resets the context with the provide `condarc` string.
+    This string should be in the YAML format.
+
+    You can pass parameters to this fixture. See the following link for more information:
+    https://docs.pytest.org/en/latest/example/parametrize.html#apply-indirect-on-particular-arguments
+    """
+    condarc = request.param
+
+    context_obj = reset_context(())
+    testdata = YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(condarc))
+    context._set_raw_data({"testdata": testdata})
+
+    yield context_obj
+
+    reset_context()
