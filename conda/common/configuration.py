@@ -1156,7 +1156,11 @@ class SequenceParameter(Parameter):
         to parse it.
         """
         element_type = None
-        raw_value = match.value(None)
+
+        if isinstance(match, EnvRawParameter):
+            raw_value = match.value(None)
+        else:
+            raw_value = match.value(self)
 
         if isinstance(raw_value, primitive_types):
             element_type = self._primitive_type
