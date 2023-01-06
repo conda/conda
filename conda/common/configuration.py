@@ -232,7 +232,6 @@ class EnvRawParameter(RawParameter):
     source = 'envvars'
 
     def value(self, parameter_obj):
-        breakpoint()
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, 'string_delimiter'):
