@@ -29,6 +29,18 @@ def conda_mock_dir(tmpdir):
     return tmpdir
 
 
+@pytest.fixture()
+def conda_mock_dir_missing_files(conda_mock_dir):
+    """Fixture that returns a testing environment with missing files"""
+    Path(conda_mock_dir).joinpath(BIN_TEST_EXE).unlink()
+
+
+def test_find_packages_with_no_missing_files(conda_mock_dir):
+    """Test that runs for the case with no missing files"""
+    result = health_checks.find_packages_with_missing_files(conda_mock_dir)
+    assert result == {}
+
+
 def test_find_packages_with_missing_files(conda_mock_dir):
     result = health_checks.find_packages_with_missing_files(conda_mock_dir)
     assert result[TEST_PACKAGE_JSON] == []
