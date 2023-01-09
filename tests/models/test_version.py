@@ -311,13 +311,22 @@ class TestVersionSpec(unittest.TestCase):
             VersionSpec("+1.2+")
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("++")
-        # Fuzzer-identified crasher:
+        # Fuzzer-identified crashers:
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("c +, 0/|0 *")
 
-        # Test for mishandling of '==' without a version number
+        # Weird crashing versions intended to test unhandled edge cases
+        # in the "treeify" process
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("a[version=)|(")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("a=)(=b")
+
+        # Test for mishandling of '=='  and '=' without a version number
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("==")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("=")
         # Additional tests based on the above
         with pytest.raises(InvalidVersionSpec):
             VersionSpec(">=")
