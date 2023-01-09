@@ -704,9 +704,10 @@ def _parse_spec_str(spec_str):
         # missing versions like "==", "<=", and ">=" "correctly."
         #
         # All of these "missing version" cases result from match specs like "numpy==",
-        # "numpy<=" or "numpy>=" which existing code indicates should be treated as an error
-        # and an exception raised.
-        if version == '==':
+        # "numpy<=", "numpy>=", "numpy= " (with trailing space). Existing code indicates
+        # these should be treated as an error and an exception raised.
+        # IMPORTANT: "numpy=" (no trailing space) is treated as valid.
+        if version == "==" or version == "=":
             pass
         # Otherwise,
         # translate version '=1.2.3' to '1.2.3*'
