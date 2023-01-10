@@ -1,32 +1,41 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import json
+import logging
+import os
+import signal
+import sys
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Executor, Future, _base, as_completed  # NOQA
+from concurrent.futures import (
+    Executor,
+    Future,
+    ThreadPoolExecutor,
+    _base,
+    as_completed,
+)
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
-import sys
 from io import BytesIO, StringIO
 from itertools import cycle
-import json
-import logging
-from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
-import os
+from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-import signal
-from threading import Event, Thread, Lock
+from threading import Event, Lock, Thread
 from time import sleep, time
 
-from .compat import on_win, encode_environment
-from .constants import NULL
-from .path import expand
+from tqdm import tqdm
+
+from conda._vendor.tqdm.std import TqdmDefaultWriteLock
+
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
-from tqdm import tqdm
+from .compat import encode_environment, on_win
+from .constants import NULL
+from .path import expand
 
 log = getLogger(__name__)
 
@@ -435,6 +444,14 @@ class Spinner:
 
 class ProgressBar:
 
+    @classmethod
+    def get_lock(cls):
+        # From tqdm. Used only for --json (our own sys.stdout.write/flush calls).
+        """Get the global lock. Construct it if it does not exist."""
+        if not hasattr(cls, "_lock"):
+            cls._lock = TqdmDefaultWriteLock()
+        return cls._lock
+
     def __init__(self, description, enabled=True, json=False, position=None, leave=True):
         """
         Args:
@@ -474,8 +491,11 @@ class ProgressBar:
     def update_to(self, fraction):
         try:
             if self.json and self.enabled:
-                sys.stdout.write('{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
-                                 % (self.description, fraction))
+                with self.get_lock():
+                    sys.stdout.write(
+                        '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
+                        % (self.description, fraction)
+                    )
             elif self.enabled:
                 self.pbar.update(fraction - self.pbar.n)
         except OSError as e:
@@ -495,9 +515,11 @@ class ProgressBar:
     @swallow_broken_pipe
     def close(self):
         if self.enabled and self.json:
-            sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                             % self.description)
-            sys.stdout.flush()
+            with self.get_lock():
+                sys.stdout.write(
+                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0' % self.description
+                )
+                sys.stdout.flush()
         elif self.enabled:
             self.pbar.close()
 
