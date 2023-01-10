@@ -8,8 +8,8 @@ import pluggy
 
 from .types import (
     CondaOnException,
-    CondaPostRun,
-    CondaPreRun,
+    CondaPostCommand,
+    CondaPreCommand,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -105,7 +105,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_pre_run(self) -> Iterable[CondaPreRun]:
+    def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
         """
         Register pre-run commands in conda.
 
@@ -121,22 +121,22 @@ class CondaSpecs:
             PLUGIN_NAME = "custom_plugin"
 
 
-            def custom_plugin_pre_run_action():
-                print("pre-run action")
+            def custom_plugin_pre_commands_action():
+                print("pre-command action")
 
 
             @plugins.hookimpl
-            def conda_pre_run():
+            def conda_pre_commands():
                 yield CondaPreRun(
-                    name=f"{PLUGIN_NAME}_pre_run",
-                    action=custom_plugin_pre_run_action,
+                    name=f"{PLUGIN_NAME}_pre_commands",
+                    action=custom_plugin_pre_commands_action,
                     run_for={"install", "create"},
                 )
 
         """
 
     @_hookspec
-    def conda_post_run(self) -> Iterable[CondaPostRun]:
+    def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
         Register post-run commands in conda.
 
@@ -152,15 +152,15 @@ class CondaSpecs:
             PLUGIN_NAME = "custom_plugin"
 
 
-            def custom_plugin_post_run_action():
-                print("post-run action")
+            def custom_plugin_post_commands_action():
+                print("post-command action")
 
 
             @plugins.hookimpl
-            def conda_post_run():
-                yield CondaPostRun(
-                    name=f"{PLUGIN_NAME}_post_run",
-                    action=custom_plugin_post_run_action,
+            def conda_post_commands():
+                yield CondaPostCommands(
+                    name=f"{PLUGIN_NAME}_post_commands",
+                    action=custom_plugin_post_commands_action,
                     run_for={"install", "create"},
                 )
 

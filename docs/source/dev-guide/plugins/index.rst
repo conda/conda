@@ -111,8 +111,8 @@ API reference
 
    manager
    on_exception
-   post_run
-   pre_run
+   post_command
+   pre_command
    solvers
    subcommands
    virtual_packages
