@@ -62,8 +62,8 @@ def get_repo_interface() -> type[RepoInterface]:
             from conda.gateways.repodata.repo_jlap import JlapRepoInterface
 
             return JlapRepoInterface
-        except ImportError:
-            warnings.warn("Unable to import repo_jlap. Is jsonpatch installed?")
+        except ImportError as e:
+            warnings.warn(f"Unable to import repo_jlap. Is jsonpatch installed?  {e}")
 
     return CondaRepoInterface
 
