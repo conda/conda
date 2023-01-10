@@ -48,3 +48,43 @@ class CondaSolver(NamedTuple):
 
     name: str
     backend: type[Solver]
+
+
+class CondaPreRun(NamedTuple):
+    """
+    Allows a plugin hook to execute before an invoked conda command is run.
+
+    :param name: Pre-run command name (e.g., ``custom_plugin_pre_run``).
+    :param action: Callable which contains the code to be run.
+    :param run_for: Represents the command(s) this will be run on (e.g. install or create).
+    """
+
+    name: str
+    action: Callable
+    run_for: str
+
+
+class CondaPostRun(NamedTuple):
+    """
+    Allows a plugin hook to execute after an invoked conda command is run.
+
+    :param name: Post-run command name (e.g., ``custom_plugin_post_run``).
+    :param action: Callable which contains the code to be run.
+    :param run_for: Represents the command(s) this will be run on (e.g. install or create).
+    """
+
+    name: str
+    action: Callable
+    run_for: str
+
+
+class CondaOnException(NamedTuple):
+    """
+    Runs when an exception is raised while a conda command is invoked.
+
+    :param name: On-exception command name (e.g., ``custom_plugin_on_exception``).
+    :param action: Callable which contains the code to be run.
+    """
+
+    name: str
+    action: Callable

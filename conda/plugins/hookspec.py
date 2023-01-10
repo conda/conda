@@ -6,7 +6,14 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaOnException,
+    CondaPostRun,
+    CondaPreRun,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -95,4 +102,95 @@ class CondaSpecs:
                 )
 
         :return: An iterable of virtual package entries.
+        """
+
+    @_hookspec
+    def conda_pre_run(self) -> Iterable[CondaPreRun]:
+        """
+        Register pre-run commands in conda.
+
+        :return: An iterable of pre-run commands.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            PLUGIN_NAME = "custom_plugin"
+
+
+            def custom_plugin_pre_run_action():
+                print("pre-run action")
+
+
+            @plugins.hookimpl
+            def conda_pre_run():
+                yield CondaPreRun(
+                    name=f"{PLUGIN_NAME}_pre_run",
+                    action=custom_plugin_pre_run_action,
+                    run_for={"install", "create"},
+                )
+
+        """
+
+    @_hookspec
+    def conda_post_run(self) -> Iterable[CondaPostRun]:
+        """
+        Register post-run commands in conda.
+
+        :return: An iterable of post-run commands.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            PLUGIN_NAME = "custom_plugin"
+
+
+            def custom_plugin_post_run_action():
+                print("post-run action")
+
+
+            @plugins.hookimpl
+            def conda_post_run():
+                yield CondaPostRun(
+                    name=f"{PLUGIN_NAME}_post_run",
+                    action=custom_plugin_post_run_action,
+                    run_for={"install", "create"},
+                )
+
+        """
+
+    @_hookspec
+    def conda_on_exception(self) -> Iterable[CondaOnException]:
+        """
+        Register commands in conda that run on exception.
+
+        :return: An iterable of on-exception commands.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            PLUGIN_NAME = "custom_plugin"
+
+
+            def custom_plugin_on_exception_action():
+                print("on_exception action")
+
+
+            @hookimpl
+            def conda_on_exception():
+                yield CondaOnException(
+                    name=f"{PLUGIN_NAME}_on_exception", action=custom_plugin_on_exception_action
+                )
+
         """

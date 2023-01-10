@@ -110,6 +110,9 @@ API reference
    :maxdepth: 1
 
    manager
+   on_exception
+   post_run
+   pre_run
    solvers
    subcommands
    virtual_packages
