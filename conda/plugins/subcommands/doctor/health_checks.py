@@ -1,59 +1,64 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
+import os
 
 from pathlib import Path, PurePath
-from rich.console import Console
-from rich.table import Table
-from rich import print
+from datetime import date
 
 from conda.base.context import context
 
-
-REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
-
 active_prefix = context.active_prefix
-environment = PurePath(active_prefix)
-environment_name = environment.name
 
+REPORT_TITLE = "\n🩺 ENVIRONMENT HEALTH REPORT 🩺\n"
+DETAILED_REPORT_TITLE = "\n🩺 DETAILED ENVIRONMENT HEALTH REPORT 🩺\n"
+OK_MARK = ":white-check-mark:"
+
+term_size = os.get_terminal_size()
+
+
+def generate_report_heading(prefix: str):
+    environment = PurePath(active_prefix)
+    environment_name = environment.name
+    today = str(date.today())
+    print(f"Date: {today}")
+    print(f"Name of the Patient: {environment_name}\n")
 
 def get_number_of_missing_files(prefix: str):
     """Print number of missing files for each package"""
+    generate_report_heading(active_prefix)
     packages_with_missing_files = find_packages_with_missing_files(prefix)
 
     if packages_with_missing_files:
         number_of_missing_files = {k: len(v) for k, v in packages_with_missing_files.items()}
 
-        table = Table(title="Packages With Missing Files")
-
-        table.add_column("Package Name", justify="right", style="cyan", no_wrap=True)
-        table.add_column("No. of Missing Files", style="magenta")
-
+        print("💉 Number of Missing Files\n")
         for k in number_of_missing_files:
-            table.add_row(str(k), str(number_of_missing_files[k]))
+            print(f"{k}:\t{str(number_of_missing_files[k])}")
 
-        console = Console()
-        console.print(table)
+        print("\n")
 
     else:
-        print(":white_check_mark: There are no packages with missing files.\n")
+        print(f"{OK_MARK} There are no packages with missing files.\n")
+
+    # print("_" * term_size.columns)
 
 
 def get_names_of_missing_files(prefix: str):
     """Print the names of missing files in each package"""
+    generate_report_heading(active_prefix)
     packages_with_missing_files = find_packages_with_missing_files(prefix)
 
     if packages_with_missing_files:
-        table = Table(title="Packages With Missing Files")
-
-        table.add_column("Package Name", justify="right", style="cyan", no_wrap=True)
-        table.add_column("Missing Files", style="magenta")
-
+        print("💉 Missing Files\n")
         for k in packages_with_missing_files:
-            table.add_row(str(k), str(packages_with_missing_files[k]))
+            print(f"{k}:\t{str(packages_with_missing_files[k])}")
 
-        console = Console()
-        console.print(table)
+        print("\n")
+    else:
+        print(f"{OK_MARK} There are no packages with missing files.\n")
+
+    # print("_" * term_size.columns)
 
 
 def find_packages_with_missing_files(prefix: str):
@@ -80,12 +85,12 @@ def find_packages_with_missing_files(prefix: str):
 
 
 def run_health_checks(prefix: str):
+    print("_" * term_size.columns)
     print(REPORT_TITLE)
-    print(f"Name: {environment_name}\n")
     get_number_of_missing_files(active_prefix)
 
 
 def run_detailed_health_checks(prefix: str):
-    print(REPORT_TITLE)
-    print(f"Name: {environment_name}\n")
+    print("_" * term_size.columns)
+    print(DETAILED_REPORT_TITLE)
     get_names_of_missing_files(active_prefix)
