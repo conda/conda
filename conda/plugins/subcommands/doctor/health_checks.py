@@ -16,13 +16,12 @@ OK_MARK = ":white-check-mark:"
 
 term_size = os.get_terminal_size()
 
-
 def generate_report_heading(prefix: str):
     environment = PurePath(active_prefix)
     environment_name = environment.name
     today = str(date.today())
     print(f"Date: {today}")
-    print(f"Name of the Patient: {environment_name}\n")
+    print(f"Name of the patient: {environment_name}\n")
 
 def get_number_of_missing_files(prefix: str):
     """Print number of missing files for each package"""
@@ -70,14 +69,15 @@ def find_packages_with_missing_files(prefix: str):
     conda_meta = prefix.joinpath("conda-meta")
     for file in conda_meta.iterdir():
         if file.name.endswith(".json"):
-            packages[file.name] = []
+            name = str(file.name)[:-5]
+            packages[name] = []
             with file.open() as f:
                 data = json.load(f)
             for file_name in data.get("files", ()):
                 # Add warnings if json file has missing "files"
                 existance = prefix.joinpath(file_name).exists()
                 if not existance:
-                    packages[file.name].append(file_name)
+                    packages[name].append(file_name)
 
     packages_with_missing_files = {k: v for k, v in packages.items() if v}
 
