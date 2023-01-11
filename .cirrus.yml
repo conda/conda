@@ -12,6 +12,11 @@ task:
     TEST_SPLITS: '3'
     TEST_GROUP: '1'
 
+  info_script: |
+    sysctl -n hw.ncpu
+    vm_stat
+    df -h
+
   miniconda_script: |
     wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda3
