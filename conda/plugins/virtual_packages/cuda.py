@@ -43,10 +43,7 @@ def cuda_version():
         detector.join(timeout=60.0)
     finally:
         # Always cleanup the subprocess
-        try:
-            detector.kill()  # requires Python 3.7+
-        except AttributeError:
-            pass
+        detector.kill()  # requires Python 3.7+
 
     if queue.empty():
         return None
@@ -148,7 +145,7 @@ def _cuda_driver_version_detector_target(queue):
 
         # Convert version integer to version string
         value = version_int.value
-        queue.put("%d.%d" % (value // 1000, (value % 1000) // 10))
+        queue.put(f"{value // 1000}.{(value % 1000) // 10}")
         return
     except Exception:
         queue.put(None)
