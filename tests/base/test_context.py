@@ -42,7 +42,8 @@ from conda.testing.helpers import tempdir
 class ContextCustomRcTests(TestCase):
 
     def setUp(self):
-        string = dals("""
+        string = dals(
+            """
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://another.url:8080/with/path
@@ -52,6 +53,13 @@ class ContextCustomRcTests(TestCase):
             - learn_from_every_thing
           steve:
             - more-downloads
+        channel_settings:
+          darwin:
+            param_one: value_one
+            param_two: value_two
+          "http://localhost":
+            param_one: value_one
+            param_two: value_two
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
@@ -69,7 +77,8 @@ class ContextCustomRcTests(TestCase):
           rsync: 'false'
         aggressive_update_packages: []
         channel_priority: false
-        """)
+        """
+        )
         reset_context(())
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
         context._set_raw_data(rd)
@@ -461,6 +470,15 @@ class ContextCustomRcTests(TestCase):
 
         pkgs_dirs = _get_expandvars_context("pkgs_dirs", "['${TEST_VAR}']", "/foo")
         assert any("foo" in d for d in pkgs_dirs)
+
+    def test_channel_settings(self):
+        """
+        Makes sure that "channel_settings" appears as we expect it to on the context object
+        """
+        assert context.channel_settings == {
+            "darwin": {"param_one": "value_one", "param_two": "value_two"},
+            "http://localhost": {"param_one": "value_one", "param_two": "value_two"},
+        }
 
 
 class ContextDefaultRcTests(TestCase):

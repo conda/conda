@@ -277,6 +277,9 @@ class Context(Configuration):
             "", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)),
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
+    channel_settings = ParameterLoader(
+        MapParameter(MapParameter(PrimitiveParameter("", element_type=str)))
+    )
     _custom_channels = ParameterLoader(
         MapParameter(PrimitiveParameter("", element_type=str), DEFAULT_CUSTOM_CHANNELS),
         aliases=('custom_channels',),
@@ -963,6 +966,7 @@ class Context(Configuration):
             "Channel Configuration": (
                 "channels",
                 "channel_alias",
+                "channel_settings",
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
@@ -1199,6 +1203,15 @@ class Context(Configuration):
             channels=dals(
                 """
                 The list of conda channels to include for relevant operations.
+                """
+            ),
+            channel_settings=dals(
+                """
+                A mapping that allows overriding certain settings for a single channel.
+                The first key represents the channel name for which the settings apply and
+                inside the nested map are the settings to be overriden. Please note
+                that this only applies to settings which explicitly mention that they can be
+                overridden here.
                 """
             ),
             client_ssl_cert=dals(
