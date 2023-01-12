@@ -3,7 +3,7 @@
 import json
 import os
 
-from pathlib import Path, PurePath
+from pathlib import Path
 from datetime import date
 
 from conda.base.context import context
@@ -12,12 +12,12 @@ active_prefix = context.active_prefix
 
 REPORT_TITLE = "\n🩺 ENVIRONMENT HEALTH REPORT 🩺\n"
 DETAILED_REPORT_TITLE = "\n🩺 DETAILED ENVIRONMENT HEALTH REPORT 🩺\n"
-OK_MARK = ":white-check-mark:"
+OK_MARK = "✅"
 
 term_size = os.get_terminal_size()
 
 def generate_report_heading(prefix: str):
-    environment = PurePath(active_prefix)
+    environment = Path(active_prefix)
     environment_name = environment.name
     today = str(date.today())
     print(f"Date: {today}")
@@ -52,6 +52,7 @@ def get_names_of_missing_files(prefix: str):
         print("💉 Missing Files\n")
         for k in packages_with_missing_files:
             print(f"{k}:\t{str(packages_with_missing_files[k])}")
+            # print(packages_with_missing_files, sep='\n')
 
         print("\n")
     else:
