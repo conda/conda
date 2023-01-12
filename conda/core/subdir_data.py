@@ -80,6 +80,58 @@ class SubdirDataType(type):
         return subdir_data_instance
 
 
+class CacheJsonState(dict):
+    """
+    Load/save `.state.json` that accompanies cached `repodata.json`
+    """
+
+    def __init__(self, cache_path_json, cache_path_state, repodata_fn):
+        self.cache_path_json = pathlib.Path(cache_path_json)
+        self.cache_path_state = pathlib.Path(cache_path_state)
+        self.repodata_fn = repodata_fn
+
+    def load(self) -> dict:
+        """
+        Cache headers and additional data needed to keep track of the cache are
+        stored separately, instead of the previous "added to repodata.json"
+        arrangement.
+        """
+        try:
+            state_path = self.cache_path_state
+            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
+            with state_path.open("r") as s:
+                state = json.load(s)
+            # json and state files should match
+            json_stat = self.cache_path_json.stat()
+            if not (
+                state.get("mtime_ns") == json_stat.st_mtime_ns
+                and state.get("size") == json_stat.st_size
+            ):
+                # clear mod, etag, cache_control to encourage re-download
+                state.update({"etag": "", "mod": "", "cache_control": ""})
+            for alias in "_etag", "_mod", "_cache_control":
+                if alias[1:] in state:
+                    state[alias] = state.pop(alias[1:])
+            self.update(state)
+            return self
+        except (json.JSONDecodeError, OSError):
+            log.debug("Could not load state", exc_info=True)
+            self.clear()
+            return self
+
+    def save(self, state: dict):
+        """
+        Must be called after writing cache_path_json, as its mtime is included in .state.json
+        """
+        json_stat = self.cache_path_json.stat()
+        serialized = {}
+        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
+        for alias in "_etag", "_mod", "_cache_control":
+            if alias in state:
+                serialized[alias[1:]] = state[alias]
+        return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
+
+
 class SubdirData(metaclass=SubdirDataType):
     _cache_ = {}
 
@@ -246,20 +298,12 @@ class SubdirData(metaclass=SubdirDataType):
         stored separately, instead of the previous "added to repodata.json"
         arrangement.
         """
-        try:
-            state_path = pathlib.Path(self.cache_path_state)
-            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
-            # efficient according to scalene profiler; about equal to
-            # json.loads(state_path.read_text()) and better that open("rb")
-            with state_path.open("r") as s:
-                state = json.load(s)
-            return state
-        except (json.JSONDecodeError, OSError):
-            log.debug("Could not load state", exc_info=True)
-            return {}
+        return CacheJsonState(self.cache_path_json, self.cache_path_state, self.repodata_fn).load()
 
     def _save_state(self, state: dict):
-        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
+        return CacheJsonState(self.cache_path_json, self.cache_path_state, self.repodata_fn).save(
+            state
+        )
 
     def _load(self):
         try:

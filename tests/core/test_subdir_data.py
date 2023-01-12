@@ -2,29 +2,31 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+import json
 from logging import getLogger
 from os.path import dirname, join
-from unittest import TestCase
 from time import sleep
+from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
+from conda.core.index import get_index
+from conda.core.subdir_data import (
+    CacheJsonState,
+    CondaRepoInterface,
+    Response304ContentUnchanged,
+    SubdirData,
+    cache_fn_url,
+    fetch_repodata_remote_request,
+    read_mod_and_etag,
+)
 from conda.exceptions import CondaSSLError, UnavailableInvalidChannel
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
-from conda.core.index import get_index
-from conda.core.subdir_data import (
-    Response304ContentUnchanged,
-    cache_fn_url,
-    SubdirData,
-    fetch_repodata_remote_request,
-    read_mod_and_etag,
-    CondaRepoInterface,
-)
 from conda.models.channel import Channel
 
 log = getLogger(__name__)
@@ -307,12 +309,41 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         assert precs_b == precs_a
 
 
-# @pytest.mark.integration
-# class SubdirDataTests(TestCase):
-#
-#     def test_basic_subdir_data(self):
-#         channel = Channel("https://conda.anaconda.org/conda-test/linux-64")
-#         sd = SubdirData(channel)
-#         sd.load()
-#         print(sd._names_index.keys())
-#         assert 0
+def test_cache_json(tmp_path):
+    """
+    Load and save standardized field names, from internal matches-legacy
+    underscore-prefixed field names. Assert state is only loaded if it matches
+    cached json.
+    """
+    cache_json = tmp_path / "cached.json"
+    cache_state = tmp_path / "cached.state.json"
+    cache_json.write_text("{}")
+
+    CacheJsonState(cache_json, cache_state, "repodata.json").save({})
+
+    state = CacheJsonState(cache_json, cache_state, "repodata.json").load()
+
+    mod = "last modified time"
+    state["_mod"] = mod
+    state["_cache_control"] = "cache control"
+    state["_etag"] = "etag"
+
+    CacheJsonState(cache_json, cache_state, "repodata.json").save(state)
+
+    on_disk_format = json.loads(cache_state.read_text())
+    print("disk format", on_disk_format)
+    assert on_disk_format["mod"] == mod
+    assert on_disk_format["cache_control"]
+    assert on_disk_format["etag"]
+    assert isinstance(on_disk_format["size"], int)
+    assert isinstance(on_disk_format["mtime_ns"], int)
+
+    state2 = CacheJsonState(cache_json, cache_state, "repodata.json").load()
+    assert state2["_mod"] == mod
+    assert state2["_cache_control"]
+    assert state2["_etag"]
+
+    cache_json.write_text("{ }")  # now invalid due to size
+
+    state_invalid = CacheJsonState(cache_json, cache_state, "repodata.json").load()
+    assert state_invalid.get("_mod") == ""
