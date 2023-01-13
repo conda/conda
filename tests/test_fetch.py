@@ -35,6 +35,10 @@ class TestConnectionWithShortTimeouts(TestCase):
         with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 with env_var('CONDA_REMOTE_MAX_RETRIES', 1, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+                    from conda.base.context import context
+                    assert context.remote_connect_timeout_secs == 1
+                    assert context.remote_read_timeout_secs == 1
+                    assert context.remote_max_retries == 1
                     with pytest.raises(CondaHTTPError) as execinfo:
                         url = "http://240.0.0.0/channel/osx-64"
                         msg = "Connection error:"

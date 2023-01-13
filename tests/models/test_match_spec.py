@@ -590,6 +590,11 @@ class SpecStrParsingTests(TestCase):
             "_original_spec_str": "numpy",
             "name": "numpy",
         }
+        # For whatever reason "numpy=" is allowed and will be interpreted as "numpy"
+        assert _parse_spec_str("numpy=") == {
+            "_original_spec_str": "numpy=",
+            "name": "numpy",
+        }
         assert _parse_spec_str("defaults::numpy") == {
             "_original_spec_str": "defaults::numpy",
             "channel": "defaults",

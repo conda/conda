@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Optional Bash completion support has been removed starting in v4.4.0, and not just deprecated. (#11171)
+
+### Other
+
+* <news item>
