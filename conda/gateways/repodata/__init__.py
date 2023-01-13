@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import abc
+import json
 import logging
+import pathlib
 import warnings
 from contextlib import contextmanager
 from os.path import dirname
-
-from conda.gateways.connection import Response
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
@@ -27,6 +27,7 @@ from conda.gateways.connection import (
     InsecureRequestWarning,
     InvalidSchema,
     RequestsProxyError,
+    Response,
     SSLError,
 )
 from conda.gateways.connection.session import CondaSession
@@ -74,15 +75,15 @@ class CondaRepoInterface(RepoInterface):
         self._url = url
         self._repodata_fn = repodata_fn or REPODATA_FN
 
-    def repodata(self, state: dict) -> str | None:
+    def repodata(self, state: CacheJsonState) -> str | None:
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
         session = CondaSession()
 
         headers = {}
-        etag = state.get("_etag")
-        last_modified = state.get("_mod")
+        etag = state.etag
+        last_modified = state.mod
         if etag:
             headers["If-None-Match"] = etag
         if last_modified:
@@ -289,3 +290,88 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
             e.response,
             caused_by=e,
         )
+
+
+class CacheJsonState(dict):
+    """
+    Load/save `.state.json` that accompanies cached `repodata.json`
+    """
+
+    def __init__(self, cache_path_json, cache_path_state, repodata_fn):
+        self.cache_path_json = pathlib.Path(cache_path_json)
+        self.cache_path_state = pathlib.Path(cache_path_state)
+        self.repodata_fn = repodata_fn
+
+    def load(self):
+        """
+        Cache headers and additional data needed to keep track of the cache are
+        stored separately, instead of the previous "added to repodata.json"
+        arrangement.
+        """
+        try:
+            state_path = self.cache_path_state
+            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
+            with state_path.open("r") as s:
+                state = json.load(s)
+            # json and state files should match
+            json_stat = self.cache_path_json.stat()
+            if not (
+                state.get("mtime_ns") == json_stat.st_mtime_ns
+                and state.get("size") == json_stat.st_size
+            ):
+                # clear mod, etag, cache_control to encourage re-download
+                state.update({"etag": "", "mod": "", "cache_control": ""})
+            for alias in "_etag", "_mod", "_cache_control":
+                if alias[1:] in state:
+                    state[alias] = state.pop(alias[1:])
+            self.update(state)
+            return self
+        except (json.JSONDecodeError, OSError):
+            log.debug("Could not load state", exc_info=True)
+            self.clear()
+            return self
+
+    def save(self):
+        """
+        Must be called after writing cache_path_json, as its mtime is included in .state.json
+        """
+        json_stat = self.cache_path_json.stat()
+        serialized = {}
+        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
+        for alias in "_etag", "_mod", "_cache_control":
+            if alias in self:
+                serialized[alias[1:]] = self[alias]
+        return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
+
+    @property
+    def mod(self) -> str:
+        """
+        Last-Modified header or ""
+        """
+        return self.get("mod", "")
+
+    @mod.setter
+    def mod(self, value):
+        self["mod"] = value or ""
+
+    @property
+    def etag(self) -> str:
+        """
+        Etag header or ""
+        """
+        return self.get("etag", "")
+
+    @etag.setter
+    def etag(self, value):
+        self["etag"] = value or ""
+
+    @property
+    def cache_control(self) -> str:
+        """
+        Cache-Control header or ""
+        """
+        return self.get("cache_control", "")
+
+    @cache_control.setter
+    def cache_control(self, value):
+        self["cache_control"] = value or ""

@@ -317,18 +317,18 @@ def test_cache_json(tmp_path):
     """
     cache_json = tmp_path / "cached.json"
     cache_state = tmp_path / "cached.state.json"
-    cache_json.write_text("{}")
 
-    CacheJsonState(cache_json, cache_state, "repodata.json").save({})
+    CacheJsonState(cache_json, cache_state, "repodata.json").save()
 
     state = CacheJsonState(cache_json, cache_state, "repodata.json").load()
 
     mod = "last modified time"
+
+    state = CacheJsonState(cache_json, cache_state, "repodata.json")
     state["_mod"] = mod
     state["_cache_control"] = "cache control"
     state["_etag"] = "etag"
-
-    CacheJsonState(cache_json, cache_state, "repodata.json").save(state)
+    state.save()
 
     on_disk_format = json.loads(cache_state.read_text())
     print("disk format", on_disk_format)
@@ -342,6 +342,10 @@ def test_cache_json(tmp_path):
     assert state2["_mod"] == mod
     assert state2["_cache_control"]
     assert state2["_etag"]
+
+    assert state2["_mod"] == state2.mod
+    assert state2["_etag"] == state2.etag
+    assert state2["_cache_control"] == state2.cache_control
 
     cache_json.write_text("{ }")  # now invalid due to size
 
