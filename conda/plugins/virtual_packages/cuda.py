@@ -3,7 +3,7 @@
 import ctypes
 import functools
 import itertools
-import multiprocessing as mp
+import multiprocessing
 import os
 import platform
 from contextlib import suppress
@@ -29,11 +29,11 @@ def cuda_version():
     # Do not inherit file descriptors and handles from the parent process.
     # The `fork` start method should be considered unsafe as it can lead to
     # crashes of the subprocess. The `spawn` start method is preferred.
-    ctx = mp.get_context("spawn")
-    queue = ctx.SimpleQueue()
+    context = multiprocessing.get_context("spawn")
+    queue = context.SimpleQueue()
     try:
         # Spawn a subprocess to detect the CUDA version
-        detector = ctx.Process(
+        detector = context.Process(
             target=_cuda_driver_version_detector_target,
             args=(queue,),
             name="CUDA driver version detector",
