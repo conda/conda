@@ -54,10 +54,10 @@ class ContextCustomRcTests(TestCase):
           steve:
             - more-downloads
         channel_settings:
-          darwin:
+          - channel: darwin
             param_one: value_one
             param_two: value_two
-          "http://localhost":
+          - channel: "http://localhost"
             param_one: value_one
             param_two: value_two
         migrated_custom_channels:
@@ -475,10 +475,10 @@ class ContextCustomRcTests(TestCase):
         """
         Makes sure that "channel_settings" appears as we expect it to on the context object
         """
-        assert context.channel_settings == {
-            "darwin": {"param_one": "value_one", "param_two": "value_two"},
-            "http://localhost": {"param_one": "value_one", "param_two": "value_two"},
-        }
+        assert context.channel_settings == (
+            {"channel": "darwin", "param_one": "value_one", "param_two": "value_two"},
+            {"channel": "http://localhost", "param_one": "value_one", "param_two": "value_two"},
+        )
 
 
 class ContextDefaultRcTests(TestCase):

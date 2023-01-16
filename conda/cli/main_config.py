@@ -175,6 +175,11 @@ def execute_config(args, parser):
                     multichannel_name: dashlist(channels, indent=4)
                     for multichannel_name, channels in d['custom_multichannels'].items()
                 }
+            if "channel_settings" in d:
+                ident = " " * 4
+                d["channel_settings"] = tuple(
+                    f"\n{ident}".join(format_dict(mapping)) for mapping in d["channel_settings"]
+                )
 
             stdout_write('\n'.join(format_dict(d)))
         context.validate_configuration()

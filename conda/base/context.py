@@ -278,7 +278,7 @@ class Context(Configuration):
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
     channel_settings = ParameterLoader(
-        MapParameter(MapParameter(PrimitiveParameter("", element_type=str)))
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str)))
     )
     _custom_channels = ParameterLoader(
         MapParameter(PrimitiveParameter("", element_type=str), DEFAULT_CUSTOM_CHANNELS),
@@ -1207,11 +1207,9 @@ class Context(Configuration):
             ),
             channel_settings=dals(
                 """
-                A mapping that allows overriding certain settings for a single channel.
-                The first key represents the channel name for which the settings apply and
-                inside the nested map are the settings to be overriden. Please note
-                that this only applies to settings which explicitly mention that they can be
-                overridden here.
+                A list of mappings that allows overriding certain settings for a single channel.
+                Each list item should include at least the "channel" key and the setting you would
+                like to override.
                 """
             ),
             client_ssl_cert=dals(
