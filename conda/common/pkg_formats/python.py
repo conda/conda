@@ -7,6 +7,7 @@ from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
 from io import StringIO
+from itertools import chain
 from logging import getLogger
 from os import name as os_name, scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
@@ -16,10 +17,7 @@ import re
 import sys
 import warnings
 
-try:
-    from tlz.itertoolz import concat, concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from ... import CondaError
 from ..compat import odict, open
@@ -258,8 +256,6 @@ class PythonDistribution:
                     if cleaned_path not in seen and row[0]:
                         seen.append(cleaned_path)
                         records.append((cleaned_path, checksum, size))
-                    else:
-                        continue
                 return tuple(records)
 
             csv_delimiter = ','
@@ -274,7 +270,7 @@ class PythonDistribution:
             missing_pyc_files = (ff for ff in (
                 _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
-            records = sorted(concatv(records, ((pf, None, None) for pf in missing_pyc_files)))
+            records = sorted((*records, *((pf, None, None) for pf in missing_pyc_files)))
             return records
 
         return []
@@ -332,7 +328,8 @@ class PythonDistribution:
             "python_version": self.python_version,
         }
         depends.update(
-            pyspec_to_norm_req(pyspec) for pyspec in concat(marker_groups.values())
+            pyspec_to_norm_req(pyspec)
+            for pyspec in chain.from_iterable(marker_groups.values())
             if interpret(pyspec.marker, execution_context)
         )
         constrains = {pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints}

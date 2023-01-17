@@ -272,7 +272,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
     init_loggers(context)
-    cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
+    cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % " ".join(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(TEST_LOG_LEVEL, "requests"):

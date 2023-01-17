@@ -252,10 +252,8 @@ class SatSolverChoice(ValueEnum):
     PYSAT = 'pysat'
 
 
-class ExperimentalSolverChoice(ValueEnum):
-    CLASSIC = 'classic'
-    LIBMAMBA = 'libmamba'
-    LIBMAMBA_DRAFT = 'libmamba-draft'
+#: The name of the default solver, currently "classic"
+DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"
 
 
 class NoticeLevel(ValueEnum):

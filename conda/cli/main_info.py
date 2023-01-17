@@ -11,7 +11,7 @@ import sys
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
-from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
+from ..base.context import context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import on_win
 from ..common.url import mask_anaconda_token
 from ..core.index import _supplement_index_with_system
@@ -69,7 +69,7 @@ def pretty_package(prec):
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
         d[key] = pkg[key]
 
-    print("")
+    print()
     header = "{} {} {}".format(d["name"], d["version"], d["build string"])
     print(header)
     print('-'*len(header))
@@ -155,7 +155,6 @@ def get_info_dict(system=False):
         conda_build_version=conda_build_version,
         root_prefix=context.root_prefix,
         conda_prefix=context.conda_prefix,
-        conda_private=conda_in_private_env(),
         av_data_dir=context.av_data_dir,
         av_metadata_url_base=context.signing_metadata_url_base,
         root_writable=context.root_writable,
@@ -344,14 +343,14 @@ def execute(args, parser):
             if site_dirs:
                 print(site_dirs[0])
             else:
-                print('')
+                print()
             for site_dir in site_dirs[1:]:
                 print('                %s' % site_dir)
-            print('')
+            print()
 
             for name, value in sorted(info_dict['env_vars'].items()):
                 print(f"{name}: {value}")
-            print('')
+            print()
 
     if context.json:
         stdout_json(info_dict)

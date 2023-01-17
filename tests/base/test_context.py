@@ -10,7 +10,6 @@ from tempfile import gettempdir
 from unittest import TestCase, mock
 
 import pytest
-from tlz.itertoolz import concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
@@ -21,7 +20,7 @@ from conda.base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     validate_prefix_name,
 )
-from conda.common.compat import odict, on_win
+from conda.common.compat import odict
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
@@ -171,10 +170,15 @@ class ContextCustomRcTests(TestCase):
                 assert channel.scheme is None
                 assert channel.canonical_name == "local"
                 assert channel.url() is None
-                urls = list(concat((
-                               join_url(url, context.subdir),
-                               join_url(url, 'noarch'),
-                           ) for url in context.conda_build_local_urls))
+                urls = list(
+                    chain.from_iterable(
+                        (
+                            join_url(url, context.subdir),
+                            join_url(url, "noarch"),
+                        )
+                        for url in context.conda_build_local_urls
+                    )
+                )
                 assert channel.urls() == urls
 
                 channel = Channel(conda_bld_url)
@@ -283,28 +287,13 @@ class ContextCustomRcTests(TestCase):
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
 
     def test_aggressive_update_packages(self):
-        assert context.aggressive_update_packages == tuple()
+        assert context.aggressive_update_packages == ()
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), stack_callback=conda_tests_ctxt_mgmt_def_pol):
             assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
 
     def test_channel_priority(self):
         assert context.channel_priority == ChannelPriority.DISABLED
-
-    def test_cuda_detection(self):
-        # confirm that CUDA detection doesn't raise exception
-        version = context.cuda_version
-        assert version is None or isinstance(version, str)
-
-    def test_cuda_override(self):
-        with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
-            version = context.cuda_version
-            assert version == '4.5'
-
-    def test_cuda_override_none(self):
-        with env_var('CONDA_OVERRIDE_CUDA', ''):
-            version = context.cuda_version
-            assert version is None
 
     def test_threads(self):
         default_value = None
@@ -437,26 +426,26 @@ class ContextCustomRcTests(TestCase):
         ssl_verify = _get_expandvars_context("ssl_verify", "${TEST_VAR}", "yes")
         assert ssl_verify
 
-        for attr, env_value in [
+        for attr, env_value in (
             ("client_ssl_cert", "foo"),
             ("client_ssl_cert_key", "foo"),
             ("channel_alias", "http://foo"),
-        ]:
+        ):
             value = _get_expandvars_context(attr, "${TEST_VAR}", env_value)
             assert value == env_value
 
-        for attr in [
+        for attr in (
             "migrated_custom_channels",
             "proxy_servers",
-        ]:
+        ):
             value = _get_expandvars_context("proxy_servers", "{'x': '${TEST_VAR}'}", "foo")
             assert value == {"x": "foo"}
 
-        for attr in [
+        for attr in (
             "channels",
             "default_channels",
             "allowlist_channels",
-        ]:
+        ):
             value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
             assert value == ("foo",)
 

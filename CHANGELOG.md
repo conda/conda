@@ -1,5 +1,112 @@
 [//]: # (current developments)
 
+## 22.11.1 (2022-12-06)
+
+### Bug fixes
+
+* Restore default virtual package specs as in 22.9.0 (#12148)
+  - re-add `__unix`/`__win` packages
+  - restore `__archspec` version/build string composition
+
+### Other
+
+* Skip test suite for non-code changes. (#12141)
+
+### Contributors
+
+* @LtDan33
+* @jezdez
+* @kenodegard
+* @mbargull
+* @travishathaway
+
+## 22.11.0 (2022-11-23)
+
+### Enhancements
+
+* Add LD_PRELOAD to env variable list. (#10665)
+* Improve CLI warning about updating conda. (#11300)
+* Conda's initialize block in the user's profiles will check whether the conda executable exists before calling the conda hook. (#11374)
+* Switch to `tqdm` as a real dependency. (#12005)
+* Add a new plugin mechanism. (#11435)
+* Add an informative message if explicit install fails due to requested packages not being in the cache. (#11591)
+* Download and extract packages in parallel. Greatly speeds up package downloads when latency is high. Controlled by the new `fetch_threads` config parameter, defaulting to 5 parallel downloads. Thanks @shuges-uk for reporting. (#11841)
+* Add a new plugin hook for virtual packages and convert existing code for virtual packages (from index.py) into plugins. (#11854)
+* Require `ruamel.yaml`. (#11868, #11837)
+* Stop using `toolz.accumulate`. (#12020)
+* Stop using `toolz.groupby`. (#11913)
+* Remove vendored `six` package. (#11979)
+* Add the ability to extend the solver backends with the ``conda_solvers`` plugin hook. (#11993)
+* Stop using `toolz.functoolz.excepts`. (#12016)
+* Stop using `toolz.itertoolz.concatv`. (#12020)
+* Also try UTF16 and UTF32 encodings when replacing the prefix. (#9946)
+
+### Bug fixes
+
+* `conda env update` would ask for user input and hang when working with pip installs of git repos and the repo was previously checked out. Tell pip not to ask for user input for that case.  (#11818)
+* Fix for `conda update` and `conda install` issues related to channel notices. (#11852)
+* Signature verification printed `None` when disabled, changes default `metadata_signature_status` to an empty string instead. (#11944)
+* Fix importlib warnings when importing conda.cli.python_api on python=3.10. (#11975)
+* Several user facing MatchSpec crashes were identified by fuzzing efforts. (#11999)
+* Apply minimal fixes to deal with these (and similar) crashes. (#12014)
+* Prevent `conda` from using `/bin/sh` + `exec` trick for its own entry point, which drops `$PS1` on some shells (#11885, #11893 via #12043).
+* Handle `CTRL+C` during package downloading more gracefully. (#12056)
+* Prefer the outer name when a MatchSpec specifies a package's name twice package-name[name=package-name] (#12062)
+
+### Deprecations
+
+* Add a pending deprecation warning for when importing `tqdm` from `conda._vendor`. (#12005)
+* Drop `ruamel_yaml` and `ruamel_yaml_conda` in favor of `ruamel.yaml`. (#11837)
+* `context.experimental_solver` is now marked for pending deprecation. It is replaced by `context.solver`. The same applies to the `--experimental-solver` flag, the `CONDA_EXPERIMENTAL_SOLVER` environment variable, and the `ExperimentalSolverChoice` enum, which will be replaced by `--solver`, `EXPERIMENTAL_SOLVER` and `SolverChoice`, respectively. (#11889)
+* Mark `context.conda_private` as pending deprecation. (#12101)
+
+### Docs
+
+* Add corresponding documentation for the new plugins mechanism. (#11435)
+* Update conda cheatsheet for the 4.14.0 release. The cheatsheet now includes an example for `conda rename`. (#11768)
+* Document conda-build package format v2, also known as the `.conda`-format. (#11881)
+* Remove `allow_other_channels` config option from documentation, as the option no longer exists. (#11866)
+* Fix bad URL to "Introduction to conda for Data Scientists" course in conda docs. (#9782)
+
+### Other
+
+* Add a comment to the code that explains why .bashrc is modified on Linux and .bash_profile is modified on Windows/macOS when executing `conda init`. (#11849)
+* Add `--mach` and `--arch` options to `dev/start`. (#11851)
+* Remove encoding pragma in file headers, as it's not needed in Python 3 anymore. (#11880)
+* Refactor `conda init SHELLS` as argparse choices. (#11897)
+* Drop pragma fixes from pre-commit checks. (#11909)
+* Add pyupgrade to pre-commit checks. This change affects many files. Existing pull requests may need to be updated, rebased, or merged to address conflicts. (#11909)
+* Add aarch64 and ppc64le as additional CI platforms for smoke testing. (#11911)
+* Serve package files needed for testing using local server. (#12024)
+* Update canary builds to guarantee builds for the commits that trigger workflow. (#12040)
+
+### Contributors
+
+* @arq0017 made their first contribution in https://github.com/conda/conda/pull/11810
+* @beeankha
+* @conda-bot
+* @dbast
+* @dholth
+* @erykoff
+* @consideRatio made their first contribution in https://github.com/conda/conda/pull/12028
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme made their first contribution in https://github.com/conda/conda/pull/11926
+* @hmaarrfk made their first contribution in https://github.com/conda/conda/pull/9946
+* @NikhilRaverkar made their first contribution in https://github.com/conda/conda/pull/11842
+* @pavelzw made their first contribution in https://github.com/conda/conda/pull/11849
+* @pkmooreanaconda made their first contribution in https://github.com/conda/conda/pull/12014
+* @fragmede made their first contribution in https://github.com/conda/conda/pull/11818
+* @SatyamVyas04 made their first contribution in https://github.com/conda/conda/pull/11870
+* @timhoffm
+* @travishathaway
+* @dependabot made their first contribution in https://github.com/conda/conda/pull/11965
+* @pre-commit-ci[bot]
+* @wulmer
+
+
 ## 22.9.0 (2022-09-14)
 
 ### Special announcement

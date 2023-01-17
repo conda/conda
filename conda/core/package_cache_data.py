@@ -8,6 +8,7 @@ import os
 from collections import defaultdict
 from concurrent.futures import as_completed, ThreadPoolExecutor, Future
 from errno import EACCES, ENOENT, EPERM, EROFS
+from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
@@ -16,10 +17,7 @@ from sys import platform
 from tarfile import ReadError
 from functools import partial
 
-try:
-    from tlz.itertoolz import concat, concatv, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
@@ -165,7 +163,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pkgs_dirs is None:
             pkgs_dirs = context.pkgs_dirs
 
-        return concat(
+        return chain.from_iterable(
             pcache.query(package_ref_or_match_spec)
             for pcache in cls.all_caches_writable_first(pkgs_dirs)
         )
@@ -215,14 +213,16 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pkgs_dirs is None:
             pkgs_dirs = context.pkgs_dirs
         pc_groups = groupby(lambda pc: pc.is_writable, (cls(pd) for pd in pkgs_dirs))
-        return tuple(concatv(pc_groups.get(True, ()), pc_groups.get(False, ())))
+        return (*pc_groups.get(True, ()), *pc_groups.get(False, ()))
 
     @classmethod
     def get_all_extracted_entries(cls):
         package_caches = (cls(pd) for pd in context.pkgs_dirs)
         return tuple(
             pc_entry
-            for pc_entry in concat(package_cache.values() for package_cache in package_caches)
+            for pc_entry in chain.from_iterable(
+                package_cache.values() for package_cache in package_caches
+            )
             if pc_entry.is_extracted
         )
 
@@ -468,10 +468,10 @@ class PackageCacheData(metaclass=PackageCacheType):
         tar_bz2_extensions = groups[_CONDA_TARBALL_EXTENSION_V1] - conda_extensions
         others = groups[None] - conda_extensions - tar_bz2_extensions
         return sorted(
-            concatv(
-                (p + _CONDA_TARBALL_EXTENSION_V2 for p in conda_extensions),
-                (p + _CONDA_TARBALL_EXTENSION_V1 for p in tar_bz2_extensions),
-                others,
+            (
+                *(path + _CONDA_TARBALL_EXTENSION_V2 for path in conda_extensions),
+                *(path + _CONDA_TARBALL_EXTENSION_V1 for path in tar_bz2_extensions),
+                *others,
             )
         )
 
@@ -554,7 +554,7 @@ class ProgressiveFetchExtract:
         extracted_pcrec = next(
             (
                 pcrec
-                for pcrec in concat(
+                for pcrec in chain.from_iterable(
                     PackageCacheData(pkgs_dir).query(pref_or_spec)
                     for pkgs_dir in context.pkgs_dirs
                 )
@@ -573,7 +573,7 @@ class ProgressiveFetchExtract:
         pcrec_from_writable_cache = next(
             (
                 pcrec
-                for pcrec in concat(
+                for pcrec in chain.from_iterable(
                     pcache.query(pref_or_spec) for pcache in PackageCacheData.writable_caches()
                 )
                 if pcrec.is_fetched
@@ -600,7 +600,7 @@ class ProgressiveFetchExtract:
         pcrec_from_read_only_cache = next(
             (
                 pcrec
-                for pcrec in concat(
+                for pcrec in chain.from_iterable(
                     pcache.query(pref_or_spec) for pcache in PackageCacheData.read_only_caches()
                 )
                 if pcrec.is_fetched
@@ -761,30 +761,37 @@ class ProgressiveFetchExtract:
             for completed_future in as_completed(futures):
                 try:
                     prec_or_spec = completed_future.result()
-                    cache_action, extract_action = self.paired_actions[prec_or_spec]
-                    extract_future = extract_executor.submit(
-                        do_extract_action,
-                        prec_or_spec,
-                        extract_action,
-                        progress_bars[prec_or_spec],
-                    )
-                    extract_future.add_done_callback(
-                        partial(
-                            done_callback,
-                            actions=(cache_action, extract_action),
-                            exceptions=exceptions,
-                            progress_bar=progress_bars[prec_or_spec],
-                            finish=True,
-                        )
-                    )
-
-                except Exception as exc:
-                    log.debug(b"%r", exc, exc_info=True)
-                    # done_callback saves exc in exceptions[]
-                    # cancel any download that has not been started
+                except BaseException as e:
+                    # Special handling for exceptions thrown inside future, not
+                    # by futures handling code. Cancel any download that has not
+                    # been started. In-progress futures will continue.
+                    # Could use executor.shutdown(cancel_futures=True) instead?
                     for future in futures:
                         future.cancel()
-                    raise
+
+                    # faster handling of KeyboardInterrupt e.g.
+                    if not isinstance(e, Exception):
+                        raise
+
+                    # break, not raise. CondaMultiError() raised if exceptions.
+                    break
+
+                cache_action, extract_action = self.paired_actions[prec_or_spec]
+                extract_future = extract_executor.submit(
+                    do_extract_action,
+                    prec_or_spec,
+                    extract_action,
+                    progress_bars[prec_or_spec],
+                )
+                extract_future.add_done_callback(
+                    partial(
+                        done_callback,
+                        actions=(cache_action, extract_action),
+                        exceptions=exceptions,
+                        progress_bar=progress_bars[prec_or_spec],
+                        finish=True,
+                    )
+                )
 
         for bar in progress_bars.values():
             bar.close()
@@ -794,6 +801,7 @@ class ProgressiveFetchExtract:
 
         if exceptions:
             raise CondaMultiError(exceptions)
+
         self._executed = True
 
     @staticmethod

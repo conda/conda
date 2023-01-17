@@ -669,9 +669,8 @@ def test_evaluate_marker():
         ('spam2 = "1.0"', {'spam': '1.0'}, None),
     )
     for marker_expr, context, expected_output in test_cases:
-        output = None
         with pytest.raises(SyntaxError):
-            output = interpret(marker_expr, context)
+            interpret(marker_expr, context)
 
 
 def test_get_default_marker_context():

@@ -5,21 +5,21 @@ from collections import OrderedDict
 
 from errno import ENOENT
 from functools import lru_cache
+from itertools import chain
 from logging import getLogger
 from typing import Optional
 import os
-from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
+from os.path import abspath, expanduser, isdir, isfile, join, split as path_split
 import platform
 import sys
 import struct
 from contextlib import contextmanager
-from datetime import datetime
 import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import unique
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import unique
 
 from .constants import (
     APP_NAME,
@@ -30,6 +30,7 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_SOLVER,
     DepsModifier,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
@@ -39,9 +40,7 @@ from .constants import (
     SEARCH_PATH,
     SafetyChecks,
     SatSolverChoice,
-    ExperimentalSolverChoice,
     UpdateModifier,
-    CONDA_LOGS_DIR,
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
@@ -57,7 +56,6 @@ from ..common.configuration import (Configuration, ConfigurationLoadError, MapPa
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..common.decorators import env_override
 
 from .. import CONDA_SOURCE_ROOT
 
@@ -101,18 +99,18 @@ sys_rc_path = join(sys.prefix, '.condarc')
 
 def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
     if root_writable:
-        fixed_dirs = (
+        fixed_dirs = [
             join(root_prefix, 'envs'),
             join('~', '.conda', 'envs'),
-        )
+        ]
     else:
-        fixed_dirs = (
+        fixed_dirs = [
             join('~', '.conda', 'envs'),
             join(root_prefix, 'envs'),
-        )
+        ]
     if on_win:
-        fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
-    return tuple(IndexedSet(expand(p) for p in concatv(_envs_dirs, fixed_dirs)))
+        fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+    return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
 def channel_alias_validation(value):
@@ -339,9 +337,20 @@ class Context(Configuration):
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
     solver_ignore_timestamps = ParameterLoader(PrimitiveParameter(False))
-    experimental_solver = ParameterLoader(
-        PrimitiveParameter(ExperimentalSolverChoice.CLASSIC, element_type=ExperimentalSolverChoice)
+    solver = ParameterLoader(
+        PrimitiveParameter(DEFAULT_SOLVER),
+        aliases=("experimental_solver",),
     )
+
+    @property
+    def experimental_solver(self):
+        # TODO: Remove in a later release
+        warnings.warn(
+            "'context.experimental_solver' is pending deprecation and will be removed. "
+            "Please consider using 'context.solver' instead.",
+            PendingDeprecationWarning
+        )
+        return self.solver
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -406,6 +415,15 @@ class Context(Configuration):
         return errors
 
     @property
+    def plugin_manager(self):
+        """
+        This is the preferred way of accessing the ``PluginManager`` object for this application
+        and is located here to avoid problems with cyclical imports elsewhere in the code.
+        """
+        from ..plugins.manager import get_plugin_manager
+        return get_plugin_manager()
+
+    @property
     def conda_build_local_paths(self):
         # does file system reads to make sure paths actually exist
         return tuple(unique(full_path for full_path in (
@@ -459,7 +477,13 @@ class Context(Configuration):
 
     @property
     def conda_private(self):
-        return conda_in_private_env()
+        warnings.warn(
+            "`conda.base.context.context.conda_private` is pending deprecation and will be "
+            "removed in a future release. It's meaningless and any special meaning it may have "
+            "held is now void.",
+            PendingDeprecationWarning,
+        )
+        return False
 
     @property
     def platform(self):
@@ -467,15 +491,15 @@ class Context(Configuration):
 
     @property
     def default_threads(self) -> Optional[int]:
-        return self._default_threads if self._default_threads else None
+        return self._default_threads or None
 
     @property
     def repodata_threads(self) -> Optional[int]:
-        return self._repodata_threads if self._repodata_threads else self.default_threads
+        return self._repodata_threads or self.default_threads
 
     @property
     def fetch_threads(self) -> Optional[int]:
-        return self._fetch_threads if self._fetch_threads else self.default_threads
+        return self._fetch_threads or self.default_threads
 
     @property
     def verify_threads(self) -> Optional[int]:
@@ -511,11 +535,11 @@ class Context(Configuration):
 
     @property
     def subdirs(self):
-        return self._subdirs if self._subdirs else (self.subdir, 'noarch')
+        return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
     def known_subdirs(self):
-        return frozenset(concatv(KNOWN_SUBDIRS, self.subdirs))
+        return frozenset((*KNOWN_SUBDIRS, *self.subdirs))
 
     @property
     def bits(self):
@@ -574,21 +598,6 @@ class Context(Configuration):
         mkdir_p(trash_dir)
         return trash_dir
 
-    @memoizedproperty
-    def _logfile_path(self):
-        # TODO: This property is only temporary during libmamba experimental release phase
-        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
-        from ..core.package_cache_data import PackageCacheData
-
-        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
-        logs = join(pkgs_dir, CONDA_LOGS_DIR)
-        from ..gateways.disk.create import mkdir_p
-
-        mkdir_p(logs)
-
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
-        return os.path.join(logs, f"{timestamp}.log")
-
     @property
     def default_prefix(self):
         if self.active_prefix:
@@ -628,8 +637,6 @@ class Context(Configuration):
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
-        elif conda_in_private_env():
-            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
@@ -739,27 +746,28 @@ class Context(Configuration):
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls)
              ) for name, urls in self._custom_multichannels.items()
         )
-        all_multichannels = odict(
+        return odict(
             (name, channels)
-            for name, channels in concatv(
-                custom_multichannels.items(),
-                reserved_multichannels.items(),  # order maters, reserved overrides custom
+            for name, channels in (
+                *custom_multichannels.items(),
+                *reserved_multichannels.items(),  # order maters, reserved overrides custom
             )
         )
-        return all_multichannels
 
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
-        custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
-                           for name, url in self._custom_channels.items())
-        channels_from_multichannels = concat(channel for channel
-                                             in self.custom_multichannels.values())
-        all_channels = odict((x.name, x) for x in (ch for ch in concatv(
-            channels_from_multichannels,
-            custom_channels,
-        )))
-        return all_channels
+
+        return odict(
+            (channel.name, channel)
+            for channel in (
+                *chain.from_iterable(channel for channel in self.custom_multichannels.values()),
+                *(
+                    Channel.make_simple_channel(self.channel_alias, url, name)
+                    for name, url in self._custom_channels.items()
+                ),
+            )
+        )
 
     @property
     def channels(self):
@@ -779,7 +787,7 @@ class Context(Configuration):
                     "--override-channels."
                 )
             else:
-                return tuple(IndexedSet(concatv(local_add, self._argparse_args['channel'])))
+                return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and 'channel' in self._argparse_args:
@@ -792,10 +800,9 @@ class Context(Configuration):
             channel_in_config_files = any('channels' in context.raw_data[rc_file].keys()
                                           for rc_file in self.config_files)
             if argparse_channels and not channel_in_config_files:
-                return tuple(IndexedSet(concatv(local_add, argparse_channels,
-                                                (DEFAULTS_CHANNEL_NAME,))))
+                return tuple(IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME)))
 
-        return tuple(IndexedSet(concatv(local_add, self._channels)))
+        return tuple(IndexedSet((*local_add, *self._channels)))
 
     @property
     def config_files(self):
@@ -840,17 +847,16 @@ class Context(Configuration):
         builder.append("%s/%s" % self.os_distribution_name_version)
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
-        if self.experimental_solver.value != "classic":
-            from ..core.solve import _get_solver_class
-
-            user_agent_str = "solver/%s" % self.experimental_solver.value
+        if self.solver != "classic":
+            user_agent_str = "solver/%s" % self.solver
             try:
+                solver_backend = self.plugin_manager.get_cached_solver_backend()
                 # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {_get_solver_class().user_agent()}"
+                user_agent_str += f" {solver_backend.user_agent()}"
             except Exception as exc:
                 log.debug(
                     "User agent could not be fetched from solver class '%s'.",
-                    self.experimental_solver.value,
+                    self.solver,
                     exc_info=exc
                 )
             builder.append(user_agent_str)
@@ -938,10 +944,19 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
-    @env_override('CONDA_OVERRIDE_CUDA', convert_empty_to_none=True)
-    def cuda_version(self):
-        from conda.common.cuda import cuda_detect
-        return cuda_detect()
+    def cuda_version(self) -> Optional[str]:
+        """
+        Retrieves the current cuda version.
+        """
+        from conda.plugins.virtual_packages import cuda
+
+        warnings.warn(
+            "`context.cuda_version` is pending deprecation and "
+            "will be removed in a future release. Please use "
+            "`conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+            PendingDeprecationWarning,
+        )
+        return cuda.cuda_version()
 
     @property
     def category_map(self):
@@ -991,7 +1006,7 @@ class Context(Configuration):
                 "pinned_packages",
                 "pip_interop_enabled",
                 "track_features",
-                "experimental_solver",
+                "solver",
             ),
             "Package Linking and Install-time Configuration": (
                 "allow_softlinks",
@@ -1585,7 +1600,7 @@ class Context(Configuration):
                 longer the generation of the unsat hint will take. Defaults to 3.
                 """
             ),
-            experimental_solver=dals(
+            solver=dals(
                 """
                 A string to choose between the different solver logics implemented in
                 conda. A solver logic takes care of turning your requested packages into a
@@ -1601,12 +1616,6 @@ class Context(Configuration):
                 """
             ),
         )
-
-
-def conda_in_private_env():
-    # conda is located in its own private environment named '_conda_'
-    envs_dir, env_name = path_split(sys.prefix)
-    return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):

@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from datetime import timedelta
 from errno import ENOSPC
 from functools import lru_cache, partial
@@ -14,10 +16,7 @@ from textwrap import dedent
 from traceback import format_exception, format_exception_only
 import getpass
 
-try:
-    from tlz.itertoolz import groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
@@ -428,6 +427,8 @@ class ChannelNotAllowed(ChannelError):
 
 class UnavailableInvalidChannel(ChannelError):
 
+    status_code: str | int
+
     def __init__(self, channel, status_code, response=None):
 
         # parse channel
@@ -470,15 +471,10 @@ class UnavailableInvalidChannel(ChannelError):
         if isinstance(reason, str):
             reason = reason.upper()
 
-        super().__init__(
-            dals(
-                f"""
-                HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>
+        self.status_code = status_code
 
-                """
-            )
-            # since message may include newlines don't include in f-string/dals above
-            + message,
+        super().__init__(
+            f"HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n{message}",
             channel_name=channel_name,
             channel_url=channel_url,
             status_code=status_code,
@@ -1047,6 +1043,10 @@ class EnvironmentFileNotDownloaded(CondaError):
 class SpecNotFound(CondaError):
     def __init__(self, msg, *args, **kwargs):
         super().__init__(msg, *args, **kwargs)
+
+
+class PluginError(CondaError):
+    pass
 
 
 def maybe_raise(error, context):

@@ -3,21 +3,19 @@
 
 from collections.abc import Mapping, Sequence
 import json
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import isfile, join
 import sys
 from textwrap import wrap
 
-try:
-    from tlz.itertoolz import concat, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .. import CondaError
 from ..auxlib.entity import EntityEncoder
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier, SatSolverChoice, ExperimentalSolverChoice)
+                              UpdateModifier, SatSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
@@ -97,7 +95,9 @@ def describe_all_parameters():
         builder.append(f"# ## {category:^48} ##")
         builder.append("# ######################################################")
         builder.append("")
-        builder.extend(concat(parameter_description_builder(name) for name in parameter_names))
+        builder.extend(
+            chain.from_iterable(parameter_description_builder(name) for name in parameter_names)
+        )
         builder.append("")
     return "\n".join(builder)
 
@@ -196,20 +196,31 @@ def execute_config(args, parser):
                 ))
             else:
                 builder = []
-                builder.extend(concat(parameter_description_builder(name)
-                                      for name in paramater_names))
-                stdout_write('\n'.join(builder))
+                builder.extend(
+                    chain.from_iterable(
+                        parameter_description_builder(name) for name in paramater_names
+                    )
+                )
+                stdout_write("\n".join(builder))
         else:
             if context.json:
-                skip_categories = ('CLI-only', 'Hidden and Undocumented')
-                paramater_names = sorted(concat(
-                    parameter_names for category, parameter_names in context.category_map.items()
-                    if category not in skip_categories
-                ))
-                stdout_write(json.dumps(
-                    [context.describe_parameter(name) for name in paramater_names],
-                    sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
-                ))
+                skip_categories = ("CLI-only", "Hidden and Undocumented")
+                paramater_names = sorted(
+                    chain.from_iterable(
+                        parameter_names
+                        for category, parameter_names in context.category_map.items()
+                        if category not in skip_categories
+                    )
+                )
+                stdout_write(
+                    json.dumps(
+                        [context.describe_parameter(name) for name in paramater_names],
+                        sort_keys=True,
+                        indent=2,
+                        separators=(",", ": "),
+                        cls=EntityEncoder,
+                    )
+                )
             else:
                 stdout_write(describe_all_parameters())
         return
@@ -394,9 +405,6 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
-        yaml.representer.RoundTripRepresenter.add_representer(
-            ExperimentalSolverChoice, enum_representer
-        )
 
         try:
             with open(rc_path, 'w') as rc:
@@ -412,4 +420,3 @@ def execute_config(args, parser):
             warnings=json_warnings,
             get=json_get
         )
-    return

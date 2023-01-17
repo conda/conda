@@ -11,8 +11,7 @@ import unittest
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser
+from conda.cli.conda_argparse import do_call, generate_parser
 from conda.common.compat import odict
 from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load

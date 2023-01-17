@@ -69,8 +69,7 @@ def create_notice_cache_files(
 ) -> None:
     """Creates the cache files that we use in tests"""
     for message_json, file in zip(messages_json_seq, cache_files):
-        cache_key = cache_dir.joinpath(file)
-        with open(cache_key, "w") as fp:
+        with cache_dir.joinpath(file).open("w") as fp:
             json.dump(message_json, fp)
 
 
