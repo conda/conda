@@ -5,6 +5,7 @@
 import json
 from logging import getLogger
 from os.path import dirname, join
+from pathlib import Path
 from time import sleep
 from unittest import TestCase
 from unittest.mock import patch
@@ -309,7 +310,7 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         assert precs_b == precs_a
 
 
-def test_cache_json(tmp_path):
+def test_cache_json(tmp_path: Path):
     """
     Load and save standardized field names, from internal matches-legacy
     underscore-prefixed field names. Assert state is only loaded if it matches
@@ -318,6 +319,8 @@ def test_cache_json(tmp_path):
     cache_json = tmp_path / "cached.json"
     cache_state = tmp_path / "cached.state.json"
 
+    cache_json.write_text("{}")
+
     CacheJsonState(cache_json, cache_state, "repodata.json").save()
 
     state = CacheJsonState(cache_json, cache_state, "repodata.json").load()
@@ -325,9 +328,9 @@ def test_cache_json(tmp_path):
     mod = "last modified time"
 
     state = CacheJsonState(cache_json, cache_state, "repodata.json")
-    state["_mod"] = mod
-    state["_cache_control"] = "cache control"
-    state["_etag"] = "etag"
+    state.mod = mod  # this is the last-modified header not mtime_ns
+    state.cache_control = "cache control"
+    state.etag = "etag"
     state.save()
 
     on_disk_format = json.loads(cache_state.read_text())
@@ -339,15 +342,15 @@ def test_cache_json(tmp_path):
     assert isinstance(on_disk_format["mtime_ns"], int)
 
     state2 = CacheJsonState(cache_json, cache_state, "repodata.json").load()
-    assert state2["_mod"] == mod
-    assert state2["_cache_control"]
-    assert state2["_etag"]
+    assert state2.mod == mod
+    assert state2.cache_control
+    assert state2.etag
 
-    assert state2["_mod"] == state2.mod
-    assert state2["_etag"] == state2.etag
-    assert state2["_cache_control"] == state2.cache_control
+    assert state2["mod"] == state2.mod
+    assert state2["etag"] == state2.etag
+    assert state2["cache_control"] == state2.cache_control
 
     cache_json.write_text("{ }")  # now invalid due to size
 
     state_invalid = CacheJsonState(cache_json, cache_state, "repodata.json").load()
-    assert state_invalid.get("_mod") == ""
+    assert state_invalid.get("mod") == ""

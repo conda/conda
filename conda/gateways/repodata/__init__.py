@@ -320,27 +320,36 @@ class CacheJsonState(dict):
                 and state.get("size") == json_stat.st_size
             ):
                 # clear mod, etag, cache_control to encourage re-download
-                state.update({"etag": "", "mod": "", "cache_control": ""})
-            for alias in "_etag", "_mod", "_cache_control":
-                if alias[1:] in state:
-                    state[alias] = state.pop(alias[1:])
-            self.update(state)
-            return self
+                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+            for field in (
+                "etag",
+                "mod",
+                "cache_control",
+                "size",
+            ):
+                alias = field
+                if alias in state:
+                    self[field] = state[alias]
         except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
             self.clear()
-            return self
+        return self
 
     def save(self):
         """
         Must be called after writing cache_path_json, as its mtime is included in .state.json
         """
         json_stat = self.cache_path_json.stat()
-        serialized = {}
-        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
-        for alias in "_etag", "_mod", "_cache_control":
-            if alias in self:
-                serialized[alias[1:]] = self[alias]
+        serialized = {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+        for field in (
+            "etag",
+            "mod",
+            "cache_control",
+            "size",
+        ):
+            alias = field
+            if field in self:
+                serialized[alias] = self[field]
         return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
 
     @property
