@@ -7,13 +7,7 @@ import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import (
-    Executor,
-    Future,
-    ThreadPoolExecutor,
-    _base,
-    as_completed,
-)
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
@@ -23,7 +17,7 @@ from io import BytesIO, StringIO
 from itertools import cycle
 from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-from threading import Event, Lock, Thread
+from threading import Event, Lock, RLock, Thread
 from time import sleep, time
 
 from tqdm import tqdm
@@ -444,18 +438,6 @@ class Spinner:
                 else:
                     sys.stdout.write("done\n")
                 sys.stdout.flush()
-
-
-try:
-    from threading import RLock  # type: ignore
-except (ImportError, OSError):  # pragma: no cover
-    # according to tqdm, threading.RLock is not guaranteed
-    class RLock:
-        def __enter__(self):
-            pass
-
-        def __exit__(self, *exc):
-            pass
 
 
 class ProgressBar:
