@@ -311,8 +311,7 @@ class CacheJsonState(dict):
         try:
             state_path = self.cache_path_state
             log.debug("Load %s cache from %s", self.repodata_fn, state_path)
-            with state_path.open("r") as s:
-                state = json.load(s)
+            state = json.loads(state_path.read_text())
             # json and state files should match
             json_stat = self.cache_path_json.stat()
             if not (
