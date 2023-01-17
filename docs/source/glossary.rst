@@ -68,15 +68,15 @@ Anaconda are supported by the community.
 See also :ref:`miniconda-glossary` and :ref:`conda-glossary`.
 
 
-.. _anaconda-cloud-glossary:
+.. _anaconda-org-glossary:
 
-Anaconda Cloud
-==============
+Anaconda.org
+============
 
 A web-based, repository hosting service in the cloud. Packages
 created locally can be published to the cloud to be shared with
-others. `Anaconda Cloud <https://docs.anaconda.com/anaconda-cloud/>`_
-is a public version of Anaconda Repository.
+others. `Anaconda.org`_ is a public version of Anaconda Repository
+and was formerly known as Anaconda Cloud.
 
 
 .. _navigator-glossary:
@@ -87,7 +87,7 @@ Anaconda Navigator
 A desktop graphical user interface (GUI) included in all versions
 of Anaconda that allows you to easily manage conda packages,
 environments, channels, and notebooks without a command line
-interface (CLI). See more about `Navigator <https://docs.anaconda.com/anaconda/navigator/>`_.
+interface (CLI). See more about `Navigator`_.
 
 .. _channels-glossary:
 
@@ -178,7 +178,7 @@ that are automatically downloaded when executed.
 Miniconda
 =========
 
-A free minimal installer for conda. `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_
+A free minimal installer for conda. `Miniconda`_
 is a small, bootstrap version of Anaconda that includes only conda,
 Python, the packages they depend on, and a small number of other useful
 packages, including pip, zlib, and a few others. Use the
@@ -238,7 +238,7 @@ Repository
 
 Any storage location from which software assets may be retrieved
 and installed on a local computer. See also
-:ref:`anaconda-cloud-glossary` and
+:ref:`anaconda-org-glossary` and
 :ref:`conda-repository-glossary`.
 
 .. _silent-mode-glossary:
@@ -249,3 +249,7 @@ Silent mode installation
 When installing Miniconda or Anaconda in silent mode, screen
 prompts are not shown on screen and default settings are
 automatically accepted.
+
+.. _`Anaconda.org`: https://docs.anaconda.com/anacondaorg/
+.. _`Navigator`: https://docs.anaconda.com/navigator/
+.. _`Miniconda`: https://docs.conda.io/en/latest/miniconda.html
