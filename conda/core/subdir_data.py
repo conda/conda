@@ -13,22 +13,22 @@ from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from io import open as io_open
+from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
+from pathlib import Path
 from time import time
 
 from genericpath import getmtime, isfile
 
-from itertools import islice, chain
-
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
-    CondaRepoInterface,
-    RepoInterface,
-    RepodataIsEmpty,
-    Response304ContentUnchanged,
     CacheJsonState,
+    CondaRepoInterface,
+    RepodataIsEmpty,
+    RepoInterface,
+    Response304ContentUnchanged,
 )
 
 from .. import CondaError
@@ -250,8 +250,8 @@ class SubdirData(metaclass=SubdirDataType):
         return CacheJsonState(self.cache_path_json, self.cache_path_state, self.repodata_fn).load()
 
     def _save_state(self, state: CacheJsonState):
-        assert state.cache_path_json == self.cache_path_json
-        assert state.cache_path_state == self.cache_path_state
+        assert Path(state.cache_path_json) == Path(self.cache_path_json)
+        assert Path(state.cache_path_state) == Path(self.cache_path_state)
         assert state.repodata_fn == self.repodata_fn
         return state.save()
 
@@ -642,7 +642,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        cache_state = CacheJsonState(None, None, repodata_fn)
+        cache_state = subdir._load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
         raw_repodata_str = subdir._repo.repodata(cache_state)
