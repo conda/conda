@@ -85,9 +85,9 @@ class CondaRepoInterface(RepoInterface):
         etag = state.etag
         last_modified = state.mod
         if etag:
-            headers["If-None-Match"] = etag
+            headers["If-None-Match"] = str(etag)
         if last_modified:
-            headers["If-Modified-Since"] = last_modified
+            headers["If-Modified-Since"] = str(last_modified)
         filename = self._repodata_fn
 
         url = join_url(self._url, filename)
