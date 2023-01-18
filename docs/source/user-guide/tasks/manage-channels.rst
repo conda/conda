@@ -95,9 +95,8 @@ Strict channel priority
 
 As of version 4.6.0, Conda has a strict channel priority feature.
 Strict channel priority can dramatically speed up conda operations and
-also reduce package incompatibility problems. We recommend it as a default.
-However, it may break old environment files, so we plan to delay making it
-conda's out-of-the-box default until the next major version bump, conda 5.0.
+also reduce package incompatibility problems. We recommend setting channel
+priority to "strict" when possible.
 
 Details about it can be seen by typing ``conda config --describe channel_priority``.
 
