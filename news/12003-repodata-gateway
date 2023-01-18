@@ -16,5 +16,4 @@
 
 ### Other
 
-* Refactor repodata.json fetching; update on-disk cache format. Based on work by
-  @FFY00. (#11600)
+* Refactor `repodata.json` fetching; update on-disk cache format. Based on work by @FFY00. (#11600)

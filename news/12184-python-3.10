@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Lock `sys.stdout` to avoid corrupted `--json` multithreaded download progress. (#12231)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Added Python 3.10 canary builds. (#12184)
