@@ -425,6 +425,10 @@ class SubdirData(metaclass=SubdirDataType):
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
     def _read_pickled(self, state: RepodataState):
+        if not isinstance(state, RepodataState):
+            _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+            _state |= state
+            state = _state
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
             # Don't trust pickled data if there is no accompanying json data
@@ -468,6 +472,10 @@ class SubdirData(metaclass=SubdirDataType):
     def _process_raw_repodata(self, repodata, state: RepodataState | None):
         if state is None:
             state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+        elif not isinstance(state, RepodataState):
+            _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+            _state |= state
+            state = _state
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
