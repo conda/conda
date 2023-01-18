@@ -31,16 +31,16 @@
 
 * @beeankha
 * @dholth
-* @dariocurr
+* @dariocurr made their first contribution in https://github.com/conda/conda/pull/12128
 * @jezdez
-* @jay-tau
+* @jay-tau made their first contribution in https://github.com/conda/conda/pull/11738
 * @kenodegard
 * @pkmooreanaconda
-* @sven6002
-* @ReveStobinson
+* @sven6002 made their first contribution in https://github.com/conda/conda/pull/12162
+* @ReveStobinson made their first contribution in https://github.com/conda/conda/pull/12213
 * @travishathaway
-* @XuehaiPan
-* @xylar
+* @XuehaiPan made their first contribution in https://github.com/conda/conda/pull/11667
+* @xylar made their first contribution in https://github.com/conda/conda/pull/11949
 * @pre-commit-ci[bot]
 
 
