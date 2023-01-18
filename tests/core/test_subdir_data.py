@@ -17,7 +17,7 @@ from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
 from conda.core.subdir_data import (
-    CacheJsonState,
+    RepodataState,
     CondaRepoInterface,
     Response304ContentUnchanged,
     SubdirData,
@@ -321,13 +321,13 @@ def test_cache_json(tmp_path: Path):
 
     cache_json.write_text("{}")
 
-    CacheJsonState(cache_json, cache_state, "repodata.json").save()
+    RepodataState(cache_json, cache_state, "repodata.json").save()
 
-    state = CacheJsonState(cache_json, cache_state, "repodata.json").load()
+    state = RepodataState(cache_json, cache_state, "repodata.json").load()
 
     mod = "last modified time"
 
-    state = CacheJsonState(cache_json, cache_state, "repodata.json")
+    state = RepodataState(cache_json, cache_state, "repodata.json")
     state.mod = mod  # this is the last-modified header not mtime_ns
     state.cache_control = "cache control"
     state.etag = "etag"
@@ -341,7 +341,7 @@ def test_cache_json(tmp_path: Path):
     assert isinstance(on_disk_format["size"], int)
     assert isinstance(on_disk_format["mtime_ns"], int)
 
-    state2 = CacheJsonState(cache_json, cache_state, "repodata.json").load()
+    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
     assert state2.mod == mod
     assert state2.cache_control
     assert state2.etag
@@ -352,5 +352,5 @@ def test_cache_json(tmp_path: Path):
 
     cache_json.write_text("{ }")  # now invalid due to size
 
-    state_invalid = CacheJsonState(cache_json, cache_state, "repodata.json").load()
+    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
     assert state_invalid.get("mod") == ""

@@ -75,7 +75,7 @@ class CondaRepoInterface(RepoInterface):
         self._url = url
         self._repodata_fn = repodata_fn or REPODATA_FN
 
-    def repodata(self, state: CacheJsonState) -> str | None:
+    def repodata(self, state: RepodataState) -> str | None:
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -295,7 +295,7 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
         )
 
 
-class CacheJsonState(dict):
+class RepodataState(dict):
     """
     Load/save `.state.json` that accompanies cached `repodata.json`
     """

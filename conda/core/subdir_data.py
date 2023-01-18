@@ -24,7 +24,7 @@ from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
-    CacheJsonState,
+    RepodataState,
     CondaRepoInterface,
     RepodataIsEmpty,
     RepoInterface,
@@ -262,9 +262,9 @@ class SubdirData(metaclass=SubdirDataType):
         stored separately, instead of the previous "added to repodata.json"
         arrangement.
         """
-        return CacheJsonState(self.cache_path_json, self.cache_path_state, self.repodata_fn).load()
+        return RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn).load()
 
-    def _save_state(self, state: CacheJsonState):
+    def _save_state(self, state: RepodataState):
         assert Path(state.cache_path_json) == Path(self.cache_path_json)
         assert Path(state.cache_path_state) == Path(self.cache_path_state)
         assert state.repodata_fn == self.repodata_fn
@@ -291,7 +291,7 @@ class SubdirData(metaclass=SubdirDataType):
                     "_track_features_index": defaultdict(list),
                 }
             else:
-                mod_etag_headers = CacheJsonState(
+                mod_etag_headers = RepodataState(
                     self.cache_path_json, self.cache_path_state, self.repodata_fn
                 )
         else:
@@ -380,7 +380,7 @@ class SubdirData(metaclass=SubdirDataType):
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
 
-    def _read_local_repodata(self, state: CacheJsonState):
+    def _read_local_repodata(self, state: RepodataState):
         # first try reading pickled data
         _pickled_state = self._read_pickled(state)
         if _pickled_state:
@@ -424,7 +424,7 @@ class SubdirData(metaclass=SubdirDataType):
         yield "_pickle_version", pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
-    def _read_pickled(self, state: CacheJsonState):
+    def _read_pickled(self, state: RepodataState):
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
             # Don't trust pickled data if there is no accompanying json data
@@ -458,16 +458,16 @@ class SubdirData(metaclass=SubdirDataType):
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str, state: CacheJsonState | None = None):
+    def _process_raw_repodata_str(self, raw_repodata_str, state: RepodataState | None = None):
         """
         state contains information that was previously in-band in raw_repodata_str.
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata, state: CacheJsonState | None):
+    def _process_raw_repodata(self, repodata, state: RepodataState | None):
         if state is None:
-            state = CacheJsonState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+            state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
