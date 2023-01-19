@@ -664,14 +664,12 @@ class Solver:
             # history is preferable because it has explicitly installed stuff in it.
             #   that simplifies our solution.
             if ssc.specs_from_history_map:
-                ssc.specs_map = {
-                    spec: (
-                        MatchSpec(spec)
-                        if MatchSpec(spec).name not in (_.name for _ in ssc.pinned_specs)
-                        else (MatchSpec(spec).name, ssc.specs_map[MatchSpec(spec).name])
-                    )
+                ssc.specs_map = dict(
+                    (spec, MatchSpec(spec))
+                    if MatchSpec(spec).name not in (_.name for _ in ssc.pinned_specs)
+                    else (MatchSpec(spec).name, ssc.specs_map[MatchSpec(spec).name])
                     for spec in ssc.specs_from_history_map
-                }
+                )
                 for prec in ssc.prefix_data.iter_records():
                     # treat pip-installed stuff as explicitly installed, too.
                     if prec.subdir == 'pypi':
@@ -681,7 +679,7 @@ class Solver:
                     prec.name: (
                         MatchSpec(prec.name)
                         if prec.name not in (_.name for _ in ssc.pinned_specs)
-                        else (prec.name, ssc.specs_map[prec.name])
+                        else ssc.specs_map[prec.name]
                     )
                     for prec in ssc.prefix_data.iter_records()
                 }
