@@ -8,7 +8,6 @@ import json
 from conda.base.context import context
 from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.cli import common  # TODO: this should never have to import form conda.cli
-from conda.common.compat import odict
 from conda.common.serialize import yaml_safe_load, yaml_safe_dump
 from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.download import download_text
@@ -223,7 +222,7 @@ class Environment:
         self.channels = []
 
     def to_dict(self, stream=None):
-        d = odict([('name', self.name)])
+        d = {"name": self.name}
         if self.channels:
             d['channels'] = self.channels
         if self.dependencies:

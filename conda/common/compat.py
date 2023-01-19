@@ -54,7 +54,7 @@ def isiterable(obj):
 # other
 # #############################
 
-from collections import OrderedDict as odict  # NOQA
+from collections import OrderedDict as odict  # noqa: F401
 
 from io import open as io_open  # NOQA
 

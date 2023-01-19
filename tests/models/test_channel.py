@@ -9,7 +9,6 @@ from unittest.mock import patch
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified, env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
@@ -192,7 +191,11 @@ class AnacondaServerChannelTests(TestCase):
           - http://10.2.3.4:7070/conda
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -344,7 +347,11 @@ class CustomConfigChannelTests(TestCase):
           - http://192.168.0.15:8080/pkgs/msys2
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -652,7 +659,11 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
           expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(channels_config)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(channels_config)
+            )
+        }
         context._set_raw_data(rd)
 
     @classmethod
@@ -691,7 +702,11 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
         """)
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -1036,7 +1051,11 @@ class OtherChannelParsingTests(TestCase):
            - http://test/conda/anaconda-cluster
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 

@@ -32,7 +32,7 @@ except ImportError:
     from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
 
-from .compat import isiterable, odict, primitive_types
+from .compat import isiterable, primitive_types
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -485,7 +485,7 @@ def load_file_configs(search_path):
     load_paths = (_loader[st_mode](path)
                   for path, st_mode in zip(expanded_paths, stat_paths)
                   if st_mode is not None)
-    raw_data = odict(kv for kv in chain.from_iterable(load_paths))
+    raw_data = dict(kv for kv in chain.from_iterable(load_paths))
     return raw_data
 
 
@@ -1286,7 +1286,7 @@ class Configuration(metaclass=ConfigurationType):
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
-        self.raw_data = odict()
+        self.raw_data = {}
         self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
@@ -1406,12 +1406,12 @@ class Configuration(metaclass=ConfigurationType):
         return ()
 
     def collect_all(self):
-        typed_values = odict()
-        validation_errors = odict()
+        typed_values = {}
+        validation_errors = {}
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(validation_errors.values())))
-        return odict((k, v) for k, v in typed_values.items() if v)
+        return {k: v for k, v in typed_values.items() if v}
 
     def describe_parameter(self, parameter_name):
         # TODO, in Parameter base class, rename element_type to value_type

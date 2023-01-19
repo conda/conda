@@ -46,7 +46,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
-from ..common.compat import NoneType, odict, on_win
+from ..common.compat import NoneType, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
@@ -726,34 +726,32 @@ class Context(Configuration):
         if self.restore_free_channel:
             default_channels.insert(1, 'https://repo.anaconda.com/pkgs/free')
 
-        reserved_multichannel_urls = odict((
-            (DEFAULTS_CHANNEL_NAME, default_channels),
-            ('local', self.conda_build_local_urls),
-        ))
-        reserved_multichannels = odict(
-            (name, tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in reserved_multichannel_urls.items()
-        )
-        custom_multichannels = odict(
-            (name, tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in self._custom_multichannels.items()
-        )
-        return odict(
-            (name, channels)
+        reserved_multichannel_urls = {
+            DEFAULTS_CHANNEL_NAME: default_channels,
+            "local": self.conda_build_local_urls,
+        }
+        reserved_multichannels = {
+            name: tuple(Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+            for name, urls in reserved_multichannel_urls.items()
+        }
+        custom_multichannels = {
+            name: tuple(Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+            for name, urls in self._custom_multichannels.items()
+        }
+        return {
+            name: channels
             for name, channels in (
                 *custom_multichannels.items(),
                 *reserved_multichannels.items(),  # order maters, reserved overrides custom
             )
-        )
+        }
 
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
 
-        return odict(
-            (channel.name, channel)
+        return {
+            channel.name: channel
             for channel in (
                 *chain.from_iterable(channel for channel in self.custom_multichannels.values()),
                 *(
@@ -761,7 +759,7 @@ class Context(Configuration):
                     for name, url in self._custom_channels.items()
                 ),
             )
-        )
+        }
 
     @property
     def channels(self):

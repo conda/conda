@@ -10,7 +10,6 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -342,7 +341,7 @@ class PrefixData(metaclass=PrefixDataType):
 def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
     """Return the anchor files for the conda records of python packages."""
     anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
-    conda_python_packages = odict()
+    conda_python_packages = {}
 
     matcher = re.compile(
         r"^{}/[^/]+(?:{})$".format(

@@ -7,7 +7,7 @@ from .enums import NoarchType
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
-from ..common.compat import odict, on_win
+from ..common.compat import on_win
 from ..exceptions import CyclicalDependencyError
 
 log = getLogger(__name__)
@@ -189,14 +189,14 @@ class PrefixGraph:
                 edges.remove(node)
 
     def _toposort(self):
-        graph_copy = odict((node, IndexedSet(parents)) for node, parents in self.graph.items())
+        graph_copy = {node: IndexedSet(parents) for node, parents in self.graph.items()}
         self._toposort_prepare_graph(graph_copy)
         if context.allow_cycles:
             sorted_nodes = tuple(self._topo_sort_handle_cycles(graph_copy))
         else:
             sorted_nodes = tuple(self._toposort_raise_on_cycles(graph_copy))
         original_graph = self.graph
-        self.graph = odict((node, original_graph[node]) for node in sorted_nodes)
+        self.graph = {node: original_graph[node] for node in sorted_nodes}
         return sorted_nodes
 
     @classmethod
