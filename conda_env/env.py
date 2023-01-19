@@ -19,12 +19,7 @@ from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
-from conda.common.iterators import groupby_to_dict as groupby
-
-try:
-    from tlz.itertoolz import unique
-except ImportError:
-    from conda._vendor.toolz.itertoolz import unique
+from conda.common.iterators import groupby_to_dict as groupby, unique
 
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
