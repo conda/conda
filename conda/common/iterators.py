@@ -5,8 +5,9 @@ Replacements for parts of the toolz library.
 """
 from __future__ import annotations
 
-import itertools
 import collections
+import itertools
+from typing import Generator, TypeVar
 
 
 def groupby_to_dict(keyfunc, sequence):
