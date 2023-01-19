@@ -279,8 +279,8 @@ class UnlinkLinkTransaction:
         assert not context.dry_run
         try:
             # innermost dict.values() is an iterable of PrefixActionGroup namedtuple
-            # zip() is an iterable of sets of each PrefixActionGroup namedtuple key
-            self._execute(tuple(chain(*zip(*self.prefix_action_groups.values()))))
+            # zip() is an iterable of each PrefixActionGroup namedtuple key
+            self._execute(tuple(chain(*chain(*zip(*self.prefix_action_groups.values())))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
