@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
 import json
 from logging import getLogger
 import os
@@ -304,7 +302,7 @@ class PrefixData(metaclass=PrefixDataType):
         env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
         if lexists(env_vars_file):
             with open(env_vars_file) as f:
-                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+                prefix_state = json.loads(f.read())
         else:
             prefix_state = {}
         return prefix_state
@@ -316,11 +314,8 @@ class PrefixData(metaclass=PrefixDataType):
 
     def get_environment_env_vars(self):
         prefix_state = self._get_environment_state_file()
-        env_vars_all = OrderedDict(prefix_state.get('env_vars', {}))
-        env_vars = {
-            k: v for k, v in env_vars_all.items()
-            if v != CONDA_ENV_VARS_UNSET_VAR
-        }
+        env_vars_all = dict(prefix_state.get("env_vars", {}))
+        env_vars = {k: v for k, v in env_vars_all.items() if v != CONDA_ENV_VARS_UNSET_VAR}
         return env_vars
 
     def set_environment_env_vars(self, env_vars):

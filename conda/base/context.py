@@ -1,8 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
-
 from errno import ENOENT
 from functools import lru_cache
 from itertools import chain
@@ -668,35 +665,33 @@ class Context(Configuration):
 
     @property
     def conda_exe_vars_dict(self):
-        '''
-        An OrderedDict so the vars can refer to each other if necessary.
+        """
+        The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
-        '''
+        """
 
         if context.dev:
-            return OrderedDict(
-                [
-                    ("CONDA_EXE", sys.executable),
-                    (
-                        "PYTHONPATH",
-                        # [warning] Do not confuse with os.path.join, we are joining paths
-                        # with ; or : delimiters.
-                        os.pathsep.join((CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))),
-                    ),
-                    ("_CE_M", "-m"),
-                    ("_CE_CONDA", "conda"),
-                    ("CONDA_PYTHON_EXE", sys.executable),
-                ]
-            )
+            return {
+                "CONDA_EXE": sys.executable,
+                # do not confuse with os.path.join, we are joining paths with ; or : delimiters
+                "PYTHONPATH": os.pathsep.join(
+                    (CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))
+                ),
+                "_CE_M": "-m",
+                "_CE_CONDA": "conda",
+                "CONDA_PYTHON_EXE": sys.executable,
+            }
         else:
             bin_dir = 'Scripts' if on_win else 'bin'
             exe = 'conda.exe' if on_win else 'conda'
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
-            return OrderedDict([('CONDA_EXE', os.path.join(sys.prefix, bin_dir, exe)),
-                                ('_CE_M', ''),
-                                ('_CE_CONDA', ''),
-                                ('CONDA_PYTHON_EXE', sys.executable)])
+            return {
+                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "_CE_M": "",
+                "_CE_CONDA": "",
+                "CONDA_PYTHON_EXE": sys.executable,
+            }
 
     @memoizedproperty
     def channel_alias(self):

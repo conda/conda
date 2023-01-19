@@ -475,7 +475,7 @@ def get_conda_build_local_url():
 
 
 def prioritize_channels(channels, with_credentials=True, subdirs=None):
-    # prioritize_channels returns and OrderedDict with platform-specific channel
+    # prioritize_channels returns an odict with platform-specific channel
     #   urls as the key, and a tuple of canonical channel name and channel priority
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))

@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
 from itertools import chain
 import os
 import re
@@ -175,7 +173,7 @@ def from_file(filename):
 
 
 # TODO test explicitly
-class Dependencies(OrderedDict):
+class Dependencies(dict):
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.raw = raw
