@@ -13,11 +13,6 @@ from traceback import format_exception_only
 from textwrap import indent
 import warnings
 
-try:
-    from tlz.itertoolz import interleave
-except ImportError:
-    from conda._vendor.toolz.itertoolz import interleave
-
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
@@ -283,9 +278,9 @@ class UnlinkLinkTransaction:
 
         assert not context.dry_run
         try:
-            self._execute(
-                tuple(chain.from_iterable(interleave(self.prefix_action_groups.values())))
-            )
+            # innermost dict.values() is an iterable of PrefixActionGroup namedtuple
+            # zip() is an iterable of sets of each PrefixActionGroup namedtuple key
+            self._execute(tuple(chain(*zip(*self.prefix_action_groups.values()))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
