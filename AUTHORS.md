@@ -96,6 +96,7 @@ Authors are sorted alphabetically.
 * Daniel Hook
 * Daniel Wehner
 * Daniel Zeng
+* Dario Curreri
 * Darren Dale
 * Dave
 * Dave Hirschfeld
@@ -177,6 +178,7 @@ Authors are sorted alphabetically.
 * Joe Jevnik
 * Joel Hull
 * Joel Kim
+* Joel Tony
 * Johan Carlin
 * John Ayad
 * John Flavin
@@ -342,6 +344,7 @@ Authors are sorted alphabetically.
 * Skipper Seabold
 * Sophia Castellarin
 * Spencer Mathews
+* Srivas Venkatesh
 * Stan Seibert
 * Stanis Shkel
 * Stefaan Lippens
@@ -349,6 +352,7 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Robinson
 * Steve Palmroth
 * Steven Engler
 * Stijn Verstraeten
@@ -386,6 +390,8 @@ Authors are sorted alphabetically.
 * Willy Chen
 * Winston Sebastian Pais
 * Wolfgang Ulmer
+* Xuehai Pan
+* Xylar Asay-Davis
 * Yaroslav Dmytryk
 * Yuval Reches
 * Yuvi Panda
