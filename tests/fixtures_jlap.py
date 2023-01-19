@@ -8,7 +8,10 @@ Change contents to simulate an updating repository.
 Must be imported by conftest.py for pytest to see the fixtures.
 """
 
+from __future__ import annotations
+
 import multiprocessing
+import shutil
 import socket
 import time
 from pathlib import Path
@@ -19,7 +22,9 @@ from werkzeug.serving import WSGIRequestHandler, make_server, prepare_socket
 
 app = flask.Flask(__name__)
 
-base = Path(__file__).parents[0] / "data" / "conda_format_repo"
+TEST_REPOSITORY = Path(__file__).parents[0] / "data" / "conda_format_repo"
+
+base = TEST_REPOSITORY  # set to per-test-run value
 
 LATENCY = 0
 
@@ -55,8 +60,9 @@ class NoLoggingWSGIRequestHandler(WSGIRequestHandler):
         pass
 
 
-def make_server_with_socket(socket: socket.socket):
-    global server
+def make_server_with_socket(socket: socket.socket, base_: Path = base):
+    global server, base
+    base = base_
     assert isinstance(socket.fileno(), int)
     server = make_server(
         "127.0.0.1",
@@ -76,20 +82,31 @@ def run_on_random_port():
     return next(_package_server())
 
 
-def _package_server(cleanup=True):
+def _package_server(cleanup=True, base: Path | None = None):
     socket = prepare_socket("127.0.0.1", 0)
     context = multiprocessing.get_context("spawn")
-    process = context.Process(
-        target=make_server_with_socket, args=(socket,), daemon=True
-    )
+    process = context.Process(target=make_server_with_socket, args=(socket, base), daemon=True)
     process.start()
     yield socket
     process.kill()
 
 
 @pytest.fixture(scope="session")
-def package_server():
-    yield from _package_server()
+def package_repository_base(tmp_path_factory):
+    """
+    Copy tests/index_data to avoid writing changes to repository.
+
+    Could be made session-scoped if we don't mind re-using the index cache
+    during tests.
+    """
+    destination = tmp_path_factory.mktemp("repo") / TEST_REPOSITORY.name
+    shutil.copytree(TEST_REPOSITORY, destination)
+    return destination
+
+
+@pytest.fixture(scope="session")
+def package_server(package_repository_base):
+    yield from _package_server(base=package_repository_base)
 
 
 if __name__ == "__main__":
