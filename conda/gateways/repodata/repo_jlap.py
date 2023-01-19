@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from conda.gateways.connection.session import CondaSession
+
 from . import RepoInterface, conda_http_errors, jlapper
 
 log = logging.getLogger(__name__)
@@ -46,6 +48,8 @@ class JlapRepoInterface(RepoInterface):
     def repodata(self, state: dict) -> str | None:
         console.print_json(data=state)
 
+        session = CondaSession()
+
         repodata_url = f"{self._url}/{self._repodata_fn}"
         # jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
 
@@ -55,7 +59,9 @@ class JlapRepoInterface(RepoInterface):
             raise NotImplementedError("Unexpected URL", url)
 
         with conda_http_errors(self._url, self._repodata_fn):
-            jlapper.request_url_jlap_state(repodata_url, state, get_place=get_place)
+            jlapper.request_url_jlap_state(
+                repodata_url, state, get_place=get_place, session=session
+            )
 
         headers = state.get("jlap", {}).get("headers")
         if headers:
