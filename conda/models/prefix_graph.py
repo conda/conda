@@ -394,7 +394,7 @@ class GeneralGraph(PrefixGraph):
 
         consolidated_graph = {}
         # graph is toposorted, so looping over it is in dependency order
-        for node, parent_nodes in reversed(self.graph.items()):
+        for node, parent_nodes in reversed(list(self.graph.items())):
             cg = consolidated_graph.get(node.name, set())
             cg.update(_.name for _ in parent_nodes)
             consolidated_graph[node.name] = cg
