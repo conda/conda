@@ -19,7 +19,6 @@ from requests import HTTPError
 
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
-from conda.gateways.connection.session import CondaSession
 
 from .jlapcore import jlap_buffer, write_jlap_buffer
 
@@ -221,11 +220,10 @@ def request_url_jlap_state(
     if session is None:
         session = Session()
 
-    assert not isinstance(session, CondaSession), "CondaSession mangles .jlap URLs"
-
-    # We can't use CondaSession here
+    # We updated conda.common.path to be able to use CondaSession here; older
+    # versions will mangle the url calling e.g.
     # Channel.from_value("https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap")
-    # mangles the URL (works fine with repodata.json, or a package filename)
+    # (works fine with repodata.json, or a package filename)
 
     jlap_state = state.get(JLAP, {})
     headers = jlap_state.get(HEADERS, {})
