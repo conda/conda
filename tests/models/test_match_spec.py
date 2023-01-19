@@ -43,7 +43,7 @@ def DPkg(s, **kwargs):
 class MatchSpecTests(TestCase):
 
     def test_match_1(self):
-        for spec, result in [
+        for spec, result in (
             ('numpy 1.7*', True),          ('numpy 1.7.1', True),
             ('numpy 1.7', False),          ('numpy 1.5*', False),
             ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
@@ -59,7 +59,7 @@ class MatchSpecTests(TestCase):
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
             ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
             ('python', False),
-        ]:
+        ):
             m = MatchSpec(spec)
             assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
             assert 'name' in m
@@ -590,6 +590,11 @@ class SpecStrParsingTests(TestCase):
             "_original_spec_str": "numpy",
             "name": "numpy",
         }
+        # For whatever reason "numpy=" is allowed and will be interpreted as "numpy"
+        assert _parse_spec_str("numpy=") == {
+            "_original_spec_str": "numpy=",
+            "name": "numpy",
+        }
         assert _parse_spec_str("defaults::numpy") == {
             "_original_spec_str": "defaults::numpy",
             "channel": "defaults",
@@ -649,6 +654,30 @@ class SpecStrParsingTests(TestCase):
         }
         assert _parse_spec_str('defaults::numpy=1.8=py27_0 [channel=\'anaconda\',version=">=1.8,<2|1.9", build=\'3\']') == {
             "_original_spec_str": 'defaults::numpy=1.8=py27_0 [channel=\'anaconda\',version=">=1.8,<2|1.9", build=\'3\']',
+            "channel": "anaconda",
+            "name": "numpy",
+            "version": ">=1.8,<2|1.9",
+            "build": "3",
+        }
+
+        # Ensure 'name' within brackets can't override the name specified outside of brackets
+        assert _parse_spec_str(
+            "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]"
+        ) == {
+            "_original_spec_str": "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]",
+            "name": "tensorflow",
+            "version": "*",
+            "md5": "253b922ecdb5a30884875948b8904983",
+        }
+        assert _parse_spec_str("tensorflow[name=pytorch]") == {
+            "_original_spec_str": "tensorflow[name=pytorch]",
+            "name": "tensorflow",
+        }
+
+        assert _parse_spec_str(
+            "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']"
+        ) == {
+            "_original_spec_str": "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']",
             "channel": "anaconda",
             "name": "numpy",
             "version": ">=1.8,<2|1.9",
@@ -1003,3 +1032,9 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+    def test_catch_invalid_regexes(self):
+        # Crashing case via fuzzing found via fuzzing. Reported here: https://github.com/conda/conda/issues/11999
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("*/lin(ux-65::f/o>=>1y"))
+        # Inspired by above crasher
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("^(aaaa$"))

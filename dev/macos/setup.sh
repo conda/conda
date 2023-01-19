@@ -14,5 +14,5 @@ conda config --set changeps1 true
 # make sure the caching works correctly
 conda config --set use_only_tar_bz2 true
 # install all test requirements
-conda install --name conda-test-env --yes --file tests/requirements.txt
+conda install --quiet --name conda-test-env --yes --file tests/requirements.txt
 conda update openssl ca-certificates certifi
