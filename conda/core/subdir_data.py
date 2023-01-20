@@ -79,7 +79,7 @@ class SubdirDataType(type):
         return subdir_data_instance
 
 
-class LazyPackageRecords(UserList):
+class PackageRecordList(UserList):
     """
     Lazily convert dicts to PackageRecord.
     """
@@ -486,7 +486,7 @@ class SubdirData(metaclass=SubdirDataType):
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
-        self._package_records = _package_records = LazyPackageRecords()
+        self._package_records = _package_records = PackageRecordList()
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
