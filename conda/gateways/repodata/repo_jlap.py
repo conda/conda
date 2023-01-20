@@ -63,10 +63,15 @@ class JlapRepoInterface(RepoInterface):
                 repodata_url, state, get_place=get_place, session=session
             )
 
-        headers = state.get("jlap", {}).get("headers")
+        state["_url"] = self._url
+        headers = state.get("jlap", {}).get(
+            "headers"
+        )  # XXX overwrite headers in jlapper.request_url_jlap_state
         if headers:
             state["_etag"] = headers.get("etag")
             state["_mod"] = headers.get("last-modified")
             state["_cache_control"] = headers.get("cache-control")
 
+        # XXX SubdirData._load will immediately rewrite this because it doesn't
+        # know we saved it; is this still a valid concern on "304 not modified"??
         return Path(self._cache_path_json).read_text()

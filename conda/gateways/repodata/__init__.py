@@ -10,7 +10,6 @@ import warnings
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
-from typing import Any
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
@@ -297,7 +296,7 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
         )
 
 
-class RepodataState(UserDict[str, Any]):
+class RepodataState(UserDict):
     """
     Load/save `.state.json` that accompanies cached `repodata.json`
     """
@@ -309,7 +308,7 @@ class RepodataState(UserDict[str, Any]):
         "size",
     )
 
-    _aliased = ("_mod", "_etag", "_cache_control")
+    _aliased = ("_mod", "_etag", "_cache_control", "_url")
 
     def __init__(self, cache_path_json, cache_path_state, repodata_fn):
         super().__init__()
@@ -335,10 +334,7 @@ class RepodataState(UserDict[str, Any]):
             ):
                 # clear mod, etag, cache_control to encourage re-download
                 state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
-            for field in self._fields:
-                alias = field
-                if alias in state:
-                    self[field] = state[alias]
+            self.update(state)  # allow all fields
         except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
             self.clear()
@@ -348,12 +344,9 @@ class RepodataState(UserDict[str, Any]):
         """
         Must be called after writing cache_path_json, as its mtime is included in .state.json
         """
+        serialized = dict(self)
         json_stat = self.cache_path_json.stat()
-        serialized = {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
-        for field in self._fields:
-            alias = field
-            if field in self:
-                serialized[alias] = self[field]
+        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
         return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
 
     @property
@@ -394,7 +387,7 @@ class RepodataState(UserDict[str, Any]):
             key = key[1:]  # strip underscore
         return super().__setitem__(key, item)
 
-    def __missing__(self, key: str) -> _VT:
+    def __missing__(self, key: str):
         if key in self._aliased:
             key = key[1:]  # strip underscore
         else:

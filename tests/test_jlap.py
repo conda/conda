@@ -134,8 +134,13 @@ def test_repodata_state(
         SubdirData.clear_cached_local_channel_data()  # should clear in-memory caches
         SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
 
+        # possibly file cache is left over from test run
+
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
+
+        # change SubdirData base path, or set something in context
+        # assert not Path(sd.cache_path_json).exists()
 
         # parameterize whether this is used?
         assert isinstance(sd._repo, repo_cls)
@@ -171,3 +176,51 @@ def test_jlap_flag(use_jlap):
     ):
         expected = "jlap" in use_jlap.split(",")
         assert ("jlap" in context.experimental) is expected
+
+
+def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_base: Path):
+    """
+    Test that we try to fetch the .jlap file.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    with env_vars(
+        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap"},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        # XXX how does this not do anything?
+        SubdirData.clear_cached_local_channel_data()  # should clear in-memory caches
+        SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
+
+        # possibly file cache is left over from test run
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+        sd.load()
+
+        # now let's check out state file
+        state = json.loads(Path(sd.cache_path_state).read_text())
+
+        print("first fetch", state)
+
+        # possibly delete state cache-control
+
+        # now try to re-download or use cache
+        # unfortunately this is using devenv/.../pkgs/cache/<x>.json not a tmpdir
+        SubdirData._cache_.clear()
+
+        # set context.local_repodata_ttl = 0?
+        # 1 = use cache header which is none for the flask web server
+        sd = SubdirData(channel=test_channel)
+        sd.load()
+
+        print(list(sd.iter_records()))
+
+        state_object = sd._load_state()
+
+        print(state_object)
+
+        # XXX use CEP 'we checked for jlap' key
+        assert state_object["jlap_unavailable"]

@@ -31,8 +31,8 @@ DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
 
 JLAP = "jlap"
 HEADERS = "headers"
-NOMINAL_HASH = "have"
-ON_DISK_HASH = "have_hash"
+NOMINAL_HASH = "nominal_hash"
+ON_DISK_HASH = "actual_hash"
 LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 
@@ -295,7 +295,6 @@ def request_url_jlap_state(
             response = download_and_hash(
                 hasher, withext(url, ".json"), json_path, session=session, state=state
             )
-            state["_url"] = url  # should we strip repodata.json as the old code does?
             # will we use state['headers'] for caching against
             state["_mod"] = response.headers.get("last-modified")
             state["_etag"] = response.headers.get("etag")
