@@ -99,6 +99,7 @@ def package_repository_base(tmp_path_factory):
     Could be made session-scoped if we don't mind re-using the index cache
     during tests.
     """
+    # destination can't exist for shutil.copytree(); create its parent
     destination = tmp_path_factory.mktemp("repo") / TEST_REPOSITORY.name
     shutil.copytree(TEST_REPOSITORY, destination)
     return destination

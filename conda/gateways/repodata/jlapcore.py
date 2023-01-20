@@ -7,14 +7,16 @@ Small jlap reader.
 from __future__ import annotations
 
 import logging
+from collections import UserList
 from hashlib import blake2b
 from pathlib import Path
-from typing import Iterator
+from typing import Iterable, Iterator, MutableSequence
 
 log = logging.getLogger(__name__)
 
 
 DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
+DEFAULT_IV = b"\0" * DIGEST_SIZE
 
 
 def keyed_hash(data: bytes, key: bytes):
@@ -24,7 +26,7 @@ def keyed_hash(data: bytes, key: bytes):
     return blake2b(data, key=key, digest_size=DIGEST_SIZE)
 
 
-def line_and_pos(lines: Iterator[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
+def line_and_pos(lines: Iterable[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
     """
     lines: iterator over input split by '\n', with '\n' removed.
     pos: initial position
@@ -35,8 +37,8 @@ def line_and_pos(lines: Iterator[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
 
 
 def jlap_buffer(
-    lines: Iterator[bytes], iv: bytes, pos=0, verify=True
-) -> list[tuple[int, str, str]]:
+    lines: Iterable[bytes], iv: bytes, pos=0, verify=True
+) -> MutableSequence[tuple[int, str, str]]:
     """
     :param lines: iterator over input split by b'\n', with b'\n' removed
     :param pos: initial position
@@ -71,9 +73,70 @@ def jlap_buffer(
     return buffer
 
 
-def write_jlap_buffer(path: Path, buffer: list[tuple[int, str, str]]):
+def jlap_buffer_add(buffer: MutableSequence[tuple[int, str, str]], line: str):
+    """
+    Add line to buffer, following checksum rules.
+
+    Buffer must not be empty.
+
+    (Remember to pop trailing checksum and possibly trailing metadata line, if
+    appending to a complete jlap file)
+
+    Less efficient than creating a new buffer from many lines and our last iv,
+    and extending.
+
+    :return: buffer
+    """
+    if "\n" in line:
+        raise ValueError("\\n not allowed in line")
+    pos, last_line, iv = buffer[-1]
+    # include last line's utf-8 encoded length, plus 1 in pos?
+    pos += len(last_line.encode("utf-8")) + 1
+    buffer.extend(jlap_buffer((line.encode("utf-8"),), bytes.fromhex(iv), pos, verify=False)[1:])
+    return buffer
+
+
+def jlap_buffer_terminate(buffer: MutableSequence[tuple[int, str, str]]):
+    """
+    Add trailing checksum to buffer.
+
+    :return: buffer
+    """
+    pos, _, iv = buffer[-1]
+    buffer = jlap_buffer_add(buffer, iv)
+    return buffer
+
+
+def jlap_buffer_write(buffer: MutableSequence[tuple[int, str, str]], path: Path | str):
     """
     Write buffer from jlap_buffer() to path.
     """
-    with path.open("w", encoding="utf-8", newline="\n") as p:
-        p.write("\n".join(b[1] for b in buffer))
+    with Path(path).open("w", encoding="utf-8", newline="\n") as p:
+        return p.write("\n".join(b[1] for b in buffer))
+
+
+def jlap_buffer_read(path: Path | str, verify=True):
+    # in binary mode, line separatore is hardcoded as \n
+    with Path(path).open("rb") as p:
+        return jlap_buffer((line.rstrip(b"\n") for line in p), b"", verify=verify)
+
+
+class JLAP(UserList):
+    @classmethod
+    def from_lines(cls, lines: Iterable[bytes], iv: bytes, pos=0, verify=True):
+        return cls(jlap_buffer(lines, iv, pos=pos, verify=verify))
+
+    @classmethod
+    def from_path(cls, path: Path | str, verify=True):
+        return cls(jlap_buffer_read(path, verify=verify))
+
+    def add(self, line: str):
+        jlap_buffer_add(self, line)
+        return self
+
+    def terminate(self):
+        jlap_buffer_terminate(self)
+        return self
+
+    def write(self, path: Path):
+        return jlap_buffer_write(self, path)

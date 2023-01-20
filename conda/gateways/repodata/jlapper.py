@@ -20,7 +20,7 @@ from requests import HTTPError
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
 
-from .jlapcore import jlap_buffer, write_jlap_buffer
+from .jlapcore import jlap_buffer, jlap_buffer_write
 
 log = logging.getLogger(__name__)
 
@@ -286,7 +286,7 @@ def request_url_jlap_state(
             buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
 
         # XXX debugging
-        write_jlap_buffer(get_place(url).with_suffix(".jlap"), buffer)
+        jlap_buffer_write(get_place(url).with_suffix(".jlap"), buffer)
 
         state[JLAP] = jlap_state
 
