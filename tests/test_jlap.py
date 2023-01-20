@@ -152,7 +152,11 @@ def test_repodata_state(
         # now let's check out state file
         state = json.loads(Path(sd.cache_path_state).read_text())
 
-        print(state)
+        # not all required depending on server response, but our test server
+        # will include them
+        for field in ("mod", "etag", "cache_control", "size", "mtime_ns"):
+            assert field in state
+            assert not f"_{field}" in state
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
