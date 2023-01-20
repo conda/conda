@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import collections
 import itertools
-from typing import Generator, TypeVar
+from typing import Generator
 
 
 def groupby_to_dict(keyfunc, sequence):
@@ -21,14 +21,11 @@ def groupby_to_dict(keyfunc, sequence):
     return dict(result)
 
 
-T = TypeVar("T")
-
-
-def unique(sequence: Sequence[T]) -> Generator[T, None, None]:
+def unique(sequence: Sequence[Any]) -> Generator[Any, None, None]:
     """
     toolz inspired unique, returns a generator of unique elements in the sequence
     """
-    seen: set[T] = set()
+    seen: set[Any] = set()
     yield from (
         # seen.add always returns None so we will always return element
         seen.add(element) or element
