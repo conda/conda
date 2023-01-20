@@ -2,17 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
 import re
 import sys
 from uuid import uuid4
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
 from .portability import _PaddingError, update_prefix
@@ -996,10 +992,14 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
                 else:
                     return (link_path_action.prefix_path_data,)
 
-        files = list(concat(files_from_action(x) for x in self.all_link_path_actions if x))
+        files = list(
+            chain.from_iterable(files_from_action(x) for x in self.all_link_path_actions if x)
+        )
         paths_data = PathsData(
             paths_version=1,
-            paths=concat(paths_from_action(x) for x in self.all_link_path_actions if x),
+            paths=chain.from_iterable(
+                paths_from_action(x) for x in self.all_link_path_actions if x
+            ),
         )
 
         self.prefix_record = PrefixRecord.from_objects(

@@ -5,15 +5,12 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 from collections.abc import Mapping
 from functools import reduce
+from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
+import warnings
 import re
-
-try:
-    from tlz.itertoolz import concat, concatv
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -467,10 +464,11 @@ class MatchSpec(metaclass=MatchSpecType):
         unmergeable = name_groups.pop('*', []) + name_groups.pop(None, [])
 
         merged_specs = []
-        mergeable_groups = tuple(concat(
-            groupby(lambda s: s.optional, group).values()
-            for group in name_groups.values()
-        ))
+        mergeable_groups = tuple(
+            chain.from_iterable(
+                groupby(lambda s: s.optional, group).values() for group in name_groups.values()
+            )
+        )
         for group in mergeable_groups:
             target_groups = groupby(attrgetter('target'), group)
             target_groups.pop(None, None)
@@ -479,7 +477,7 @@ class MatchSpec(metaclass=MatchSpecType):
             merged_specs.append(
                 reduce(lambda x, y: x._merge(y, union), group) if len(group) > 1 else group[0]
             )
-        return tuple(concatv(merged_specs, unmergeable))
+        return (*merged_specs, *unmergeable)
 
     @classmethod
     def union(cls, match_specs):
@@ -698,9 +696,23 @@ def _parse_spec_str(spec_str):
 
         version, build = _parse_version_plus_build(spec_str)
 
+        # Catch cases where version ends up as "==" and pass it through so existing error
+        # handling code can treat it like cases where version ends up being "<=" or ">=".
+        # This is necessary because the "Translation" code below mangles "==" into a empty
+        # string, which results in an empty version field on "components." The set of fields
+        # on components drives future logic which breaks on an empty string but will deal with
+        # missing versions like "==", "<=", and ">=" "correctly."
+        #
+        # All of these "missing version" cases result from match specs like "numpy==",
+        # "numpy<=", "numpy>=", "numpy= " (with trailing space). Existing code indicates
+        # these should be treated as an error and an exception raised.
+        # IMPORTANT: "numpy=" (no trailing space) is treated as valid.
+        if version == "==" or version == "=":
+            pass
+        # Otherwise,
         # translate version '=1.2.3' to '1.2.3*'
         # is it a simple version starting with '='? i.e. '=1.2.3'
-        if version[0] == '=':
+        elif version[0] == '=':
             test_str = version[1:]
             if version[:2] == '==' and build is None:
                 version = version[2:]
@@ -714,7 +726,7 @@ def _parse_spec_str(spec_str):
 
     # Step 8. now compile components together
     components = {}
-    components['name'] = name if name else '*'
+    components["name"] = name or "*"
 
     if channel is not None:
         components['channel'] = channel
@@ -729,6 +741,17 @@ def _parse_spec_str(spec_str):
         components['build'] = build
 
     # anything in brackets will now strictly override key as set in other area of spec str
+    # EXCEPT FOR: name
+    # If we let name in brackets override a name outside of brackets it is possible to write
+    # MatchSpecs that appear to install one package but actually install a completely different one
+    # e.g. tensorflow[name=* version=* md5=<hash of pytorch package> ] will APPEAR to install
+    # tensorflow but actually install pytorch.
+    if "name" in components and "name" in brackets:
+        warnings.warn(
+            f"'name' specified both inside ({brackets['name']}) and outside ({components['name']})"
+            " of brackets. the value outside of brackets ({components['name']}) will be used."
+        )
+        del brackets["name"]
     components.update(brackets)
     components['_original_spec_str'] = original_spec_str
     _PARSE_CACHE[original_spec_str] = components
@@ -821,11 +844,14 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
         super().__init__(value)
         self._re_match = None
 
-        if value.startswith('^') and value.endswith('$'):
-            self._re_match = re.compile(value).match
-        elif '*' in value:
-            value = re.escape(value).replace('\\*', r'.*')
-            self._re_match = re.compile(r'^(?:%s)$' % value).match
+        try:
+            if value.startswith('^') and value.endswith('$'):
+                self._re_match = re.compile(value).match
+            elif '*' in value:
+                value = re.escape(value).replace('\\*', r'.*')
+                self._re_match = re.compile(r'^(?:%s)$' % value).match
+        except re.error as e:
+            raise InvalidMatchSpec(value, f"Contains an invalid regular expression. '{e}'")
 
     def match(self, other):
         try:
@@ -936,13 +962,16 @@ class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
 
-        if isinstance(value, str):
-            if value.startswith('^') and value.endswith('$'):
-                self._re_match = re.compile(value).match
-            elif '*' in value:
-                self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
-            else:
-                value = Channel(value)
+        try:
+            if isinstance(value, str):
+                if value.startswith('^') and value.endswith('$'):
+                    self._re_match = re.compile(value).match
+                elif '*' in value:
+                    self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+                else:
+                    value = Channel(value)
+        except re.error as e:
+            raise InvalidMatchSpec(value, f"Contains an invalid regular expression. '{e}'")
 
         super(GlobStrMatch, self).__init__(value)
 
@@ -957,8 +986,7 @@ class ChannelMatch(GlobStrMatch):
         else:
             # assert ChannelMatch('pkgs/free').match('defaults') is False
             # assert ChannelMatch('defaults').match('pkgs/free') is True
-            return (self._raw_value.name == _other_val.name
-                    or self._raw_value.name == _other_val.canonical_name)
+            return self._raw_value.name in (_other_val.name, _other_val.canonical_name)
 
     def __str__(self):
         try:

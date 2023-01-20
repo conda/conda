@@ -26,13 +26,13 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import concat, concatv, unique
+    from tlz.itertoolz import unique
     from tlz.dicttoolz import merge, merge_with
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, unique
+    from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
 
-from .compat import isiterable, odict, primitive_types
+from .compat import isiterable, primitive_types
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -442,7 +442,7 @@ class DefaultValueRawParameter(RawParameter):
         if isinstance(self._raw_value, Mapping):
             return frozendict()
         elif isiterable(self._raw_value):
-            return tuple()
+            return ()
         elif isinstance(self._raw_value, ConfigurationObject):
             return None
         elif isinstance(self._raw_value, Enum):
@@ -485,7 +485,7 @@ def load_file_configs(search_path):
     load_paths = (_loader[st_mode](path)
                   for path, st_mode in zip(expanded_paths, stat_paths)
                   if st_mode is not None)
-    raw_data = odict(kv for kv in chain.from_iterable(load_paths))
+    raw_data = dict(kv for kv in chain.from_iterable(load_paths))
     return raw_data
 
 
@@ -718,8 +718,9 @@ class MapLoadedParameter(LoadedParameter):
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(
+            merge((merged_values, *reversed(important_maps)))
+        )
 
         # create new parameter for the merged values
         return MapLoadedParameter(
@@ -768,32 +769,39 @@ class SequenceLoadedParameter(LoadedParameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_marked_lines(match, marker):
-            return tuple(line
-                         for line, flag in zip(match.value,
-                                               match.value_flags)
-                         if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m, _ in
-                           relevant_matches_and_values)
+            return (
+                tuple(line for line, flag in zip(match.value, match.value_flags) if flag is marker)
+                if match
+                else ()
+            )
+
+        top_lines = chain.from_iterable(
+            get_marked_lines(m, ParameterFlag.top) for m, _ in relevant_matches_and_values
+        )
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
-        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m, _ in
-                              reversed(relevant_matches_and_values))
+        bottom_lines = tuple(
+            chain.from_iterable(
+                get_marked_lines(match, ParameterFlag.bottom)
+                for match, _ in reversed(relevant_matches_and_values)
+            )
+        )
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
+        all_lines = chain.from_iterable(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
-        top_deduped = tuple(unique(concatv(top_lines, all_lines)))
+        top_deduped = tuple(unique((*top_lines, *all_lines)))
 
         # take the top-deduped lines, reverse them, and concat with reversed bottom_lines
         # this gives us the reverse of the order we want, but almost there
         # NOTE: for a line value marked both top and bottom, the bottom marker will win out
         #       for the top marker to win out, we'd need one additional de-dupe step
-        bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
+        bottom_deduped = tuple(unique((*reversed(bottom_lines), *reversed(top_deduped))))
         # just reverse, and we're good to go
-        merged_values = tuple(reversed(tuple(bottom_deduped)))
+        merged_values = tuple(reversed(bottom_deduped))
 
         return SequenceLoadedParameter(
             self._name,
@@ -861,8 +869,9 @@ class ObjectLoadedParameter(LoadedParameter):
 
         # dump all matches in a dict
         # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(merge(
-            concatv([merged_values], reversed(important_maps))))
+        merged_values_important_overwritten = frozendict(
+            merge((merged_values, *reversed(important_maps)))
+        )
 
         # copy object and replace Parameter with LoadedParameter fields
         object_copy = copy.deepcopy(self._element_type)
@@ -1074,11 +1083,12 @@ class SequenceParameter(Parameter):
         if value is None:
             return SequenceLoadedParameter(
                 name,
-                tuple(),
+                (),
                 self._element_type,
                 match.keyflag(),
-                tuple(),
-                validation=self._validation)
+                (),
+                validation=self._validation,
+            )
 
         if not isiterable(value):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
@@ -1131,7 +1141,7 @@ class ObjectParameter(Parameter):
                 None,
                 validation=self._validation)
 
-        if not (isinstance(value, Mapping) or isinstance(value, ConfigurationObject)):
+        if not isinstance(value, (Mapping, ConfigurationObject)):
             raise InvalidTypeError(name, value, match.source, value.__class__.__name__,
                                    self._type.__name__)
 
@@ -1276,8 +1286,8 @@ class Configuration(metaclass=ConfigurationType):
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
-        self.raw_data = odict()
-        self._cache_ = dict()
+        self.raw_data = {}
+        self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
@@ -1327,7 +1337,7 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def _reset_cache(self):
-        self._cache_ = dict()
+        self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
         return self
@@ -1396,12 +1406,12 @@ class Configuration(metaclass=ConfigurationType):
         return ()
 
     def collect_all(self):
-        typed_values = odict()
-        validation_errors = odict()
+        typed_values = {}
+        validation_errors = {}
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(validation_errors.values())))
-        return odict((k, v) for k, v in typed_values.items() if v)
+        return {k: v for k, v in typed_values.items() if v}
 
     def describe_parameter(self, parameter_name):
         # TODO, in Parameter base class, rename element_type to value_type

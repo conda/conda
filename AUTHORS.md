@@ -31,6 +31,7 @@ Authors are sorted alphabetically.
 * Anže Starič
 * ApurvaWavhal
 * Armin Burgmeier
+* Arqam Hussain
 * Attila Nagy
 * Aurelien Vallee
 * Avalon
@@ -95,6 +96,7 @@ Authors are sorted alphabetically.
 * Daniel Hook
 * Daniel Wehner
 * Daniel Zeng
+* Dario Curreri
 * Darren Dale
 * Dave
 * Dave Hirschfeld
@@ -116,6 +118,7 @@ Authors are sorted alphabetically.
 * Eli Rykoff
 * Eric Dill
 * Eric Prestat
+* Erik Sundell
 * Ernst Reissner
 * Eugene Van den Bulke
 * Faustin Carter
@@ -175,6 +178,7 @@ Authors are sorted alphabetically.
 * Joe Jevnik
 * Joel Hull
 * Joel Kim
+* Joel Tony
 * Johan Carlin
 * John Ayad
 * John Flavin
@@ -208,6 +212,7 @@ Authors are sorted alphabetically.
 * Luc J. Bourhis
 * Luis Gutierrez
 * Maggie Mari
+* Mahe Iram Khan
 * Majid alDosari
 * Mak Sze Chun
 * Maksim Rakitin
@@ -221,6 +226,7 @@ Authors are sorted alphabetically.
 * Marcos Vanetta
 * Marcus Caisey
 * Mario Juric
+* Mark Harfouche
 * Mark Wiebe
 * Markus Gerstel
 * Marland Sitt
@@ -270,6 +276,7 @@ Authors are sorted alphabetically.
 * Nicholas Pierotti
 * Nick Eubank
 * Nikhil Dhandre
+* Nikhil Raverkar
 * Niklas Holm
 * Nir Ganani
 * Nitin Madnani
@@ -284,6 +291,7 @@ Authors are sorted alphabetically.
 * Patricio Hubmann
 * Patrick Snape
 * Paul Yim
+* Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
 * Peter Williams
@@ -292,6 +300,7 @@ Authors are sorted alphabetically.
 * Philippe Mathieu
 * Philippe Ombredanne
 * Pradipta Ghosh
+* Preston Moore
 * Rachel Rigdon
 * Rafael de Barros
 * Ralf Gommers
@@ -313,12 +322,14 @@ Authors are sorted alphabetically.
 * Sachin G Biradar
 * Sam Davis
 * Sam Nicholls
+* Samson Yeung
 * Samuel Debionne
 * Samuel Walters-Nevet
 * Santi Villalba
 * Santiago Castro
 * Sarah Bird
 * Saranya Mahalingam
+* Satyam Vyas
 * Sauco Cano Navarro
 * Scott Evtuch
 * Sean Ross-Ross
@@ -333,6 +344,7 @@ Authors are sorted alphabetically.
 * Skipper Seabold
 * Sophia Castellarin
 * Spencer Mathews
+* Srivas Venkatesh
 * Stan Seibert
 * Stanis Shkel
 * Stefaan Lippens
@@ -340,6 +352,7 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Robinson
 * Steve Palmroth
 * Steven Engler
 * Stijn Verstraeten
@@ -377,6 +390,8 @@ Authors are sorted alphabetically.
 * Willy Chen
 * Winston Sebastian Pais
 * Wolfgang Ulmer
+* Xuehai Pan
+* Xylar Asay-Davis
 * Yaroslav Dmytryk
 * Yuval Reches
 * Yuvi Panda
@@ -384,6 +399,7 @@ Authors are sorted alphabetically.
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
+* dependabot[bot]
 * endolith
 * giumas
 * kanehira
@@ -396,4 +412,5 @@ Authors are sorted alphabetically.
 * saraneem
 * shadow_walker
 * ugurthemaster
+* wulmer
 * Øystein Idema Torget

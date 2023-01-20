@@ -23,7 +23,8 @@ from .. import __version__
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \
-    UpdateModifier, SolverChoice
+    UpdateModifier
+from ..base.context import context
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -113,6 +114,14 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
+        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
+
+        if self._subcommands:
+            self.epilog = 'conda commands available from other packages:' + ''.join(
+                f'\n {subcommand.name} - {subcommand.summary}'
+                for subcommand in self._subcommands
+            )
+
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
         If only it were made available in the ArgumentError object. It is
@@ -148,6 +157,18 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
+                        # Run the subcommand from plugins
+                        for subcommand in self._subcommands:
+                            if cmd == subcommand.name:
+                                sys.exit(subcommand.action(sys.argv[2:]))
+                        # Run the subcommand from executables; legacy path
+                        warnings.warn(
+                            (
+                                "Loading conda subcommands via executables is "
+                                "pending deprecation in favor of the plugin system. "
+                            ),
+                            PendingDeprecationWarning,
+                        )
                         executable = find_executable('conda-' + cmd)
                         if not executable:
                             from ..exceptions import CommandNotFoundError
@@ -166,7 +187,7 @@ class ArgumentParser(ArgumentParserBase):
             other_commands = find_commands()
             if other_commands:
                 builder = ['']
-                builder.append("conda commands available from other packages:")
+                builder.append("conda commands available from other packages (legacy):")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
 
@@ -285,7 +306,7 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         "-a", "--all",
         action="store_true",
-        help="Remove index cache, lock files, unused cache packages, and tarballs.",
+        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
     )
     removal_target_options.add_argument(
         "-i", "--index-cache",
@@ -719,14 +740,15 @@ def configure_parser_init(sub_parsers):
     setup_type_group.add_argument(
         "--user",
         action="store_true",
+        dest="user",
         help="Initialize conda for the current user (default).",
-        default=NULL,
+        default=True,
     )
     setup_type_group.add_argument(
         "--no-user",
         action="store_false",
-        help="Don't initialize conda for the current user (default).",
-        default=NULL,
+        dest="user",
+        help="Don't initialize conda for the current user.",
     )
     setup_type_group.add_argument(
         "--system",
@@ -1789,14 +1811,15 @@ def add_parser_solver(p):
     Add a command-line flag for alternative solver backends.
 
     See ``context.solver`` for more info.
-
-    TODO: This will be replaced by a proper plugin mechanism in the future.
     """
+    solver_choices = [
+        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
+    ]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=[v.value for v in SolverChoice],
+        choices=solver_choices,
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -1804,7 +1827,7 @@ def add_parser_solver(p):
         "--experimental-solver",
         action=PendingDeprecationAction,
         dest="solver",
-        choices=[v.value for v in SolverChoice],
+        choices=solver_choices,
         help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )
