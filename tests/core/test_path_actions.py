@@ -545,6 +545,11 @@ class PathActionsTests(TestCase):
 
 
 def test_explode_directories():
+    warnings.warn(
+        "`toolz` is pending deprecation and will be removed in a future release.",
+        PendingDeprecationWarning,
+    )
+
     try:
         import tlz as toolz
     except:

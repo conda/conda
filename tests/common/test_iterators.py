@@ -1,6 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 def test_unpacking_for_merge():
+    warnings.warn(
+        "`toolz` is pending deprecation and will be removed in a future release.",
+        PendingDeprecationWarning,
+    )
+
     try:
         from tlz.dicttoolz import merge
     except ImportError:
@@ -21,6 +26,11 @@ def test_unpacking_for_merge():
 
 
 def test_unpacking_for_merge_with():
+    warnings.warn(
+        "`toolz` is pending deprecation and will be removed in a future release.",
+        PendingDeprecationWarning,
+    )
+
     try:
         from tlz.dicttoolz import merge_with
     except ImportError:
