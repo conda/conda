@@ -1,5 +1,50 @@
 [//]: # (current developments)
 
+## 23.1.0 (2023-01-17)
+
+### Bug fixes
+
+* Detect CUDA driver version in subprocess. (#11667)
+* Fixes the behavior of the `--no-user` flag in `conda init` so that a user's `.bashrc`, etc. remains unaltered, as expected. (#11949)
+* Fix several more user facing `MatchSpec` crashes that were identified by fuzzing efforts. (#12099)
+* Lock `sys.stdout` to avoid corrupted `--json` multithreaded download progress. (#12231)
+
+### Docs
+
+* Optional Bash completion support has been removed starting in v4.4.0, and not just deprecated. (#11171)
+* Documented optional `channel::package` syntax for specifying dependencies in `environment.yml` files. (#11890)
+
+### Other
+
+* Refactor `repodata.json` fetching; update on-disk cache format. Based on work by @FFY00. (#11600)
+* Environment variable overwriting WARNING is printed only if the env vars are different from those specified in the OS. (#12128)
+* Added `conda-libmamba-solver` run constraint. (#12156)
+* Updated `ruamel.yaml` version. (#12156)
+* Added `tqdm` dependency. (#12191)
+* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`. (#12165)
+* Use `toolz.unique` instead of vendored copy. (#12165)
+* Use `itertools.islice` instead of `toolz.take`. (#12165)
+* Update CI test workflow to only run test suite when code changes occur. (#12180)
+* Added Python 3.10 canary builds. (#12184)
+
+### Contributors
+
+* @beeankha
+* @dholth
+* @dariocurr made their first contribution in https://github.com/conda/conda/pull/12128
+* @jezdez
+* @jay-tau made their first contribution in https://github.com/conda/conda/pull/11738
+* @kenodegard
+* @pkmooreanaconda
+* @sven6002 made their first contribution in https://github.com/conda/conda/pull/12162
+* @ReveStobinson made their first contribution in https://github.com/conda/conda/pull/12213
+* @travishathaway
+* @XuehaiPan made their first contribution in https://github.com/conda/conda/pull/11667
+* @xylar made their first contribution in https://github.com/conda/conda/pull/11949
+* @pre-commit-ci[bot]
+
+
+
 ## 22.11.1 (2022-12-06)
 
 ### Bug fixes

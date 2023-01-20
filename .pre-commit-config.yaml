@@ -36,12 +36,12 @@ repos:
         args: ["--py37-plus"]
         exclude: ^conda/exports.py
   - repo: https://github.com/akaihola/darker
-    rev: 1.5.1
+    rev: 1.6.1
     hooks:
       - id: darker
         additional_dependencies: [black==22.10.0]
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
+    rev: 1.13.0
     hooks:
       - id: blacken-docs
         additional_dependencies: [black]
@@ -50,7 +50,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.15.9
+    rev: v2.16.0b0
     hooks:
       - id: pylint
         args: [--exit-zero]
