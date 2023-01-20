@@ -31,7 +31,7 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..cli.common import confirm_yn
-from ..common.compat import ensure_text_type, odict, on_win
+from ..common.compat import ensure_text_type, on_win
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
@@ -166,8 +166,8 @@ ChangeReport = namedtuple("ChangeReport", (
 class UnlinkLinkTransaction:
 
     def __init__(self, *setups):
-        self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
-        self.prefix_action_groups = odict()
+        self.prefix_setups = {stp.target_prefix: stp for stp in setups}
+        self.prefix_action_groups = {}
 
         for stp in self.prefix_setups.values():
             log.info("initializing UnlinkLinkTransaction with\n"
