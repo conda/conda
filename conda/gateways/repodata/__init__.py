@@ -7,8 +7,10 @@ import json
 import logging
 import pathlib
 import warnings
+from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
+from typing import Any
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
@@ -295,12 +297,22 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
         )
 
 
-class RepodataState(dict):
+class RepodataState(UserDict[str, Any]):
     """
     Load/save `.state.json` that accompanies cached `repodata.json`
     """
 
+    _fields = (
+        "etag",
+        "mod",
+        "cache_control",
+        "size",
+    )
+
+    _aliased = ("_mod", "_etag", "_cache_control")
+
     def __init__(self, cache_path_json, cache_path_state, repodata_fn):
+        super().__init__()
         self.cache_path_json = pathlib.Path(cache_path_json)
         self.cache_path_state = pathlib.Path(cache_path_state)
         self.repodata_fn = repodata_fn
@@ -323,12 +335,7 @@ class RepodataState(dict):
             ):
                 # clear mod, etag, cache_control to encourage re-download
                 state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
-            for field in (
-                "etag",
-                "mod",
-                "cache_control",
-                "size",
-            ):
+            for field in self._fields:
                 alias = field
                 if alias in state:
                     self[field] = state[alias]
@@ -343,12 +350,7 @@ class RepodataState(dict):
         """
         json_stat = self.cache_path_json.stat()
         serialized = {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
-        for field in (
-            "etag",
-            "mod",
-            "cache_control",
-            "size",
-        ):
+        for field in self._fields:
             alias = field
             if field in self:
                 serialized[alias] = self[field]
@@ -386,3 +388,15 @@ class RepodataState(dict):
     @cache_control.setter
     def cache_control(self, value):
         self["cache_control"] = value or ""
+
+    def __setitem__(self, key: str, item) -> None:
+        if key in self._aliased:
+            key = key[1:]  # strip underscore
+        return super().__setitem__(key, item)
+
+    def __missing__(self, key: str) -> _VT:
+        if key in self._aliased:
+            key = key[1:]  # strip underscore
+        else:
+            raise KeyError(key)
+        return super().__getitem__(key)

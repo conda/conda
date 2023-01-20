@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Lappin' up the jlap
 from __future__ import annotations
+import io
 
 import json
 import logging
@@ -10,6 +11,7 @@ import pprint
 import re
 import sys
 import time
+import zstandard
 from contextlib import contextmanager
 from hashlib import blake2b
 from typing import Iterator
@@ -180,11 +182,60 @@ def download_and_hash(hasher, url, json_path, session: Session, state: dict | No
     log.debug("%s %s", url, response.headers)
     response.raise_for_status()
     length = 0
-    with json_path.open("wb") as repodata:
-        for block in response.iter_content(chunk_size=1 << 14):
-            hasher.update(block)
-            repodata.write(block)
-            length += len(block)
+    # is there a status code for which we must clear the file?
+    if response.status_code == 200:
+        with json_path.open("wb") as repodata:
+            for block in response.iter_content(chunk_size=1 << 14):
+                hasher.update(block)
+                repodata.write(block)
+                length += len(block)
+    if response.request:
+        log.info("Download %d bytes %r", length, response.request.headers)
+    return response  # can be 304 not modified
+
+
+class HashWriter(io.RawIOBase):
+    def __init__(self, backing, hasher):
+        self.backing = backing
+        self.hasher = hasher
+
+    def write(self, b: bytes):
+        self.hasher.update(b)
+        return self.backing.write(b)
+
+    def close(self):
+        self.backing.close()
+
+
+def download_and_hash_zst(hasher, url, json_path, session: Session, state: dict | None):
+    """
+    Download url if it doesn't exist, passing bytes through zstandard
+    decompression then hasher.update()
+    """
+    state = state or {}
+    headers = {}
+
+    # XXX check cache-control May be caller's job to compare with 'have_hash'
+    # saved on previous download to detect cache tampering
+    if json_path.exists():
+        etag = state.get("_etag")
+        if etag:
+            headers["if-none-match"] = etag
+
+    timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+    response = session.get(url, stream=True, timeout=timeout, headers=headers)
+    log.debug("%s %s", url, response.headers)
+    response.raise_for_status()
+    length = 0
+    # is there a status code for which we must clear the file?
+    if response.status_code == 200:
+        decompressor = zstandard.ZstdDecompressor()
+        with decompressor.stream_writer(
+            HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
+        ) as repodata:
+            for block in response.iter_content(chunk_size=1 << 14):
+                repodata.write(block)
+                length += len(block)
     if response.request:
         log.info("Download %d bytes %r", length, response.request.headers)
     return response  # can be 304 not modified
