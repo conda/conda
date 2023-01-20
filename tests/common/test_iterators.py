@@ -1,5 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import warnings
+
+
 def test_unpacking_for_merge():
     warnings.warn(
         "`toolz` is pending deprecation and will be removed in a future release.",
