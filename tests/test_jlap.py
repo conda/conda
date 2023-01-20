@@ -153,3 +153,17 @@ def test_repodata_state(
         state = json.loads(Path(sd.cache_path_state).read_text())
 
         print(state)
+
+
+@pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
+def test_jlap_flag(use_jlap):
+    """
+    Test that CONDA_EXPERIMENTAL is a comma-delimited list.
+    """
+
+    with env_vars(
+        {"CONDA_EXPERIMENTAL": use_jlap},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        expected = "jlap" in use_jlap.split(",")
+        assert ("jlap" in context.experimental) is expected
