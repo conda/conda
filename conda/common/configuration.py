@@ -26,10 +26,8 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 
 try:
-    from tlz.itertoolz import unique
     from tlz.dicttoolz import merge, merge_with
 except ImportError:
-    from conda._vendor.toolz.itertoolz import unique
     from conda._vendor.toolz.dicttoolz import merge, merge_with
 
 from .compat import isiterable, primitive_types
@@ -40,6 +38,7 @@ from .. import CondaError, CondaMultiError
 from ..auxlib.collection import AttrDict, first, last, make_immutable
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from ..common.iterators import unique
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
 
