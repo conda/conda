@@ -116,7 +116,7 @@ def jlap_buffer_write(buffer: MutableSequence[tuple[int, str, str]], path: Path 
 
 
 def jlap_buffer_read(path: Path | str, verify=True):
-    # in binary mode, line separatore is hardcoded as \n
+    # in binary mode, line separator is hardcoded as \n
     with Path(path).open("rb") as p:
         return jlap_buffer((line.rstrip(b"\n") for line in p), b"", verify=verify)
 

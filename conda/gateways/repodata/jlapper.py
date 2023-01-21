@@ -35,6 +35,7 @@ NOMINAL_HASH = "nominal_hash"
 ON_DISK_HASH = "actual_hash"
 LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
+ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 
 def hash():
@@ -292,15 +293,30 @@ def request_url_jlap_state(
         with timeme(f"Download complete {url} "):
             # TODO use Etag, Last-Modified caching headers if file exists
             # otherwise we re-download every time, if jlap is unavailable.
-            response = download_and_hash(
-                hasher, withext(url, ".json"), json_path, session=session, state=state
-            )
+
+            try:
+                # XXX skip if ZSTD_UNAVAILABLE is recent enough (1 week perhaps)
+                response = download_and_hash_zst(
+                    hasher, withext(url, ".json.zst"), json_path, session=session, state=state
+                )
+            except HTTPError as e:
+                if e.response.status_code != 404:
+                    raise
+                state[ZSTD_UNAVAILABLE] = time.time_ns()
+                response = download_and_hash(
+                    hasher, withext(url, ".json"), json_path, session=session, state=state
+                )
+
             # will we use state['headers'] for caching against
             state["_mod"] = response.headers.get("last-modified")
             state["_etag"] = response.headers.get("etag")
             state["_cache_control"] = response.headers.get("cache-control")
 
-        have = state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
+        # was not re-hashed if 304 not modified
+        if response.status_code == 200:
+            state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
+
+        have = state[NOMINAL_HASH]
 
         # a jlap buffer with zero patches.
         buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
@@ -326,7 +342,7 @@ def request_url_jlap_state(
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
             if e.response.status_code == 404:
-                state[JLAP_UNAVAILABLE] = time.time()
+                state[JLAP_UNAVAILABLE] = time.time_ns()
                 return request_url_jlap_state(
                     url, state, get_place=get_place, full_download=True, session=session
                 )
@@ -336,7 +352,7 @@ def request_url_jlap_state(
             buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
 
         # XXX debugging
-        jlap_buffer_write(get_place(url).with_suffix(".jlap"), buffer)
+        jlap_buffer_write(buffer, get_place(url).with_suffix(".jlap"))
 
         state[JLAP] = jlap_state
 

@@ -218,14 +218,14 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_json(self):
-        return self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json"
+        return Path(self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json")
 
     @property
     def cache_path_state(self):
         """
         Out-of-band etag and other state needed by the RepoInterface.
         """
-        return self.cache_path_base + ".state.json"
+        return Path(self.cache_path_base + ".state.json")
 
     @property
     def cache_path_pickle(self):
