@@ -63,7 +63,7 @@
 @REM fallback to devenv in source default
 @IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
 @REM include OS
-@REM put miniconda installer in _DEVENV_BASE, for an empty install target 
+@REM put miniconda installer in _DEVENV_BASE, for an empty install target
 @SET "_DEVENV_BASE=%_DEVENV%"
 @SET "_DEVENV=%_DEVENV%\Windows"
 @REM ensure exists
