@@ -12,7 +12,6 @@ from collections import defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
-from io import open as io_open
 from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
@@ -361,7 +360,7 @@ class SubdirData(metaclass=SubdirDataType):
                 mkdir_p(dirname(self.cache_path_json))
             try:
                 cache_path_json = self.cache_path_json
-                with io_open(cache_path_json, "w") as fh:
+                with open(cache_path_json, "w", newline="\n") as fh:
                     fh.write(raw_repodata_str or "{}")
                 self._save_state(mod_etag_headers)
             except OSError as e:
