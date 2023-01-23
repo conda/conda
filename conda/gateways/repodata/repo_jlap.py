@@ -7,7 +7,7 @@ from pathlib import Path
 
 from conda.gateways.connection.session import CondaSession
 
-from . import RepoInterface, conda_http_errors, jlapper
+from . import RepoInterface, RepodataOnDisk, conda_http_errors, jlapper
 
 log = logging.getLogger(__name__)
 
@@ -72,6 +72,5 @@ class JlapRepoInterface(RepoInterface):
             state["_mod"] = headers.get("last-modified")
             state["_cache_control"] = headers.get("cache-control")
 
-        # XXX SubdirData._load will immediately rewrite this because it doesn't
-        # know we saved it; is this still a valid concern on "304 not modified"??
-        return Path(self._cache_path_json).read_text()
+        # Indicate that subdir_data mustn't rewrite cache_path_json
+        raise RepodataOnDisk()

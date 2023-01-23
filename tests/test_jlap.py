@@ -14,7 +14,13 @@ import zstandard
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.gateways.connection.session import CondaSession
-from conda.gateways.repodata import CondaRepoInterface, jlapper, jlapcore, repo_jlap
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepodataOnDisk,
+    jlapper,
+    jlapcore,
+    repo_jlap,
+)
 
 from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
@@ -47,16 +53,19 @@ def test_jlap_fetch(package_server, tmp_path, mocker):
     )
 
     state = {}
-    data_json = repo.repodata(state)
+    with pytest.raises(RepodataOnDisk):
+        data_json = repo.repodata(state)
 
     # however it may make two requests - one to look for .json.zst, the second
     # to look for .json
     assert patched.call_count == 1
 
     # second will try to fetch (non-existent) .jlap, then fall back to .json
-    data_json = repo.repodata(state)  # a 304?
+    with pytest.raises(RepodataOnDisk):
+        data_json = repo.repodata(state)  # a 304?
 
-    data_json = repo.repodata(state)
+    with pytest.raises(RepodataOnDisk):
+        data_json = repo.repodata(state)
 
     # TODO more useful assertions
     assert patched.call_count == 3
@@ -238,6 +247,10 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         # XXX use CEP 'we checked for jlap' key
         assert state_object["jlap_unavailable"]
+
+        # This test can be sensitive to whether osx-64/repodata.json is saved
+        # with \n or \r\n newlines, since we need its exact hash. Change all
+        # data paths to be binary safe.
 
         test_jlap = make_test_jlap(sd.cache_path_json.read_bytes(), 8)
         test_jlap.terminate()

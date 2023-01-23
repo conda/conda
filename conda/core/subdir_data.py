@@ -23,6 +23,7 @@ from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
+    RepodataOnDisk,
     RepodataState,
     CondaRepoInterface,
     RepodataIsEmpty,
@@ -340,6 +341,9 @@ class SubdirData(metaclass=SubdirDataType):
                     raise  # is UnavailableInvalidChannel subclass
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata_str = None
+            except RepodataOnDisk:
+                # used as a sentinel, not the raised exception object
+                raw_repodata_str = RepodataOnDisk
 
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
@@ -353,15 +357,27 @@ class SubdirData(metaclass=SubdirDataType):
                 self.url_w_repodata_fn,
             )
             touch(self.cache_path_json)
+            # change mtime in state file, or cache will be thrown away next time:
+            self._save_state(mod_etag_headers)
             _internal_state = self._read_local_repodata(mod_etag_headers)
             return _internal_state
         else:
-            if not isdir(dirname(self.cache_path_json)):
+            if not isdir(dirname(self.cache_path_json)):  # What happens if it is a directory?
                 mkdir_p(dirname(self.cache_path_json))
             try:
-                cache_path_json = self.cache_path_json
-                with open(cache_path_json, "w", newline="\n") as fh:
-                    fh.write(raw_repodata_str or "{}")
+                if raw_repodata_str is RepodataOnDisk:
+                    # this is handled very similar to a 304. Can the cases be merged?
+                    # we may need to read_bytes() and compare a hash to the state, instead.
+                    raw_repodata_str = Path(self.cache_path_json).read_text()
+                elif isinstance(raw_repodata_str, (str, type(None))):
+                    # XXX skip this if self._repo already wrote the data
+                    # Can we pass this information in state or with a sentinel/special exception?
+                    cache_path_json = self.cache_path_json
+                    with open(cache_path_json, "w", newline="\n") as fh:
+                        fh.write(raw_repodata_str or "{}")
+                else:
+                    # it can be a dict?
+                    assert False, f"Unreachable {raw_repodata_str}"
                 self._save_state(mod_etag_headers)
             except OSError as e:
                 if e.errno in (EACCES, EPERM, EROFS):
@@ -411,7 +427,8 @@ class SubdirData(metaclass=SubdirDataType):
                 _internal_state = self._process_raw_repodata_str(
                     raw_repodata_str, self._load_state()
                 )
-                self._internal_state = _internal_state
+                # taken care of by _process_raw_repodata():
+                assert self._internal_state is _internal_state
                 self._pickle_me()
                 return _internal_state
 
@@ -671,7 +688,10 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         cache_state = subdir._load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
-        raw_repodata_str = subdir._repo.repodata(cache_state)
+        try:
+            raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
+        except RepodataOnDisk:
+            raw_repodata_str = Path(subdir.cache_path_json).read_text()
     except RepodataIsEmpty:
         if repodata_fn != REPODATA_FN:
             raise  # is UnavailableInvalidChannel subclass
