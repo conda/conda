@@ -383,7 +383,6 @@ class SubdirData(metaclass=SubdirDataType):
             return _internal_state
 
     def _pickle_me(self):
-        return
         try:
             log.debug(
                 "Saving pickled state for %s at %s", self.url_w_repodata_fn, self.cache_path_pickle
@@ -395,7 +394,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _read_local_repodata(self, state):
         # first try reading pickled data
-        _pickled_state = False  # self._read_pickled(etag, mod_stamp)
+        _pickled_state = self._read_pickled(state)
         if _pickled_state:
             return _pickled_state
 
