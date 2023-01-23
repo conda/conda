@@ -12,7 +12,6 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call, generate_parser
-from conda.common.compat import odict
 from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
@@ -634,7 +633,7 @@ class NewIntegrationTests(unittest.TestCase):
             ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--no-builds", "--json")
             assert not e.strip()
 
-            env_description = odict(json.loads(snowflake))
+            env_description = json.loads(snowflake)
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1

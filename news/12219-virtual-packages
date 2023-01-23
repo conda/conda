@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Detect CUDA driver version in subprocess. (#11667)
+* Virtual packages follow `context.subdir` instead of `platform.system()` to
+  enable cross-platform installations (#12219)
 
 ### Deprecations
 

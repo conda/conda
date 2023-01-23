@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Prevent double solve attempt if `PackagesNotFoundError` is raised. (#12201)
 
 ### Deprecations
 
@@ -16,5 +16,4 @@
 
 ### Other
 
-* Refactor repodata.json fetching; update on-disk cache format. Based on work by
-  @FFY00. (#11600)
+* <news item>

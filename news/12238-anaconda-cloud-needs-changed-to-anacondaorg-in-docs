@@ -4,8 +4,7 @@
 
 ### Bug fixes
 
-* Lock sys.stdout to avoid corrupted --json multithreaded download progress.
-  (#12231)
+* <news item>
 
 ### Deprecations
 
@@ -13,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Updated some instances of "Anaconda Cloud" to be "Anaconda.org". (#12238)
 
 ### Other
 

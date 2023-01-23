@@ -1516,7 +1516,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 82
+  num_commits: 84
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1954,7 +1954,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 193
+  num_commits: 199
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -1998,7 +1998,7 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
-  num_commits: 25
+  num_commits: 29
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
@@ -2017,7 +2017,7 @@
   github: pre-commit-ci[bot]
   aliases:
   - pre-commit-ci[bot]
-  num_commits: 36
+  num_commits: 43
   first_commit: 2021-11-16 10:37:29
 - name: Yuvi Panda
   email: yuvipanda@gmail.com
@@ -2078,7 +2078,7 @@
   github: beeankha
   alternate_emails:
   - beeankha@gmail.com
-  num_commits: 9
+  num_commits: 12
   first_commit: 2022-05-12 13:39:02
 - name: Kian-Meng Ang
   email: kianmeng.ang@gmail.com
@@ -2098,7 +2098,7 @@
 - name: Travis Hathaway
   email: travis.j.hathaway@gmail.com
   github: travishathaway
-  num_commits: 17
+  num_commits: 19
   first_commit: 2022-03-31 12:01:37
 - name: Tom Hu
   email: 88201630+thomasrockhu-codecov@users.noreply.github.com
@@ -2189,7 +2189,7 @@
   github: arq0017
 - name: Preston Moore
   email: 111530217+pkmooreanaconda@users.noreply.github.com
-  num_commits: 2
+  num_commits: 3
   first_commit: 2022-11-02 16:53:58
   github: pkmooreanaconda
 - name: Mahe Iram Khan
@@ -2217,3 +2217,33 @@
   num_commits: 3
   first_commit: 2022-10-13 14:01:08
   github: dependabot[bot]
+- name: Xuehai Pan
+  email: XuehaiPan@outlook.com
+  github: XuehaiPan
+  num_commits: 1
+  first_commit: 2023-01-16 13:24:00
+- name: Joel Tony
+  email: 95355656+jay-tau@users.noreply.github.com
+  github: jay-tau
+  num_commits: 1
+  first_commit: 2022-12-20 13:54:05
+- name: Xylar Asay-Davis
+  email: xylarstorm@gmail.com
+  github: xylar
+  num_commits: 1
+  first_commit: 2022-12-15 14:52:57
+- name: Stephen Robinson
+  email: stephen.i.robinson@vanderbilt.edu
+  github: ReveStobinson
+  num_commits: 1
+  first_commit: 2023-01-06 04:02:16
+- name: Srivas Venkatesh
+  email: 110486050+sven6002@users.noreply.github.com
+  github: sven6002
+  num_commits: 1
+  first_commit: 2022-12-12 09:15:55
+- name: Dario Curreri
+  email: 48800335+dariocurr@users.noreply.github.com
+  github: dariocurr
+  num_commits: 1
+  first_commit: 2022-12-07 09:10:25

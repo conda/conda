@@ -20,7 +20,7 @@ import warnings
 from conda.common.iterators import groupby_to_dict as groupby
 
 from ... import CondaError
-from ..compat import odict, open
+from ..compat import open
 from ..path import (
     get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
 )
@@ -129,7 +129,7 @@ class PythonDistribution:
         """
         https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         """
-        requires = odict()
+        requires = {}
         lines = [line.strip() for line in data.split('\n') if line]
 
         if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
@@ -174,7 +174,7 @@ class PythonDistribution:
         https://setuptools.readthedocs.io/en/latest/formats.html#entry-points-txt-entry-point-plugin-metadata
         """
         # FIXME: Use pkg_resources which provides API for this?
-        entries_data = odict()
+        entries_data = {}
         config = ConfigParser()
         config.optionxform = lambda x: x  # Avoid lowercasing keys
         try:
@@ -183,7 +183,7 @@ class PythonDistribution:
             do_read = config.readfp
         do_read(StringIO(data))
         for section in config.sections():
-            entries_data[section] = odict(config.items(section))
+            entries_data[section] = dict(config.items(section))
 
         return entries_data
 
@@ -541,7 +541,7 @@ class PythonDistributionMetadata:
             description key.
           - The result should be stored as a string-keyed dictionary.
         """
-        new_data = odict()
+        new_data = {}
 
         if message:
             for key, value in message.items():
@@ -566,7 +566,7 @@ class PythonDistributionMetadata:
         """
         Read the original format which is stored as RFC-822 headers.
         """
-        data = odict()
+        data = {}
         if fpath and isfile(fpath):
             parser = HeaderParser()
 
