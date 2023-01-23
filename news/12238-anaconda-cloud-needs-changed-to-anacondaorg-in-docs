@@ -12,9 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Updated some instances of "Anaconda Cloud" to be "Anaconda.org". (#12238)
 
 ### Other
 
-* Refactor repodata.json fetching; update on-disk cache format. Based on work by
-  @FFY00. (#11600)
+* <news item>

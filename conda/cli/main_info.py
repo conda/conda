@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
 import json
 from logging import getLogger
 import os
@@ -57,15 +55,15 @@ def dump_record(pkg):
 def pretty_package(prec):
 
     pkg = dump_record(prec)
-    d = OrderedDict([
-        ('file name', prec.fn),
-        ('name', pkg['name']),
-        ('version', pkg['version']),
-        ('build string', pkg['build']),
-        ('build number', pkg['build_number']),
-        ('channel', str(prec.channel)),
-        ('size', human_bytes(pkg['size'])),
-    ])
+    d = {
+        "file name": prec.fn,
+        "name": pkg["name"],
+        "version": pkg["version"],
+        "build string": pkg["build"],
+        "build number": pkg["build_number"],
+        "channel": str(prec.channel),
+        "size": human_bytes(pkg["size"]),
+    }
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
         d[key] = pkg[key]
 

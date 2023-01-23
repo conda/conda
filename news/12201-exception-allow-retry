@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Prevent double solve attempt if `PackagesNotFoundError` is raised. (#12201)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`. (#12165)
+* <news item>

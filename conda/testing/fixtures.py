@@ -9,7 +9,6 @@ from conda.core.subdir_data import SubdirData
 from conda.auxlib.ish import dals
 from conda.base.context import reset_context, context
 from conda.common.configuration import YamlRawParameter
-from conda.common.compat import odict
 from conda.common.serialize import yaml_round_trip_load
 
 
@@ -51,9 +50,11 @@ def disable_channel_notices():
         """
     )
     reset_context(())
-    rd = odict(
-        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(yaml_str))
-    )
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters(
+            "testdata", yaml_round_trip_load(yaml_str)
+        )
+    }
     context._set_raw_data(rd)
 
     yield
