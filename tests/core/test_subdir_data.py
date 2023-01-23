@@ -279,7 +279,7 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -296,7 +296,7 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
