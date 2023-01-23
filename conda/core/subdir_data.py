@@ -51,7 +51,7 @@ from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
 
-REPODATA_PICKLE_VERSION = 29
+REPODATA_PICKLE_VERSION = 31
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
