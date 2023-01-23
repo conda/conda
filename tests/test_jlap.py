@@ -239,7 +239,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         # XXX use CEP 'we checked for jlap' key
         assert state_object["jlap_unavailable"]
 
-        test_jlap = make_test_jlap(sd.cache_path_json.read_text(), 8)
+        test_jlap = make_test_jlap(sd.cache_path_json.read_bytes(), 8)
         test_jlap.terminate()
         test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
 
@@ -259,7 +259,10 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         assert len(patched["info"]) == 9
 
 
-def make_test_jlap(original: str, changes=1):
+def make_test_jlap(original: bytes, changes=1):
+    """
+    :original: as bytes, to avoid any newline confusion.
+    """
     def jlap_lines():
         yield jlapcore.DEFAULT_IV.hex().encode("utf-8")
 
@@ -268,7 +271,7 @@ def make_test_jlap(original: str, changes=1):
 
         # add changes junk keys to info for test data
         h = jlapper.hash()
-        h.update(original.encode("utf-8"))
+        h.update(original)
         starting_digest = h.digest().hex()
 
         for i in range(changes):
