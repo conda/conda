@@ -13,11 +13,6 @@ from traceback import format_exception_only
 from textwrap import indent
 import warnings
 
-try:
-    from tlz.itertoolz import interleave
-except ImportError:
-    from conda._vendor.toolz.itertoolz import interleave
-
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
@@ -31,7 +26,7 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..cli.common import confirm_yn
-from ..common.compat import ensure_text_type, odict, on_win
+from ..common.compat import ensure_text_type, on_win
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
@@ -166,8 +161,8 @@ ChangeReport = namedtuple("ChangeReport", (
 class UnlinkLinkTransaction:
 
     def __init__(self, *setups):
-        self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
-        self.prefix_action_groups = odict()
+        self.prefix_setups = {stp.target_prefix: stp for stp in setups}
+        self.prefix_action_groups = {}
 
         for stp in self.prefix_setups.values():
             log.info("initializing UnlinkLinkTransaction with\n"
@@ -283,9 +278,9 @@ class UnlinkLinkTransaction:
 
         assert not context.dry_run
         try:
-            self._execute(
-                tuple(chain.from_iterable(interleave(self.prefix_action_groups.values())))
-            )
+            # innermost dict.values() is an iterable of PrefixActionGroup namedtuple
+            # zip() is an iterable of each PrefixActionGroup namedtuple key
+            self._execute(tuple(chain(*chain(*zip(*self.prefix_action_groups.values())))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 

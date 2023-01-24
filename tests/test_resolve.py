@@ -1,8 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
-from collections import OrderedDict
 from os.path import isdir, join
 from pprint import pprint
 import unittest
@@ -355,7 +352,7 @@ def test_unsat_simple():
         simple_rec(name='c', version='1.0'),
         simple_rec(name='c', version='2.0'),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'b'])
     assert "a -> c[version='>=1,<2']" in str(excinfo.value)
@@ -370,7 +367,7 @@ def test_unsat_simple_dont_find_conflicts():
         simple_rec(name='c', version='2.0'),
     )
     with env_var("CONDA_UNSATISFIABLE_HINTS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        r = Resolve(OrderedDict((prec, prec) for prec in index))
+        r = Resolve({prec: prec for prec in index})
         with pytest.raises(UnsatisfiableError) as excinfo:
             r.install(['a', 'b '])
         assert "a -> c[version='>=1,<2']" not in str(excinfo.value)
@@ -385,7 +382,7 @@ def test_unsat_shortest_chain_1():
         simple_rec(name='c', version='1.2.8',),
         simple_rec(name='d', depends=['c >=0.8.0']),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['c=1.3.6', 'a', 'b'])
     assert "a -> c[version='<1.3.0']" in str(excinfo.value)
@@ -401,7 +398,7 @@ def test_unsat_shortest_chain_2():
         simple_rec(name='c', version='1.2.8',),
         simple_rec(name='d', depends=['c <1.3.0']),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['c=1.3.6', 'a', 'b'])
     assert "a -> d -> c[version='<1.3.0']" in str(excinfo.value)
@@ -419,7 +416,7 @@ def test_unsat_shortest_chain_3():
         simple_rec(name='e', depends=['c <1.3.0']),
         simple_rec(name='f', depends=['d']),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['c=1.3.6', 'a', 'b'])
     assert "a -> e -> c[version='<1.3.0']" in str(excinfo.value)
@@ -435,7 +432,7 @@ def test_unsat_shortest_chain_4():
         simple_rec(name='py', version='3.7.1', depends=['py_req_1', 'py_req_2']),
         simple_rec(name='py', version='3.6.1', depends=['py_req_1', 'py_req_2']),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'py=3.6.1'])
     print(str(excinfo.value))
@@ -456,7 +453,7 @@ def test_unsat_chain():
         simple_rec(name='c', version='2.0', depends=['d >=2,<3']),
         simple_rec(name='d', version='2.0'),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a', 'e'])
     assert "a -> b -> c[version='>=1,<2']" in str(excinfo.value)
@@ -479,7 +476,7 @@ def test_unsat_any_two_not_three():
         simple_rec(name='d', version='2.0'),
         simple_rec(name='d', version='3.0'),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     # a and b can be installed
     installed1 = r.install(['a', 'b'])
     assert any(k.name == 'a' and k.version == '1.0' for k in installed1)
@@ -510,7 +507,7 @@ def test_unsat_expand_single():
         simple_rec(name='d', version='1.0'),
         simple_rec(name='d', version='2.0'),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['a'])
     assert "b -> d[version='>=1,<2']" in str(excinfo.value)
@@ -524,7 +521,7 @@ def test_unsat_missing_dep():
         simple_rec(name='b', depends=['c >=2,<3']),
         simple_rec(name='c', version='1.0'),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     # this raises ResolvePackageNotFound not UnsatisfiableError
     assert raises(UnsatisfiableError, lambda: r.install(['a', 'b']))
 
@@ -545,7 +542,7 @@ def test_unsat_channel_priority():
         Channel('channel-1'),  # higher priority
         Channel('channel-2'),  # lower priority, missing c 2.0
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index), channels=channels)
+    r = Resolve({prec: prec for prec in index}, channels=channels)
     with env_var("CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         # channel-1 a and b packages (1.0) installed
         installed1 = r.install(['a', 'b'])
@@ -1997,7 +1994,7 @@ def test_surplus_features_1():
             'features': 'feature',
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(["package2", "feature"])
     assert "package1" not in {d.name for d in install}
 
@@ -2034,7 +2031,7 @@ def test_surplus_features_2():
             'features': 'feature',
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(["package2", "feature"])
     assert "package1" not in {d.name for d in install}
 
@@ -2078,7 +2075,7 @@ def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
             'depends': [],
         })
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
 
     install = r.install(["a"])
     assert "a" in {d.name for d in install}
@@ -2131,7 +2128,7 @@ def test_get_reduced_index_broadening_preferred_solution():
             'depends': [],
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
 
     install = r.install(['top'])
     for d in install:
@@ -2222,7 +2219,7 @@ def test_arch_preferred_over_noarch_when_otherwise_equal():
             "version": "0.24"
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(['itsdangerous'])
     for d in install:
         assert d.subdir == context.subdir
@@ -2245,7 +2242,7 @@ def test_noarch_preferred_over_arch_when_version_greater():
             'build_number': 0,
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(['abc'])
     for d in install:
         assert d.subdir == 'noarch'
@@ -2269,7 +2266,7 @@ def test_noarch_preferred_over_arch_when_build_greater():
             'build_number': 0,
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(['abc'])
     for d in install:
         assert d.subdir == 'noarch'
@@ -2320,7 +2317,7 @@ def test_arch_preferred_over_noarch_when_otherwise_equal_dep():
             'depends': ['itsdangerous'],
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(['foo'])
     for d in install:
         if d.name == 'itsdangerous':
@@ -2352,7 +2349,7 @@ def test_noarch_preferred_over_arch_when_version_greater_dep():
             'depends': ['abc'],
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(['foo'])
     for d in install:
         if d.name == 'abc':
@@ -2385,7 +2382,7 @@ def test_noarch_preferred_over_arch_when_build_greater_dep():
             'depends': ['abc'],
         }),
     )
-    r = Resolve(OrderedDict((prec, prec) for prec in index))
+    r = Resolve({prec: prec for prec in index})
     install = r.install(['abc'])
     for d in install:
         if d.name == 'abc':

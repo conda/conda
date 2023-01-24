@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import defaultdict, OrderedDict, deque
+from collections import defaultdict, deque
 import copy
 import itertools
 from functools import lru_cache
@@ -685,7 +685,7 @@ class Resolve:
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        specs_by_name_seed = OrderedDict()
+        specs_by_name_seed = {}
         for s in explicit_specs:
             specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, []) + [s]
         for explicit_spec in explicit_specs:
@@ -1078,7 +1078,7 @@ class Resolve:
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
-        r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
+        r2 = Resolve({prec: prec for prec in installed}, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)

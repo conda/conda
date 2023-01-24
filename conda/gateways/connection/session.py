@@ -152,7 +152,7 @@ class CondaHttpAuth(AuthBase):
         'Proxy-Authorization' header.  If any of this is incorrect, please file an issue.
 
         """
-        # kwargs = {'verify': True, 'cert': None, 'proxies': OrderedDict(), 'stream': False,
+        # kwargs = {'verify': True, 'cert': None, 'proxies': {}, 'stream': False,
         #           'timeout': (3.05, 60)}
 
         if response.status_code != 407:

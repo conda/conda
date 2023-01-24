@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Stop using `OrderedDict`/`odict` since `dict` preserves insert order since Python 3.7. (#12254)
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`. (#12165)
+* <news item>

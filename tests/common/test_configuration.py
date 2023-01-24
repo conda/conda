@@ -5,7 +5,6 @@
 from conda.common.io import env_var, env_vars
 
 from conda.auxlib.ish import dals
-from conda.common.compat import odict
 from conda.common.configuration import (Configuration, ConfigurationObject, ObjectParameter,
                                         ParameterFlag, ParameterLoader, PrimitiveParameter,
                                         MapParameter, SequenceParameter, YamlRawParameter,
@@ -253,8 +252,10 @@ class SampleConfiguration(Configuration):
 
 
 def load_from_string_data(*seq):
-    return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_round_trip_load(test_yaml_raw[f])))
-                 for f in seq)
+    return {
+        f: YamlRawParameter.make_raw_parameters(f, yaml_round_trip_load(test_yaml_raw[f]))
+        for f in seq
+    }
 
 
 class ConfigurationTests(TestCase):
@@ -530,10 +531,12 @@ class ConfigurationTests(TestCase):
 
     def test_map_parameter_must_be_map(self):
         # regression test for conda/conda#3467
-        string = dals("""
+        string = dals(
+            """
         proxy_servers: bad values
-        """)
-        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_round_trip_load(string)))
+        """
+        )
+        data = {"s1": YamlRawParameter.make_raw_parameters("s1", yaml_round_trip_load(string))}
         config = SampleConfiguration()._set_raw_data(data)
         raises(InvalidTypeError, config.validate_all)
 
@@ -554,13 +557,13 @@ class ConfigurationTests(TestCase):
         assert config.commented_map == {'key': 'value'}
 
     def test_invalid_map_parameter(self):
-        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', {'proxy_servers': 'blah'}))
+        data = {"s1": YamlRawParameter.make_raw_parameters("s1", {"proxy_servers": "blah"})}
         config = SampleConfiguration()._set_raw_data(data)
         with raises(InvalidTypeError):
             config.proxy_servers
 
     def test_invalid_seq_parameter(self):
-        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', {'channels': 'y_u_no_tuple'}))
+        data = {"s1": YamlRawParameter.make_raw_parameters("s1", {"channels": "y_u_no_tuple"})}
         config = SampleConfiguration()._set_raw_data(data)
         with raises(InvalidTypeError):
             config.channels
