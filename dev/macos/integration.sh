@@ -9,4 +9,4 @@ eval "$(sudo python -m conda init bash --dev)"
 conda info
 conda-build tests/test-recipes/activate_deactivate_package
 pytest --cov=conda -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
-python --cov=conda -m conda.common.io
+python -m conda.common.io
