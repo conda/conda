@@ -34,7 +34,8 @@ from .constants import (
     UpdateModifier,
     PREFIX_NAME_DISALLOWED_CHARS,
 )
-from .. import __version__ as CONDA_VERSION, _deprecated
+from .. import __version__ as CONDA_VERSION
+from ..deprecations import deprecated as _deprecated
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals

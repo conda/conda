@@ -12,7 +12,8 @@ import threading
 from io import StringIO  # noqa: F401
 from builtins import input  # noqa: F401
 
-from . import CondaError, _deprecated  # noqa: F401
+from . import CondaError  # noqa: F401
+from .deprecations import deprecated as _deprecated
 from .base.context import reset_context
 
 reset_context()  # initialize context when conda.exports is imported

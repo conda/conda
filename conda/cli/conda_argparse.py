@@ -19,7 +19,8 @@ import sys
 from textwrap import dedent
 import warnings
 
-from .. import __version__, _deprecated
+from .. import __version__
+from ..deprecations import deprecated as _deprecated
 from ..auxlib.ish import dals
 from ..auxlib.compat import isiterable
 from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, \

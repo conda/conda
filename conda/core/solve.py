@@ -15,7 +15,8 @@ from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
-from .. import CondaError, __version__ as CONDA_VERSION, _deprecated
+from .. import CondaError, __version__ as CONDA_VERSION
+from ..deprecations import deprecated as _deprecated
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet

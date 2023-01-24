@@ -13,7 +13,8 @@ from typing import Iterable, Sequence
 from urllib.parse import urlsplit
 
 from .compat import on_win
-from .. import CondaError, _deprecated
+from .. import CondaError
+from ..deprecations import deprecated as _deprecated
 from distutils.spawn import find_executable
 
 
