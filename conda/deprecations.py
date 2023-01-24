@@ -21,6 +21,10 @@ class DeprecationHandler:
     _version: Version
 
     def __init__(self, version: Version | str):
+        """Factory to create a deprecation handle for the specified version.
+
+        :param version: The version to compare against when checking deprecation statuses.
+        """
         if not isinstance(version, Version):
             self._version = parse(version)
 
@@ -34,11 +38,10 @@ class DeprecationHandler:
     ) -> Callable[(Callable), Callable]:
         """Deprecation decorator for functions, methods, & classes.
 
-        Args:
-            deprecate_in: Version in which code will be marked as deprecated.
-            remove_in: Version in which code is expected to be removed.
-            addendum: Optional additional messaging. Useful to indicate what to do instead.
-            stack: Optional stacklevel increment.
+        :param deprecate_in: Version in which code will be marked as deprecated.
+        :param remove_in: Version in which code is expected to be removed.
+        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
+        :param stack: Optional stacklevel increment.
         """
 
         def deprecated_decorator(func: Callable) -> Callable:
@@ -77,13 +80,12 @@ class DeprecationHandler:
     ) -> Callable[(Callable), Callable]:
         """Deprecation decorator for keyword arguments.
 
-        Args:
-            deprecate_in: Version in which code will be marked as deprecated.
-            remove_in: Version in which code is expected to be removed.
-            argument: The argument to deprecate.
-            rename: Optional new argument name.
-            addendum: Optional additional messaging. Useful to indicate what to do instead.
-            stack: Optional stacklevel increment.
+        :param deprecate_in: Version in which code will be marked as deprecated.
+        :param remove_in: Version in which code is expected to be removed.
+        :param argument: The argument to deprecate.
+        :param rename: Optional new argument name.
+        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
+        :param stack: Optional stacklevel increment.
         """
 
         def deprecated_decorator(func: Callable) -> Callable:
@@ -126,7 +128,13 @@ class DeprecationHandler:
         addendum: str | None = None,
         stack: int = 0,
     ) -> None:
-        """Deprecation function for modules."""
+        """Deprecation function for modules.
+
+        :param deprecate_in: Version in which code will be marked as deprecated.
+        :param remove_in: Version in which code is expected to be removed.
+        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
+        :param stack: Optional stacklevel increment.
+        """
         self.topic(
             deprecate_in=deprecate_in,
             remove_in=remove_in,
@@ -145,7 +153,15 @@ class DeprecationHandler:
         addendum: str | None = None,
         stack: int = 0,
     ) -> None:
-        """Deprecation function for module constant (global)."""
+        """Deprecation function for module constant (global).
+
+        :param deprecate_in: Version in which code will be marked as deprecated.
+        :param remove_in: Version in which code is expected to be removed.
+        :param constant:
+        :param value:
+        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
+        :param stack: Optional stacklevel increment.
+        """
         # detect calling module
         module, fullname = self._get_module(stack)
         # detect function name and generate message
@@ -186,12 +202,11 @@ class DeprecationHandler:
     ) -> None:
         """Deprecation function for a topic.
 
-        Args:
-            deprecate_in: Version in which code will be marked as deprecated.
-            remove_in: Version in which code is expected to be removed.
-            topic: The topic being deprecated.
-            addendum: Optional additional messaging. Useful to indicate what to do instead.
-            stack: Optional stacklevel increment.
+        :param deprecate_in: Version in which code will be marked as deprecated.
+        :param remove_in: Version in which code is expected to be removed.
+        :param topic: The topic being deprecated.
+        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
+        :param stack: Optional stacklevel increment.
         """
         # detect function name and generate message
         category, message = self._generate_message(deprecate_in, remove_in, topic, addendum)
@@ -204,6 +219,11 @@ class DeprecationHandler:
         warnings.warn(message, category, stacklevel=2 + stack)
 
     def _get_module(self, stack: int) -> tuple[ModuleType, str]:
+        """Detect the module from which we are being called.
+
+        :param stack: The stacklevel increment.
+        :return: The module and module name.
+        """
         import inspect  # expensive
 
         try:
@@ -218,11 +238,11 @@ class DeprecationHandler:
     ) -> tuple[type[Warning] | None, str]:
         """Deprecation decorator for functions, methods, & classes.
 
-        Args:
-            deprecate_in: Version in which code will be marked as deprecated.
-            remove_in: Version in which code is expected to be removed.
-            prefix: The message prefix, usually the function name.
-            addendum: Additional messaging. Useful to indicate what to do instead.
+        :param deprecate_in: Version in which code will be marked as deprecated.
+        :param remove_in: Version in which code is expected to be removed.
+        :param prefix: The message prefix, usually the function name.
+        :param addendum: Additional messaging. Useful to indicate what to do instead.
+        :return: The warning category (if applicable) and the message.
         """
         deprecate_version = parse(deprecate_in)
         remove_version = parse(remove_in)
