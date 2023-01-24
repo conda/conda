@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import codecs
 from collections import namedtuple
 from functools import lru_cache
@@ -9,7 +8,7 @@ from os.path import abspath, expanduser
 import re
 import socket
 
-from .. import _deprecated
+from ..deprecations import deprecated as _deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 

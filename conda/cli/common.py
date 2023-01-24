@@ -1,12 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
 
-from .. import _deprecated
+from ..deprecations import deprecated as _deprecated
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name

@@ -6,7 +6,7 @@ from logging import getLogger
 import platform
 import sys
 
-from .. import _deprecated
+from ..deprecations import deprecated as _deprecated
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record

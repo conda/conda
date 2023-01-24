@@ -4,22 +4,22 @@ import sys
 
 import pytest
 
-from conda import _deprecated
+from conda.deprecations import DeprecationHandler, DeprecatedError
 
 
 @pytest.fixture(scope="module")
 def deprecated_v1():
-    return _deprecated._factory("1.0")
+    return DeprecationHandler("1.0")
 
 
 @pytest.fixture(scope="module")
 def deprecated_v2():
-    return _deprecated._factory("2.0")
+    return DeprecationHandler("2.0")
 
 
 @pytest.fixture(scope="module")
 def deprecated_v3():
-    return _deprecated._factory("3.0")
+    return DeprecationHandler("3.0")
 
 
 def test_pending(deprecated_v1):
@@ -44,7 +44,7 @@ def test_deprecated(deprecated_v2):
 
 def test_remove(deprecated_v3):
     # alerting developer that a function needs to be removed
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeprecatedError):
 
         @deprecated_v3("2.0", "3.0")
         def foo():
@@ -87,7 +87,7 @@ def test_arguments_deprecated(deprecated_v2):
 
 def test_arguments_remove(deprecated_v3):
     # alerting developer that a keyword argument needs to be removed
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeprecatedError):
 
         @deprecated_v3.argument("2.0", "3.0", "three")
         def foo(one, two):
@@ -108,7 +108,7 @@ def test_module_deprecated(deprecated_v2):
 
 def test_module_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeprecatedError):
         deprecated_v3.module("2.0", "3.0")
 
 
@@ -132,7 +132,7 @@ def test_constant_deprecated(deprecated_v2):
 
 def test_constant_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeprecatedError):
         deprecated_v3.constant("2.0", "3.0", "SOME_CONSTANT", 42)
 
 
@@ -150,5 +150,5 @@ def test_topic_deprecated(deprecated_v2):
 
 def test_topic_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeprecatedError):
         deprecated_v3.topic("2.0", "3.0", topic="Some special topic")

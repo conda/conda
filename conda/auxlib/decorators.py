@@ -2,7 +2,7 @@ from collections.abc import Hashable
 from types import GeneratorType
 
 from functools import wraps
-from .. import _deprecated
+from ..deprecations import deprecated as _deprecated
 
 
 # TODO: spend time filling out functionality and make these more robust

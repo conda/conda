@@ -1,17 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
-from __future__ import annotations
-
-from functools import wraps
 from json import JSONEncoder
 import os
 from os.path import abspath, dirname
 import sys
-from types import ModuleType
-import warnings
 
-from .auxlib.packaging import get_version
+from .__version__ import __version__
+from .deprecations import deprecated as _deprecated
 
 
 __all__ = (
@@ -21,7 +17,6 @@ __all__ = (
 )
 
 __name__ = "conda"
-__version__ = get_version(__file__)
 __author__ = "Anaconda, Inc."
 __email__ = "conda@continuum.io"
 __license__ = "BSD-3-Clause"
@@ -39,6 +34,11 @@ CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 #: If `conda` is statically installed this is the site-packages. If `conda` is an editable install
 #: or otherwise uninstalled this is the git repo.
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
+
+
+@_deprecated("23.3", "23.9")
+def another_to_unicode(val):
+    return val
 
 class CondaError(Exception):
     return_code = 1
@@ -139,209 +139,3 @@ def _default(self, obj):
 
 _default.default = JSONEncoder().default
 JSONEncoder.default = _default
-
-
-# inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
-# CPython's warnings._deprecated
-class _deprecated:
-    _version: tuple[int, ...]
-    _category: Warning
-    _message: Callable[str, str]
-    _argument: str | None = None
-    _rename: str | None = None
-    _stack: int
-
-    @staticmethod
-    def _parse_version(version: str) -> tuple[int, ...]:
-        """A naive version parser to avoid circular imports. Do not use for other purposes."""
-
-        def try_int(string: str) -> int | str:
-            try:
-                return int(string)
-            except ValueError:
-                return string
-
-        return tuple(map(try_int, version.split(".")))
-
-    def __init__(
-        self,
-        deprecate_in: str,
-        remove_in: str,
-        *,
-        addendum: str | None = None,
-        stack: int = 0,
-    ):
-        """Deprecation decorator for functions, methods, & classes.
-
-        Args:
-            deprecate_in: Version in which code will be marked as deprecated.
-            remove_in: Version in which code is expected to be removed.
-            addendum: Optional additional messaging. Useful to indicate what to do instead.
-            stack: Optional stacklevel increment.
-        """
-        deprecate_version = self._parse_version(deprecate_in)
-        remove_version = self._parse_version(remove_in)
-
-        addendum = f" {addendum}" if addendum else ""
-        if self._version < deprecate_version:
-            self._category = PendingDeprecationWarning
-            message = f"{{name}} is pending deprecation and will be removed in {remove_in}."
-        elif self._version < remove_version:
-            self._category = DeprecationWarning
-            message = f"{{name}} is deprecated and will be removed in {remove_in}."
-        else:
-            self._category = None
-            message = f"{{name}} was slated for removal in {remove_in}."
-        self._message = lambda name: f"{message}{addendum}".format(name=name)
-
-        self._stack = stack
-
-    def __call__(self, func: Callable) -> Callable:
-        """Deprecation decorator for functions, methods, & classes."""
-        # detect function name
-        fullname = f"{func.__module__}.{func.__qualname__}"
-        if self._argument:
-            fullname = f"{func.__module__}.{func.__qualname__}({self._argument})"
-
-        # alert developer that it's time to remove something
-        if not self._category:
-            raise RuntimeError(self._message(fullname))
-
-        # alert user that it's time to remove something
-        @wraps(func)
-        def inner(*args, **kwargs):
-            # always warn if not deprecating an argument
-            # only warn about argument deprecations if the argument is used
-            if not self._argument or self._argument in kwargs:
-                warnings.warn(self._message(fullname), self._category, stacklevel=2 + self._stack)
-
-                # rename argument deprecations as needed
-                value = kwargs.pop(self._argument, None)
-                if self._rename:
-                    kwargs.setdefault(self._rename, value)
-
-            return func(*args, **kwargs)
-
-        return inner
-
-    @classmethod
-    def argument(
-        cls,
-        deprecate_in: str,
-        remove_in: str,
-        argument: str,
-        *,
-        rename: str | None = None,
-        addendum: str | None = None,
-        stack: int = 0,
-    ) -> None:
-        """Deprecation decorator for keyword arguments."""
-        # provide a default addendum if renaming and no addendum is provided
-        if rename and not addendum:
-            addendum = f"Use '{rename}' instead."
-
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum, stack=stack)
-        self._argument = argument
-        self._rename = rename
-
-        return self
-
-    @staticmethod
-    def _get_module(stack: int) -> tuple[ModuleType, str]:
-        import inspect  # expensive
-
-        try:
-            frame = inspect.stack()[2 + stack]
-            module = inspect.getmodule(frame[0])
-            return (module, module.__name__)
-        except (IndexError, AttributeError):
-            raise RuntimeError("unable to determine the calling module") from None
-
-    @classmethod
-    def module(
-        cls,
-        deprecate_in: str,
-        remove_in: str,
-        *,
-        addendum: str | None = None,
-        stack: int = 0,
-    ) -> None:
-        """Deprecation function for modules."""
-        cls.topic(
-            deprecate_in=deprecate_in,
-            remove_in=remove_in,
-            topic=cls._get_module(stack)[1],
-            addendum=addendum,
-            stack=stack + 2,
-        )
-
-    @classmethod
-    def constant(
-        cls,
-        deprecate_in: str,
-        remove_in: str,
-        constant: str,
-        value: Any,
-        *,
-        addendum: str | None = None,
-        stack: int = 0,
-    ) -> None:
-        """Deprecation function for module constant (global)."""
-        # detect calling module
-        module, fullname = cls._get_module(stack)
-
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum, stack=stack)
-
-        # alert developer that it's time to remove something
-        if not self._category:
-            raise RuntimeError(self._message(f"{fullname}.{constant}"))
-
-        # patch module level __getattr__ to alert user that it's time to remove something
-        super_getattr = getattr(module, "__getattr__", None)
-
-        def __getattr__(name: str) -> Any:
-            if name == constant:
-                warnings.warn(
-                    self._message(f"{fullname}.{name}"), self._category, stacklevel=2 + self._stack
-                )
-                return value
-
-            if super_getattr:
-                return super_getattr(name)
-
-            raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
-
-        module.__getattr__ = __getattr__
-
-    @classmethod
-    def topic(
-        cls,
-        deprecate_in: str,
-        remove_in: str,
-        *,
-        topic: str,
-        addendum: str | None = None,
-        stack: int = 0,
-    ) -> None:
-        """Deprecation function for a topic."""
-        self = cls(deprecate_in=deprecate_in, remove_in=remove_in, addendum=addendum, stack=stack)
-
-        # alert developer that it's time to remove something
-        if not self._category:
-            raise RuntimeError(self._message(topic))
-
-        # alert user that it's time to remove something
-        warnings.warn(self._message(topic), self._category, stacklevel=2 + self._stack)
-
-    @classmethod
-    def _factory(cls, version: str) -> _deprecated:
-        return type("_deprecated", (cls,), {"_version": cls._parse_version(version)})
-
-
-# initialize conda's deprecation decorator with the current version
-_deprecated = _deprecated._factory(__version__)
-
-
-@_deprecated("23.3", "23.9")
-def another_to_unicode(val):
-    return val

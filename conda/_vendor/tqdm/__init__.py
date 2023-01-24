@@ -1,4 +1,4 @@
-from ... import _deprecated
+from ...deprecations import deprecated as _deprecated
 
 _deprecated.module("23.3", "23.9", addendum="Use `tqdm` instead.")
 

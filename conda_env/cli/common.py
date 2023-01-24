@@ -3,7 +3,7 @@
 import os
 from os.path import isdir, join, abspath, expanduser, expandvars
 
-from conda import _deprecated
+from conda.deprecations import deprecated as _deprecated
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.common import stdout_json as _stdout_json, stdout_json_success

@@ -11,14 +11,13 @@ globally (such as downloading packages).
 
 We don't raise an error if the lock is named with the current PID
 """
-
 from glob import glob
 import logging
 import os
 from os.path import abspath, basename, dirname, isdir, join
 import time
 
-from . import _deprecated
+from .deprecations import deprecated as _deprecated
 from .exceptions import LockError
 
 _deprecated.module("23.3", "23.9", addendum="Use `filelock` instead.")
