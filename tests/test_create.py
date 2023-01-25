@@ -1824,7 +1824,18 @@ dependencies:
             assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
 
             with pytest.raises(PackagesNotFoundError):
-                run_command(Commands.SEARCH, prefix, "boltons", "--json")
+                # this was supposed to be a package available in private but not
+                # public data-portal; boltons was added to defaults in 2023 Jan.
+                # --override-channels instead.
+                run_command(
+                    Commands.SEARCH,
+                    prefix,
+                    "boltons",
+                    "-c",
+                    channel_url,
+                    "--override-channels",
+                    "--json",
+                )
 
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "anaconda-mosaic", "--json")
 
