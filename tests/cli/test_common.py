@@ -79,6 +79,6 @@ def test_always_yes():
             assert choice is True
 
 
-@pytest.mark.parametrize("prefix,active", [("", False), (context.active_prefix, True)])
+@pytest.mark.parametrize("prefix,active", [("", False), (context.root_prefix, True)])
 def test_is_active_prefix(prefix, active):
     assert is_active_prefix(prefix) is active
