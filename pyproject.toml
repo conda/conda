@@ -56,3 +56,10 @@ cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
 six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT
+
+[tool.ruff]
+line-length = 99
+# Enable Pyflakes and pycodestyle rules.
+select = ["E", "F"]
+# Ruff-supported but ignored in pycodestyle/flake8 configs from setup.cfg
+ignore = ["E731", "E722", "E402", "F821", "E501"]
