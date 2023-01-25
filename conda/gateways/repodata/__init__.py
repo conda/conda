@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import abc
+import json
 import logging
+import pathlib
 import warnings
+from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
-
-from conda.gateways.connection import Response
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
@@ -27,6 +28,7 @@ from conda.gateways.connection import (
     InsecureRequestWarning,
     InvalidSchema,
     RequestsProxyError,
+    Response,
     SSLError,
 )
 from conda.gateways.connection.session import CondaSession
@@ -289,3 +291,102 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
             e.response,
             caused_by=e,
         )
+
+
+class RepodataState(UserDict):
+    """
+    Load/save `.state.json` that accompanies cached `repodata.json`
+    """
+
+    _fields = (
+        "etag",
+        "mod",
+        "cache_control",
+        "size",
+    )
+
+    _aliased = ("_mod", "_etag", "_cache_control", "_url")
+
+    def __init__(self, cache_path_json, cache_path_state, repodata_fn):
+        super().__init__()
+        self.cache_path_json = pathlib.Path(cache_path_json)
+        self.cache_path_state = pathlib.Path(cache_path_state)
+        self.repodata_fn = repodata_fn
+
+    def load(self):
+        """
+        Cache headers and additional data needed to keep track of the cache are
+        stored separately, instead of the previous "added to repodata.json"
+        arrangement.
+        """
+        try:
+            state_path = self.cache_path_state
+            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
+            state = json.loads(state_path.read_text())
+            # json and state files should match
+            json_stat = self.cache_path_json.stat()
+            if not (
+                state.get("mtime_ns") == json_stat.st_mtime_ns
+                and state.get("size") == json_stat.st_size
+            ):
+                # clear mod, etag, cache_control to encourage re-download
+                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+            self.update(state)  # allow all fields
+        except (json.JSONDecodeError, OSError):
+            log.debug("Could not load state", exc_info=True)
+            self.clear()
+        return self
+
+    def save(self):
+        """
+        Must be called after writing cache_path_json, as its mtime is included in .state.json
+        """
+        serialized = dict(self)
+        json_stat = self.cache_path_json.stat()
+        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
+        return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
+
+    @property
+    def mod(self) -> str:
+        """
+        Last-Modified header or ""
+        """
+        return self.get("mod", "")
+
+    @mod.setter
+    def mod(self, value):
+        self["mod"] = value or ""
+
+    @property
+    def etag(self) -> str:
+        """
+        Etag header or ""
+        """
+        return self.get("etag", "")
+
+    @etag.setter
+    def etag(self, value):
+        self["etag"] = value or ""
+
+    @property
+    def cache_control(self) -> str:
+        """
+        Cache-Control header or ""
+        """
+        return self.get("cache_control", "")
+
+    @cache_control.setter
+    def cache_control(self, value):
+        self["cache_control"] = value or ""
+
+    def __setitem__(self, key: str, item) -> None:
+        if key in self._aliased:
+            key = key[1:]  # strip underscore
+        return super().__setitem__(key, item)
+
+    def __missing__(self, key: str):
+        if key in self._aliased:
+            key = key[1:]  # strip underscore
+        else:
+            raise KeyError(key)
+        return super().__getitem__(key)

@@ -2,29 +2,32 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+import json
 from logging import getLogger
 from os.path import dirname, join
-from unittest import TestCase
+from pathlib import Path
 from time import sleep
+from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
+from conda.core.index import get_index
+from conda.core.subdir_data import (
+    RepodataState,
+    CondaRepoInterface,
+    Response304ContentUnchanged,
+    SubdirData,
+    cache_fn_url,
+    fetch_repodata_remote_request,
+    read_mod_and_etag,
+)
 from conda.exceptions import CondaSSLError, UnavailableInvalidChannel
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
-from conda.core.index import get_index
-from conda.core.subdir_data import (
-    Response304ContentUnchanged,
-    cache_fn_url,
-    SubdirData,
-    fetch_repodata_remote_request,
-    read_mod_and_etag,
-    CondaRepoInterface,
-)
 from conda.models.channel import Channel
 
 log = getLogger(__name__)
@@ -276,7 +279,7 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -293,7 +296,7 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -307,12 +310,47 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         assert precs_b == precs_a
 
 
-# @pytest.mark.integration
-# class SubdirDataTests(TestCase):
-#
-#     def test_basic_subdir_data(self):
-#         channel = Channel("https://conda.anaconda.org/conda-test/linux-64")
-#         sd = SubdirData(channel)
-#         sd.load()
-#         print(sd._names_index.keys())
-#         assert 0
+def test_cache_json(tmp_path: Path):
+    """
+    Load and save standardized field names, from internal matches-legacy
+    underscore-prefixed field names. Assert state is only loaded if it matches
+    cached json.
+    """
+    cache_json = tmp_path / "cached.json"
+    cache_state = tmp_path / "cached.state.json"
+
+    cache_json.write_text("{}")
+
+    RepodataState(cache_json, cache_state, "repodata.json").save()
+
+    state = RepodataState(cache_json, cache_state, "repodata.json").load()
+
+    mod = "last modified time"
+
+    state = RepodataState(cache_json, cache_state, "repodata.json")
+    state.mod = mod  # this is the last-modified header not mtime_ns
+    state.cache_control = "cache control"
+    state.etag = "etag"
+    state.save()
+
+    on_disk_format = json.loads(cache_state.read_text())
+    print("disk format", on_disk_format)
+    assert on_disk_format["mod"] == mod
+    assert on_disk_format["cache_control"]
+    assert on_disk_format["etag"]
+    assert isinstance(on_disk_format["size"], int)
+    assert isinstance(on_disk_format["mtime_ns"], int)
+
+    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
+    assert state2.mod == mod
+    assert state2.cache_control
+    assert state2.etag
+
+    assert state2["mod"] == state2.mod
+    assert state2["etag"] == state2.etag
+    assert state2["cache_control"] == state2.cache_control
+
+    cache_json.write_text("{ }")  # now invalid due to size
+
+    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
+    assert state_invalid.get("mod") == ""

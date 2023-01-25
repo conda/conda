@@ -99,7 +99,7 @@ def ensure_binary(value):
         return value
 
 
-def ensure_text_type(value):
+def ensure_text_type(value) -> str:
     try:
         return value.decode('utf-8')
     except AttributeError:  # pragma: no cover

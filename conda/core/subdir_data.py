@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import pathlib
 import pickle
 import re
 import warnings
@@ -13,21 +12,22 @@ from collections import defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
-from io import open as io_open
+from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
+from pathlib import Path
 from time import time
 
 from genericpath import getmtime, isfile
 
-from itertools import islice, chain
-
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
+    RepodataOnDisk,
+    RepodataState,
     CondaRepoInterface,
-    RepoInterface,
     RepodataIsEmpty,
+    RepoInterface,
     Response304ContentUnchanged,
 )
 
@@ -52,7 +52,7 @@ from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
 
-REPODATA_PICKLE_VERSION = 29
+REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
@@ -129,7 +129,7 @@ class SubdirData(metaclass=SubdirDataType):
             self.load()
         param = package_ref_or_match_spec
         if isinstance(param, str):
-            param = MatchSpec(param)
+            param = MatchSpec(param)  # type: ignore
         if isinstance(param, MatchSpec):
             if param.get_exact_value("name"):
                 package_name = param.get_exact_value("name")
@@ -154,7 +154,7 @@ class SubdirData(metaclass=SubdirDataType):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, repodata_fn=REPODATA_FN):
+    def __init__(self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -166,6 +166,7 @@ class SubdirData(metaclass=SubdirDataType):
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
+        self.RepoInterface = RepoInterface
         self._loaded = False
         self._key_mgr = None
 
@@ -174,7 +175,7 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Changes as we mutate self.repodata_fn.
         """
-        return CondaRepoInterface(
+        return self.RepoInterface(
             self.url_w_credentials,
             self.repodata_fn,
             cache_path_json=self.cache_path_json,
@@ -188,8 +189,12 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_base(self):
+        if not hasattr(self, "_cache_dir"):
+            # searches for writable directory; memoize per-instance.
+            self._cache_dir = create_cache_dir()
+        # self.repodata_fn may change
         return join(
-            create_cache_dir(), splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0]
+            self._cache_dir, splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0]
         )
 
     @property
@@ -198,14 +203,14 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_json(self):
-        return self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json"
+        return Path(self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json")
 
     @property
     def cache_path_state(self):
         """
         Out-of-band etag and other state needed by the RepoInterface.
         """
-        return self.cache_path_base + ".state.json"
+        return Path(self.cache_path_base + ".state.json")
 
     @property
     def cache_path_pickle(self):
@@ -240,26 +245,19 @@ class SubdirData(metaclass=SubdirDataType):
             self.load()
         return iter(self._package_records)
 
-    def _load_state(self) -> dict:
+    def _load_state(self):
         """
         Cache headers and additional data needed to keep track of the cache are
         stored separately, instead of the previous "added to repodata.json"
         arrangement.
         """
-        try:
-            state_path = pathlib.Path(self.cache_path_state)
-            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
-            # efficient according to scalene profiler; about equal to
-            # json.loads(state_path.read_text()) and better that open("rb")
-            with state_path.open("r") as s:
-                state = json.load(s)
-            return state
-        except (json.JSONDecodeError, OSError):
-            log.debug("Could not load state", exc_info=True)
-            return {}
+        return RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn).load()
 
-    def _save_state(self, state: dict):
-        return pathlib.Path(self.cache_path_state).write_text(json.dumps(state, indent=True))
+    def _save_state(self, state: RepodataState):
+        assert Path(state.cache_path_json) == Path(self.cache_path_json)
+        assert Path(state.cache_path_state) == Path(self.cache_path_state)
+        assert state.repodata_fn == self.repodata_fn
+        return state.save()
 
     def _load(self):
         try:
@@ -282,7 +280,9 @@ class SubdirData(metaclass=SubdirDataType):
                     "_track_features_index": defaultdict(list),
                 }
             else:
-                mod_etag_headers = {}
+                mod_etag_headers = RepodataState(
+                    self.cache_path_json, self.cache_path_state, self.repodata_fn
+                )
         else:
             mod_etag_headers = self._load_state()
 
@@ -326,6 +326,9 @@ class SubdirData(metaclass=SubdirDataType):
                     raise  # is UnavailableInvalidChannel subclass
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata_str = None
+            except RepodataOnDisk:
+                # used as a sentinel, not the raised exception object
+                raw_repodata_str = RepodataOnDisk
 
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
@@ -339,17 +342,27 @@ class SubdirData(metaclass=SubdirDataType):
                 self.url_w_repodata_fn,
             )
             touch(self.cache_path_json)
+            # change mtime in state file, or cache will be thrown away next time:
+            self._save_state(mod_etag_headers)
             _internal_state = self._read_local_repodata(mod_etag_headers)
             return _internal_state
         else:
-            if not isdir(dirname(self.cache_path_json)):
+            if not isdir(dirname(self.cache_path_json)):  # What happens if it is a directory?
                 mkdir_p(dirname(self.cache_path_json))
             try:
-                cache_path_json = self.cache_path_json
-                with io_open(cache_path_json, "w") as fh:
-                    fh.write(raw_repodata_str or "{}")
-                # quick thing to check for 'json matches stat', or store, check a message digest:
-                mod_etag_headers["mtime"] = pathlib.Path(cache_path_json).stat().st_mtime
+                if raw_repodata_str is RepodataOnDisk:
+                    # this is handled very similar to a 304. Can the cases be merged?
+                    # we may need to read_bytes() and compare a hash to the state, instead.
+                    raw_repodata_str = Path(self.cache_path_json).read_text()
+                elif isinstance(raw_repodata_str, (str, type(None))):
+                    # XXX skip this if self._repo already wrote the data
+                    # Can we pass this information in state or with a sentinel/special exception?
+                    cache_path_json = self.cache_path_json
+                    with open(cache_path_json, "w", newline="\n") as fh:
+                        fh.write(raw_repodata_str or "{}")
+                else:
+                    # it can be a dict?
+                    assert False, f"Unreachable {raw_repodata_str}"
                 self._save_state(mod_etag_headers)
             except OSError as e:
                 if e.errno in (EACCES, EPERM, EROFS):
@@ -367,11 +380,11 @@ class SubdirData(metaclass=SubdirDataType):
                 "Saving pickled state for %s at %s", self.url_w_repodata_fn, self.cache_path_pickle
             )
             with open(self.cache_path_pickle, "wb") as fh:
-                pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
+                pickle.dump(self._internal_state, fh, pickle.HIGHEST_PROTOCOL)
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
 
-    def _read_local_repodata(self, state):
+    def _read_local_repodata(self, state: RepodataState):
         # first try reading pickled data
         _pickled_state = self._read_pickled(state)
         if _pickled_state:
@@ -399,7 +412,8 @@ class SubdirData(metaclass=SubdirDataType):
                 _internal_state = self._process_raw_repodata_str(
                     raw_repodata_str, self._load_state()
                 )
-                self._internal_state = _internal_state
+                # taken care of by _process_raw_repodata():
+                assert self._internal_state is _internal_state
                 self._pickle_me()
                 return _internal_state
 
@@ -415,7 +429,11 @@ class SubdirData(metaclass=SubdirDataType):
         yield "_pickle_version", pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
-    def _read_pickled(self, state):
+    def _read_pickled(self, state: RepodataState):
+        if not isinstance(state, RepodataState):
+            _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+            _state |= state
+            state = _state
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
             # Don't trust pickled data if there is no accompanying json data
@@ -432,7 +450,7 @@ class SubdirData(metaclass=SubdirDataType):
             return None
 
         def checks():
-            return self._pickle_valid_checks(_pickled_state, state.get("_mod"), state.get("_etag"))
+            return self._pickle_valid_checks(_pickled_state, state.mod, state.etag)
 
         def _check_pickled_valid():
             for _, left, right in checks():
@@ -449,16 +467,20 @@ class SubdirData(metaclass=SubdirDataType):
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str, state: dict | None = None):
+    def _process_raw_repodata_str(self, raw_repodata_str, state: RepodataState | None = None):
         """
         state contains information that was previously in-band in raw_repodata_str.
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata, state=None):
+    def _process_raw_repodata(self, repodata, state: RepodataState | None):
         if state is None:
-            state = {}
+            state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+        elif not isinstance(state, RepodataState):
+            _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
+            _state |= state
+            state = _state
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
@@ -556,7 +578,7 @@ class SubdirData(metaclass=SubdirDataType):
 
                 _package_records.append(package_record)
                 _names_index[package_record.name].append(package_record)
-                for ftr_name in package_record.track_features:
+                for ftr_name in package_record.track_features:  # type: ignore
                     _track_features_index[ftr_name].append(package_record)
 
         self._internal_state = _internal_state
@@ -564,11 +586,21 @@ class SubdirData(metaclass=SubdirDataType):
 
 
 def read_mod_and_etag(path):
+    # this function should no longer be used by conda but is kept for API
+    # stability. Was used to read inlined cache information from json; now
+    # stored in *.state.json
+    warnings.warn(
+        "`conda.core.subdir_data.read_mod_and_etag` is pending deprecation "
+        "and will be removed in the future.",
+        PendingDeprecationWarning,
+    )
     with open(path, "rb") as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
                 match_objects = islice(re.finditer(REPODATA_HEADER_RE, m), 3)
-                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
+                result = dict(
+                    map(ensure_unicode, mo.groups()) for mo in match_objects  # type: ignore
+                )
                 return result
         except (BufferError, ValueError):  # pragma: no cover
             # BufferError: cannot close exported pointers exist
@@ -623,6 +655,10 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
 
 
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
+    """
+    :param etag: cached etag header
+    :param mod_stamp: cached last-modified header
+    """
     # this function should no longer be used by conda but is kept for API stability
     warnings.warn(
         "The `conda.core.subdir_data.fetch_repodata_remote_request` function "
@@ -634,7 +670,10 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        raw_repodata_str = subdir._repo.repodata({"_etag": etag, "_mtime": mod_stamp})
+        cache_state = subdir._load_state()
+        cache_state.etag = etag
+        cache_state.mod = mod_stamp
+        raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
     except RepodataIsEmpty:
         if repodata_fn != REPODATA_FN:
             raise  # is UnavailableInvalidChannel subclass
