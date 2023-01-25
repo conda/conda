@@ -245,7 +245,9 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         print(state_object)
 
-        # XXX use CEP 'we checked for jlap' key
+        # XXX use CEP 'we checked for jlap' key. Does this require the Windows 2
+        # second delay (filesystem timestamp granularity) - call "update mtime"
+        # API to backdate file mtime...
         assert state_object["jlap_unavailable"]
 
         # This test can be sensitive to whether osx-64/repodata.json is saved
