@@ -45,6 +45,15 @@ class RepodataIsEmpty(UnavailableInvalidChannel):
     """
 
 
+class RepodataOnDisk(Exception):
+    """
+    Indicate that RepoInerface.repodata() successfully wrote repodata to disk,
+    instead of returning a string.
+    """
+
+    pass
+
+
 class RepoInterface(abc.ABC):
     # TODO: Support async operations
     # TODO: Support progress bars
