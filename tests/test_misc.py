@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import codecs
+import sys
 import warnings
 from unittest.mock import patch
 
