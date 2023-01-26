@@ -37,4 +37,4 @@ task:
   test_script: |
     source $HOME/miniconda3/etc/profile.d/conda.sh
     conda activate conda-test-env
-    pytest -m "cirrus" -v
+    python -m pytest -m "cirrus" -v

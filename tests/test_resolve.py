@@ -24,6 +24,7 @@ from conda.testing.helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter,
 f_mkl = {"mkl"}
 
 
+@pytest.mark.cirrus
 class TestSolve(unittest.TestCase):
 
     def assert_have_mkl(self, precs, names):

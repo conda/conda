@@ -59,7 +59,6 @@ def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
-@pytest.mark.cirrus
 class add_unlink_TestCase(unittest.TestCase):
     def generate_random_dist(self):
         return "foobar-%s-0" % random.randint(100, 200)
