@@ -9,8 +9,6 @@ task:
   only_if: $CIRRUS_BRANCH == 'main' || $CIRRUS_BRANCH == 'feature/.*$' || $CIRRUS_PR != ''
   environment:
     PYTHON: '3.10'
-    TEST_SPLITS: '3'
-    TEST_GROUP: '1'
 
   info_script: |
     sysctl -n hw.ncpu
@@ -21,6 +19,14 @@ task:
     wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda3
 
+  matrix:
+    - env:
+        PYTHON: '3.8'
+    - env:
+        PYTHON: '3.9'
+    - env:
+        PYTHON: '3.10'
+
   setup_script: |
     source $HOME/miniconda3/etc/profile.d/conda.sh
     conda create --name conda-test-env "python=${PYTHON}" -y
@@ -30,4 +36,4 @@ task:
   test_script: |
     source $HOME/miniconda3/etc/profile.d/conda.sh
     conda activate conda-test-env
-    ./dev/macos/unit.sh
+    pytest -m "cirrus" -v
