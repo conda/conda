@@ -5,7 +5,7 @@ from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
 
-from ..deprecations import deprecated as _deprecated
+from ..deprecations import deprecated
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
@@ -62,7 +62,7 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     return True
 
 
-@_deprecated("23.3", "23.9")
+@deprecated("23.3", "23.9")
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError

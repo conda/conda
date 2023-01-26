@@ -2,13 +2,13 @@ from collections.abc import Hashable
 from types import GeneratorType
 
 from functools import wraps
-from ..deprecations import deprecated as _deprecated
+from ..deprecations import deprecated
 
 
 # TODO: spend time filling out functionality and make these more robust
 
 
-@_deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
+@deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
 def memoize(func):
     """
     Decorator to cause a function to cache it's results for each combination of

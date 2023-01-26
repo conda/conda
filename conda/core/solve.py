@@ -16,7 +16,7 @@ from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
-from ..deprecations import deprecated as _deprecated
+from ..deprecations import deprecated
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
@@ -38,7 +38,7 @@ from ..resolve import Resolve
 log = getLogger(__name__)
 
 
-@_deprecated(
+@deprecated(
     "23.3",
     "23.9",
     addendum="Use `conda.base.context.plugin_manager.get_cached_solver_backend` instead.",

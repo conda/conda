@@ -17,10 +17,10 @@ import os
 from os.path import abspath, basename, dirname, isdir, join
 import time
 
-from .deprecations import deprecated as _deprecated
+from .deprecations import deprecated
 from .exceptions import LockError
 
-_deprecated.module("23.3", "23.9", addendum="Use `filelock` instead.")
+deprecated.module("23.3", "23.9", addendum="Use `filelock` instead.")
 
 LOCK_EXTENSION = 'conda_lock'
 

@@ -35,7 +35,7 @@ from .constants import (
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
-from ..deprecations import deprecated as _deprecated
+from ..deprecations import deprecated
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
@@ -335,7 +335,7 @@ class Context(Configuration):
     )
 
     @property
-    @_deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
+    @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
     def experimental_solver(self):
         return self.solver
 
@@ -463,7 +463,7 @@ class Context(Configuration):
             return _arch_names[self.bits]
 
     @property
-    @_deprecated(
+    @deprecated(
         "23.3",
         "23.9",
         addendum="It's meaningless and any special meaning it may have held is now void.",
@@ -926,7 +926,7 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
-    @_deprecated(
+    @deprecated(
         "23.3",
         "23.9",
         addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
@@ -1841,7 +1841,7 @@ def _first_writable_envs_dir():
 
 
 # backward compatibility for conda-build
-@_deprecated("23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead.")
+@deprecated("23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead.")
 def get_prefix(ctx, args, search=True):  # pragma: no cover
     return determine_target_prefix(ctx or context, args)
 

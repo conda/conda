@@ -6,7 +6,7 @@ from logging import getLogger
 import platform
 import sys
 
-from ..deprecations import deprecated as _deprecated
+from ..deprecations import deprecated
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
@@ -23,7 +23,7 @@ from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, Pref
 log = getLogger(__name__)
 
 
-@_deprecated("23.3", "23.9", addendum="Use `conda.core.index.check_allowlist` instead.")
+@deprecated("23.3", "23.9", addendum="Use `conda.core.index.check_allowlist` instead.")
 def check_whitelist(channel_urls):
     return check_allowlist(channel_urls)
 

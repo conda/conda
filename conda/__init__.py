@@ -7,7 +7,7 @@ from os.path import abspath, dirname
 import sys
 
 from .__version__ import __version__
-from .deprecations import deprecated as _deprecated
+from .deprecations import deprecated
 
 
 __all__ = (
@@ -36,7 +36,7 @@ CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
 
 
-@_deprecated("23.3", "23.9")
+@deprecated("23.3", "23.9")
 def another_to_unicode(val):
     return val
 
