@@ -78,8 +78,8 @@ def test_always_yes():
             assert choice is True
 
 
-@pytest.mark.parametrize("prefix,active", [("", False), (context.active_prefix, True)])
+@pytest.mark.parametrize("prefix,active", [("", False), ("active_prefix", True)])
 def test_is_active_prefix(prefix, active):
-    if prefix:
-        prefix = os.path.normcase(context.active_prefix)
+    if prefix == "active_prefix":
+        prefix = context.active_prefix
     assert is_active_prefix(prefix) is active
