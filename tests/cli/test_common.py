@@ -10,12 +10,11 @@ import pytest
 from pytest import raises
 
 from conda.auxlib.collection import AttrDict
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, env_name, reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import check_non_admin, confirm, confirm_yn, is_active_prefix
 from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import CondaSystemExit, DryRunExit, OperationNotAllowed
-from conda.testing.helpers import run_inprocess_conda_command as run
 
 def test_check_non_admin_enabled_false():
     with env_var('CONDA_NON_ADMIN_ENABLED', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
