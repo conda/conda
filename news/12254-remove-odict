@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Stop using `OrderedDict`/`odict` since `dict` preserves insert order since Python 3.7. (#12254)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

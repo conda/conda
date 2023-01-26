@@ -272,6 +272,8 @@ def install(args, parser, command='install'):
             break
 
         except (ResolvePackageNotFound, PackagesNotFoundError) as e:
+            if not getattr(e, "allow_retry", True):
+                raise e  # see note in next except block
             # end of the line.  Raise the exception
             if repodata_fn == repodata_fns[-1]:
                 # PackagesNotFoundError is the only exception type we want to raise.
