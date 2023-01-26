@@ -13,11 +13,6 @@ import struct
 from contextlib import contextmanager
 import warnings
 
-try:
-    from tlz.itertoolz import unique
-except ImportError:
-    from conda._vendor.toolz.itertoolz import unique
-
 from .constants import (
     APP_NAME,
     ChannelPriority,
@@ -50,6 +45,7 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
+from ..common.iterators import unique
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
