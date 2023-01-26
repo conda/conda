@@ -218,7 +218,7 @@ jobs:
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           bash -c "source /opt/conda/etc/profile.d/conda.sh; \
-                   pytest -k test_DepsModifier_contract"
+                   pytest --cov=conda -k test_DepsModifier_contract"
 
       - name: Upload test results
         if: always()
