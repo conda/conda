@@ -10,6 +10,7 @@ from argparse import (
     _StoreAction,
     _CountAction,
     _HelpAction,
+    Namespace,
 )
 from logging import getLogger
 import os
@@ -83,6 +84,19 @@ def generate_parser():
 
 
 def do_call(args, parser):
+    """
+    Serves as the primary entry point for commands referred to in this file and for
+    all registered plugin subcommands.
+    """
+    # First, check if this is a plugin subcommand; if this attribute is present then it is
+    if hasattr(args, "_plugin_subcommand"):
+        if args._plugin_subcommand.no_sys_argv:
+            return args._plugin_subcommand.action()
+        else:
+            # This is here to ensure backwards compatibility with the first release of
+            # plugin subcommand invocation
+            return args._plugin_subcommand.action(sys.argv[2:])
+
     relative_mod, func_name = args.func.rsplit('.', 1)
     # func_name should always be 'execute'
     from importlib import import_module
@@ -157,10 +171,6 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
-                        # Run the subcommand from plugins
-                        for subcommand in self._subcommands:
-                            if cmd == subcommand.name:
-                                sys.exit(subcommand.action(sys.argv[2:]))
                         # Run the subcommand from executables; legacy path
                         warnings.warn(
                             (
@@ -198,6 +208,21 @@ class ArgumentParser(ArgumentParserBase):
                 super()._check_value(action, element)
         else:
             super()._check_value(action, value)
+
+    def parse_args(self, args=None, namespace=None):
+        """
+        We override this method to check if we are running from a known plugin subcommand.
+        If we are, we do not want to handle argument parsing as this is delegated to the plugin
+        subcommand. We instead return a ``Namespace`` object with ``_plugin_subcommand`` defined,
+        which is a ``conda.plugins.CondaSubcommand`` object.
+        """
+        if len(sys.argv) > 1:
+            name = sys.argv[1]
+            subcommand = next((sub for sub in self._subcommands if sub.name == name), None)
+            if subcommand:
+                return Namespace(_plugin_subcommand=subcommand)
+
+        return super().parse_args(args, namespace)
 
 
 def _exec(executable_args, env_vars):

@@ -13,6 +13,7 @@ class CondaSubcommand(NamedTuple):
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
+    :param no_sys_argv: Do not pass remaining sys.argv values. This is the default behavior
     """
 
     name: str
@@ -21,6 +22,7 @@ class CondaSubcommand(NamedTuple):
         [list[str]],  # arguments
         int | None,  # return code
     ]
+    no_sys_argv: bool = False
 
 
 class CondaVirtualPackage(NamedTuple):
