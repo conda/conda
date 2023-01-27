@@ -86,7 +86,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 2
+          CACHE_NUMBER: 3
         with:
           # setup.bat makes a directory junction from \conda_bin to
           # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
@@ -219,7 +219,7 @@ jobs:
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
           bash -c "source /opt/conda/etc/profile.d/conda.sh; \
                    sudo /opt/conda/bin/conda install --quiet -y -c defaults --file tests/requirements.txt; \
-                   pytest -k test_DepsModifier_contract"
+                   pytest --cov=conda -k test_DepsModifier_contract"
 
       - name: Upload test results
         if: always()
@@ -260,7 +260,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 3
         with:
           path: ~/conda_pkgs_dir
           key:
@@ -271,7 +271,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 3
         with:
           path: minio
           key:
@@ -286,6 +286,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
+        timeout-minutes: 12
         run: |
           ./dev/macos/setup.sh
 

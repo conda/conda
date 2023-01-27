@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -24,11 +25,10 @@ from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
+from typing import TYPE_CHECKING
 
-try:
-    from tlz.dicttoolz import merge, merge_with
-except ImportError:
-    from conda._vendor.toolz.dicttoolz import merge, merge_with
+if TYPE_CHECKING:
+    from typing import Sequence
 
 from .compat import isiterable, primitive_types
 from .constants import NULL
@@ -689,42 +689,46 @@ class MapLoadedParameter(LoadedParameter):
                 errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, matches):
-
-        # get matches up to and including first important_match
+    def merge(self, parameters: Sequence[MapLoadedParameter]) -> MapLoadedParameter:
+        # get all values up to and including first important_match
         # but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match, match.value) for match in
-                                            LoadedParameter._first_important_matches(matches))
+        parameters = LoadedParameter._first_important_matches(parameters)
 
-        for match, value in relevant_matches_and_values:
-            if not isinstance(value, Mapping):
-                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
-                                       self._type.__name__)
+        # ensure all parameter values are Mappings
+        for parameter in parameters:
+            if not isinstance(parameter.value, Mapping):
+                raise InvalidTypeError(
+                    self.name,
+                    parameter.value,
+                    parameter.source,
+                    parameter.value.__class__.__name__,
+                    self._type.__name__,
+                )
 
-        # map keys with important values
-        def key_is_important(match, key):
-            return match.value_flags.get(key) == ParameterFlag.final
+        # map keys with final values,
+        # first key has higher precedence than later ones
+        final_map = {
+            key: value
+            for parameter in reversed(parameters)
+            for key, value in parameter.value.items()
+            if parameter.value_flags.get(key) == ParameterFlag.final
+        }
 
-        important_maps = tuple(
-            {k: v for k, v in match_value.items() if key_is_important(match, k)}
-            for match, match_value in relevant_matches_and_values
-        )
+        # map each value by recursively calling merge on any entries with the same key,
+        # last key has higher precedence than earlier ones
+        grouped_map = {}
+        for parameter in parameters:
+            for key, value in parameter.value.items():
+                grouped_map.setdefault(key, []).append(value)
+        merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
-        # map each value by recursively calling merge on any entries with the same key
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (match_value for _, match_value in relevant_matches_and_values)))
-
-        # dump all matches in a dict
-        # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(
-            merge((merged_values, *reversed(important_maps)))
-        )
+        # update merged_map with final_map values
+        merged_value = frozendict({**merged_map, **final_map})
 
         # create new parameter for the merged values
         return MapLoadedParameter(
             self._name,
-            merged_values_important_overwritten,
+            merged_value,
             self._element_type,
             self.key_flag,
             self.value_flags,
@@ -813,7 +817,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
 class ObjectLoadedParameter(LoadedParameter):
     """
-    LoadedParameter type that holds a sequence (i.e. list) of LoadedParameters.
+    LoadedParameter type that holds a mapping (i.e. object) of LoadedParameters.
     """
     _type = object
 
@@ -837,50 +841,40 @@ class ObjectLoadedParameter(LoadedParameter):
                     errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, matches):
-        # get matches up to and including first important_match
-        # but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match,
-                                             {k: v for k, v
-                                              in vars(match.value).items()
-                                              if isinstance(v, LoadedParameter)})
-                                            for match
-                                            in LoadedParameter._first_important_matches(matches))
+    def merge(self, parameters: Sequence[ObjectLoadedParameter]) -> ObjectLoadedParameter:
+        # get all parameters up to and including first important_match
+        # but if no important_match, then all parameters are important_matches
+        parameters = LoadedParameter._first_important_matches(parameters)
 
-        for match, value in relevant_matches_and_values:
-            if not isinstance(value, Mapping):
-                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
-                                       self._type.__name__)
+        # map keys with final values,
+        # first key has higher precedence than later ones
+        final_map = {
+            key: value
+            for parameter in reversed(parameters)
+            for key, value in vars(parameter.value).items()
+            if (
+                isinstance(value, LoadedParameter)
+                and parameter.value_flags.get(key) == ParameterFlag.final
+            )
+        }
 
-        # map keys with important values
-        def key_is_important(match, key):
-            return match.value_flags.get(key) == ParameterFlag.final
+        # map each value by recursively calling merge on any entries with the same key,
+        # last key has higher precedence than earlier ones
+        grouped_map = {}
+        for parameter in parameters:
+            for key, value in vars(parameter.value).items():
+                grouped_map.setdefault(key, []).append(value)
+        merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
-        important_maps = tuple(
-            {k: v for k, v in match_value.items() if key_is_important(match, k)}
-            for match, match_value in relevant_matches_and_values
-        )
-
-        # map each value by recursively calling merge on any entries with the same key
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (match_value for _, match_value in relevant_matches_and_values)))
-
-        # dump all matches in a dict
-        # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(
-            merge((merged_values, *reversed(important_maps)))
-        )
-
-        # copy object and replace Parameter with LoadedParameter fields
-        object_copy = copy.deepcopy(self._element_type)
-        for attr_name, loaded_child_parameter in merged_values_important_overwritten.items():
-            object_copy.__setattr__(attr_name, loaded_child_parameter)
+        # update merged_map with final_map values
+        merged_value = copy.deepcopy(self._element_type)
+        for key, value in {**merged_map, **final_map}.items():
+            merged_value.__setattr__(key, value)
 
         # create new parameter for the merged values
         return ObjectLoadedParameter(
             self._name,
-            object_copy,
+            merged_value,
             self._element_type,
             self.key_flag,
             self.value_flags,
