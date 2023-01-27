@@ -193,10 +193,10 @@ $ source ./dev/start
 $ make unit
 
 # or alternately with pytest
-$ pytest -m "not integration" conda tests
+$ pytest --cov -m "not integration" conda tests
 
 # or you can use pytest to focus on one specific test
-$ pytest tests/test_create.py -k create_install_update_remove_smoketest
+$ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 ```
 
 **cmd.exe (Windows)**
@@ -208,11 +208,14 @@ $ pytest tests/test_create.py -k create_install_update_remove_smoketest
 :: > docker compose run interactive
 
 :: run conda's unit tests with pytest
-> pytest -m "not integration" conda tests
+> pytest --cov -m "not integration" conda tests
 
 :: or you can use pytest to focus on one specific test
-> pytest tests\test_create.py -k create_install_update_remove_smoketest
+> pytest --cov tests\test_create.py -k create_install_update_remove_smoketest
 ```
+
+If you are not measuring code coverage, `pytest` can be run without the `--cov`
+option. The `docker compose` tests pass `--cov`.
 
 Note: Some integration tests require you build a package with conda-build beforehand.
 This is taking care of if you run `docker compose run integration-tests`, but you need

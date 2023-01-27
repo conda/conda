@@ -270,6 +270,9 @@ class Context(Configuration):
             "", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)),
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
+    channel_settings = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str)))
+    )
     _custom_channels = ParameterLoader(
         MapParameter(PrimitiveParameter("", element_type=str), DEFAULT_CUSTOM_CHANNELS),
         aliases=('custom_channels',),
@@ -1049,6 +1052,7 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
+                "channel_settings",
                 "debug",
                 "dev",
                 "default_python",
@@ -1188,6 +1192,13 @@ class Context(Configuration):
             channels=dals(
                 """
                 The list of conda channels to include for relevant operations.
+                """
+            ),
+            channel_settings=dals(
+                """
+                A list of mappings that allows overriding certain settings for a single channel.
+                Each list item should include at least the "channel" key and the setting you would
+                like to override.
                 """
             ),
             client_ssl_cert=dals(
