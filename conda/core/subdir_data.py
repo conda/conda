@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import pickle
 import re
@@ -23,12 +22,14 @@ from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
+    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     CondaRepoInterface,
     RepodataIsEmpty,
     RepoInterface,
     Response304ContentUnchanged,
+    cache_fn_url,
 )
 
 from .. import CondaError
@@ -36,7 +37,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.compat import ensure_binary, ensure_unicode
+from ..common.compat import ensure_unicode
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url
@@ -44,7 +45,6 @@ from ..core.package_cache_data import PackageCacheData
 from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
@@ -261,6 +261,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _load(self):
         try:
+            # XXX replace all with RepodataCache
             mtime = getmtime(self.cache_path_json)
         except OSError:
             log.debug(
@@ -341,9 +342,9 @@ class SubdirData(metaclass=SubdirDataType):
                 "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                 self.url_w_repodata_fn,
             )
-            touch(self.cache_path_json)
-            # change mtime in state file, or cache will be thrown away next time:
-            self._save_state(mod_etag_headers)
+            RepodataCache(self.cache_path_base, self.repodata_fn).refresh()
+            # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
+            # self._save_state(mod_etag_headers)
             _internal_state = self._read_local_repodata(mod_etag_headers)
             return _internal_state
         else:
@@ -393,29 +394,29 @@ class SubdirData(metaclass=SubdirDataType):
         # pickled data is bad or doesn't exist; load cached json
         log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
 
-        # TODO allow repo plugin to load this data; don't require verbatim JSON on disk?
-        with open(self.cache_path_json) as fh:
-            try:
-                raw_repodata_str = fh.read()
-            except ValueError as e:
-                # ValueError: Expecting object: line 11750 column 6 (char 303397)
-                log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
-                message = dals(
-                    """
-                An error occurred when loading cached repodata.  Executing
-                `conda clean --index-cache` will remove cached repodata files
-                so they can be downloaded again.
+        cache = RepodataCache(self.cache_path_base, self.repodata_fn)
+
+        try:
+            raw_repodata_str = cache.load()
+        except ValueError as e:
+            # XXX exception handling left over from json.loads() on previous line?
+            # OSError (locked) may happen here
+            # ValueError: Expecting object: line 11750 column 6 (char 303397)
+            log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
+            message = dals(
                 """
-                )
-                raise CondaError(message)
-            else:
-                _internal_state = self._process_raw_repodata_str(
-                    raw_repodata_str, self._load_state()
-                )
-                # taken care of by _process_raw_repodata():
-                assert self._internal_state is _internal_state
-                self._pickle_me()
-                return _internal_state
+            An error occurred when loading cached repodata.  Executing
+            `conda clean --index-cache` will remove cached repodata files
+            so they can be downloaded again.
+            """
+            )
+            raise CondaError(message)
+        else:
+            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
+            # taken care of by _process_raw_repodata():
+            assert self._internal_state is _internal_state
+            self._pickle_me()
+            return _internal_state
 
     def _pickle_valid_checks(self, pickled_state, mod, etag):
         """
@@ -633,25 +634,6 @@ def make_feature_record(feature_name):
         build_number=0,
         fn=pkg_name,
     )
-
-
-def cache_fn_url(url, repodata_fn=REPODATA_FN):
-    # url must be right-padded with '/' to not invalidate any existing caches
-    if not url.endswith("/"):
-        url += "/"
-    # add the repodata_fn in for uniqueness, but keep it off for standard stuff.
-    #    It would be more sane to add it for everything, but old programs (Navigator)
-    #    are looking for the cache under keys without this.
-    if repodata_fn != REPODATA_FN:
-        url += repodata_fn
-
-    # TODO: remove try-except when conda only supports Python 3.9+, as
-    # `usedforsecurity=False` was added in 3.9.
-    try:
-        md5 = hashlib.md5(ensure_binary(url))
-    except ValueError:
-        md5 = hashlib.md5(ensure_binary(url), usedforsecurity=False)
-    return f"{md5.hexdigest()[:8]}.json"
 
 
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
