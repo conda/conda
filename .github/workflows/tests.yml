@@ -285,6 +285,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
+        timeout-minutes: 12
         run: |
           ./dev/macos/setup.sh
 
