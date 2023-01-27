@@ -1,0 +1,17 @@
+Metadata-Version: 1.1
+Name: pywin32-ctypes
+Version: 0.1.2
+Summary: UNKNOWN
+Home-page: https://github.com/enthought/pywin32-ctypes
+Author: Enthought Inc
+Author-email: info@enthought.com
+License: BSD
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6

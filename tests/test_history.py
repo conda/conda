@@ -1,27 +1,23 @@
-from os.path import dirname, isfile, join
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+from os.path import dirname
 from pprint import pprint
-from shutil import copy2
 import unittest
+from unittest import mock
 
-import pytest
-
-from conda.exceptions import CondaUpgradeError
-from conda.gateways.disk import mkdir_p
-from .decorators import skip_if_no_mock
-from .helpers import mock, tempdir
-from .test_create import make_temp_prefix
+from conda.testing.cases import BaseTestCase
+from conda.testing.integration import make_temp_prefix
 
 from conda.history import History
-from conda.resolve import MatchSpec
 
 
-class HistoryTestCase(unittest.TestCase):
+class HistoryTestCase(BaseTestCase):
     def test_works_as_context_manager(self):
         h = History("/path/to/prefix")
         self.assertTrue(getattr(h, '__enter__'))
         self.assertTrue(getattr(h, '__exit__'))
 
-    @skip_if_no_mock
     def test_calls_update_on_exit(self):
         h = History("/path/to/prefix")
         with mock.patch.object(h, 'init_log_file') as init_log_file:
@@ -32,7 +28,6 @@ class HistoryTestCase(unittest.TestCase):
                     pass
             self.assertEqual(1, update.call_count)
 
-    @skip_if_no_mock
     def test_returns_history_object_as_context_object(self):
         h = History("/path/to/prefix")
         with mock.patch.object(h, 'init_log_file') as init_log_file:
@@ -41,7 +36,6 @@ class HistoryTestCase(unittest.TestCase):
                 with h as h2:
                     self.assertEqual(h, h2)
 
-    @skip_if_no_mock
     def test_empty_history_check_on_empty_env(self):
         with mock.patch.object(History, 'file_is_empty') as mock_file_is_empty:
             with History(make_temp_prefix()) as h:
@@ -51,10 +45,9 @@ class HistoryTestCase(unittest.TestCase):
         self.assertEqual(mock_file_is_empty.call_count, 1)
         assert not h.file_is_empty()
 
-    @skip_if_no_mock
     def test_parse_on_empty_env(self):
         with mock.patch.object(History, 'parse') as mock_parse:
-            with History(make_temp_prefix()) as h:
+            with History(make_temp_prefix(name=str(self.tmpdir))) as h:
                 self.assertEqual(mock_parse.call_count, 0)
                 self.assertEqual(len(h.parse()), 0)
         self.assertEqual(len(h.parse()), 1)
@@ -185,23 +178,24 @@ class UserRequestsTestCase(unittest.TestCase):
         }
 
 
-def test_minimum_conda_version_error():
-    with tempdir() as prefix:
-        assert not isfile(join(prefix, 'conda-meta', 'history'))
-        mkdir_p(join(prefix, 'conda-meta'))
-        copy2(join(dirname(__file__), 'conda-meta', 'history'),
-              join(prefix, 'conda-meta', 'history'))
+# behavior disabled as part of https://github.com/conda/conda/pull/8160
+# def test_minimum_conda_version_error():
+#     with tempdir() as prefix:
+#         assert not isfile(join(prefix, 'conda-meta', 'history'))
+#         mkdir_p(join(prefix, 'conda-meta'))
+#         copy2(join(dirname(__file__), 'conda-meta', 'history'),
+#               join(prefix, 'conda-meta', 'history'))
 
-        with open(join(prefix, 'conda-meta', 'history'), 'a') as fh:
-            fh.write("==> 2018-07-09 11:18:09 <==\n")
-            fh.write("# cmd: blarg\n")
-            fh.write("# conda version: 42.42.4242\n")
+#         with open(join(prefix, 'conda-meta', 'history'), 'a') as fh:
+#             fh.write("==> 2018-07-09 11:18:09 <==\n")
+#             fh.write("# cmd: blarg\n")
+#             fh.write("# conda version: 42.42.4242\n")
 
-        h = History(prefix)
+#         h = History(prefix)
 
-        with pytest.raises(CondaUpgradeError) as exc:
-            h.get_user_requests()
-        exception_string = repr(exc.value)
-        print(exception_string)
-        assert "minimum conda version: 42.42" in exception_string
-        assert "$ conda install -p" in exception_string
+#         with pytest.raises(CondaUpgradeError) as exc:
+#             h.get_user_requests()
+#         exception_string = repr(exc.value)
+#         print(exception_string)
+#         assert "minimum conda version: 42.42" in exception_string
+#         assert "$ conda install -p" in exception_string

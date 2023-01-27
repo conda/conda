@@ -1,0 +1,85 @@
+{
+  "_mod": "Fri, 20 Oct 2017 17:24:15 GMT",
+  "_url": "https://conda.anaconda.org/conda-test/linux-64",
+  "info": {
+    "arch": "x86_64",
+    "default_numpy_version": "1.7",
+    "default_python_version": "2.7",
+    "platform": "linux",
+    "subdir": "linux-64"
+  },
+  "packages": {
+    "fly-2.5.2-0.tar.bz2": {
+      "arch": "x86_64",
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "5859800e2ab33e0fe7c8d3cf"
+      },
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "has_prefix": false,
+      "license": "Apache",
+      "machine": "x86_64",
+      "md5": "19a69ad967fcf54b41dc3eac8583e681",
+      "name": "fly",
+      "operatingsystem": "linux",
+      "platform": "linux",
+      "requires": [],
+      "size": 5402951,
+      "subdir": "linux-64",
+      "target-triplet": "x86_64-any-linux",
+      "version": "2.5.2"
+    },
+    "spiffy-test-app-1.0-py27h7c48563_0.tar.bz2": {
+      "arch": "x86_64",
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "58a77840f9e4b211570d691f"
+      },
+      "build": "py27h7c48563_0",
+      "build_number": 0,
+      "depends": [
+        "python >=2.7,<2.8"
+      ],
+      "has_prefix": true,
+      "machine": "x86_64",
+      "md5": "328fac69949453affb23a0136e16fea5",
+      "name": "spiffy-test-app",
+      "operatingsystem": "linux",
+      "platform": "linux",
+      "requires": [],
+      "size": 3980,
+      "subdir": "linux-64",
+      "target-triplet": "x86_64-any-linux",
+      "version": "1.0"
+    },
+    "spiffy-test-app-2.0-py27hf99fac9_0.tar.bz2": {
+      "arch": "x86_64",
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "58a77840f9e4b211570d691f"
+      },
+      "build": "py27hf99fac9_0",
+      "build_number": 0,
+      "depends": [
+        "python >=2.7,<2.8"
+      ],
+      "has_prefix": true,
+      "machine": "x86_64",
+      "md5": "87b36a243c2ababf7e9062e3e26e56d1",
+      "name": "spiffy-test-app",
+      "operatingsystem": "linux",
+      "platform": "linux",
+      "preferred_env": "spiffy-test-app",
+      "requires": [],
+      "size": 4150,
+      "subdir": "linux-64",
+      "target-triplet": "x86_64-any-linux",
+      "version": "2.0"
+    }
+  }
+}

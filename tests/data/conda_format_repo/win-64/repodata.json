@@ -1,0 +1,84 @@
+{
+  "info": {
+    "subdir": "win-64"
+  },
+  "packages": {
+    "vc-14.1-h0510ff6_4.tar.bz2": {
+      "build": "h0510ff6_4",
+      "build_number": 4,
+      "depends": [
+        "vs2015_runtime >=14.15.26706"
+      ],
+      "license": "Modified BSD License (3-clause)",
+      "license_family": "BSD",
+      "md5": "9b8a9bf4412a42f943ed0e9a971221ee",
+      "name": "vc",
+      "sha256": "da965b3029878b7a3f2b39b0df6dc1bf84b1499816f18b705ecd12263fca7f47",
+      "size": 5232,
+      "subdir": "win-32",
+      "timestamp": 1535587139401,
+      "track_features": "vc14",
+      "version": "14.1"
+    },
+    "vs2015_runtime-14.15.26706-h3a45250_4.tar.bz2": {
+      "build": "h3a45250_4",
+      "build_number": 4,
+      "depends": [],
+      "md5": "850af9220d561dd550056957c981e62e",
+      "name": "vs2015_runtime",
+      "sha256": "5ace7f71d628e2d8f90039189cf25cb5047164a52ad02cb44f778ee0aa6500ba",
+      "size": 2510985,
+      "subdir": "win-64",
+      "timestamp": 1556552671141,
+      "version": "14.15.26706"
+    },
+    "zlib-1.2.11-h62dcd97_3.tar.bz2": {
+      "build": "h62dcd97_3",
+      "build_number": 3,
+      "depends": [
+        "vc >=14.1,<15.0a0"
+      ],
+      "license": "zlib",
+      "license_family": "Other",
+      "md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+      "name": "zlib",
+      "sha256": "10363f6c023d7fb3d11fdb4cc8de59b5ad5c6affdf960210dd95a252a3fced2b",
+      "size": 131285,
+      "subdir": "win-64",
+      "timestamp": 1542815182812,
+      "version": "1.2.11"
+    },
+    "zlib-1.2.8-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "license": "zlib (http://zlib.net/zlib_license.html)",
+      "md5": "a69dce7d2135e5001038db73750a0e2f",
+      "name": "zlib",
+      "requires": [],
+      "sha256": "ced73bbc08d44813bf0a60b8ea04494e50c482d145b089fa3a7f360b3e570838",
+      "size": 118439,
+      "version": "1.2.8"
+    }
+  },
+  "packages.conda": {
+    "zlib-1.2.11-h62dcd97_3.conda": {
+      "build": "h62dcd97_3",
+      "build_number": 3,
+      "depends": [
+        "vc >=14.1,<15.0a0"
+      ],
+      "license": "zlib",
+      "license_family": "Other",
+      "md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+      "name": "zlib",
+      "sha256": "10363f6c023d7fb3d11fdb4cc8de59b5ad5c6affdf960210dd95a252a3fced2b",
+      "size": 131285,
+      "subdir": "win-64",
+      "timestamp": 1542815182812,
+      "version": "1.2.11"
+    }
+  },
+  "removed": [],
+  "repodata_version": 1
+}

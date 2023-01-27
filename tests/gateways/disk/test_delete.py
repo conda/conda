@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 
 from errno import ENOENT
 import os
@@ -7,9 +8,8 @@ from os.path import isdir, isfile, islink, join, lexists
 
 import pytest
 
-from conda.compat import TemporaryDirectory
 from conda.common.compat import on_win
-from conda.gateways.disk.create import create_link, mkdir_p
+from conda.gateways.disk.create import create_link, mkdir_p, TemporaryDirectory
 from conda.gateways.disk.delete import move_to_trash, rm_rf
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.test import softlink_supported
@@ -83,6 +83,7 @@ def test_remove_link_to_file():
         assert not lexists(dst_link)
 
 
+@pytest.mark.xfail(on_win, reason="Windows permission errors make a mess here")
 def test_remove_link_to_dir():
     with tempdir() as td:
         dst_link = join(td, "test_link")

@@ -1,29 +1,25 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import importlib
 import re
 
+from conda.exceptions import EnvironmentFileNotDownloaded
 from conda.models.version import normalized_version
-from .. import env
-from ..exceptions import EnvironmentFileNotDownloaded
 
-try:
-    from binstar_client import errors
-    from binstar_client.utils import get_server_api
-except ImportError:
-    get_server_api = None
+from .. import env
+
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
 
 
-class BinstarSpec(object):
+class BinstarSpec:
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
     spec.environment # => YAML string
     spec.msg # => Error messages
-    :raises: EnvironmentFileDoesNotExist, EnvironmentFileNotDownloaded
+    :raises: EnvironmentFileNotDownloaded
     """
 
     _environment = None
@@ -31,22 +27,15 @@ class BinstarSpec(object):
     _packagename = None
     _package = None
     _file_data = None
+    _binstar = None
     msg = None
 
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-        if get_server_api is not None:
-            self.binstar = get_server_api()
-        else:
-            self.binstar = None
 
     def can_handle(self):
         result = self._can_handle()
-        if result:
-            print("WARNING: Binstar environments are deprecated and scheduled to be "
-                  "removed in conda 4.5. See conda issue #5843 at "
-                  "https://github.com/conda/conda/pull/5843 for more information.")
         return result
 
     def _can_handle(self):
@@ -58,8 +47,9 @@ class BinstarSpec(object):
         if self.valid_name():
             if self.binstar is None:
                 self.msg = ("Anaconda Client is required to interact with anaconda.org or an "
-                            "Anaconda API. Please run `conda install anaconda-client`.")
+                            "Anaconda API. Please run `conda install anaconda-client -n base`.")
                 return False
+
             return self.package is not None and self.valid_package()
         return False
 
@@ -73,7 +63,7 @@ class BinstarSpec(object):
         elif self.name is None:
             self.msg = "Can't process without a name"
         else:
-            self.msg = "Invalid name, try the format: user/package"
+            self.msg = f"Invalid name {self.name!r}, try the format: user/package"
         return False
 
     def valid_package(self):
@@ -82,6 +72,16 @@ class BinstarSpec(object):
         :return: True or False
         """
         return len(self.file_data) > 0
+
+    @property
+    def binstar(self):
+        if self._binstar is None:
+            try:
+                binstar_utils = importlib.import_module("binstar_client.utils")
+                self._binstar = binstar_utils.get_server_api()
+            except (AttributeError, ModuleNotFoundError):
+                pass
+        return self._binstar
 
     @property
     def file_data(self):
@@ -115,7 +115,7 @@ class BinstarSpec(object):
         if self._package is None:
             try:
                 self._package = self.binstar.package(self.username, self.packagename)
-            except errors.NotFound:
+            except IndexError:
                 self.msg = "{} was not found on anaconda.org.\n"\
                            "You may need to be logged in. Try running:\n"\
                            "    anaconda login".format(self.name)

@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
 from logging import getLogger
 import signal
 import threading
-
-from .compat import iteritems
 
 log = getLogger(__name__)
 
@@ -28,7 +24,7 @@ def get_signal_name(signum):
         'SIGINT'
 
     """
-    return next((k for k, v in iteritems(signal.__dict__)
+    return next((k for k, v in signal.__dict__.items()
                  if v == signum and k.startswith('SIG') and not k.startswith('SIG_')),
                 None)
 

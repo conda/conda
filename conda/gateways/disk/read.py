@@ -1,37 +1,37 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from functools import partial
-from glob import glob
 import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os import listdir
-from os.path import isdir, isfile, join
-import shlex
-import tarfile
+import os
+from os.path import isdir, isfile, join  # noqa
 
-from .link import islink, lexists
-from ..._vendor.auxlib.collection import first
-from ..._vendor.auxlib.ish import dals
+from .link import islink, lexists  # noqa
+from .create import TemporaryDirectory
+from ...auxlib.collection import first
+from ...auxlib.compat import shlex_split_unicode
+from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import ensure_text_type, open
+from ...common.compat import open
+from ...common.pkg_formats.python import (
+    PythonDistribution, PythonEggInfoDistribution, PythonEggLinkDistribution,
+    PythonInstalledDistribution,
+)
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
-from ...models.enums import FileMode, PathType
+from ...models.enums import FileMode, PackageType, PathType
 from ...models.package_info import PackageInfo, PackageMetadata
-from ...models.records import PathData, PathDataV1, PathsData
+from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
-listdir = listdir
-lexists, isdir, isfile = lexists, isdir, isfile
+listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
 
 
 def yield_lines(path):
@@ -51,7 +51,7 @@ def yield_lines(path):
                 if not line or line.startswith('#'):
                     continue
                 yield line
-    except (IOError, OSError) as e:
+    except OSError as e:
         if e.errno == ENOENT:
             pass
         else:
@@ -77,14 +77,6 @@ def compute_sha256sum(file_full_path):
     return _digest_path('sha256', file_full_path)
 
 
-def find_first_existing(*globs):
-    for g in globs:
-        for path in glob(g):
-            if lexists(path):
-                return path
-    return None
-
-
 # ####################################################
 # functions supporting read_package_info()
 # ####################################################
@@ -97,6 +89,7 @@ def read_package_info(record, package_cache_record):
 
     return PackageInfo(
         extracted_package_dir=epd,
+        package_tarball_full_path=package_cache_record.package_tarball_full_path,
         channel=Channel(record.schannel or record.channel),
         repodata_record=record,
         url=package_cache_record.url,
@@ -113,9 +106,12 @@ def read_index_json(extracted_package_directory):
 
 
 def read_index_json_from_tarball(package_tarball_full_path):
-    with tarfile.open(package_tarball_full_path) as tf:
-        contents = tf.extractfile('info/index.json').read()
-        return json.loads(ensure_text_type(contents))
+    import conda_package_handling.api
+    with TemporaryDirectory() as tmpdir:
+        conda_package_handling.api.extract(package_tarball_full_path, tmpdir, 'info')
+        with open(join(tmpdir, 'info', 'index.json')) as f:
+            json_data = json.load(f)
+    return json_data
 
 
 def read_repodata_json(extracted_package_directory):
@@ -142,7 +138,7 @@ def read_package_metadata(extracted_package_directory):
     if not path:
         return None
     else:
-        with open(path, 'r') as f:
+        with open(path) as f:
             data = json.loads(f.read())
             if data.get('package_metadata_version') != 1:
                 raise CondaUpgradeError(dals("""
@@ -212,7 +208,7 @@ def read_has_prefix(path):
 
     def parse_line(line):
         # placeholder, filemode, filepath
-        parts = tuple(x.strip('"\'') for x in shlex.split(line, posix=False))
+        parts = tuple(x.strip('"\'') for x in shlex_split_unicode(line, posix=False))
         if len(parts) == 1:
             return ParseResult(PREFIX_PLACEHOLDER, FileMode.text, parts[0])
         elif len(parts) == 3:
@@ -231,3 +227,65 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
+
+
+def read_python_record(prefix_path, anchor_file, python_version):
+    """
+    Convert a python package defined by an anchor file (Metadata information)
+    into a conda prefix record object.
+    """
+    pydist = PythonDistribution.init(prefix_path, anchor_file, python_version)
+    depends, constrains = pydist.get_conda_dependencies()
+
+    if isinstance(pydist, PythonInstalledDistribution):
+        channel = Channel("pypi")
+        build = "pypi_0"
+        package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+        paths_tups = pydist.get_paths()
+        paths_data = PathsData(paths_version=1, paths=(
+            PathDataV1(
+                _path=path, path_type=PathType.hardlink, sha256=checksum, size_in_bytes=size
+            ) for (path, checksum, size) in paths_tups
+        ))
+        files = tuple(p[0] for p in paths_tups)
+
+    elif isinstance(pydist, PythonEggLinkDistribution):
+        channel = Channel("<develop>")
+        build = "dev_0"
+        package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
+
+        paths_data, files = PathsData(paths_version=1, paths=()), ()
+
+    elif isinstance(pydist, PythonEggInfoDistribution):
+        channel = Channel("pypi")
+        build = "pypi_0"
+        if pydist.is_manageable:
+            package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
+
+            paths_tups = pydist.get_paths()
+            files = tuple(p[0] for p in paths_tups)
+            paths_data = PathsData(paths_version=1, paths=(
+                PathData(_path=path, path_type=PathType.hardlink) for path in files
+            ))
+        else:
+            package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
+            paths_data, files = PathsData(paths_version=1, paths=()), ()
+
+    else:
+        raise NotImplementedError()
+
+    return PrefixRecord(
+        package_type=package_type,
+        name=pydist.conda_name,
+        version=pydist.version,
+        channel=channel,
+        subdir="pypi",
+        fn=pydist.sp_reference,
+        build=build,
+        build_number=0,
+        paths_data=paths_data,
+        files=files,
+        depends=depends,
+        constrains=constrains,
+    )

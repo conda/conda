@@ -1,86 +1,71 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
+from io import StringIO
+import functools
 import json
 from logging import getLogger
 
-from .compat import PY2, odict, ensure_text_type
-from .._vendor.auxlib.decorators import memoize
-from .._vendor.auxlib.entity import EntityEncoder
+from .compat import ensure_text_type
+from ..auxlib.entity import EntityEncoder
+
+try:
+    import ruamel.yaml as yaml
+except ImportError:
+    try:
+        import ruamel_yaml as yaml
+    except ImportError:
+        raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
 
 log = getLogger(__name__)
 
 
-@memoize
-def get_yaml():
-    try:
-        import ruamel_yaml as yaml
-    except ImportError:  # pragma: no cover
-        try:
-            import ruamel.yaml as yaml
-        except ImportError:
-            raise ImportError("No yaml library available.\n"
-                              "To proceed, conda install "
-                              "ruamel_yaml")
-    return yaml
+# FUTURE: Python 3.9+, replace with functools.cache
+@functools.lru_cache(maxsize=None)
+def _yaml_round_trip():
+    parser = yaml.YAML(typ="rt")
+    parser.indent(mapping=2, offset=2, sequence=4)
+    return parser
 
 
-yaml = get_yaml()
+# FUTURE: Python 3.9+, replace with functools.cache
+@functools.lru_cache(maxsize=None)
+def _yaml_safe():
+    parser = yaml.YAML(typ="safe", pure=True)
+    parser.indent(mapping=2, offset=2, sequence=4)
+    parser.default_flow_style = False
+    parser.sort_base_mapping_type_on_output = False
+    return parser
 
 
-def represent_ordereddict(dumper, data):
-    value = []
-
-    for item_key, item_value in data.items():
-        node_key = dumper.represent_data(item_key)
-        node_value = dumper.represent_data(item_value)
-
-        value.append((node_key, node_value))
-
-    return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+def yaml_round_trip_load(string):
+    return _yaml_round_trip().load(string)
 
 
-yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddict)
-
-if PY2:
-    def represent_unicode(self, data):
-        return self.represent_str(data.encode('utf-8'))
-
-
-    yaml.representer.RoundTripRepresenter.add_representer(unicode, represent_unicode)  # NOQA
-
-
-def yaml_load(string):
-    return yaml.load(string, Loader=yaml.RoundTripLoader, version="1.2")
-
-
-def yaml_load_safe(string):
+def yaml_safe_load(string):
     """
     Examples:
-        >>> yaml_load_safe("key: value")
+        >>> yaml_safe_load("key: value")
         {'key': 'value'}
 
     """
-    return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
+    return _yaml_safe().load(string)
 
 
-def yaml_load_standard(string):
-    """Uses the default (unsafe) loader.
-
-    Examples:
-        >>> yaml_load_standard("prefix: !!python/unicode '/Users/darwin/test'")
-        {'prefix': '/Users/darwin/test'}
-    """
-    return yaml.load(string, Loader=yaml.Loader, version="1.2")
+def yaml_round_trip_dump(object, stream=None):
+    """dump object to string or stream"""
+    ostream = stream or StringIO()
+    _yaml_round_trip().dump(object, ostream)
+    if not stream:
+        return ostream.getvalue()
 
 
-def yaml_dump(object):
-    """dump object to string"""
-    return yaml.dump(object, Dumper=yaml.RoundTripDumper,
-                     block_seq_indent=2, default_flow_style=False,
-                     indent=2)
+def yaml_safe_dump(object, stream=None):
+    """dump object to string or stream"""
+    ostream = stream or StringIO()
+    _yaml_safe().dump(object, ostream)
+    if not stream:
+        return ostream.getvalue()
 
 
 def json_load(string):

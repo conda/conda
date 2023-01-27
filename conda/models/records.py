@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -11,69 +10,82 @@
 
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .match_spec import MatchSpec
-from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField, NumberField,
-                                     StringField)
+from ..auxlib.entity import (
+    BooleanField,
+    ComposableField,
+    DictSafeMixin,
+    Entity,
+    EnumField,
+    IntegerField,
+    ListField,
+    NumberField,
+    StringField,
+)
+from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
-from ..common.compat import isiterable, itervalues, string_types, text_type
+from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
 
 
 class LinkTypeField(EnumField):
     def box(self, instance, instance_type, val):
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = val.replace('-', '').replace('_', '').lower()
             if val == 'hard':
                 val = LinkType.hardlink
             elif val == 'soft':
                 val = LinkType.softlink
-        return super(LinkTypeField, self).box(instance, instance_type, val)
+        return super().box(instance, instance_type, val)
 
 
 class NoarchField(EnumField):
     def box(self, instance, instance_type, val):
-        return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
+        return super().box(instance, instance_type, NoarchType.coerce(val))
 
 
 class TimestampField(NumberField):
 
-    # @staticmethod
-    # def _make_seconds(val):
-    #     if val:
-    #         val = int(val)
-    #         if val > 253402300799:  # 9999-12-31
-    #             val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
-    #     return val
+    def __init__(self):
+        super().__init__(default=0, required=False, default_in_dump=False)
+
+    @staticmethod
+    def _make_seconds(val):
+        if val:
+            val = val
+            if val > 253402300799:  # 9999-12-31
+                val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+        return val
 
     @staticmethod
     def _make_milliseconds(val):
         if val:
             if val < 253402300799:  # 9999-12-31
                 val *= 1000  # convert seconds to milliseconds
-            val = int(val)
+            val = val
         return val
 
     def box(self, instance, instance_type, val):
-        return self._make_milliseconds(
-            super(TimestampField, self).box(instance, instance_type, val)
-        )
-
-    def unbox(self, instance, instance_type, val):
-        return self._make_milliseconds(
-            super(TimestampField, self).unbox(instance, instance_type, val)
-        )
+        return self._make_seconds(super().box(instance, instance_type, val))
 
     def dump(self, instance, instance_type, val):
-        return self._make_milliseconds(
-            super(TimestampField, self).dump(instance, instance_type, val)
-        )
+        return int(
+            self._make_milliseconds(super().dump(instance, instance_type, val))
+        )  # whether in seconds or milliseconds, type must be int (not float) for backward compat
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super().__get__(instance, instance_type)
+        except AttributeError:
+            try:
+                return int(dt_to_timestamp(isoparse(instance.date)))
+            except (AttributeError, ValueError):
+                return 0
 
 
 class Link(DictSafeMixin, Entity):
@@ -87,13 +99,13 @@ EMPTY_LINK = Link(source='')
 class _FeaturesField(ListField):
 
     def __init__(self, **kwargs):
-        super(_FeaturesField, self).__init__(string_types, **kwargs)
+        super().__init__(str, **kwargs)
 
     def box(self, instance, instance_type, val):
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = val.replace(' ', ',').split(',')
         val = tuple(f for f in (ff.strip() for ff in val) if f)
-        return super(_FeaturesField, self).box(instance, instance_type, val)
+        return super().box(instance, instance_type, val)
 
     def dump(self, instance, instance_type, val):
         if isiterable(val):
@@ -105,18 +117,18 @@ class _FeaturesField(ListField):
 class ChannelField(ComposableField):
 
     def __init__(self, aliases=()):
-        super(ChannelField, self).__init__(Channel, required=False, aliases=aliases)
+        super().__init__(Channel, required=False, aliases=aliases)
 
     def dump(self, instance, instance_type, val):
         if val:
-            return text_type(val)
+            return str(val)
         else:
             val = instance.channel  # call __get__
-            return text_type(val)
+            return str(val)
 
     def __get__(self, instance, instance_type):
         try:
-            return super(ChannelField, self).__get__(instance, instance_type)
+            return super().__get__(instance, instance_type)
         except AttributeError:
             url = instance.url
             return self.unbox(instance, instance_type, Channel(url))
@@ -125,11 +137,11 @@ class ChannelField(ComposableField):
 class SubdirField(StringField):
 
     def __init__(self):
-        super(SubdirField, self).__init__(required=False)
+        super().__init__(required=False)
 
     def __get__(self, instance, instance_type):
         try:
-            return super(SubdirField, self).__get__(instance, instance_type)
+            return super().__get__(instance, instance_type)
         except AttributeError:
             try:
                 url = instance.url
@@ -145,9 +157,9 @@ class SubdirField(StringField):
             if platform and not arch:
                 return self.unbox(instance, instance_type, 'noarch')
             elif platform:
-                if 'x86' in arch:
-                    arch = '64' if '64' in arch else '32'
-                return self.unbox(instance, instance_type, '%s-%s' % (platform, arch))
+                if "x86" in arch:
+                    arch = "64" if "64" in arch else "32"
+                return self.unbox(instance, instance_type, f"{platform}-{arch}")
             else:
                 return self.unbox(instance, instance_type, context.subdir)
 
@@ -155,11 +167,11 @@ class SubdirField(StringField):
 class FilenameField(StringField):
 
     def __init__(self, aliases=()):
-        super(FilenameField, self).__init__(required=False, aliases=aliases)
+        super().__init__(required=False, aliases=aliases)
 
     def __get__(self, instance, instance_type):
         try:
-            return super(FilenameField, self).__get__(instance, instance_type)
+            return super().__get__(instance, instance_type)
         except AttributeError:
             try:
                 url = instance.url
@@ -167,7 +179,7 @@ class FilenameField(StringField):
                 if not fn:
                     raise AttributeError()
             except AttributeError:
-                fn = '%s-%s-%s' % (instance.name, instance.version, instance.build)
+                fn = f"{instance.name}-{instance.version}-{instance.build}"
             assert fn
             return self.unbox(instance, instance_type, fn)
 
@@ -175,11 +187,12 @@ class FilenameField(StringField):
 class PackageTypeField(EnumField):
 
     def __init__(self):
-        super(PackageTypeField, self).__init__(PackageType, required=False, nullable=True,
-                                               default=None, default_in_dump=False)
+        super().__init__(
+            PackageType, required=False, nullable=True, default=None, default_in_dump=False
+        )
 
     def __get__(self, instance, instance_type):
-        val = super(PackageTypeField, self).__get__(instance, instance_type)
+        val = super().__get__(instance, instance_type)
         if val is None:
             # look in noarch field
             noarch_val = instance.noarch
@@ -211,7 +224,7 @@ class PathDataV1(PathData):
     # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
-    inode_paths = ListField(string_types, required=False, nullable=True)
+    inode_paths = ListField(str, required=False, nullable=True)
 
     sha256_in_prefix = StringField(required=False, nullable=True)
 
@@ -236,7 +249,15 @@ class PackageRecord(DictSafeMixin, Entity):
     fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    legacy_bz2_md5 = StringField(default=None, required=False, nullable=True,
+                                 default_in_dump=False)
+    legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
     url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+
+    metadata_signature_status = StringField(
+        default="", required=False, nullable=True, default_in_dump=False
+    )
 
     @property
     def schannel(self):
@@ -247,18 +268,33 @@ class PackageRecord(DictSafeMixin, Entity):
         try:
             return self.__pkey
         except AttributeError:
-            __pkey = self.__pkey = (self.channel.canonical_name, self.subdir, self.name,
-                                    self.version, self.build_number, self.build)
-            return __pkey
+            __pkey = self.__pkey = [
+                self.channel.canonical_name, self.subdir, self.name,
+                self.version, self.build_number, self.build
+            ]
+            # NOTE: fn is included to distinguish between .conda and .tar.bz2 packages
+            if context.separate_format_cache:
+                __pkey.append(self.fn)
+            self.__pkey = tuple(__pkey)
+            return self.__pkey
 
     def __hash__(self):
-        return hash(self._pkey)
+        try:
+            return self._hash
+        except AttributeError:
+            self._hash = hash(self._pkey)
+        return self._hash
 
     def __eq__(self, other):
         return self._pkey == other._pkey
 
     def dist_str(self):
-        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
+        return "{}{}::{}-{}-{}".format(
+            self.channel.canonical_name,
+            ("/" + self.subdir) if self.subdir else "",
+            self.name,
+            self.version,
+            self.build)
 
     def dist_fields_dump(self):
         return {
@@ -275,8 +311,8 @@ class PackageRecord(DictSafeMixin, Entity):
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
-    depends = ListField(string_types, default=())
-    constrains = ListField(string_types, default=())
+    depends = ListField(str, default=())
+    constrains = ListField(str, default=())
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
@@ -290,16 +326,20 @@ class PackageRecord(DictSafeMixin, Entity):
                                  default_in_dump=False)
     package_type = PackageTypeField()
 
-    timestamp = TimestampField(required=False)
+    @property
+    def is_unmanageable(self):
+        return self.package_type in PackageType.unmanageable_package_types()
+
+    timestamp = TimestampField()
 
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec
         result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        result.update({ms.name: ms for ms in MatchSpec.merge(
-            MatchSpec(spec, optional=True) for spec in self.constrains or ()
-        )})
-        return tuple(itervalues(result))
+        for spec in (self.constrains or ()):
+            ms = MatchSpec(spec)
+            result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
+        return tuple(result.values())
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
@@ -314,8 +354,9 @@ class PackageRecord(DictSafeMixin, Entity):
     size = IntegerField(required=False)
 
     def __str__(self):
-        return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
-                                     self.version, self.build)
+        return "{}/{}::{}=={}={}".format(
+            self.channel.canonical_name, self.subdir, self.name, self.version, self.build
+        )
 
     def to_match_spec(self):
         return MatchSpec(
@@ -324,6 +365,12 @@ class PackageRecord(DictSafeMixin, Entity):
             name=self.name,
             version=self.version,
             build=self.build,
+        )
+
+    def to_simple_match_spec(self):
+        return MatchSpec(
+            name=self.name,
+            version=self.version,
         )
 
     @property
@@ -335,18 +382,19 @@ class PackageRecord(DictSafeMixin, Entity):
         #          the official record_id / uid until it gets namespace.  Even then, we might
         #          make the format different.  Probably something like
         #              channel_name/subdir:namespace:name-version-build_number-build_string
-        return "%s/%s::%s-%s-%s" % (self.channel.canonical_name, self.subdir,
-                                    self.name, self.version, self.build)
+        return "{}/{}::{}-{}-{}".format(
+            self.channel.name, self.subdir, self.name, self.version, self.build
+        )
 
 
 class Md5Field(StringField):
 
     def __init__(self):
-        super(Md5Field, self).__init__(required=False, nullable=True)
+        super().__init__(required=False, nullable=True)
 
     def __get__(self, instance, instance_type):
         try:
-            return super(Md5Field, self).__get__(instance, instance_type)
+            return super().__get__(instance, instance_type)
         except AttributeError as e:
             try:
                 return instance._calculate_md5sum()
@@ -394,7 +442,7 @@ class PrefixRecord(PackageRecord):
     package_tarball_full_path = StringField(required=False)
     extracted_package_dir = StringField(required=False)
 
-    files = ListField(string_types, default=(), required=False)
+    files = ListField(str, default=(), required=False)
     paths_data = ComposableField(PathsData, required=False, nullable=True, default_in_dump=False)
     link = ComposableField(Link, required=False)
     # app = ComposableField(App, required=False)

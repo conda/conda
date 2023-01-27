@@ -1,0 +1,9 @@
+package:
+  name: e_post_link_package
+  version: 1.0.0
+
+build:
+  number: 0
+
+about:
+  summary: Test that post link scripts get run la

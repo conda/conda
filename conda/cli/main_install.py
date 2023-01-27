@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 
 from .install import install
 from ..base.context import context
-from ..gateways.disk.delete import delete_trash
+from ..notices import notices
 
 
+@notices
 def execute(args, parser):
     if context.force:
         print("\n\n"
@@ -19,4 +18,3 @@ def execute(args, parser):
               "\n", file=sys.stderr)
 
     install(args, parser, 'install')
-    delete_trash()

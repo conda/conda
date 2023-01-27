@@ -1,0 +1,108 @@
+{
+  "build": "ha441bb4_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "libedit >=3.1.20170329,<3.2.0a0",
+    "zlib >=1.2.11,<1.3.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/sqlite-3.24.0-ha441bb4_0",
+  "features": "",
+  "files": [
+    "bin/sqlite3",
+    "include/sqlite3.h",
+    "include/sqlite3ext.h",
+    "lib/libsqlite3.0.dylib",
+    "lib/libsqlite3.a",
+    "lib/libsqlite3.dylib",
+    "lib/libsqlite3.la",
+    "lib/pkgconfig/sqlite3.pc"
+  ],
+  "fn": "sqlite-3.24.0-ha441bb4_0.tar.bz2",
+  "license": "Public-Domain (http://www.sqlite.org/copyright.html)",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/sqlite-3.24.0-ha441bb4_0",
+    "type": 1
+  },
+  "md5": "80bc1f00ab113ba8ae34eb9b47a211fa",
+  "name": "sqlite",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/sqlite-3.24.0-ha441bb4_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/sqlite3",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/7b8d6046-347d-4bb4-5c23-0337e349f3d0/volume/sqlite_1529358483053/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "67ee5e39f7e056ad081336ad050bdfc439a3aa1fa5a033dbf49b87b78eb96df1",
+        "sha256_in_prefix": "650a202940cddaafe96ade2aba05daba9e194be427c3adaa2f9c5435d174bdc1",
+        "size_in_bytes": 1685868
+      },
+      {
+        "_path": "include/sqlite3.h",
+        "path_type": "hardlink",
+        "sha256": "89192f125b3615dcad65a8ae091e1b8dd14e6b9e418225ab73646412a981a83c",
+        "sha256_in_prefix": "89192f125b3615dcad65a8ae091e1b8dd14e6b9e418225ab73646412a981a83c",
+        "size_in_bytes": 544160
+      },
+      {
+        "_path": "include/sqlite3ext.h",
+        "path_type": "hardlink",
+        "sha256": "b74c1a8f99b7f8cbb85a0eab134e9ddd60a538bacf412377fee3df95920631dc",
+        "sha256_in_prefix": "b74c1a8f99b7f8cbb85a0eab134e9ddd60a538bacf412377fee3df95920631dc",
+        "size_in_bytes": 32989
+      },
+      {
+        "_path": "lib/libsqlite3.0.dylib",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/7b8d6046-347d-4bb4-5c23-0337e349f3d0/volume/sqlite_1529358483053/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "12861d57211405922d0b4f223bc5be508ad970b4f5d9e4203ce9fe59866a79ad",
+        "sha256_in_prefix": "8e242501f80af63c48e352650e7d16225c3c3a55c38a09cd72a41d56f22964d0",
+        "size_in_bytes": 1492280
+      },
+      {
+        "_path": "lib/libsqlite3.a",
+        "path_type": "hardlink",
+        "sha256": "e4f5c911e564737a12fd8c15bdd91b78a38fe72d64d27570e459a3d0a57940cc",
+        "sha256_in_prefix": "e4f5c911e564737a12fd8c15bdd91b78a38fe72d64d27570e459a3d0a57940cc",
+        "size_in_bytes": 1834056
+      },
+      {
+        "_path": "lib/libsqlite3.dylib",
+        "file_mode": "binary",
+        "path_type": "softlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/7b8d6046-347d-4bb4-5c23-0337e349f3d0/volume/sqlite_1529358483053/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "12861d57211405922d0b4f223bc5be508ad970b4f5d9e4203ce9fe59866a79ad",
+        "size_in_bytes": 1492280
+      },
+      {
+        "_path": "lib/libsqlite3.la",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "f5956761eb88d9a448de27eafb34336aa8e2c1b38235be0f623b27497d117798",
+        "sha256_in_prefix": "092dcd7a4a25bb80a181e5696b21145833959c8d3f47839654b8dff27752e2bf",
+        "size_in_bytes": 992
+      },
+      {
+        "_path": "lib/pkgconfig/sqlite3.pc",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "9d2de817cdd6079e3c2b04d5067a21e9f166646f78f8e601e75e8adc583b4d55",
+        "sha256_in_prefix": "33797a433b8ff4714b5ba924ac2ab966613b2528681f7f1d89087dad9e78599f",
+        "size_in_bytes": 289
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 2353809,
+  "subdir": "osx-64",
+  "timestamp": 1529358781324,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/sqlite-3.24.0-ha441bb4_0.tar.bz2",
+  "version": "3.24.0"
+}

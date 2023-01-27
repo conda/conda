@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 
 from unittest import TestCase
 
-from conda._vendor.auxlib.collection import frozendict
 import pytest
 
-from conda import text_type
-from conda.base.context import context
+from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.cli.common import arg2spec, spec_from_line
+from conda.common.io import env_unmodified
 from conda.common.compat import on_win
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.records import PackageRecord
@@ -22,7 +23,7 @@ blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
 
 
 def m(string):
-    return text_type(MatchSpec(string))
+    return str(MatchSpec(string))
 
 
 def DPkg(s, **kwargs):
@@ -42,7 +43,7 @@ def DPkg(s, **kwargs):
 class MatchSpecTests(TestCase):
 
     def test_match_1(self):
-        for spec, result in [
+        for spec, result in (
             ('numpy 1.7*', True),          ('numpy 1.7.1', True),
             ('numpy 1.7', False),          ('numpy 1.5*', False),
             ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
@@ -58,7 +59,7 @@ class MatchSpecTests(TestCase):
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
             ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
             ('python', False),
-        ]:
+        ):
             m = MatchSpec(spec)
             assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
             assert 'name' in m
@@ -205,6 +206,24 @@ class MatchSpecTests(TestCase):
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy[version=1.10 build=py38_0]") == "numpy==1.10=py38_0"
 
+        assert m("numpy!=1.10") == "numpy!=1.10"
+        assert m("numpy !=1.10") == "numpy!=1.10"
+        assert m("numpy!=1.10 py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy !=1.10 py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy!=1.10=py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy !=1.10=py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy >1.7,!=1.10 py38_0") == "numpy[version='>1.7,!=1.10',build=py38_0]"
+        assert m("numpy!=1.10.*") == "numpy!=1.10.*"
+        assert m("numpy!=1.10,!=1.11") == "numpy[version='!=1.10,!=1.11']"
+        assert m("numpy=1.10.*,!=1.10.2") == "numpy[version='=1.10.*,!=1.10.2']"
+
+        assert m("numpy ~=1.10.1") == "numpy~=1.10.1"
+        assert m("numpy~=1.10.1") == "numpy~=1.10.1"
+        assert m("numpy ~=1.10.1 py38_0") == "numpy[version='~=1.10.1',build=py38_0]"
+
+        assert m("openssl=1.1.1_") == "openssl=1.1.1_"
+        assert m("openssl>=1.1.1_,!=1.1.1c") == "openssl[version='>=1.1.1_,!=1.1.1c']"
+
         # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
         # # can we take an old dist str and reliably parse it with MatchSpec?
         # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
@@ -224,7 +243,7 @@ class MatchSpecTests(TestCase):
         assert m("mkl@") == "*[track_features=mkl]"
 
         # assert m("@mkl") == "*[features=mkl]"
-        assert text_type(MatchSpec(features="mkl")) == "*[features=mkl]"
+        assert str(MatchSpec(features="mkl")) == "*[features=mkl]"
 
     def test_tarball_match_specs(self):
         url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
@@ -276,74 +295,76 @@ class MatchSpecTests(TestCase):
         assert MatchSpec("numpy=1.7.*=py37_2").get_exact_value('build') == 'py37_2'
 
     def test_channel_matching(self):
-        assert ChannelMatch('pkgs/free').match('defaults') is False
-        assert ChannelMatch('defaults').match('pkgs/free') is True
+        with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+            assert ChannelMatch('pkgs/main').match('defaults') is False
+            assert ChannelMatch('defaults').match('pkgs/main') is True
 
-        assert ChannelMatch("https://repo.anaconda.com/pkgs/free").match('defaults') is False
-        assert ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/free") is True
+            assert ChannelMatch("https://repo.anaconda.com/pkgs/main").match('defaults') is False
+            assert ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/main") is True
 
-        assert ChannelMatch("https://conda.anaconda.org/conda-forge").match('conda-forge') is True
-        assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge") is True
+            assert ChannelMatch("https://conda.anaconda.org/conda-forge").match('conda-forge') is True
+            assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge") is True
 
-        assert ChannelMatch("https://repo.anaconda.com/pkgs/free").match('conda-forge') is False
+            assert ChannelMatch("https://repo.anaconda.com/pkgs/main").match('conda-forge') is False
 
-        assert str(MatchSpec("pkgs/free::*")) == "pkgs/free::*"
-        assert str(MatchSpec("defaults::*")) == "defaults::*"
+            assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
+            assert str(MatchSpec("defaults::*")) == "defaults::*"
 
     def test_matchspec_errors(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSpec):
             MatchSpec('blas [optional')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSpec):
             MatchSpec('blas [test=]')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSpec):
             MatchSpec('blas[invalid="1"]')
 
         if not on_win:
             # skipping on Windows for now.  don't feel like dealing with the windows url path crud
-            assert text_type(MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")) == '*[url=file:///some/file/on/disk/package-1.2.3-2.tar.bz2]'
+            assert str(MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")) == '*[url=file:///some/file/on/disk/package-1.2.3-2.tar.bz2]'
 
     def test_dist(self):
-        dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
-        a = MatchSpec(dst)
-        b = MatchSpec(a)
-        c = MatchSpec(dst, optional=True, target='burg')
-        d = MatchSpec(a, build='5')
+        with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+            dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
+            a = MatchSpec(dst)
+            b = MatchSpec(a)
+            c = MatchSpec(dst, optional=True, target='burg')
+            d = MatchSpec(a, build='5')
 
-        assert a == b
-        assert hash(a) == hash(b)
-        assert a is b
+            assert a == b
+            assert hash(a) == hash(b)
+            assert a is b
 
-        assert a != c
-        assert hash(a) != hash(c)
+            assert a != c
+            assert hash(a) != hash(c)
 
-        assert a != d
-        assert hash(a) != hash(d)
+            assert a != d
+            assert hash(a) != hash(d)
 
-        p = MatchSpec(channel='defaults',name='python',version=VersionSpec('3.5*'))
-        assert p.match(Dist(channel='defaults', dist_name='python-3.5.3-1', name='python',
-                            version='3.5.3', build_string='1', build_number=1, base_url=None,
-                            platform=None))
-
-        assert not p.match(Dist(channel='defaults', dist_name='python-3.6.0-0', name='python',
-                                version='3.6.0', build_string='0', build_number=0, base_url=None,
+            p = MatchSpec(channel='defaults',name='python',version=VersionSpec('3.5*'))
+            assert p.match(Dist(channel='defaults', dist_name='python-3.5.3-1', name='python',
+                                version='3.5.3', build_string='1', build_number=1, base_url=None,
                                 platform=None))
 
-        assert p.match(Dist(channel='defaults', dist_name='python-3.5.1-0', name='python',
-                            version='3.5.1', build_string='0', build_number=0, base_url=None,
-                            platform=None))
-        assert p.match(PackageRecord(name='python', version='3.5.1', build='0', build_number=0,
-                                     depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
-                                               'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
-                                     channel=Channel(scheme='https', auth=None,
-                                                      location='repo.anaconda.com', token=None,
-                                                      name='pkgs/free', platform='osx-64',
-                                                      package_filename=None),
-                                     subdir='osx-64', fn='python-3.5.1-0.tar.bz2',
-                                     md5='a813bc0a32691ab3331ac9f37125164c', size=14678857,
-                                     priority=0,
-                                     url='https://repo.anaconda.com/pkgs/free/osx-64/python-3.5.1-0.tar.bz2'))
+            assert not p.match(Dist(channel='defaults', dist_name='python-3.6.0-0', name='python',
+                                    version='3.6.0', build_string='0', build_number=0, base_url=None,
+                                    platform=None))
+
+            assert p.match(Dist(channel='defaults', dist_name='python-3.5.1-0', name='python',
+                                version='3.5.1', build_string='0', build_number=0, base_url=None,
+                                platform=None))
+            assert p.match(PackageRecord(name='python', version='3.5.1', build='0', build_number=0,
+                                         depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
+                                                   'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
+                                         channel=Channel(scheme='https', auth=None,
+                                                          location='repo.anaconda.com', token=None,
+                                                          name='pkgs/main', platform='osx-64',
+                                                          package_filename=None),
+                                         subdir='osx-64', fn='python-3.5.1-0.tar.bz2',
+                                         md5='a813bc0a32691ab3331ac9f37125164c', size=14678857,
+                                         priority=0,
+                                         url='https://repo.anaconda.com/pkgs/main/osx-64/python-3.5.1-0.tar.bz2'))
 
     def test_index_record(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
@@ -370,10 +391,15 @@ class MatchSpecTests(TestCase):
         assert ms.get_exact_value('build') == '0'
         assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
 
+    def test_openssl_match(self):
+        dst = Dist('defaults::openssl-1.0.1_-4')
+        assert MatchSpec('openssl>=1.0.1_').match(DPkg(dst))
+        assert not MatchSpec('openssl>=1.0.1').match(DPkg(dst))
+
     def test_track_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
-        assert text_type(a) == "*[features=test]"
+        assert str(a) == "*[features=test]"
         assert not a.match(DPkg(dst))
         assert not a.match(DPkg(dst, track_features=''))
 
@@ -425,6 +451,9 @@ class MatchSpecTests(TestCase):
         assert MatchSpec("numpy[build_number='<8']").match(record)
         assert not MatchSpec("numpy[build_number='>7']").match(record)
         assert MatchSpec("numpy[build_number='>=7']").match(record)
+
+        assert MatchSpec("numpy ~=1.10").match(record)
+        assert MatchSpec("numpy~=1.10").match(record)
 
     def test_license_match(self):
         record = {
@@ -502,27 +531,39 @@ class TestSpecFromLine(TestCase):
 class SpecStrParsingTests(TestCase):
 
     def test_parse_spec_str_tarball_url(self):
-        url = "https://repo.anaconda.com/pkgs/free/linux-64/_license-1.1-py27_1.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "defaults",
-            "subdir": "linux-64",
-            "name": "_license",
-            "version": "1.1",
-            "build": "py27_1",
-            "fn": "_license-1.1-py27_1.tar.bz2",
-            "url": url,
-        }
+        with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+            url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
+            assert _parse_spec_str(url) == {
+                "channel": "defaults",
+                "subdir": "linux-64",
+                "name": "_license",
+                "version": "1.1",
+                "build": "py27_1",
+                "fn": "_license-1.1-py27_1.tar.bz2",
+                "url": url,
+            }
 
-        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "conda-canary",
-            "subdir": "linux-64",
-            "name": "conda",
-            "version": "4.3.21.post699+1dab973",
-            "build": "py36h4a561cd_0",
-            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
-            "url": url,
-        }
+            url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+            assert _parse_spec_str(url) == {
+                "channel": "conda-canary",
+                "subdir": "linux-64",
+                "name": "conda",
+                "version": "4.3.21.post699+1dab973",
+                "build": "py36h4a561cd_0",
+                "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+                "url": url,
+            }
+
+            url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
+            assert _parse_spec_str(url) == {
+                "channel": "conda-canary",
+                "subdir": "linux-64",
+                "name": "conda",
+                "version": "4.3.21.post699+1dab973",
+                "build": "py36h4a561cd_0",
+                "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda",
+                "url": url,
+            }
 
     # def test_parse_spec_str_legacy_dist_format(self):
     #     assert _parse_spec_str("numpy-1.8-py26_0") == {
@@ -547,6 +588,11 @@ class SpecStrParsingTests(TestCase):
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {
             "_original_spec_str": "numpy",
+            "name": "numpy",
+        }
+        # For whatever reason "numpy=" is allowed and will be interpreted as "numpy"
+        assert _parse_spec_str("numpy=") == {
+            "_original_spec_str": "numpy=",
             "name": "numpy",
         }
         assert _parse_spec_str("defaults::numpy") == {
@@ -614,6 +660,30 @@ class SpecStrParsingTests(TestCase):
             "build": "3",
         }
 
+        # Ensure 'name' within brackets can't override the name specified outside of brackets
+        assert _parse_spec_str(
+            "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]"
+        ) == {
+            "_original_spec_str": "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]",
+            "name": "tensorflow",
+            "version": "*",
+            "md5": "253b922ecdb5a30884875948b8904983",
+        }
+        assert _parse_spec_str("tensorflow[name=pytorch]") == {
+            "_original_spec_str": "tensorflow[name=pytorch]",
+            "name": "tensorflow",
+        }
+
+        assert _parse_spec_str(
+            "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']"
+        ) == {
+            "_original_spec_str": "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']",
+            "channel": "anaconda",
+            "name": "numpy",
+            "version": ">=1.8,<2|1.9",
+            "build": "3",
+        }
+
     def test_star_name(self):
         assert _parse_spec_str("* 2.7.4") == {
             "_original_spec_str": "* 2.7.4",
@@ -648,17 +718,28 @@ class SpecStrParsingTests(TestCase):
             "name": "numpy",
             "version": "1.7*",
         }
+        assert _parse_spec_str("numpy !=1.7") == {
+            "_original_spec_str": "numpy !=1.7",
+            "name": "numpy",
+            "version": "!=1.7",
+        }
 
     def test_parse_hard(self):
+        assert _parse_spec_str("numpy~=1.7.1") == {
+            "_original_spec_str": "numpy~=1.7.1",
+            "name": "numpy",
+            "version": "~=1.7.1",
+        }
         assert _parse_spec_str("numpy>1.8,<2|==1.7") == {
             "_original_spec_str": "numpy>1.8,<2|==1.7",
             "name": "numpy",
             "version": ">1.8,<2|==1.7",
         }
-        assert _parse_spec_str("numpy >1.8,<2|==1.7") == {
-            "_original_spec_str": "numpy >1.8,<2|==1.7",
+        assert _parse_spec_str("numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0") == {
+            "_original_spec_str": "numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0",
             "name": "numpy",
-            "version": ">1.8,<2|==1.7",
+            "version": ">1.8,<2|==1.7,!=1.9,~=1.7.1",
+            "build": "py34_0",
         }
         assert _parse_spec_str("*>1.8,<2|==1.7") == {
             "_original_spec_str": "*>1.8,<2|==1.7",
@@ -696,7 +777,7 @@ class SpecStrParsingTests(TestCase):
         }
 
     def test_parse_errors(self):
-        with pytest.raises(CondaValueError):
+        with pytest.raises(InvalidMatchSpec):
             _parse_spec_str('!xyz 1.3')
 
     def test_parse_channel_subdir(self):
@@ -781,6 +862,37 @@ class SpecStrParsingTests(TestCase):
         #     "build_number": '>=3',
         # }
 
+    def test_dist_str(self):
+        for ext in (CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2):
+            m1 = MatchSpec.from_dist_str(f"anaconda/{context.subdir}::python-3.6.6-0{ext}")
+            m2 = MatchSpec.from_dist_str(f"anaconda/{context.subdir}::python-3.6.6-0")
+            m3 = MatchSpec.from_dist_str(
+                f"https://someurl.org/anaconda/{context.subdir}::python-3.6.6-0{ext}"
+            )
+            m4 = MatchSpec.from_dist_str(f"python-3.6.6-0{ext}")
+            m5 = MatchSpec.from_dist_str(f"https://someurl.org/anaconda::python-3.6.6-0{ext}")
+
+            pref = DPkg(f"anaconda::python-3.6.6-0{ext}")
+            pref.url = f"https://someurl.org/anaconda/{context.subdir}"
+
+            assert m1.match(pref)
+            assert m2.match(pref)
+            assert m3.match(pref)
+            assert m4.match(pref)
+            pref.url = "https://someurl.org/anaconda"
+
+            pref_dict = {
+                "name": "python",
+                "version": "3.6.6",
+                "build": "0",
+                "build_number": 0,
+                "channel": Channel("anaconda"),
+                "fn": f"python-3.6.6-0{ext}",
+                "md5": "012345789",
+                "url": "https://someurl.org/anaconda",
+            }
+            assert m5.match(pref_dict)
+
 
 class MatchSpecMergeTests(TestCase):
 
@@ -827,7 +939,7 @@ class MatchSpecMergeTests(TestCase):
         bounded_spec = next(s for s in merged_specs if s.name == 'bounded')
 
         assert str(exact_spec) == "exact[version='1.2.3,>1.0,<2',build=1]"
-        assert str(bounded_spec) == "bounded[version='>=1.0,<2.0,>=1.5,<=1.8']"
+        assert str(bounded_spec) == "bounded[version='<=1.8,>=1.0,<2.0,>=1.5']"
 
         assert not bounded_spec.match({
             'name': 'bounded',
@@ -920,3 +1032,9 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+    def test_catch_invalid_regexes(self):
+        # Crashing case via fuzzing found via fuzzing. Reported here: https://github.com/conda/conda/issues/11999
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("*/lin(ux-65::f/o>=>1y"))
+        # Inspired by above crasher
+        self.assertRaises(InvalidMatchSpec, MatchSpec, ("^(aaaa$"))

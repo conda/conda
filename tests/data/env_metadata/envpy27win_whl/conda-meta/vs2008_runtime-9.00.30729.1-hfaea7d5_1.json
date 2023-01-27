@@ -1,0 +1,95 @@
+{
+  "build": "hfaea7d5_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-64",
+  "constrains": [],
+  "depends": [],
+  "extracted_package_dir": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vs2008_runtime-9.00.30729.1-hfaea7d5_1",
+  "features": "",
+  "files": [
+    "Library/bin/msvcm90.dll",
+    "Library/bin/msvcp90.dll",
+    "Library/bin/msvcr90.dll",
+    "Library/bin/vcomp90.dll",
+    "msvcm90.dll",
+    "msvcp90.dll",
+    "msvcr90.dll",
+    "vcomp90.dll"
+  ],
+  "fn": "vs2008_runtime-9.00.30729.1-hfaea7d5_1.tar.bz2",
+  "link": {
+    "source": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vs2008_runtime-9.00.30729.1-hfaea7d5_1",
+    "type": 1
+  },
+  "md5": "a821778449a95ff43d21bbb7d2f6794b",
+  "name": "vs2008_runtime",
+  "package_tarball_full_path": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vs2008_runtime-9.00.30729.1-hfaea7d5_1.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/msvcm90.dll",
+        "path_type": "hardlink",
+        "sha256": "61a8940b5203d3e8daf5aa67fd1ffb323b0c7b4e375d766eeebdcab4b015d4be",
+        "sha256_in_prefix": "61a8940b5203d3e8daf5aa67fd1ffb323b0c7b4e375d766eeebdcab4b015d4be",
+        "size_in_bytes": 245760
+      },
+      {
+        "_path": "Library/bin/msvcp90.dll",
+        "path_type": "hardlink",
+        "sha256": "a70f522b931c88bbcbfafbf2fb93a66d4ca006806fde9913aedbd415eaa050c5",
+        "sha256_in_prefix": "a70f522b931c88bbcbfafbf2fb93a66d4ca006806fde9913aedbd415eaa050c5",
+        "size_in_bytes": 853328
+      },
+      {
+        "_path": "Library/bin/msvcr90.dll",
+        "path_type": "hardlink",
+        "sha256": "3835b0c0482f635f614809f376398b1fef12993e414997ae3b8c3b2d54cc105e",
+        "sha256_in_prefix": "3835b0c0482f635f614809f376398b1fef12993e414997ae3b8c3b2d54cc105e",
+        "size_in_bytes": 624464
+      },
+      {
+        "_path": "Library/bin/vcomp90.dll",
+        "path_type": "hardlink",
+        "sha256": "5fa03210bae43c4865f1d9a057cfddf607e0ae8a8d975c92ad66b556486259d5",
+        "sha256_in_prefix": "5fa03210bae43c4865f1d9a057cfddf607e0ae8a8d975c92ad66b556486259d5",
+        "size_in_bytes": 56656
+      },
+      {
+        "_path": "msvcm90.dll",
+        "path_type": "hardlink",
+        "sha256": "61a8940b5203d3e8daf5aa67fd1ffb323b0c7b4e375d766eeebdcab4b015d4be",
+        "sha256_in_prefix": "61a8940b5203d3e8daf5aa67fd1ffb323b0c7b4e375d766eeebdcab4b015d4be",
+        "size_in_bytes": 245760
+      },
+      {
+        "_path": "msvcp90.dll",
+        "path_type": "hardlink",
+        "sha256": "a70f522b931c88bbcbfafbf2fb93a66d4ca006806fde9913aedbd415eaa050c5",
+        "sha256_in_prefix": "a70f522b931c88bbcbfafbf2fb93a66d4ca006806fde9913aedbd415eaa050c5",
+        "size_in_bytes": 853328
+      },
+      {
+        "_path": "msvcr90.dll",
+        "path_type": "hardlink",
+        "sha256": "3835b0c0482f635f614809f376398b1fef12993e414997ae3b8c3b2d54cc105e",
+        "sha256_in_prefix": "3835b0c0482f635f614809f376398b1fef12993e414997ae3b8c3b2d54cc105e",
+        "size_in_bytes": 624464
+      },
+      {
+        "_path": "vcomp90.dll",
+        "path_type": "hardlink",
+        "sha256": "5fa03210bae43c4865f1d9a057cfddf607e0ae8a8d975c92ad66b556486259d5",
+        "sha256_in_prefix": "5fa03210bae43c4865f1d9a057cfddf607e0ae8a8d975c92ad66b556486259d5",
+        "size_in_bytes": 56656
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 1040954,
+  "subdir": "win-64",
+  "timestamp": 1508370895683,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/win-64/vs2008_runtime-9.00.30729.1-hfaea7d5_1.tar.bz2",
+  "version": "9.00.30729.1"
+}

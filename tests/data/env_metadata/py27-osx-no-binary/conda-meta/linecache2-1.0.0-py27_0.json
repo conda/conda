@@ -1,0 +1,170 @@
+{
+  "build": "py27_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "python >=2.7,<2.8.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/linecache2-1.0.0-py27_0",
+  "features": "",
+  "files": [
+    "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/PKG-INFO",
+    "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/SOURCES.txt",
+    "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/dependency_links.txt",
+    "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/not-zip-safe",
+    "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/pbr.json",
+    "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/top_level.txt",
+    "lib/python2.7/site-packages/linecache2/__init__.py",
+    "lib/python2.7/site-packages/linecache2/__init__.pyc",
+    "lib/python2.7/site-packages/linecache2/tests/__init__.py",
+    "lib/python2.7/site-packages/linecache2/tests/__init__.pyc",
+    "lib/python2.7/site-packages/linecache2/tests/inspect_fodder.py",
+    "lib/python2.7/site-packages/linecache2/tests/inspect_fodder.pyc",
+    "lib/python2.7/site-packages/linecache2/tests/inspect_fodder2.py",
+    "lib/python2.7/site-packages/linecache2/tests/mapping_tests.py",
+    "lib/python2.7/site-packages/linecache2/tests/mapping_tests.pyc",
+    "lib/python2.7/site-packages/linecache2/tests/test_linecache.py",
+    "lib/python2.7/site-packages/linecache2/tests/test_linecache.pyc"
+  ],
+  "fn": "linecache2-1.0.0-py27_0.tar.bz2",
+  "license": "PSF 1.0",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/linecache2-1.0.0-py27_0",
+    "type": 1
+  },
+  "md5": "b6269de675a9c6f0837e88cef9bd9eda",
+  "name": "linecache2",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/linecache2-1.0.0-py27_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/PKG-INFO",
+        "path_type": "hardlink",
+        "sha256": "65565d9dee1632b13850c690d165e434c7bf656a8f0e90c9dc2a5ee5deacdd99",
+        "sha256_in_prefix": "65565d9dee1632b13850c690d165e434c7bf656a8f0e90c9dc2a5ee5deacdd99",
+        "size_in_bytes": 1059
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/SOURCES.txt",
+        "path_type": "hardlink",
+        "sha256": "57bc7ab6c4e409fdc6fde7d9bf3c7f1be8e0d5d1cb9a9e74c572cd8661596c23",
+        "sha256_in_prefix": "57bc7ab6c4e409fdc6fde7d9bf3c7f1be8e0d5d1cb9a9e74c572cd8661596c23",
+        "size_in_bytes": 507
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/dependency_links.txt",
+        "path_type": "hardlink",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "sha256_in_prefix": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "size_in_bytes": 1
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/not-zip-safe",
+        "path_type": "hardlink",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "sha256_in_prefix": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "size_in_bytes": 1
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/pbr.json",
+        "path_type": "hardlink",
+        "sha256": "a647bdded211ba66b492ea9fdb49b0f60b3de9e22f059a00166d2d5b536abbb1",
+        "sha256_in_prefix": "a647bdded211ba66b492ea9fdb49b0f60b3de9e22f059a00166d2d5b536abbb1",
+        "size_in_bytes": 46
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2-1.0.0-py2.7.egg-info/top_level.txt",
+        "path_type": "hardlink",
+        "sha256": "a059ca4d54d0257fc1dbed8716863ba7c4e9b06d01cbf2fdd1e639979e4c4c78",
+        "sha256_in_prefix": "a059ca4d54d0257fc1dbed8716863ba7c4e9b06d01cbf2fdd1e639979e4c4c78",
+        "size_in_bytes": 11
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "8e7104d682920f0a93fbf0cc527c751d635e6063d72af937cc5d01d015f8f952",
+        "sha256_in_prefix": "8e7104d682920f0a93fbf0cc527c751d635e6063d72af937cc5d01d015f8f952",
+        "size_in_bytes": 9421
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/__init__.pyc",
+        "path_type": "hardlink",
+        "sha256": "17d1f1ec637b64a15f8df0aac7855ee0324329ae3892f4fbbbce3ce73708e589",
+        "sha256_in_prefix": "17d1f1ec637b64a15f8df0aac7855ee0324329ae3892f4fbbbce3ce73708e589",
+        "size_in_bytes": 8313
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/__init__.pyc",
+        "path_type": "hardlink",
+        "sha256": "cfb071b6882c2092d2cead160ebf95aad5f1d309c74606148a99dc2043d0e969",
+        "sha256_in_prefix": "cfb071b6882c2092d2cead160ebf95aad5f1d309c74606148a99dc2043d0e969",
+        "size_in_bytes": 143
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/inspect_fodder.py",
+        "path_type": "hardlink",
+        "sha256": "f9299d9724f1fe5657bc7372ea4da0c5fa7af5786c07f1a5bef3f9870ec25c84",
+        "sha256_in_prefix": "f9299d9724f1fe5657bc7372ea4da0c5fa7af5786c07f1a5bef3f9870ec25c84",
+        "size_in_bytes": 854
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/inspect_fodder.pyc",
+        "path_type": "hardlink",
+        "sha256": "d8fc0f7d36398c70ce1ab01078e4c19a3d22f9af8e0d8322d1529ee6e064a95c",
+        "sha256_in_prefix": "d8fc0f7d36398c70ce1ab01078e4c19a3d22f9af8e0d8322d1529ee6e064a95c",
+        "size_in_bytes": 2227
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/inspect_fodder2.py",
+        "path_type": "hardlink",
+        "sha256": "e2626254c322855a235730df357b55c9e22d84925c328925bffdd0269f343dd9",
+        "sha256_in_prefix": "e2626254c322855a235730df357b55c9e22d84925c328925bffdd0269f343dd9",
+        "size_in_bytes": 1585
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/mapping_tests.py",
+        "path_type": "hardlink",
+        "sha256": "3872c30aaa3dce8544e40738e25d80ec05eac639b45e1315795c88e928a2e581",
+        "sha256_in_prefix": "3872c30aaa3dce8544e40738e25d80ec05eac639b45e1315795c88e928a2e581",
+        "size_in_bytes": 22016
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/mapping_tests.pyc",
+        "path_type": "hardlink",
+        "sha256": "e92c5fdc3617fec2f15141b412389a4873b1f5bc453d57145ed8ee1d2c24090a",
+        "sha256_in_prefix": "e92c5fdc3617fec2f15141b412389a4873b1f5bc453d57145ed8ee1d2c24090a",
+        "size_in_bytes": 31305
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/test_linecache.py",
+        "path_type": "hardlink",
+        "sha256": "db49717b372190221c7e6d2aa9c2f3e15226722d188eeb0e1c6ce5b252dd08b8",
+        "sha256_in_prefix": "db49717b372190221c7e6d2aa9c2f3e15226722d188eeb0e1c6ce5b252dd08b8",
+        "size_in_bytes": 6508
+      },
+      {
+        "_path": "lib/python2.7/site-packages/linecache2/tests/test_linecache.pyc",
+        "path_type": "hardlink",
+        "sha256": "70667d211c0ae578ee53da914e41a0769dda02e7e89fbe59908e8764d9ae1a44",
+        "sha256_in_prefix": "70667d211c0ae578ee53da914e41a0769dda02e7e89fbe59908e8764d9ae1a44",
+        "size_in_bytes": 6394
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 24671,
+  "subdir": "osx-64",
+  "timestamp": 1530881907153,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/linecache2-1.0.0-py27_0.tar.bz2",
+  "version": "1.0.0"
+}

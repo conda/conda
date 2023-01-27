@@ -1,6 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+__conda_exe() (
+    "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
+)
+
 __conda_hashr() {
     if [ -n "${ZSH_VERSION:+x}" ]; then
         \rehash
@@ -18,42 +22,45 @@ __conda_activate() {
         PS1="$CONDA_PS1_BACKUP"
         \unset CONDA_PS1_BACKUP
     fi
-
-    \local cmd="$1"
-    shift
     \local ask_conda
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" shell.posix "$cmd" "$@")" || \return $?
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix "$@")" || \return
     \eval "$ask_conda"
     __conda_hashr
 }
 
 __conda_reactivate() {
     \local ask_conda
-    ask_conda="$(PS1="$PS1" "$CONDA_EXE" shell.posix reactivate)" || \return $?
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
     \eval "$ask_conda"
     __conda_hashr
 }
 
 conda() {
-    if [ "$#" -lt 1 ]; then
-        "$CONDA_EXE"
-    else
-        \local cmd="$1"
-        shift
-        case "$cmd" in
-            activate|deactivate)
-                __conda_activate "$cmd" "$@"
-                ;;
-            install|update|upgrade|remove|uninstall)
-                "$CONDA_EXE" "$cmd" "$@" && __conda_reactivate
-                ;;
-            *) "$CONDA_EXE" "$cmd" "$@" ;;
-        esac
-    fi
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __conda_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __conda_exe "$@" || \return
+            __conda_reactivate
+            ;;
+        *)
+            __conda_exe "$@"
+            ;;
+    esac
 }
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
+    # In dev-mode CONDA_EXE is python.exe and on Windows
+    # it is in a different relative location to condabin.
+    if [ -n "${_CE_CONDA:+x}" ] && [ -n "${WINDIR+x}" ]; then
+        PATH="$(\dirname "$CONDA_EXE")/condabin${PATH:+":${PATH}"}"
+    else
+        PATH="$(\dirname "$(\dirname "$CONDA_EXE")")/condabin${PATH:+":${PATH}"}"
+    fi
+    \export PATH
 
     # We're not allowing PS1 to be unbound. It must at least be set.
     # However, we're not exporting it, which can cause problems when starting a second shell
@@ -62,4 +69,3 @@ if [ -z "${CONDA_SHLVL+x}" ]; then
         PS1=
     fi
 fi
-

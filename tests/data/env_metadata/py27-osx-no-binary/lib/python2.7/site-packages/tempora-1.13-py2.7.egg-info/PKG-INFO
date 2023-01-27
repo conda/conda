@@ -1,0 +1,40 @@
+Metadata-Version: 2.1
+Name: tempora
+Version: 1.13
+Summary: Objects and routines pertaining to date and time (tempora)
+Home-page: https://github.com/jaraco/tempora
+Author: Jason R. Coombs
+Author-email: jaraco@jaraco.com
+License: UNKNOWN
+Description: .. image:: https://img.shields.io/pypi/v/tempora.svg
+           :target: https://pypi.org/project/tempora
+        
+        .. image:: https://img.shields.io/pypi/pyversions/tempora.svg
+        
+        .. image:: https://img.shields.io/travis/jaraco/tempora/master.svg
+           :target: https://travis-ci.org/jaraco/tempora
+        
+        .. .. image:: https://img.shields.io/appveyor/ci/jaraco/tempora/master.svg
+        ..    :target: https://ci.appveyor.com/project/jaraco/tempora/branch/master
+        
+        .. image:: https://readthedocs.org/projects/tempora/badge/?version=latest
+           :target: https://tempora.readthedocs.io/en/latest/?badge=latest
+        
+        Objects and routines pertaining to date and time (tempora).
+        
+        Modules include:
+        
+         - tempora (top level package module) contains miscellaneous
+           utilities and constants.
+         - timing contains routines for measuring and profiling.
+         - schedule contains an event scheduler.
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=2.7
+Provides-Extra: docs
+Provides-Extra: testing

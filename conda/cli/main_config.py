@@ -1,28 +1,26 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict, Mapping
+from collections.abc import Mapping, Sequence
 import json
+from itertools import chain
+from logging import getLogger
 import os
 from os.path import isfile, join
 import sys
 from textwrap import wrap
 
+from conda.common.iterators import groupby_to_dict as groupby
+
 from .. import CondaError
-from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import PathConflict, SafetyChecks, DepsModifier, UpdateModifier
+from ..auxlib.entity import EntityEncoder
+from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
+                              UpdateModifier, SatSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, itervalues, string_types
+from ..common.compat import isiterable
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
-from ..common.serialize import yaml, yaml_dump, yaml_load
-
-try:
-    from cytoolz.itertoolz import concat, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
+from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
 
 
 def execute(args, parser):
@@ -35,7 +33,7 @@ def execute(args, parser):
 
 def format_dict(d):
     lines = []
-    for k, v in iteritems(d):
+    for k, v in d.items():
         if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
@@ -49,7 +47,7 @@ def format_dict(d):
             else:
                 lines.append("%s: []" % k)
         else:
-            lines.append("%s: %s" % (k, v if v is not None else "None"))
+            lines.append("{}: {}".format(k, v if v is not None else "None"))
     return lines
 
 
@@ -61,11 +59,14 @@ def parameter_description_builder(name):
     element_types = details['element_types']
     default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
 
-    if details['parameter_type'] == 'primitive':
-        builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
+    if details["parameter_type"] == "primitive":
+        builder.append("{} ({})".format(name, ", ".join(sorted({et for et in element_types}))))
     else:
-        builder.append("%s (%s: %s)" % (name, details['parameter_type'],
-                                        ', '.join(sorted(set(et for et in element_types)))))
+        builder.append(
+            "{} ({}: {})".format(
+                name, details["parameter_type"], ", ".join(sorted({et for et in element_types}))
+            )
+        )
 
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
@@ -77,7 +78,7 @@ def parameter_description_builder(name):
     builder.append('')
     builder = ['# ' + line for line in builder]
 
-    builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+    builder.extend(yaml_round_trip_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
     builder = ['# ' + line for line in builder]
     builder.append('')
@@ -87,35 +88,61 @@ def parameter_description_builder(name):
 def describe_all_parameters():
     builder = []
     skip_categories = ('CLI-only', 'Hidden and Undocumented')
-    for category, parameter_names in iteritems(context.category_map):
+    for category, parameter_names in context.category_map.items():
         if category in skip_categories:
             continue
-        builder.append('# ######################################################')
-        builder.append('# ## {:^48} ##'.format(category))
-        builder.append('# ######################################################')
-        builder.append('')
-        builder.extend(concat(parameter_description_builder(name)
-                              for name in parameter_names))
-        builder.append('')
-    return '\n'.join(builder)
+        builder.append("# ######################################################")
+        builder.append(f"# ## {category:^48} ##")
+        builder.append("# ######################################################")
+        builder.append("")
+        builder.extend(
+            chain.from_iterable(parameter_description_builder(name) for name in parameter_names)
+        )
+        builder.append("")
+    return "\n".join(builder)
+
+
+def print_config_item(key, value):
+    stdout_write = getLogger("conda.stdout").info
+    if isinstance(value, (dict,)):
+        for k, v in value.items():
+            print_config_item(key + "." + k, v)
+    elif isinstance(value, (bool, int, str)):
+        stdout_write(" ".join(("--set", key, str(value))))
+    elif isinstance(value, (list, tuple)):
+        # Note, since `conda config --add` prepends, print `--add` commands in
+        # reverse order (using repr), so that entering them in this order will
+        # recreate the same file.
+        numitems = len(value)
+        for q, item in enumerate(reversed(value)):
+            if key == "channels" and q in (0, numitems-1):
+                stdout_write(" ".join((
+                    "--add", key, repr(item),
+                    "  # lowest priority" if q == 0 else "  # highest priority"
+                )))
+            else:
+                stdout_write(" ".join(("--add", key, repr(item))))
 
 
 def execute_config(args, parser):
-
+    stdout_write = getLogger("conda.stdout").info
+    stderr_write = getLogger("conda.stderr").info
     json_warnings = []
     json_get = {}
 
     if args.show_sources:
         if context.json:
-            print(json.dumps(context.collect_all(), sort_keys=True,
-                             indent=2, separators=(',', ': ')))
+            stdout_write(json.dumps(
+                context.collect_all(), sort_keys=True, indent=2, separators=(',', ': '),
+                cls=EntityEncoder
+            ))
         else:
             lines = []
-            for source, reprs in iteritems(context.collect_all()):
+            for source, reprs in context.collect_all().items():
                 lines.append("==> %s <==" % source)
                 lines.extend(format_dict(reprs))
                 lines.append('')
-            print('\n'.join(lines))
+            stdout_write('\n'.join(lines))
         return
 
     if args.show is not None:
@@ -125,30 +152,36 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
 
-        d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
+        d = {key: getattr(context, key) for key in paramater_names}
         if context.json:
-            print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
-                  cls=EntityEncoder))
+            stdout_write(json.dumps(
+                d, sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
+            ))
         else:
             # Add in custom formatting
             if 'custom_channels' in d:
                 d['custom_channels'] = {
-                    channel.name: "%s://%s" % (channel.scheme, channel.location)
-                    for channel in itervalues(d['custom_channels'])
+                    channel.name: f"{channel.scheme}://{channel.location}"
+                    for channel in d['custom_channels'].values()
                 }
             if 'custom_multichannels' in d:
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 d['custom_multichannels'] = {
                     multichannel_name: dashlist(channels, indent=4)
-                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                    for multichannel_name, channels in d['custom_multichannels'].items()
                 }
+            if "channel_settings" in d:
+                ident = " " * 4
+                d["channel_settings"] = tuple(
+                    f"\n{ident}".join(format_dict(mapping)) for mapping in d["channel_settings"]
+                )
 
-            print('\n'.join(format_dict(d)))
+            stdout_write('\n'.join(format_dict(d)))
         context.validate_configuration()
         return
 
@@ -159,29 +192,42 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
             if context.json:
-                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                                 sort_keys=True, indent=2, separators=(',', ': '),
-                                 cls=EntityEncoder))
+                stdout_write(json.dumps(
+                    [context.describe_parameter(name) for name in paramater_names],
+                    sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
+                ))
             else:
                 builder = []
-                builder.extend(concat(parameter_description_builder(name)
-                                      for name in paramater_names))
-                print('\n'.join(builder))
+                builder.extend(
+                    chain.from_iterable(
+                        parameter_description_builder(name) for name in paramater_names
+                    )
+                )
+                stdout_write("\n".join(builder))
         else:
             if context.json:
-                skip_categories = ('CLI-only', 'Hidden and Undocumented')
-                paramater_names = sorted(concat(
-                    parameter_names for category, parameter_names in context.category_map.items()
-                    if category not in skip_categories
-                ))
-                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                                 sort_keys=True, indent=2, separators=(',', ': '),
-                                 cls=EntityEncoder))
+                skip_categories = ("CLI-only", "Hidden and Undocumented")
+                paramater_names = sorted(
+                    chain.from_iterable(
+                        parameter_names
+                        for category, parameter_names in context.category_map.items()
+                        if category not in skip_categories
+                    )
+                )
+                stdout_write(
+                    json.dumps(
+                        [context.describe_parameter(name) for name in paramater_names],
+                        sort_keys=True,
+                        indent=2,
+                        separators=(",", ": "),
+                        cls=EntityEncoder,
+                    )
+                )
             else:
-                print(describe_all_parameters())
+                stdout_write(describe_all_parameters())
         return
 
     if args.validate:
@@ -217,8 +263,13 @@ def execute_config(args, parser):
 
     # read existing condarc
     if os.path.exists(rc_path):
-        with open(rc_path, 'r') as fh:
-            rc_config = yaml_load(fh) or {}
+        with open(rc_path) as fh:
+            # round trip load required because... we need to round trip
+            rc_config = yaml_round_trip_load(fh) or {}
+    elif os.path.exists(sys_rc_path):
+        # In case the considered rc file doesn't exist, fall back to the system rc
+        with open(sys_rc_path) as fh:
+            rc_config = yaml_round_trip_load(fh) or {}
     else:
         rc_config = {}
 
@@ -227,49 +278,48 @@ def execute_config(args, parser):
     primitive_parameters = grouped_paramaters['primitive']
     sequence_parameters = grouped_paramaters['sequence']
     map_parameters = grouped_paramaters['map']
+    all_parameters = primitive_parameters + sequence_parameters + map_parameters
 
     # Get
     if args.get is not None:
         context.validate_all()
         if args.get == []:
             args.get = sorted(rc_config.keys())
+
+        value_not_found = object()
         for key in args.get:
-            if key not in primitive_parameters + sequence_parameters:
-                message = "unknown key %s" % key
+            key_parts = key.split(".")
+
+            if key_parts[0] not in all_parameters:
+                message = "unknown key %s" % key_parts[0]
                 if not context.json:
-                    print(message, file=sys.stderr)
+                    stderr_write(message)
                 else:
                     json_warnings.append(message)
                 continue
-            if key not in rc_config:
-                continue
 
-            if context.json:
-                json_get[key] = rc_config[key]
-                continue
+            remaining_rc_config = rc_config
+            for k in key_parts:
+                if k in remaining_rc_config:
+                    remaining_rc_config = remaining_rc_config[k]
+                else:
+                    remaining_rc_config = value_not_found
+                    break
 
-            if isinstance(rc_config[key], (bool, string_types)):
-                print("--set", key, rc_config[key])
-            else:  # assume the key is a list-type
-                # Note, since conda config --add prepends, these are printed in
-                # the reverse order so that entering them in this order will
-                # recreate the same file
-                items = rc_config.get(key, [])
-                numitems = len(items)
-                for q, item in enumerate(reversed(items)):
-                    # Use repr so that it can be pasted back in to conda config --add
-                    if key == "channels" and q in (0, numitems-1):
-                        print("--add", key, repr(item),
-                              "  # lowest priority" if q == 0 else "  # highest priority")
-                    else:
-                        print("--add", key, repr(item))
+            if remaining_rc_config is value_not_found:
+                pass
+            elif context.json:
+                json_get[key] = remaining_rc_config
+            else:
+                print_config_item(key, remaining_rc_config)
 
     if args.stdin:
         content = timeout(5, sys.stdin.read)
         if not content:
             return
         try:
-            parsed = yaml_load(content)
+            # round trip load required because... we need to round trip
+            parsed = yaml_round_trip_load(content)
             rc_config.update(parsed)
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError
@@ -278,23 +328,32 @@ def execute_config(args, parser):
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
+            key, subkey = key.split('.', 1) if '.' in key else (key, None)
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
-            if key not in sequence_parameters:
+            if key in sequence_parameters:
+                arglist = rc_config.setdefault(key, [])
+            elif key in map_parameters:
+                arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
+            else:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not isinstance(rc_config.get(key, []), list):
+            if not (isinstance(arglist, Sequence) and not
+                    isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
-                raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
-            arglist = rc_config.setdefault(key, [])
+                raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
             if item in arglist:
+                message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
-                message = "Warning: '%s' already in '%s' list, moving to the %s" % (
-                    item, key, "top" if prepend else "bottom")
-                arglist = rc_config[key] = [p for p in arglist if p != item]
+                message = "Warning: '{}' already in '{}' list, moving to the {}".format(
+                    item, message_key, "top" if prepend else "bottom")
+                if subkey is None:
+                    arglist = rc_config[key] = [p for p in arglist if p != item]
+                else:
+                    arglist = rc_config[key][subkey] = [p for p in arglist if p != item]
                 if not context.json:
-                    print(message, file=sys.stderr)
+                    stderr_write(message)
                 else:
                     json_warnings.append(message)
             arglist.insert(0 if prepend else len(arglist), item)
@@ -303,7 +362,7 @@ def execute_config(args, parser):
     for key, item in args.set:
         key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key in primitive_parameters:
-            value = context.typify_parameter(key, item)
+            value = context.typify_parameter(key, item, "--set parameter")
             rc_config[key] = value
         elif key in map_parameters:
             argmap = rc_config.setdefault(key, {})
@@ -340,7 +399,7 @@ def execute_config(args, parser):
 
         # Add representers for enums.
         # Because a representer cannot be added for the base Enum class (it must be added for
-        # each specific Enum subclass), and because of import rules), I don't know of a better
+        # each specific Enum subclass - and because of import rules), I don't know of a better
         # location to do this.
         def enum_representer(dumper, data):
             return dumper.represent_str(str(data))
@@ -349,11 +408,13 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(PathConflict, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
 
         try:
             with open(rc_path, 'w') as rc:
-                rc.write(yaml_dump(rc_config))
-        except (IOError, OSError) as e:
+                rc.write(yaml_round_trip_dump(rc_config))
+        except OSError as e:
             raise CondaError('Cannot write to condarc file at %s\n'
                              'Caused by %r' % (rc_path, e))
 
@@ -364,4 +425,3 @@ def execute_config(args, parser):
             warnings=json_warnings,
             get=json_get
         )
-    return

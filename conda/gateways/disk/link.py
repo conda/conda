@@ -1,42 +1,32 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
 #   which is MIT licensed by Jason R. Coombs.
 # https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import chmod as os_chmod, lstat
+from os import chmod as os_chmod
 from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
+import sys
 
-from ...common.compat import PY2, on_win
+from ...common.compat import on_win
 from ...exceptions import CondaOSError, ParseError
 
-__all__ = ('islink', 'lchmod', 'lexists', 'link', 'readlink', 'stat_nlink', 'symlink')
+__all__ = ("islink", "lchmod", "lexists", "link", "readlink", "symlink")
 
 log = getLogger(__name__)
+PYPY = sys.implementation.name == 'pypy'
 
 
-if PY2:  # pragma: py3 no cover
+try:
+    from os import lchmod as os_lchmod
+    lchmod = os_lchmod
+except ImportError:
     def lchmod(path, mode):
-        try:
-            os_chmod(path, mode, follow_symlinks=False)
-        except (TypeError, NotImplementedError, SystemError):
-            # On systems that don't allow permissions on symbolic links, skip
-            # links entirely.
-            if not islink(path):
-                os_chmod(path, mode)
-else:  # pragma: py2 no cover
-    try:
-        from os import lchmod as os_lchmod
-        lchmod = os_lchmod
-    except ImportError:
-        def lchmod(path, mode):
-            # On systems that don't allow permissions on symbolic links, skip
-            # links entirely.
-            if not islink(path):
-                os_chmod(path, mode)
+        # On systems that don't allow permissions on symbolic links, skip
+        # links entirely.
+        if not islink(path):
+            os_chmod(path, mode)
 
 
 if not on_win:  # pragma: win no cover
@@ -61,20 +51,20 @@ else:  # pragma: unix no cover
     def win_hard_link(src, dst):
         """Equivalent to os.link, using the win32 CreateHardLink call."""
         if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed\n  src: %s\n  dst: %s' % (src, dst))
+            raise CondaOSError(f"win32 hard link failed\n  src: {src}\n  dst: {dst}")
 
     def win_soft_link(src, dst):
         """Equivalent to os.symlink, using the win32 CreateSymbolicLink call."""
         if CreateSymbolicLink is None:
             raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed\n  src: %s\n  dst: %s' % (src, dst))
+            raise CondaOSError(f"win32 soft link failed\n  src: {src}\n  dst: {dst}")
 
     link = win_hard_link
     symlink = win_soft_link
 
 
-if not (on_win and PY2):
+if not (on_win and PYPY):
     from os import readlink
     islink = os_islink
     lexists = os_lexists
@@ -87,8 +77,7 @@ else:  # pragma: no cover
     from os import getcwd
     from os.path import isfile
     import sys
-    from ..._vendor.auxlib._vendor import six
-    builtins = six.moves.builtins
+    import builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""
@@ -136,11 +125,11 @@ else:  # pragma: no cover
     INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
     GetFileAttributes = windll.kernel32.GetFileAttributesW
     GetFileAttributes.restype = wintypes.DWORD
-    GetFileAttributes.argtypes = wintypes.LPWSTR,
+    GetFileAttributes.argtypes = (wintypes.LPWSTR,)
 
     def handle_nonzero_success(result):
         if result == 0:
-            raise WindowsError()
+            raise OSError()
 
     def format_system_message(errno):
         """
@@ -184,11 +173,8 @@ else:  # pragma: no cover
             if value is None:
                 value = windll.kernel32.GetLastError()
             strerror = format_system_message(value)
-            if sys.version_info > (3, 3):
-                args = 0, strerror, None, value
-            else:
-                args = value, strerror
-            super(WindowsError, self).__init__(*args)
+            args = 0, strerror, None, value
+            super().__init__(*args)
 
         @property
         def message(self):
@@ -208,13 +194,13 @@ else:  # pragma: no cover
         return find_data.reserved[0] == IO_REPARSE_TAG_SYMLINK
 
     def _patch_path(path):
-        """
+        r"""
         Paths have a max length of api.MAX_PATH characters (260). If a target path
         is longer than that, it needs to be made absolute and prepended with
         \\?\ in order to work with API calls.
         See http://msdn.microsoft.com/en-us/library/aa365247%28v=vs.85%29.aspx for
         details.
-        """
+        """  # NOQA
         if path.startswith('\\\\?\\'):
             return path
         path = abspath(path)
@@ -231,8 +217,6 @@ else:  # pragma: no cover
         '    3'
         """
         context = inspect.currentframe().f_back.f_locals
-        if sys.version_info < (3, 2):
-            return string.format(**context)
         return string.format_map(context)
 
     def is_symlink(path):
@@ -242,12 +226,12 @@ else:  # pragma: no cover
         path = _patch_path(path)
         try:
             return _is_symlink(next(find_files(path)))
-        except WindowsError as orig_error:
+        except OSError as orig_error:  # NOQA
             tmpl = "Error accessing {path}: {orig_error.message}"
             raise builtins.WindowsError(local_format(tmpl))
 
     def find_files(spec):
-        """
+        r"""
         A pythonic wrapper around the FindFirstFile/FindNextFile win32 api.
         >>> root_files = tuple(find_files(r'c:\*'))
         >>> len(root_files) > 1
@@ -257,12 +241,12 @@ else:  # pragma: no cover
         >>> # This test might fail on a non-standard installation
         >>> 'Windows' in (fd.filename for fd in root_files)
         True
-        """
+        """  # NOQA
         fd = WIN32_FIND_DATA()
         handle = FindFirstFile(spec, byref(fd))
         while True:
             if handle == INVALID_HANDLE_VALUE:
-                raise WindowsError()
+                raise OSError()
             yield fd
             fd = WIN32_FIND_DATA()
             res = FindNextFile(handle, byref(fd))
@@ -357,7 +341,7 @@ else:  # pragma: no cover
                             None)
 
         if handle == INVALID_HANDLE_VALUE:
-            raise WindowsError()
+            raise OSError()
 
         res = reparse_DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 10240)
 
@@ -408,94 +392,3 @@ else:  # pragma: no cover
         handle_nonzero_success(res)
         handle_nonzero_success(returned_bytes)
         return out_buffer[:returned_bytes.value]
-
-
-# work-around for python bug on Windows prior to python 3.2
-# https://bugs.python.org/issue10027
-# Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-class CrossPlatformStLink(object):
-    _st_nlink = None
-
-    def __call__(self, path):
-        return self.st_nlink(path)
-
-    @classmethod
-    def st_nlink(cls, path):
-        if cls._st_nlink is None:
-            cls._initialize()
-        return cls._st_nlink(path)
-
-    @classmethod
-    def _standard_st_nlink(cls, path):
-        return lstat(path).st_nlink
-
-    @classmethod
-    def _windows_st_nlink(cls, path):  # pragma: unix no cover
-        st_nlink = cls._standard_st_nlink(path)
-        if st_nlink != 0:
-            return st_nlink
-        else:
-            # cannot trust python on Windows when st_nlink == 0
-            # get value using windows libraries to be sure of its true value
-            # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-            GENERIC_READ = 0x80000000
-            FILE_SHARE_READ = 0x00000001
-            OPEN_EXISTING = 3
-            hfile = cls.CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None,
-                                   OPEN_EXISTING, 0, None)
-            if hfile is None:
-                from ctypes import WinError
-                raise WinError()
-            info = cls.BY_HANDLE_FILE_INFORMATION()
-            rv = cls.GetFileInformationByHandle(hfile, info)
-            cls.CloseHandle(hfile)
-            if rv == 0:
-                from ctypes import WinError
-                raise WinError()
-            return info.nNumberOfLinks
-
-    @classmethod
-    def _initialize(cls):
-        if not on_win:
-            cls._st_nlink = cls._standard_st_nlink
-        else:  # pragma: unix no cover
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
-            from ctypes import POINTER, Structure, c_void_p, c_wchar_p
-            from ctypes.wintypes import DWORD, HANDLE, BOOL
-
-            cls.CreateFile = windll.kernel32.CreateFileW
-            cls.CreateFile.argtypes = [c_wchar_p, DWORD, DWORD, c_void_p,
-                                       DWORD, DWORD, HANDLE]
-            cls.CreateFile.restype = HANDLE
-
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
-            cls.CloseHandle = windll.kernel32.CloseHandle
-            cls.CloseHandle.argtypes = [HANDLE]
-            cls.CloseHandle.restype = BOOL
-
-            class FILETIME(Structure):
-                _fields_ = [("dwLowDateTime", DWORD),
-                            ("dwHighDateTime", DWORD)]
-
-            class BY_HANDLE_FILE_INFORMATION(Structure):
-                _fields_ = [("dwFileAttributes", DWORD),
-                            ("ftCreationTime", FILETIME),
-                            ("ftLastAccessTime", FILETIME),
-                            ("ftLastWriteTime", FILETIME),
-                            ("dwVolumeSerialNumber", DWORD),
-                            ("nFileSizeHigh", DWORD),
-                            ("nFileSizeLow", DWORD),
-                            ("nNumberOfLinks", DWORD),
-                            ("nFileIndexHigh", DWORD),
-                            ("nFileIndexLow", DWORD)]
-            cls.BY_HANDLE_FILE_INFORMATION = BY_HANDLE_FILE_INFORMATION
-
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
-            cls.GetFileInformationByHandle = windll.kernel32.GetFileInformationByHandle
-            cls.GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
-            cls.GetFileInformationByHandle.restype = BOOL
-
-            cls._st_nlink = cls._windows_st_nlink
-
-
-stat_nlink = CrossPlatformStLink()

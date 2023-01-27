@@ -1,27 +1,23 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 
 from logging import getLogger
 
 import pytest
 
-from conda.cli.main import generate_parser
+from conda.cli.conda_argparse import generate_parser
 from conda.cli.python_api import Commands, run_command
 from conda.exceptions import CommandNotFoundError, EnvironmentLocationNotFound
 
 log = getLogger(__name__)
 
 
-def test_help_through_python_api():
-    stdout, stderr, rc = run_command(Commands.HELP)
-    assert rc == 0
-    assert not stderr
-    assert "\n    install" in stdout
-
+def test_list_through_python_api():
     with pytest.raises(EnvironmentLocationNotFound):
-        run_command(Commands.LIST, "-p not-a-real-path")
+        run_command(Commands.LIST, "-p", "not-a-real-path")
 
-    stdout, stderr, rc = run_command(Commands.LIST, "-p not-a-real-path",
+    stdout, stderr, rc = run_command(Commands.LIST, "-p", "not-a-real-path",
                                          use_exception_handler=True)
     assert rc == 1
     assert "Not a conda environment" in stderr
@@ -35,3 +31,13 @@ def test_parser_basics():
 
     args = p.parse_args(["install", "-vv"])
     assert args.verbosity == 2
+
+
+def test_cli_args_as_list():
+    out, err, rc = run_command(Commands.CONFIG, ["--show", "add_anaconda_token"])
+    assert rc == 0
+
+
+def test_cli_args_as_strings():
+    out, err, rc = run_command(Commands.CONFIG, "--show", "add_anaconda_token")
+    assert rc == 0

@@ -1,0 +1,37 @@
+# conda
+# run as 'conda install --file tests/requirements.txt -c defaults'
+anaconda-client
+beautifulsoup4
+boto3 # NOTE: we also need the `minio` server, installed manually in CI
+chardet
+conda
+conda-build >=3.23.3
+conda-forge::pre-commit
+conda-forge::pytest-split
+conda-forge::pytest-xprocess
+conda-forge::xdoctest
+conda-package-handling
+conda-verify
+filelock
+flake8
+git
+nbformat
+perl
+pexpect
+pip
+pluggy
+pkginfo
+pycosat
+pycrypto
+pyflakes
+pytest
+pytest-cov
+pytest-mock
+pytest-rerunfailures
+pytest-timeout
+pytest-xdist
+requests
+responses
+ruamel.yaml
+toolz
+tqdm

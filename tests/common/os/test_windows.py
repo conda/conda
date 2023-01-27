@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 
 from conda.common.compat import on_win
-from conda.common.os.windows import is_admin_on_windows
+from conda.common._os.windows import is_admin_on_windows
 
 
 def test_is_admin_on_windows():

@@ -1,0 +1,35 @@
+Metadata-Version: 1.1
+Name: BeagleVote
+Version: 1.0a2
+Platform: ObscureUnix
+Platform: RareDOS
+Supported-Platform: RedHat 7.2
+Supported-Platform: i386-win32-2791
+Summary: A module for collecting votes from beagles.
+Description: This module collects votes from beagles
+             in order to determine their electoral wishes.
+             Do *not* try to use this module with basset hounds;
+             it makes them grumpy.
+Keywords: dog puppy voting election
+Home-page: http://www.example.com/~cschultz/bvote/
+Download-URL: http://www.example.com/~cschultz/bvote/download 
+Author: C. Schultz, Universal Features Syndicate,
+        Los Angeles, CA <cschultz@peanuts.example.com>
+Author-email: "C. Schultz" <cschultz@example.com>
+License: This software may only be obtained by sending the
+         author a postcard, and then the user promises not
+         to redistribute it.
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console (Text Based)
+Requires: re
+Requires: sys
+Requires: zlib
+Requires: xml.parsers.expat (>1.0)
+Requires: psycopg
+Provides: xml
+Provides: xml.utils
+Provides: xml.utils.iso8601
+Provides: xml.dom
+Provides: xmltools (1.3)
+Obsoletes: Gorgon
+Obsoletes: BadGorgon

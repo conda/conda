@@ -1,0 +1,12 @@
+[console_scripts]
+keyring = keyring.cli:main
+
+[devpi_client]
+keyring = keyring.devpi_client
+
+[keyring.backends]
+SecretService = keyring.backends.SecretService
+kwallet = keyring.backends.kwallet
+macOS = keyring.backends.OS_X
+windows = keyring.backends.Windows
+

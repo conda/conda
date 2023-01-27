@@ -1,0 +1,12 @@
+tempora>=1.8
+
+[docs]
+sphinx
+jaraco.packaging>=3.2
+rst.linker>=1.9
+
+[testing]
+pytest>=3.5
+pytest-sugar>=0.9.1
+collective.checkdocs
+pytest-flake8

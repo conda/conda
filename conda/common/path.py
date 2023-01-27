@@ -1,31 +1,23 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
-from functools import reduce
+from functools import lru_cache, reduce
+from itertools import accumulate, chain
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from typing import Iterable, Sequence
+from urllib.parse import urlsplit
+import warnings
 
-from .compat import PY2, ensure_fs_path_encoding, on_win, string_types
+from .compat import on_win
 from .. import CondaError
-from .._vendor.auxlib.decorators import memoize
+from ..auxlib import NULL
+from distutils.spawn import find_executable
 
-try:
-    # Python 3
-    from urllib.parse import unquote, urlsplit
-except ImportError:  # pragma: no cover
-    # Python 2
-    from urllib import unquote  # NOQA
-    from urlparse import urlsplit  # NOQA
-
-try:
-    from cytoolz.itertoolz import accumulate, concat, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import accumulate, concat, take
 
 log = getLogger(__name__)
 
@@ -39,6 +31,10 @@ PATH_MATCH_REGEX = (
     r"|//"              # windows UNC path
 )
 
+# any other extension will be mangled by CondaSession.get() as it tries to find
+# channel names from URLs, through strip_pkg_extension()
+KNOWN_EXTENSIONS = (".conda", ".tar.bz2", ".json", ".jlap", ".json.zst")
+
 
 def is_path(value):
     if '://' in value:
@@ -47,8 +43,6 @@ def is_path(value):
 
 
 def expand(path):
-    if on_win and PY2:
-        path = ensure_fs_path_encoding(path)
     return abspath(expanduser(expandvars(path)))
 
 
@@ -65,7 +59,7 @@ def paths_equal(path1, path2):
         return abspath(path1) == abspath(path2)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def url_to_path(url):
     """Convert a file:// URL to a path.
 
@@ -76,7 +70,8 @@ def url_to_path(url):
     if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
-    path = unquote(path)
+    from .url import percent_decode
+    path = percent_decode(path)
     if netloc not in ('', 'localhost', '127.0.0.1', '::1'):
         if not netloc.startswith('\\\\'):
             # The only net location potentially accessible is a Windows UNC path
@@ -93,15 +88,13 @@ def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
-def get_all_directories(files):
-    directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
-    return directories or ()
+def get_all_directories(files: Iterable[str]) -> list[tuple[str]]:
+    return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
 
 
-def get_leaf_directories(files):
-    # type: (List[str]) -> List[str]
-    # give this function a list of files, and it will hand back a list of leaf directories to
-    #   pass to os.makedirs()
+def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
+    # give this function a list of files, and it will hand back a list of leaf
+    # directories to pass to os.makedirs()
     directories = get_all_directories(files)
     if not directories:
         return ()
@@ -122,22 +115,40 @@ def get_leaf_directories(files):
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(child_directories, already_split=False):
+def explode_directories(
+    child_directories: Iterable[tuple[str, ...]],
+    already_split: bool | NULL = NULL,
+) -> set[str]:
     # get all directories including parents
-    # use already_split=True for the result of get_all_directories()
-    maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory)) for directory in child_directories))
+    # child_directories must already be split with os.path.split
+    if already_split is not NULL:
+        warnings.warn(
+            "`conda.common.path.explode_directories`'s `already_split` argument is pending "
+            "deprecation and will be removed in a future release.",
+            PendingDeprecationWarning,
+        )
+    return set(
+        chain.from_iterable(
+            accumulate(directory, join) for directory in child_directories if directory
+        )
+    )
 
 
 def pyc_path(py_path, python_major_minor_version):
+    '''
+    This must not return backslashes on Windows as that will break
+    tests and leads to an eventual need to make url_to_path return
+    backslashes too and that may end up changing files on disc or
+    to the result of comparisons with the contents of them.
+    '''
     pyver_string = python_major_minor_version.replace('.', '')
     if pyver_string.startswith('2'):
         return py_path + 'c'
     else:
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = "__pycache__/%s.cpython-%s%sc" % (basename_root, pyver_string, extension)
-        return "%s/%s" % (directory, pyc_file) if directory else pyc_file
+        pyc_file = "__pycache__" + "/" + f"{basename_root}.cpython-{pyver_string}{extension}c"
+        return "{}{}{}".format(directory, "/", pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):
@@ -174,6 +185,8 @@ def get_python_site_packages_short_path(python_version):
         return 'lib/python%s/site-packages' % py_ver
 
 
+_VERSION_REGEX = re.compile(r"[0-9]+\.[0-9]+")
+
 def get_major_minor_version(string, with_dot=True):
     # returns None if not found, otherwise two digits as a string
     # should work for
@@ -182,11 +195,32 @@ def get_major_minor_version(string, with_dot=True):
     #   - bin/python2.7
     #   - lib/python34/site-packages/
     # the last two are dangers because windows doesn't have version information there
-    assert isinstance(string, string_types)
-    digits = tuple(take(2, (c for c in string if c.isdigit())))
-    if len(digits) == 2:
-        return '.'.join(digits) if with_dot else ''.join(digits)
-    return None
+    assert isinstance(string, str)
+    if string.startswith("lib/python"):
+        pythonstr = string.split("/")[1]
+        start = len("python")
+        if len(pythonstr) < start + 2:
+            return None
+        maj_min = pythonstr[start], pythonstr[start+1:]
+    elif string.startswith("bin/python"):
+        pythonstr = string.split("/")[1]
+        start = len("python")
+        if len(pythonstr) < start + 3:
+            return None
+        assert pythonstr[start+1] == "."
+        maj_min = pythonstr[start], pythonstr[start+2:]
+    else:
+        match = _VERSION_REGEX.match(string)
+        if match:
+            version = match.group(0).split(".")
+            maj_min = version[0], version[1]
+        else:
+            digits = "".join([c for c in string if c.isdigit()])
+            if len(digits) < 2:
+                return None
+            maj_min = digits[0], digits[1:]
+
+    return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
 def get_bin_directory_short_path():
@@ -223,7 +257,7 @@ def ensure_pad(name, pad="_"):
     if not name or name[0] == name[-1] == pad:
         return name
     else:
-        return "%s%s%s" % (pad, name, pad)
+        return f"{pad}{name}{pad}"
 
 
 def is_private_env_name(env_name):
@@ -285,7 +319,11 @@ def win_path_to_unix(path, root_prefix=""):
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
     if not path:
         return ''
-    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
+    bash = which('bash')
+    if bash:
+        cygpath = os.environ.get('CYGPATH', os.path.join(os.path.dirname(bash), 'cygpath.exe'))
+    else:
+        cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
     try:
         path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
     except Exception as e:
@@ -295,6 +333,43 @@ def win_path_to_unix(path, root_prefix=""):
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
             return root_prefix + "/" + found
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[/\\\\]+)*[^:*?"<>|;/\\\\]+?(?![a-zA-Z]:))'  # noqa
         path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
+
+
+def which(executable):
+    return find_executable(executable)
+
+
+def strip_pkg_extension(path: str):
+    """
+    Examples:
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
+        ('/path/_license-1.1-py27_1', '.tar.bz2')
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1.conda")
+        ('/path/_license-1.1-py27_1', '.conda')
+        >>> strip_pkg_extension("/path/_license-1.1-py27_1")
+        ('/path/_license-1.1-py27_1', None)
+    """
+    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
+    #       import rules and to avoid a global lookup.
+    for extension in KNOWN_EXTENSIONS:
+        if path.endswith(extension):
+            return path[: -len(extension)], extension
+    return path, None
+
+
+def is_package_file(path):
+    """
+    Examples:
+        >>> is_package_file("/path/_license-1.1-py27_1.tar.bz2")
+        True
+        >>> is_package_file("/path/_license-1.1-py27_1.conda")
+        True
+        >>> is_package_file("/path/_license-1.1-py27_1")
+        False
+    """
+    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
+    #       import rules and to avoid a global lookup.
+    return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"

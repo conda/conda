@@ -1,293 +1,304 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
 from logging import getLogger
-from os import listdir, lstat, walk
-from os.path import getsize, isdir, join, exists
+from os import lstat, walk
+from os.path import isdir, join
+from typing import Any, Dict, Iterable, List, Tuple
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
 from ..base.context import context
 
 log = getLogger(__name__)
+_EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
-def find_tarballs():
-    from ..core.package_cache_data import PackageCacheData
-    pkgs_dirs = defaultdict(list)
-    totalsize = 0
-    part_ext = CONDA_TARBALL_EXTENSION + '.part'
-    for package_cache in PackageCacheData.writable_caches(context.pkgs_dirs):
-        pkgs_dir = package_cache.pkgs_dir
-        if not isdir(pkgs_dir):
-            continue
-        root, _, filenames = next(walk(pkgs_dir))
-        for fn in filenames:
-            if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
-                pkgs_dirs[pkgs_dir].append(fn)
-                totalsize += getsize(join(root, fn))
+def _get_size(*parts: str, warnings: List[Tuple[str, Exception]]) -> int:
+    path = join(*parts)
+    try:
+        stat = lstat(path)
+    except OSError as e:
+        if warnings is None:
+            raise
+        warnings.append((path, e))
 
-    return pkgs_dirs, totalsize
-
-
-def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
-    from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
-    from ..utils import human_bytes
-
-    if verbose:
-        for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
-
-    if not any(pkgs_dirs[i] for i in pkgs_dirs):
-        if verbose:
-            print("There are no tarballs to remove")
-        return
-
-    if verbose:
-        print("Will remove the following tarballs:")
-        print()
-
-        for pkgs_dir in pkgs_dirs:
-            print(pkgs_dir)
-            print('-'*len(pkgs_dir))
-            fmt = "%-40s %10s"
-            for fn in pkgs_dirs[pkgs_dir]:
-                size = getsize(join(pkgs_dir, fn))
-                print(fmt % (fn, human_bytes(size)))
-            print()
-        print('-' * 51)  # From 40 + 1 + 10 in fmt
-        print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
-
-    if not context.json or not context.always_yes:
-        confirm_yn()
-    if context.json and args.dry_run:
-        return
-
-    for pkgs_dir in pkgs_dirs:
-        for fn in pkgs_dirs[pkgs_dir]:
-            try:
-                if rm_rf(join(pkgs_dir, fn)):
-                    if verbose:
-                        print("Removed %s" % fn)
-                else:
-                    if verbose:
-                        print("WARNING: cannot remove, file permissions: %s" % fn)
-            except (IOError, OSError) as e:
-                if verbose:
-                    print("WARNING: cannot remove, file permissions: %s\n%r" % (fn, e))
-                else:
-                    log.info("%r", e)
-
-
-def find_pkgs():
     # TODO: This doesn't handle packages that have hard links to files within
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
-    warnings = []
+    if stat.st_nlink > 1:
+        raise NotImplementedError
 
-    from ..gateways.disk.link import CrossPlatformStLink
-    cross_platform_st_nlink = CrossPlatformStLink()
-    pkgs_dirs = defaultdict(list)
-    for pkgs_dir in context.pkgs_dirs:
-        if not exists(pkgs_dir):
-            if not context.json:
-                print("WARNING: {0} does not exist".format(pkgs_dir))
-            continue
-        pkgs = [i for i in listdir(pkgs_dir)
-                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
-                    isdir(join(pkgs_dir, i, 'info')))]
-        for pkg in pkgs:
-            breakit = False
-            for root, dir, files in walk(join(pkgs_dir, pkg)):
-                for fn in files:
-                    try:
-                        st_nlink = cross_platform_st_nlink(join(root, fn))
-                    except OSError as e:
-                        warnings.append((fn, e))
-                        continue
-                    if st_nlink > 1:
-                        # print('%s is installed: %s' % (pkg, join(root, fn)))
-                        breakit = True
-                        break
-
-                if breakit:
-                    break
-            else:
-                pkgs_dirs[pkgs_dir].append(pkg)
-
-    totalsize = 0
-    pkgsizes = defaultdict(list)
-    for pkgs_dir in pkgs_dirs:
-        for pkg in pkgs_dirs[pkgs_dir]:
-            pkgsize = 0
-            for root, dir, files in walk(join(pkgs_dir, pkg)):
-                for fn in files:
-                    # We don't have to worry about counting things twice:  by
-                    # definition these files all have a link count of 1!
-                    size = lstat(join(root, fn)).st_size
-                    totalsize += size
-                    pkgsize += size
-            pkgsizes[pkgs_dir].append(pkgsize)
-
-    return pkgs_dirs, warnings, totalsize, pkgsizes
+    return stat.st_size
 
 
-def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
-    from .common import confirm_yn
+def _get_pkgs_dirs(pkg_sizes: Dict[str, Dict[str, int]]) -> Dict[str, Tuple[str]]:
+    return {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()}
+
+
+def _get_total_size(pkg_sizes: Dict[str, Dict[str, int]]) -> int:
+    return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
+
+
+def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
     from ..gateways.disk.delete import rm_rf
-    from ..utils import human_bytes
-    if verbose:
-        for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
-            for fn, exception in warnings:
-                print(exception)
 
-    if not any(pkgs_dirs[i] for i in pkgs_dirs):
+    path = join(*parts)
+    try:
+        if rm_rf(path):
+            if verbose and verbosity:
+                print(f"Removed {path}")
+        elif verbose:
+            print(f"WARNING: cannot remove, file permissions: {path}")
+    except OSError as e:
         if verbose:
-            print("There are no unused packages to remove")
-        return
+            print(f"WARNING: cannot remove, file permissions: {path}\n{e!r}")
+        else:
+            log.info("%r", e)
 
-    if verbose:
-        print("Will remove the following packages:")
-        for pkgs_dir in pkgs_dirs:
-            print(pkgs_dir)
-            print('-' * len(pkgs_dir))
-            print()
-            fmt = "%-40s %10s"
-            for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
-                print(fmt % (pkg, human_bytes(pkgsize)))
-            print()
-        print('-' * 51)  # 40 + 1 + 10 in fmt
-        print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+def find_tarballs() -> Dict[str, Any]:
+    warnings: List[Tuple[str, Exception]] = []
+    pkg_sizes: Dict[str, Dict[str, int]] = {}
+    for pkgs_dir in find_pkgs_dirs():
+        # tarballs are files in pkgs_dir
+        _, _, tars = next(walk(pkgs_dir))
+        for tar in tars:
+            # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
+            if not tar.endswith(_EXTS):
+                continue
 
-    if not context.json or not context.always_yes:
-        confirm_yn()
-    if context.json and args.dry_run:
-        return
-
-    for pkgs_dir in pkgs_dirs:
-        for pkg in pkgs_dirs[pkgs_dir]:
-            if verbose:
-                print("removing %s" % pkg)
-            rm_rf(join(pkgs_dir, pkg))
-
-
-def rm_index_cache():
-    from ..gateways.disk.delete import rm_rf
-    from ..core.package_cache_data import PackageCacheData
-    for package_cache in PackageCacheData.writable_caches():
-        rm_rf(join(package_cache.pkgs_dir, 'cache'))
-
-
-def find_source_cache():
-    cache_dirs = {
-        'source cache': context.src_cache,
-        'git cache': context.git_cache,
-        'hg cache': context.hg_cache,
-        'svn cache': context.svn_cache,
-    }
-
-    sizes = {}
-    totalsize = 0
-    for cache_type, cache_dir in cache_dirs.items():
-        dirsize = 0
-        for root, d, files in walk(cache_dir):
-            for fn in files:
-                size = lstat(join(root, fn)).st_size
-                totalsize += size
-                dirsize += size
-        sizes[cache_type] = dirsize
+            # get size
+            try:
+                size = _get_size(pkgs_dir, tar, warnings=warnings)
+            except NotImplementedError:
+                pass
+            else:
+                pkg_sizes.setdefault(pkgs_dir, {})[tar] = size
 
     return {
-        'warnings': [],
-        'cache_dirs': cache_dirs,
-        'cache_sizes': sizes,
-        'total_size': totalsize,
+        "warnings": warnings,
+        "pkg_sizes": pkg_sizes,
+        "pkgs_dirs": _get_pkgs_dirs(pkg_sizes),
+        "total_size": _get_total_size(pkg_sizes),
     }
 
 
-def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
+def find_pkgs() -> Dict[str, Any]:
+    warnings: List[Tuple[str, Exception]] = []
+    pkg_sizes: Dict[str, Dict[str, int]] = {}
+    for pkgs_dir in find_pkgs_dirs():
+        # pkgs are directories in pkgs_dir
+        _, pkgs, _ = next(walk(pkgs_dir))
+        for pkg in pkgs:
+            # pkgs also have an info directory
+            if not isdir(join(pkgs_dir, pkg, "info")):
+                continue
+
+            # get size
+            try:
+                size = sum(
+                    _get_size(root, file, warnings=warnings)
+                    for root, _, files in walk(join(pkgs_dir, pkg))
+                    for file in files
+                )
+            except NotImplementedError:
+                pass
+            else:
+                pkg_sizes.setdefault(pkgs_dir, {})[pkg] = size
+
+    return {
+        "warnings": warnings,
+        "pkg_sizes": pkg_sizes,
+        "pkgs_dirs": _get_pkgs_dirs(pkg_sizes),
+        "total_size": _get_total_size(pkg_sizes),
+    }
+
+
+def rm_pkgs(
+    pkgs_dirs: Dict[str, Tuple[str]],
+    warnings: List[Tuple[str, Exception]],
+    total_size: int,
+    pkg_sizes: Dict[str, Dict[str, int]],
+    *,
+    verbose: bool,
+    verbosity: bool,
+    dry_run: bool,
+    name: str,
+) -> None:
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
 
-    verbose = not (context.json or context.quiet)
-    if warnings:
-        if verbose:  # lgtm [py/uninitialized-local-variable]
-            for warning in warnings:
-                print(warning, file=sys.stderr)
+    if verbose and warnings:
+        for fn, exception in warnings:
+            print(exception)
+
+    if not any(pkgs for pkgs in pkg_sizes.values()):
+        if verbose:
+            print(f"There are no unused {name} to remove.")
         return
 
-    if verbose:  # lgtm [py/uninitialized-local-variable]
-        for cache_type in cache_dirs:
-            print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-            print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
+    if verbose:
+        if verbosity:
+            print(f"Will remove the following {name}:")
+            for pkgs_dir, pkgs in pkg_sizes.items():
+                print(f"  {pkgs_dir}")
+                print(f"  {'-' * len(pkgs_dir)}")
+                for pkg, size in pkgs.items():
+                    print(f"  - {pkg:<40} {human_bytes(size):>10}")
+                print()
+            print("-" * 17)
+            print(f"Total: {human_bytes(total_size):>10}")
             print()
+        else:
+            count = sum(len(pkgs) for pkgs in pkg_sizes.values())
+            print(f"Will remove {count} ({human_bytes(total_size)}) {name}.")
 
-        print("%-40s %10s" % ("Total:", human_bytes(total_size)))
-
+    if dry_run:
+        return
     if not context.json or not context.always_yes:
         confirm_yn()
-    if context.json and args.dry_run:
+
+    for pkgs_dir, pkgs in pkg_sizes.items():
+        for pkg in pkgs:
+            _rm_rf(pkgs_dir, pkg, verbose=verbose, verbosity=verbosity)
+
+
+def find_index_cache() -> List[str]:
+    files = []
+    for pkgs_dir in find_pkgs_dirs():
+        # caches are directories in pkgs_dir
+        path = join(pkgs_dir, "cache")
+        if isdir(path):
+            files.append(path)
+    return files
+
+
+def find_pkgs_dirs() -> List[str]:
+    from ..core.package_cache_data import PackageCacheData
+
+    return [pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)]
+
+
+def find_tempfiles(paths: Iterable[str]) -> List[str]:
+    tempfiles = []
+    for path in sorted(set(paths or [sys.prefix])):
+        # tempfiles are files in path
+        for root, _, files in walk(path):
+            for file in files:
+                # tempfiles also end in .c~ or .trash
+                if not file.endswith(CONDA_TEMP_EXTENSIONS):
+                    continue
+
+                tempfiles.append(join(root, file))
+
+    return tempfiles
+
+
+def find_logfiles() -> List[str]:
+    files = []
+    for pkgs_dir in find_pkgs_dirs():
+        # .logs are directories in pkgs_dir
+        path = join(pkgs_dir, CONDA_LOGS_DIR)
+        if not isdir(path):
+            continue
+
+        # logfiles are files in .logs
+        _, _, logs = next(walk(path), [None, None, []])
+        files.extend([join(path, log) for log in logs])
+
+    return files
+
+
+def rm_items(
+    items: List[str],
+    *,
+    verbose: bool,
+    verbosity: bool,
+    dry_run: bool,
+    name: str,
+) -> None:
+    from .common import confirm_yn
+
+    if not items:
+        if verbose:
+            print(f"There are no {name} to remove.")
         return
 
-    for dir in cache_dirs.values():
-        if verbose:
-            print("Removing %s" % dir)
-        rm_rf(dir)
+    if verbose:
+        if verbosity:
+            print(f"Will remove the following {name}:")
+            for item in items:
+                print(f"  - {item}")
+            print()
+        else:
+            print(f"Will remove {len(items)} {name}.")
+
+    if dry_run:
+        return
+    if not context.json or not context.always_yes:
+        confirm_yn()
+
+    for item in items:
+        _rm_rf(item, verbose=verbose, verbosity=verbosity)
+
+
+def _execute(args, parser):
+    json_result = {"success": True}
+    kwargs = {
+        "verbose": not (context.json or context.quiet),
+        "verbosity": args.verbosity,
+        "dry_run": args.dry_run,
+    }
+
+    if args.force_pkgs_dirs:
+        json_result["pkgs_dirs"] = pkgs_dirs = find_pkgs_dirs()
+        rm_items(pkgs_dirs, **kwargs, name="package cache(s)")
+
+        # we return here because all other clean operations target individual parts of
+        # package caches
+        return json_result
+
+    if not (
+        args.all
+        or args.tarballs
+        or args.index_cache
+        or args.packages
+        or args.tempfiles
+        or args.logfiles
+    ):
+        from ..exceptions import ArgumentError
+
+        raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
+
+    if args.tarballs or args.all:
+        json_result["tarballs"] = tars = find_tarballs()
+        rm_pkgs(**tars, **kwargs, name="tarball(s)")
+
+    if args.index_cache or args.all:
+        cache = find_index_cache()
+        json_result["index_cache"] = {"files": cache}
+        rm_items(cache, **kwargs, name="index cache(s)")
+
+    if args.packages or args.all:
+        json_result["packages"] = pkgs = find_pkgs()
+        rm_pkgs(**pkgs, **kwargs, name="package(s)")
+
+    if args.tempfiles or args.all:
+        json_result["tempfiles"] = tmps = find_tempfiles(args.tempfiles)
+        rm_items(tmps, **kwargs, name="tempfile(s)")
+
+    if args.logfiles or args.all:
+        json_result["logfiles"] = logs = find_logfiles()
+        rm_items(logs, **kwargs, name="logfile(s)")
+
+    return json_result
 
 
 def execute(args, parser):
     from .common import stdout_json
-    json_result = {
-        'success': True
-    }
-
-    if args.tarballs or args.all:
-        pkgs_dirs, totalsize = find_tarballs()
-        first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
-        json_result['tarballs'] = {
-            'pkgs_dir': first,  # Backwards compabitility
-            'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first],  # Backwards compatibility
-            'total_size': totalsize
-        }
-        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
-
-    if args.index_cache or args.all:
-        json_result['index_cache'] = {
-            'files': [join(context.pkgs_dirs[0], 'cache')]
-        }
-        rm_index_cache()
-
-    if args.packages or args.all:
-        pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
-        first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
-        json_result['packages'] = {
-            'pkgs_dir': first,  # Backwards compatibility
-            'pkgs_dirs': dict(pkgs_dirs),
-            'files': pkgs_dirs[first],  # Backwards compatibility
-            'total_size': totalsize,
-            'warnings': warnings,
-            'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
-        }
-        rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
-                verbose=not (context.json or context.quiet))
-
-    if args.source_cache or args.all:
-        json_result['source_cache'] = find_source_cache()
-        rm_source_cache(args, **json_result['source_cache'])
-
-    if not any((args.lock, args.tarballs, args.index_cache, args.packages,
-                args.source_cache, args.all)):
-        from ..exceptions import ArgumentError
-        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
-                            "--source-cache, --all} required")
-
+    json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)
+    if args.dry_run:
+        from ..exceptions import DryRunExit
+
+        raise DryRunExit

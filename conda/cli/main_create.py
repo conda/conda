@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os.path import isdir
@@ -11,16 +9,22 @@ from .install import install
 from ..base.context import context
 from ..common.path import paths_equal
 from ..exceptions import CondaValueError
-from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import is_conda_environment
+from ..notices import notices
 
 log = getLogger(__name__)
 
 
+@notices
 def execute(args, parser):
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
+        if context.dry_run:
+            # Taking the "easy" way out, rather than trying to fake removing
+            # the existing environment before creating a new one.
+            raise CondaValueError("Cannot `create --dry-run` with an existing conda environment")
         confirm_yn("WARNING: A conda environment already exists at '%s'\n"
                    "Remove existing environment" % context.target_prefix,
                    default='no',
@@ -35,4 +39,3 @@ def execute(args, parser):
                    dry_run=False)
 
     install(args, parser, 'create')
-    delete_trash()

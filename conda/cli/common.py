@@ -1,25 +1,26 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import basename, dirname
+from logging import getLogger
+from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
+from warnings import warn
 
-from .._vendor.auxlib.ish import dals
+from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import context
+from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
+from ..exceptions import EnvironmentLocationNotFound, DirectoryNotACondaEnvironmentError
 
 
-def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
+def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
-    if context.dry_run:
+    if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
 
@@ -29,11 +30,9 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
             options.append('[%s]' % option[0])
         else:
             options.append(option[0])
-    message = "%s (%s)? " % (message, '/'.join(options))
-    choices = {alt: choice
-               for choice in choices
-               for alt in [choice, choice[0]]}
-    choices[''] = default
+    message = "{} ({})? ".format(message, "/".join(options))
+    choices = {alt: choice for choice in choices for alt in [choice, choice[0]]}
+    choices[""] = default
     while True:
         # raw_input has a bug and prints to stderr, not desirable
         sys.stdout.write(message)
@@ -48,15 +47,14 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
 
 
 def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
-    dry_run = context.dry_run if dry_run is NULL else dry_run
-    if dry_run:
+    if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'), default=default)
-    except KeyboardInterrupt as e:  # pragma: no cover
+        choice = confirm(message=message, choices=("yes", "no"), default=default, dry_run=dry_run)
+    except KeyboardInterrupt:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
     if choice == 'no':
@@ -66,10 +64,26 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
 
 
 def ensure_name_or_prefix(args, command):
+    warn(
+        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
+        PendingDeprecationWarning,
+    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
+
+def is_active_prefix(prefix):
+    """
+    Determines whether the args we pass in are pointing to the active prefix.
+    Can be used a validation step to make sure operations are not being
+    performed on the active prefix.
+    """
+    return (
+        paths_equal(prefix, context.active_prefix)
+        # normcasing our prefix check for Windows, for case insensitivity
+        or normcase(prefix) == normcase(env_name(context.active_prefix))
+    )
 
 
 def arg2spec(arg, json=False, update=False):
@@ -82,9 +96,14 @@ def arg2spec(arg, json=False, update=False):
     name = spec.name
     if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
-        raise CondaValueError("""version specifications not allowed with 'update'; use
-    conda update  %s%s  or
-    conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg))
+
+        raise CondaValueError(
+            """version specifications not allowed with 'update'; use
+    conda update  {}{}  or
+    conda install {}""".format(
+                name, " " * (len(arg) - len(name)), arg
+            )
+        )
 
     return str(spec)
 
@@ -93,14 +112,18 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
-                      r'\s*'  # ignore spaces
-                      r'('
-                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
-                      r'|'
-                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
-                      r')?$',
-                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
+spec_pat = re.compile(
+    r"""
+    (?P<name>[^=<>!\s]+)                # package name
+    \s*                                 # ignore spaces
+    (
+        (?P<cc>=[^=]+(=[^=]+)?)         # conda constraint
+        |
+        (?P<pc>(?:[=!]=|[><]=?|~=).+)   # new pip-style constraints
+    )?$
+    """,
+    re.VERBOSE,
+)
 
 
 def strip_comment(line):
@@ -115,7 +138,16 @@ def spec_from_line(line):
     if cc:
         return name + cc.replace('=', ' ')
     elif pc:
-        return name + ' ' + pc.replace(' ', '')
+        if pc.startswith("~= "):
+            assert (
+                pc.count("~=") == 1
+            ), f"Overly complex 'Compatible release' spec not handled {line}"
+            assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
+            ver = pc.replace("~= ", "")
+            ver2 = ".".join(ver.split(".")[:-1]) + ".*"
+            return name + " >=" + ver + ",==" + ver2
+        else:
+            return name + ' ' + pc.replace(' ', '')
     else:
         return name
 
@@ -142,7 +174,7 @@ def specs_from_url(url, json=False):
                     raise CondaValueError("could not parse '%s' in: %s" %
                                           (line, url))
                 specs.append(spec)
-        except IOError as e:
+        except OSError as e:
             from ..exceptions import CondaFileIOError
             raise CondaFileIOError(path, e)
     return specs
@@ -161,7 +193,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    print(json_dump(d))
+    getLogger("conda.stdout").info(json_dump(d))
 
 
 def stdout_json_success(success=True, **kwargs):
@@ -185,7 +217,7 @@ def print_envs_list(known_conda_prefixes, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == context.default_prefix else ' '
+        active = '*' if prefix == context.active_prefix else ' '
         if prefix == context.root_prefix:
             name = ROOT_ENV_NAME
         elif any(paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs):
@@ -193,7 +225,7 @@ def print_envs_list(known_conda_prefixes, output=True):
         else:
             name = ''
         if output:
-            print(fmt % (name, default, prefix))
+            print(fmt % (name, active, prefix))
 
     for prefix in known_conda_prefixes:
         disp_env(prefix)
@@ -203,10 +235,26 @@ def print_envs_list(known_conda_prefixes, output=True):
 
 
 def check_non_admin():
-    from ..common.os import is_admin
+    from ..common._os import is_admin
     if not context.non_admin_enabled and not is_admin():
         from ..exceptions import OperationNotAllowed
         raise OperationNotAllowed(dals("""
             The create, install, update, and remove operations have been disabled
             on your system for non-privileged users.
         """))
+
+def validate_prefix(prefix):
+    """Verifies the prefix is a valid conda environment.
+
+    :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
+    :raises DirectoryNotACondaEnvironmentError: Directory is not a conda environment.
+    :returns: Valid prefix.
+    :rtype: str
+    """
+    if isdir(prefix):
+        if not isfile(join(prefix, 'conda-meta', 'history')):
+            raise DirectoryNotACondaEnvironmentError(prefix)
+    else:
+        raise EnvironmentLocationNotFound(prefix)
+
+    return prefix

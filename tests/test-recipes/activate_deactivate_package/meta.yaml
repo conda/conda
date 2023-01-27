@@ -1,0 +1,16 @@
+package:
+  name: activate_deactivate_package
+  version: 1.0.0
+
+source:
+  path: ./src
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - cp -r etc ${PREFIX}            #[not win]
+    - (robocopy etc %PREFIX%\etc /E /v /fp) ^& IF %ERRORLEVEL% LSS 8 SET ERRORLEVEL = 0  #[win] https://superuser.com/a/346112
+
+about:
+  summary: Test activate and deactivate scripts effecting environment variables

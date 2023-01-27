@@ -18,7 +18,7 @@ set -uo pipefail
 
 SRC_DIR="$PWD"
 
-[ -f "$SRC_DIR/conda/__main__.py" ] && [ -f "$SRC_DIR/conftest.py" ] || (echo "Current working directory must be conda project root." && exit 1)
+[ -f "$SRC_DIR/conda/__main__.py" ] && [ -f "$SRC_DIR/setup.py" ] || (echo "Current working directory must be conda project root." && exit 1)
 which docker > /dev/null || (echo "docker required but not found" && exit 1)
 docker --version > /dev/null || (echo "Cannot execute docker. Apparently needs sudo?" && exit 1)
 

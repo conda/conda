@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
 import json
@@ -11,13 +9,12 @@ import re
 import tarfile
 import tempfile
 
-from .._vendor.auxlib.entity import EntityEncoder
+from ..auxlib.entity import EntityEncoder
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import PY3
 from ..common.path import paths_equal
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.delete import rmtree
-from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
 
 
@@ -155,8 +152,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
     for f in files:
-        assert not (f.startswith('/') or f.endswith('/') or
-                    '\\' in f or f == ''), f
+        assert not (f.startswith('/') or f.endswith('/') or '\\' in f or f == ''), f
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
@@ -166,7 +162,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         h.update(b'\x00')
         if islink(path):
             link = os.readlink(path)
-            if PY3 and isinstance(link, str):
+            if isinstance(link, str):
                 h.update(bytes(link, 'utf-8'))
             else:
                 h.update(link)
@@ -204,7 +200,7 @@ def make_tarbz2(prefix, name='unknown', version='0.0', build_number=0,
         requires_py = False
 
     info = create_info(name, version, build_number, requires_py)
-    tarbz2_fn = '%(name)s-%(version)s-%(build)s.tar.bz2' % info
+    tarbz2_fn = ('%(name)s-%(version)s-%(build)s' % info) + CONDA_PACKAGE_EXTENSION_V1
     create_conda_pkg(prefix, files, info, tarbz2_fn)
     print('# success')
     print(tarbz2_fn)

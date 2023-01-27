@@ -1,0 +1,27 @@
+{
+  "info": {
+    "subdir": "win-32"
+  },
+  "packages": {},
+  "packages.conda": {
+    "zlib-1.2.11-h62dcd97_3.conda": {
+      "build": "h62dcd97_3",
+      "build_number": 3,
+      "depends": [
+        "vc >=14.1,<15.0a0"
+      ],
+      "legacy_bz2_md5": "d56715ca9b345d3c51f2b19dba1dbf04",
+      "license": "zlib",
+      "license_family": "Other",
+      "md5": "d56715ca9b345d3c51f2b19dba1dbf04",
+      "name": "zlib",
+      "sha256": "ea899e1c10ab22e565a201df1ee9d69b9260aa8ad4527b37d2dcd21a28f3a11d",
+      "size": 115056,
+      "subdir": "win-32",
+      "timestamp": 1542815118406,
+      "version": "1.2.11"
+    }
+  },
+  "removed": [],
+  "repodata_version": 1
+}

@@ -1,0 +1,70 @@
+{
+  "build": "hdc02c5d_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "libgfortran >=3.0.1"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/libopenblas-0.3.2-hdc02c5d_1",
+  "features": "",
+  "files": [
+    "lib/libblas.dylib",
+    "lib/libcblas.dylib",
+    "lib/liblapack.dylib",
+    "lib/libopenblas.dylib",
+    "lib/libopenblasp-r0.3.2.dylib"
+  ],
+  "fn": "libopenblas-0.3.2-hdc02c5d_1.tar.bz2",
+  "license": "BSD",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/libopenblas-0.3.2-hdc02c5d_1",
+    "type": 1
+  },
+  "md5": "1913ed06d960eced951a8e3d99aecfcc",
+  "name": "libopenblas",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/libopenblas-0.3.2-hdc02c5d_1.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/libblas.dylib",
+        "path_type": "softlink",
+        "sha256": "f03b5a53478647fe9a6ffebee05d9b9cc6fa61954bc07066d9248a18f24d63f6",
+        "size_in_bytes": 63814532
+      },
+      {
+        "_path": "lib/libcblas.dylib",
+        "path_type": "softlink",
+        "sha256": "f03b5a53478647fe9a6ffebee05d9b9cc6fa61954bc07066d9248a18f24d63f6",
+        "size_in_bytes": 63814532
+      },
+      {
+        "_path": "lib/liblapack.dylib",
+        "path_type": "softlink",
+        "sha256": "f03b5a53478647fe9a6ffebee05d9b9cc6fa61954bc07066d9248a18f24d63f6",
+        "size_in_bytes": 63814532
+      },
+      {
+        "_path": "lib/libopenblas.dylib",
+        "path_type": "softlink",
+        "sha256": "f03b5a53478647fe9a6ffebee05d9b9cc6fa61954bc07066d9248a18f24d63f6",
+        "size_in_bytes": 63814532
+      },
+      {
+        "_path": "lib/libopenblasp-r0.3.2.dylib",
+        "path_type": "hardlink",
+        "sha256": "f03b5a53478647fe9a6ffebee05d9b9cc6fa61954bc07066d9248a18f24d63f6",
+        "sha256_in_prefix": "f03b5a53478647fe9a6ffebee05d9b9cc6fa61954bc07066d9248a18f24d63f6",
+        "size_in_bytes": 63814532
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 8897679,
+  "subdir": "osx-64",
+  "timestamp": 1535383772977,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/libopenblas-0.3.2-hdc02c5d_1.tar.bz2",
+  "version": "0.3.2"
+}

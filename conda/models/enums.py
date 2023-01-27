@@ -1,27 +1,29 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from platform import machine
 import sys
 
 from enum import Enum
 
-from .._vendor.auxlib.decorators import classproperty
-from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.type_coercion import TypeCoercionError, boolify
-from ..common.compat import string_types
+from ..auxlib.decorators import classproperty
+from ..auxlib.ish import dals
+from ..auxlib.type_coercion import TypeCoercionError, boolify
 from ..exceptions import CondaUpgradeError
 
 
 class Arch(Enum):
     x86 = 'x86'
     x86_64 = 'x86_64'
+    # arm64 is for macOS and Windows
+    arm64 = 'arm64'
     armv6l = 'armv6l'
     armv7l = 'armv7l'
+    # aarch64 is for Linux only
     aarch64 = 'aarch64'
+    ppc64 = 'ppc64'
     ppc64le = 'ppc64le'
+    s390x = 's390x'
     z = 'z'
 
     @classmethod
@@ -124,11 +126,12 @@ class LeasedPathType(Enum):
 class PackageType(Enum):
     NOARCH_GENERIC = 'noarch_generic'
     NOARCH_PYTHON = 'noarch_python'
-    SHADOW_PRIVATE_ENV = 'shadow_private_env'
-    SHADOW_PYTHON_DIST_INFO = 'shadow_python_dist_info'
-    SHADOW_PYTHON_EGG_INFO_DIR = 'shadow_python_egg_info_dir'
-    SHADOW_PYTHON_EGG_INFO_FILE = 'shadow_python_egg_info_file'
-    SHADOW_PYTHON_EGG_LINK = 'shadow_python_egg_link'
+    VIRTUAL_PRIVATE_ENV = 'virtual_private_env'
+    VIRTUAL_PYTHON_WHEEL = 'virtual_python_wheel'  # manageable
+    VIRTUAL_PYTHON_EGG_MANAGEABLE = 'virtual_python_egg_manageable'
+    VIRTUAL_PYTHON_EGG_UNMANAGEABLE = 'virtual_python_egg_unmanageable'
+    VIRTUAL_PYTHON_EGG_LINK = 'virtual_python_egg_link'  # unmanageable
+    VIRTUAL_SYSTEM = 'virtual_system'  # virtual packages representing system attributes
 
     @staticmethod
     def conda_package_types():
@@ -136,6 +139,14 @@ class PackageType(Enum):
             None,
             PackageType.NOARCH_GENERIC,
             PackageType.NOARCH_PYTHON,
+        }
+
+    @staticmethod
+    def unmanageable_package_types():
+        return {
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_LINK,
+            PackageType.VIRTUAL_SYSTEM,
         }
 
 
@@ -148,9 +159,12 @@ class NoarchType(Enum):
         # what a mess
         if isinstance(val, NoarchType):
             return val
+        valtype = getattr(val, 'type', None)
+        if isinstance(valtype, NoarchType):    # see issue #8311
+            return valtype
         if isinstance(val, bool):
             val = NoarchType.generic if val else None
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = val.lower()
             if val == 'python':
                 val = NoarchType.python

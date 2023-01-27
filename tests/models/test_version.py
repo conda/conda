@@ -1,9 +1,14 @@
-from __future__ import absolute_import, print_function
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 
+
+from copy import copy
+from random import shuffle
 import unittest
 
-from conda.exceptions import InvalidVersionSpecError
+from conda.exceptions import InvalidVersionSpec
 from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
+import pytest
 
 
 class TestVersionSpec(unittest.TestCase):
@@ -32,6 +37,7 @@ class TestVersionSpec(unittest.TestCase):
            ("1.0.4b1",    [[0], [1], [0], [4, 'b', 1]]),
            ("1.0.4",      [[0], [1], [0], [4]]),
            ("1.1dev1",    [[0], [1], [1, 'DEV', 1]]),
+           ("1.1_",       [[0], [1], [1, '_']]),
            ("1.1a1",      [[0], [1], [1, 'a', 1]]),
            ("1.1.dev1",   [[0], [1], [1], [0, 'DEV', 1]]),
            ("1.1.a1",     [[0], [1], [1], [0, 'a', 1]]),
@@ -96,10 +102,29 @@ class TestVersionSpec(unittest.TestCase):
         self.assertFalse(VersionOrder("0.4.1").startswith(VersionOrder("0.4.1+1.3")))
         self.assertFalse(VersionOrder("0.4.1+1").startswith(VersionOrder("0.4.1+1.3")))
 
-        # test openssl convention
-        openssl = [VersionOrder(k) for k in ['1.0.1', '1.0.1post.a', '1.0.1post.b',
-                                             '1.0.1post.z', '1.0.1post.za', '1.0.2']]
-        self.assertEqual(sorted(openssl), openssl)
+    def test_openssl_convention(self):
+        openssl = [VersionOrder(k) for k in (
+            '1.0.1dev',
+            '1.0.1_',  # <- this
+            '1.0.1a',
+            '1.0.1b',
+            '1.0.1c',
+            '1.0.1d',
+            '1.0.1r',
+            '1.0.1rc',
+            '1.0.1rc1',
+            '1.0.1rc2',
+            '1.0.1s',
+            '1.0.1',  # <- compared to this
+            '1.0.1post.a',
+            '1.0.1post.b',
+            '1.0.1post.z',
+            '1.0.1post.za',
+            '1.0.2',
+        )]
+        shuffled = copy(openssl)
+        shuffle(shuffled)
+        assert sorted(shuffled) == openssl
 
     def test_pep440(self):
         # this list must be in sorted order (slightly modified from the PEP 440 test suite
@@ -159,9 +184,9 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.4+5*'), False)
 
     def test_ver_eval_errors(self):
-        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '><2.4.5')
-        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!!2.4.5')
-        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!')
+        self.assertRaises(InvalidVersionSpec, ver_eval, '3.0.0', '><2.4.5')
+        self.assertRaises(InvalidVersionSpec, ver_eval, '3.0.0', '!!2.4.5')
+        self.assertRaises(InvalidVersionSpec, ver_eval, '3.0.0', '!')
 
     def test_version_spec_1(self):
         v1 = VersionSpec('1.7.1')
@@ -181,10 +206,10 @@ class TestVersionSpec(unittest.TestCase):
     def test_version_spec_2(self):
         v1 = VersionSpec('( (1.5|((1.6|1.7), 1.8), 1.9 |2.0))|2.1')
         self.assertEqual(v1.spec, '1.5|1.6|1.7,1.8,1.9|2.0|2.1')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '(1.5')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5)')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5||1.6')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '^1.5')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '(1.5')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '1.5)')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '1.5||1.6')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '^1.5')
 
     def test_version_spec_3(self):
         v1 = VersionSpec('1.7.1*')
@@ -206,7 +231,7 @@ class TestVersionSpec(unittest.TestCase):
         assert hash(v1) == hash(v2) == hash(v3)
 
     def test_match(self):
-        for vspec, res in [
+        for vspec, res in (
             ('1.7.*', True),   ('1.7.1', True),    ('1.7.0', False),
             ('1.7', False),   ('1.5.*', False),    ('>=1.5', True),
             ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
@@ -214,14 +239,14 @@ class TestVersionSpec(unittest.TestCase):
             ('1.7.*|1.8.*', True),
             # ('1.8/*|1.9.*', False),  what was this supposed to be?
             ('>1.7,<1.8', True), ('>1.7.1,<1.8', False),
-            ('^1.7.1$', True), ('^1\.7\.1$', True), ('^1\.7\.[0-9]+$', True),
-            ('^1\.8.*$', False), ('^1\.[5-8]\.1$', True), ('^[^1].*$', False),
-            ('^[0-9+]+\.[0-9+]+\.[0-9]+$', True), ('^$', False),
+            ('^1.7.1$', True), (r'^1\.7\.1$', True), (r'^1\.7\.[0-9]+$', True),
+            (r'^1\.8.*$', False), (r'^1\.[5-8]\.1$', True), (r'^[^1].*$', False),
+            (r'^[0-9+]+\.[0-9+]+\.[0-9]+$', True), ('^$', False),
             ('^.*$', True), ('1.7.*|^0.*$', True), ('1.6.*|^0.*$', False),
             ('1.6.*|^0.*$|1.7.1', True), ('^0.*$|1.7.1', True),
-            ('1.6.*|^.*\.7\.1$|0.7.1', True), ('*', True), ('1.*.1', True),
+            (r'1.6.*|^.*\.7\.1$|0.7.1', True), ('*', True), ('1.*.1', True),
             ('1.5.*|>1.7,<1.8', True), ('1.5.*|>1.7,<1.7.1', False),
-        ]:
+        ):
             m = VersionSpec(vspec)
             assert VersionSpec(m) is m
             assert str(m) == vspec
@@ -240,3 +265,91 @@ class TestVersionSpec(unittest.TestCase):
         for version in versions:
             m = VersionSpec(version)
             self.assertTrue(m.match(version))
+
+    def test_not_eq_star(self):
+        assert VersionSpec("=3.3").match("3.3.1")
+        assert VersionSpec("=3.3").match("3.3")
+        assert not VersionSpec("=3.3").match("3.4")
+
+        assert VersionSpec("3.3.*").match("3.3.1")
+        assert VersionSpec("3.3.*").match("3.3")
+        assert not VersionSpec("3.3.*").match("3.4")
+
+        assert VersionSpec("=3.3.*").match("3.3.1")
+        assert VersionSpec("=3.3.*").match("3.3")
+        assert not VersionSpec("=3.3.*").match("3.4")
+
+        assert not VersionSpec("!=3.3.*").match("3.3.1")
+        assert VersionSpec("!=3.3.*").match("3.4")
+        assert VersionSpec("!=3.3.*").match("3.4.1")
+
+        assert VersionSpec("!=3.3").match("3.3.1")
+        assert not VersionSpec("!=3.3").match("3.3.0.0")
+        assert not VersionSpec("!=3.3.*").match("3.3.0.0")
+
+    def test_compound_versions(self):
+        vs = VersionSpec('>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*')
+        assert not vs.match('2.6.8')
+        assert vs.match('2.7.2')
+        assert not vs.match('3.3')
+        assert not vs.match('3.3.4')
+        assert vs.match('3.4')
+        assert vs.match('3.4a')
+
+    def test_invalid_version_specs(self):
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("~")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("^")
+        # Test for previously mishandled uses of local version separator '+'
+        # uncovered by fuzzing efforts
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("1.2+")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("+1.2")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("+1.2+")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("++")
+        # Fuzzer-identified crashers:
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("c +, 0/|0 *")
+
+        # Weird crashing versions intended to test unhandled edge cases
+        # in the "treeify" process
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("a[version=)|(")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("a=)(=b")
+
+        # Test for mishandling of '=='  and '=' without a version number
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("==")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("=")
+        # Additional tests based on the above
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec(">=")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("<=")
+
+    def test_compatible_release_versions(self):
+        assert VersionSpec("~=1.10").match("1.11.0")
+        assert not VersionSpec("~=1.10.0").match("1.11.0")
+
+        assert not VersionSpec("~=3.3.2").match("3.4.0")
+        assert not VersionSpec("~=3.3.2").match("3.3.1")
+        assert VersionSpec("~=3.3.2").match("3.3.2.0")
+        assert VersionSpec("~=3.3.2").match("3.3.3")
+
+        assert VersionSpec("~=3.3.2|==2.2").match("2.2.0")
+        assert VersionSpec("~=3.3.2|==2.2").match("3.3.3")
+        assert not VersionSpec("~=3.3.2|==2.2").match("2.2.1")
+
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("~=3.3.2.*")
+
+    def test_pep_440_arbitrary_equality_operator(self):
+        # We're going to leave the not implemented for now.
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("===3.3.2")

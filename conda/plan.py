@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -10,7 +9,6 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from logging import getLogger
@@ -18,15 +16,15 @@ import sys
 
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from .base.context import context, reset_context
-from .common.compat import itervalues, text_type
-from .common.io import env_var, time_recorder
+from .base.context import context, stack_context_default
+from .common.io import dashlist, env_vars, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
+from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -34,16 +32,12 @@ from .models.match_spec import ChannelMatch
 from .models.prefix_graph import PrefixGraph
 from .models.records import PackageRecord
 from .models.version import normalized_version
-from .resolve import MatchSpec, dashlist
+from .resolve import MatchSpec
 from .utils import human_bytes
-
-try:
-    from cytoolz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
+# TODO: Remove conda/plan.py.  This module should be almost completely deprecated now.
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -64,11 +58,11 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         builder.append('')
     if specs_to_remove:
         builder.append('  removed specs: %s'
-                       % dashlist(sorted(text_type(s) for s in specs_to_remove), indent=4))
+                       % dashlist(sorted(str(s) for s in specs_to_remove), indent=4))
         builder.append('')
     if specs_to_add:
         builder.append('  added / updated specs: %s'
-                       % dashlist(sorted(text_type(s) for s in specs_to_add), indent=4))
+                       % dashlist(sorted(str(s) for s in specs_to_add), indent=4))
         builder.append('')
     print('\n'.join(builder))
 
@@ -158,7 +152,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         for pkg in packages:
             # That's right. I'm using old-style string formatting to generate a
             # string with new-style string formatting.
-            oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
+            oldfmt[pkg] = f"{{pkg:<{maxpkg}}} {{vers[0]:<{maxoldver}}}"
             if maxoldchannels:
                 oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
             if features[pkg][0]:
@@ -287,7 +281,7 @@ def revert_actions(prefix, revision=-1, index=None):
     #       Either need to wipe out history after ``revision``, or add the correct
     #       history information to the new entry about to be created.
     # TODO: This is wrong!!!!!!!!!!
-    user_requested_specs = itervalues(h.get_requested_specs_map())
+    user_requested_specs = h.get_requested_specs_map().values()
     try:
         target_state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
     except IndexError:
@@ -298,7 +292,7 @@ def revert_actions(prefix, revision=-1, index=None):
     not_found_in_index_specs = set()
     link_precs = set()
     for spec in target_state:
-        precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
+        precs = tuple(prec for prec in index.values() if spec.match(prec))
         if not precs:
             not_found_in_index_specs.add(spec)
         elif len(precs) > 1:
@@ -311,7 +305,7 @@ def revert_actions(prefix, revision=-1, index=None):
 
     final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
-    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs)
+    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
     txn = UnlinkLinkTransaction(stp)
     return txn
 
@@ -348,13 +342,13 @@ def _plan_from_actions(actions, index):  # pragma: no cover
     axn = actions.get('ACTION') or None
     specs = actions.get('SPECS', [])
 
-    log.debug("Adding plans for operations: {0}".format(op_order))
+    log.debug(f"Adding plans for operations: {op_order}")
     for op in op_order:
         if op not in actions:
-            log.trace("action {0} not in actions".format(op))
+            log.trace(f"action {op} not in actions")
             continue
         if not actions[op]:
-            log.trace("action {0} has None value".format(op))
+            log.trace(f"action {op} has None value")
             continue
         if '_' not in op:
             plan.append((PRINT, '%sing packages ...' % op.capitalize()))
@@ -363,7 +357,7 @@ def _plan_from_actions(actions, index):  # pragma: no cover
         if op in PROGRESS_COMMANDS:
             plan.append((PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
-            log.debug("appending value {0} for action {1}".format(arg, op))
+            log.debug(f"appending value {arg} for action {op}")
             plan.append((op, arg))
 
     plan = _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
@@ -374,7 +368,6 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: no cover
     from os.path import isdir
     from .models.dist import Dist
-    from ._vendor.toolz.itertoolz import groupby
     from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
     from .core.package_cache_data import ProgressiveFetchExtract
     from .core.link import PrefixSetup, UnlinkLinkTransaction
@@ -398,7 +391,7 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
         pfe = ProgressiveFetchExtract(link_precs)
         pfe.prepare()
 
-        stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs)
+        stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs, ())
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
@@ -418,20 +411,20 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # unlink
     menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
+        unlink_dists = (
+            *unlink_dists[:menuinst_idx],
+            *unlink_dists[menuinst_idx + 1 :],
+            *unlink_dists[menuinst_idx : menuinst_idx + 1],
+        )
 
     # link
     menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
+        link_dists = (
+            *link_dists[menuinst_idx : menuinst_idx + 1],
+            *link_dists[:menuinst_idx],
+            *link_dists[menuinst_idx + 1 :],
+        )
 
     return unlink_dists, link_dists
 
@@ -442,10 +435,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     channel_priority_map=None, is_update=False,
                     minimal_hint=False):  # pragma: no cover
     # this is for conda-build
-    with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', reset_context):
+    with env_vars({
+        'CONDA_ALLOW_NON_CHANNEL_URLS': 'true',
+        'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
+    }, stack_callback=stack_context_default):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
-        from .core.solve import Solver
         from .models.channel import Channel
         from .models.dist import Dist
         if channel_priority_map:
@@ -468,9 +463,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         from .core.prefix_data import PrefixData
         PrefixData._cache_.clear()
 
-        solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
         if index:
-            solver._index = {prec: prec for prec in itervalues(index)}
+            solver._index = {prec: prec for prec in index.values()}
         txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
         prefix_setup = txn.prefix_setups[prefix]
         actions = get_blank_actions(prefix)
@@ -532,8 +528,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):  # pr
         if callable(cmd):
             cmd(state, arg)
 
-        if (state['i'] is not None and instruction in PROGRESS_COMMANDS and
-                state['maxval'] == state['i']):
+        if (state['i'] is not None and instruction in PROGRESS_COMMANDS
+                and state['maxval'] == state['i']):
 
             state['i'] = None
             getLogger('progress.stop').info(None)

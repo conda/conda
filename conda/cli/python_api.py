@@ -1,17 +1,14 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from shlex import split
 
 from .conda_argparse import do_call
+from ..common.compat import encode_arguments
 from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
 from ..common.io import CaptureTarget, argv, captured
-from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
 
@@ -24,17 +21,18 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    HELP = "help"
     LIST = "list"
     REMOVE = "remove"
     SEARCH = "search"
     UPDATE = "update"
+    RUN = "run"
+    NOTICES = "notices"
 
 
 STRING = CaptureTarget.STRING
 STDOUT = CaptureTarget.STDOUT
 
-
+# Note, a deviated copy of this code appears in tests/test_create.py
 def run_command(command, *arguments, **kwargs):
     """Runs a conda command in-process with a given set of command-line interface arguments.
 
@@ -42,32 +40,36 @@ def run_command(command, *arguments, **kwargs):
         Always uses --yes flag, thus does not ask for confirmation.
 
     Args:
-        command: one of the Commands.X
-        *arguments: instructions you would normally pass to the conda comamnd on the command line
-                    see below for examples
+        command: one of the Commands.
+        *arguments: instructions you would normally pass to the conda command on the command line
+                    see below for examples. Be very careful to delimit arguments exactly as you
+                    want them to be delivered. No 'combine then split at spaces' or other
+                    information destroying processing gets performed on the arguments.
         **kwargs: special instructions for programmatic overrides
-          use_exception_handler: defaults to False.  False will let the code calling
-              `run_command` handle all exceptions.  True won't raise when an exception
-              has occured, and instead give a non-zero return code
-          search_path: an optional non-standard search path for configuration information
-              that overrides the default SEARCH_PATH
-          stdout: Define capture behavior for stream sys.stdout. Defaults to STRING.
-              STRING captures as a string.  None leaves stream untouched.
-              Otherwise redirect to file-like object stdout.
-          stderr: Define capture behavior for stream sys.stderr. Defaults to STRING.
-              STRING captures as a string.  None leaves stream untouched.
-              STDOUT redirects to stdout target and returns None as stderr value.
-              Otherwise redirect to file-like object stderr.
 
-    Returns: a tuple of stdout, stderr, and return_code.
+    Keyword Args:
+        use_exception_handler: defaults to False. False will let the code calling
+          `run_command` handle all exceptions.  True won't raise when an exception
+          has occurred, and instead give a non-zero return code
+        search_path: an optional non-standard search path for configuration information
+          that overrides the default SEARCH_PATH
+        stdout: Define capture behavior for stream sys.stdout. Defaults to STRING.
+          STRING captures as a string.  None leaves stream untouched.
+          Otherwise redirect to file-like object stdout.
+        stderr: Define capture behavior for stream sys.stderr. Defaults to STRING.
+          STRING captures as a string.  None leaves stream untouched.
+          STDOUT redirects to stdout target and returns None as stderr value.
+          Otherwise redirect to file-like object stderr.
+
+    Returns:
+        a tuple of stdout, stderr, and return_code.
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
     Examples:
-        >>  run_command(Commands.CREATE, "-n newenv python=3 flask", use_exception_handler=True)
-        >>  run_command(Commands.CREATE, "-n newenv", "python=3", "flask")
-        >>  run_command(Commands.CREATE, ["-n newenv", "python=3", "flask"], search_path=())
-
-
+        >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", \
+                        use_exception_handler=True)
+        >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")
+        >>> run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
     """
     initialize_std_loggers()
     use_exception_handler = kwargs.pop('use_exception_handler', False)
@@ -76,27 +78,44 @@ def run_command(command, *arguments, **kwargs):
     stderr = kwargs.pop('stderr', STRING)
     p = generate_parser()
 
-    arguments = map(win_path_double_escape, arguments)
-    command_line = "%s %s" % (command, " ".join(arguments))
-    split_command_line = split(command_line)
+    if arguments and isinstance(arguments[0], list):
+        arguments = arguments[0]
 
-    args = p.parse_args(split_command_line)
+    arguments = list(arguments)
+    arguments.insert(0, command)
+
+    args = p.parse_args(arguments)
     args.yes = True  # always skip user confirmation, force setting context.always_yes
     context.__init__(
         search_path=configuration_search_path,
         argparse_args=args,
     )
-    log.debug("executing command >>>  conda %s", command_line)
+
+    from subprocess import list2cmdline
+    log.debug("executing command >>>  conda %s", list2cmdline(arguments))
+
+    is_run = arguments[0] == 'run'
+    if is_run:
+        cap_args = (None, None)
+    else:
+        cap_args = (stdout, stderr)
     try:
-        with argv(['python_api'] + split_command_line), captured(stdout, stderr) as c:
+        with argv(['python_api'] + encode_arguments(arguments)), captured(*cap_args) as c:
             if use_exception_handler:
-                return_code = conda_exception_handler(do_call, args, p)
+                result = conda_exception_handler(do_call, args, p)
             else:
-                return_code = do_call(args, p)
+                result = do_call(args, p)
+        if is_run:
+            stdout = result.stdout
+            stderr = result.stderr
+            result = result.rc
+        else:
+            stdout = c.stdout
+            stderr = c.stderr
     except Exception as e:
-        log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
-        e.stdout, e.stderr = c.stdout, c.stderr
+        log.debug("\n  stdout: %s\n  stderr: %s", stdout, stderr)
+        e.stdout, e.stderr = stdout, stderr
         raise e
-    return_code = return_code or 0
-    log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", c.stdout, c.stderr, return_code)
-    return c.stdout, c.stderr, return_code
+    return_code = result or 0
+    log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", stdout, stderr, return_code)
+    return stdout, stderr, return_code

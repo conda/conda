@@ -1,21 +1,18 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from threading import local
 
 from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
-               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth)
+               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth, Retry)
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 from ..anaconda_client import read_binstar_tokens
-from ..._vendor.auxlib.ish import dals
+from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
-from ...common.compat import iteritems, with_metaclass
 from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
                            split_anaconda_token, urlparse)
 from ...exceptions import ProxyError
@@ -23,6 +20,14 @@ from ...exceptions import ProxyError
 log = getLogger(__name__)
 RETRIES = 3
 
+
+CONDA_SESSION_SCHEMES = frozenset((
+    "http",
+    "https",
+    "ftp",
+    "s3",
+    "file",
+))
 
 class EnforceUnusedAdapter(BaseAdapter):
 
@@ -45,21 +50,20 @@ class CondaSessionType(type):
 
     def __new__(mcs, name, bases, dct):
         dct['_thread_local'] = local()
-        return super(CondaSessionType, mcs).__new__(mcs, name, bases, dct)
+        return super().__new__(mcs, name, bases, dct)
 
     def __call__(cls):
         try:
             return cls._thread_local.session
         except AttributeError:
-            session = cls._thread_local.session = super(CondaSessionType, cls).__call__()
+            session = cls._thread_local.session = super().__call__()
             return session
 
 
-@with_metaclass(CondaSessionType)
-class CondaSession(Session):
+class CondaSession(Session, metaclass=CondaSessionType):
 
     def __init__(self):
-        super(CondaSession, self).__init__()
+        super().__init__()
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
@@ -74,7 +78,11 @@ class CondaSession(Session):
 
         else:
             # Configure retries
-            http_adapter = HTTPAdapter(max_retries=context.remote_max_retries)
+            retry = Retry(total=context.remote_max_retries,
+                          backoff_factor=context.remote_backoff_factor,
+                          status_forcelist=[413, 429, 500, 503],
+                          raise_on_status=False)
+            http_adapter = HTTPAdapter(max_retries=retry)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
@@ -120,7 +128,7 @@ class CondaHttpAuth(AuthBase):
     def add_binstar_token(url):
         clean_url, token = split_anaconda_token(url)
         if not token and context.add_anaconda_token:
-            for binstar_url, token in iteritems(read_binstar_tokens()):
+            for binstar_url, token in read_binstar_tokens().items():
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
                     from ...models.channel import Channel
@@ -144,7 +152,7 @@ class CondaHttpAuth(AuthBase):
         'Proxy-Authorization' header.  If any of this is incorrect, please file an issue.
 
         """
-        # kwargs = {'verify': True, 'cert': None, 'proxies': OrderedDict(), 'stream': False,
+        # kwargs = {'verify': True, 'cert': None, 'proxies': {}, 'stream': False,
         #           'timeout': (3.05, 60)}
 
         if response.status_code != 407:
@@ -159,11 +167,17 @@ class CondaHttpAuth(AuthBase):
 
         proxy_scheme = urlparse(response.url).scheme
         if proxy_scheme not in proxies:
-            raise ProxyError(dals("""
-            Could not find a proxy for %r. See
-            %s/docs/html#configure-conda-for-use-behind-a-proxy-server
+            raise ProxyError(
+                dals(
+                    """
+            Could not find a proxy for {!r}. See
+            {}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """ % (proxy_scheme, CONDA_HOMEPAGE_URL)))
+            """.format(
+                        proxy_scheme, CONDA_HOMEPAGE_URL
+                    )
+                )
+            )
 
         # fix-up proxy_url with username & password
         proxy_url = proxies[proxy_scheme]

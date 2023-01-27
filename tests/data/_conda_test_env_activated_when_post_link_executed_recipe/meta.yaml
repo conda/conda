@@ -1,0 +1,13 @@
+package:
+  name: _conda_test_env_activated_when_post_link_executed
+  version: 1.0
+
+about:
+  summary: test package that checks for an activated env in the post link script
+  description: |
+    This is a test packages that checks that conda environment are activated
+    when running a post link script. This package has an activate.d script which
+    sets the environment variable TEST_VAR. The packages post link script tests
+    that this variable is set, if it is not the script fails. If this post
+    link script is run under a different environment, for example the base env,
+    there is a good chance that it will fail.

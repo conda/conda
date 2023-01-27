@@ -1,0 +1,18 @@
+@startuml
+!include <C4/C4_Container.puml>
+!include ../includes/style.puml
+
+SHOW_PERSON_OUTLINE()
+LAYOUT_TOP_DOWN()
+HIDE_STEREOTYPE()
+' SHOW_LEGEND()
+
+Person_Ext(developer, "Developer", "Person developing conda and related software")
+Person_Ext(packager, "Packager", "Person maintaining conda packages")
+Person(user, "User", "Person using conda and conda-wrapping tools")
+
+System(conda_build, "conda-build", "Package build tool")
+System(conda_env, "conda environments", "File system directories for separating conda uses")
+System(miniconda, "miniconda", "Cross-platform bootstrapper")
+
+@enduml

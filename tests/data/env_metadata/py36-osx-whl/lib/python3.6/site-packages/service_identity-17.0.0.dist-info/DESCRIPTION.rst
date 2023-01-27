@@ -1,0 +1,77 @@
+=============================
+Service Identity Verification
+=============================
+
+.. image:: https://readthedocs.org/projects/service-identity/badge/?version=stable
+   :target: https://service-identity.readthedocs.io/en/stable/?badge=stable
+   :alt: Documentation Status
+
+.. image:: https://travis-ci.org/pyca/service_identity.svg?branch=master
+   :target: https://travis-ci.org/pyca/service_identity
+   :alt: CI status
+
+.. image:: https://codecov.io/github/pyca/service_identity/branch/master/graph/badge.svg
+   :target: https://codecov.io/github/pyca/service_identity
+   :alt: Test Coverage
+
+.. image:: https://www.irccloud.com/invite-svg?channel=%23cryptography-dev&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1
+    :target: https://www.irccloud.com/invite?channel=%23cryptography-dev&amp;hostname=irc.freenode.net&amp;port=6697&amp;ssl=1
+
+.. begin
+
+Use this package if:
+
+- you use pyOpenSSL_ and don’t want to be MITM_\ ed or
+- if you want to verify that a `PyCA cryptography`_ certificate is valid for a certain hostname.
+
+``service_identity`` aspires to give you all the tools you need for verifying whether a certificate is valid for the intended purposes.
+
+In the simplest case, this means *host name verification*.
+However, ``service_identity`` implements `RFC 6125`_ fully and plans to add other relevant RFCs too.
+
+``service_identity``\ ’s documentation lives at `Read the Docs <https://service-identity.readthedocs.io/>`_, the code on `GitHub <https://github.com/pyca/service_identity>`_.
+
+
+.. _Twisted: https://twistedmatrix.com/
+.. _pyOpenSSL: https://pypi.python.org/pypi/pyOpenSSL/
+.. _MITM: https://en.wikipedia.org/wiki/Man-in-the-middle_attack
+.. _RFC 6125: http://www.rfc-editor.org/info/rfc6125
+.. _PyCA cryptography: https://cryptography.io/
+
+
+Release Information
+===================
+
+17.0.0 (2017-05-23)
+-------------------
+
+Deprecations:
+^^^^^^^^^^^^^
+
+- Since Chrome 58 and Firefox 48 both don't accept certificates that contain only a Common Name, its usage is hereby deprecated in ``service_identity`` too.
+  We have been raising a warning since 16.0.0 and the support will be removed in mid-2018 for good.
+
+
+Changes:
+^^^^^^^^
+
+- When ``service_identity.SubjectAltNameWarning`` is raised, the Common Name of the certificate is now included in the warning message.
+  `#17 <https://github.com/pyca/service_identity/pull/17>`_
+- Added ``cryptography.x509`` backend for verifying certificates.
+  `#18 <https://github.com/pyca/service_identity/pull/18>`_
+- Wildcards (``*``) are now only allowed if they are the leftmost label in a certificate.
+  This is common practice by all major browsers.
+  `#19 <https://github.com/pyca/service_identity/pull/19>`_
+
+`Full changelog <https://service-identity.readthedocs.io/en/stable/changelog.html>`_.
+
+Authors
+=======
+
+``service_identity`` is written and maintained by `Hynek Schlawack <https://hynek.me/>`_.
+
+The development is kindly supported by `Variomedia AG <https://www.variomedia.de/>`_.
+
+Other contributors can be found in `GitHub's overview <https://github.com/pyca/service_identity/graphs/contributors>`_.
+
+

@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: Twisted
+Version: 18.7.0
+Summary: An asynchronous networking framework written in Python
+Home-page: http://twistedmatrix.com/
+Author: Twisted Matrix Laboratories
+Author-email: twisted-python@twistedmatrix.com
+Maintainer: Glyph Lefkowitz
+Maintainer-email: glyph@twistedmatrix.com
+License: MIT
+Description: An extensible framework for Python programming, with special focus
+        on event-based network programming and multiprotocol integration.
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Provides-Extra: tls
+Provides-Extra: macos_platform
+Provides-Extra: conch
+Provides-Extra: windows_platform
+Provides-Extra: dev
+Provides-Extra: osx_platform
+Provides-Extra: all_non_platform
+Provides-Extra: http2
+Provides-Extra: serial
+Provides-Extra: soap

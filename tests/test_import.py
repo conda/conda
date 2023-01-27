@@ -1,9 +1,11 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 """ Test if we can import everything from conda.
 This basically tests syntax correctness and whether the internal imports work.
 Created to test py3k compatibility.
 """
 
-from __future__ import print_function, division, absolute_import
 
 import os
 import sys
@@ -22,7 +24,7 @@ class TestImportAllConda(unittest.TestCase):
         module_prefix = 'conda'
         if subpackage:
             prefix = os.path.join(prefix, subpackage)
-            module_prefix = '%s.%s' % (module_prefix, subpackage)
+            module_prefix = f"{module_prefix}.{subpackage}"
 
         # Try importing root
         __import__(module_prefix)

@@ -1,0 +1,15 @@
+MANIFEST.in
+README.rst
+configparser.rst
+setup.cfg
+setup.py
+src/configparser.py
+src/backports/__init__.py
+src/backports/configparser/__init__.py
+src/backports/configparser/helpers.py
+src/configparser.egg-info/PKG-INFO
+src/configparser.egg-info/SOURCES.txt
+src/configparser.egg-info/dependency_links.txt
+src/configparser.egg-info/namespace_packages.txt
+src/configparser.egg-info/not-zip-safe
+src/configparser.egg-info/top_level.txt

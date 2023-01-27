@@ -1,0 +1,3 @@
+[console_scripts]
+cheroot = cheroot.cli:main
+

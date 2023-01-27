@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
@@ -6,13 +5,19 @@ import os
 import sys
 import textwrap
 
-from conda._vendor.auxlib.path import expand
-from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.base.context import context, determine_target_prefix
+from conda.cli.conda_argparse import (
+    add_parser_json,
+    add_parser_prefix,
+    add_parser_solver,
+)
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
-from .common import get_prefix
-from .. import exceptions, specs as install_specs
-from ..exceptions import CondaEnvException
+from conda.notices import notices
+
+from .common import print_result, get_filename
+from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
 
 description = """
@@ -58,22 +63,24 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_update.execute')
 
 
+@notices
 def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        spec = install_specs.detect(name=name, filename=expand(args.file),
+        spec = install_specs.detect(name=name, filename=get_filename(args.file),
                                     directory=os.getcwd())
         env = spec.environment
-    except exceptions.SpecNotFound:
+    except SpecNotFound:
         raise
 
     if not (args.name or args.prefix):
         if not env.name:
-                    # Note, this is a hack fofr get_prefix that assumes argparse results
+            # Note, this is a hack fofr get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
             name = os.environ.get('CONDA_DEFAULT_ENV', False)
             if not name:
@@ -91,7 +98,7 @@ def execute(args, parser):
         # be specified.
         args.name = env.name
 
-    prefix = get_prefix(args, search=False)
+    prefix = determine_target_prefix(context, args)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
@@ -107,7 +114,7 @@ def execute(args, parser):
     for installer_type in env.dependencies:
         try:
             installers[installer_type] = get_installer(installer_type)
-        except InvalidInstaller as e:
+        except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
 
@@ -119,9 +126,14 @@ def execute(args, parser):
             )
             return -1
 
+    result = {"conda": None, "pip": None}
     for installer_type, specs in env.dependencies.items():
         installer = installers[installer_type]
-        installer.install(prefix, specs, args, env)
+        result[installer_type] = installer.install(prefix, specs, args, env)
+
+    if env.variables:
+        pd = PrefixData(prefix)
+        pd.set_environment_env_vars(env.variables)
 
     touch_nonadmin(prefix)
-    cli_install.print_activate(args.name if args.name else prefix)
+    print_result(args, prefix, result)

@@ -1,0 +1,13 @@
+package:
+  name: b_post_link_package
+  version: 1.0.0
+
+build:
+  number: 0
+  script:
+    - echo "test" > ${PREFIX}/bin/file    #[not win]
+    - echo "test" > %LIBRARY_PREFIX%/bin/file     #[win]
+
+
+about:
+  summary: Test that post link scripts get run la

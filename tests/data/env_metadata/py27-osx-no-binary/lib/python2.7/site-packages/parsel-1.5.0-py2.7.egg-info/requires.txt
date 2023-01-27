@@ -1,0 +1,7 @@
+w3lib>=1.8.0
+lxml>=2.3
+six>=1.5.2
+cssselect>=0.9
+
+[:python_version<'3.0']
+functools32

@@ -1,0 +1,98 @@
+{
+  "build": "py37_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "python >=3.7,<3.8.0a0"
+  ],
+  "extracted_package_dir": "/Users/gpena-castellanos/Continuum/conda/devenv/pkgs/certifi-2018.8.13-py37_0",
+  "features": "",
+  "files": [
+    "lib/python3.7/site-packages/certifi-2018.08.13-py3.7.egg-info",
+    "lib/python3.7/site-packages/certifi/__init__.py",
+    "lib/python3.7/site-packages/certifi/__main__.py",
+    "lib/python3.7/site-packages/certifi/__pycache__/__init__.cpython-37.pyc",
+    "lib/python3.7/site-packages/certifi/__pycache__/__main__.cpython-37.pyc",
+    "lib/python3.7/site-packages/certifi/__pycache__/core.cpython-37.pyc",
+    "lib/python3.7/site-packages/certifi/cacert.pem",
+    "lib/python3.7/site-packages/certifi/core.py"
+  ],
+  "fn": "certifi-2018.8.13-py37_0.tar.bz2",
+  "license": "ISC",
+  "link": {
+    "source": "/Users/gpena-castellanos/Continuum/conda/devenv/pkgs/certifi-2018.8.13-py37_0",
+    "type": 1
+  },
+  "md5": "3f2e0d6e6bb672e2b4c108a274205868",
+  "name": "certifi",
+  "package_tarball_full_path": "/Users/gpena-castellanos/Continuum/conda/devenv/pkgs/certifi-2018.8.13-py37_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.7/site-packages/certifi-2018.08.13-py3.7.egg-info",
+        "path_type": "hardlink",
+        "sha256": "da056d65e2ae9086c0332558f970fb504ea5c617294d0c21a70342120348a3f4",
+        "sha256_in_prefix": "da056d65e2ae9086c0332558f970fb504ea5c617294d0c21a70342120348a3f4",
+        "size_in_bytes": 2950
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "207251106dfe2667950c8c536ae98cbb8373990924c7ece9cccf49d5aa2f6c4a",
+        "sha256_in_prefix": "207251106dfe2667950c8c536ae98cbb8373990924c7ece9cccf49d5aa2f6c4a",
+        "size_in_bytes": 63
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/__main__.py",
+        "path_type": "hardlink",
+        "sha256": "162398b75165b6cb7bc24f4345ae860a806bf2a054c65350bbf30a25fd3813ab",
+        "sha256_in_prefix": "162398b75165b6cb7bc24f4345ae860a806bf2a054c65350bbf30a25fd3813ab",
+        "size_in_bytes": 41
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/__pycache__/__init__.cpython-37.pyc",
+        "path_type": "hardlink",
+        "sha256": "c2fc8b3104c18f09a857ea5246ea5644e634c249b956266b5b13b434b6570cd6",
+        "sha256_in_prefix": "c2fc8b3104c18f09a857ea5246ea5644e634c249b956266b5b13b434b6570cd6",
+        "size_in_bytes": 219
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/__pycache__/__main__.cpython-37.pyc",
+        "path_type": "hardlink",
+        "sha256": "85f67538ecc37aa51f7d84b728699c2fe86030a86e7358910308f13353c2db6b",
+        "sha256_in_prefix": "85f67538ecc37aa51f7d84b728699c2fe86030a86e7358910308f13353c2db6b",
+        "size_in_bytes": 190
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/__pycache__/core.cpython-37.pyc",
+        "path_type": "hardlink",
+        "sha256": "1f8caf71c1a4a45365c9055c8849f08a30548a16a629acbdebb6130cf0a1f598",
+        "sha256_in_prefix": "1f8caf71c1a4a45365c9055c8849f08a30548a16a629acbdebb6130cf0a1f598",
+        "size_in_bytes": 1154
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/cacert.pem",
+        "path_type": "hardlink",
+        "sha256": "0236c0bb96caef0e474ba9f2571dee1911a619287b038b42a305ae5dd5570499",
+        "sha256_in_prefix": "0236c0bb96caef0e474ba9f2571dee1911a619287b038b42a305ae5dd5570499",
+        "size_in_bytes": 261652
+      },
+      {
+        "_path": "lib/python3.7/site-packages/certifi/core.py",
+        "path_type": "hardlink",
+        "sha256": "c4f403746fec8b2e40ec17ea1966bb44985c03ad715c4a8f892af0f463728471",
+        "sha256_in_prefix": "c4f403746fec8b2e40ec17ea1966bb44985c03ad715c4a8f892af0f463728471",
+        "size_in_bytes": 836
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 141809,
+  "subdir": "osx-64",
+  "timestamp": 1534172918381,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/certifi-2018.8.13-py37_0.tar.bz2",
+  "version": "2018.8.13"
+}

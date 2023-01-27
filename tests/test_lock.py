@@ -1,3 +1,6 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
 import pytest
 from conda.lock import DirectoryLock, FileLock, LockError
 from os.path import basename, exists, isfile, join
@@ -94,7 +97,7 @@ def test_lock_retries(tmpdir):
     def lock_thread_retries(tmpdir, file_path):
         with pytest.raises(LockError) as execinfo:
             with FileLock(file_path, retries=0):
-                assert False  # should never enter here, since max_tires is 0
+                assert False  # should never enter here, since max_tries is 0
             assert "LOCKERROR" in str(execinfo.value)
 
     from threading import Thread
@@ -117,10 +120,9 @@ def test_permission_file():
         Test when lock cannot be created due to permission
         Make sure no exception raised
     """
-    import tempfile
-    from conda.common.compat import text_type
-    with tempfile.NamedTemporaryFile(mode='r') as f:
-        if not isinstance(f.name, text_type):
+    from conda.auxlib.compat import Utf8NamedTemporaryFile
+    with Utf8NamedTemporaryFile(mode='r') as f:
+        if not isinstance(f.name, str):
             return
         with FileLock(f.name) as lock:
 

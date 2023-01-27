@@ -1,42 +1,34 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+import importlib.util
 from logging import getLogger
+import os
 from os.path import basename, dirname, isdir, isfile, join, lexists, getsize
-from shlex import split as shlex_split
-from subprocess import check_output
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+import warnings
 
 import pytest
 
-from conda._vendor.auxlib.collection import AttrDict
-from conda._vendor.toolz.itertoolz import groupby
-from conda.base.constants import PREFIX_MAGIC_FILE
-from conda.base.context import context, reset_context
-from conda.common.compat import PY2, on_win
-from conda.common.io import env_var
+from conda.common.iterators import groupby_to_dict as groupby
+from conda.auxlib.ish import dals
+from conda.auxlib.collection import AttrDict
+from conda.base.context import context
+from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
-    win_path_ok
-from conda.core.path_actions import CompilePycAction, CreatePythonEntryPointAction, LinkPathAction
-from conda.exceptions import ParseError
+    win_path_ok, explode_directories
+from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPointAction, LinkPathAction
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.link import islink, stat_nlink
+from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.test import softlink_supported
-from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
 
 log = getLogger(__name__)
 
@@ -52,19 +44,10 @@ def make_test_file(target_dir, suffix='', contents=''):
 
 
 def load_python_file(py_file_full_path):
-    if PY2:
-        import imp
-        return imp.load_compiled("module.name", py_file_full_path)
-    elif sys.version_info < (3, 5):
-        raise ParseError("this doesn't work for .pyc files")
-        from importlib.machinery import SourceFileLoader
-        return SourceFileLoader("module.name", py_file_full_path).load_module()
-    else:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("module.name", py_file_full_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
+    spec = importlib.util.spec_from_file_location("module.name", py_file_full_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class PathActionsTests(TestCase):
@@ -83,16 +66,11 @@ class PathActionsTests(TestCase):
 
     def tearDown(self):
         rm_rf(self.prefix)
-        if not (on_win and PY2):
-            # this assertion fails for the Softlink action windows tests
-            # line 141 in backoff_rmdir
-            #  exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-            # leaves a directory self.prefix\\Scripts that cannot be accessed or removed
-            assert not lexists(self.prefix)
+        assert not lexists(self.prefix)
         rm_rf(self.pkgs_dir)
         assert not lexists(self.pkgs_dir)
 
-    def test_CompilePycAction_generic(self):
+    def test_CompileMultiPycAction_generic(self):
         package_info = AttrDict(
             package_metadata=AttrDict(
                 noarch=AttrDict(
@@ -100,17 +78,17 @@ class PathActionsTests(TestCase):
         )
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         assert noarch.type == NoarchType.generic
-        axns = CompilePycAction.create_actions({}, package_info, self.prefix, None, ())
+        axns = CompileMultiPycAction.create_actions({}, package_info, self.prefix, None, ())
         assert axns == ()
 
         package_info = AttrDict(package_metadata=None)
-        axns = CompilePycAction.create_actions({}, package_info, self.prefix, None, ())
+        axns = CompileMultiPycAction.create_actions({}, package_info, self.prefix, None, ())
         assert axns == ()
 
-    def test_CompilePycAction_noarch_python(self):
+    @pytest.mark.xfail(on_win, reason="pyc compilation need env on windows, see gh #8025")
+    def test_CompileMultiPycAction_noarch_python(self):
         if not softlink_supported(__file__, self.prefix) and on_win:
             pytest.skip("softlink not supported")
-
         target_python_version = '%d.%d' % sys.version_info[:2]
         sp_dir = get_python_site_packages_short_path(target_python_version)
         transaction_context = {
@@ -125,24 +103,47 @@ class PathActionsTests(TestCase):
                 target_short_path=get_python_noarch_target_path('site-packages/something.py', sp_dir),
             ),
             AttrDict(
+                source_short_path='site-packages/another.py',
+                target_short_path=get_python_noarch_target_path('site-packages/another.py', sp_dir),
+            ),
+            AttrDict(
                 # this one shouldn't get compiled
                 source_short_path='something.py',
                 target_short_path=get_python_noarch_target_path('something.py', sp_dir),
             ),
+            AttrDict(
+                # this one shouldn't get compiled
+                source_short_path='another.py',
+                target_short_path=get_python_noarch_target_path('another.py', sp_dir),
+            ),
         ]
-        axns = CompilePycAction.create_actions(transaction_context, package_info, self.prefix,
-                                               None, file_link_actions)
+        axns = CompileMultiPycAction.create_actions(transaction_context, package_info, self.prefix,
+                                                    None, file_link_actions)
 
         assert len(axns) == 1
         axn = axns[0]
-        assert axn.source_full_path == join(self.prefix, win_path_ok(get_python_noarch_target_path('site-packages/something.py', sp_dir)))
-        assert axn.target_full_path == join(self.prefix, win_path_ok(pyc_path(get_python_noarch_target_path('site-packages/something.py', sp_dir),
+        source_full_paths = tuple(axn.source_full_paths)
+        source_full_path0 = source_full_paths[0]
+        source_full_path1 = source_full_paths[1]
+        assert len(source_full_paths) == 2
+        assert source_full_path0 == join(self.prefix, win_path_ok(get_python_noarch_target_path('site-packages/something.py', sp_dir)))
+        assert source_full_path1 == join(self.prefix, win_path_ok(get_python_noarch_target_path('site-packages/another.py', sp_dir)))
+        target_full_paths = tuple(axn.target_full_paths)
+        target_full_path0 = target_full_paths[0]
+        target_full_path1 = target_full_paths[1]
+        assert len(target_full_paths) == 2
+        assert target_full_path0 == join(self.prefix, win_path_ok(pyc_path(get_python_noarch_target_path('site-packages/something.py', sp_dir),
+                     target_python_version)))
+        assert target_full_path1 == join(self.prefix, win_path_ok(pyc_path(get_python_noarch_target_path('site-packages/another.py', sp_dir),
                      target_python_version)))
 
         # make .py file in prefix that will be compiled
-        mkdir_p(dirname(axn.source_full_path))
-        with open(axn.source_full_path, 'w') as fh:
+        mkdir_p(dirname(source_full_path0))
+        with open(source_full_path0, 'w') as fh:
             fh.write("value = 42\n")
+        mkdir_p(dirname(source_full_path1))
+        with open(source_full_path1, 'w') as fh:
+            fh.write("value = 43\n")
 
         # symlink the current python
         python_full_path = join(self.prefix, get_python_short_path(target_python_version))
@@ -150,19 +151,23 @@ class PathActionsTests(TestCase):
         create_link(sys.executable, python_full_path, LinkType.softlink)
 
         axn.execute()
-        assert isfile(axn.target_full_path)
+        assert isfile(target_full_path0)
+        assert isfile(target_full_path1)
 
         # remove the source .py file so we're sure we're importing the pyc file below
-        rm_rf(axn.source_full_path)
-        assert not isfile(axn.source_full_path)
+        rm_rf(source_full_path0)
+        assert not isfile(source_full_path0)
+        rm_rf(source_full_path1)
+        assert not isfile(source_full_path1)
 
-        if (3,) > sys.version_info >= (3, 5):
-            # we're probably dropping py34 support soon enough anyway
-            imported_pyc_file = load_python_file(axn.target_full_path)
-            assert imported_pyc_file.value == 42
+        imported_pyc_file = load_python_file(target_full_path0)
+        assert imported_pyc_file.value == 42
+        imported_pyc_file = load_python_file(target_full_path1)
+        assert imported_pyc_file.value == 43
 
         axn.reverse()
-        assert not isfile(axn.target_full_path)
+        assert not isfile(target_full_path0)
+        assert not isfile(target_full_path1)
 
     def test_CreatePythonEntryPointAction_generic(self):
         package_info = AttrDict(package_metadata=None)
@@ -195,9 +200,9 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         if on_win:
-            target_short_path = "%s\\%s-script.py" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
         else:
-            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}/{command}"
         assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
@@ -208,12 +213,23 @@ class PathActionsTests(TestCase):
         if not on_win:
             assert is_executable(py_ep_axn.target_full_path)
         with open(py_ep_axn.target_full_path) as fh:
-            lines = fh.readlines()
-            first_line = lines[0].strip()
-            last_line = lines[-1].strip()
+            lines = fh.read()
+            last_line = lines.splitlines()[-1].strip()
         if not on_win:
             python_full_path = join(self.prefix, get_python_short_path(target_python_version))
-            assert first_line == "#!%s" % python_full_path
+            if " " in self.prefix:
+                # spaces in prefix break shebang! we use this python/shell workaround
+                # also seen in virtualenv
+                assert lines.startswith(
+                    dals(
+                        f"""
+                        #!/bin/sh
+                        '''exec' "{python_full_path}" "$0" "$@" #'''
+                        """
+                    )
+                )
+            else:
+                assert lines.startswith(f"#!{python_full_path}\n")
         assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()
@@ -221,7 +237,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "%s\\%s.exe" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))
@@ -259,7 +275,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert not islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 2
+        assert os.lstat(axn.target_full_path).st_nlink == 2
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -290,7 +306,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 1
+        assert os.lstat(axn.target_full_path).st_nlink == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -306,9 +322,11 @@ class PathActionsTests(TestCase):
         assert isdir(join(self.prefix, target_short_path))
 
         axn.reverse()
-        assert not lexists(axn.target_full_path)
-        assert not lexists(dirname(axn.target_full_path))
-        assert not lexists(dirname(dirname(axn.target_full_path)))
+        # this is counter-intuitive, but it's faster to tell conda to ignore folders for removal in transactions
+        #    than it is to try to have it scan to see if anything else has populated that folder.
+        assert lexists(axn.target_full_path)
+        assert lexists(dirname(axn.target_full_path))
+        assert lexists(dirname(dirname(axn.target_full_path)))
 
     def test_simple_LinkPathAction_copy(self):
         source_full_path = make_test_file(self.pkgs_dir)
@@ -333,7 +351,7 @@ class PathActionsTests(TestCase):
         axn.execute()
         assert isfile(axn.target_full_path)
         assert not islink(axn.target_full_path)
-        assert stat_nlink(axn.target_full_path) == 1
+        assert os.lstat(axn.target_full_path).st_nlink == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
@@ -363,7 +381,7 @@ class PathActionsTests(TestCase):
     #     target_full_path = join(self.prefix, test_file)
     #     mkdir_p(join(dirname(target_full_path)))
     #
-    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
     #         axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix,
     #                                                               None)
     #         assert len(axns) == 1
@@ -410,7 +428,7 @@ class PathActionsTests(TestCase):
     #     target_full_path_2 = join(self.prefix, test_file_2)
     #     mkdir_p(join(dirname(target_full_path_1)))
     #
-    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
     #         softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
     #         from conda.gateways.disk.test import softlink_supported
     #         softlink_actually_supported = softlink_supported(softlink_supported_test_file,
@@ -481,7 +499,7 @@ class PathActionsTests(TestCase):
     #     target_full_path_2 = join(self.prefix, test_file_2)
     #     mkdir_p(join(dirname(target_full_path_1)))
     #
-    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, stack_callback=conda_tests_ctxt_mgmt_def_pol):
     #         softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
     #         from conda.gateways.disk.test import softlink_supported
     #         softlink_actually_supported = softlink_supported(softlink_supported_test_file,
@@ -523,3 +541,34 @@ class PathActionsTests(TestCase):
     #                     axn.execute()
     #             axn.reverse()
     #             assert not lexists(axn.target_full_path)
+
+
+def test_explode_directories():
+    warnings.warn(
+        "`toolz` is pending deprecation and will be removed in a future release.",
+        PendingDeprecationWarning,
+    )
+
+    try:
+        import tlz as toolz
+    except:
+        import conda._vendor.toolz as toolz
+
+    def old_explode_directories(child_directories, already_split=False):
+        # get all directories including parents
+        # use already_split=True for the result of get_all_directories()
+        maybe_split = lambda x: x if already_split else x.split("/")
+        return set(
+            toolz.concat(
+                toolz.accumulate(join, maybe_split(directory))
+                for directory in child_directories
+                if directory
+            )
+        )
+
+    old_version = old_explode_directories(
+        (os.path.split(path) for path in sys.path), already_split=True
+    )
+    new_version = explode_directories(os.path.split(path) for path in sys.path)
+
+    assert new_version == old_version

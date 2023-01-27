@@ -1,15 +1,18 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 
-import inspect
 
-from datetime import datetime
+try:
+    from inspect import getfullargspec as getargspec
+except ImportError:
+    from inspect import getargspec
+
 import pytest
 
 from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData, \
     UpdateModifier
 from conda.base.context import context
-from conda.common.compat import isiterable, odict
+from conda.common.compat import isiterable
 from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
@@ -21,9 +24,10 @@ class PositionalArgument:
 
 
 def inspect_arguments(f, arguments):
-    result = inspect.getargspec(f)
+    # FullArgSpec(args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations)
+    result = getargspec(f)
     arg_names = result[0]
-    defaults = result.defaults or ()
+    defaults = result[3] or ()
     default_val_first_idx = len(arg_names) - len(defaults)
     arg_values = [PositionalArgument] * default_val_first_idx + list(defaults)
     for (recorded_name, recorded_value), (arg_name, arg_value) in zip(arguments.items(), zip(arg_names, arg_values)):
@@ -47,46 +51,46 @@ def test_UpdateModifier_contract():
 
 
 def test_Solver_inputs_contract():
-    init_args = odict((
-        ('self', PositionalArgument),
-        ('prefix', PositionalArgument),
-        ('channels', PositionalArgument),
-        ('subdirs', ()),
-        ('specs_to_add', ()),
-        ('specs_to_remove', ()),
-    ))
+    init_args = {
+        "self": PositionalArgument,
+        "prefix": PositionalArgument,
+        "channels": PositionalArgument,
+        "subdirs": (),
+        "specs_to_add": (),
+        "specs_to_remove": (),
+    }
     inspect_arguments(Solver.__init__, init_args)
 
-    solve_final_state_args = odict((
-        ('self', PositionalArgument),
-        ('update_modifier', NULL),
-        ('deps_modifier', NULL),
-        ('prune', NULL),
-        ('ignore_pinned', NULL),
-        ('force_remove', NULL),
-    ))
+    solve_final_state_args = {
+        "self": PositionalArgument,
+        "update_modifier": NULL,
+        "deps_modifier": NULL,
+        "prune": NULL,
+        "ignore_pinned": NULL,
+        "force_remove": NULL,
+    }
     inspect_arguments(Solver.solve_final_state, solve_final_state_args)
 
-    solve_for_diff_args = odict((
-        ('self', PositionalArgument),
-        ('update_modifier', NULL),
-        ('deps_modifier', NULL),
-        ('prune', NULL),
-        ('ignore_pinned', NULL),
-        ('force_remove', NULL),
-        ('force_reinstall', False),
-    ))
+    solve_for_diff_args = {
+        "self": PositionalArgument,
+        "update_modifier": NULL,
+        "deps_modifier": NULL,
+        "prune": NULL,
+        "ignore_pinned": NULL,
+        "force_remove": NULL,
+        "force_reinstall": False,
+    }
     inspect_arguments(Solver.solve_for_diff, solve_for_diff_args)
 
-    solve_for_transaction_args = odict((
-        ('self', PositionalArgument),
-        ('update_modifier', NULL),
-        ('deps_modifier', NULL),
-        ('prune', NULL),
-        ('ignore_pinned', NULL),
-        ('force_remove', NULL),
-        ('force_reinstall', False),
-    ))
+    solve_for_transaction_args = {
+        "self": PositionalArgument,
+        "update_modifier": NULL,
+        "deps_modifier": NULL,
+        "prune": NULL,
+        "ignore_pinned": NULL,
+        "force_remove": NULL,
+        "force_reinstall": False,
+    }
     inspect_arguments(Solver.solve_for_transaction, solve_for_transaction_args)
 
 
@@ -110,33 +114,29 @@ def test_Solver_return_value_contract():
 
 
 def test_SubdirData_contract():
-    init_args = odict((
-        ('self', PositionalArgument),
-        ('channel', PositionalArgument),
-    ))
+    init_args = {
+        "self": PositionalArgument,
+        "channel": PositionalArgument,
+    }
     inspect_arguments(SubdirData.__init__, init_args)
 
-    query_args = odict((
-        ('self', PositionalArgument),
-        ('package_ref_or_match_spec', PositionalArgument),
-    ))
+    query_args = {
+        "self": PositionalArgument,
+        "package_ref_or_match_spec": PositionalArgument,
+    }
     inspect_arguments(SubdirData.query, query_args)
 
-    query_all_args = odict((
-        ('package_ref_or_match_spec', PositionalArgument),
-        ('channels', None),
-        ('subdirs', None),
-    ))
+    query_all_args = {
+        "package_ref_or_match_spec": PositionalArgument,
+        "channels": None,
+        "subdirs": None,
+    }
     inspect_arguments(SubdirData.query_all, query_all_args)
 
-    iter_records_args = odict((
-        ('self', PositionalArgument),
-    ))
+    iter_records_args = {"self": PositionalArgument}
     inspect_arguments(SubdirData.iter_records, iter_records_args)
 
-    reload_args = odict((
-        ('self', PositionalArgument),
-    ))
+    reload_args = {"self": PositionalArgument}
     inspect_arguments(SubdirData.reload, reload_args)
 
 
@@ -160,46 +160,40 @@ def test_SubdirData_return_value_contract():
 
 
 def test_PackageCacheData_contract():
-    init_args = odict((
-        ('self', PositionalArgument),
-        ('pkgs_dir', PositionalArgument),
-    ))
+    init_args = {
+        "self": PositionalArgument,
+        "pkgs_dir": PositionalArgument,
+    }
     inspect_arguments(PackageCacheData.__init__, init_args)
 
-    get_args = odict((
-        ('self', PositionalArgument),
-        ('package_ref', PositionalArgument),
-        ('default', NULL),
-    ))
+    get_args = {
+        "self": PositionalArgument,
+        "package_ref": PositionalArgument,
+        "default": NULL,
+    }
     inspect_arguments(PackageCacheData.get, get_args)
 
-    query_args = odict((
-        ('self', PositionalArgument),
-        ('package_ref_or_match_spec', PositionalArgument),
-    ))
+    query_args = {
+        "self": PositionalArgument,
+        "package_ref_or_match_spec": PositionalArgument,
+    }
     inspect_arguments(PackageCacheData.query, query_args)
 
-    query_all_args = odict((
-        ('package_ref_or_match_spec', PositionalArgument),
-        ('pkgs_dirs', None),
-    ))
+    query_all_args = {
+        "package_ref_or_match_spec": PositionalArgument,
+        "pkgs_dirs": None,
+    }
     inspect_arguments(PackageCacheData.query_all, query_all_args)
 
-    iter_records_args = odict((
-        ('self', PositionalArgument),
-    ))
+    iter_records_args = {"self": PositionalArgument}
     inspect_arguments(PackageCacheData.iter_records, iter_records_args)
 
     isinstance(PackageCacheData.is_writable, property)
 
-    first_writable_args = odict((
-        ('pkgs_dirs', None),
-    ))
+    first_writable_args = {"pkgs_dirs": None}
     inspect_arguments(PackageCacheData.first_writable, first_writable_args)
 
-    reload_args = odict((
-        ('self', PositionalArgument),
-    ))
+    reload_args = {"self": PositionalArgument}
     inspect_arguments(PackageCacheData.reload, reload_args)
 
 
@@ -234,35 +228,31 @@ def test_PackageCacheData_return_value_contract():
 
 
 def test_PrefixData_contract():
-    init_args = odict((
-        ('self', PositionalArgument),
-        ('prefix_path', PositionalArgument),
-    ))
+    init_args = {
+        "self": PositionalArgument,
+        "prefix_path": PositionalArgument,
+    }
     inspect_arguments(PrefixData.__init__, init_args)
 
-    get_args = odict((
-        ('self', PositionalArgument),
-        ('package_ref', PositionalArgument),
-        ('default', NULL),
-    ))
+    get_args = {
+        "self": PositionalArgument,
+        "package_ref": PositionalArgument,
+        "default": NULL,
+    }
     inspect_arguments(PrefixData.get, get_args)
 
-    query_args = odict((
-        ('self', PositionalArgument),
-        ('package_ref_or_match_spec', PositionalArgument),
-    ))
+    query_args = {
+        "self": PositionalArgument,
+        "package_ref_or_match_spec": PositionalArgument,
+    }
     inspect_arguments(PrefixData.query, query_args)
 
-    iter_records_args = odict((
-        ('self', PositionalArgument),
-    ))
+    iter_records_args = {"self": PositionalArgument}
     inspect_arguments(PrefixData.iter_records, iter_records_args)
 
     isinstance(PrefixData.is_writable, property)
 
-    reload_args = odict((
-        ('self', PositionalArgument),
-    ))
+    reload_args = {"self": PositionalArgument}
     inspect_arguments(PrefixData.reload, reload_args)
 
 

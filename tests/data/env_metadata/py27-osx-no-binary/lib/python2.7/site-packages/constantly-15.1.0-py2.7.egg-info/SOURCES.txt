@@ -1,0 +1,15 @@
+CREDITS
+LICENSE
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+versioneer.py
+constantly/__init__.py
+constantly/_constants.py
+constantly/_version.py
+constantly.egg-info/PKG-INFO
+constantly.egg-info/SOURCES.txt
+constantly.egg-info/dependency_links.txt
+constantly.egg-info/pbr.json
+constantly.egg-info/top_level.txt

@@ -1,0 +1,57 @@
+Metadata-Version: 1.2
+Name: BeagleVote
+Version: 1.0a2
+Platform: ObscureUnix
+Platform: RareDOS
+Supported-Platform: RedHat 7.2
+Supported-Platform: i386-win32-2791
+Summary: A module for collecting votes from beagles.
+Description: This project provides powerful math functions
+        |For example, you can use `sum()` to sum numbers:
+        |
+        |Example::
+        |
+        |    >>> sum(1, 2)
+        |    3
+        |
+Keywords: dog puppy voting election
+Home-page: http://www.example.com/~cschultz/bvote/
+Download-URL: http://www.example.com/~cschultz/bvote/download
+Author: C. Schultz, Universal Features Syndicate,
+        Los Angeles, CA <cschultz@peanuts.example.com>
+Author-email: "C. Schultz" <cschultz@example.com>
+Maintainer: C. Schultz, Universal Features Syndicate,
+Maintainer-email: "C. Schultz" <cschultz@example.com>
+License: This software may only be obtained by sending the
+        author a postcard, and then the user promises not
+        to redistribute it.
+Classifier: Development Status :: 4 - Beta; sys.platform == 'win32'
+Classifier: Environment :: Console (Text Based)
+Requires-Dist: pkginfo
+Requires-Dist: PasteDeploy
+Requires-Dist: zope.interface (>3.5.0)
+Provides-Dist: OtherProject
+Provides-Dist: AnotherProject (3.4)
+Provides-Dist: virtual_package
+Obsoletes-Dist: Gorgon
+Obsoletes-Dist: OtherProject (<3.0)
+Requires-Python: 2.5
+Requires-Python: >2.1
+Requires-Python: >=2.3.4
+Requires-Python: >=2.5,<2.7
+Requires-External: C
+Requires-External: libpng (>=1.5)
+Project-URL: Bug Tracker, http://bitbucket.org/tarek/distribute/issues/
+Requires-Dist: zope.interface (3.1)
+Requires-Dist: zope.interface (3.1.0)
+Requires-Python: 3
+Requires-Python: >=2.6,<3
+Requires-Python: 2.6.2
+Requires-Python: 2.5.0
+Requires-Dist: zope.interface (3.1,!=3.1.3)
+Requires-Dist: pywin32 (>1.0); sys.platform == 'win32'
+Obsoletes-Dist: pywin31; sys.platform == 'win32'
+Requires-Dist: foo (1,!=1.3); platform.machine == 'i386'
+Requires-Dist: bar; python_version == '2.4' or python_version == '2.5'
+Requires-External: libxslt; 'linux' in sys.platform
+Requires-Python: >=2.5,<2.7; 'linux' in sys.platform

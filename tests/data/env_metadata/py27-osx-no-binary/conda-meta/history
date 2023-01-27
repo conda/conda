@@ -1,0 +1,38 @@
+==> 2018-08-30 07:58:56 <==
+# cmd: /Users/kfranz/continuum/conda/devenv/bin/conda create -y -p ./tenv python=2 numpy h5py nomkl lxml pip=8
+# conda version: 4.5.10
++defaults::blas-1.0-openblas
++defaults::ca-certificates-2018.03.07-0
++defaults::certifi-2018.8.24-py27_1
++defaults::h5py-2.8.0-py27h878fce3_3
++defaults::hdf5-1.10.2-hfa1e0ec_1
++defaults::icu-58.2-h4b95b61_1
++defaults::libcxx-4.0.1-h579ed51_0
++defaults::libcxxabi-4.0.1-hebd6815_0
++defaults::libedit-3.1.20170329-hb402a30_2
++defaults::libffi-3.2.1-h475c297_4
++defaults::libgfortran-3.0.1-h93005f0_2
++defaults::libiconv-1.15-hdd342a3_7
++defaults::libopenblas-0.3.2-hdc02c5d_1
++defaults::libxml2-2.9.8-hab757c2_1
++defaults::libxslt-1.1.32-hb819dd2_0
++defaults::linecache2-1.0.0-py27_0
++defaults::lxml-4.2.4-py27hef8c89e_0
++defaults::ncurses-6.1-h0a44026_0
++defaults::nomkl-3.0-0
++defaults::numpy-1.15.1-py27had7ef94_0
++defaults::numpy-base-1.15.1-py27h42e5f7b_0
++defaults::openssl-1.0.2p-h1de35cc_0
++defaults::pip-8.1.2-py27_0
++defaults::python-2.7.15-h138c1fe_0
++defaults::readline-7.0-h1de35cc_5
++defaults::setuptools-40.2.0-py27_0
++defaults::six-1.11.0-py27_1
++defaults::sqlite-3.24.0-ha441bb4_0
++defaults::tk-8.6.8-ha441bb4_0
++defaults::traceback2-1.4.0-py27_0
++defaults::unittest2-1.1.0-py27_0
++defaults::wheel-0.31.1-py27_0
++defaults::xz-5.2.4-h1de35cc_4
++defaults::zlib-1.2.11-hf3cbc9b_2
+# update specs: ['python=2', 'lxml', 'pip=8', 'nomkl', 'h5py', 'numpy']

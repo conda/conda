@@ -1,0 +1,276 @@
+{
+  "_mod": "Fri, 20 Oct 2017 17:24:15 GMT",
+  "_url": "https://conda.anaconda.org/conda-test/noarch",
+  "info": {
+    "arch": null,
+    "default_numpy_version": "1.7",
+    "default_python_version": "2.7",
+    "platform": null,
+    "subdir": "noarch"
+  },
+  "packages": {
+    "conda-index-pkg-a-1.0-pyhed9eced_1.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "59ea3097ab08c212295ded4b"
+      },
+      "build": "pyhed9eced_1",
+      "build_number": 1,
+      "depends": [
+        "python"
+      ],
+      "has_prefix": false,
+      "license": "BSD",
+      "machine": null,
+      "md5": "56b5f6b7fb5583bccfc4489e7c657484",
+      "name": "conda-index-pkg-a",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 7882,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "timestamp": 1508520204768,
+      "version": "1.0"
+    },
+    "flask-0.11.1-py_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "5859808b2ab33e0fe7c8f231"
+      },
+      "build": "py_0",
+      "build_number": 0,
+      "depends": [
+        "click >=2.0",
+        "itsdangerous >=0.21",
+        "jinja2 >=2.4",
+        "python",
+        "werkzeug >=0.7"
+      ],
+      "license": "BSD",
+      "machine": null,
+      "md5": "6b06127706cf0ba57c6e13258bb222e7",
+      "name": "flask",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 58062,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "0.11.1"
+    },
+    "font-ttf-inconsolata-2.000-0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "5888e88c8e911420a15a0fa6"
+      },
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "has_prefix": false,
+      "license": "OFL",
+      "license_family": "Other",
+      "machine": null,
+      "md5": "b8b21d0b7e0f69fd16a9607d1fdddf38",
+      "name": "font-ttf-inconsolata",
+      "noarch": true,
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 101931,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "2.000"
+    },
+    "itsdangerous-0.24-py_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "5898cb9d9aba4511169c383a"
+      },
+      "build": "py_0",
+      "build_number": 0,
+      "depends": [
+        "python"
+      ],
+      "has_prefix": false,
+      "license": "BSD",
+      "machine": null,
+      "md5": "917e90ca4e80324b77e8df449d07eefc",
+      "name": "itsdangerous",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 14098,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "0.24"
+    },
+    "needs-spiffy-test-app-1.0-py_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "58ca2ae89bfd275b460b3f36"
+      },
+      "build": "py_0",
+      "build_number": 0,
+      "depends": [
+        "python",
+        "spiffy-test-app >=2"
+      ],
+      "has_prefix": false,
+      "machine": null,
+      "md5": "870e35324a2a43fde680eb6d244186af",
+      "name": "needs-spiffy-test-app",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 5429,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "1.0"
+    },
+    "spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "58a77840f9e4b211570d691f"
+      },
+      "build": "pyh6afbcc8_0",
+      "build_number": 0,
+      "depends": [
+        "python"
+      ],
+      "has_prefix": false,
+      "machine": null,
+      "md5": "144fe52ea318dcaf0a4df905152c9f9c",
+      "name": "spiffy-test-app",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 4937,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "0.5"
+    },
+    "test_timestamp_sort-1.0-pyh1234567_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "59832a850e7bb112cb6e313b"
+      },
+      "build": "pyh1234567_0",
+      "build_number": 0,
+      "depends": [
+        "python"
+      ],
+      "has_prefix": false,
+      "machine": null,
+      "md5": "8d2eaa93fa7b203a6c5a9422a4fc494b",
+      "name": "test_timestamp_sort",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 4245,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "timestamp": 2,
+      "version": "1.0"
+    },
+    "test_timestamp_sort-1.0-pyh7654321_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "59832a850e7bb112cb6e313b"
+      },
+      "build": "pyh7654321_0",
+      "build_number": 0,
+      "depends": [
+        "python"
+      ],
+      "has_prefix": false,
+      "machine": null,
+      "md5": "fb5bd6bdb88370551dd6bc1289211ad1",
+      "name": "test_timestamp_sort",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 4243,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "timestamp": 1,
+      "version": "1.0"
+    },
+    "uses-spiffy-test-app-1.0-pyh7836eba_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "58a77928fcf1cf1171cd721c"
+      },
+      "build": "pyh7836eba_0",
+      "build_number": 0,
+      "depends": [
+        "python",
+        "spiffy-test-app"
+      ],
+      "has_prefix": false,
+      "machine": null,
+      "md5": "5ac009cee58cd467de139399ceb6ae43",
+      "name": "uses-spiffy-test-app",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "requires": [],
+      "size": 3888,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "1.0"
+    },
+    "uses-spiffy-test-app-2.0-pyh18698f2_0.tar.bz2": {
+      "arch": null,
+      "binstar": {
+        "channel": "main",
+        "owner_id": "58596cc93d1b550ffad38672",
+        "package_id": "58a77928fcf1cf1171cd721c"
+      },
+      "build": "pyh18698f2_0",
+      "build_number": 0,
+      "depends": [
+        "python",
+        "spiffy-test-app"
+      ],
+      "has_prefix": false,
+      "machine": null,
+      "md5": "31ce415d43c222c530dde754b25f0e0b",
+      "name": "uses-spiffy-test-app",
+      "noarch": "python",
+      "operatingsystem": null,
+      "platform": null,
+      "preferred_env": "_spiffy-test-app_",
+      "requires": [],
+      "size": 3928,
+      "subdir": "noarch",
+      "target-triplet": "None-any-None",
+      "version": "2.0"
+    }
+  }
+}

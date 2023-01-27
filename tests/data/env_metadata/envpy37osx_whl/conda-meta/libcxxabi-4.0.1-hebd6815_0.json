@@ -1,0 +1,63 @@
+{
+  "build": "hebd6815_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [],
+  "extracted_package_dir": "/Users/gpena-castellanos/Continuum/conda/devenv/pkgs/libcxxabi-4.0.1-hebd6815_0",
+  "features": "",
+  "files": [
+    "lib/libc++abi.1.0.dylib",
+    "lib/libc++abi.1.dylib",
+    "lib/libc++abi.a",
+    "lib/libc++abi.dylib"
+  ],
+  "fn": "libcxxabi-4.0.1-hebd6815_0.tar.bz2",
+  "license": "MIT license or UIUC License",
+  "license_family": "Other",
+  "link": {
+    "source": "/Users/gpena-castellanos/Continuum/conda/devenv/pkgs/libcxxabi-4.0.1-hebd6815_0",
+    "type": 1
+  },
+  "md5": "73ee4e71dae58f5173d649952c4c2b35",
+  "name": "libcxxabi",
+  "package_tarball_full_path": "/Users/gpena-castellanos/Continuum/conda/devenv/pkgs/libcxxabi-4.0.1-hebd6815_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/libc++abi.1.0.dylib",
+        "path_type": "hardlink",
+        "sha256": "75d1e8ba7541c334895f513fd83c3515e06b9e3b3f1cc158d7a0622fe1067748",
+        "sha256_in_prefix": "75d1e8ba7541c334895f513fd83c3515e06b9e3b3f1cc158d7a0622fe1067748",
+        "size_in_bytes": 297040
+      },
+      {
+        "_path": "lib/libc++abi.1.dylib",
+        "path_type": "softlink",
+        "sha256": "75d1e8ba7541c334895f513fd83c3515e06b9e3b3f1cc158d7a0622fe1067748",
+        "size_in_bytes": 297040
+      },
+      {
+        "_path": "lib/libc++abi.a",
+        "path_type": "hardlink",
+        "sha256": "73b13d35317cb8905cf8581403df636502c7d0d2fcf40b61faee6640d05b8d5a",
+        "sha256_in_prefix": "73b13d35317cb8905cf8581403df636502c7d0d2fcf40b61faee6640d05b8d5a",
+        "size_in_bytes": 356968
+      },
+      {
+        "_path": "lib/libc++abi.dylib",
+        "path_type": "softlink",
+        "sha256": "75d1e8ba7541c334895f513fd83c3515e06b9e3b3f1cc158d7a0622fe1067748",
+        "size_in_bytes": 297040
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 153017,
+  "subdir": "osx-64",
+  "timestamp": 1505224618472,
+  "track_features": "",
+  "url": "https://repo.continuum.io/pkgs/main/osx-64/libcxxabi-4.0.1-hebd6815_0.tar.bz2",
+  "version": "4.0.1"
+}

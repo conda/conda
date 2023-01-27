@@ -113,7 +113,7 @@ def site_data_dir(appname, appauthor=None, version=None):
     else:
         # XDG default for $XDG_CONFIG_DIRS[0]. Perhaps should actually
         # *use* that envvar, if defined.
-        path = "/etc/xdg/" + appname.lower()
+        path = "/etc/xdg/"+appname.lower()
     if version:
         path = os.path.join(path, version)
     return path
@@ -202,35 +202,16 @@ def user_log_dir(appname, appauthor=None, version=None, opinion=True):
             os.path.expanduser('~/Library/Logs'),
             appname)
     elif sys.platform == "win32":
-        path = user_data_dir(appname, appauthor, version); version = False
+        path = user_data_dir(appname, appauthor, version); version=False
         if opinion:
             path = os.path.join(path, "Logs")
     else:
-        path = user_cache_dir(appname, appauthor, version); version = False
+        path = user_cache_dir(appname, appauthor, version); version=False
         if opinion:
             path = os.path.join(path, "log")
     if version:
         path = os.path.join(path, version)
     return path
-
-class EnvAppDirs(object):
-    def __init__(self, appname, appauthor, root_path):
-        self.appname = appname
-        self.appauthor = appauthor
-        self.root_path = root_path
-    @property
-    def user_data_dir(self):
-        return os.path.join(self.root_path, 'data')
-    @property
-    def site_data_dir(self):
-        return os.path.join(self.root_path, 'data')
-    @property
-    def user_cache_dir(self):
-        return os.path.join(self.root_path, 'cache')
-
-    @property
-    def user_log_dir(self):
-        return os.path.join(self.root_path, 'log')
 
 
 class AppDirs(object):

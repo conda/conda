@@ -1,0 +1,24 @@
+@startuml
+!include <C4/C4_Container.puml>
+!include ../includes/base.puml
+
+' Define the items different to the base diagram
+Container(conda, "conda", "Software package and environment management system")
+
+Container_Boundary(channels, "Channels") {
+  Container_Boundary(community, "Community-maintained channels") {
+    ContainerDb_Ext(bioconda, "bioconda", "Bioinformatics software")
+    ContainerDb_Ext(conda_forge, "conda-forge", "General purpose software")
+    ContainerDb_Ext(other_channels, "other", "Other channels")
+  }
+  Container_Boundary(defaults, "Defaults channel, maintained by Anaconda Inc.") {
+    ContainerDb(msys2, "MSYS2", "Windows-only software packages")
+    ContainerDb(mro, "R", "Microsoft R Open software packages")
+    ContainerDb(anaconda, "anaconda", "Main software packages")
+  }
+}
+
+' Include relationships here once we've set the differences.
+!include ../includes/rels.puml
+
+@enduml

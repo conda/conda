@@ -1,0 +1,6 @@
+name: pip_argh
+
+dependencies:
+  - pip
+  - pip:
+      - argh==0.26.2

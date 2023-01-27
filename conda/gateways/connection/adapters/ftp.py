@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Taken from requests-ftp
@@ -17,17 +16,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from base64 import b64decode
 import cgi
 import ftplib
-from io import BytesIO
+from io import BytesIO, StringIO
 from logging import getLogger
 import os
 
 from .. import BaseAdapter, Response, dispatch_hook
-from ....common.compat import StringIO
 from ....common.url import urlparse
 from ....exceptions import AuthenticationError
 
@@ -49,7 +46,7 @@ ftplib.FTP.makepasv = _new_makepasv
 class FTPAdapter(BaseAdapter):
     """A Requests Transport Adapter that handles FTP urls."""
     def __init__(self):
-        super(FTPAdapter, self).__init__()
+        super().__init__()
 
         # Build a dictionary keyed off the methods we support in upper case.
         # The values of this dictionary should be the functions we use to
@@ -226,7 +223,6 @@ def data_callback_factory(variable):
     variable should be a file-like structure."""
     def callback(data):
         variable.write(data)
-        return
 
     return callback
 
@@ -263,7 +259,7 @@ def build_response(request, data, code, encoding):
 
 
 def parse_multipart_files(request):
-    """Given a prepared reqest, return a file-like object containing the
+    """Given a prepared request, return a file-like object containing the
     original data. This is pretty hacky."""
     # Start by grabbing the pdict.
     _, pdict = cgi.parse_header(request.headers['Content-Type'])

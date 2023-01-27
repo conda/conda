@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ast import literal_eval
-from errno import EACCES, EPERM
+import codecs
+from errno import EACCES, EPERM, EROFS
 import logging
 from operator import itemgetter
 import os
@@ -15,24 +14,22 @@ from textwrap import dedent
 import time
 import warnings
 
+from conda.common.iterators import groupby_to_dict as groupby
+
+from itertools import islice
+
 from . import __version__ as CONDA_VERSION
-from ._vendor.auxlib.ish import dals
+from .auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
-from .common.compat import ensure_text_type, iteritems, open, text_type
+from .common.compat import ensure_text_type, open
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
-from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
+from .exceptions import CondaHistoryError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.version import VersionOrder, version_relation_re
-from .resolve import MatchSpec
-
-try:
-    from cytoolz.itertoolz import groupby, take
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby, take  # NOQA
-
+from .models.match_spec import MatchSpec
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +39,9 @@ class CondaHistoryWarning(Warning):
 
 
 def write_head(fo):
-    fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
-    fo.write("# cmd: %s\n" % (' '.join(ensure_text_type(s) for s in sys.argv)))
-    fo.write("# conda version: %s\n" % '.'.join(take(3, CONDA_VERSION.split('.'))))
+    fo.write("==> %s <==\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
+    fo.write("# cmd: %s\n" % (" ".join(ensure_text_type(s) for s in sys.argv)))
+    fo.write("# conda version: %s\n" % ".".join(islice(CONDA_VERSION.split("."), 3)))
 
 
 def is_diff(content):
@@ -65,11 +62,11 @@ def pretty_diff(diff):
             added[name.lower()] = version
     changed = set(added) & set(removed)
     for name in sorted(changed):
-        yield ' %s  {%s -> %s}' % (name, removed[name], added[name])
+        yield f" {name}  {{{removed[name]} -> {added[name]}}}"
     for name in sorted(set(removed) - changed):
-        yield '-%s-%s' % (name, removed[name])
+        yield f"-{name}-{removed[name]}"
     for name in sorted(set(added) - changed):
-        yield '+%s-%s' % (name, added[name])
+        yield f"+{name}-{added[name]}"
 
 
 def pretty_content(content):
@@ -79,7 +76,7 @@ def pretty_content(content):
         return iter(sorted(content))
 
 
-class History(object):
+class History:
 
     com_pat = re.compile(r'#\s*cmd:\s*(.+)')
     spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
@@ -111,14 +108,13 @@ class History(object):
             try:
                 last = set(self.get_state())
             except CondaHistoryError as e:
-                warnings.warn("Error in %s: %s" % (self.path, e),
-                              CondaHistoryWarning)
+                warnings.warn(f"Error in {self.path}: {e}", CondaHistoryWarning)
                 return
             pd = PrefixData(self.prefix)
-            curr = set(prefix_rec.dist_str() for prefix_rec in pd.iter_records())
+            curr = {prefix_rec.dist_str() for prefix_rec in pd.iter_records()}
             self.write_changes(last, curr)
-        except EnvironmentError as e:
-            if e.errno in (EACCES, EPERM):
+        except OSError as e:
+            if e.errno in (EACCES, EPERM, EROFS):
                 raise NotWritableError(self.path, e.errno)
             else:
                 raise
@@ -208,6 +204,8 @@ class History(object):
                 item['update_specs'] = item['specs'] = specs
             elif specs and action in ('remove', 'uninstall'):
                 item['remove_specs'] = item['specs'] = specs
+            elif specs and action in ('neutered', ):
+                item['neutered_specs'] = item['specs'] = specs
 
         return item
 
@@ -236,10 +234,10 @@ class History(object):
 
         conda_versions_from_history = tuple(x['conda_version'] for x in res
                                             if 'conda_version' in x)
-        if conda_versions_from_history:
+        if conda_versions_from_history and not context.allow_conda_downgrades:
             minimum_conda_version = sorted(conda_versions_from_history, key=VersionOrder)[-1]
-            minimum_major_minor = '.'.join(take(2, minimum_conda_version.split('.')))
-            current_major_minor = '.'.join(take(2, CONDA_VERSION.split('.')))
+            minimum_major_minor = ".".join(islice(minimum_conda_version.split("."), 2))
+            current_major_minor = ".".join(islice(CONDA_VERSION.split("."), 2))
             if VersionOrder(current_major_minor) < VersionOrder(minimum_major_minor):
                 message = dals("""
                 This environment has previously been operated on by a conda version that's newer
@@ -260,7 +258,15 @@ class History(object):
                         "base_prefix": context.root_prefix,
                         "minimum_version": minimum_major_minor,
                     }
-                raise CondaUpgradeError(message)
+                message += dedent("""
+                To work around this restriction, one can also set the config parameter
+                'allow_conda_downgrades' to False at their own risk.
+                """)
+
+                # TODO: we need to rethink this.  It's fine as a warning to try to get users
+                #    to avoid breaking their system.  However, right now it is preventing
+                #    normal conda operation after downgrading conda.
+                # raise CondaUpgradeError(message)
 
         return res
 
@@ -272,21 +278,23 @@ class History(object):
             for spec in remove_specs:
                 spec_map.pop(spec.name, None)
             update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
-            spec_map.update(((s.name, s) for s in update_specs))
+            spec_map.update((s.name, s) for s in update_specs)
+            # here is where the neutering takes effect, overriding past values
+            neutered_specs = (MatchSpec(spec) for spec in request.get('neutered_specs', ()))
+            spec_map.update((s.name, s) for s in neutered_specs)
 
         # Conda hasn't always been good about recording when specs have been removed from
         # environments.  If the package isn't installed in the current environment, then we
         # shouldn't try to force it here.
-        prefix_recs = tuple(PrefixData(self.prefix).iter_records())
-        return dict((name, spec) for name, spec in iteritems(spec_map)
-                    if any(spec.match(dist) for dist in prefix_recs))
+        prefix_recs = {_.name for _ in PrefixData(self.prefix).iter_records()}
+        return {name: spec for name, spec in spec_map.items() if name in prefix_recs}
 
     def construct_states(self):
         """
         return a list of tuples(datetime strings, set of distributions)
         """
         res = []
-        cur = set([])
+        cur = set()
         for dt, cont, unused_com in self.parse():
             if not is_diff(cont):
                 cur = cont
@@ -311,7 +319,7 @@ class History(object):
         """
         states = self.construct_states()
         if not states:
-            return set([])
+            return set()
         times, pkgs = zip(*states)
         return pkgs[rev]
 
@@ -373,22 +381,25 @@ class History(object):
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
-        with open(self.path, 'a') as fo:
+        with codecs.open(self.path, mode='ab', encoding='utf-8') as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
                 fo.write('-%s\n' % fn)
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
-    def write_specs(self, remove_specs=(), update_specs=()):
-        remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
-        update_specs = [text_type(MatchSpec(s)) for s in update_specs]
-        if update_specs or remove_specs:
-            with open(self.path, 'a') as fh:
+    def write_specs(self, remove_specs=(), update_specs=(), neutered_specs=()):
+        remove_specs = [str(MatchSpec(s)) for s in remove_specs]
+        update_specs = [str(MatchSpec(s)) for s in update_specs]
+        neutered_specs = [str(MatchSpec(s)) for s in neutered_specs]
+        if any((update_specs, remove_specs, neutered_specs)):
+            with codecs.open(self.path, mode='ab', encoding='utf-8') as fh:
                 if remove_specs:
                     fh.write("# remove specs: %s\n" % remove_specs)
                 if update_specs:
                     fh.write("# update specs: %s\n" % update_specs)
+                if neutered_specs:
+                    fh.write("# neutered specs: %s\n" % neutered_specs)
 
 
 if __name__ == '__main__':
