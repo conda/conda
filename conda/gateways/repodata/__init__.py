@@ -405,7 +405,8 @@ class RepodataState(UserDict):
         return super().__getitem__(key)
 
 
-LOCK_BYTE = 22  # mamba interop
+LOCK_BYTE = 21  # mamba interop
+
 try:
     import msvcrt
 
@@ -459,16 +460,16 @@ class RepodataCache:
         base: directory and filename prefix for cache, e.g. /cache/dir/abc123;
         writes /cache/dir/abc123.json
         """
-        self.cache_path_base = pathlib.Path(base)
-        self.cache_dir = self.cache_path_base.parent
-        self.name = self.cache_path_base.name
+        cache_path_base = pathlib.Path(base)
+        self.cache_dir = cache_path_base.parent
+        self.name = cache_path_base.name
         self.repodata_fn = repodata_fn
         self.state = RepodataState(self.cache_path_json, self.cache_path_state, repodata_fn)
 
     @property
     def cache_path_json(self):
         return pathlib.Path(
-            self.cache_path_base, self.name + ("1" if context.use_only_tar_bz2 else "") + ".json"
+            self.cache_dir, self.name + ("1" if context.use_only_tar_bz2 else "") + ".json"
         )
 
     @property
@@ -477,7 +478,7 @@ class RepodataCache:
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return pathlib.Path(
-            self.cache_path_base,
+            self.cache_dir,
             self.name + ("1" if context.use_only_tar_bz2 else "") + ".state.json",
         )
 
@@ -556,7 +557,7 @@ class RepodataCache:
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
             temp_path.rename(self.cache_path_json)
-            state_file.write(json.dumps(self.state, indent=2))
+            state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self):
         """
@@ -564,7 +565,7 @@ class RepodataCache:
         """
         with self.cache_path_state.open("w+") as state_file, _lock(state_file):
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
-            state_file.write(json.dumps(self.state, indent=2))
+            state_file.write(json.dumps(dict(self.state), indent=2))
 
 
 try:
