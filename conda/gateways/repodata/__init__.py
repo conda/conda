@@ -414,13 +414,13 @@ try:
     def _lock(fd):
         tell = fd.tell()
         fd.seek(LOCK_BYTE)
-        msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+        msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)
         try:
             fd.seek(tell)
             yield
         finally:
             fd.seek(LOCK_BYTE)
-            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)
 
 except ImportError:
     try:
