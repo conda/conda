@@ -14,6 +14,7 @@
 # CONDA_PREFIX too in some instances and that really needs fixing.
 
 import os
+import platform
 import sys
 from os.path import dirname, normpath, join, isfile
 from subprocess import check_output
@@ -36,7 +37,7 @@ def conda_ensure_sys_python_is_base_env_python():
     # C:\opt\conda\envs\py27
     # So lets just sys.exit on that.
 
-    if 'CONDA_PYTHON_EXE' in os.environ:
+    if platform.system().lower() == 'windows' and 'CONDA_PYTHON_EXE' in os.environ:
         if os.path.normpath(os.environ['CONDA_PYTHON_EXE']) != sys.executable:
             print("ERROR :: Running tests from a non-base Python interpreter. "
                   " Tests requires installing menuinst and that causes stderr "
