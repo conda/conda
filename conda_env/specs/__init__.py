@@ -18,13 +18,13 @@ from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
 
-def get_spec_class_from_file(filename: str) -> list | None:
+def get_spec_class_from_file(filename: str) -> list:
     """
     Determine spec class to use from the provided ``filename``
 
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
-    specs = None
+    specs = []
 
     if filename:
         # Check extensions
