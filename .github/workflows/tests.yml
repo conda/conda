@@ -245,10 +245,19 @@ jobs:
         python-version: ['3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+        # fewer test splits for quicker unit tests, keep 3 splits for integration
+        test-splits: [2, 3]
+        exclude:
+          - test-type: unit
+            test-group: '3'
+          - test-type: unit
+            test-splits: 3
+          - test-type: integration
+            test-splits: 2
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
@@ -259,7 +268,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: ~/conda_pkgs_dir
           key:
@@ -285,6 +294,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
+        timeout-minutes: 10
         run: |
           ./dev/macos/setup.sh
 
