@@ -3,10 +3,6 @@
 
 import types
 import unittest
-try:
-    pass
-except ImportError:
-    pass
 from unittest.mock import patch, MagicMock
 from binstar_client import errors
 
