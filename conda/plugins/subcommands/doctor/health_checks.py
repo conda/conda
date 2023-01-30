@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
-import os
 
 from pathlib import Path
 from datetime import date
@@ -13,8 +12,6 @@ active_prefix = context.active_prefix
 REPORT_TITLE = "\n🩺 ENVIRONMENT HEALTH REPORT 🩺\n"
 DETAILED_REPORT_TITLE = "\n🩺 DETAILED ENVIRONMENT HEALTH REPORT 🩺\n"
 OK_MARK = "✅"
-
-term_size = os.get_terminal_size()
 
 def generate_report_heading(prefix: str):
     environment = Path(active_prefix)
@@ -86,12 +83,12 @@ def find_packages_with_missing_files(prefix: str):
 
 
 def run_health_checks(prefix: str):
-    print("_" * term_size.columns)
+    print("_" * 20)
     print(REPORT_TITLE)
     get_number_of_missing_files(active_prefix)
 
 
 def run_detailed_health_checks(prefix: str):
-    print("_" * term_size.columns)
+    print("_" * 20)
     print(DETAILED_REPORT_TITLE)
     get_names_of_missing_files(active_prefix)
