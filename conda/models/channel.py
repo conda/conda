@@ -5,15 +5,10 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
-
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context, Context
-from ..common.compat import ensure_text_type, isiterable, odict
+from ..common.compat import ensure_text_type, isiterable
 from ..common.path import is_package_file, is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
                           split_conda_url_easy_parts, split_platform, split_scheme_auth_token,
@@ -480,13 +475,15 @@ def get_conda_build_local_url():
 
 
 def prioritize_channels(channels, with_credentials=True, subdirs=None):
-    # prioritize_channels returns and OrderedDict with platform-specific channel
+    # prioritize_channels returns a dict with platform-specific channel
     #   urls as the key, and a tuple of canonical channel name and channel priority
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
-    channels = concat((Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-                      for c in (Channel(c) for c in channels))
-    result = odict()
+    channels = chain.from_iterable(
+        (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+        for c in (Channel(c) for c in channels)
+    )
+    result = {}
     for priority_counter, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls(with_credentials, subdirs):

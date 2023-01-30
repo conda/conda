@@ -1,10 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
-
 from errno import ENOENT
 from functools import lru_cache
+from itertools import chain
 from logging import getLogger
 from typing import Optional
 import os
@@ -14,11 +12,6 @@ import sys
 import struct
 from contextlib import contextmanager
 import warnings
-
-try:
-    from tlz.itertoolz import concat, unique
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
 
 from .constants import (
     APP_NAME,
@@ -48,10 +41,11 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
-from ..common.compat import NoneType, odict, on_win
+from ..common.compat import NoneType, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     ParameterLoader, PrimitiveParameter, SequenceParameter,
                                     ValidationError)
+from ..common.iterators import unique
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
@@ -276,6 +270,9 @@ class Context(Configuration):
             "", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)),
         aliases=('channels', 'channel',),
         expandvars=True)  # channel for args.channel
+    channel_settings = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str)))
+    )
     _custom_channels = ParameterLoader(
         MapParameter(PrimitiveParameter("", element_type=str), DEFAULT_CUSTOM_CHANNELS),
         aliases=('custom_channels',),
@@ -667,35 +664,33 @@ class Context(Configuration):
 
     @property
     def conda_exe_vars_dict(self):
-        '''
-        An OrderedDict so the vars can refer to each other if necessary.
+        """
+        The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
-        '''
+        """
 
         if context.dev:
-            return OrderedDict(
-                [
-                    ("CONDA_EXE", sys.executable),
-                    (
-                        "PYTHONPATH",
-                        # [warning] Do not confuse with os.path.join, we are joining paths
-                        # with ; or : delimiters.
-                        os.pathsep.join((CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))),
-                    ),
-                    ("_CE_M", "-m"),
-                    ("_CE_CONDA", "conda"),
-                    ("CONDA_PYTHON_EXE", sys.executable),
-                ]
-            )
+            return {
+                "CONDA_EXE": sys.executable,
+                # do not confuse with os.path.join, we are joining paths with ; or : delimiters
+                "PYTHONPATH": os.pathsep.join(
+                    (CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))
+                ),
+                "_CE_M": "-m",
+                "_CE_CONDA": "conda",
+                "CONDA_PYTHON_EXE": sys.executable,
+            }
         else:
             bin_dir = 'Scripts' if on_win else 'bin'
             exe = 'conda.exe' if on_win else 'conda'
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
-            return OrderedDict([('CONDA_EXE', os.path.join(sys.prefix, bin_dir, exe)),
-                                ('_CE_M', ''),
-                                ('_CE_CONDA', ''),
-                                ('CONDA_PYTHON_EXE', sys.executable)])
+            return {
+                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "_CE_M": "",
+                "_CE_CONDA": "",
+                "CONDA_PYTHON_EXE": sys.executable,
+            }
 
     @memoizedproperty
     def channel_alias(self):
@@ -730,42 +725,40 @@ class Context(Configuration):
         if self.restore_free_channel:
             default_channels.insert(1, 'https://repo.anaconda.com/pkgs/free')
 
-        reserved_multichannel_urls = odict((
-            (DEFAULTS_CHANNEL_NAME, default_channels),
-            ('local', self.conda_build_local_urls),
-        ))
-        reserved_multichannels = odict(
-            (name, tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in reserved_multichannel_urls.items()
-        )
-        custom_multichannels = odict(
-            (name, tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-             ) for name, urls in self._custom_multichannels.items()
-        )
-        return odict(
-            (name, channels)
+        reserved_multichannel_urls = {
+            DEFAULTS_CHANNEL_NAME: default_channels,
+            "local": self.conda_build_local_urls,
+        }
+        reserved_multichannels = {
+            name: tuple(Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+            for name, urls in reserved_multichannel_urls.items()
+        }
+        custom_multichannels = {
+            name: tuple(Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+            for name, urls in self._custom_multichannels.items()
+        }
+        return {
+            name: channels
             for name, channels in (
                 *custom_multichannels.items(),
                 *reserved_multichannels.items(),  # order maters, reserved overrides custom
             )
-        )
+        }
 
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
 
-        return odict(
-            (channel.name, channel)
+        return {
+            channel.name: channel
             for channel in (
-                *concat(channel for channel in self.custom_multichannels.values()),
+                *chain.from_iterable(channel for channel in self.custom_multichannels.values()),
                 *(
                     Channel.make_simple_channel(self.channel_alias, url, name)
                     for name, url in self._custom_channels.items()
                 ),
             )
-        )
+        }
 
     @property
     def channels(self):
@@ -1059,6 +1052,7 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
+                "channel_settings",
                 "debug",
                 "dev",
                 "default_python",
@@ -1198,6 +1192,13 @@ class Context(Configuration):
             channels=dals(
                 """
                 The list of conda channels to include for relevant operations.
+                """
+            ),
+            channel_settings=dals(
+                """
+                A list of mappings that allows overriding certain settings for a single channel.
+                Each list item should include at least the "channel" key and the setting you would
+                like to override.
                 """
             ),
             client_ssl_cert=dals(

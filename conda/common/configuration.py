@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -24,15 +25,12 @@ from os import environ, scandir, stat
 from os.path import basename, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
+from typing import TYPE_CHECKING
 
-try:
-    from tlz.itertoolz import concat, unique
-    from tlz.dicttoolz import merge, merge_with
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, unique
-    from conda._vendor.toolz.dicttoolz import merge, merge_with
+if TYPE_CHECKING:
+    from typing import Sequence
 
-from .compat import isiterable, odict, primitive_types
+from .compat import isiterable, primitive_types
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_round_trip_load
@@ -40,6 +38,7 @@ from .. import CondaError, CondaMultiError
 from ..auxlib.collection import AttrDict, first, last, make_immutable
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from ..common.iterators import unique
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
 
@@ -485,7 +484,7 @@ def load_file_configs(search_path):
     load_paths = (_loader[st_mode](path)
                   for path, st_mode in zip(expanded_paths, stat_paths)
                   if st_mode is not None)
-    raw_data = odict(kv for kv in chain.from_iterable(load_paths))
+    raw_data = dict(kv for kv in chain.from_iterable(load_paths))
     return raw_data
 
 
@@ -690,42 +689,46 @@ class MapLoadedParameter(LoadedParameter):
                 errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, matches):
-
-        # get matches up to and including first important_match
+    def merge(self, parameters: Sequence[MapLoadedParameter]) -> MapLoadedParameter:
+        # get all values up to and including first important_match
         # but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match, match.value) for match in
-                                            LoadedParameter._first_important_matches(matches))
+        parameters = LoadedParameter._first_important_matches(parameters)
 
-        for match, value in relevant_matches_and_values:
-            if not isinstance(value, Mapping):
-                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
-                                       self._type.__name__)
+        # ensure all parameter values are Mappings
+        for parameter in parameters:
+            if not isinstance(parameter.value, Mapping):
+                raise InvalidTypeError(
+                    self.name,
+                    parameter.value,
+                    parameter.source,
+                    parameter.value.__class__.__name__,
+                    self._type.__name__,
+                )
 
-        # map keys with important values
-        def key_is_important(match, key):
-            return match.value_flags.get(key) == ParameterFlag.final
+        # map keys with final values,
+        # first key has higher precedence than later ones
+        final_map = {
+            key: value
+            for parameter in reversed(parameters)
+            for key, value in parameter.value.items()
+            if parameter.value_flags.get(key) == ParameterFlag.final
+        }
 
-        important_maps = tuple(
-            {k: v for k, v in match_value.items() if key_is_important(match, k)}
-            for match, match_value in relevant_matches_and_values
-        )
+        # map each value by recursively calling merge on any entries with the same key,
+        # last key has higher precedence than earlier ones
+        grouped_map = {}
+        for parameter in parameters:
+            for key, value in parameter.value.items():
+                grouped_map.setdefault(key, []).append(value)
+        merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
-        # map each value by recursively calling merge on any entries with the same key
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (match_value for _, match_value in relevant_matches_and_values)))
-
-        # dump all matches in a dict
-        # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(
-            merge((merged_values, *reversed(important_maps)))
-        )
+        # update merged_map with final_map values
+        merged_value = frozendict({**merged_map, **final_map})
 
         # create new parameter for the merged values
         return MapLoadedParameter(
             self._name,
-            merged_values_important_overwritten,
+            merged_value,
             self._element_type,
             self.key_flag,
             self.value_flags,
@@ -769,17 +772,20 @@ class SequenceLoadedParameter(LoadedParameter):
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_marked_lines(match, marker):
-            return tuple(line
-                         for line, flag in zip(match.value,
-                                               match.value_flags)
-                         if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m, _ in
-                           relevant_matches_and_values)
+            return (
+                tuple(line for line, flag in zip(match.value, match.value_flags) if flag is marker)
+                if match
+                else ()
+            )
+
+        top_lines = chain.from_iterable(
+            get_marked_lines(m, ParameterFlag.top) for m, _ in relevant_matches_and_values
+        )
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
         bottom_lines = tuple(
-            concat(
+            chain.from_iterable(
                 get_marked_lines(match, ParameterFlag.bottom)
                 for match, _ in reversed(relevant_matches_and_values)
             )
@@ -787,7 +793,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
+        all_lines = chain.from_iterable(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
         top_deduped = tuple(unique((*top_lines, *all_lines)))
@@ -811,7 +817,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
 class ObjectLoadedParameter(LoadedParameter):
     """
-    LoadedParameter type that holds a sequence (i.e. list) of LoadedParameters.
+    LoadedParameter type that holds a mapping (i.e. object) of LoadedParameters.
     """
     _type = object
 
@@ -835,50 +841,40 @@ class ObjectLoadedParameter(LoadedParameter):
                     errors.extend(value.collect_errors(instance, typed_value[key], source))
         return errors
 
-    def merge(self, matches):
-        # get matches up to and including first important_match
-        # but if no important_match, then all matches are important_matches
-        relevant_matches_and_values = tuple((match,
-                                             {k: v for k, v
-                                              in vars(match.value).items()
-                                              if isinstance(v, LoadedParameter)})
-                                            for match
-                                            in LoadedParameter._first_important_matches(matches))
+    def merge(self, parameters: Sequence[ObjectLoadedParameter]) -> ObjectLoadedParameter:
+        # get all parameters up to and including first important_match
+        # but if no important_match, then all parameters are important_matches
+        parameters = LoadedParameter._first_important_matches(parameters)
 
-        for match, value in relevant_matches_and_values:
-            if not isinstance(value, Mapping):
-                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
-                                       self._type.__name__)
+        # map keys with final values,
+        # first key has higher precedence than later ones
+        final_map = {
+            key: value
+            for parameter in reversed(parameters)
+            for key, value in vars(parameter.value).items()
+            if (
+                isinstance(value, LoadedParameter)
+                and parameter.value_flags.get(key) == ParameterFlag.final
+            )
+        }
 
-        # map keys with important values
-        def key_is_important(match, key):
-            return match.value_flags.get(key) == ParameterFlag.final
+        # map each value by recursively calling merge on any entries with the same key,
+        # last key has higher precedence than earlier ones
+        grouped_map = {}
+        for parameter in parameters:
+            for key, value in vars(parameter.value).items():
+                grouped_map.setdefault(key, []).append(value)
+        merged_map = {key: values[0].merge(values) for key, values in grouped_map.items()}
 
-        important_maps = tuple(
-            {k: v for k, v in match_value.items() if key_is_important(match, k)}
-            for match, match_value in relevant_matches_and_values
-        )
-
-        # map each value by recursively calling merge on any entries with the same key
-        merged_values = frozendict(merge_with(
-            lambda value_matches: value_matches[0].merge(value_matches),
-            (match_value for _, match_value in relevant_matches_and_values)))
-
-        # dump all matches in a dict
-        # then overwrite with important matches
-        merged_values_important_overwritten = frozendict(
-            merge((merged_values, *reversed(important_maps)))
-        )
-
-        # copy object and replace Parameter with LoadedParameter fields
-        object_copy = copy.deepcopy(self._element_type)
-        for attr_name, loaded_child_parameter in merged_values_important_overwritten.items():
-            object_copy.__setattr__(attr_name, loaded_child_parameter)
+        # update merged_map with final_map values
+        merged_value = copy.deepcopy(self._element_type)
+        for key, value in {**merged_map, **final_map}.items():
+            merged_value.__setattr__(key, value)
 
         # create new parameter for the merged values
         return ObjectLoadedParameter(
             self._name,
-            object_copy,
+            merged_value,
             self._element_type,
             self.key_flag,
             self.value_flags,
@@ -1283,7 +1279,7 @@ class Configuration(metaclass=ConfigurationType):
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
-        self.raw_data = odict()
+        self.raw_data = {}
         self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
@@ -1403,12 +1399,12 @@ class Configuration(metaclass=ConfigurationType):
         return ()
 
     def collect_all(self):
-        typed_values = odict()
-        validation_errors = odict()
+        typed_values = {}
+        validation_errors = {}
         for source in self.raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(validation_errors.values())))
-        return odict((k, v) for k, v in typed_values.items() if v)
+        return {k: v for k, v in typed_values.items() if v}
 
     def describe_parameter(self, parameter_name):
         # TODO, in Parameter base class, rename element_type to value_type

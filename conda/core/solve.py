@@ -3,16 +3,12 @@
 
 import copy
 from genericpath import exists
+from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
 import warnings
 from textwrap import dedent
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -26,7 +22,6 @@ from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
 from ..base.context import context
-from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
@@ -459,9 +454,12 @@ class Solver:
             # SAT for spec removal determination, we can use the PrefixGraph and simple tree
             # traversal if we're careful about how we handle features. We still invoke sat via
             # `r.solve()` later.
-            _track_fts_specs = (spec for spec in self.specs_to_remove if 'track_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('track_features')
-                                       for spec in _track_fts_specs))
+            _track_fts_specs = (spec for spec in self.specs_to_remove if "track_features" in spec)
+            feature_names = set(
+                chain.from_iterable(
+                    spec.get_raw_value("track_features") for spec in _track_fts_specs
+                )
+            )
             graph = PrefixGraph(ssc.solution_precs, ssc.specs_map.values())
 
             all_removed_records = []
@@ -666,23 +664,25 @@ class Solver:
             # history is preferable because it has explicitly installed stuff in it.
             #   that simplifies our solution.
             if ssc.specs_from_history_map:
-                ssc.specs_map = odict((spec, MatchSpec(spec))
-                                      if MatchSpec(spec).name not in
-                                      (_.name for _ in ssc.pinned_specs)
-                                      else (MatchSpec(spec).name,
-                                            ssc.specs_map[MatchSpec(spec).name])
-                                      for spec in ssc.specs_from_history_map
-                                      )
+                ssc.specs_map = dict(
+                    (spec, MatchSpec(spec))
+                    if MatchSpec(spec).name not in (_.name for _ in ssc.pinned_specs)
+                    else (MatchSpec(spec).name, ssc.specs_map[MatchSpec(spec).name])
+                    for spec in ssc.specs_from_history_map
+                )
                 for prec in ssc.prefix_data.iter_records():
                     # treat pip-installed stuff as explicitly installed, too.
                     if prec.subdir == 'pypi':
                         ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
             else:
-                ssc.specs_map = odict((prec.name, MatchSpec(prec.name))
-                                      if prec.name not in (_.name for _ in ssc.pinned_specs) else
-                                      (prec.name, ssc.specs_map[prec.name])
-                                      for prec in ssc.prefix_data.iter_records()
-                                      )
+                ssc.specs_map = {
+                    prec.name: (
+                        MatchSpec(prec.name)
+                        if prec.name not in (_.name for _ in ssc.pinned_specs)
+                        else ssc.specs_map[prec.name]
+                    )
+                    for prec in ssc.prefix_data.iter_records()
+                }
 
         # ensure that our self.specs_to_add are not being held back by packages in the env.
         #    This factors in pins and also ignores specs from the history.  It is unfreezing only
@@ -1103,7 +1103,7 @@ class SolverStateContainer:
         self.r = None
 
         # Group 4. Mutable working containers
-        self.specs_map = odict()
+        self.specs_map = {}
         self.solution_precs = tuple(self.prefix_data.iter_records())
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
@@ -1128,7 +1128,7 @@ class SolverStateContainer:
         self.index, self.r = index, r
 
     def working_state_reset(self):
-        self.specs_map = odict()
+        self.specs_map = {}
         self.solution_precs = tuple(self.prefix_data.iter_records())
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
@@ -1378,7 +1378,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                         forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
 #                 break
 #
-#         unlink_link_map = odict()
+#         unlink_link_map = {}
 #
 #         # solve all needed preferred_env prefixes
 #         for env_name in {*env_add_map, *env_remove_map}:
@@ -1398,7 +1398,7 @@ def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reins
 #                                                    specs_to_remove=root_specs_to_remove,
 #                                                    specs_to_add=root_specs_to_add)
 #         if root_unlink or root_link:
-#             # this needs to be added to odict last; the private envs need to be updated first
+#             # this needs to be added to dict last; the private envs need to be updated first
 #             unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
 #
 #         def make_txn_setup(pfx, unlink, link, specs):

@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
 import importlib.util
 from logging import getLogger
 import os
@@ -10,6 +8,7 @@ import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+import warnings
 
 import pytest
 
@@ -545,6 +544,11 @@ class PathActionsTests(TestCase):
 
 
 def test_explode_directories():
+    warnings.warn(
+        "`toolz` is pending deprecation and will be removed in a future release.",
+        PendingDeprecationWarning,
+    )
+
     try:
         import tlz as toolz
     except:

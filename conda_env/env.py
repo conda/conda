@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
 from itertools import chain
 import os
 import re
@@ -10,7 +8,6 @@ import json
 from conda.base.context import context
 from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.cli import common  # TODO: this should never have to import form conda.cli
-from conda.common.compat import odict
 from conda.common.serialize import yaml_safe_load, yaml_safe_dump
 from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.download import download_text
@@ -19,7 +16,7 @@ from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.history import History
-from conda.common.iterators import groupby_to_dict as groupby
+from conda.common.iterators import groupby_to_dict as groupby, unique
 
 
 VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
@@ -170,7 +167,7 @@ def from_file(filename):
 
 
 # TODO test explicitly
-class Dependencies(OrderedDict):
+class Dependencies(dict):
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.raw = raw
@@ -200,31 +197,6 @@ class Dependencies(OrderedDict):
         self.parse()
 
 
-def unique(seq, key=None):
-    """ Return only unique elements of a sequence
-    >>> tuple(unique((1, 2, 3)))
-    (1, 2, 3)
-    >>> tuple(unique((1, 2, 1, 3)))
-    (1, 2, 3)
-    Uniqueness can be defined by key keyword
-    >>> tuple(unique(['cat', 'mouse', 'dog', 'hen'], key=len))
-    ('cat', 'mouse')
-    """
-    seen = set()
-    seen_add = seen.add
-    if key is None:
-        for item in seq:
-            if item not in seen:
-                seen_add(item)
-                yield item
-    else:  # calculate key
-        for item in seq:
-            val = key(item)
-            if val not in seen:
-                seen_add(val)
-                yield item
-
-
 class Environment:
     def __init__(self, name=None, filename=None, channels=None,
                  dependencies=None, prefix=None, variables=None):
@@ -245,7 +217,7 @@ class Environment:
         self.channels = []
 
     def to_dict(self, stream=None):
-        d = odict([('name', self.name)])
+        d = {"name": self.name}
         if self.channels:
             d['channels'] = self.channels
         if self.dependencies:

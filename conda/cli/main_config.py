@@ -3,16 +3,12 @@
 
 from collections.abc import Mapping, Sequence
 import json
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import isfile, join
 import sys
 from textwrap import wrap
-
-try:
-    from tlz.itertoolz import concat
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -99,7 +95,9 @@ def describe_all_parameters():
         builder.append(f"# ## {category:^48} ##")
         builder.append("# ######################################################")
         builder.append("")
-        builder.extend(concat(parameter_description_builder(name) for name in parameter_names))
+        builder.extend(
+            chain.from_iterable(parameter_description_builder(name) for name in parameter_names)
+        )
         builder.append("")
     return "\n".join(builder)
 
@@ -177,6 +175,11 @@ def execute_config(args, parser):
                     multichannel_name: dashlist(channels, indent=4)
                     for multichannel_name, channels in d['custom_multichannels'].items()
                 }
+            if "channel_settings" in d:
+                ident = " " * 4
+                d["channel_settings"] = tuple(
+                    f"\n{ident}".join(format_dict(mapping)) for mapping in d["channel_settings"]
+                )
 
             stdout_write('\n'.join(format_dict(d)))
         context.validate_configuration()
@@ -198,20 +201,31 @@ def execute_config(args, parser):
                 ))
             else:
                 builder = []
-                builder.extend(concat(parameter_description_builder(name)
-                                      for name in paramater_names))
-                stdout_write('\n'.join(builder))
+                builder.extend(
+                    chain.from_iterable(
+                        parameter_description_builder(name) for name in paramater_names
+                    )
+                )
+                stdout_write("\n".join(builder))
         else:
             if context.json:
-                skip_categories = ('CLI-only', 'Hidden and Undocumented')
-                paramater_names = sorted(concat(
-                    parameter_names for category, parameter_names in context.category_map.items()
-                    if category not in skip_categories
-                ))
-                stdout_write(json.dumps(
-                    [context.describe_parameter(name) for name in paramater_names],
-                    sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
-                ))
+                skip_categories = ("CLI-only", "Hidden and Undocumented")
+                paramater_names = sorted(
+                    chain.from_iterable(
+                        parameter_names
+                        for category, parameter_names in context.category_map.items()
+                        if category not in skip_categories
+                    )
+                )
+                stdout_write(
+                    json.dumps(
+                        [context.describe_parameter(name) for name in paramater_names],
+                        sort_keys=True,
+                        indent=2,
+                        separators=(",", ": "),
+                        cls=EntityEncoder,
+                    )
+                )
             else:
                 stdout_write(describe_all_parameters())
         return
