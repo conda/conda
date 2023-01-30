@@ -406,6 +406,8 @@ class RepodataState(UserDict):
 
 
 LOCK_BYTE = 21  # mamba interop
+LOCK_ATTEMPTS = 10
+LOCK_SLEEP = 1
 
 try:
     import msvcrt
@@ -435,16 +437,22 @@ except ImportError:
 
     else:
 
-        @contextmanager
-        def _lock(fd):
-            # XXX can wait indefinitely without using signals, and signals won't
-            # work correctly with threads (use LOCK_NB, try ten times
-            # with sleep(1))
-            fcntl.lockf(fd, fcntl.LOCK_EX, 1, LOCK_BYTE)
-            try:
-                yield
-            finally:
-                fcntl.lockf(fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+        class _lock:
+            def __init__(self, fd):
+                self.fd = fd
+
+            def __enter__(self):
+                for attempt in range(LOCK_ATTEMPTS):
+                    try:
+                        # msvcrt locking does something similar
+                        fcntl.lockf(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE)
+                    except OSError:
+                        if attempt > LOCK_ATTEMPTS - 2:
+                            raise
+                        time.sleep(LOCK_SLEEP)
+
+            def __exit__(self, *exc):
+                fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
 
 
 class RepodataCache:
@@ -539,9 +547,7 @@ class RepodataCache:
         # write .state.json
         # (in context manager: delete temp path)
 
-        temp_path = self.cache_dir / self.cache_path_base.with_suffix(
-            "." + os.urandom(4).hex() + ".tmp"
-        )
+        temp_path = self.cache_dir / self.cache_dir.with_suffix("." + os.urandom(4).hex() + ".tmp")
 
         with temp_path.open("wx") as temp:  # exclusive mode, error if exists
             temp.write(data)
@@ -552,7 +558,10 @@ class RepodataCache:
 
         Relies on path's mtime not changing on move.
         """
-        with self.cache_path_state.open("w+") as state_file, _lock(state_file):
+        with self.cache_path_state.open("a+") as state_file, _lock(state_file):
+            # "a+" avoids trunctating file before we have the lock and creates
+            state_file.seek(0)
+            state_file.truncate()
             stat = temp_path.stat()
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
@@ -563,7 +572,10 @@ class RepodataCache:
         """
         Update access time in .state.json to indicate a HTTP 304 Not Modified response.
         """
-        with self.cache_path_state.open("w+") as state_file, _lock(state_file):
+        with self.cache_path_state.open("a+") as state_file, _lock(state_file):
+            # "a+" avoids trunctating file before we have the lock and creates
+            state_file.seek(0)
+            state_file.truncate()
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
             state_file.write(json.dumps(dict(self.state), indent=2))
 
