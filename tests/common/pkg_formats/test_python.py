@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Test for python distribution information and metadata handling."""
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
 from errno import ENOENT
@@ -11,7 +9,6 @@ from os.path import basename, lexists
 from pprint import pprint
 import tempfile
 
-from conda.common.compat import odict
 from conda.common.path import get_python_site_packages_short_path
 from conda.common.pkg_formats.python import (
     MetadataWarning, PySpec, PythonDistribution, PythonDistributionMetadata,
@@ -354,7 +351,7 @@ def test_metadata_read_metadata():
         ('', 'PKG-INFO', 'Unknown-Key: unknown\n'),
     ))
     output = func(fpaths[0])
-    expected_output = odict()
+    expected_output = {}
     _print_output(output, expected_output)
     assert output == expected_output
 
@@ -363,14 +360,14 @@ def test_metadata_read_metadata():
         ('', 'PKG-INFO', 'Name: spam\n'),
     ))
     output = func(fpaths[0])
-    expected_output = odict(name='spam')
+    expected_output = {"name": "spam"}
     _print_output(output, expected_output)
     assert output == expected_output
 
     # Test non existing file
     test_fpath = '/foo/bar/METADATA'
     output = func(test_fpath)
-    expected_output = odict()
+    expected_output = {}
     _print_output(output, expected_output)
     assert output == expected_output
 
@@ -432,10 +429,11 @@ b = cli:MAIN_2
 [b.d]
 C = cli:MAIN_3
 '''
-    expected_output = odict()
-    expected_output['a'] = odict([('a', 'cli:main_1')])
-    expected_output['b.c'] = odict([('b', 'cli:MAIN_2')])
-    expected_output['b.d'] = odict([('C', 'cli:MAIN_3')])
+    expected_output = {
+        "a": {"a": "cli:main_1"},
+        "b.c": {"b": "cli:MAIN_2"},
+        "b.d": {"C": "cli:MAIN_3"},
+    }
     output = func(data)
 
     _print_output(output, expected_output)
@@ -510,7 +508,7 @@ def test_get_entry_points():
 
     dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist.get_entry_points()
-    expected_output = odict(console_scripts=odict(cheese='cli:main'))
+    expected_output = {"console_scripts": {"cheese": "cli:main"}}
     _print_output(output, expected_output)
     assert output == expected_output
 
@@ -671,9 +669,8 @@ def test_evaluate_marker():
         ('spam2 = "1.0"', {'spam': '1.0'}, None),
     )
     for marker_expr, context, expected_output in test_cases:
-        output = None
         with pytest.raises(SyntaxError):
-            output = interpret(marker_expr, context)
+            interpret(marker_expr, context)
 
 
 def test_get_default_marker_context():

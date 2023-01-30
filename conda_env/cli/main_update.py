@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
@@ -7,8 +6,11 @@ import sys
 import textwrap
 
 from conda.base.context import context, determine_target_prefix
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
-    add_parser_experimental_solver
+from conda.cli.conda_argparse import (
+    add_parser_json,
+    add_parser_prefix,
+    add_parser_solver,
+)
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaEnvException, SpecNotFound
 from conda.misc import touch_nonadmin
@@ -61,7 +63,7 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
-    add_parser_experimental_solver(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_update.execute')
 
 

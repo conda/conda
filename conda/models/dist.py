@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
 from logging import getLogger
@@ -49,7 +47,7 @@ class DistType(EntityType):
             Dist._cache_[value] = dist
             return dist
         else:
-            return super(DistType, cls).__call__(*args, **kwargs)
+            return super().__call__(*args, **kwargs)
 
 
 def strip_extension(original_dist):
@@ -80,17 +78,29 @@ class Dist(Entity, metaclass=DistType):
     base_url = StringField(required=False, nullable=True, immutable=True)
     platform = StringField(required=False, nullable=True, immutable=True)
 
-    def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, base_url=None, platform=None, fmt='.tar.bz2'):
-        super(Dist, self).__init__(channel=channel,
-                                   dist_name=dist_name,
-                                   name=name,
-                                   version=version,
-                                   build_string=build_string,
-                                   build_number=build_number,
-                                   base_url=base_url,
-                                   platform=platform,
-                                   fmt=fmt)
+    def __init__(
+        self,
+        channel,
+        dist_name=None,
+        name=None,
+        version=None,
+        build_string=None,
+        build_number=None,
+        base_url=None,
+        platform=None,
+        fmt=".tar.bz2",
+    ):
+        super().__init__(
+            channel=channel,
+            dist_name=dist_name,
+            name=name,
+            version=version,
+            build_string=build_string,
+            build_number=build_number,
+            base_url=base_url,
+            platform=platform,
+            fmt=fmt,
+        )
 
     def to_package_ref(self):
         return PackageRecord(
@@ -125,7 +135,7 @@ class Dist(Entity, metaclass=DistType):
         return parts[0], parts[1], parts[2], self.channel or DEFAULTS_CHANNEL_NAME
 
     def __str__(self):
-        return "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
+        return f"{self.channel}::{self.dist_name}" if self.channel else self.dist_name
 
     @property
     def is_feature_package(self):
@@ -147,7 +157,7 @@ class Dist(Entity, metaclass=DistType):
     def to_match_spec(self):
         from .match_spec import MatchSpec
         base = '='.join(self.quad[:3])
-        return MatchSpec("%s::%s" % (self.channel, base) if self.channel else base)
+        return MatchSpec(f"{self.channel}::{base}" if self.channel else base)
 
     @classmethod
     def from_string(cls, string, channel_override=NULL):
@@ -290,7 +300,7 @@ class Dist(Entity, metaclass=DistType):
     def rsplit(self, sep=None, maxsplit=-1):
         assert sep == '-'
         assert maxsplit == 2
-        name = '%s::%s' % (self.channel, self.quad[0]) if self.channel else self.quad[0]
+        name = f"{self.channel}::{self.quad[0]}" if self.channel else self.quad[0]
         return name, self.quad[1], self.quad[2]
 
     def startswith(self, match):

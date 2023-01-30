@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
@@ -6,7 +5,6 @@
 # If a piece of code is "general" and used in multiple modules, it goes here.
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 from operator import methodcaller
@@ -56,7 +54,7 @@ def isiterable(obj):
 # other
 # #############################
 
-from collections import OrderedDict as odict  # NOQA
+from collections import OrderedDict as odict  # noqa: F401
 
 from io import open as io_open  # NOQA
 
@@ -84,7 +82,8 @@ def six_with_metaclass(meta, *bases):
         @classmethod
         def __prepare__(cls, name, this_bases):
             return meta.__prepare__(name, bases)
-    return type.__new__(metaclass, str('temporary_class'), (), {})
+
+    return type.__new__(metaclass, "temporary_class", (), {})
 
 
 NoneType = type(None)

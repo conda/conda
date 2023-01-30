@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,7 +72,7 @@ def generate_pumls(app, config):
     packages = ["conda"]
 
     for package in packages:
-        output_path = os.path.join(here, "..", "umls")
+        output_path = os.path.join(here, "..", "dev-guide", "umls")
         output_format = "puml"
         files = [
             f"packages_{package}.{output_format}",

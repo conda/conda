@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -28,7 +27,6 @@ execution of each individual operation.  The docstring for `run_plan_elevated()`
 how that strategy is implemented.
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from difflib import unified_diff
 from errno import ENOENT
@@ -38,6 +36,7 @@ import json
 from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfile, join
+from pathlib import Path
 from random import randint
 import re
 import sys
@@ -175,9 +174,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         raise CondaError("Operation failed. Privileged install disallowed for 'conda init --dev'.")
 
     env_vars = {
-        'PYTHONHASHSEED': str(randint(0, 4294967296)),
-        'PYTHON_MAJOR_VERSION': python_version[0],
-        'TEST_PLATFORM': 'win' if on_win else 'unix',
+        "PYTHONHASHSEED": randint(0, 4294967296),
+        "PYTHON_MAJOR_VERSION": python_version[0],
+        "TEST_PLATFORM": "win" if on_win else "unix",
     }
     unset_env_vars = (
         'CONDA_DEFAULT_ENV',
@@ -193,44 +192,60 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     )
 
     if shell == "bash":
-        builder = []
-        builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
-        sys_executable = abspath(sys.executable)
-        if on_win:
-            sys_executable = "$(cygpath '%s')" % sys_executable
-        builder += [f'eval "$("{sys_executable}" -m conda "shell.bash" "hook")"']
-        if context.auto_activate_base:
-            builder += [f"conda activate '{prefix}'"]
-        print("\n".join(builder))
-    elif shell == 'cmd.exe':
-        if context.dev:
-            dev_arg = '--dev'
-        else:
-            dev_arg = ''
-        builder = []
-        builder += ["@IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" @CALL "
-                    "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
-        builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
-        builder += [
-            f'@CALL "{join(prefix, "condabin", "conda_hook.bat")}" {dev_arg}',
-            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-        ]
-        if context.auto_activate_base:
-            builder += [
-                f'@CALL "{join(prefix, "condabin", "conda.bat")}" activate {dev_arg} "{prefix}"',
-                "@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%",
-            ]
+        print("\n".join(_initialize_dev_bash(prefix, env_vars, unset_env_vars)))
+    elif shell == "cmd.exe":
+        script = _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars)
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
-                fh.write('\n'.join(builder))
+                fh.write("\n".join(script))
         if context.verbosity:
-            print('\n'.join(builder))
+            print("\n".join(script))
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
     return 0
+
+
+def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
+    sys_executable = abspath(sys.executable)
+    if on_win:
+        sys_executable = f"$(cygpath '{sys_executable}')"
+
+    # unset/set environment variables
+    yield from (f"unset {envvar}" for envvar in unset_env_vars)
+    yield from (f"export {envvar}='{value}'" for envvar, value in sorted(env_vars.items()))
+
+    # initialize shell interface
+    yield f'eval "$("{sys_executable}" -m conda shell.bash hook)"'
+
+    # optionally activate environment
+    if context.auto_activate_base:
+        yield f"conda activate '{prefix}'"
+
+
+def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
+    dev_arg = ""
+    if context.dev:
+        dev_arg = "--dev"
+    condabin = Path(prefix, "condabin")
+
+    yield (
+        '@IF NOT "%CONDA_PROMPT_MODIFIER%" == "" '
+        '@CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"'
+    )
+
+    # unset/set environment variables
+    yield from (f"@SET {envvar}=" for envvar in unset_env_vars)
+    yield from (f'@SET "{envvar}={value}"' for envvar, value in sorted(env_vars.items()))
+
+    # initialize shell interface
+    yield f'@CALL "{condabin / "conda_hook.bat"}" {dev_arg}'
+    yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
+
+    # optionally activate environment
+    if context.auto_activate_base:
+        yield f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"'
+        yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 
 
 # #####################################################
@@ -240,7 +255,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 def make_install_plan(conda_prefix):
     try:
         python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
-    except EnvironmentError:
+    except OSError:
         python_exe, python_version, site_packages_dir = None, None, None  # NOQA
 
     plan = []
@@ -432,6 +447,22 @@ def make_install_plan(conda_prefix):
 
 def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt,
                          reverse=False):
+    """
+    Creates a plan for initializing conda in shells.
+
+    Bash:
+    On Linux, when opening the terminal, .bashrc is sourced (because it is an interactive shell).
+    On macOS on the other hand, the .bash_profile gets sourced by default when executing it in
+    Terminal.app. Some other programs do the same on macOS so that's why we're initializing conda
+    in .bash_profile.
+    On Windows, there are multiple ways to open bash depending on how it was installed. Git Bash,
+    Cygwin, and MSYS2 all use .bash_profile by default.
+
+    PowerShell:
+    There's several places PowerShell can store its path, depending on if it's Windows PowerShell,
+    PowerShell Core on Windows, or PowerShell Core on macOS/Linux. The easiest way to resolve it
+    is to just ask different possible installations of PowerShell where their profiles are.
+    """
     plan = make_install_plan(conda_prefix)
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
@@ -540,11 +571,6 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
         if for_system:
             profile = '$PROFILE.AllUsersAllHosts'
 
-        # There's several places PowerShell can store its path, depending
-        # on if it's Windows PowerShell, PowerShell Core on Windows, or
-        # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
-        # just ask different possible installations of PowerShell where their
-        # profiles are.
         def find_powershell_paths(*exe_names):
             for exe_name in exe_names:
                 try:
@@ -636,7 +662,7 @@ def run_plan(plan):
             continue
         try:
             result = globals()[step['function']](*step.get('args', ()), **step.get('kwargs', {}))
-        except EnvironmentError as e:
+        except OSError as e:
             log.info("%s: %r", step['function'], e, exc_info=True)
             result = Result.NEEDS_SUDO
         step['result'] = result
@@ -749,7 +775,7 @@ def make_entry_point(target_path, conda_prefix, module, func):
         new_ep_content = ""
     else:
         python_path = join(conda_prefix, get_python_short_path())
-        new_ep_content = generate_shebang_for_entry_point(python_path)
+        new_ep_content = generate_shebang_for_entry_point(python_path, with_usr_bin_env=True)
 
     conda_extra = dals("""
     # Before any more imports, leave cwd out of sys.path for internal 'conda shell.*' commands.
@@ -814,9 +840,11 @@ def install_anaconda_prompt(target_path, conda_prefix, reverse):
     target = join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
 
     args = (
-        '/K',
-        '""%s" && "%s""' % (join(conda_prefix, 'condabin', 'conda_hook.bat'),
-                            join(conda_prefix, 'condabin', 'conda_auto_activate.bat')),
+        "/K",
+        '""{}" && "{}""'.format(
+            join(conda_prefix, "condabin", "conda_hook.bat"),
+            join(conda_prefix, "condabin", "conda_auto_activate.bat"),
+        ),
     )
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
@@ -1003,7 +1031,9 @@ def _config_fish_content(conda_prefix):
     conda_initialize_content = dals("""
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
-    eval %(conda_exe)s "shell.fish" "hook" $argv | source
+    if test -f %(conda_exe)s
+        eval %(conda_exe)s "shell.fish" "hook" $argv | source
+    end
     # <<< conda initialize <<<
     """) % {
         'conda_exe': conda_exe,
@@ -1030,7 +1060,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            rf"#\s(.*?)\s*{conda_init_comment}",
             r"\1",
             rc_content,
             flags=re.MULTILINE,
@@ -1048,7 +1078,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
             rc_content = re.sub(
                 r"^[ \t]*?(set -gx PATH ([\'\"]?).*?%s\/bin\2 [^\n]*?\$PATH)"
                 r"" % basename(conda_prefix),
-                r"# \1  {}".format(conda_init_comment),
+                rf"# \1  {conda_init_comment}",
                 rc_content,
                 flags=re.MULTILINE,
             )
@@ -1062,7 +1092,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
         )
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conda\.d\/conda\.fish.*?)$",
-            r"# \1  {}".format(conda_init_comment),
+            rf"# \1  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1105,15 +1135,16 @@ def _config_xonsh_content(conda_prefix):
     conda_initialize_content = dals("""
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
-    import sys as _sys
-    from types import ModuleType as _ModuleType
-    _mod = _ModuleType("xontrib.conda",
-                       "Autogenerated from $({conda_exe} shell.xonsh hook)")
-    __xonsh__.execer.exec($("{conda_exe}" "shell.xonsh" "hook"),
-                          glbs=_mod.__dict__,
-                          filename="$({conda_exe} shell.xonsh hook)")
-    _sys.modules["xontrib.conda"] = _mod
-    del _sys, _mod, _ModuleType
+    if !(test -f "{conda_exe}"):
+        import sys as _sys
+        from types import ModuleType as _ModuleType
+        _mod = _ModuleType("xontrib.conda",
+                        "Autogenerated from $({conda_exe} shell.xonsh hook)")
+        __xonsh__.execer.exec($("{conda_exe}" "shell.xonsh" "hook"),
+                            glbs=_mod.__dict__,
+                            filename="$({conda_exe} shell.xonsh hook)")
+        _sys.modules["xontrib.conda"] = _mod
+        del _sys, _mod, _ModuleType
     # <<< conda initialize <<<
     """).format(conda_exe=conda_exe)
     return conda_initialize_content
@@ -1138,7 +1169,7 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            rf"#\s(.*?)\s*{conda_init_comment}",
             r"\1",
             rc_content,
             flags=re.MULTILINE,
@@ -1163,7 +1194,7 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
         rc_content = rc_content.replace(replace_str, conda_initialize_content)
 
         if "# >>> conda initialize >>>" not in rc_content:
-            rc_content += '\n{0}\n'.format(conda_initialize_content)
+            rc_content += f"\n{conda_initialize_content}\n"
 
     if rc_content != rc_original_content:
         if context.verbosity:
@@ -1188,7 +1219,9 @@ def _bashrc_content(conda_prefix, shell):
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
-        eval "$('%(conda_exe)s' 'shell.%(shell)s' 'hook')"
+        if [ -f '%(conda_exe)s' ]; then
+            eval "$('%(conda_exe)s' 'shell.%(shell)s' 'hook')"
+        fi
         # <<< conda initialize <<<
         """) % {
             'conda_exe': conda_exe,
@@ -1257,7 +1290,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
-            r"#\s(.*?)\s*{}".format(conda_init_comment),
+            rf"#\s(.*?)\s*{conda_init_comment}",
             r"\1",
             rc_content,
             flags=re.MULTILINE,
@@ -1275,7 +1308,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
             rc_content = re.sub(
                 r"^[ \t]*?(export PATH=[\'\"].*?%s\/bin:\$PATH[\'\"])"
                 r"" % basename(conda_prefix),
-                r"# \1  {}".format(conda_init_comment),
+                rf"# \1  {conda_init_comment}",
                 rc_content,
                 flags=re.MULTILINE,
             )
@@ -1289,7 +1322,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
         )
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)$",
-            r"# \1  {}".format(conda_init_comment),
+            rf"# \1  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1375,7 +1408,7 @@ def _read_windows_registry(target_path):  # pragma: no cover
 
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != ENOENT:
             raise
         return None, None
@@ -1401,7 +1434,7 @@ def _write_windows_registry(target_path, value_value, value_type):  # pragma: no
     main_key = getattr(winreg, main_key)
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_WRITE)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != ENOENT:
             raise
         key = winreg.CreateKey(main_key, subkey_str)
@@ -1504,7 +1537,9 @@ def _powershell_profile_content(conda_prefix):
     conda_powershell_module = dals("""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
-    (& "{conda_exe}" "shell.powershell" "hook") | Out-String | Invoke-Expression
+    If (Test-Path "{conda_exe}") {{
+        (& "{conda_exe}" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
+    }}
     #endregion
     """.format(conda_exe=conda_exe))
 
@@ -1538,7 +1573,7 @@ def init_powershell_user(target_path, conda_prefix, reverse):
         conda_initialize_content = _powershell_profile_content(conda_prefix)
 
         if "#region conda initialize" not in profile_content:
-            profile_content += "\n{}\n".format(conda_initialize_content)
+            profile_content += f"\n{conda_initialize_content}\n"
         else:
             profile_content = re.sub(CONDA_INITIALIZE_PS_RE_BLOCK,
                                      "__CONDA_REPLACE_ME_123__",

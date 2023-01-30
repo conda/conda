@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from pprint import pprint
 import platform
 import sys
 import copy
+from unittest.mock import Mock
 
 import pytest
 
@@ -15,7 +14,7 @@ from conda.auxlib.ish import dals
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, _get_solver_class, UpdateModifier
+from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
@@ -24,13 +23,7 @@ from conda.resolve import MatchSpec
 from conda.testing.helpers import add_subdir_to_iter, get_solver, get_solver_2, get_solver_4, \
     get_solver_aggregate_1, get_solver_aggregate_2, get_solver_cuda, get_solver_must_unfreeze, \
     convert_to_dist_str, CHANNEL_DIR
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
-
-Solver = _get_solver_class()
+from conda._vendor.cpuinfo import get_cpu_info
 
 
 def test_solve_1(tmpdir):
@@ -120,7 +113,7 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_virtual_package_solver(tmpdir):
+def test_virtual_package_solver(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -141,7 +134,7 @@ def test_virtual_package_solver(tmpdir):
             assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
 
-def test_solve_msgs_exclude_vp(tmpdir):
+def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version):
     # Sovler hints should exclude virtual packages that are not dependencies
     specs = MatchSpec("python =2.7.5"), MatchSpec("readline =5.0"),
 
@@ -153,7 +146,7 @@ def test_solve_msgs_exclude_vp(tmpdir):
     assert "__cuda==10.0" not in str(exc.value).strip()
 
 
-def test_cuda_1(tmpdir):
+def test_cuda_1(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '9.2'):
@@ -166,7 +159,7 @@ def test_cuda_1(tmpdir):
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_2(tmpdir):
+def test_cuda_2(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -179,7 +172,7 @@ def test_cuda_2(tmpdir):
             assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_fail_1(tmpdir):
+def test_cuda_fail_1(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     # No cudatoolkit in index for CUDA 8.0
@@ -189,7 +182,10 @@ def test_cuda_fail_1(tmpdir):
                 final_state = solver.solve_final_state()
 
     if sys.platform == "darwin":
-        plat = "osx-64"
+        if "ARM_8" in get_cpu_info()["arch"]:
+            plat = "osx-arm64"
+        else:
+            plat = "osx-64"
     elif sys.platform == "linux":
         plat = "linux-64"
     elif sys.platform == "win32":
@@ -208,7 +204,7 @@ def test_cuda_fail_1(tmpdir):
 Your installed version is: 8.0""".format(plat))
 
 
-def test_cuda_fail_2(tmpdir):
+def test_cuda_fail_2(tmpdir, clear_cuda_version):
     specs = MatchSpec("cudatoolkit"),
 
     # No CUDA on system
@@ -224,7 +220,7 @@ def test_cuda_fail_2(tmpdir):
 Your installed version is: not available""")
 
 
-def test_cuda_constrain_absent(tmpdir):
+def test_cuda_constrain_absent(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     with env_var('CONDA_OVERRIDE_CUDA', ''):
@@ -238,7 +234,7 @@ def test_cuda_constrain_absent(tmpdir):
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_sat(tmpdir):
+def test_cuda_constrain_sat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
@@ -252,7 +248,7 @@ def test_cuda_constrain_sat(tmpdir):
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_unsat(tmpdir):
+def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-constrain"),
 
     # No cudatoolkit in index for CUDA 8.0
@@ -270,7 +266,7 @@ Your installed version is: 8.0""".format(context.subdir))
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_sat(tmpdir):
+def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
@@ -285,7 +281,7 @@ def test_cuda_glibc_sat(tmpdir):
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_depend(tmpdir):
+def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
@@ -303,7 +299,7 @@ Your installed version is: 8.0""".format(context.subdir))
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_constrain(tmpdir):
+def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
     specs = MatchSpec("cuda-glibc"),
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
@@ -2223,7 +2219,7 @@ def test_freeze_deps_1(tmpdir):
 def test_current_repodata_usage(tmpdir):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_var('CONDA_USE_ONLY_TAR_BZ2', False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = _get_solver_class()(
+        solver = context.plugin_manager.get_cached_solver_backend()(
             tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
             specs_to_add=[MatchSpec('zlib')], repodata_fn='current_repodata.json'
         )
@@ -2241,7 +2237,7 @@ def test_current_repodata_usage(tmpdir):
 
 
 def test_current_repodata_fallback(tmpdir):
-    solver = _get_solver_class()(
+    solver = context.plugin_manager.get_cached_solver_backend()(
         tmpdir.strpath, (Channel(CHANNEL_DIR),), ('win-64',),
         specs_to_add=[MatchSpec('zlib=1.2.8')]
     )
@@ -2317,7 +2313,7 @@ def test_packages_in_solution_change_already_newest(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
@@ -2327,7 +2323,7 @@ def test_packages_in_solution_change_needs_update(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 0
@@ -2337,7 +2333,7 @@ def test_packages_in_solution_change_constrained(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[specs])
     constrained = solver.get_constrained_packages(pre_packages, post_packages, fake_index)
     assert len(constrained) == 1
@@ -2357,7 +2353,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2377,7 +2373,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2402,7 +2398,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2423,7 +2419,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -2443,7 +2439,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -2458,7 +2454,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -2478,7 +2474,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
         )
     ]
     spec = MatchSpec("mypkg")
-    solver = _get_solver_class()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
+    solver = context.plugin_manager.get_cached_solver_backend()(tmpdir, (Channel(CHANNEL_DIR),), ('linux-64',),
                                  specs_to_add=[spec])
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None

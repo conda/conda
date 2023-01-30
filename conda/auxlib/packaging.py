@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 =====
 Usage
@@ -64,7 +63,6 @@ setup(
 
 
 """
-from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
 from distutils.command.build_py import build_py
@@ -92,20 +90,21 @@ def call(command, path=None, raise_on_error=True):
     p = Popen(shlex_split_unicode(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
-    log.debug("{0} $  {1}\n"
-              "  stdout: {2}\n"
-              "  stderr: {3}\n"
-              "  rc: {4}"
-              .format(path, command, stdout, stderr, rc))
+    log.debug(
+        "{} $  {}\n"
+        "  stdout: {}\n"
+        "  stderr: {}\n"
+        "  rc: {}".format(path, command, stdout, stderr, rc)
+    )
     if raise_on_error and rc != 0:
-        raise CalledProcessError(rc, command, "stdout: {0}\nstderr: {1}".format(stdout, stderr))
+        raise CalledProcessError(rc, command, f"stdout: {stdout}\nstderr: {stderr}")
     return Response(stdout.decode('utf-8'), stderr.decode('utf-8'), int(rc))
 
 
 def _get_version_from_version_file(path):
     file_path = join(path, '.version')
     if isfile(file_path):
-        with open(file_path, 'r') as fh:
+        with open(file_path) as fh:
             return fh.read().strip()
 
 
@@ -125,7 +124,7 @@ def _git_describe_tags(path):
     elif response.rc == 128 and "not a git repository" in response.stderr.lower():
         return None
     elif response.rc == 127:
-        log.error("git not found on path: PATH={0}".format(getenv('PATH', None)))
+        log.error("git not found on path: PATH={}".format(getenv("PATH", None)))
         raise CalledProcessError(response.rc, response.stderr)
     else:
         raise CalledProcessError(response.rc, response.stderr)
@@ -139,7 +138,7 @@ def _get_version_from_git_tag(tag):
     if m is None:
         return None
     version, post_commit, hash = m.groups()
-    return version if post_commit == '0' else "{0}.post{1}+{2}".format(version, post_commit, hash)
+    return version if post_commit == "0" else f"{version}.post{post_commit}+{hash}"
 
 
 def _get_version_from_git_clone(path):
@@ -173,25 +172,25 @@ def get_version(dunder_file):
 
 def write_version_into_init(target_dir, version):
     target_init_file = join(target_dir, "__init__.py")
-    assert isfile(target_init_file), "File not found: {0}".format(target_init_file)
-    with open(target_init_file, 'r') as f:
+    assert isfile(target_init_file), f"File not found: {target_init_file}"
+    with open(target_init_file) as f:
         init_lines = f.readlines()
     for q in range(len(init_lines)):
         if init_lines[q].startswith('__version__'):
-            init_lines[q] = '__version__ = "{0}"\n'.format(version)
+            init_lines[q] = f'__version__ = "{version}"\n'
         elif (init_lines[q].startswith(('from auxlib', 'import auxlib'))
               or 'auxlib.packaging' in init_lines[q]):
             init_lines[q] = None
-    print("UPDATING {0}".format(target_init_file))
+    print(f"UPDATING {target_init_file}")
     remove(target_init_file)
     with open(target_init_file, "w") as f:
         f.write("".join(filter(None, init_lines)))
 
 
 def write_version_file(target_dir, version):
-    assert isdir(target_dir), "Directory not found: {0}".format(target_dir)
+    assert isdir(target_dir), f"Directory not found: {target_dir}"
     target_file = join(target_dir, ".version")
-    print("WRITING {0} with version {1}".format(target_file, version))
+    print(f"WRITING {target_file} with version {version}")
     with open(target_file, 'w') as f:
         f.write(version)
 

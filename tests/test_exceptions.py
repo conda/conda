@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 from unittest import TestCase
+from unittest.mock import patch
 
 import sys
 import os
@@ -33,12 +32,6 @@ from conda.exceptions import (
     conda_exception_handler,
     ExceptionHandler,
 )
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
-
 
 def _raise_helper(exception):
     raise exception

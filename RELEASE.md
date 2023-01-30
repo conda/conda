@@ -30,12 +30,14 @@ Placeholder for `conda YY.M.0` release.
 [releases]: https://github.com/conda/conda/releases
 [main]: https://github.com/AnacondaRecipes/conda-feedstock
 [conda-forge]: https://github.com/conda-forge/conda-feedstock
+[ReadTheDocs]: https://readthedocs.com/projects/continuumio-conda/
 
 - [ ] [Complete outstanding PRs][milestone]
 - [ ] Create release PR
     - See release process https://github.com/conda/infra/issues/541
 - [ ] [Publish Release][releases]
 - [ ] Create/update `YY.M.x` branch
+- [ ] Activate the `YY.M.x` branch as a version on [Read The Docs][ReadTheDocs]
 - [ ] Feedstocks
     - [ ] Bump version [Anaconda's main][main]
     - [ ] Bump version [conda-forge][conda-forge]

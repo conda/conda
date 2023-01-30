@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
 from os.path import isdir, join, lexists
@@ -11,7 +9,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda.common.compat import on_win, odict
+from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from tests.data.env_metadata import (
     PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
@@ -177,7 +175,7 @@ def test_get_conda_anchor_files_and_records():
         records.append(record)
 
     output = get_conda_anchor_files_and_records("v/site-packages", records)
-    expected_output = odict()
+    expected_output = {}
     for i in range(len(valid_tests)):
         expected_output[valid_tests[i]] = records[i]
 

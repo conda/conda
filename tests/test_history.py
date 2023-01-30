@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 from os.path import dirname
 from pprint import pprint
 import unittest
+from unittest import mock
 
 from conda.testing.cases import BaseTestCase
-from conda.testing.decorators import skip_if_no_mock
-from conda.testing.helpers import mock
 from conda.testing.integration import make_temp_prefix
 
 from conda.history import History
@@ -20,7 +18,6 @@ class HistoryTestCase(BaseTestCase):
         self.assertTrue(getattr(h, '__enter__'))
         self.assertTrue(getattr(h, '__exit__'))
 
-    @skip_if_no_mock
     def test_calls_update_on_exit(self):
         h = History("/path/to/prefix")
         with mock.patch.object(h, 'init_log_file') as init_log_file:
@@ -31,7 +28,6 @@ class HistoryTestCase(BaseTestCase):
                     pass
             self.assertEqual(1, update.call_count)
 
-    @skip_if_no_mock
     def test_returns_history_object_as_context_object(self):
         h = History("/path/to/prefix")
         with mock.patch.object(h, 'init_log_file') as init_log_file:
@@ -40,7 +36,6 @@ class HistoryTestCase(BaseTestCase):
                 with h as h2:
                     self.assertEqual(h, h2)
 
-    @skip_if_no_mock
     def test_empty_history_check_on_empty_env(self):
         with mock.patch.object(History, 'file_is_empty') as mock_file_is_empty:
             with History(make_temp_prefix()) as h:
@@ -50,7 +45,6 @@ class HistoryTestCase(BaseTestCase):
         self.assertEqual(mock_file_is_empty.call_count, 1)
         assert not h.file_is_empty()
 
-    @skip_if_no_mock
     def test_parse_on_empty_env(self):
         with mock.patch.object(History, 'parse') as mock_parse:
             with History(make_temp_prefix(name=str(self.tmpdir))) as h:

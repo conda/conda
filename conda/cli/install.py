@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 import os
@@ -17,7 +15,6 @@ from ..common.constants import NULL
 from ..common.path import paths_equal, is_package_file
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import _get_solver_class
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotACondaEnvironmentError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
@@ -150,7 +147,7 @@ def install(args, parser, command='install'):
             if hasattr(args, "mkdir") and args.mkdir:
                 try:
                     mkdir_p(prefix)
-                except EnvironmentError as e:
+                except OSError as e:
                     raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
             else:
                 raise EnvironmentLocationNotFound(prefix)
@@ -220,7 +217,7 @@ def install(args, parser, command='install'):
 
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
+        print_activate(args.name or prefix)
         return
 
     repodata_fns = args.repodata_fns
@@ -248,9 +245,15 @@ def install(args, parser, command='install'):
                 unlink_link_transaction = revert_actions(prefix, get_revision(args.revision),
                                                          index)
             else:
-                SolverType = _get_solver_class()
-                solver = SolverType(prefix, context.channels, context.subdirs, specs_to_add=specs,
-                                    repodata_fn=repodata_fn, command=args.cmd)
+                solver_backend = context.plugin_manager.get_cached_solver_backend()
+                solver = solver_backend(
+                    prefix,
+                    context.channels,
+                    context.subdirs,
+                    specs_to_add=specs,
+                    repodata_fn=repodata_fn,
+                    command=args.cmd,
+                )
                 update_modifier = context.update_modifier
                 if (isinstall or isremove) and args.update_modifier == NULL:
                     update_modifier = UpdateModifier.FREEZE_INSTALLED
@@ -269,6 +272,8 @@ def install(args, parser, command='install'):
             break
 
         except (ResolvePackageNotFound, PackagesNotFoundError) as e:
+            if not getattr(e, "allow_retry", True):
+                raise e  # see note in next except block
             # end of the line.  Raise the exception
             if repodata_fn == repodata_fns[-1]:
                 # PackagesNotFoundError is the only exception type we want to raise.
@@ -362,7 +367,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if newenv:
         touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
+        print_activate(args.name or prefix)
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, EROFS, ENOENT
 from logging import getLogger
@@ -46,7 +44,7 @@ def register_env(location):
         with open(user_environments_txt_file, 'a') as fh:
             fh.write(ensure_text_type(location))
             fh.write('\n')
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno in (EACCES, EROFS, ENOENT):
             log.warn("Unable to register environment. Path not writable or missing.\n"
                      "  environment location: %s\n"
@@ -129,6 +127,6 @@ def _rewrite_environments_txt(environments_txt_file, prefixes):
         with open(environments_txt_file, 'w') as fh:
             fh.write('\n'.join(prefixes))
             fh.write('\n')
-    except EnvironmentError as e:
+    except OSError as e:
         log.info("File not cleaned: %s", environments_txt_file)
         log.debug('%r', e, exc_info=True)
