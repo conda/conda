@@ -4,13 +4,11 @@
 
 from logging import getLogger
 from unittest import TestCase
-from unittest.mock import patch
 
-import os
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol, non_x86_machines
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol, non_x86_machines
 from conda.common.compat import on_win, on_mac, on_linux
 from conda.common.io import env_vars
 from conda.core.index import check_allowlist, get_index, get_reduced_index, _supplement_index_with_system
