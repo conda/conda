@@ -4,7 +4,7 @@
 
 from errno import ENOENT
 import os
-from os.path import isdir, isfile, islink, join, lexists
+from os.path import isdir, isfile, join, lexists
 
 import pytest
 
