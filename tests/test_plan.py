@@ -4,12 +4,10 @@
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from functools import partial
-import os
 from os.path import join
 import random
 import unittest
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 
@@ -27,7 +25,7 @@ from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
 from conda.exports import execute_plan
-from conda.testing.helpers import captured, get_index_r_1, tempdir
+from conda.testing.helpers import captured, get_index_r_1
 
 from .gateways.disk.test_permissions import tempdir
 

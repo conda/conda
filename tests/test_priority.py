@@ -1,14 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from datetime import datetime
 from unittest import TestCase
 import re
 
 import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import on_win
 from conda.common.io import env_var
 from conda.testing.integration import Commands, package_is_installed, get_conda_list_tuple, \
     make_temp_env, run_command

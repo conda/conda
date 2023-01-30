@@ -6,7 +6,6 @@ import pytest
 
 from contextlib import contextmanager
 from textwrap import dedent
-import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 
@@ -89,7 +88,6 @@ def test_invalid_yaml():
         """)
     try:
         with make_temp_condarc(condarc) as rc:
-            rc_path = rc
             run_command(Commands.CONFIG, '--file', rc, '--add', 'channels', 'test')
     except ConfigurationLoadError as err:
         assert "reason: invalid yaml at line" in err.message, err.message
