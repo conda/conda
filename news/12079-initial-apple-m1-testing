@@ -16,6 +16,6 @@
 
 ### Other
 
-* Enable initial Apple M1 (Apple Silicon) testing via Cirrus CI for Python 3.8, 3.9, 3.10. 
+* Enable initial Apple M1 (Apple Silicon) testing via Cirrus CI for Python 3.8, 3.9, 3.10.
   Only tests marked via `@pytest.mark.cirrus` run there until it is clear how much resources
   are availabe there.
