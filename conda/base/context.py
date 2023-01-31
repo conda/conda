@@ -611,7 +611,7 @@ class Context(Configuration):
 
     @property
     def active_prefix(self):
-        return os.getenv('CONDA_PREFIX')
+        return os.getenv("CONDA_PREFIX")
 
     @property
     def shlvl(self):

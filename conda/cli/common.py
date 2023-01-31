@@ -73,12 +73,14 @@ def ensure_name_or_prefix(args, command):
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
 
-def is_active_prefix(prefix):
+def is_active_prefix(prefix: str) -> bool:
     """
     Determines whether the args we pass in are pointing to the active prefix.
     Can be used a validation step to make sure operations are not being
     performed on the active prefix.
     """
+    if context.active_prefix is None:
+        return False
     return (
         paths_equal(prefix, context.active_prefix)
         # normcasing our prefix check for Windows, for case insensitivity
