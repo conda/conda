@@ -31,6 +31,6 @@ def test_lock_can_lock(tmp_path):
         q = multiprocessing.Queue()
         p = multiprocessing.Process(target=locker, args=(lock, q))
         p.start()
-        p.join(11)
+        assert isinstance(q.get(timeout=12), OSError)
+        p.join(1)
         assert p.exitcode == 0
-        assert isinstance(q.get(timeout=0), OSError)
