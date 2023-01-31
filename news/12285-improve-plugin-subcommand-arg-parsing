@@ -1,0 +1,19 @@
+### Enhancements
+
+* Helps decouple plugin subcommand creation from conda's argparse implementation (#12285)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
