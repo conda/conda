@@ -121,3 +121,24 @@ def test_subdir_override():
             assert not any(
                 (p.name in platform_virtual_packages and p.name != expected) for p in virtual
             )
+
+
+def test_glibc_override():
+    """
+    Conda should not produce a libc virtual package when CONDA_OVERRIDE_GLIBC=""
+    """
+    for version in "", "1.0":
+        with env_vars(
+            {"CONDA_SUBDIR": "linux-64", "CONDA_OVERRIDE_GLIBC": version},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            packages = conda.core.index.get_reduced_index(
+                context.default_prefix,
+                context.default_channels,
+                context.subdirs,
+                (),
+                context.repodata_fns[0],
+            )
+            virtual = [p for p in packages if p.channel.name == "@"]
+            libc_exported = any("libc" in p.name for p in virtual)
+            assert libc_exported == bool(version)
