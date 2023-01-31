@@ -22,8 +22,8 @@ python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error
 
 :: Download minio server needed for S3 tests and place it in our conda environment so is in PATH
-:: certutil somehow is able to download arbitrary files; don't aske me why: https://superuser.com/a/1545689
-certutil -urlcache -split -f "https://dl.minio.io/server/minio/release/windows-amd64/minio.exe" "%CONDA_PREFIX%\minio.exe" || goto :error
+powershell.exe -Command "If (-Not (Test-Path 'minio.exe')) { Invoke-WebRequest -Uri 'https://dl.minio.io/server/minio/release/windows-amd64/minio.exe' -OutFile 'minio.exe' | Out-Null }"' || goto :error
+cp minio.exe %CONDA_PREFIX%/minio.exe || goto :error
 
 goto :EOF
 
