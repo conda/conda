@@ -16,6 +16,7 @@ PACKAGE_JSON_WITH_MISSING_FILES = {"files": [BIN_TEST_EXE, LIB_TEST_PACKAGE, "mi
 
 @pytest.fixture()
 def conda_mock_dir(tmpdir):
+    """Fixture that returns a testing environment with no missing files"""
     tmpdir.mkdir("bin")
     tmpdir.mkdir("lib")
     conda_meta_dir = tmpdir.mkdir("conda-meta")
@@ -34,6 +35,8 @@ def conda_mock_dir_missing_files(conda_mock_dir):
     """Fixture that returns a testing environment with missing files"""
     Path(conda_mock_dir).joinpath(BIN_TEST_EXE).unlink()
 
+    return conda_mock_dir
+
 
 def test_find_packages_with_no_missing_files(conda_mock_dir):
     """Test that runs for the case with no missing files"""
@@ -41,6 +44,13 @@ def test_find_packages_with_no_missing_files(conda_mock_dir):
     assert result == {}
 
 
-def test_find_packages_with_missing_files(conda_mock_dir):
-    result = health_checks.find_packages_with_missing_files(conda_mock_dir)
-    assert result[TEST_PACKAGE_JSON] == []
+def test_find_packages_with_missing_files(conda_mock_dir_missing_files):
+    result = health_checks.find_packages_with_missing_files(conda_mock_dir_missing_files)
+    TEST_PACKAGE_JSON = "test-package"
+    assert result == {TEST_PACKAGE_JSON: [BIN_TEST_EXE]}
+
+
+def test_get_number_of_missing_files(conda_mock_dir_missing_files):
+    result = health_checks.get_number_of_missing_files(conda_mock_dir_missing_files)
+    TEST_PACKAGE_JSON = "test-package"
+    assert result == {TEST_PACKAGE_JSON: 1}
