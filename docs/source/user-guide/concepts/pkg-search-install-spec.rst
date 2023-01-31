@@ -2,7 +2,7 @@
 Package search and install specifications
 =========================================
 
-Conda supports the following specifications for ``conda search`` and ``conda install``. 
+Conda supports the following specifications for ``conda search`` and ``conda install``.
 
 Package search
 ==============
@@ -37,13 +37,13 @@ Package searches can also be performed using what is called "key-value pair nota
 example image. The search below will return the same list of packages as the standard specification.
 
 .. code-block:: none
-   
+
    $ conda search "numpy[channel=conda-forge, subdir=linux-64, version=1.17.*, build=py38*]"
 
 Key-value pair notation can be used at the same time as standard notation.
 
 .. code-block:: none
-   
+
    $ conda search "conda-forge::numpy=1.17.3[subdir=linux-64, build=py38*]"
 
 .. warning::
@@ -61,13 +61,13 @@ Example
 Let's take the search from the :ref:`Package search` section.
 
 .. code-block:: none
-   
+
    $ conda search "conda-forge/linux-64::numpy 1.17.* py38*"
 
 This returns the following:
 
 .. code-block:: none
-   
+
    Loading channels: done
    # Name                       Version           Build  Channel
    numpy                         1.17.3  py38h95a1406_0  conda-forge
@@ -77,6 +77,5 @@ This returns the following:
 You can then choose a specific version and build, if necessary, and edit your ``conda install`` command accordingly.
 
 .. code-block:: none
-   
-   $ conda install "conda-forge/linux-64::numpy 1.17.5 py38h95a1406_0"
 
+   $ conda install "conda-forge/linux-64::numpy 1.17.5 py38h95a1406_0"
