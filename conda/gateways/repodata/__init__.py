@@ -547,7 +547,10 @@ class RepodataCache:
 
         Return self.state.
         """
-        self.load(state_only=True)
+        try:
+            self.load(state_only=True)
+        except FileNotFoundError:
+            self.state.clear()
         return self.state
 
     def save(self, data: str):

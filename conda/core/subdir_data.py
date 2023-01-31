@@ -286,7 +286,12 @@ class SubdirData(metaclass=SubdirDataType):
         return state.save()
 
     def _load(self):
-        if not self.cache_path_json.exists():
+        cache = self._repo_cache
+        cache.load_state()  # XXX should this succeed even if FileNotFound?
+
+        # XXX cache_path_json and cache_path_state must exist; just try loading
+        # it and fall back to this on error?
+        if not cache.cache_path_json.exists():
             log.debug(
                 "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
             )
@@ -303,13 +308,8 @@ class SubdirData(metaclass=SubdirDataType):
                     "_names_index": defaultdict(list),
                     "_track_features_index": defaultdict(list),
                 }
-            else:
-                mod_etag_headers = RepodataState(
-                    self.cache_path_json, self.cache_path_state, self.repodata_fn
-                )
-        else:
-            cache = self._repo_cache
 
+        else:
             if context.use_index_cache:
                 log.debug(
                     "Using cached repodata for %s at %s because use_cache=True",
@@ -338,7 +338,7 @@ class SubdirData(metaclass=SubdirDataType):
 
         try:
             try:
-                raw_repodata_str = self._repo.repodata(cache.state)
+                raw_repodata_str = self._repo.repodata(cache.state)  # type: ignore
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
@@ -359,10 +359,10 @@ class SubdirData(metaclass=SubdirDataType):
                 "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                 self.url_w_repodata_fn,
             )
-            RepodataCache(self.cache_path_base, self.repodata_fn).refresh()
+            cache.refresh()
             # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
             # self._save_state(mod_etag_headers)
-            _internal_state = self._read_local_repodata(mod_etag_headers)
+            _internal_state = self._read_local_repodata(cache.state)
             return _internal_state
         else:
             if not isdir(dirname(self.cache_path_json)):  # What happens if it is a directory?
@@ -375,20 +375,16 @@ class SubdirData(metaclass=SubdirDataType):
                 elif isinstance(raw_repodata_str, (str, type(None))):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
-                    cache = self._repo_cache
-                    cache.load_state()  # XXX wrong
                     cache.save(raw_repodata_str or "{}")
-
                 else:
                     # it can be a dict?
                     assert False, f"Unreachable {raw_repodata_str}"
-                self._save_state(mod_etag_headers)  # XXX use self._repo_cache methods
             except OSError as e:
                 if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, mod_etag_headers)
+            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
             self._internal_state = _internal_state
             self._pickle_me()
             return _internal_state
@@ -494,11 +490,10 @@ class SubdirData(metaclass=SubdirDataType):
         return self._process_raw_repodata(json_obj, state=state)
 
     def _process_raw_repodata(self, repodata, state: RepodataState | None):
-        if state is None:
-            state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
-        elif not isinstance(state, RepodataState):
+        if not isinstance(state, RepodataState):
             _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
-            _state |= state
+            if state:
+                _state |= state
             state = _state
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
