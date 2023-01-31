@@ -92,6 +92,7 @@ def test_stale(tmp_path):
 
     cache.load()
     assert not cache.stale()
+    assert 29 < cache.timeout() < 30.1  # time difference between record and save timestamp
 
     # backdate
     cache.state["refresh_ns"] = time.time_ns() - (60 * 10**9)  # type: ignore

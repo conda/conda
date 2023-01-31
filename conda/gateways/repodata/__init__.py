@@ -325,6 +325,7 @@ class RepodataState(UserDict):
         super().__init__()
         self.cache_path_json = pathlib.Path(cache_path_json)
         self.cache_path_state = pathlib.Path(cache_path_state)
+        # XXX may not be that useful/used compared to the full URL
         self.repodata_fn = repodata_fn
 
     def load(self):
@@ -473,7 +474,9 @@ class RepodataCache:
         cache_path_base = pathlib.Path(base)
         self.cache_dir = cache_path_base.parent
         self.name = cache_path_base.name
-        self.repodata_fn = repodata_fn
+        self.repodata_fn = (
+            repodata_fn  # XXX can we skip repodata_fn or include the full url for debugging
+        )
         self.state = RepodataState(self.cache_path_json, self.cache_path_state, repodata_fn)
 
     @property
@@ -492,7 +495,7 @@ class RepodataCache:
             self.name + ("1" if context.use_only_tar_bz2 else "") + ".state.json",
         )
 
-    def load(self) -> str:
+    def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
 
         # lock .state.json
@@ -505,10 +508,13 @@ class RepodataCache:
             # it will release the lock early
             state = json.loads(state_file.read())
 
-            # json and state files should match
+            # json and state files should match. must read json before checking
+            # stat (if json_data is to be trusted)
+            if state_only:
+                json_data = ""
+            else:
+                json_data = self.cache_path_json.read_text()
 
-            # must read json before checking stat
-            json_data = self.cache_path_json.read_text()
             json_stat = self.cache_path_json.stat()
             if not (
                 state.get("mtime_ns") == json_stat.st_mtime_ns
@@ -533,7 +539,16 @@ class RepodataCache:
 
         # unlock .state.json
 
-        # also, add mtime_refreshed_ns instead of touching file
+        # also, add refresh_ns instead of touching repodata.json file
+
+    def load_state(self):
+        """
+        Update self.state without reading repodata.json.
+
+        Return self.state.
+        """
+        self.load(state_only=True)
+        return self.state
 
     def save(self, data: str):
         """
@@ -594,6 +609,23 @@ class RepodataCache:
         now = time.time_ns()
         refresh = self.state.get("refresh_ns", 0)
         return (now - refresh) > max_age
+
+    def timeout(self):
+        """
+        Return number of seconds until cache times out (<= 0 if already timed
+        out).
+        """
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(self.state.cache_control)
+        else:
+            max_age = 0
+
+        max_age *= 10**9  # nanoseconds
+        now = time.time_ns()
+        refresh = self.state.get("refresh_ns", 0)
+        return ((now - refresh) + max_age) / 10**9
 
 
 try:

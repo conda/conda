@@ -198,6 +198,10 @@ class SubdirData(metaclass=SubdirDataType):
             cache_path_state=self.cache_path_state,
         )
 
+    @property
+    def _repo_cache(self) -> RepodataCache:
+        return RepodataCache(self.cache_path_base, self.repodata_fn)
+
     def reload(self):
         self._loaded = False
         self.load()
@@ -273,7 +277,7 @@ class SubdirData(metaclass=SubdirDataType):
         stored separately, instead of the previous "added to repodata.json"
         arrangement.
         """
-        return RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn).load()
+        return self._repo_cache.load_state()
 
     def _save_state(self, state: RepodataState):
         assert Path(state.cache_path_json) == Path(self.cache_path_json)
@@ -282,10 +286,7 @@ class SubdirData(metaclass=SubdirDataType):
         return state.save()
 
     def _load(self):
-        try:
-            # XXX replace all with RepodataCache
-            mtime = getmtime(self.cache_path_json)
-        except OSError:
+        if not self.cache_path_json.exists():
             log.debug(
                 "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
             )
@@ -307,7 +308,7 @@ class SubdirData(metaclass=SubdirDataType):
                     self.cache_path_json, self.cache_path_state, self.repodata_fn
                 )
         else:
-            mod_etag_headers = self._load_state()
+            cache = self._repo_cache
 
             if context.use_index_cache:
                 log.debug(
@@ -316,25 +317,19 @@ class SubdirData(metaclass=SubdirDataType):
                     self.cache_path_json,
                 )
 
-                _internal_state = self._read_local_repodata(mod_etag_headers)
+                _internal_state = self._read_local_repodata(cache.state)
                 return _internal_state
 
-            if context.local_repodata_ttl > 1:
-                max_age = context.local_repodata_ttl
-            elif context.local_repodata_ttl == 1:
-                max_age = get_cache_control_max_age(mod_etag_headers.get("_cache_control", ""))
-            else:
-                max_age = 0
-
-            timeout = mtime + max_age - time()
-            if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith("file://"):
+            stale = cache.stale()
+            if (not stale or context.offline) and not self.url_w_subdir.startswith("file://"):
+                timeout = cache.timeout()
                 log.debug(
                     "Using cached repodata for %s at %s. Timeout in %d sec",
                     self.url_w_repodata_fn,
                     self.cache_path_json,
                     timeout,
                 )
-                _internal_state = self._read_local_repodata(mod_etag_headers)
+                _internal_state = self._read_local_repodata(cache.state)
                 return _internal_state
 
             log.debug(
@@ -343,7 +338,7 @@ class SubdirData(metaclass=SubdirDataType):
 
         try:
             try:
-                raw_repodata_str = self._repo.repodata(mod_etag_headers)
+                raw_repodata_str = self._repo.repodata(cache.state)
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
@@ -380,13 +375,14 @@ class SubdirData(metaclass=SubdirDataType):
                 elif isinstance(raw_repodata_str, (str, type(None))):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
-                    cache_path_json = self.cache_path_json
-                    with open(cache_path_json, "w", newline="\n") as fh:
-                        fh.write(raw_repodata_str or "{}")
+                    cache = self._repo_cache
+                    cache.load_state()  # XXX wrong
+                    cache.save(raw_repodata_str or "{}")
+
                 else:
                     # it can be a dict?
                     assert False, f"Unreachable {raw_repodata_str}"
-                self._save_state(mod_etag_headers)
+                self._save_state(mod_etag_headers)  # XXX use self._repo_cache methods
             except OSError as e:
                 if e.errno in (EACCES, EPERM, EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
@@ -416,7 +412,7 @@ class SubdirData(metaclass=SubdirDataType):
         # pickled data is bad or doesn't exist; load cached json
         log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
 
-        cache = RepodataCache(self.cache_path_base, self.repodata_fn)
+        cache = self._repo_cache
 
         try:
             raw_repodata_str = cache.load()
