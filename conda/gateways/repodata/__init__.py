@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import time
 import warnings
 from collections import UserDict
@@ -409,6 +410,7 @@ LOCK_BYTE = 21  # mamba interop
 LOCK_ATTEMPTS = 10
 LOCK_SLEEP = 1
 
+# XXX must be possible to disable locks with a context or environment variable
 try:
     import msvcrt
 
@@ -533,38 +535,34 @@ class RepodataCache:
 
         # also, add mtime_refreshed_ns instead of touching file
 
-    def save(self, data):
+    def save(self, data: str):
         """
         Write data to <repodata>.json cache path, synchronize state.
         """
-        # contextmanager
-
-        # lock .state.json
-        # read
-        # write to temp path
-        # get mtime, etc. from temp path in cache directory
-        # move temp path on top of normal cache json
-        # write .state.json
-        # (in context manager: delete temp path)
-
         temp_path = self.cache_dir / self.cache_dir.with_suffix("." + os.urandom(4).hex() + ".tmp")
 
-        with temp_path.open("wx") as temp:  # exclusive mode, error if exists
+        with temp_path.open("x") as temp:  # exclusive mode, error if exists
             temp.write(data)
+
+        return self.replace(temp_path)
 
     def replace(self, temp_path: Path):
         """
         Rename path onto <repodata>.json path, synchronize state.
 
-        Relies on path's mtime not changing on move.
+        Relies on path's mtime not changing on move. `temp_path` should be
+        adjacent to `self.cache_path_json` to be on the same filesystem.
         """
         with self.cache_path_state.open("a+") as state_file, _lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
+            # XXX make sure self.state has the correct etag, etc. for temp_path.
+            # UserDict has inscrutable typing, which we ignore
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
+            self.state["refresh_ns"] = time.time_ns()  # type: ignore
             temp_path.rename(self.cache_path_json)
             state_file.write(json.dumps(dict(self.state), indent=2))
 
@@ -576,8 +574,26 @@ class RepodataCache:
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
             state_file.truncate()
+            # XXX can we use state's stat().mtime_ns, checked after locking .state.json
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
             state_file.write(json.dumps(dict(self.state), indent=2))
+
+    def stale(self):
+        """
+        Compare state refresh_ns against cache control header and
+        context.local_repodata_ttl.
+        """
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(self.state.cache_control)
+        else:
+            max_age = 0
+
+        max_age *= 10**9  # nanoseconds
+        now = time.time_ns()
+        refresh = self.state.get("refresh_ns", 0)
+        return (now - refresh) > max_age
 
 
 try:
@@ -604,3 +620,8 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
 
     md5 = _md5_not_for_security(url.encode("utf-8"))
     return f"{md5.hexdigest()[:8]}.json"
+
+
+def get_cache_control_max_age(cache_control_value):
+    max_age = re.search(r"max-age=(\d+)", cache_control_value)
+    return int(max_age.groups()[0]) if max_age else 0
