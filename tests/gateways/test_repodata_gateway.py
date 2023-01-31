@@ -16,7 +16,12 @@ def locker(path, q):
             assert False
     except OSError as e:
         q.put(e)
-
+    except Exception as e:
+        # The wrong exception!
+        q.put(e)
+    else:
+        # Speed up test failure if no exception thrown?
+        q.put(None)
 
 def test_lock_can_lock(tmp_path):
     """
