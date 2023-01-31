@@ -59,7 +59,7 @@ def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
 
-def human_bytes(n, unit = None):
+def human_bytes(n, unit=None):
     """
     Return the number of bytes n in more human readable form.
 
@@ -97,7 +97,7 @@ def human_bytes(n, unit = None):
         return si_bytes(n)
     elif unit == "IEC":
         return iec_bytes(n)
-    else:   
+    else:
         if n < 1024:
             return '%d B' % n
         k = n/1024
@@ -108,7 +108,7 @@ def human_bytes(n, unit = None):
             return '%.1f MB' % m
         g = m/1024
         return '%.2f GB' % g
-        
+
 
 def iec_bytes(n):
     if n < 1000:
