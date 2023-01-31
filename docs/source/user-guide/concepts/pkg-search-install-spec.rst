@@ -38,13 +38,13 @@ example image. The search below will return the same list of packages as the sta
 
 .. code-block:: none
    
-   conda search "numpy[channel=conda-forge, subdir=linux-64, version=1.17.3, build=py38h95a1406_0]"
+   $ conda search "numpy[channel=conda-forge, subdir=linux-64, version=1.17.*, build=py38*]"
 
 Key-value pair notation can be used at the same time as standard notation.
 
 .. code-block:: none
    
-   conda search "conda-forge::numpy=1.17.3[subdir=linux-64, build=py38*]"
+   $ conda search "conda-forge::numpy=1.17.3[subdir=linux-64, build=py38*]"
 
 .. warning::
 
@@ -53,5 +53,30 @@ Key-value pair notation can be used at the same time as standard notation.
 Package installation
 ====================
 
-When you're installing packages, conda recommends being as concrete as possible. The use of ``*`` wildcards and version ranges during a search will most likely return a list of many packages.
+When you're installing packages, conda recommends being as concrete as possible. The use of ``*`` wildcards and version ranges during a search will most likely install many packages of different types and versions into your environment.
+
+Example
+-------
+
+Let's take the search from the :ref:`Package search` section.
+
+.. code-block:: none
+   
+   $ conda search "conda-forge/linux-64::numpy 1.17.* py38*"
+
+This returns the following:
+
+.. code-block:: none
+   
+   Loading channels: done
+   # Name                       Version           Build  Channel
+   numpy                         1.17.3  py38h95a1406_0  conda-forge
+   numpy                         1.17.5  py38h18fd61f_1  conda-forge
+   numpy                         1.17.5  py38h95a1406_0  conda-forge
+
+You can then choose a specific version and build, if necessary, and edit your ``conda install`` command accordingly.
+
+.. code-block:: none
+   
+   $ conda install "conda-forge/linux-64::numpy 1.17.5 py38h95a1406_0"
 
