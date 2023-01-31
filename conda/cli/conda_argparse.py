@@ -27,6 +27,7 @@ from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier
     UpdateModifier
 from ..base.context import context
 from ..common.constants import NULL
+from ..plugins import CondaSubcommand
 
 log = getLogger(__name__)
 
@@ -89,13 +90,13 @@ def do_call(args, parser):
     all registered plugin subcommands.
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if hasattr(args, "_plugin_subcommand"):
-        if args._plugin_subcommand.no_sys_argv:
-            return args._plugin_subcommand.action()
+    if hasattr(args, "plugin_subcommand") and isinstance(args.plugin_subcommand, CondaSubcommand):
+        if args.plugin_subcommand.no_sys_argv:
+            return args.plugin_subcommand.action()
         else:
             # This is here to ensure backwards compatibility with the first release of
             # plugin subcommand invocation
-            return args._plugin_subcommand.action(sys.argv[2:])
+            return args.plugin_subcommand.action(sys.argv[2:])
 
     relative_mod, func_name = args.func.rsplit('.', 1)
     # func_name should always be 'execute'
@@ -213,14 +214,14 @@ class ArgumentParser(ArgumentParserBase):
         """
         We override this method to check if we are running from a known plugin subcommand.
         If we are, we do not want to handle argument parsing as this is delegated to the plugin
-        subcommand. We instead return a ``Namespace`` object with ``_plugin_subcommand`` defined,
+        subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
         which is a ``conda.plugins.CondaSubcommand`` object.
         """
         if len(sys.argv) > 1:
             name = sys.argv[1]
             subcommand = next((sub for sub in self._subcommands if sub.name == name), None)
             if subcommand:
-                return Namespace(_plugin_subcommand=subcommand)
+                return Namespace(plugin_subcommand=subcommand)
 
         return super().parse_args(args, namespace)
 
