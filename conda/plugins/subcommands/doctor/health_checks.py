@@ -9,8 +9,8 @@ from conda.base.context import context
 
 active_prefix = context.active_prefix
 
-REPORT_TITLE = "\n🩺 ENVIRONMENT HEALTH REPORT 🩺\n"
-DETAILED_REPORT_TITLE = "\n🩺 DETAILED ENVIRONMENT HEALTH REPORT 🩺\n"
+REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
+DETAILED_REPORT_TITLE = "\nDETAILED ENVIRONMENT HEALTH REPORT\n"
 OK_MARK = "✅"
 
 def generate_report_heading(prefix: str):
@@ -28,16 +28,9 @@ def get_number_of_missing_files(prefix: str):
     if packages_with_missing_files:
         number_of_missing_files = {k: len(v) for k, v in packages_with_missing_files.items()}
 
-        print("💉 Number of Missing Files\n")
-        for k in number_of_missing_files:
-            print(f"{k}:\t{str(number_of_missing_files[k])}")
-
-        print("\n")
-
+        return number_of_missing_files
     else:
-        print(f"{OK_MARK} There are no packages with missing files.\n")
-
-    # print("_" * term_size.columns)
+        return 0
 
 
 def get_names_of_missing_files(prefix: str):
@@ -46,16 +39,9 @@ def get_names_of_missing_files(prefix: str):
     packages_with_missing_files = find_packages_with_missing_files(prefix)
 
     if packages_with_missing_files:
-        print("💉 Missing Files\n")
-        for k in packages_with_missing_files:
-            print(f"{k}:\t{str(packages_with_missing_files[k])}")
-            # print(packages_with_missing_files, sep='\n')
-
-        print("\n")
+        return packages_with_missing_files
     else:
-        print(f"{OK_MARK} There are no packages with missing files.\n")
-
-    # print("_" * term_size.columns)
+        return 0
 
 
 def find_packages_with_missing_files(prefix: str):
@@ -85,10 +71,26 @@ def find_packages_with_missing_files(prefix: str):
 def run_health_checks(prefix: str):
     print("_" * 20)
     print(REPORT_TITLE)
-    get_number_of_missing_files(active_prefix)
+    number_of_missing_files = get_number_of_missing_files(active_prefix)
+    if number_of_missing_files:
+        print("Number of Missing Files\n")
+        for k in number_of_missing_files:
+            print(f"{k}:\t{str(number_of_missing_files[k])}")
+
+        print("\n")
+    else:
+        print(f"{OK_MARK} There are no packages with missing files.\n")
 
 
 def run_detailed_health_checks(prefix: str):
     print("_" * 20)
     print(DETAILED_REPORT_TITLE)
-    get_names_of_missing_files(active_prefix)
+    names_of_missing_files = get_names_of_missing_files(active_prefix)
+    if names_of_missing_files:
+        print("Missing Files\n")
+        for k in names_of_missing_files:
+            print(f"{k}:\t{str(names_of_missing_files[k])}")
+
+        print("\n")
+    else:
+        print(f"{OK_MARK} There are no packages with missing files.\n")
