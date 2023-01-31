@@ -59,11 +59,31 @@ def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
 
-def human_bytes(n):
+def human_bytes(n, unit = None):
     """
     Return the number of bytes n in more human readable form.
 
     Examples:
+        >>> human_bytes(42)
+        '42 B'
+        >>> human_bytes(1042)
+        '1 KB'
+        >>> human_bytes(10004242)
+        '9.5 MB'
+        >>> human_bytes(100000004242)
+        '93.13 GB'
+
+    SI units:
+        >>> human_bytes(42)
+        '42 B'
+        >>> human_bytes(1042)
+        '1 kB'
+        >>> human_bytes(10004242)
+        '10 MB'
+        >>> human_bytes(100000004242)
+        '100 GB'
+
+    IEC units:
         >>> human_bytes(42)
         '42 B'
         >>> human_bytes(1042)
@@ -73,16 +93,47 @@ def human_bytes(n):
         >>> human_bytes(100000004242)
         '93.13 GiB'
     """
-    if n < 1024:
+    if unit == "SI":
+        return si_bytes(n)
+    elif unit == "IEC":
+        return iec_bytes(n)
+    else:   
+        if n < 1024:
+            return '%d B' % n
+        k = n/1024
+        if k < 1024:
+            return '%d KB' % round(k)
+        m = k/1024
+        if m < 1024:
+            return '%.1f MB' % m
+        g = m/1024
+        return '%.2f GB' % g
+        
+
+def iec_bytes(n):
+    if n < 1000:
         return '%d B' % n
-    k = n/1024
-    if k < 1024:
-        return '%d KiB' % round(k)
-    m = k/1024
-    if m < 1024:
-        return '%.1f MiB' % m
-    g = m/1024
-    return '%.2f GiB' % g
+    k = n/1000
+    if k < 1000:
+        return '%d KB' % round(k)
+    m = k/1000
+    if m < 1000:
+        return '%.1f MB' % m
+    g = m/1000
+    return '%.2f GB' % g
+
+
+def si_bytes(n):
+    if n < 1000:
+        return '%d B' % n
+    k = n/1000
+    if k < 1000:
+        return '%d KB' % round(k)
+    m = k/1000
+    if m < 1000:
+        return '%.1f MB' % m
+    g = m/1000
+    return '%.2f GB' % g
 
 
 # TODO: this should be done in a more extensible way

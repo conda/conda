@@ -322,6 +322,7 @@ class Context(Configuration):
     report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
+    byte_units = ParameterLoader(PrimitiveParameter("", element_type=str))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
 
@@ -1068,6 +1069,7 @@ class Context(Configuration):
                 # I don't think this documentation is correct any longer. # NOQA
                 "target_prefix_override",
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                "byte_units",    # select units type legacy or IEC or SI
             ),
         }
 
@@ -1614,6 +1616,11 @@ class Context(Configuration):
                 to 5. In order to completely suppress channel notices, set this to 0.
                 """
             ),
+            byte_units=dals(
+                """
+                A string that sets whether the unit of bytes is written as SI or IEC.
+                If you do not set it to "SI" or "IEC", it will work by default."""
+            )
         )
 
 
