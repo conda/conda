@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 import abc
+import hashlib
 import json
 import logging
+import os
 import pathlib
+import re
+import time
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
+from pathlib import Path
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
 from conda.common.url import join_url, maybe_unquote
+from conda.deprecations import deprecated
 from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -47,7 +53,7 @@ class RepodataIsEmpty(UnavailableInvalidChannel):
 
 class RepodataOnDisk(Exception):
     """
-    Indicate that RepoInerface.repodata() successfully wrote repodata to disk,
+    Indicate that RepoInterface.repodata() successfully wrote repodata to disk,
     instead of returning a string.
     """
 
@@ -323,8 +329,10 @@ class RepodataState(UserDict):
         super().__init__()
         self.cache_path_json = pathlib.Path(cache_path_json)
         self.cache_path_state = pathlib.Path(cache_path_state)
+        # XXX may not be that useful/used compared to the full URL
         self.repodata_fn = repodata_fn
 
+    @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def load(self):
         """
         Cache headers and additional data needed to keep track of the cache are
@@ -349,6 +357,7 @@ class RepodataState(UserDict):
             self.clear()
         return self
 
+    @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def save(self):
         """
         Must be called after writing cache_path_json, as its mtime is included in .state.json
@@ -402,3 +411,269 @@ class RepodataState(UserDict):
         else:
             raise KeyError(key)
         return super().__getitem__(key)
+
+
+LOCK_BYTE = 21  # mamba interop
+LOCK_ATTEMPTS = 10
+LOCK_SLEEP = 1
+
+# XXX must be possible to disable locks with a context or environment variable
+try:
+    import msvcrt
+
+    @contextmanager
+    def _lock(fd):
+        tell = fd.tell()
+        fd.seek(LOCK_BYTE)
+        msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)
+        try:
+            fd.seek(tell)
+            yield
+        finally:
+            fd.seek(LOCK_BYTE)
+            msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)
+
+except ImportError:
+    try:
+        import fcntl
+    except ImportError:
+        # "fcntl Availibility: not Emscripten, not WASI."
+        warnings.warn("file locking not available")
+
+        @contextmanager
+        def _lock(fd):
+            yield
+
+    else:
+
+        class _lock:
+            def __init__(self, fd):
+                self.fd = fd
+
+            def __enter__(self):
+                for attempt in range(LOCK_ATTEMPTS):
+                    try:
+                        # msvcrt locking does something similar
+                        fcntl.lockf(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE)
+                    except OSError:
+                        if attempt > LOCK_ATTEMPTS - 2:
+                            raise
+                        time.sleep(LOCK_SLEEP)
+
+            def __exit__(self, *exc):
+                fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+
+
+class RepodataCache:
+    """
+    Handle caching for a single repodata.json + repodata.state.json
+    (<hex-string>*.json inside `dir`)
+
+    Avoid race conditions while loading, saving repodata.json and cache state.
+    """
+
+    def __init__(self, base, repodata_fn):
+        """
+        base: directory and filename prefix for cache, e.g. /cache/dir/abc123;
+        writes /cache/dir/abc123.json
+        """
+        cache_path_base = pathlib.Path(base)
+        self.cache_dir = cache_path_base.parent
+        self.name = cache_path_base.name
+        self.repodata_fn = (
+            repodata_fn  # XXX can we skip repodata_fn or include the full url for debugging
+        )
+        self.state = RepodataState(self.cache_path_json, self.cache_path_state, repodata_fn)
+
+    @property
+    def cache_path_json(self):
+        return pathlib.Path(
+            self.cache_dir, self.name + ("1" if context.use_only_tar_bz2 else "") + ".json"
+        )
+
+    @property
+    def cache_path_state(self):
+        """
+        Out-of-band etag and other state needed by the RepoInterface.
+        """
+        return pathlib.Path(
+            self.cache_dir,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + ".state.json",
+        )
+
+    def load(self, *, state_only=False) -> str:
+        # read state and repodata.json with locking
+
+        # lock .state.json
+        # read .state.json
+        # read repodata.json
+        # check stat, if wrong clear cache information
+
+        with self.cache_path_state.open("r+") as state_file, _lock(state_file):
+            # cannot use pathlib.read_text / write_text on any locked file, as
+            # it will release the lock early
+            state = json.loads(state_file.read())
+
+            # json and state files should match. must read json before checking
+            # stat (if json_data is to be trusted)
+            if state_only:
+                json_data = ""
+            else:
+                json_data = self.cache_path_json.read_text()
+
+            json_stat = self.cache_path_json.stat()
+            if not (
+                state.get("mtime_ns") == json_stat.st_mtime_ns
+                and state.get("size") == json_stat.st_size
+            ):
+                # clear mod, etag, cache_control to encourage re-download
+                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+            self.state.clear()
+            self.state.update(
+                state
+            )  # will aliased _mod, _etag (not cleared above) pass through as mod, etag?
+
+        return json_data
+
+        # check repodata.json stat(); mtime_ns must equal .state.json, or it is stale
+        # read repodata.json
+        # check repodata.json stat() again: st_size, st_mtime_ns must be equal
+
+        # repodata.json is okay - use it somewhere
+
+        # repodata.json is not okay - maybe use it, but don't allow cache updates
+
+        # unlock .state.json
+
+        # also, add refresh_ns instead of touching repodata.json file
+
+    def load_state(self):
+        """
+        Update self.state without reading repodata.json.
+
+        Return self.state.
+        """
+        try:
+            self.load(state_only=True)
+        except FileNotFoundError:
+            self.state.clear()
+        return self.state
+
+    def save(self, data: str):
+        """
+        Write data to <repodata>.json cache path, synchronize state.
+        """
+        temp_path = self.cache_dir / self.cache_dir.with_suffix(f".{os.urandom(4).hex()}.tmp")
+
+        try:
+            with temp_path.open("x") as temp:  # exclusive mode, error if exists
+                temp.write(data)
+
+            return self.replace(temp_path)
+
+        finally:
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
+
+    def replace(self, temp_path: Path):
+        """
+        Rename path onto <repodata>.json path, synchronize state.
+
+        Relies on path's mtime not changing on move. `temp_path` should be
+        adjacent to `self.cache_path_json` to be on the same filesystem.
+        """
+        with self.cache_path_state.open("a+") as state_file, _lock(state_file):
+            # "a+" avoids trunctating file before we have the lock and creates
+            state_file.seek(0)
+            state_file.truncate()
+            stat = temp_path.stat()
+            # XXX make sure self.state has the correct etag, etc. for temp_path.
+            # UserDict has inscrutable typing, which we ignore
+            self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
+            self.state["size"] = stat.st_size  # type: ignore
+            self.state["refresh_ns"] = time.time_ns()  # type: ignore
+            try:
+                temp_path.rename(self.cache_path_json)
+            except FileExistsError:  # Windows
+                self.cache_path_json.unlink()
+                temp_path.rename(self.cache_path_json)
+            state_file.write(json.dumps(dict(self.state), indent=2))
+
+    def refresh(self):
+        """
+        Update access time in .state.json to indicate a HTTP 304 Not Modified response.
+        """
+        with self.cache_path_state.open("a+") as state_file, _lock(state_file):
+            # "a+" avoids trunctating file before we have the lock and creates
+            state_file.seek(0)
+            state_file.truncate()
+            # XXX can we use state's stat().mtime_ns, checked after locking .state.json
+            self.state["refresh_ns"] = time.time_ns()  # type: ignore
+            state_file.write(json.dumps(dict(self.state), indent=2))
+
+    def stale(self):
+        """
+        Compare state refresh_ns against cache control header and
+        context.local_repodata_ttl.
+        """
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(self.state.cache_control)
+        else:
+            max_age = 0
+
+        max_age *= 10**9  # nanoseconds
+        now = time.time_ns()
+        refresh = self.state.get("refresh_ns", 0)
+        return (now - refresh) > max_age
+
+    def timeout(self):
+        """
+        Return number of seconds until cache times out (<= 0 if already timed
+        out).
+        """
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(self.state.cache_control)
+        else:
+            max_age = 0
+
+        max_age *= 10**9  # nanoseconds
+        now = time.time_ns()
+        refresh = self.state.get("refresh_ns", 0)
+        return ((now - refresh) + max_age) / 1e9
+
+
+try:
+    hashlib.md5(b"", usedforsecurity=False)
+
+    def _md5_not_for_security(data):
+        return hashlib.md5(data, usedforsecurity=False)
+
+except TypeError:
+    # Python < 3.9
+    def _md5_not_for_security(data):
+        return hashlib.md5(data)
+
+
+def cache_fn_url(url, repodata_fn=REPODATA_FN):
+    # url must be right-padded with '/' to not invalidate any existing caches
+    if not url.endswith("/"):
+        url += "/"
+    # add the repodata_fn in for uniqueness, but keep it off for standard stuff.
+    #    It would be more sane to add it for everything, but old programs (Navigator)
+    #    are looking for the cache under keys without this.
+    if repodata_fn != REPODATA_FN:
+        url += repodata_fn
+
+    md5 = _md5_not_for_security(url.encode("utf-8"))
+    return f"{md5.hexdigest()[:8]}.json"
+
+
+def get_cache_control_max_age(cache_control_value):
+    max_age = re.search(r"max-age=(\d+)", cache_control_value)
+    return int(max_age.groups()[0]) if max_age else 0
