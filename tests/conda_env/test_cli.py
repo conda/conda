@@ -248,6 +248,11 @@ class IntegrationTests(unittest.TestCase):
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
     def test_create_valid_remote_env(self):
+        """
+        Test retrieving an environment using the BinstarSpec (i.e. it retrieves it from anaconda.org)
+
+        This tests the `remote_origin` command line argument.
+        """
         run_env_command(Commands.ENV_CREATE, None, 'conda-test/env-42')
         self.assertTrue(env_is_created(TEST_ENV_NAME_42))
 
