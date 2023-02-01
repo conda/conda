@@ -386,7 +386,13 @@ class SubdirData(metaclass=SubdirDataType):
                 if raw_repodata_str is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
-                    raw_repodata_str = Path(self.cache_path_json).read_text()
+                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
+                    raw_repodata_str = self.cache_path_json.read_text()
+                    cache.state["size"] = len(raw_repodata_str)  # type: ignore
+                    stat = self.cache_path_json.stat()
+                    mtime_ns = stat.st_mtime_ns
+                    cache.state["mtime_ns"] = mtime_ns  # type: ignore
+                    cache.refresh()
                 elif isinstance(raw_repodata_str, (str, type(None))):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
