@@ -581,7 +581,11 @@ class RepodataCache:
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
-            temp_path.rename(self.cache_path_json)
+            try:
+                temp_path.rename(self.cache_path_json)
+            except FileExistsError:  # Windows
+                self.cache_path_json.unlink()
+                temp_path.rename(self.cache_path_json)
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self):
