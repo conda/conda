@@ -352,6 +352,8 @@ def request_url_jlap_state(
                 ignore_etag=False,
             )
             # XXX 304 not modified would need to be handled in fetch_jlap()
+            # See also a jlap buffer with zero patches.
+            # buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
