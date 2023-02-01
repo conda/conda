@@ -5,10 +5,8 @@
 from logging import getLogger
 import unittest
 import pytest
-import os
 import shutil
 import tempfile
-from unittest.mock import patch
 
 from conda.testing.integration import run_command, Commands
 

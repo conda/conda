@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove unused `chain`, `methodcaller`, `mkdtemp`, `StringIO` imports in
+  `conda.common.compat`; apply other fixes from `ruff --fix .` in the test
+  suite. (PR #12294)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
