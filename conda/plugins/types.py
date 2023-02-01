@@ -19,10 +19,9 @@ class CondaSubcommand(NamedTuple):
     name: str
     summary: str
     action: Callable[
-        ...,  # arguments
+        [list[str]],  # arguments
         int | None,  # return code
     ]
-    no_sys_argv: bool = False
 
 
 class CondaVirtualPackage(NamedTuple):

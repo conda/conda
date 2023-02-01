@@ -91,12 +91,7 @@ def do_call(args, parser):
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if hasattr(args, "plugin_subcommand") and isinstance(args.plugin_subcommand, CondaSubcommand):
-        if args.plugin_subcommand.no_sys_argv:
-            return args.plugin_subcommand.action()
-        else:
-            # This is here to ensure backwards compatibility with the first release of
-            # plugin subcommand invocation
-            return args.plugin_subcommand.action(sys.argv[2:])
+        return args.plugin_subcommand.action(sys.argv[2:])
 
     relative_mod, func_name = args.func.rsplit('.', 1)
     # func_name should always be 'execute'

@@ -24,39 +24,11 @@ class SubcommandPlugin:
         )
 
 
-class SubcommandPluginWithCustomParser:
-    """
-    This version of our test subcommand does not except any values for it's
-    "action" method and parses its own arguments.
-    """
-
-    def custom_command(self):
-        pass
-
-    @plugins.hookimpl
-    def conda_subcommands(self):
-        yield CondaSubcommand(
-            name="custom",
-            summary="test custom command",
-            action=self.custom_command,
-            no_sys_argv=True,
-        )
-
-
 @pytest.fixture()
 def plugin(mocker, plugin_manager):
     mocker.patch.object(SubcommandPlugin, "custom_command")
 
     plugin = SubcommandPlugin()
-    plugin_manager.register(plugin)
-    return plugin
-
-
-@pytest.fixture()
-def plugin_with_custom_parser(mocker, plugin_manager):
-    mocker.patch.object(SubcommandPluginWithCustomParser, "custom_command")
-
-    plugin = SubcommandPluginWithCustomParser()
     plugin_manager.register(plugin)
     return plugin
 
