@@ -234,6 +234,12 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         # unfortunately this is using devenv/.../pkgs/cache/<x>.json not a tmpdir
         SubdirData._cache_.clear()
 
+        # Pretend it's 30 seconds old. (mtime is only used to compare the state
+        # and repodata files, and is no longer used to store the 'last checked
+        # remote' time.)
+        state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 30)
+        sd.cache_path_state.write_text(state)
+
         # set context.local_repodata_ttl = 0?
         # 1 = use cache header which is none for the flask web server
         sd = SubdirData(channel=test_channel)
@@ -245,9 +251,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         print(state_object)
 
-        # XXX use CEP 'we checked for jlap' key. Does this require the Windows 2
-        # second delay (filesystem timestamp granularity) - call "update mtime"
-        # API to backdate file mtime...
+        # XXX use CEP 'we checked for jlap' key.
         assert state_object["jlap_unavailable"]
 
         # This test can be sensitive to whether osx-64/repodata.json is saved
@@ -278,6 +282,7 @@ def make_test_jlap(original: bytes, changes=1):
     """
     :original: as bytes, to avoid any newline confusion.
     """
+
     def jlap_lines():
         yield jlapcore.DEFAULT_IV.hex().encode("utf-8")
 

@@ -351,9 +351,12 @@ def request_url_jlap_state(
                 session=session,
                 ignore_etag=False,
             )
-            # XXX 304 not modified would need to be handled in fetch_jlap()
-            # See also a jlap buffer with zero patches.
-            # buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
+            # XXX 304 not modified would need to be handled in fetch_jlap(). See
+            # also a jlap buffer with zero patches. SubdirData may be faster if
+            # it knows it's a real 304 though.
+            #
+            # buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1,
+            # b"", ""]]
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
