@@ -96,6 +96,16 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
             hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
+      - name: Cache minio
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 3
+        with:
+          path: minio.exe
+          key:
+            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
         run: |
