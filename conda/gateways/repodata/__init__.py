@@ -20,6 +20,7 @@ from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
 from conda.common.url import join_url, maybe_unquote
+from conda.deprecations import deprecated
 from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -328,6 +329,7 @@ class RepodataState(UserDict):
         # XXX may not be that useful/used compared to the full URL
         self.repodata_fn = repodata_fn
 
+    @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def load(self):
         """
         Cache headers and additional data needed to keep track of the cache are
@@ -352,6 +354,7 @@ class RepodataState(UserDict):
             self.clear()
         return self
 
+    @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def save(self):
         """
         Must be called after writing cache_path_json, as its mtime is included in .state.json
