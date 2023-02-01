@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import unittest
-from logging import getLogger, Handler, DEBUG
+from logging import Handler, DEBUG
 import os
-from unittest.mock import patch
 
 from conda import instructions
 from conda.exports import execute_instructions
