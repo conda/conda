@@ -54,7 +54,16 @@ def get_place(url, extra=""):
     return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
 
 
+class Jlap304NotModified(Exception):
+    pass
+
+
 def process_jlap_response(response: Response, pos=0, iv=b""):
+    # if response is 304 Not Modified, could return a buffer with only the
+    # cached footer...
+    if response.status_code == 304:
+        raise Jlap304NotModified()
+
     def lines() -> Iterator[bytes]:
         yield from response.iter_lines(delimiter=b"\n")  # type: ignore
 
@@ -111,7 +120,8 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     )
     pprint.pprint("status: %d" % response.status_code)
     if "range" in headers:
-        assert response.status_code == 206, "server returned full response"
+        # XXX set jlap_unavailable
+        assert response.status_code in (206, 304), "unexpected response code"
 
     log.info("%s", response)
 
@@ -216,7 +226,7 @@ def download_and_hash_zst(hasher, url, json_path, session: Session, state: dict 
     state = state or {}
     headers = {}
 
-    # XXX check cache-control May be caller's job to compare with 'have_hash'
+    # XXX check cache-control. May be caller's job to compare with 'have_hash'
     # saved on previous download to detect cache tampering
     if json_path.exists():
         etag = state.get("_etag")
@@ -300,6 +310,7 @@ def request_url_jlap_state(
 
             try:
                 # XXX skip if ZSTD_UNAVAILABLE is recent enough (1 week perhaps)
+                # XXX also may need a "don't try zstd" flag
                 response = download_and_hash_zst(
                     hasher, withext(url, ".json.zst"), json_path, session=session, state=state
                 )
@@ -338,7 +349,9 @@ def request_url_jlap_state(
                 etag=headers.get("etag", None),
                 iv=bytes.fromhex(jlap_state.get("iv", "")),
                 session=session,
+                ignore_etag=False,
             )
+            # XXX 304 not modified would need to be handled in fetch_jlap()
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
@@ -352,7 +365,7 @@ def request_url_jlap_state(
                 )
             log.exception("Requests error")
 
-        if need_jlap:  # retry for some reason
+        if need_jlap:  # retry whole file, if range failed
             buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
 
         # XXX debugging

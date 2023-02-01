@@ -7,7 +7,13 @@ from pathlib import Path
 
 from conda.gateways.connection.session import CondaSession
 
-from . import RepoInterface, RepodataOnDisk, conda_http_errors, jlapper
+from . import (
+    RepodataOnDisk,
+    RepoInterface,
+    Response304ContentUnchanged,
+    conda_http_errors,
+    jlapper,
+)
 
 log = logging.getLogger(__name__)
 
@@ -58,10 +64,13 @@ class JlapRepoInterface(RepoInterface):
                 return self._cache_path_json
             raise NotImplementedError("Unexpected URL", url)
 
-        with conda_http_errors(self._url, self._repodata_fn):
-            jlapper.request_url_jlap_state(
-                repodata_url, state, get_place=get_place, session=session
-            )
+        try:
+            with conda_http_errors(self._url, self._repodata_fn):
+                jlapper.request_url_jlap_state(
+                    repodata_url, state, get_place=get_place, session=session
+                )
+        except jlapper.Jlap304NotModified:
+            raise Response304ContentUnchanged()
 
         state["_url"] = self._url
         headers = state.get("jlap", {}).get(
