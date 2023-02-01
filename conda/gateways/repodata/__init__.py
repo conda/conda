@@ -559,10 +559,17 @@ class RepodataCache:
         """
         temp_path = self.cache_dir / self.cache_dir.with_suffix(f".{os.urandom(4).hex()}.tmp")
 
-        with temp_path.open("x") as temp:  # exclusive mode, error if exists
-            temp.write(data)
+        try:
+            with temp_path.open("x") as temp:  # exclusive mode, error if exists
+                temp.write(data)
 
-        return self.replace(temp_path)
+            return self.replace(temp_path)
+
+        finally:
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
 
     def replace(self, temp_path: Path):
         """
