@@ -3,14 +3,9 @@
 
 import types
 import unittest
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
 from unittest.mock import patch, MagicMock
 from binstar_client import errors
 
-from conda_env.specs import binstar
 from conda_env.specs.binstar import BinstarSpec
 from conda_env.env import Environment
 

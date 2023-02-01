@@ -4,7 +4,6 @@
 
 import os
 from io import StringIO
-from unittest import TestCase
 
 import pytest
 from pytest import raises
