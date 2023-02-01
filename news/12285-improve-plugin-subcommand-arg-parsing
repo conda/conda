@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Helps decouple plugin subcommand creation from conda's argparse implementation (#12285)
+* Refactor argument subcommand argument parsing to make it easier to understand
 
 ### Bug fixes
 
