@@ -13,35 +13,32 @@ REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
 DETAILED_REPORT_TITLE = "\nDETAILED ENVIRONMENT HEALTH REPORT\n"
 OK_MARK = "✅"
 
-def generate_report_heading(prefix: str):
+
+def generate_report_heading(prefix: str, report_title: str):
     environment = Path(active_prefix)
     environment_name = environment.name
+    print("-" * 20)
+    print(REPORT_TITLE)
     today = str(date.today())
     print(f"Date: {today}")
     print(f"Name of the patient: {environment_name}\n")
 
 def get_number_of_missing_files(prefix: str):
     """Print number of missing files for each package"""
-    generate_report_heading(active_prefix)
     packages_with_missing_files = find_packages_with_missing_files(prefix)
 
     if packages_with_missing_files:
         number_of_missing_files = {k: len(v) for k, v in packages_with_missing_files.items()}
-
         return number_of_missing_files
     else:
-        return 0
+        return packages_with_missing_files
 
 
 def get_names_of_missing_files(prefix: str):
     """Print the names of missing files in each package"""
-    generate_report_heading(active_prefix)
     packages_with_missing_files = find_packages_with_missing_files(prefix)
 
-    if packages_with_missing_files:
-        return packages_with_missing_files
-    else:
-        return 0
+    return packages_with_missing_files
 
 
 def find_packages_with_missing_files(prefix: str):
@@ -69,8 +66,7 @@ def find_packages_with_missing_files(prefix: str):
 
 
 def run_health_checks(prefix: str):
-    print("_" * 20)
-    print(REPORT_TITLE)
+    generate_report_heading(active_prefix, REPORT_TITLE)
     number_of_missing_files = get_number_of_missing_files(active_prefix)
     if number_of_missing_files:
         print("Number of Missing Files\n")
@@ -83,8 +79,7 @@ def run_health_checks(prefix: str):
 
 
 def run_detailed_health_checks(prefix: str):
-    print("_" * 20)
-    print(DETAILED_REPORT_TITLE)
+    generate_report_heading(active_prefix, DETAILED_REPORT_TITLE)
     names_of_missing_files = get_names_of_missing_files(active_prefix)
     if names_of_missing_files:
         print("Missing Files\n")
