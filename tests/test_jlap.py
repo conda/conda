@@ -238,7 +238,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         # and repodata files, and is no longer used to store the 'last checked
         # remote' time.)
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 30)
-        sd.cache_path_state.write_text(state)
+        sd.cache_path_state.write_text(json.dumps(state))
 
         # set context.local_repodata_ttl = 0?
         # 1 = use cache header which is none for the flask web server
