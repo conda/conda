@@ -44,7 +44,11 @@ def retrieve_notices(
 
     # We always want to modify the mtime attribute of the file if we are trying to retrieve notices
     # This is used later in "is_channel_notices_cache_expired"
-    cache_file.touch()
+    try:
+        cache_file.touch()
+    except OSError:
+        # It's okay if we fail to update this file
+        pass
 
     viewed_notices = None
     viewed_channel_notices = 0
