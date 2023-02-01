@@ -11,18 +11,26 @@ from conda.gateways.repodata import _lock, RepodataCache
 import multiprocessing
 
 
-def locker(cache: RepodataCache, q):
+def locker(cache: RepodataCache, qout, qin):
     print(f"Attempt to lock {cache.cache_path_state}")
+    qout.put("ready")
+    print("sent ready to parent")
+    assert qin.get(timeout=6) == "locked"
+    print("parent locked. try to save in child (should fail)")
     try:
         cache.save("{}")
     except OSError as e:
-        q.put(e)
+        print("OSError", e)
+        qout.put(e)
     except Exception as e:
         # The wrong exception!
-        q.put(e)
+        print("Not OSError", e)
+        qout.put(e)
     else:
         # Speed up test failure if no exception thrown?
-        q.put(None)
+        print("no exception")
+        qout.put(None)
+    print("exit child")
 
 
 def test_lock_can_lock(tmp_path):
@@ -35,11 +43,19 @@ def test_lock_can_lock(tmp_path):
 
     cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 
+    qout = multiprocessing.Queue()  # put here, get in subprocess
+    qin = multiprocessing.Queue()  # get here, put in subprocess
+
+    p = multiprocessing.Process(target=locker, args=(cache, qin, qout))
+    p.start()
+
+    assert qin.get(timeout=6) == "ready"
+    print("subprocess ready")
+
     with cache.cache_path_state.open("a+") as lock_file, _lock(lock_file):
-        q = multiprocessing.Queue()
-        p = multiprocessing.Process(target=locker, args=(cache, q))
-        p.start()
-        assert isinstance(q.get(timeout=12), OSError)
+        print("lock acquired in parent process")
+        qout.put("locked")
+        assert isinstance(qin.get(timeout=13), OSError)
         p.join(1)
         assert p.exitcode == 0
 
