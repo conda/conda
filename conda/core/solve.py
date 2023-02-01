@@ -7,7 +7,6 @@ from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 import sys
-import warnings
 from textwrap import dedent
 
 from conda.common.iterators import groupby_to_dict as groupby
@@ -17,6 +16,7 @@ from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
+from ..deprecations import deprecated
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
@@ -38,18 +38,17 @@ from ..resolve import Resolve
 log = getLogger(__name__)
 
 
+@deprecated(
+    "23.3",
+    "23.9",
+    addendum="Use `conda.base.context.plugin_manager.get_cached_solver_backend` instead.",
+)
 def _get_solver_class(key=None):
     """
     Load the correct solver backend.
 
     See ``context.solver`` for more details.
     """
-    warnings.warn(
-        "`conda.core.solve._get_solver_class` is pending deprecation and will be removed in a "
-        "future release. Please use `conda.base.context.plugin_manager.get_cached_solver_backend "
-        "instead.",
-        PendingDeprecationWarning,
-    )
     return context.plugin_manager.get_cached_solver_backend(key or context.solver)
 
 
