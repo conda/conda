@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test for python distribution information and metadata handling."""
 
-from datetime import datetime
 from errno import ENOENT
 import os
 from os.path import basename, lexists
@@ -385,7 +384,7 @@ def test_metadata():
         meta = PythonDistributionMetadata(fpath)
         a = meta.get_dist_requirements()
         b = meta.get_python_requirements()
-        z = meta.get_external_requirements()
+        meta.get_external_requirements()
         c = meta.get_extra_provides()
         d = meta.get_dist_provides()
         e = meta.get_dist_obsolete()
@@ -468,7 +467,7 @@ def test_dist_get_paths_no_paths():
     temp_path = tempfile.mkdtemp()
     dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     with pytest.raises(EnvironmentError):
-        paths = dist.get_paths()
+        dist.get_paths()
 
 
 def test_get_dist_requirements():

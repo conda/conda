@@ -19,7 +19,7 @@ import os
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 import re
 from shutil import copyfile, rmtree
-from subprocess import CalledProcessError, check_call, check_output, Popen, PIPE, STDOUT
+from subprocess import check_call, check_output, Popen, PIPE
 import sys
 from textwrap import dedent
 from unittest import TestCase
@@ -34,8 +34,6 @@ from conda.common.iterators import groupby_to_dict as groupby
 from conda import (
     CondaError,
     CondaMultiError,
-    __version__ as CONDA_VERSION,
-    CONDA_SOURCE_ROOT,
 )
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
@@ -951,8 +949,8 @@ dependencies:
                 stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
-                assert json_obj['cmd_line'] == {'json': True}
+                assert "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
+                assert json_obj["cmd_line"] == {"json": True}
 
             run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
             with pytest.raises(CondaError):
@@ -981,8 +979,8 @@ dependencies:
                 stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
-                assert json_obj['cmd_line'] == {'json': True}
+                assert "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
+                assert json_obj["cmd_line"] == {"json": True}
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
@@ -1626,8 +1624,8 @@ dependencies:
                 assert package_is_installed(prefix, "urllib3")
                 urllib3_record = next(PrefixData(prefix).query("urllib3"))
                 urllib3_record_dump = urllib3_record.dump()
-                files = urllib3_record_dump.pop("files")
-                paths_data = urllib3_record_dump.pop("paths_data")
+                urllib3_record_dump.pop("files")
+                urllib3_record_dump.pop("paths_data")
                 print(json_dump(urllib3_record_dump))
 
                 assert json_loads(json_dump(urllib3_record_dump)) == {
@@ -1681,8 +1679,8 @@ dependencies:
                 assert package_is_installed(prefix, "urllib3")
                 urllib3_record = next(PrefixData(prefix).query("urllib3"))
                 urllib3_record_dump = urllib3_record.dump()
-                files = urllib3_record_dump.pop("files")
-                paths_data = urllib3_record_dump.pop("paths_data")
+                urllib3_record_dump.pop("files")
+                urllib3_record_dump.pop("paths_data")
                 print(json_dump(urllib3_record_dump))
 
                 assert json_loads(json_dump(urllib3_record_dump)) == {
@@ -2124,10 +2122,11 @@ dependencies:
 
     def test_download_only_flag(self):
         from conda.core.link import UnlinkLinkTransaction
-        with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:
-            with make_temp_env('openssl', '--download-only', use_exception_handler=True) as prefix:
+
+        with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
+            with make_temp_env("openssl", "--download-only", use_exception_handler=True):
                 assert mock_method.call_count == 0
-            with make_temp_env('openssl', use_exception_handler=True) as prefix:
+            with make_temp_env("openssl", use_exception_handler=True):
                 assert mock_method.call_count == 1
 
     def test_transactional_rollback_simple(self):
@@ -2338,7 +2337,7 @@ dependencies:
     # https://github.com/conda/conda/issues/10116
     @pytest.mark.skipif(not context.subdir.startswith('linux'), reason="__glibc only available on linux")
     def test_install_bound_virtual_package(self):
-        with make_temp_env("__glibc>0") as prefix:
+        with make_temp_env("__glibc>0"):
             pass
 
     @pytest.mark.integration
@@ -2353,7 +2352,7 @@ dependencies:
             filename = join(prefix, "file.dat")
 
             os.mkdir(prefix)
-            with open(filename, "wb") as empty:
+            with open(filename, "wb"):
                 pass
 
             with pytest.raises(DirectoryNotACondaEnvironmentError):
