@@ -58,6 +58,8 @@ def test_save(tmp_path):
 
     json_stat = cache.cache_path_json.stat()
 
+    time.sleep(0.1)  # may be necessary on Windows for time.time_ns() to advance
+
     # update last-checked-timestamp in .state.json
     cache.refresh()
 
