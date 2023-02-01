@@ -88,6 +88,7 @@ class CondaRepoInterface(RepoInterface):
     _repodata_fn: str
 
     def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
+        log.debug("Using CondaRepoInterface")
         self._url = url
         self._repodata_fn = repodata_fn or REPODATA_FN
 

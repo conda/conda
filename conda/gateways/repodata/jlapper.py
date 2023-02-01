@@ -291,8 +291,12 @@ def request_url_jlap_state(
     ):
         hasher = hash()
         with timeme(f"Download complete {url} "):
-            # TODO use Etag, Last-Modified caching headers if file exists
-            # otherwise we re-download every time, if jlap is unavailable.
+
+            # Don't deal with 304 Not Modified if hash unavailable e.g. if
+            # cached without jlap
+            if NOMINAL_HASH not in state:
+                state.pop("etag", None)
+                state.pop("mod", None)
 
             try:
                 # XXX skip if ZSTD_UNAVAILABLE is recent enough (1 week perhaps)
