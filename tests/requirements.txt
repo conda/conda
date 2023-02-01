@@ -19,6 +19,7 @@ flask >=2.2
 git
 jsonpatch
 nbformat
+packaging
 perl
 pexpect
 pip

@@ -1,15 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
-
+from json import JSONEncoder
 import os
 from os.path import abspath, dirname
 import sys
-import warnings
 
-from json import JSONEncoder
-
-from .auxlib.packaging import get_version
+from .__version__ import __version__
+from .deprecations import deprecated
 
 
 __all__ = (
@@ -19,7 +17,6 @@ __all__ = (
 )
 
 __name__ = "conda"
-__version__ = get_version(__file__)
 __author__ = "Anaconda, Inc."
 __email__ = "conda@continuum.io"
 __license__ = "BSD-3-Clause"
@@ -38,15 +35,9 @@ CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 #: or otherwise uninstalled this is the git repo.
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
 
+
+@deprecated("23.3", "23.9")
 def another_to_unicode(val):
-    warnings.warn(
-        "`conda.another_to_unicode` is pending deprecation and will be removed in a "
-        "future release.",
-        PendingDeprecationWarning,
-    )
-    # ignore flake8 on this because it finds this as an error on py3 even though it is guarded
-    if isinstance(val, basestring) and not isinstance(val, unicode):  # NOQA
-        return unicode(val, encoding='utf-8')  # NOQA
     return val
 
 class CondaError(Exception):

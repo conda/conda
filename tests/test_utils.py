@@ -6,7 +6,7 @@ from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from conda import utils, CondaError
 from conda.common.path import win_path_to_unix

@@ -58,7 +58,7 @@ def test_url_pat_2():
     match = url_pat.match("http://test/pkgs/linux-64/foo.tar.bz2")
     assert match.group("url_p") == "http://test/pkgs/linux-64"
     assert match.group("fn") == "foo.tar.bz2"
-    assert match.group("md5") == None
+    assert match.group("md5") is None
 
 
 def test_url_pat_3():
