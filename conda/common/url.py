@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import codecs
 from collections import namedtuple
 from functools import lru_cache
@@ -8,8 +7,8 @@ from getpass import getpass
 from os.path import abspath, expanduser
 import re
 import socket
-import warnings
 
+from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
@@ -483,12 +482,8 @@ def remove_auth(url: str) -> str:
     return str(url_no_auth)
 
 
+@deprecated("23.3", "23.9", addendum="This function now lives in conda-libmamba-solve.")
 def escape_channel_url(channel):
-    warnings.warn(
-        "This function lives now under conda-libmamba-solver "
-        "and will be deprecated in a future release",
-        PendingDeprecationWarning
-    )
     if channel.startswith("file:"):
         if "%" in channel:  # it's escaped already
             return channel

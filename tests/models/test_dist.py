@@ -14,7 +14,6 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.dist import Dist
 from logging import getLogger
-from unittest import TestCase
 
 import pytest
 

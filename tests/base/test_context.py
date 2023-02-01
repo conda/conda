@@ -37,38 +37,47 @@ from conda.utils import on_win
 
 from conda.testing.helpers import tempdir
 
+TEST_CONDARC = """
+custom_channels:
+  darwin: https://some.url.somewhere/stuff
+  chuck: http://another.url:8080/with/path
+custom_multichannels:
+  michele:
+    - https://do.it.with/passion
+    - learn_from_every_thing
+  steve:
+    - more-downloads
+channel_settings:
+  - channel: darwin
+    param_one: value_one
+    param_two: value_two
+  - channel: "http://localhost"
+    param_one: value_one
+    param_two: value_two
+migrated_custom_channels:
+  darwin: s3://just/cant
+  chuck: file:///var/lib/repo/
+migrated_channel_aliases:
+  - https://conda.anaconda.org
+channel_alias: ftp://new.url:8082
+conda-build:
+  root-dir: /some/test/path
+proxy_servers:
+  http: http://user:pass@corp.com:8080
+  https: none
+  ftp:
+  sftp: ''
+  ftps: false
+  rsync: 'false'
+aggressive_update_packages: []
+channel_priority: false
+"""
+
 
 class ContextCustomRcTests(TestCase):
 
     def setUp(self):
-        string = dals("""
-        custom_channels:
-          darwin: https://some.url.somewhere/stuff
-          chuck: http://another.url:8080/with/path
-        custom_multichannels:
-          michele:
-            - https://do.it.with/passion
-            - learn_from_every_thing
-          steve:
-            - more-downloads
-        migrated_custom_channels:
-          darwin: s3://just/cant
-          chuck: file:///var/lib/repo/
-        migrated_channel_aliases:
-          - https://conda.anaconda.org
-        channel_alias: ftp://new.url:8082
-        conda-build:
-          root-dir: /some/test/path
-        proxy_servers:
-          http: http://user:pass@corp.com:8080
-          https: none
-          ftp:
-          sftp: ''
-          ftps: false
-          rsync: 'false'
-        aggressive_update_packages: []
-        channel_priority: false
-        """)
+        string = TEST_CONDARC
         reset_context(())
         rd = {
             "testdata": YamlRawParameter.make_raw_parameters(
@@ -258,7 +267,7 @@ class ContextCustomRcTests(TestCase):
 
         from pprint import pprint
         for name in documented_parameter_names:
-            description = context.get_descriptions()[name]
+            context.get_descriptions()[name]
             pprint(context.describe_parameter(name))
 
     def test_local_build_root_custom_rc(self):
@@ -504,6 +513,15 @@ class ContextCustomRcTests(TestCase):
 
         pkgs_dirs = _get_expandvars_context("pkgs_dirs", "['${TEST_VAR}']", "/foo")
         assert any("foo" in d for d in pkgs_dirs)
+
+    def test_channel_settings(self):
+        """
+        Makes sure that "channel_settings" appears as we expect it to on the context object
+        """
+        assert context.channel_settings == (
+            {"channel": "darwin", "param_one": "value_one", "param_two": "value_two"},
+            {"channel": "http://localhost", "param_one": "value_one", "param_two": "value_two"},
+        )
 
 
 class ContextDefaultRcTests(TestCase):

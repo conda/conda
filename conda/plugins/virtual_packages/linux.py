@@ -31,4 +31,5 @@ def conda_virtual_packages():
         # Default to glibc when using CONDA_SUBDIR var
         libc_family = "glibc"
     libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
-    yield CondaVirtualPackage(libc_family, libc_version, None)
+    if libc_version:
+        yield CondaVirtualPackage(libc_family, libc_version, None)

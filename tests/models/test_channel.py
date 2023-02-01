@@ -1,10 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
-from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
-from unittest.mock import patch
 
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
@@ -567,7 +565,6 @@ class CustomConfigChannelTests(TestCase):
         conda_bld_path = join(gettempdir(), 'conda-bld')
         mkdir_p(conda_bld_path)
         try:
-            from functools import partial
             with env_var('CONDA_CROOT', conda_bld_path, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 Channel._reset_state()
                 channel = Channel('local')
