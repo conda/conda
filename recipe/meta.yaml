@@ -50,7 +50,7 @@ requirements:
     - pluggy >=1.0.0
     - tqdm >=4
   run_constrained:
-    - conda-build >=3
+    - conda-build >=3.18.3
     - conda-env >=2.6
     - conda-content-trust >=0.1.1
     - cytoolz >=0.8.1
