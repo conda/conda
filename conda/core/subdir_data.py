@@ -151,14 +151,6 @@ class SubdirData(metaclass=SubdirDataType):
                 for prec in self._iter_records_by_name(package_name):
                     if param.match(prec):
                         yield prec
-            elif param.get_exact_value("track_features"):
-                track_features = param.get_exact_value("track") or ()
-                candidates = chain.from_iterable(
-                    self._track_features_index[feature_name] for feature_name in track_features
-                )
-                for prec in candidates:
-                    if param.match(prec):
-                        yield prec
             else:
                 for prec in self.iter_records():
                     if param.match(prec):
@@ -246,7 +238,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
-        self._track_features_index = _internal_state["_track_features_index"]
+        self._track_features_index = _internal_state["_track_features_index"]  # Unused since 22.3
         self._loaded = True
         return self
 
@@ -300,7 +292,7 @@ class SubdirData(metaclass=SubdirDataType):
                 return {
                     "_package_records": (),
                     "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),
+                    "_track_features_index": defaultdict(list),  # Unused since 22.3
                 }
             else:
                 mod_etag_headers = {}
@@ -577,8 +569,6 @@ class SubdirData(metaclass=SubdirDataType):
                 _package_records.append(info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)
-                for ftr_name in info.get("track_features", []):
-                    _track_features_index[ftr_name].append(record_index)
 
         self._internal_state = _internal_state
         return _internal_state
