@@ -6,7 +6,6 @@ import argparse
 from . import health_checks
 
 from ... import CondaSubcommand, hookimpl
-from ....base.context import context
 
 
 def get_parsed_args(argv: list[str]) -> argparse.Namespace:
@@ -25,15 +24,22 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
 
 
 def display_health_checks(args: argparse.Namespace) -> None:
+    """
+    TODO: docstring
+    """
     if args.verbose:
-        health_checks.run_detailed_health_checks(context)
+        health_checks.display_detailed_health_checks()
     else:
-        health_checks.run_health_checks(context)
+        health_checks.display_health_checks()
 
 
-def execute(argv: list[str]) -> int:
+def execute(argv: list[str]) -> None:
+    """
+    TODO: docstring
+    """
     args = get_parsed_args(argv)
     display_health_checks(args)
+
 
 @hookimpl
 def conda_subcommands():

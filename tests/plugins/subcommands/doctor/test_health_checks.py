@@ -62,12 +62,12 @@ def test_get_number_of_missing_files_when_no_missing_files(conda_mock_dir):
 
 
 def test_get_names_of_missing_files(conda_mock_dir_missing_files):
-    result = health_checks.get_names_of_missing_files(conda_mock_dir_missing_files)
+    result = health_checks.find_packages_with_missing_files(conda_mock_dir_missing_files)
     TEST_PACKAGE_JSON = "test-package"
     assert result == {TEST_PACKAGE_JSON: [BIN_TEST_EXE]}
 
 
 def test_get_names_of_missing_files_when_no_missing_files(conda_mock_dir):
-    result = health_checks.get_names_of_missing_files(conda_mock_dir)
+    result = health_checks.find_packages_with_missing_files(conda_mock_dir)
     TEST_PACKAGE_JSON = "test-package"
     assert result == {}
