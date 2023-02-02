@@ -67,10 +67,11 @@ class SubdirDataType(type):
         cache_key = channel.url(with_credentials=True), repodata_fn
         if cache_key in SubdirData._cache_:
             cache_entry = SubdirData._cache_[cache_key]
-            if cache_key[0].startswith("file://"):
-                file_path = url_to_path(channel.url() + "/" + repodata_fn)
-                if exists(file_path):
-                    if cache_entry._mtime > getmtime(file_path):
+            if cache_key[0] and cache_key[0].startswith("file://"):
+                channel_url = channel.url()
+                if channel_url:
+                    file_path = url_to_path(channel_url + "/" + repodata_fn)
+                    if exists(file_path) and cache_entry._mtime > getmtime(file_path):
                         return cache_entry
             else:
                 return cache_entry
@@ -172,7 +173,8 @@ class SubdirData(metaclass=SubdirDataType):
 
     def __init__(self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface):
         assert channel.subdir
-        if channel.package_filename:
+        # metaclass __init__ asserts no package_filename
+        if channel.package_filename:  # pragma: no cover
             parts = channel.dump()
             del parts["package_filename"]
             channel = Channel(**parts)
@@ -371,7 +373,13 @@ class SubdirData(metaclass=SubdirDataType):
                 if raw_repodata_str is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
-                    raw_repodata_str = Path(self.cache_path_json).read_text()
+                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
+                    raw_repodata_str = self.cache_path_json.read_text()
+                    cache.state["size"] = len(raw_repodata_str)  # type: ignore
+                    stat = self.cache_path_json.stat()
+                    mtime_ns = stat.st_mtime_ns
+                    cache.state["mtime_ns"] = mtime_ns  # type: ignore
+                    cache.refresh()
                 elif isinstance(raw_repodata_str, (str, type(None))):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?

@@ -6,7 +6,7 @@ Strongly related to subdir_data / test_subdir_data.
 
 import json
 import time
-from conda.gateways.repodata import _lock, RepodataCache
+from conda.gateways.repodata import _lock, RepodataCache, RepodataState
 
 import multiprocessing
 
@@ -124,3 +124,14 @@ def test_stale(tmp_path):
     assert cache.state.etag == ETAG
 
     # XXX rewrite state without replacing repodata.json, assert still stale...
+
+
+def test_coverage_repodata_state(tmp_path):
+    # now these should be loaded through RepodataCache instead.
+
+    # assert invalid state is equal to no state
+    state = RepodataState(
+        tmp_path / "garbage.json", tmp_path / "garbage.state.json", "repodata.json"
+    )
+    state.cache_path_state.write_text("not json")
+    assert dict(state.load()) == {}

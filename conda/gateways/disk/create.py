@@ -217,7 +217,7 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
     if hasattr(conda_package_handling.api, "THREADSAFE_EXTRACT"):
         return  # indicates conda-package-handling 2.x, which implements --no-same-owner
 
-    if sys.platform.startswith("linux") and os.getuid() == 0:
+    if sys.platform.startswith("linux") and os.getuid() == 0:  # pragma: no cover
         # When extracting as root, tarfile will by restore ownership
         # of extracted files.  However, we want root to be the owner
         # (our implementation of --no-same-owner).
