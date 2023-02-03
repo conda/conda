@@ -384,7 +384,7 @@ class SubdirData(metaclass=SubdirDataType):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
                     cache.save(raw_repodata_str or "{}")
-                else:
+                else:  # pragma: no cover
                     # it can be a dict?
                     assert False, f"Unreachable {raw_repodata_str}"
             except OSError as e:
