@@ -78,6 +78,7 @@ non_x86_machines = {
     'arm64',
     'ppc64',
     'ppc64le',
+    'riscv64',
     's390x',
 }
 _arch_names = {
