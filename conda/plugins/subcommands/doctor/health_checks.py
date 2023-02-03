@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 from pathlib import Path
-from datetime import date
 
 from conda.base.context import context
 
@@ -20,9 +19,7 @@ def display_report_heading() -> None:
     environment_name = environment.name
     print("-" * 20)
     print(REPORT_TITLE)
-    today = str(date.today())
-    print(f"Date: {today}")
-    print(f"Name of the patient: {environment_name}\n")
+    print(f"Environment Name: {environment_name}\n")
 
 
 def get_number_of_missing_files(prefix: str) -> dict[str, int]:
