@@ -160,7 +160,7 @@ class SubdirData(metaclass=SubdirDataType):
                         yield prec
         else:
             assert isinstance(param, PackageRecord)
-            for prec in self._names_index[param.name]:
+            for prec in self._iter_records_by_name(param.name):
                 if prec == param:
                     yield prec
 

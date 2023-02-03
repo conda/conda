@@ -25,6 +25,7 @@ from conda.core.subdir_data import (
     read_mod_and_etag,
     CondaRepoInterface,
 )
+from conda.testing.helpers import CHANNEL_DIR
 from conda.models.channel import Channel
 
 log = getLogger(__name__)
@@ -305,6 +306,17 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         precs_b = tuple(sd_b.query("zlib"))
         assert fetcher.call_count == 2
         assert precs_b == precs_a
+
+
+def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
+    local_channel = Channel(join(CHANNEL_DIR, platform))
+    sd = SubdirData(channel=local_channel)
+
+    # test slow "check against all packages" query
+    assert len(tuple(sd.query("*[version=1.2.11]"))) >= 1
+
+    # test search by PackageRecord
+    assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
 
 
 # @pytest.mark.integration
