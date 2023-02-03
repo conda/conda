@@ -30,6 +30,7 @@ from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
+from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
 
@@ -281,7 +282,8 @@ def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
 
 
 def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
-    with env_vars(
+    # make_temp_env() suggests integration test
+    with make_temp_env(), env_vars(
         {"CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
