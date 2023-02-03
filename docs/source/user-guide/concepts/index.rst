@@ -10,7 +10,7 @@ Explore the links to learn more about conda foundations.
    conda-commands
    packages
    pkg-specs
-   pkg-search-install-spec
+   pkg-search
    channels
    environments
    installing-with-conda
