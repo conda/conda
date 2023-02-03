@@ -121,6 +121,10 @@ class GetRepodataIntegrationTests(TestCase):
         # test search by PackageRecord
         assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
 
+        # test load from cache
+        context.use_index_cache = True
+        sd._load()
+
 
 class StaticFunctionTests(TestCase):
     def test_read_mod_and_etag_mod_only(self):
