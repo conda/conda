@@ -25,10 +25,11 @@ from conda.core.subdir_data import (
     fetch_repodata_remote_request,
     read_mod_and_etag,
 )
-from conda.exceptions import CondaSSLError, UnavailableInvalidChannel
+from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvalidChannel
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
+from conda.models.records import PackageRecord
 
 log = getLogger(__name__)
 
@@ -113,6 +114,16 @@ class GetRepodataIntegrationTests(TestCase):
             assert len(sd.query_all("zlib", channels=[local_channel])) > 0
             assert len(sd.query_all("zlib")) == 0
         assert len(sd.query_all("zlib")) > 1
+
+        # test slow "check against all packages" query
+        assert len(tuple(sd.query("*[version=1.2.11]"))) >= 1
+
+        # test search by PackageRecord
+        assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
+
+        # test load from cache
+        context.use_index_cache = True
+        sd._load()
 
 
 class StaticFunctionTests(TestCase):
@@ -265,6 +276,35 @@ def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
+
+
+def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
+    with env_vars(
+        {"CONDA_PLATFORM": platform},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
+        sd = SubdirData(channel)
+        sd.load()
+        assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
+
+        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+
+        sd.reload()
+        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+
+        # newly deprecated, run them anyway
+        sd._save_state(sd._load_state())
+
+        # clear, to see our testing class
+        SubdirData._cache_.clear()
+
+        class SubdirDataRepodataTooNew(SubdirData):
+            def _load(self):
+                return {"repodata_version": 1024}
+
+        with pytest.raises(CondaUpgradeError):
+            SubdirDataRepodataTooNew(channel).load()
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):

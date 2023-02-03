@@ -181,13 +181,14 @@ class SubdirData(metaclass=SubdirDataType):
                         yield prec
         else:
             assert isinstance(param, PackageRecord)
-            for prec in self._names_index[param.name]:
+            for prec in self._iter_records_by_name(param.name):
                 if prec == param:
                     yield prec
 
     def __init__(self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface):
         assert channel.subdir
-        if channel.package_filename:
+        # metaclass __init__ asserts no package_filename
+        if channel.package_filename:  # pragma: no cover
             parts = channel.dump()
             del parts["package_filename"]
             channel = Channel(**parts)
@@ -397,7 +398,7 @@ class SubdirData(metaclass=SubdirDataType):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
                     cache.save(raw_repodata_str or "{}")
-                else:
+                else:  # pragma: no cover
                     # it can be a dict?
                     assert False, f"Unreachable {raw_repodata_str}"
             except OSError as e:

@@ -12,7 +12,7 @@ from conda.cli.conda_argparse import (
     add_parser_solver,
 )
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaEnvException, SpecNotFound
+from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 
@@ -69,14 +69,13 @@ def configure_parser(sub_parsers):
 
 @notices
 def execute(args, parser):
-    name = args.remote_definition or args.name
-
-    try:
-        spec = install_specs.detect(name=name, filename=get_filename(args.file),
-                                    directory=os.getcwd())
-        env = spec.environment
-    except SpecNotFound:
-        raise
+    spec = install_specs.detect(
+        name=args.name,
+        filename=get_filename(args.file),
+        directory=os.getcwd(),
+        remote_definition=args.remote_definition,
+    )
+    env = spec.environment
 
     if not (args.name or args.prefix):
         if not env.name:
