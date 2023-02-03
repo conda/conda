@@ -1131,3 +1131,28 @@ def test_ppc64le_vs_ppc64():
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
     assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+
+
+def test_channel_mangles_urls():
+    """
+    CondaSession() runs urls through Channel, and cannot be used to fetch files
+    with unknown extensions (it will mangle the URL)
+    """
+    cases = [
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+        ),
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+        ),
+        # This strange behavior may need to change:
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json.bz2",
+            "https://conda.anaconda.org/conda-forge/repodata.json.bz2/linux-64",
+        ),
+    ]
+
+    for url, expected in cases:
+        assert str(Channel(url)) == expected
