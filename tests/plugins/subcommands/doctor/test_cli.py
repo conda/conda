@@ -12,11 +12,10 @@ TEST_ENV_1 = "test-env-1"
 def test_conda_doctor_happy_path():
     """Make sure that we are able to call the ``conda docto`` command"""
 
+    out, err, exit_code = run(f"conda doctor")
 
-out, err, exit_code = run(f"conda doctor")
-
-assert err == ""  # no error message
-assert exit_code is None  # successful exit code
+    assert err == ""  # no error message
+    assert exit_code is None  # successful exit code
 
 
 def test_conda_doctor_happy_path_verbose():
