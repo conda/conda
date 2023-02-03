@@ -118,6 +118,9 @@ class GetRepodataIntegrationTests(TestCase):
         # test slow "check against all packages" query
         assert len(tuple(sd.query("*[version=1.2.11]"))) >= 1
 
+        # test search by PackageRecord
+        assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
+
 
 class StaticFunctionTests(TestCase):
     def test_read_mod_and_etag_mod_only(self):
@@ -289,7 +292,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         # newly deprecated, run them anyway
         sd._save_state(sd._load_state())
 
-        #
+        # clear, to see our testing class
         SubdirData._cache_.clear()
 
         class SubdirDataRepodataTooNew(SubdirData):
