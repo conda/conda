@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from datetime import timedelta
 from errno import ENOSPC
 from functools import lru_cache, partial
@@ -19,6 +21,7 @@ from conda.common.iterators import groupby_to_dict as groupby
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
 from . import CondaError, CondaExitZero, CondaMultiError
+from .deprecations import DeprecatedError  # noqa: 401
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
@@ -425,6 +428,8 @@ class ChannelNotAllowed(ChannelError):
 
 class UnavailableInvalidChannel(ChannelError):
 
+    status_code: str | int
+
     def __init__(self, channel, status_code, response=None):
 
         # parse channel
@@ -466,6 +471,8 @@ class UnavailableInvalidChannel(ChannelError):
         reason = reason or "UNAVAILABLE OR INVALID"
         if isinstance(reason, str):
             reason = reason.upper()
+
+        self.status_code = status_code
 
         super().__init__(
             f"HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n{message}",

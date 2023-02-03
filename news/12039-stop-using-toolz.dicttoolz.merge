@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Stop using `toolz.dicttoolz.merge` and `toolz.dicttoolz.merge_with`. (#12039)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`. (#12165)
+* <news item>

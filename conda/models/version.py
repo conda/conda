@@ -381,6 +381,8 @@ def treeify(spec_str):
             output.append(item)
     if stack:
         raise InvalidVersionSpec(spec_str, "unable to convert to expression tree: %s" % stack)
+    if not output:
+        raise InvalidVersionSpec(spec_str, "unable to determine version from spec")
     return output[0]
 
 
@@ -559,6 +561,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
         elif '*' in vspec_str.rstrip('*'):
             rx = vspec_str.replace('.', r'\.').replace('+', r'\+').replace('*', r'.*')
             rx = r'^(?:%s)$' % rx
+
             self.regex = re.compile(rx)
             matcher = self.regex_match
             is_exact = False
@@ -646,6 +649,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
                 raise InvalidVersionSpec(vspec_str, "regex specs must start "
                                                     "with '^' and end with '$'")
             self.regex = re.compile(vspec_str)
+
             matcher = self.regex_match
             is_exact = False
         # if hasattr(spec, 'match'):

@@ -1,14 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from logging import getLogger
 
 from .enums import NoarchType
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
-from ..common.compat import odict, on_win
+from ..common.compat import on_win
 from ..exceptions import CyclicalDependencyError
 
 log = getLogger(__name__)
@@ -190,14 +189,14 @@ class PrefixGraph:
                 edges.remove(node)
 
     def _toposort(self):
-        graph_copy = odict((node, IndexedSet(parents)) for node, parents in self.graph.items())
+        graph_copy = {node: IndexedSet(parents) for node, parents in self.graph.items()}
         self._toposort_prepare_graph(graph_copy)
         if context.allow_cycles:
             sorted_nodes = tuple(self._topo_sort_handle_cycles(graph_copy))
         else:
             sorted_nodes = tuple(self._toposort_raise_on_cycles(graph_copy))
         original_graph = self.graph
-        self.graph = odict((node, original_graph[node]) for node in sorted_nodes)
+        self.graph = {node: original_graph[node] for node in sorted_nodes}
         return sorted_nodes
 
     @classmethod
@@ -386,16 +385,16 @@ class GeneralGraph(PrefixGraph):
         super().__init__(records, specs)
         self.specs_by_name = defaultdict(dict)
         for node in records:
-            parent_dict = self.specs_by_name.get(node.name, OrderedDict())
+            parent_dict = self.specs_by_name.get(node.name, {})
             for dep in tuple(MatchSpec(d) for d in node.depends):
                 deps = parent_dict.get(dep.name, set())
                 deps.add(dep)
                 parent_dict[dep.name] = deps
             self.specs_by_name[node.name] = parent_dict
 
-        consolidated_graph = OrderedDict()
+        consolidated_graph = {}
         # graph is toposorted, so looping over it is in dependency order
-        for node, parent_nodes in reversed(self.graph.items()):
+        for node, parent_nodes in reversed(list(self.graph.items())):
             cg = consolidated_graph.get(node.name, set())
             cg.update(_.name for _ in parent_nodes)
             consolidated_graph[node.name] = cg

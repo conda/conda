@@ -14,5 +14,5 @@ conda info
 # put temporary files on same filesystem
 export TMP=$HOME/pytesttmp
 mkdir -p $TMP
-pytest --basetemp=$TMP -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+pytest --cov=conda --basetemp=$TMP -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
 python -m conda.common.io

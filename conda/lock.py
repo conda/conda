@@ -11,21 +11,16 @@ globally (such as downloading packages).
 
 We don't raise an error if the lock is named with the current PID
 """
-
 from glob import glob
 import logging
 import os
 from os.path import abspath, basename, dirname, isdir, join
 import time
-import warnings
 
+from .deprecations import deprecated
 from .exceptions import LockError
 
-warnings.warn(
-    "The `conda.lock` module is pending deprecation and will be removed in a future release. "
-    "Please use `filelock` instead.",
-    PendingDeprecationWarning,
-)
+deprecated.module("23.3", "23.9", addendum="Use `filelock` instead.")
 
 LOCK_EXTENSION = 'conda_lock'
 

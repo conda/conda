@@ -7,7 +7,7 @@ from random import shuffle
 import unittest
 
 from conda.exceptions import InvalidVersionSpec
-from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
+from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval
 import pytest
 
 
@@ -70,11 +70,11 @@ class TestVersionSpec(unittest.TestCase):
         ]
 
         # check parser
-        versions = [(v, VersionOrder(v), l) for v, l in versions]
-        for s, v, l in versions:
+        versions = [(v, VersionOrder(v), expected) for v, expected in versions]
+        for s, v, expected in versions:
             assert VersionOrder(v) is v
             assert str(v) == s.lower().replace('-', '_')
-            self.assertEqual(v.version, l)
+            self.assertEqual(v.version, expected)
         self.assertEqual(VersionOrder("0.4.1.rc"), VersionOrder("  0.4.1.RC  "))
         self.assertEqual(normalized_version("  0.4.1.RC  "), VersionOrder("0.4.1.rc"))
         for ver in ("", "", "  ", "3.5&1", "5.5++", "5.5..mw", "!", "a!1.0", "a!b!1.0"):
@@ -311,13 +311,22 @@ class TestVersionSpec(unittest.TestCase):
             VersionSpec("+1.2+")
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("++")
-        # Fuzzer-identified crasher:
+        # Fuzzer-identified crashers:
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("c +, 0/|0 *")
 
-        # Test for mishandling of '==' without a version number
+        # Weird crashing versions intended to test unhandled edge cases
+        # in the "treeify" process
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("a[version=)|(")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("a=)(=b")
+
+        # Test for mishandling of '=='  and '=' without a version number
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("==")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("=")
         # Additional tests based on the above
         with pytest.raises(InvalidVersionSpec):
             VersionSpec(">=")

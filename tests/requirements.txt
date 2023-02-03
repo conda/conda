@@ -5,7 +5,7 @@ beautifulsoup4
 boto3 # NOTE: we also need the `minio` server, installed manually in CI
 chardet
 conda
-conda-build
+conda-build >=3.23.3
 conda-forge::pre-commit
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
@@ -16,6 +16,7 @@ filelock
 flake8
 git
 nbformat
+packaging
 perl
 pexpect
 pip
