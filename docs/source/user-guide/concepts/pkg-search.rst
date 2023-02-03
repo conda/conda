@@ -33,7 +33,7 @@ Standard specification
 Key-value pairs
 ---------------
 
-Package searches can also be performed using what is called "key-value pair notation", which has a different rules than the :ref:`Standard specification`
+Package searches can also be performed using what is called "key-value pair notation", which has different rules than the :ref:`Standard specification`
 example image. The search below will return the same list of packages as the standard specification.
 
 .. code-block:: none
@@ -53,7 +53,7 @@ Key-value pair notation can be used at the same time as standard notation.
 Package installation
 ====================
 
-When you're installing packages, conda recommends being as concrete as possible. The use of ``*`` wildcards and version ranges during a search will most likely install many packages of different types and versions into your environment.
+When you're installing packages, conda recommends being as concrete as possible. Using ``*`` wildcards and version ranges during an install will most likely cause a conflict.
 
 Example
 -------
