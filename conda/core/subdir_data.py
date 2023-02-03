@@ -238,7 +238,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
-        self._track_features_index = _internal_state["_track_features_index"]  # Unused since 22.3
+        self._track_features_index = _internal_state["_track_features_index"]  # Unused since early 2023
         self._loaded = True
         return self
 
@@ -292,7 +292,7 @@ class SubdirData(metaclass=SubdirDataType):
                 return {
                     "_package_records": (),
                     "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),  # Unused since 22.3
+                    "_track_features_index": defaultdict(list),  # Unused since early 2023
                 }
             else:
                 mod_etag_headers = {}
