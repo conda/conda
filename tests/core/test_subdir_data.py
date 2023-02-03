@@ -122,8 +122,10 @@ class GetRepodataIntegrationTests(TestCase):
         assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
 
         # test load from cache
-        context.use_index_cache = True
-        sd._load()
+        with env_vars(
+            {"CONDA_USE_INDEX_CACHE": "true"}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
+            sd._load()
 
 
 class StaticFunctionTests(TestCase):
