@@ -124,10 +124,13 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
+
         check_allowlist(channel_urls)
-        subdir_query = lambda url: tuple(
-            SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
-        )
+
+        def subdir_query(url):
+            return tuple(
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
+            )
 
         # TODO test timing with ProcessPoolExecutor
         Executor = (
@@ -238,7 +241,8 @@ class SubdirData(metaclass=SubdirDataType):
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
-        self._track_features_index = _internal_state["_track_features_index"]  # Unused since early 2023
+        # Unused since early 2023:
+        self._track_features_index = _internal_state["_track_features_index"]
         self._loaded = True
         return self
 
