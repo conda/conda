@@ -222,8 +222,10 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         sd.load()
 
+        cache = sd._repo_cache
+
         # now let's check out state file
-        state = json.loads(Path(sd.cache_path_state).read_text())
+        state = json.loads(Path(cache.cache_path_state).read_text())
 
         print("first fetch", state)
 
@@ -234,11 +236,11 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         # unfortunately this is using devenv/.../pkgs/cache/<x>.json not a tmpdir
         SubdirData._cache_.clear()
 
-        # Pretend it's 30 seconds old. (mtime is only used to compare the state
+        # Pretend it's older. (mtime is only used to compare the state
         # and repodata files, and is no longer used to store the 'last checked
         # remote' time.)
-        state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 30)
-        sd.cache_path_state.write_text(json.dumps(state))
+        state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
+        cache.cache_path_state.write_text(json.dumps(state))
 
         # set context.local_repodata_ttl = 0?
         # 1 = use cache header which is none for the flask web server
@@ -247,7 +249,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         print(list(sd.iter_records()))
 
-        state_object = sd._load_state()
+        state_object = cache.load_state()
 
         print(state_object)
 
@@ -258,7 +260,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         # with \n or \r\n newlines, since we need its exact hash. Change all
         # data paths to be binary safe.
 
-        test_jlap = make_test_jlap(sd.cache_path_json.read_bytes(), 8)
+        test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
         test_jlap.terminate()
         test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
 
@@ -268,9 +270,10 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         sd = SubdirData(channel=test_channel)
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
-        state = sd._load_state()
+        state = cache.load_state()
         del state[jlapper.JLAP_UNAVAILABLE]
-        sd._save_state(state)
+        state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
+        cache.cache_path_state.write_text(json.dumps(dict(state)))
 
         sd.load()
 
