@@ -24,7 +24,7 @@ def display_report_heading() -> None:
 
 def get_number_of_missing_files(prefix: str) -> dict[str, int]:
     """
-    TODO: add an updated doc string
+    Returns a dictionary with packages and the number of missing files in them
     """
     packages_with_missing_files = find_packages_with_missing_files(prefix)
 
@@ -57,9 +57,7 @@ def find_packages_with_missing_files(prefix: str) -> dict[str, list[str]]:
 
 def display_health_checks() -> None:
     """
-    TODO: add an updated doc string
-
-    Example: ???
+    Prints health report
     """
     display_report_heading()
     number_of_missing_files = get_number_of_missing_files(context.active_prefix)
@@ -75,7 +73,7 @@ def display_health_checks() -> None:
 
 def display_detailed_health_checks() -> None:
     """
-    TODO: add an updated doc string
+    Prints detailed health report
     """
     display_report_heading()
     names_of_missing_files = find_packages_with_missing_files(context.active_prefix)
