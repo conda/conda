@@ -11,7 +11,6 @@ import platform
 import sys
 import struct
 from contextlib import contextmanager
-import warnings
 
 from .constants import (
     APP_NAME,
@@ -36,6 +35,7 @@ from .constants import (
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
+from ..deprecations import deprecated
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
@@ -338,13 +338,8 @@ class Context(Configuration):
     )
 
     @property
+    @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
     def experimental_solver(self):
-        # TODO: Remove in a later release
-        warnings.warn(
-            "'context.experimental_solver' is pending deprecation and will be removed. "
-            "Please consider using 'context.solver' instead.",
-            PendingDeprecationWarning
-        )
         return self.solver
 
     # # CLI-only
@@ -471,13 +466,12 @@ class Context(Configuration):
             return _arch_names[self.bits]
 
     @property
+    @deprecated(
+        "23.3",
+        "23.9",
+        addendum="It's meaningless and any special meaning it may have held is now void.",
+    )
     def conda_private(self):
-        warnings.warn(
-            "`conda.base.context.context.conda_private` is pending deprecation and will be "
-            "removed in a future release. It's meaningless and any special meaning it may have "
-            "held is now void.",
-            PendingDeprecationWarning,
-        )
         return False
 
     @property
@@ -935,18 +929,18 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
+    @deprecated(
+        "23.3",
+        "23.9",
+        addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+        stack=+1,
+    )
     def cuda_version(self) -> Optional[str]:
         """
         Retrieves the current cuda version.
         """
         from conda.plugins.virtual_packages import cuda
 
-        warnings.warn(
-            "`context.cuda_version` is pending deprecation and "
-            "will be removed in a future release. Please use "
-            "`conda.plugins.virtual_packages.cuda.cuda_version` instead.",
-            PendingDeprecationWarning,
-        )
         return cuda.cuda_version()
 
     @property
@@ -1858,12 +1852,8 @@ def _first_writable_envs_dir():
 
 
 # backward compatibility for conda-build
+@deprecated("23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead.")
 def get_prefix(ctx, args, search=True):  # pragma: no cover
-    warnings.warn(
-        "`conda.base.context.get_prefix` is pending deprecation and will be removed in a future "
-        "release. Please use `conda.base.context.determine_target_prefix` instead.",
-        PendingDeprecationWarning,
-    )
     return determine_target_prefix(ctx or context, args)
 
 
