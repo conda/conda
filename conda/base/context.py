@@ -797,18 +797,11 @@ class Context(Configuration):
 
     @property
     def use_only_tar_bz2(self):
-        from ..models.version import VersionOrder
         # we avoid importing this at the top to avoid PATH issues.  Ensure that this
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
         use_only_tar_bz2 = False
         if self._use_only_tar_bz2 is None:
-            try:
-                import conda_build
-                use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
-
-            except ImportError:
-                pass
             if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
                 use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
         return ((hasattr(conda_package_handling.api, 'libarchive_enabled') and
