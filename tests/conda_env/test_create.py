@@ -5,7 +5,6 @@
 import unittest
 from logging import Handler, getLogger
 from os.path import exists, join
-from shutil import rmtree
 from unittest import TestCase
 from uuid import uuid4
 

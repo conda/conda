@@ -37,7 +37,7 @@ class DetectTestCase(unittest.TestCase):
 
     def test_dispatches_to_registered_specs(self):
         spec1, spec2 = generate_two_specs()
-        with patched_specs(spec1, spec2) as all_specs:
+        with patched_specs(spec1, spec2):
             actual = specs.detect(name="foo")
             self.assertEqual(actual, spec2)
 
@@ -56,7 +56,7 @@ class DetectTestCase(unittest.TestCase):
     def test_raises_exception_if_no_detection(self):
         spec1 = generate_two_specs()[0]
         spec1.msg = 'msg'
-        with patched_specs(spec1) as all_specs:
+        with patched_specs(spec1):
             with self.assertRaises(SpecNotFound):
                 specs.detect(name="foo")
 
