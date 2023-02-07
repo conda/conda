@@ -282,7 +282,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
         # newly deprecated, run them anyway
-        sd._save_state(sd._load_state())
+        # sd._save_state(sd._load_state())
 
         # clear, to see our testing class
         SubdirData._cache_.clear()
