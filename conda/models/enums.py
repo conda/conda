@@ -23,6 +23,7 @@ class Arch(Enum):
     aarch64 = 'aarch64'
     ppc64 = 'ppc64'
     ppc64le = 'ppc64le'
+    riscv64 = 'riscv64'
     s390x = 's390x'
     z = 'z'
 
