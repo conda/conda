@@ -286,8 +286,6 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
 
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
-        return
-
         sd.reload()
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
