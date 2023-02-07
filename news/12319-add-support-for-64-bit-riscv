@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add support for the 64-bit RISC-V architecture on Linux (#12319)
+* Update vendored version of py-cpuinfo to 0.9.0 (#12319)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
