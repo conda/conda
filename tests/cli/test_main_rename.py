@@ -230,7 +230,7 @@ def test_rename_with_dry_run(env_one):
     )
 
     (out, err, exit_code), data = list_envs()
-    result = data.get("envs", [])
+    data.get("envs", [])
 
     assert locate_prefix_by_name(TEST_ENV_NAME_1)
     with pytest.raises(EnvironmentNameNotFound):
@@ -255,7 +255,7 @@ def test_rename_with_force_and_dry_run(env_one, env_prefix_one):
     )
 
     (out, err, exit_code), data = list_envs()
-    result = data.get("envs", [])
+    data.get("envs", [])
 
     assert locate_prefix_by_name(TEST_ENV_NAME_1)
     with pytest.raises(EnvironmentNameNotFound):

@@ -73,6 +73,7 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "linux-armv7l",
     "linux-ppc64",
     "linux-ppc64le",
+    "linux-riscv64",
     "linux-s390x",
     "osx-64",
     "osx-arm64",

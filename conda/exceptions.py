@@ -21,6 +21,7 @@ from conda.common.iterators import groupby_to_dict as groupby
 from .models.channel import Channel
 from .common.url import join_url, maybe_unquote
 from . import CondaError, CondaExitZero, CondaMultiError
+from .deprecations import DeprecatedError  # noqa: 401
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
 from .auxlib.logz import stringify

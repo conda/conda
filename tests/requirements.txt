@@ -16,6 +16,7 @@ filelock
 flake8
 git
 nbformat
+packaging
 perl
 pexpect
 pip

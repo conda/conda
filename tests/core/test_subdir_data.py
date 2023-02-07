@@ -278,12 +278,12 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
     ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
         sd_a = SubdirData(channel)
-        precs_a = tuple(sd_a.query("zlib"))
+        tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
 
         sd_b = SubdirData(channel)
         assert sd_b is sd_a
-        precs_b = tuple(sd_b.query("zlib"))
+        tuple(sd_b.query("zlib"))
         assert fetcher.call_count == 1
 
 
