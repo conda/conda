@@ -23,10 +23,12 @@ from conda.core.subdir_data import (
     read_mod_and_etag,
 )
 from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvalidChannel
+from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
+from conda.testing.helpers import CHANNEL_DIR
 from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
@@ -105,9 +107,7 @@ class GetRepodataIntegrationTests(TestCase):
             {"CONDA_OFFLINE": "yes", "CONDA_PLATFORM": platform},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            local_channel = Channel(
-                join(dirname(__file__), "..", "data", "conda_format_repo", platform)
-            )
+            local_channel = Channel(join(CHANNEL_DIR, platform))
             sd = SubdirData(channel=local_channel)
             assert len(sd.query_all("zlib", channels=[local_channel])) > 0
             assert len(sd.query_all("zlib")) == 0
@@ -246,14 +246,14 @@ def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
         {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
+        channel = Channel(join(CHANNEL_DIR, platform))
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
 
 
 def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
+    channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
     with env_var("CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         sd = SubdirData(channel)
@@ -278,36 +278,39 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         {"CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
+        channel = Channel(url_path(join(CHANNEL_DIR, platform)))
+
         return
 
-        # channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
-        # sd = SubdirData(channel)
-        # sd.load()
-        # assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
+        sd = SubdirData(channel)
+        sd.load()
+        assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
 
-        # assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
-        # sd.reload()
-        # assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+        return
 
-        # # newly deprecated, run them anyway
-        # sd._save_state(sd._load_state())
+        sd.reload()
+        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
-        # # clear, to see our testing class
-        # SubdirData._cache_.clear()
+        # newly deprecated, run them anyway
+        sd._save_state(sd._load_state())
 
-        # class SubdirDataRepodataTooNew(SubdirData):
-        #     def _load(self):
-        #         return {"repodata_version": 1024}
+        # clear, to see our testing class
+        SubdirData._cache_.clear()
 
-        # with pytest.raises(CondaUpgradeError):
-        #     SubdirDataRepodataTooNew(channel).load()
+        class SubdirDataRepodataTooNew(SubdirData):
+            def _load(self):
+                return {"repodata_version": 1024}
 
-        # SubdirData._cache_.clear()
+        with pytest.raises(CondaUpgradeError):
+            SubdirDataRepodataTooNew(channel).load()
+
+        SubdirData._cache_.clear()
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
+    channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
 
     # Sadly, on Windows, st_mtime resolution is limited to 2 seconds. (See note in Python docs
@@ -330,7 +333,7 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
 
 def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
+    channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
 
     with env_vars(
