@@ -267,7 +267,14 @@ def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
 
 
 def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
-    with make_temp_env(), env_vars(
+    class ChannelCacheClear:
+        def __enter__(self):
+            return
+
+        def __exit__(self, *exc):
+            Channel._cache_.clear()
+
+    with ChannelCacheClear(), make_temp_env(), env_vars(
         {"CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
@@ -282,20 +289,17 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
         # newly deprecated, run them anyway
-        # sd._save_state(sd._load_state())
+        sd._save_state(sd._load_state())
 
         # clear, to see our testing class
         SubdirData._cache_.clear()
-
-        # make sure this data can't get cached under another real or test channel
-        unique_channel = Channel(f"https://example.org/channels/conda/{platform}")
 
         class SubdirDataRepodataTooNew(SubdirData):
             def _load(self):
                 return {"repodata_version": 1024}
 
         with pytest.raises(CondaUpgradeError):
-            SubdirDataRepodataTooNew(unique_channel).load()
+            SubdirDataRepodataTooNew(channel).load()
 
         SubdirData._cache_.clear()
 
