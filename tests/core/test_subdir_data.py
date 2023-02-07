@@ -280,8 +280,6 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
     ):
         channel = Channel(url_path(join(CHANNEL_DIR, platform)))
 
-        return
-
         sd = SubdirData(channel)
         sd.load()
         assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
