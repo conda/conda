@@ -293,19 +293,22 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         # newly deprecated, run them anyway
         sd._save_state(sd._load_state())
 
-        return
 
-        # clear, to see our testing class
-        SubdirData._cache_.clear()
+@pytest.mark.skip("causes test_prefix_graph_1 to fail")
+def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
+    channel = Channel(url_path(join(CHANNEL_DIR, platform)))
 
-        class SubdirDataRepodataTooNew(SubdirData):
-            def _load(self):
-                return {"repodata_version": 1024}
+    # clear, to see our testing class
+    SubdirData._cache_.clear()
 
-        with pytest.raises(CondaUpgradeError):
-            SubdirDataRepodataTooNew(channel).load()
+    class SubdirDataRepodataTooNew(SubdirData):
+        def _load(self):
+            return {"repodata_version": 1024}
 
-        SubdirData._cache_.clear()
+    with pytest.raises(CondaUpgradeError):
+        SubdirDataRepodataTooNew(channel).load()
+
+    SubdirData._cache_.clear()
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
