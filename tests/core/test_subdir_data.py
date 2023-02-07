@@ -4,28 +4,30 @@
 
 from logging import getLogger
 from os.path import dirname, join
-from unittest import TestCase
 from time import sleep
+from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
 
-from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
-from conda.exceptions import CondaSSLError, UnavailableInvalidChannel
-from conda.gateways.connection import SSLError
-from conda.gateways.connection.session import CondaSession
 from conda.core.index import get_index
 from conda.core.subdir_data import (
+    CondaRepoInterface,
     Response304ContentUnchanged,
-    cache_fn_url,
     SubdirData,
+    cache_fn_url,
     fetch_repodata_remote_request,
     read_mod_and_etag,
-    CondaRepoInterface,
 )
+from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvalidChannel
+from conda.gateways.connection import SSLError
+from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
+from conda.models.records import PackageRecord
+from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
 
@@ -264,6 +266,35 @@ def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
         assert precs[0].fn.endswith(".conda")
 
 
+def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
+    with make_temp_env(), env_vars(
+        {"CONDA_PLATFORM": platform},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
+        sd = SubdirData(channel)
+        sd.load()
+        assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
+
+        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+
+        sd.reload()
+        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+
+        # newly deprecated, run them anyway
+        sd._save_state(sd._load_state())
+
+        # clear, to see our testing class
+        SubdirData._cache_.clear()
+
+        class SubdirDataRepodataTooNew(SubdirData):
+            def _load(self):
+                return {"repodata_version": 1024}
+
+        with pytest.raises(CondaUpgradeError):
+            SubdirDataRepodataTooNew(channel).load()
+
+
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
     channel = Channel(join(dirname(__file__), "..", "data", "conda_format_repo", platform))
     SubdirData.clear_cached_local_channel_data()
@@ -276,7 +307,7 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -293,7 +324,7 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value={}) as fetcher:
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -305,14 +336,3 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         precs_b = tuple(sd_b.query("zlib"))
         assert fetcher.call_count == 2
         assert precs_b == precs_a
-
-
-# @pytest.mark.integration
-# class SubdirDataTests(TestCase):
-#
-#     def test_basic_subdir_data(self):
-#         channel = Channel("https://conda.anaconda.org/conda-test/linux-64")
-#         sd = SubdirData(channel)
-#         sd.load()
-#         print(sd._names_index.keys())
-#         assert 0
