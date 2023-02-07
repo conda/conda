@@ -287,12 +287,17 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         # clear, to see our testing class
         SubdirData._cache_.clear()
 
+        # make sure this data can't get cached under another real or test channel
+        unique_channel = Channel(f"https://example.org/channels/conda/{platform}")
+
         class SubdirDataRepodataTooNew(SubdirData):
             def _load(self):
                 return {"repodata_version": 1024}
 
         with pytest.raises(CondaUpgradeError):
-            SubdirDataRepodataTooNew(channel).load()
+            SubdirDataRepodataTooNew(unique_channel).load()
+
+        SubdirData._cache_.clear()
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
