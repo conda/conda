@@ -855,9 +855,9 @@ EXAMPLE: A more complex environment file:
    Note the use of the wildcard ``*`` when defining a few of the
    versions in the complex environment file. Keeping the major and
    minor versions fixed while allowing the patch to be any number
-   allows you to use your environment file to get any bug fixes 
-   while still maintaining consistency in your environment. For 
-   more information on package installation values, 
+   allows you to use your environment file to get any bug fixes
+   while still maintaining consistency in your environment. For
+   more information on package installation values,
    see :doc:`../concepts/pkg-search`.
 
    **Specifying channels outside of "channels"**
