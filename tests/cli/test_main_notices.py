@@ -312,11 +312,15 @@ def test_notices_does_not_interrupt_command_on_failure(
         "conda.notices.core.logger.error"
     ) as mock_logger:
         mock_open.side_effect = [PermissionError(error_message)]
-        run(f"conda create -n {env_name} -y -c local --override-channels")
+        _, _, exit_code = run(f"conda create -n {env_name} -y -c local --override-channels")
+
+        assert exit_code is None
 
         assert mock_logger.call_args == mock.call(f"Unable to open cache file: {error_message}")
 
-    run(f"conda env remove -n {env_name}")
+    _, _, exit_code = run(f"conda env remove -n {env_name}")
+
+    assert exit_code is None
 
 
 def test_notices_cannot_read_cache_files(notices_cache_dir, notices_mock_http_session_get):
