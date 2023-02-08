@@ -51,7 +51,7 @@ RUN if [ "${conda_docker_default_channel}" = "defaults" ]; then \
         fi; \
     else \
         echo "conda_docker_default_channel value ${conda_docker_default_channel} not supported"; \
-        exit 1; \ 
+        exit 1; \
     fi && \
     wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
