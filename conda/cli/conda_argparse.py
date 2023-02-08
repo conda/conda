@@ -1840,8 +1840,9 @@ def add_parser_experimental(p):
     group.add_argument(
         "--experimental",
         action="append",
-        choices=["jlap"],
-        help="jlap: Download incremental package index data from repodata.jlap.",
+        choices=["jlap", "lock"],
+        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
+        "lock: use locking when reading, updating index (repodata.json) cache. ",
     )
 
 

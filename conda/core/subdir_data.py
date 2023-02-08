@@ -22,11 +22,11 @@ from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
+    CondaRepoInterface,
     RepodataCache,
+    RepodataIsEmpty,
     RepodataOnDisk,
     RepodataState,
-    CondaRepoInterface,
-    RepodataIsEmpty,
     RepoInterface,
     Response304ContentUnchanged,
     cache_fn_url,
@@ -42,6 +42,7 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.path import url_to_path
 from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
+from ..deprecations import deprecated
 from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
@@ -615,15 +616,11 @@ class SubdirData(metaclass=SubdirDataType):
         return _internal_state
 
 
+@deprecated("23.1", "23.5", addendum="Cache headers are now stored in a separate file.")
 def read_mod_and_etag(path):
     # this function should no longer be used by conda but is kept for API
     # stability. Was used to read inlined cache information from json; now
     # stored in *.state.json
-    warnings.warn(
-        "`conda.core.subdir_data.read_mod_and_etag` is pending deprecation "
-        "and will be removed in the future.",
-        PendingDeprecationWarning,
-    )
     with open(path, "rb") as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:

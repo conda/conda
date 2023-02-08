@@ -418,12 +418,21 @@ LOCK_BYTE = 21  # mamba interop
 LOCK_ATTEMPTS = 10
 LOCK_SLEEP = 1
 
+
+@contextmanager
+def _lock_noop(fd):
+    """
+    When locking is not available.
+    """
+    yield
+
+
 # XXX must be possible to disable locks with a context or environment variable
 try:
     import msvcrt
 
     @contextmanager
-    def _lock(fd):
+    def _lock_impl(fd):
         tell = fd.tell()
         fd.seek(LOCK_BYTE)
         msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)
@@ -441,13 +450,11 @@ except ImportError:
         # "fcntl Availibility: not Emscripten, not WASI."
         warnings.warn("file locking not available")
 
-        @contextmanager
-        def _lock(fd):
-            yield
+        _lock_impl = _lock_noop  # type: ignore
 
     else:
 
-        class _lock:
+        class _lock_impl:
             def __init__(self, fd):
                 self.fd = fd
 
@@ -463,6 +470,13 @@ except ImportError:
 
             def __exit__(self, *exc):
                 fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+
+
+def _lock(fd):
+    if "jlap" in context.experimental or "lock" in context.experimental:
+        # locking required for jlap
+        return _lock_impl(fd)
+    return _lock_noop(fd)
 
 
 class RepodataCache:
