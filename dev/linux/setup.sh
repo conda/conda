@@ -11,11 +11,13 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 # Download the Minio server, needed for S3 tests
-TARGETARCH="${TARGETARCH:-$(uname -m)}"
-if [ "${TARGETARCH}" = "aarch64" ]; then
-    TARGETARCH=arm64
+minioarch="${minioarch:-$(dpkg --print-architecture || uname -m || echo 'amd64')}"
+if [ "${minioarch}" = "aarch64" ]; then
+    minioarch=arm64
+elif [ "${minioarch}" = "x86_64" ]; then
+    minioarch=amd64
 fi
-wget https://dl.minio.io/server/minio/release/linux-${TARGETARCH}/minio
+wget https://dl.minio.io/server/minio/release/linux-${minioarch}/minio
 chmod +x minio
 sudo mv minio /usr/local/bin/minio
 
