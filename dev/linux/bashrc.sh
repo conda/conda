@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
+print_conda_info() {
+    grep -e "conda location" -e "conda version" -e "python version" -e "sys.version" <(conda info -a) | sed 's/^\s*/  /'
+    conda config --show channels | sed 's/^\s*/  /'
+}
+
 echo "Initializing conda in dev mode..."
 echo "Factory config is:"
-grep -e "conda location" -e "conda version" -e "python version" <(conda info -a) | sed 's/^\s*/  /'
+print_conda_info
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 if [[ $RUNNING_ON_DEVCONTAINER == 1 ]]; then
     conda init
 fi
 echo "Done! Now running:"
-grep -e "conda location" -e "conda version" -e "python version" <(conda info -a) | sed 's/^\s*/  /'
+print_conda_info
