@@ -19,13 +19,13 @@ FROM --platform=$TARGETPLATFORM debian:stable-slim AS buildbase
 # built-in arg set by `docker build --platform linux/$TARGETARCH ...`
 ARG TARGETARCH
 ARG CONDA_VERSION=latest
-ARG conda_docker_default_channel=defaults
+ARG default_channel=defaults
 
 WORKDIR /tmp
 
 RUN apt-get update && apt-get install -y wget
 
-RUN if [ "${conda_docker_default_channel}" = "defaults" ]; then \
+RUN if [ "${default_channel}" = "defaults" ]; then \
         if [ "${TARGETARCH}" = "amd64" ]; then \
             MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh"; \
         elif [ "${TARGETARCH}" = "s390x" ]; then \
@@ -35,10 +35,10 @@ RUN if [ "${conda_docker_default_channel}" = "defaults" ]; then \
         elif [ "${TARGETARCH}" = "ppc64le" ]; then \
             MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-ppc64le.sh"; \
         else \
-            echo "Not supported source channel & target architecture: ${conda_docker_default_channel} & ${TARGETARCH}"; \
+            echo "Not supported source channel & target architecture: ${default_channel} & ${TARGETARCH}"; \
             exit 1; \
         fi; \
-    elif [ "${conda_docker_default_channel}" = "conda-forge" ]; then \
+    elif [ "${default_channel}" = "conda-forge" ]; then \
         if [ "${TARGETARCH}" = "amd64" ]; then \
             MINICONDA_URL="https://github.com/conda-forge/miniforge/releases/${CONDA_VERSION}/download/Miniforge3-Linux-x86_64.sh"; \
         elif [ "${TARGETARCH}" = "arm64" ]; then \
@@ -46,11 +46,11 @@ RUN if [ "${conda_docker_default_channel}" = "defaults" ]; then \
         elif [ "${TARGETARCH}" = "ppc64le" ]; then \
             MINICONDA_URL="https://github.com/conda-forge/miniforge/releases/${CONDA_VERSION}/download/Miniforge3-Linux-ppc64le.sh"; \
         else \
-            echo "Not supported source channel & target architecture: ${conda_docker_default_channel} & ${TARGETARCH}"; \
+            echo "Not supported source channel & target architecture: ${default_channel} & ${TARGETARCH}"; \
             exit 1; \
         fi; \
     else \
-        echo "conda_docker_default_channel value ${conda_docker_default_channel} not supported"; \
+        echo "default_channel value ${default_channel} not supported"; \
         exit 1; \
     fi && \
     wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \

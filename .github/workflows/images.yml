@@ -92,7 +92,7 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             python_version=${{ matrix.python }}
-            conda_docker_default_channel=${{ matrix.channel }}
+            default_channel=${{ matrix.channel }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64,linux/arm64,linux/ppc64le

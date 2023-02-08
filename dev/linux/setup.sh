@@ -23,3 +23,6 @@ echo "test_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 ### Gitpod user ###
 useradd -l -u 33333 -G sudo -md /home/gitpod -s /bin/bash -p gitpod gitpod
 echo "gitpod ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+### Prevent git safety errors when mounting directories ###
+git config --global --add safe.directory /opt/conda-src
