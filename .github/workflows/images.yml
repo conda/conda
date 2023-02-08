@@ -15,6 +15,8 @@ on:
   # NOTE: github.event context is push payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
+    branches:
+      - main
     paths:
       - 'Dockerfile'
       - '.github/workflows/images.yml'
@@ -45,6 +47,7 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         python: ['3.7', '3.8', '3.9', '3.10']
         channel: [defaults, conda-forge]
