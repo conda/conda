@@ -4,23 +4,17 @@
 Strongly related to subdir_data / test_subdir_data.
 """
 
+from __future__ import annotations
+
 import json
 import multiprocessing
-import time
 import sys
+import time
 
 import pytest
 
-from conda.base.context import context
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-
 from conda.common.io import env_vars
-from conda.gateways.connection import (
-    HTTPError,
-    InvalidSchema,
-    RequestsProxyError,
-    SSLError,
-)
 from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -28,6 +22,7 @@ from conda.exceptions import (
     ProxyError,
     UnavailableInvalidChannel,
 )
+from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
 from conda.gateways.repodata import (
     RepodataCache,
     RepodataIsEmpty,
@@ -185,6 +180,10 @@ def test_coverage_repodata_state(tmp_path):
     )
     state.cache_path_state.write_text("not json")
     assert dict(state.load()) == {}
+
+
+from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 
 def test_coverage_conda_http_errors():

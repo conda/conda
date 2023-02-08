@@ -140,10 +140,13 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
+
         check_allowlist(channel_urls)
-        subdir_query = lambda url: tuple(
-            SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
-        )
+
+        def subdir_query(url):
+            return tuple(
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
+            )
 
         # TODO test timing with ProcessPoolExecutor
         Executor = (
@@ -165,14 +168,6 @@ class SubdirData(metaclass=SubdirDataType):
             if param.get_exact_value("name"):
                 package_name = param.get_exact_value("name")
                 for prec in self._iter_records_by_name(package_name):
-                    if param.match(prec):
-                        yield prec
-            elif param.get_exact_value("track_features"):
-                track_features = param.get_exact_value("track") or ()
-                candidates = chain.from_iterable(
-                    self._track_features_index[feature_name] for feature_name in track_features
-                )
-                for prec in candidates:
                     if param.match(prec):
                         yield prec
             else:
@@ -272,6 +267,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
+        # Unused since early 2023:
         self._track_features_index = _internal_state["_track_features_index"]
         self._loaded = True
         return self
@@ -322,7 +318,7 @@ class SubdirData(metaclass=SubdirDataType):
                 return {
                     "_package_records": (),
                     "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),
+                    "_track_features_index": defaultdict(list),  # Unused since early 2023
                 }
 
         else:
@@ -614,8 +610,6 @@ class SubdirData(metaclass=SubdirDataType):
                 _package_records.append(info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)
-                for ftr_name in info.get("track_features", []):
-                    _track_features_index[ftr_name].append(record_index)
 
         self._internal_state = _internal_state
         return _internal_state
