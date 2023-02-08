@@ -11,7 +11,7 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 # Download the Minio server, needed for S3 tests
-wget https://dl.minio.io/server/minio/release/linux-amd64/minio
+wget https://dl.minio.io/server/minio/release/linux-${TARGETARCH:-amd64}/minio
 chmod +x minio
 sudo mv minio /usr/local/bin/minio
 
