@@ -214,9 +214,9 @@ class ArgumentParser(ArgumentParserBase):
         """
         if len(sys.argv) > 1:
             name = sys.argv[1]
-            subcommand = next((sub for sub in self._subcommands if sub.name == name), None)
-            if subcommand:
-                return Namespace(plugin_subcommand=subcommand)
+            for subcommand in self._subcommands:
+                if subcommand.name == name:
+                    return Namespace(plugin_subcommand=subcommand)
 
         return super().parse_args(args, namespace)
 
