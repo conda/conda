@@ -50,7 +50,10 @@ jobs:
       fail-fast: false
       matrix:
         python: ['3.7', '3.8', '3.9', '3.10']
-        channel: [defaults, conda-forge]
+        channel: [defaults]
+        include:
+          - python: '3.10'  # same as miniforge
+            channel: conda-forge
     steps:
       - uses: actions/checkout@v3
 
