@@ -93,8 +93,8 @@
    **Bash (macOS, Linux, Windows)**
 
    ```bash
-   $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache 
-   # --- in some systems you might also need to supply the same values as CLI flags:
+   $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
+   # --- in some systems you might also need to re-supply the same values as CLI flags:
    # CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.10 --build-arg default_channel=conda-forge
    $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
    ```
