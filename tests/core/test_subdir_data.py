@@ -3,7 +3,7 @@
 
 
 from logging import getLogger
-from os.path import dirname, join
+from os.path import join
 from time import sleep
 from unittest import TestCase
 from unittest.mock import patch
@@ -26,6 +26,7 @@ from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvali
 from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
+from conda.testing.helpers import CHANNEL_DIR
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -352,3 +353,14 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         precs_b = tuple(sd_b.query("zlib"))
         assert fetcher.call_count == 2
         assert precs_b == precs_a
+
+
+def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
+    local_channel = Channel(join(CHANNEL_DIR, platform))
+    sd = SubdirData(channel=local_channel)
+
+    # test slow "check against all packages" query
+    assert len(tuple(sd.query("*[version=1.2.11]"))) >= 1
+
+    # test search by PackageRecord
+    assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
