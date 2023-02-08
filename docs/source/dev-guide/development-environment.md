@@ -99,6 +99,22 @@
    > set CONDA_DOCKER_PYTHON=3.8 && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_PYTHON="
    ```
 
+   By default, the Docker image will be built with Miniconda and `defaults`.
+   You can also build it from Miniforge and `conda-forge` by setting
+   `CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge`.
+
+   **Bash (macOS, Linux, Windows)**
+
+   ```bash
+   $ CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache unit-tests
+   ```
+
+   **cmd.exe (Windows)**
+
+   ```batch
+   > set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_DEFAULT_CHANNEL="
+   ```
+
    The next time you run `docker compose run <task>` you will use the new image.
    If you want to revert to the version you were previously using, you need to rebuild
    the image again.

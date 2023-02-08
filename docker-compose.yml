@@ -10,7 +10,7 @@ x-base: &base
       - conda_docker_default_channel=${CONDA_DOCKER_DEFAULT_CHANNEL:-defaults}
   volumes:
     - .:/opt/conda-src
-  container_name: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}${CONDA_DOCKER_DEFAULT_CHANNEL:-}
+  container_name: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}-${CONDA_DOCKER_DEFAULT_CHANNEL:-defaults}
 
 services:
   interactive:
