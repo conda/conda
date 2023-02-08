@@ -25,38 +25,8 @@ WORKDIR /tmp
 
 RUN apt-get update && apt-get install -y wget
 
-RUN if [ "${default_channel}" = "defaults" ]; then \
-        if [ "${TARGETARCH}" = "amd64" ]; then \
-            MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh"; \
-        elif [ "${TARGETARCH}" = "s390x" ]; then \
-            MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-s390x.sh"; \
-        elif [ "${TARGETARCH}" = "arm64" ]; then \
-            MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-aarch64.sh"; \
-        elif [ "${TARGETARCH}" = "ppc64le" ]; then \
-            MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-ppc64le.sh"; \
-        else \
-            echo "Not supported source channel & target architecture: ${default_channel} & ${TARGETARCH}"; \
-            exit 1; \
-        fi; \
-    elif [ "${default_channel}" = "conda-forge" ]; then \
-        if [ "${TARGETARCH}" = "amd64" ]; then \
-            MINICONDA_URL="https://github.com/conda-forge/miniforge/releases/${CONDA_VERSION}/download/Miniforge3-Linux-x86_64.sh"; \
-        elif [ "${TARGETARCH}" = "arm64" ]; then \
-            MINICONDA_URL="https://github.com/conda-forge/miniforge/releases/${CONDA_VERSION}/download/Miniforge3-Linux-aarch64.sh"; \
-        elif [ "${TARGETARCH}" = "ppc64le" ]; then \
-            MINICONDA_URL="https://github.com/conda-forge/miniforge/releases/${CONDA_VERSION}/download/Miniforge3-Linux-ppc64le.sh"; \
-        else \
-            echo "Not supported source channel & target architecture: ${default_channel} & ${TARGETARCH}"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "default_channel value ${default_channel} not supported"; \
-        exit 1; \
-    fi && \
-    wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda clean --all --yes
+COPY dev/linux/install_miniconda.sh /tmp
+RUN bash /tmp/install_miniconda.sh
 
 FROM --platform=$TARGETPLATFORM debian:stable-slim
 
@@ -64,7 +34,7 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
 COPY dev/linux/setup.sh /tmp
-RUN env TARGETARCH="${TARGETARCH}" bash /tmp/setup.sh
+RUN bash /tmp/setup.sh
 
 COPY --from=buildbase /opt/conda /opt/conda
 
