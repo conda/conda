@@ -15,8 +15,6 @@ on:
   # NOTE: github.event context is push payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
-    branches:
-      - main
     paths:
       - 'Dockerfile'
       - '.github/workflows/images.yml'
