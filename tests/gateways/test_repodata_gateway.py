@@ -40,6 +40,7 @@ def locker(cache: RepodataCache, qout, qin):
     print("parent locked. try to save in child (should fail)")
     try:
         cache.save("{}")
+        qout.put("not locked")
     except OSError as e:
         print("OSError", e)
         qout.put(e)
@@ -54,7 +55,8 @@ def locker(cache: RepodataCache, qout, qin):
     print("exit child")
 
 
-def test_lock_can_lock(tmp_path):
+@pytest.mark.parametrize("use_lock", [True, False])
+def test_lock_can_lock(tmp_path, use_lock: bool):
     """
     Open lockfile, then open it again in a spawned subprocess. Assert subprocess
     times out (should take 10 seconds).
@@ -62,23 +64,31 @@ def test_lock_can_lock(tmp_path):
     # forked workers might share file handle and lock
     multiprocessing.set_start_method("spawn", force=True)
 
-    cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 
-    qout = multiprocessing.Queue()  # put here, get in subprocess
-    qin = multiprocessing.Queue()  # get here, put in subprocess
+    with env_vars(
+        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "lock" if use_lock else ""},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 
-    p = multiprocessing.Process(target=locker, args=(cache, qin, qout))
-    p.start()
+        qout = multiprocessing.Queue()  # put here, get in subprocess
+        qin = multiprocessing.Queue()  # get here, put in subprocess
 
-    assert qin.get(timeout=6) == "ready"
-    print("subprocess ready")
+        p = multiprocessing.Process(target=locker, args=(cache, qin, qout))
+        p.start()
 
-    with cache.cache_path_state.open("a+") as lock_file, _lock(lock_file):
-        print("lock acquired in parent process")
-        qout.put("locked")
-        assert isinstance(qin.get(timeout=13), OSError)
-        p.join(1)
-        assert p.exitcode == 0
+        assert qin.get(timeout=6) == "ready"
+        print("subprocess ready")
+
+        with cache.cache_path_state.open("a+") as lock_file, _lock(lock_file):
+            print("lock acquired in parent process")
+            qout.put("locked")
+            if use_lock:
+                assert isinstance(qin.get(timeout=13), OSError)
+            else:
+                assert qin.get(timeout=5) == "not locked"
+            p.join(1)
+            assert p.exitcode == 0
 
 
 def test_save(tmp_path):
