@@ -47,7 +47,7 @@ jobs:
       contents: read
       packages: write
     strategy:
-      fail-fast: false
+      fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
         python: ['3.7', '3.8', '3.9', '3.10']
         channel: [defaults]
