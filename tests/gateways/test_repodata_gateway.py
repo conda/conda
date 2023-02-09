@@ -198,6 +198,10 @@ from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 def test_coverage_conda_http_errors():
 
+    class Response:
+        def __init__(self, status_code):
+            self.status_code = status_code
+
     with pytest.raises(ProxyError), conda_http_errors(
         "https://conda.anaconda.org", "repodata.json"
     ):
@@ -222,71 +226,43 @@ def test_coverage_conda_http_errors():
     with pytest.raises(UnavailableInvalidChannel), conda_http_errors(
         "https://conda.anaconda.org/noarch", "repodata.json"
     ):
-
-        class Response:
-            status_code = 404
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(404))
 
     with pytest.raises(RepodataIsEmpty), env_vars(
         {"CONDA_ALLOW_NON_CHANNEL_URLS": "1"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ), conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"):
-
-        class Response:
-            status_code = 404
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(404))
 
     # A variety of helpful error messages should follow
     with pytest.raises(CondaHTTPError, match="invalid credentials"), conda_http_errors(
         "https://conda.anaconda.org/noarch", "repodata.json"
     ):
-
-        class Response:
-            status_code = 401
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(401))
 
     # A (random uuid) token should trigger a different message.
     with pytest.raises(CondaHTTPError, match="token"), conda_http_errors(
         "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/noarch", "repodata.json"
     ):
-
-        class Response:
-            status_code = 401
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(401))
 
     # Oh no
     with pytest.raises(CondaHTTPError, match="A 500-type"), conda_http_errors(
         "https://repo.anaconda.com/main/linux-64", "repodata.json"
     ):
-
-        class Response:
-            status_code = 500
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(500))
 
     # Ask to unblock URL
     with pytest.raises(CondaHTTPError, match="blocked"), conda_http_errors(
         "https://repo.anaconda.com/main/linux-64", "repodata.json"
     ):
-
-        class Response:
-            status_code = 418
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(418))
 
     # Just an error
     with pytest.raises(CondaHTTPError, match="An HTTP error"), conda_http_errors(
         "https://example.org/main/linux-64", "repodata.json"
     ):
-
-        class Response:
-            status_code = 418
-
-        raise HTTPError(response=Response)
+        raise HTTPError(response=Response(418))
 
     # Don't know how to configure "context.channel_alias not in url"
 
