@@ -17,18 +17,6 @@ from . import (
 
 log = logging.getLogger(__name__)
 
-try:
-    from rich.console import Console
-
-    console = Console()
-except ImportError:
-    import pprint
-
-    class console:
-        @staticmethod
-        def print_json(data={}):
-            log.info("%s", pprint.pformat(data))
-
 
 class JlapRepoInterface(RepoInterface):
     def __init__(
@@ -52,8 +40,6 @@ class JlapRepoInterface(RepoInterface):
         self._stderrlog = logging.getLogger("conda.stderrlog")
 
     def repodata(self, state: dict) -> str | None:
-        console.print_json(data=state)
-
         session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
