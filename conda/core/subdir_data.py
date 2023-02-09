@@ -434,7 +434,6 @@ class SubdirData(metaclass=SubdirDataType):
         try:
             raw_repodata_str = cache.load()
         except ValueError as e:
-            # XXX exception handling left over from json.loads() on previous line?
             # OSError (locked) may happen here
             # ValueError: Expecting object: line 11750 column 6 (char 303397)
             log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
@@ -467,9 +466,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _read_pickled(self, state: RepodataState):
         if not isinstance(state, RepodataState):
-            _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
-            _state |= state
-            state = _state
+            state = RepodataState(
+                self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state
+            )
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
             # Don't trust pickled data if there is no accompanying json data
@@ -512,10 +511,10 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _process_raw_repodata(self, repodata, state: RepodataState | None):
         if not isinstance(state, RepodataState):
-            _state = RepodataState(self.cache_path_json, self.cache_path_state, self.repodata_fn)
-            if state:
-                _state |= state
-            state = _state
+            state = RepodataState(
+                self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state
+            )
+
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency

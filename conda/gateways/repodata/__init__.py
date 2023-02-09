@@ -15,6 +15,7 @@ from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
 from pathlib import Path
+from typing import Any
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
@@ -317,17 +318,10 @@ class RepodataState(UserDict):
     Load/save `.state.json` that accompanies cached `repodata.json`
     """
 
-    _fields = (
-        "etag",
-        "mod",
-        "cache_control",
-        "size",
-    )
-
     _aliased = ("_mod", "_etag", "_cache_control", "_url")
 
-    def __init__(self, cache_path_json, cache_path_state, repodata_fn):
-        super().__init__()
+    def __init__(self, cache_path_json, cache_path_state, repodata_fn, dict=None):
+        super().__init__(dict=dict)
         self.cache_path_json = pathlib.Path(cache_path_json)
         self.cache_path_state = pathlib.Path(cache_path_state)
         # XXX may not be that useful/used compared to the full URL
@@ -401,7 +395,7 @@ class RepodataState(UserDict):
     def cache_control(self, value):
         self["cache_control"] = value or ""
 
-    def __setitem__(self, key: str, item) -> None:
+    def __setitem__(self, key: str, item: Any) -> None:
         if key in self._aliased:
             key = key[1:]  # strip underscore
         return super().__setitem__(key, item)
