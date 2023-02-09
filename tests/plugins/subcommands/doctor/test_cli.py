@@ -10,7 +10,7 @@ TEST_ENV_1 = "test-env-1"
 
 
 def test_conda_doctor_happy_path():
-    """Make sure that we are able to call the ``conda docto`` command"""
+    """Make sure that we are able to call the ``conda doctor`` command"""
 
     out, err, exit_code = run(f"conda doctor")
 
