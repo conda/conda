@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import multiprocessing
+from pathlib import Path
 import sys
 import time
 
@@ -63,7 +64,6 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
     """
     # forked workers might share file handle and lock
     multiprocessing.set_start_method("spawn", force=True)
-
 
     with env_vars(
         {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "lock" if use_lock else ""},
@@ -301,3 +301,49 @@ def test_ssl_unavailable_error_message():
             raise SSLError()
     finally:
         del sys.modules["ssl"]
+
+
+def test_cache_json(tmp_path: Path):
+    """
+    Load and save standardized field names, from internal matches-legacy
+    underscore-prefixed field names. Assert state is only loaded if it matches
+    cached json.
+    """
+    cache_json = tmp_path / "cached.json"
+    cache_state = tmp_path / "cached.state.json"
+
+    cache_json.write_text("{}")
+
+    RepodataState(cache_json, cache_state, "repodata.json").save()
+
+    state = RepodataState(cache_json, cache_state, "repodata.json").load()
+
+    mod = "last modified time"
+
+    state = RepodataState(cache_json, cache_state, "repodata.json")
+    state.mod = mod  # this is the last-modified header not mtime_ns
+    state.cache_control = "cache control"
+    state.etag = "etag"
+    state.save()
+
+    on_disk_format = json.loads(cache_state.read_text())
+    print("disk format", on_disk_format)
+    assert on_disk_format["mod"] == mod
+    assert on_disk_format["cache_control"]
+    assert on_disk_format["etag"]
+    assert isinstance(on_disk_format["size"], int)
+    assert isinstance(on_disk_format["mtime_ns"], int)
+
+    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
+    assert state2.mod == mod
+    assert state2.cache_control
+    assert state2.etag
+
+    assert state2["mod"] == state2.mod
+    assert state2["etag"] == state2.etag
+    assert state2["cache_control"] == state2.cache_control
+
+    cache_json.write_text("{ }")  # now invalid due to size
+
+    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
+    assert state_invalid.get("mod") == ""
