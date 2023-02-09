@@ -54,7 +54,7 @@ def test_jlap_fetch(package_server, tmp_path, mocker):
 
     state = {}
     with pytest.raises(RepodataOnDisk):
-        data_json = repo.repodata(state)
+        repo.repodata(state)
 
     # however it may make two requests - one to look for .json.zst, the second
     # to look for .json
@@ -62,12 +62,11 @@ def test_jlap_fetch(package_server, tmp_path, mocker):
 
     # second will try to fetch (non-existent) .jlap, then fall back to .json
     with pytest.raises(RepodataOnDisk):
-        data_json = repo.repodata(state)  # a 304?
+        repo.repodata(state)  # a 304?
 
     with pytest.raises(RepodataOnDisk):
-        data_json = repo.repodata(state)
+        repo.repodata(state)
 
-    # TODO more useful assertions
     assert patched.call_count == 3
 
 
@@ -176,7 +175,7 @@ def test_repodata_state(
         # will include them
         for field in ("mod", "etag", "cache_control", "size", "mtime_ns"):
             assert field in state
-            assert not f"_{field}" in state
+            assert f"_{field}" not in state
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
@@ -298,7 +297,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
-        assert not jlapper.JLAP_UNAVAILABLE in state  # from previous portion of test
+        assert jlapper.JLAP_UNAVAILABLE not in state  # from previous portion of test
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
 
