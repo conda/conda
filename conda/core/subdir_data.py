@@ -242,7 +242,9 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Out-of-band etag and other state needed by the RepoInterface.
         """
-        return Path(self.cache_path_base + ".state.json")
+        return Path(
+            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+        )
 
     @property
     def cache_path_pickle(self):
