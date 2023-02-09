@@ -5,6 +5,7 @@ Strongly related to subdir_data / test_subdir_data.
 """
 
 from __future__ import annotations
+import datetime
 
 import json
 import multiprocessing
@@ -196,8 +197,34 @@ from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyErr
 from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 
-def test_coverage_conda_http_errors():
+def test_repodata_state_has_format(tmp_path):
+    # wrong has_zst format
+    state = RepodataState("", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}})
+    value, dt = state.has_format("zst")
+    assert value is False
+    assert isinstance(dt, datetime.datetime)
+    assert not "has_zst" in state
 
+    # no has_zst information
+    state = RepodataState("", "", "")
+    value, dt = state.has_format("zst")
+    assert value is True
+    assert dt is None  # is this non-datetime type what we want?
+
+    state.set_has_format("zst", True)
+    value, dt = state.has_format("zst")
+    assert value is True
+    assert isinstance(dt, datetime.datetime)
+    assert "has_zst" in state
+
+    state.set_has_format("zst", False)
+    value, dt = state.has_format("zst")
+    assert value is False
+    assert isinstance(dt, datetime.datetime)
+    assert "has_zst" in state
+
+
+def test_coverage_conda_http_errors():
     class Response:
         def __init__(self, status_code):
             self.status_code = status_code

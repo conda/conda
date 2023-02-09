@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import datetime
 import hashlib
 import json
 import logging
@@ -321,7 +322,8 @@ class RepodataState(UserDict):
     _aliased = ("_mod", "_etag", "_cache_control", "_url")
 
     def __init__(self, cache_path_json, cache_path_state, repodata_fn, dict=None):
-        super().__init__(dict=dict)
+        # dict is a positional-only argument in UserDict.
+        super().__init__(dict)
         self.cache_path_json = pathlib.Path(cache_path_json)
         self.cache_path_state = pathlib.Path(cache_path_state)
         # XXX may not be that useful/used compared to the full URL
@@ -394,6 +396,45 @@ class RepodataState(UserDict):
     @cache_control.setter
     def cache_control(self, value):
         self["cache_control"] = value or ""
+
+    def has_format(self, format: str) -> tuple[bool, datetime.datetime | None]:
+        # "has_zst": {
+        #     // UTC RFC3999 timestamp of when we last checked wether the file is available or not
+        #     // in this case the `repodata.json.zst` file
+        #     // Note: same format as conda TUF spec
+        #     // Python's time.time_ns() would be convenient?
+        #     "last_checked": "2023-01-08T11:45:44Z",
+        #     // false = unavailable, true = available
+        #     "value": BOOLEAN
+        # },
+
+        key = f"has_{format}"
+        if key not in self:
+            return (True, None)  # we want to check by default
+
+        try:
+            obj = self[key]
+            last_checked_str = obj["last_checked"]
+            if last_checked_str.endswith("Z"):
+                last_checked_str = f"{last_checked_str[:-1]}+00:00"
+            last_checked = datetime.datetime.fromisoformat(last_checked_str)
+            value = bool(obj["value"])
+            return (value, last_checked)
+        except (KeyError, ValueError, TypeError) as e:
+            log.warn("error parsing `has_` object from `<cache key>.state.json`", exc_info=e)
+            self.pop(key)
+
+        return False, datetime.datetime.now(tz=datetime.timezone.utc)
+
+    def set_has_format(self, format: str, value: bool):
+        key = f"has_{format}"
+        self[key] = {
+            "last_checked": datetime.datetime.now(tz=datetime.timezone.utc).isoformat()[
+                : -len("+00:00")
+            ]
+            + "Z",
+            "value": value,
+        }
 
     def __setitem__(self, key: str, item: Any) -> None:
         if key in self._aliased:
