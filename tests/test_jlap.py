@@ -280,6 +280,33 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         patched = json.loads(sd.cache_path_json.read_text())
         assert len(patched["info"]) == 9
 
+        # When desired hash is unavailable
+
+        # XXX produces 'Requested range not satisfiable' (check double fetch)
+
+        test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 4)
+        footer = test_jlap.pop()
+        test_jlap.pop()  # patch taking us to "latest"
+        test_jlap.add(footer[1])
+        test_jlap.terminate()
+        test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
+
+        SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+
+        # clear jlap_unavailable state flag, or it won't look (test this also)
+        state = cache.load_state()
+        assert not jlapper.JLAP_UNAVAILABLE in state  # from previous portion of test
+        state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
+        cache.cache_path_state.write_text(json.dumps(dict(state)))
+
+        sd.load()
+
+        patched = json.loads(sd.cache_path_json.read_text())
+        assert len(patched["info"]) == 9
+
 
 def make_test_jlap(original: bytes, changes=1):
     """

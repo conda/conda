@@ -434,7 +434,7 @@ def request_url_jlap_state(
                     "Current repodata.json %s not found in patchset. Re-download repodata.json"
                 )
 
-            assert not full_download, "Recursion error"
+            assert not full_download, "Recursion error"  # pragma: no cover
 
             # XXX debugging
             json_new_path = json_path.with_suffix(".json.old")
