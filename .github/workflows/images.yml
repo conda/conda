@@ -45,8 +45,13 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
         python: ['3.7', '3.8', '3.9', '3.10']
+        channel: [defaults]
+        include:
+          - python: '3.10'  # same as miniforge
+            channel: conda-forge
     steps:
       - uses: actions/checkout@v3
 
@@ -76,14 +81,16 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
-            suffix=-linux-python${{ matrix.python }}
+            suffix=-linux-python${{ matrix.python }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
 
-      - name: Build & push Python ${{ matrix.python }}
+      - name: Build for ${{ matrix.channel }} & push Python ${{ matrix.python }}
         uses: docker/build-push-action@v3
         with:
           file: ./Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
-          build-args: python_version=${{ matrix.python }}
+          build-args: |
+            python_version=${{ matrix.python }}
+            default_channel=${{ matrix.channel }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64,linux/arm64,linux/ppc64le
