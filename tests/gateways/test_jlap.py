@@ -144,8 +144,6 @@ def test_repodata_state(
         {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        # XXX how does this not do anything?
-        SubdirData.clear_cached_local_channel_data()  # should clear in-memory caches
         SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
 
         # possibly file cache is left over from test run
@@ -208,9 +206,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        # XXX how does this not do anything? metaclass cache problems?
-        SubdirData.clear_cached_local_channel_data()  # should clear in-memory caches
-        SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
+        SubdirData._cache_.clear()  # definitely clears cache, including normally-excluded file:// urls
 
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
@@ -281,7 +277,8 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
 
         # When desired hash is unavailable
 
-        # XXX produces 'Requested range not satisfiable' (check double fetch)
+        # XXX produces 'Requested range not satisfiable' (check retry whole jlap
+        # after failed fetch)
 
         test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 4)
         footer = test_jlap.pop()

@@ -462,8 +462,7 @@ def _lock_noop(fd):
     yield
 
 
-# XXX must be possible to disable locks with a context or environment variable
-try:
+try:  # pragma: no cover
     import msvcrt
 
     @contextmanager
@@ -481,7 +480,7 @@ try:
 except ImportError:
     try:
         import fcntl
-    except ImportError:
+    except ImportError:  # pragma: no cover
         # "fcntl Availibility: not Emscripten, not WASI."
         warnings.warn("file locking not available")
 
@@ -704,7 +703,7 @@ try:
     def _md5_not_for_security(data):
         return hashlib.md5(data, usedforsecurity=False)
 
-except TypeError:
+except TypeError:  # pragma: no cover
     # Python < 3.9
     def _md5_not_for_security(data):
         return hashlib.md5(data)
