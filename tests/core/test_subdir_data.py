@@ -289,8 +289,9 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         def __exit__(self, *exc):
             Channel._cache_.clear()
 
+    # disable SSL_VERIFY to cover 'turn off warnings' line
     with ChannelCacheClear(), make_temp_env(), env_vars(
-        {"CONDA_PLATFORM": platform},
+        {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         channel = Channel(url_path(join(CHANNEL_DIR, platform)))

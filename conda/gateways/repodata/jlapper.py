@@ -21,7 +21,7 @@ from requests import HTTPError
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
 
-from .jlapcore import jlap_buffer, jlap_buffer_write
+from .jlapcore import jlap_buffer
 
 log = logging.getLogger(__name__)
 
@@ -45,9 +45,6 @@ def hash():
 
 
 def get_place(url, extra=""):
-    from .repo_jlap import console
-
-    console.print_json(data=dict(url=url, extra=extra))
     if "current_repodata" in url:
         extra = f".c{extra}"
     return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
@@ -123,7 +120,10 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
         # not deal with; if the server can't do range requests, also mark jlap
         # as unavailable.
         if response.status_code not in (206, 304, 404, 416):
-            raise HTTPError(f"unexpected response code {response.status_code}", response=response)
+            raise HTTPError(
+                f"Unexpected response code for range request {response.status_code}",
+                response=response,
+            )
 
     log.info("%s", response)
 
@@ -351,9 +351,6 @@ def request_url_jlap_state(
                 # a 'latest' hash that we can't achieve, triggering later error handling
                 buffer = [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
                 state[JLAP_UNAVAILABLE] = time.time_ns()
-
-        # XXX debugging
-        jlap_buffer_write(buffer, get_place(url).with_suffix(".jlap"))
 
         state[JLAP] = jlap_state
 

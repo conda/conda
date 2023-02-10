@@ -197,7 +197,7 @@ from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyErr
 from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 
-def test_repodata_state_has_format(tmp_path):
+def test_repodata_state_has_format():
     # wrong has_zst format
     state = RepodataState("", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}})
     value, dt = state.has_format("zst")
@@ -272,6 +272,17 @@ def test_coverage_conda_http_errors():
         "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/noarch", "repodata.json"
     ):
         raise HTTPError(response=Response(401))
+
+    # env_vars plus a harmless option to reset context on exit
+    with pytest.raises(CondaHTTPError, match="The credentials"), env_vars(
+        {"CONDA_ALLOW_NON_CHANNEL_URLS": "1"},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"):
+        context.channel_alias.location = "xyzzy"
+        raise HTTPError(response=Response(401))
+
+    # was the context reset properly?
+    assert context.channel_alias.location != "xyzzy"
 
     # Oh no
     with pytest.raises(CondaHTTPError, match="A 500-type"), conda_http_errors(
