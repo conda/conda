@@ -385,15 +385,7 @@ def request_url_jlap_state(
                 with timeme("Write changed "), json_path.open("wb") as repodata:
 
                     hasher = hash()
-
-                    class hashwriter:
-                        def write(self, s):
-                            b = s.encode("utf-8")
-                            hasher.update(b)
-                            return repodata.write(b)
-
-                    # faster than dump(obj, fp)
-                    hashwriter().write(json.dumps(repodata_json))
+                    HashWriter(repodata, hasher).write(json.dumps(repodata_json).encode("utf-8"))
 
                     # actual hash of serialized json
                     state[ON_DISK_HASH] = hasher.hexdigest()
