@@ -304,6 +304,40 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         assert len(patched["info"]) == 9
 
 
+def test_jlapcore(tmp_path):
+    """
+    Code paths not excercised by other tests.
+    """
+    with pytest.raises(ValueError):
+        # incorrect trailing hash
+        jlapcore.JLAP.from_lines(
+            [jlapcore.DEFAULT_IV.hex().encode("utf-8")] * 3, iv=jlapcore.DEFAULT_IV, verify=True
+        )
+
+    with pytest.raises(IndexError):
+        # Not enough lines to compare trailing hash with previous. This
+        # exception might change.
+        jlapcore.JLAP.from_lines(
+            [jlapcore.DEFAULT_IV.hex().encode("utf-8")] * 1, iv=jlapcore.DEFAULT_IV, verify=True
+        )
+
+    jlap = jlapcore.JLAP.from_lines(
+        [jlapcore.DEFAULT_IV.hex().encode("utf-8")] * 2, iv=jlapcore.DEFAULT_IV, verify=True
+    )
+
+    with pytest.raises(ValueError):
+        # a line cannot contain \n
+        jlap.add("two\nlines")
+
+    test_jlap = tmp_path / "minimal.jlap"
+
+    jlap.write(test_jlap)
+
+    jlap2 = jlap.from_path(test_jlap)
+
+    assert jlap2 == jlap
+
+
 def make_test_jlap(original: bytes, changes=1):
     """
     :original: as bytes, to avoid any newline confusion.
