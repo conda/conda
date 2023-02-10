@@ -127,7 +127,15 @@ def test_list_all_known_prefixes_with_none_values_error(mock_is_admin, mock_getp
     """
     mock_is_admin.return_value = True
     mock_getpwall.return_value = [Namespace(pw_dir=expand("~")), Namespace(pw_dir=None)]
+    envs_dir = os.path.join(expand("~"), ".conda/envs")
+
+    # Get current envs of current user
+    user_envs = [
+        os.path.join(envs_dir, env)
+        for env in os.listdir(envs_dir)
+        if os.path.isdir(os.path.join(envs_dir, env))
+    ]
 
     results = list_all_known_prefixes()
 
-    assert results == ["/opt/conda"]
+    assert results == user_envs + [context.root_prefix]

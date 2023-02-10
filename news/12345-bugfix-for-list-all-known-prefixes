@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Makes the handling of strings in `list_all_known_prefixes` more robust (#12345)
+* Filter out None path values from pwd.getpwall() on Unix systems, for users without home directories, when running as root. (#12063)
 
 ### Deprecations
 
