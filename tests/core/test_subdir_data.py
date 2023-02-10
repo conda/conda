@@ -306,7 +306,6 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         sd._save_state(sd._load_state())
 
 
-@pytest.mark.skip("causes test_prefix_graph_1 to fail")
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     channel = Channel(url_path(join(CHANNEL_DIR, platform)))
 
