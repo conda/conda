@@ -119,7 +119,7 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
             }
         ),
     )
-    pprint.pprint("status: %d" % response.status_code)
+    log.debug("status: %d", response.status_code)
     if "range" in headers:
         # 200 is also a possibility that we'd rather not deal with; if the
         # server can't do range requests, also mark jlap as unavailable. Which
