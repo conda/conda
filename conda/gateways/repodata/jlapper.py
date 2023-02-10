@@ -20,6 +20,7 @@ from requests import HTTPError
 
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
+from conda.gateways.repodata import RepodataState
 
 from .jlapcore import jlap_buffer
 
@@ -176,11 +177,11 @@ def timeme(message):
     log.info("%sTook %0.02fs", message, end - begin)
 
 
-def download_and_hash(hasher, url, json_path, session: Session, state: dict | None):
+def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
     """
     Download url if it doesn't exist, passing bytes through hasher.update()
     """
-    state = state or {}
+    state = state or RepodataState()
     headers = {}
 
     # XXX check cache-control May be caller's job to compare with 'have_hash'
@@ -220,12 +221,12 @@ class HashWriter(io.RawIOBase):
         self.backing.close()
 
 
-def download_and_hash_zst(hasher, url, json_path, session: Session, state: dict | None):
+def download_and_hash_zst(hasher, url, json_path, session: Session, state: RepodataState | None):
     """
     Download url if it doesn't exist, passing bytes through zstandard
     decompression then hasher.update()
     """
-    state = state or {}
+    state = state or RepodataState()
     headers = {}
 
     # XXX check cache-control. May be caller's job to compare with 'have_hash'
@@ -255,7 +256,7 @@ def download_and_hash_zst(hasher, url, json_path, session: Session, state: dict 
 
 
 def request_url_jlap_state(
-    url, state, get_place=get_place, full_download=False, *, session: Session
+    url, state: RepodataState, get_place=get_place, full_download=False, *, session: Session
 ):
 
     jlap_state = state.get(JLAP, {})
@@ -280,11 +281,12 @@ def request_url_jlap_state(
                 state.pop("mod", None)
 
             try:
-                # XXX skip if ZSTD_UNAVAILABLE is recent enough (1 week perhaps)
-                # XXX also may need a "don't try zstd" flag
-                response = download_and_hash_zst(
-                    hasher, withext(url, ".json.zst"), json_path, session=session, state=state
-                )
+                if state.should_check_format("zst"):
+                    response = download_and_hash_zst(
+                        hasher, withext(url, ".json.zst"), json_path, session=session, state=state
+                    )
+                else:
+                    raise HTTPError("skip zst")
             except HTTPError as e:
                 if e.response.status_code != 404:
                     raise

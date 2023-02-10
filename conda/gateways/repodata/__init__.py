@@ -46,6 +46,11 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
+# if repodata.json.zst or repodata.jlap were unavailable, check again after this
+# amonut of time.
+CHECK_ALTERNATIVE_FORMAT_INTERVAL = datetime.timedelta(days=7)
+
+
 class RepodataIsEmpty(UnavailableInvalidChannel):
     """
     Subclass used to determine when empty repodata should be cached, e.g. for a
@@ -321,7 +326,13 @@ class RepodataState(UserDict):
 
     _aliased = ("_mod", "_etag", "_cache_control", "_url")
 
-    def __init__(self, cache_path_json, cache_path_state, repodata_fn, dict=None):
+    def __init__(
+        self,
+        cache_path_json: Path | str = "",
+        cache_path_state: Path | str = "",
+        repodata_fn="",
+        dict=None,
+    ):
         # dict is a positional-only argument in UserDict.
         super().__init__(dict)
         self.cache_path_json = pathlib.Path(cache_path_json)
@@ -399,7 +410,7 @@ class RepodataState(UserDict):
 
     def has_format(self, format: str) -> tuple[bool, datetime.datetime | None]:
         # "has_zst": {
-        #     // UTC RFC3999 timestamp of when we last checked wether the file is available or not
+        #     // UTC RFC3999 timestamp of when we last checked whether the file is available or not
         #     // in this case the `repodata.json.zst` file
         #     // Note: same format as conda TUF spec
         #     // Python's time.time_ns() would be convenient?
@@ -436,6 +447,17 @@ class RepodataState(UserDict):
             "value": value,
         }
 
+    def should_check_format(self, format: str) -> bool:
+        """
+        Return True if named format should be attempted.
+        """
+        has, when = self.has_format(format)
+        return (
+            has is True
+            or isinstance(when, datetime.datetime)
+            and datetime.datetime.now() - when > CHECK_ALTERNATIVE_FORMAT_INTERVAL
+        )
+
     def __setitem__(self, key: str, item: Any) -> None:
         if key in self._aliased:
             key = key[1:]  # strip underscore
@@ -466,16 +488,16 @@ try:  # pragma: no cover
     import msvcrt
 
     @contextmanager
-    def _lock_impl(fd):
+    def _lock_impl(fd):  # type: ignore
         tell = fd.tell()
         fd.seek(LOCK_BYTE)
-        msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)
+        msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore
         try:
             fd.seek(tell)
             yield
         finally:
             fd.seek(LOCK_BYTE)
-            msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)
+            msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
 
 except ImportError:
     try:

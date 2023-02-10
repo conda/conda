@@ -1,11 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-
-import json
 from logging import getLogger
 from os.path import join
-from pathlib import Path
 from time import sleep
 from unittest import TestCase
 from unittest.mock import patch

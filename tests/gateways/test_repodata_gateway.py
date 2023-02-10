@@ -311,7 +311,7 @@ def test_ssl_unavailable_error_message():
         with pytest.raises(CondaSSLError, match="unavailable"), conda_http_errors(
             "https://conda.anaconda.org", "repodata.json"
         ):
-            sys.modules["ssl"] = None
+            sys.modules["ssl"] = None  # type: ignore
             raise SSLError()
     finally:
         del sys.modules["ssl"]

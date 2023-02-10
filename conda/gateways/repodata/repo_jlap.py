@@ -10,6 +10,7 @@ from conda.gateways.connection.session import CondaSession
 from . import (
     RepodataOnDisk,
     RepoInterface,
+    RepodataState,
     Response304ContentUnchanged,
     conda_http_errors,
     jlapper,
@@ -39,11 +40,14 @@ class JlapRepoInterface(RepoInterface):
         self._log = logging.getLogger(__name__)
         self._stderrlog = logging.getLogger("conda.stderrlog")
 
-    def repodata(self, state: dict) -> str | None:
+    def repodata(self, state: dict | RepodataState) -> str | None:
         session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
         # jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
+
+        # XXX won't modify caller's state dict
+        state_ = RepodataState(dict=state)
 
         def get_place(url, extra=""):
             if url == repodata_url and extra == "":
@@ -53,10 +57,13 @@ class JlapRepoInterface(RepoInterface):
         try:
             with conda_http_errors(self._url, self._repodata_fn):
                 jlapper.request_url_jlap_state(
-                    repodata_url, state, get_place=get_place, session=session
+                    repodata_url, state_, get_place=get_place, session=session
                 )
         except jlapper.Jlap304NotModified:
             raise Response304ContentUnchanged()
+
+        # XXX update caller's state dict-or-RepodataState
+        state.update(state_)
 
         state["_url"] = self._url
         headers = state.get("jlap", {}).get(

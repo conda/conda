@@ -5,35 +5,41 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
 import json
 from pathlib import Path
-import pytest
-import jsonpatch
+from socket import socket
+from typing import Callable, Generator
 
+import jsonpatch
+import pytest
 import requests
 import zstandard
+from pytest_mock import MockerFixture
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
+from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataOnDisk,
-    jlapper,
+    RepodataState,
     jlapcore,
+    jlapper,
     repo_jlap,
 )
-
-from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
-from conda.core.subdir_data import SubdirData
 
 
-def test_server_available(package_server):
+def test_server_available(package_server: socket):
     port = package_server.getsockname()[1]
     response = requests.get(f"http://127.0.0.1:{port}/notfound")
     assert response.status_code == 404
 
 
-def test_jlap_fetch(package_server, tmp_path, mocker):
+def test_jlap_fetch(
+    package_server: socket,
+    tmp_path: Path,
+    mocker: Callable[..., Generator[MockerFixture, None, None]],
+):
     """
     Check that JlapRepoInterface doesn't raise exceptions.
     """
@@ -70,13 +76,18 @@ def test_jlap_fetch(package_server, tmp_path, mocker):
     assert patched.call_count == 3
 
 
-def test_download_and_hash(package_server, tmp_path: Path, mocker, package_repository_base: Path):
+def test_download_and_hash(
+    package_server: socket,
+    tmp_path: Path,
+    mocker: Callable[..., Generator[MockerFixture, None, None]],
+    package_repository_base: Path,
+):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
 
     url = base + "/notfound.json.zst"
     session = CondaSession()
-    state = {}
+    state = RepodataState()
     destination = tmp_path / "download_not_found"
     # 404 is raised as an exception
     try:
@@ -98,7 +109,11 @@ def test_download_and_hash(package_server, tmp_path: Path, mocker, package_repos
 
     # assert we don't clobber if 304 not modified
     response2 = jlapper.download_and_hash(
-        jlapper.hash(), url2, destination, session, {"_etag": response.headers["etag"]}
+        jlapper.hash(),
+        url2,
+        destination,
+        session,
+        RepodataState(dict={"_etag": response.headers["etag"]}),
     )
     assert response2.status_code == 304
     assert destination.read_text() == t
@@ -114,7 +129,7 @@ def test_download_and_hash(package_server, tmp_path: Path, mocker, package_repos
     dest_zst = tmp_path / "repodata.json.from-zst"  # should be decompressed
     assert not dest_zst.exists()
     hasher3 = jlapper.hash()
-    response3 = jlapper.download_and_hash_zst(hasher3, url3, dest_zst, session, {})
+    response3 = jlapper.download_and_hash_zst(hasher3, url3, dest_zst, session, RepodataState())
     assert response3.status_code == 200
     assert int(response3.headers["content-length"]) < dest_zst.stat().st_size
 
@@ -126,7 +141,8 @@ def test_download_and_hash(package_server, tmp_path: Path, mocker, package_repos
 
 @pytest.mark.parametrize("use_jlap", [True, False])
 def test_repodata_state(
-    package_server, tmp_path: Path, mocker, package_repository_base: Path, use_jlap
+    package_server: socket,
+    use_jlap: bool,
 ):
     """
     Test that .state.json file works correctly.
@@ -190,7 +206,11 @@ def test_jlap_flag(use_jlap):
         assert ("jlap" in context.experimental) is expected
 
 
-def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_base: Path):
+def test_jlap_sought(
+    package_server: socket,
+    tmp_path: Path,
+    package_repository_base: Path,
+):
     """
     Test that we try to fetch the .jlap file.
     """
@@ -320,7 +340,7 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         assert len(patched["info"]) == 1  # patches not found in bad jlap file
 
 
-def test_jlapcore(tmp_path):
+def test_jlapcore(tmp_path: Path):
     """
     Code paths not excercised by other tests.
     """
