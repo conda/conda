@@ -5,6 +5,7 @@ import json
 import unittest
 import uuid
 import os
+import re
 import stat
 from unittest.mock import patch
 
@@ -142,18 +143,20 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.integration
     def test_search_0(self):
-        with captured():
-            res = capture_json_with_argv("conda search --json")
-        self.assertIsInstance(res, dict)
-        self.assertIsInstance(res["conda"], list)
-        self.assertIsInstance(res["conda"][0], dict)
-        keys = ("build", "channel", "fn", "version")
-        for key in keys:
-            self.assertIn(key, res["conda"][0])
-
-        stdout, stderr, rc = run_inprocess_conda_command("conda search * --json")
+        # searching for everything is quite slow; search without name, few
+        # matching packages
+        stdout, stderr, rc = run_inprocess_conda_command("conda search *[build=openblas] --json")
         assert stderr == ""
         assert rc is None
+
+        res = json.loads(stdout)
+
+        self.assertIsInstance(res, dict)
+        self.assertIsInstance(res["blas"], list)
+        self.assertIsInstance(res["blas"][0], dict)
+        keys = ("build", "channel", "fn", "version")
+        for key in keys:
+            self.assertIn(key, res["blas"][0])
 
     @pytest.mark.integration
     def test_search_1(self):
@@ -163,11 +166,17 @@ class TestJson(unittest.TestCase):
     def test_search_2(self):
         with make_temp_env() as prefix:
             stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "nose", use_exception_handler=True
+                Commands.SEARCH, prefix, "python", use_exception_handler=True
             )
             result = stdout.replace("Loading channels: ...working... done", "")
-
-            assert "nose                           1.3.7          py37_2  pkgs/main" in result
+            assert re.search(
+                r"""python\s*
+                \d*\.\d*\.\d*\s*
+                \w+\s*
+                pkgs/main""",
+                result,
+                re.VERBOSE,
+            )
 
     @pytest.mark.integration
     def test_search_3(self):
@@ -191,13 +200,13 @@ class TestJson(unittest.TestCase):
     @pytest.mark.integration
     def test_search_4(self):
         self.assertIsInstance(
-            capture_json_with_argv("conda search --json --use-index-cache"), dict
+            capture_json_with_argv("conda search --json --use-index-cache python"), dict
         )
 
     @pytest.mark.integration
     def test_search_5(self):
         self.assertIsInstance(
-            capture_json_with_argv("conda search --platform win-32 --json"), dict
+            capture_json_with_argv("conda search --platform win-32 --json python"), dict
         )
 
 
