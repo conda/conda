@@ -455,7 +455,8 @@ class RepodataState(UserDict):
         return (
             has is True
             or isinstance(when, datetime.datetime)
-            and datetime.datetime.now() - when > CHECK_ALTERNATIVE_FORMAT_INTERVAL
+            and datetime.datetime.now(tz=datetime.timezone.utc) - when
+            > CHECK_ALTERNATIVE_FORMAT_INTERVAL
         )
 
     def __setitem__(self, key: str, item: Any) -> None:

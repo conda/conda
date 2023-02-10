@@ -55,6 +55,10 @@ class Jlap304NotModified(Exception):
     pass
 
 
+class JlapSkipZst(Exception):
+    pass
+
+
 def process_jlap_response(response: Response, pos=0, iv=b""):
     # if response is 304 Not Modified, could return a buffer with only the
     # cached footer...
@@ -286,11 +290,14 @@ def request_url_jlap_state(
                         hasher, withext(url, ".json.zst"), json_path, session=session, state=state
                     )
                 else:
-                    raise HTTPError("skip zst")
-            except HTTPError as e:
-                if e.response.status_code != 404:
+                    raise JlapSkipZst()
+            except (JlapSkipZst, HTTPError) as e:
+                if isinstance(e, HTTPError) and e.response.status_code != 404:
                     raise
-                state[ZSTD_UNAVAILABLE] = time.time_ns()
+                if not isinstance(e, JlapSkipZst):
+                    # don't update last-checked timestamp on skip
+                    state.set_has_format("zst", False)
+                    state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
                     hasher, withext(url, ".json"), json_path, session=session, state=state
                 )
