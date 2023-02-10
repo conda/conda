@@ -210,6 +210,13 @@ class TestJson(unittest.TestCase):
         )
 
 
+@pytest.mark.integration
+def test_search_envs():
+    for extra in ("--info", "--json", ""):
+        stdout, _, _ = run_inprocess_conda_command(f"conda search --envs {extra} conda")
+        assert "conda" in stdout
+
+
 def test_run_returns_int():
     prefix = make_temp_prefix(name="test")
     with make_temp_env(prefix=prefix):
