@@ -152,12 +152,16 @@ class TestJson(unittest.TestCase):
 
         res = json.loads(stdout)
 
+        # happens to have py_3 build in noarch
+        package_name = "pydotplus"
+
         self.assertIsInstance(res, dict)
-        self.assertIsInstance(res["blas"], list)
-        self.assertIsInstance(res["blas"][0], dict)
+        self.assertIsInstance(res[package_name], list)
+        self.assertIsInstance(res[package_name][0], dict)
         keys = ("build", "channel", "fn", "version")
         for key in keys:
-            self.assertIn(key, res["blas"][0])
+            self.assertIn(key, res[package_name][0])
+        assert res[package_name]["build"] == "py_3"
 
     @pytest.mark.integration
     def test_search_1(self):
