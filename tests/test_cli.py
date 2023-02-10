@@ -144,8 +144,9 @@ class TestJson(unittest.TestCase):
     @pytest.mark.integration
     def test_search_0(self):
         # searching for everything is quite slow; search without name, few
-        # matching packages
-        stdout, stderr, rc = run_inprocess_conda_command("conda search *[build=openblas] --json")
+        # matching packages. py_3 is not a special build tag, but there are just
+        # a few of them in defaults.
+        stdout, stderr, rc = run_inprocess_conda_command("conda search *[build=py_3] --json")
         assert stderr == ""
         assert rc is None
 
