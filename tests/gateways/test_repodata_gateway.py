@@ -92,6 +92,29 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
             assert p.exitcode == 0
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"), reason="emulate windows behavior for code coverage"
+)
+def test_lock_rename(tmp_path):
+    class PunyPath(type(tmp_path)):
+        def rename(self, path):
+            if path.exists():
+                raise FileExistsError()
+            return super().rename(path)
+
+    with env_vars(
+        {"CONDA_EXPERIMENTAL": "lock"},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        cache = RepodataCache(tmp_path / "lockme", "puny.json")
+        cache.save("{}")
+        # RepodataCache first argument is the name of the cache file without an
+        # extension, doesn't create tmp_path/lockme as a directory.
+        puny = PunyPath(tmp_path, "puny.json.tmp")
+        puny.write_text('{"info":{}}')
+        cache.replace(puny)
+
+
 def test_save(tmp_path):
     """
     Check regular cache save, load operations.
