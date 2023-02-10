@@ -38,6 +38,16 @@ def test_display_notices_happy_path(
         else:
             assert message not in captured.out
 
+    # should not display the same notices again
+    channel_notice_set = notices.retrieve_notices(always_show_viewed=False)
+    notices.display_notices(channel_notice_set)
+    captured = capsys.readouterr()
+
+    assert captured.err == ""
+
+    for message in messages:
+        assert message not in captured.out
+
 
 def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_get):
     """

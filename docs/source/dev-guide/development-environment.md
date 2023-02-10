@@ -81,27 +81,34 @@
    This builds the same Docker image as used in continuous
    integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
    and starts `bash` with the conda development mode already enabled.
-   By default, it will use Python 3.9 installation.
 
-   If you need a different Python version, set a `CONDA_DOCKER_PYTHON`
-   environment variable like this to rebuild the image. You might need
-   to add `--no-cache` to make sure the image is rebuilt.
+   By default, it will use Miniconda-based, Python 3.9 installation configured for
+   the `defaults` channel. You can customize this with two environment variables:
+
+   - `CONDA_DOCKER_PYTHON`: `major.minor` value; e.g. `3.10`.
+   - `CONDA_DOCKER_DEFAULT_CHANNEL`: either `defaults` or `conda-forge`
+
+   For example, if you need a conda-forge based 3.10 image:
 
    **Bash (macOS, Linux, Windows)**
 
    ```bash
-   $ CONDA_DOCKER_PYTHON=3.8 docker compose build --no-cache unit-tests
+   $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
+   # --- in some systems you might also need to re-supply the same values as CLI flags:
+   # CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.10 --build-arg default_channel=conda-forge
+   $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
    ```
 
    **cmd.exe (Windows)**
 
    ```batch
-   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_PYTHON="
+   > set CONDA_DOCKER_PYTHON=3.10
+   > set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge
+   > docker compose build --no-cache
+   > docker compose run interactive
+   > set "CONDA_DOCKER_PYTHON="
+   > set "CONDA_DOCKER_DEFAULT_CHANNEL="
    ```
-
-   The next time you run `docker compose run <task>` you will use the new image.
-   If you want to revert to the version you were previously using, you need to rebuild
-   the image again.
 
 >  The `conda` repository will be mounted to `/opt/conda-src`, so all changes
    done in your editor will be reflected live while the Docker container is
