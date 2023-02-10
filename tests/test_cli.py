@@ -214,6 +214,8 @@ class TestJson(unittest.TestCase):
 def test_search_envs():
     for extra in ("--info", "--json", ""):
         stdout, _, _ = run_inprocess_conda_command(f"conda search --envs {extra} conda")
+        if not "--json" in extra:
+            assert "Searching environments" in stdout
         assert "conda" in stdout
 
 
