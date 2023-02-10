@@ -11,7 +11,15 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 # Download the Minio server, needed for S3 tests
-wget https://dl.minio.io/server/minio/release/linux-amd64/minio
+minioarch="${TARGETARCH:-$(uname -m)}"
+if [ "${minioarch}" = "aarch64" ]; then
+    minioarch=arm64
+elif [ "${minioarch}" = "x86_64" ]; then
+    minioarch=amd64
+elif [ "${minioarch}" = "ppc64el" ]; then
+    minioarch=ppc64le
+fi
+wget --quiet https://dl.minio.io/server/minio/release/linux-${minioarch}/minio
 chmod +x minio
 sudo mv minio /usr/local/bin/minio
 
@@ -23,3 +31,6 @@ echo "test_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 ### Gitpod user ###
 useradd -l -u 33333 -G sudo -md /home/gitpod -s /bin/bash -p gitpod gitpod
 echo "gitpod ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+### Prevent git safety errors when mounting directories ###
+git config --global --add safe.directory /opt/conda-src
