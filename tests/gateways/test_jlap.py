@@ -3,16 +3,16 @@
 """
 Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
+import datetime
 import json
 from pathlib import Path
 from socket import socket
-from typing import Callable, Generator
+from unittest.mock import Mock
 
 import jsonpatch
 import pytest
 import requests
 import zstandard
-from pytest_mock import MockerFixture
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
@@ -22,6 +22,7 @@ from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataOnDisk,
     RepodataState,
+    Response304ContentUnchanged,
     jlapcore,
     jlapper,
     repo_jlap,
@@ -35,11 +36,7 @@ def test_server_available(package_server: socket):
     assert response.status_code == 404
 
 
-def test_jlap_fetch(
-    package_server: socket,
-    tmp_path: Path,
-    mocker: Callable[..., Generator[MockerFixture, None, None]],
-):
+def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     """
     Check that JlapRepoInterface doesn't raise exceptions.
     """
@@ -79,7 +76,6 @@ def test_jlap_fetch(
 def test_download_and_hash(
     package_server: socket,
     tmp_path: Path,
-    mocker: Callable[..., Generator[MockerFixture, None, None]],
     package_repository_base: Path,
 ):
     host, port = package_server.getsockname()
@@ -295,6 +291,11 @@ def test_jlap_sought(
         patched = json.loads(sd.cache_path_json.read_text())
         assert len(patched["info"]) == 9
 
+        # get 304 not modified on the .jlap file (test server doesn't return 304
+        # not modified on range requests)
+        with pytest.raises(RepodataOnDisk):
+            sd._repo.repodata(cache.load_state())
+
         # When desired hash is unavailable
 
         # XXX produces 'Requested range not satisfiable' (check retry whole jlap
@@ -338,6 +339,62 @@ def test_jlap_sought(
 
         patched = json.loads(sd.cache_path_json.read_text())
         assert len(patched["info"]) == 1  # patches not found in bad jlap file
+
+
+def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_base: Path, mocker):
+    """
+    Test that we handle 304 Not Modified responses.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    with env_vars(
+        {
+            "CONDA_PLATFORM": "osx-64",
+            "CONDA_EXPERIMENTAL": "jlap",
+            "CONDA_PKGS_DIRS": str(tmp_path),
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData._cache_.clear()  # definitely clears cache, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+
+        # normal full-fetch
+        sd.load()
+
+        cache = sd._repo_cache
+        state = cache.load_state()
+
+        # now try to re-download or use cache
+        SubdirData._cache_.clear()
+
+        # Pretend it's older. (mtime is only used to compare the state
+        # and repodata files, and is no longer used to store the 'last checked
+        # remote' time.)
+        cache.refresh(state["refresh_ns"] - int(1e9 * 60))
+
+        test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
+        test_jlap.terminate()
+        test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
+
+        sd.load()
+
+        state = cache.load_state()
+        has, when = state.has_format("jlap")
+        assert has is True and isinstance(when, datetime.datetime)
+
+        patched = json.loads(sd.cache_path_json.read_text())
+        assert len(patched["info"]) == 9
+
+        # force 304 not modified on the .jlap file (test server doesn't return 304
+        # not modified on range requests)
+        mocker.patch.object(CondaSession, "get", return_value=Mock(status_code=304, headers={}))
+
+        with pytest.raises(Response304ContentUnchanged):
+            sd._repo.repodata(cache.load_state())
 
 
 def test_jlapcore(tmp_path: Path):
@@ -411,3 +468,13 @@ def make_test_jlap(original: bytes, changes=1):
     j = jlapcore.JLAP.from_lines(jlap_lines(), iv=jlapcore.DEFAULT_IV, verify=False)
 
     return j
+
+
+def test_jlap_get_place():
+    """
+    (probably soon to be removed) helper function to get cache filenames.
+    """
+    place = jlapper.get_place("https://repo.anaconda.com/main/linux-64/current_repodata.json").name
+    assert ".c" in place
+    place2 = jlapper.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
+    assert ".c" not in place2

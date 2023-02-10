@@ -672,7 +672,7 @@ class RepodataCache:
                 temp_path.rename(self.cache_path_json)
             state_file.write(json.dumps(dict(self.state), indent=2))
 
-    def refresh(self):
+    def refresh(self, refresh_ns=0):
         """
         Update access time in .state.json to indicate a HTTP 304 Not Modified response.
         """
@@ -680,8 +680,7 @@ class RepodataCache:
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
             state_file.truncate()
-            # XXX can we use state's stat().mtime_ns, checked after locking .state.json
-            self.state["refresh_ns"] = time.time_ns()  # type: ignore
+            self.state["refresh_ns"] = refresh_ns or time.time_ns()
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def stale(self):

@@ -117,9 +117,9 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     )
     pprint.pprint("status: %d" % response.status_code)
     if "range" in headers:
-        # XXX set jlap_unavailable. 200 is also a possibility that we'd rather
-        # not deal with; if the server can't do range requests, also mark jlap
-        # as unavailable.
+        # 200 is also a possibility that we'd rather not deal with; if the
+        # server can't do range requests, also mark jlap as unavailable. Which
+        # status codes mean 'try again' instead of 'it will never work'?
         if response.status_code not in (206, 304, 404, 416):
             raise HTTPError(
                 f"Unexpected response code for range request {response.status_code}",
@@ -324,12 +324,7 @@ def request_url_jlap_state(
                 session=session,
                 ignore_etag=False,
             )
-            # XXX 304 not modified would need to be handled in fetch_jlap(). See
-            # also a jlap buffer with zero patches. SubdirData may be faster if
-            # it knows it's a real 304 though.
-            #
-            # buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1,
-            # b"", ""]]
+            state.set_has_format("jlap", True)
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
@@ -339,7 +334,8 @@ def request_url_jlap_state(
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
             if e.response.status_code == 404:
-                state[JLAP_UNAVAILABLE] = time.time_ns()
+                state[JLAP_UNAVAILABLE] = time.time_ns()  # XXX alternative method
+                state.set_has_format("jlap", False)
                 return request_url_jlap_state(
                     url, state, get_place=get_place, full_download=True, session=session
                 )
@@ -352,7 +348,8 @@ def request_url_jlap_state(
                 log.exception("Error parsing jlap", exc_info=e)
                 # a 'latest' hash that we can't achieve, triggering later error handling
                 buffer = [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
-                state[JLAP_UNAVAILABLE] = time.time_ns()
+                state[JLAP_UNAVAILABLE] = time.time_ns()  # alternative method
+                state.set_has_format("jlap", False)
 
         state[JLAP] = jlap_state
 
