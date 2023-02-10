@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-
+from argparse import Namespace
 from logging import getLogger
 import os
 from os.path import isdir, join, lexists
@@ -13,8 +13,9 @@ from unittest.mock import patch
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.common.compat import on_win
 from conda.common.io import env_var
-from conda.common.path import paths_equal
+from conda.common.path import paths_equal, expand
 from conda.core.envs_manager import list_all_known_prefixes, register_env, \
     get_user_environments_txt_file, \
     unregister_env, _clean_environments_txt
@@ -112,3 +113,21 @@ def test_list_all_known_prefixes_with_permission_error(mock_clean_env, mock_get_
     all_env_paths = list_all_known_prefixes()
     # On Windows, all_env_paths can contain more paths (like '\\Miniconda')
     assert "root_prefix" in all_env_paths
+
+
+@pytest.mark.skipif(on_win, reason="test is invalid on windows")
+@patch("pwd.getpwall")
+@patch("conda.core.envs_manager.is_admin")
+def test_list_all_known_prefixes_with_none_values_error(mock_is_admin, mock_getpwall):
+    """
+    Regression test for a bug first indentified in this issue: https://github.com/conda/conda/issues/12063
+
+    Tests to make sure that `None` values are filtered out of the `search_dirs` variable in the
+    `list_all_known_prefixes` function.
+    """
+    mock_is_admin.return_value = True
+    mock_getpwall.return_value = [Namespace(pw_dir=expand("~")), Namespace(pw_dir=None)]
+
+    results = list_all_known_prefixes()
+
+    assert results == ["/opt/conda"]
