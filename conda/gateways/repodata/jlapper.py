@@ -9,7 +9,6 @@ import logging
 import pathlib
 import pprint
 import re
-import sys
 import time
 import zstandard
 from contextlib import contextmanager
@@ -120,8 +119,11 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     )
     pprint.pprint("status: %d" % response.status_code)
     if "range" in headers:
-        # XXX set jlap_unavailable
-        assert response.status_code in (206, 304), "unexpected response code"
+        # XXX set jlap_unavailable. 200 is also a possibility that we'd rather
+        # not deal with; if the server can't do range requests, also mark jlap
+        # as unavailable.
+        if response.status_code not in (206, 304, 404, 416):
+            raise HTTPError(f"unexpected response code {response.status_code}", response=response)
 
     log.info("%s", response)
 
@@ -252,40 +254,9 @@ def download_and_hash_zst(hasher, url, json_path, session: Session, state: dict 
     return response  # can be 304 not modified
 
 
-def request_url_jlap(url, get_place=get_place):
-    """
-    Complete save complete json / save place / update with jlap sequence.
-
-    Will only be called by tests; load/save state is also implemented in
-    repo_jlap.py
-    """
-    state_path = get_place(url, ".s")
-    try:
-        state = json.loads(state_path.read_text())
-    except (FileNotFoundError, json.JSONDecodeError):
-        state = {}
-
-    request_url_jlap_state(url, state, get_place=get_place)
-
-    log.info("unfiltered state %s", state)
-
-    state = {
-        k: v for k, v in state.items() if k in (NOMINAL_HASH, ON_DISK_HASH, JLAP, JLAP_UNAVAILABLE)
-    }
-
-    state_path.write_text(json.dumps(state, indent=True))
-
-
 def request_url_jlap_state(
-    url, state: dict, get_place=get_place, full_download=False, session: Session | None = None
+    url, state, get_place=get_place, full_download=False, *, session: Session
 ):
-    if session is None:
-        session = Session()
-
-    # We updated conda.common.path to be able to use CondaSession here; older
-    # versions will mangle the url calling e.g.
-    # Channel.from_value("https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap")
-    # (works fine with repodata.json, or a package filename)
 
     jlap_state = state.get(JLAP, {})
     headers = jlap_state.get(HEADERS, {})
@@ -360,6 +331,8 @@ def request_url_jlap_state(
             need_jlap = False
         except ValueError:
             log.info("Checksum not OK")
+        except IndexError as e:
+            log.info("Incomplete file?", exc_info=e)
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
@@ -371,7 +344,13 @@ def request_url_jlap_state(
             log.exception("Requests error")
 
         if need_jlap:  # retry whole file, if range failed
-            buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
+            try:
+                buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
+            except (ValueError, IndexError) as e:
+                log.exception("Error parsing jlap", exc_info=e)
+                # a 'latest' hash that we can't achieve, triggering later error handling
+                buffer = [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
+                state[JLAP_UNAVAILABLE] = time.time_ns()
 
         # XXX debugging
         jlap_buffer_write(buffer, get_place(url).with_suffix(".jlap"))
@@ -441,32 +420,6 @@ def request_url_jlap_state(
             log.warning("Rename to %s for debugging", json_new_path)
             json_path.rename(json_new_path)
 
-            return request_url_jlap_state(url, state, get_place=get_place, full_download=True)
-
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        level=logging.INFO,
-    )
-    log.setLevel(logging.DEBUG)
-    logging.getLogger("requests").setLevel(logging.INFO)
-
-    for url in [
-        "https://conda.anaconda.org/conda-forge/linux-64/current_repodata.json",
-        "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
-        "https://conda.anaconda.org/conda-forge/linux-aarch64/current_repodata.json",
-        "https://conda.anaconda.org/conda-forge/linux-aarch64/repodata.json",
-        "https://repo.anaconda.com/pkgs/main/osx-64/current_repodata.json",
-        "https://repo.anaconda.com/pkgs/main/osx-64/repodata.json",
-    ]:
-        if len(sys.argv) > 1:
-            if sys.argv[1] not in url:
-                # print(f"Skip {url}")
-                continue
-
-        # curl --compressed produces weak etag
-
-        log.info("Fetch with jlap %s", url)
-        request_url_jlap(url)
+            return request_url_jlap_state(
+                url, state, get_place=get_place, full_download=True, session=session
+            )

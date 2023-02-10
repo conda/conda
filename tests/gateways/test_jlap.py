@@ -303,6 +303,22 @@ def test_jlap_sought(package_server, tmp_path: Path, mocker, package_repository_
         patched = json.loads(sd.cache_path_json.read_text())
         assert len(patched["info"]) == 9
 
+        # Bad jlap file. Should produce a 416 Range Not Satisfiable, retry,
+        # produce a ValueError, and then fetch the entire repodata.json, setting
+        # the jlap_unavailable flag
+        (package_repository_base / "osx-64" / "repodata.jlap").write_text("")
+
+        # clear jlap_unavailable state flag, or it won't look (test this also)
+        state = cache.load_state()
+        assert jlapper.JLAP_UNAVAILABLE not in state  # from previous portion of test
+        state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
+        cache.cache_path_state.write_text(json.dumps(dict(state)))
+
+        sd.load()
+
+        patched = json.loads(sd.cache_path_json.read_text())
+        assert len(patched["info"]) == 1  # patches not found in bad jlap file
+
 
 def test_jlapcore(tmp_path):
     """
