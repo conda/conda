@@ -178,6 +178,20 @@ class TestJson(unittest.TestCase):
                 re.VERBOSE,
             )
 
+            # exact match not found, search wildcards
+            stdout, _, _ = run_command(
+                Commands.SEARCH, prefix, "ython", use_exception_handler=True
+            )
+
+            assert re.search(
+                r"""python\s*
+                \d*\.\d*\.\d*\s*
+                \w+\s*
+                pkgs/main""",
+                result,
+                re.VERBOSE,
+            )
+
     @pytest.mark.integration
     def test_search_3(self):
         with make_temp_env() as prefix:
