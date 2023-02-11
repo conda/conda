@@ -161,7 +161,7 @@ class TestJson(unittest.TestCase):
         keys = ("build", "channel", "fn", "version")
         for key in keys:
             self.assertIn(key, res[package_name][0])
-        assert res[package_name]["build"] == "py_3"
+        assert res[package_name][0]["build"] == "py_3"
 
     @pytest.mark.integration
     def test_search_1(self):
