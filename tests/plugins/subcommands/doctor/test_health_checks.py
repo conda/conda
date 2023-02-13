@@ -18,7 +18,7 @@ PACKAGE_JSON = {"files": [BIN_TEST_EXE, LIB_TEST_PACKAGE]}
 PACKAGE_JSON_WITH_MISSING_FILES = {"files": [BIN_TEST_EXE, LIB_TEST_PACKAGE, "missing.py"]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def conda_mock_dir(tmpdir):
     """Fixture that returns a testing environment with no missing files"""
     tmpdir.mkdir("bin")
