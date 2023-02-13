@@ -94,7 +94,7 @@ jobs:
           # at this stage.
           path: C:\Miniconda\envs\conda-test-env\pkgs
           key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
       - name: Cache minio
@@ -295,7 +295,7 @@ jobs:
       
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults
-        if: matrix.default_channel == 'defaults'
+        if: matrix.default-channel == 'defaults'
         env:
           CONDA_SOLVER: classic
         with:
@@ -303,7 +303,7 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for conda-forge
-        if: matrix.default_channel == 'conda-forge'
+        if: matrix.default-channel == 'conda-forge'
         env:
           CONDA_SOLVER: classic
         with:
