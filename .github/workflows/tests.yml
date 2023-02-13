@@ -258,6 +258,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        default-channel: ['conda-forge']
         python-version: ['3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
