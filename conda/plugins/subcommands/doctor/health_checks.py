@@ -55,7 +55,7 @@ def find_packages_with_missing_files(prefix: str) -> dict[str, list[str]]:
     return packages_with_missing_files
 
 
-def display_health_report(verbose=False) -> None:
+def display_health_checks(verbose=False) -> None:
     """
     Prints health report
     """
