@@ -34,7 +34,7 @@ def conda_mock_dir(tmpdir):
     return tmpdir
 
 
-@pytest.fixture()
+@pytest.fixture
 def conda_mock_dir_missing_files(conda_mock_dir):
     """Fixture that returns a testing environment with missing files"""
     Path(conda_mock_dir).joinpath(BIN_TEST_EXE).unlink()
