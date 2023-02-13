@@ -137,17 +137,6 @@ def test_list_all_known_prefixes_with_none_values_error(
     mock_context.envs_dirs = str(mock_env_dir)
     mock_context.root_prefix = str(tmp_path)
 
-    envs_dir = os.path.join(expand("~"), ".conda/envs")
-    user_envs = []
-
-    if os.path.isdir(envs_dir):
-        # Get current envs of current user
-        user_envs = [
-            os.path.join(envs_dir, env)
-            for env in os.listdir(envs_dir)
-            if os.path.isdir(os.path.join(envs_dir, env))
-        ]
-
     results = list_all_known_prefixes()
 
-    assert results == user_envs + [mock_context.root_prefix]
+    assert results == [mock_context.root_prefix]
