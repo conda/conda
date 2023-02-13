@@ -155,7 +155,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['conda-forge']
-        python-version: ['3.8'] # ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.10'] # ['3.7', '3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
     env:
