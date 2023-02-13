@@ -23,7 +23,7 @@ def Env():
 def _parse_args(args=None):
     from argparse import ArgumentParser
     p = ArgumentParser(add_help=False)
-    p.add_argument('command')
+    p.add_argument('command', nargs='?', default=None)
     ns, _ = p.parse_known_args(args)
     if ns.command == 'activate':
         p.add_argument('env_name_or_prefix', default='base')
