@@ -116,11 +116,12 @@ def test_list_all_known_prefixes_with_permission_error(mock_clean_env, mock_get_
 
 
 @pytest.mark.skipif(on_win, reason="test is invalid on windows")
+@patch("conda.core.envs_manager.context")
 @patch("conda.core.envs_manager._clean_environments_txt")
 @patch("pwd.getpwall")
 @patch("conda.core.envs_manager.is_admin")
 def test_list_all_known_prefixes_with_none_values_error(
-    mock_is_admin, mock_getpwall, mock_clean_env
+    mock_is_admin, mock_getpwall, mock_clean_env, mock_context, tmp_path
 ):
     """
     Regression test for a bug first indentified in this issue: https://github.com/conda/conda/issues/12063
@@ -131,6 +132,10 @@ def test_list_all_known_prefixes_with_none_values_error(
     mock_is_admin.return_value = True
     mock_getpwall.return_value = [Namespace(pw_dir=expand("~")), Namespace(pw_dir=None)]
     mock_clean_env.return_value = []
+    mock_env_dir = tmp_path / "envs"
+    mock_env_dir.mkdir()
+    mock_context.envs_dirs = str(mock_env_dir)
+    mock_context.root_prefix = str(tmp_path)
 
     envs_dir = os.path.join(expand("~"), ".conda/envs")
     user_envs = []
@@ -145,4 +150,4 @@ def test_list_all_known_prefixes_with_none_values_error(
 
     results = list_all_known_prefixes()
 
-    assert results == user_envs + [context.root_prefix]
+    assert results == user_envs + [mock_context.root_prefix]
