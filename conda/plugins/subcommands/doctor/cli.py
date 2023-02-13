@@ -23,22 +23,12 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
     return args
 
 
-def display_health_checks(args: argparse.Namespace) -> None:
-    """
-    TODO: docstring
-    """
-    if args.verbose:
-        health_checks.display_detailed_health_checks()
-    else:
-        health_checks.display_health_checks()
-
-
 def execute(argv: list[str]) -> None:
     """
     TODO: docstring
     """
     args = get_parsed_args(argv)
-    display_health_checks(args)
+    health_checks.display_health_checks(verbose=args.verbose)
 
 
 @hookimpl
