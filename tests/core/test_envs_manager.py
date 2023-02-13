@@ -116,9 +116,12 @@ def test_list_all_known_prefixes_with_permission_error(mock_clean_env, mock_get_
 
 
 @pytest.mark.skipif(on_win, reason="test is invalid on windows")
+@patch("conda.core.envs_manager._clean_environments_txt")
 @patch("pwd.getpwall")
 @patch("conda.core.envs_manager.is_admin")
-def test_list_all_known_prefixes_with_none_values_error(mock_is_admin, mock_getpwall):
+def test_list_all_known_prefixes_with_none_values_error(
+    mock_is_admin, mock_getpwall, mock_clean_env
+):
     """
     Regression test for a bug first indentified in this issue: https://github.com/conda/conda/issues/12063
 
@@ -127,14 +130,18 @@ def test_list_all_known_prefixes_with_none_values_error(mock_is_admin, mock_getp
     """
     mock_is_admin.return_value = True
     mock_getpwall.return_value = [Namespace(pw_dir=expand("~")), Namespace(pw_dir=None)]
-    envs_dir = os.path.join(expand("~"), ".conda/envs")
+    mock_clean_env.return_value = []
 
-    # Get current envs of current user
-    user_envs = [
-        os.path.join(envs_dir, env)
-        for env in os.listdir(envs_dir)
-        if os.path.isdir(os.path.join(envs_dir, env))
-    ]
+    envs_dir = os.path.join(expand("~"), ".conda/envs")
+    user_envs = []
+
+    if os.path.isdir(envs_dir):
+        # Get current envs of current user
+        user_envs = [
+            os.path.join(envs_dir, env)
+            for env in os.listdir(envs_dir)
+            if os.path.isdir(os.path.join(envs_dir, env))
+        ]
 
     results = list_all_known_prefixes()
 
