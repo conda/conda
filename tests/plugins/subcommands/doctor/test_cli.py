@@ -37,7 +37,7 @@ def test_conda_doctor_happy_path_show_help():
     assert exit_code == 0  # successful exit code
 
 
-@pytest.fixture()
+@pytest.fixture
 def env_one():
     """pytest fixture that creates and then deletes a new environemnt"""
 
