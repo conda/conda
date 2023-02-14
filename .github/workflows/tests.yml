@@ -66,32 +66,32 @@ jobs:
         test-group: ['1', '2', '3']
         include:
           - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
             conda-subdir: 'win-64'
             test-type: 'unit'
             test-group: '1'
           - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
             conda-subdir: 'win-64'
             test-type: 'unit'
             test-group: '2'
           - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
             conda-subdir: 'win-64'
             test-type: 'unit'
             test-group: '3'
           - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
             conda-subdir: 'win-64'
             test-type: 'integration'
             test-group: '1'
           - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
             conda-subdir: 'win-64'
             test-type: 'integration'
             test-group: '2'
           - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
             conda-subdir: 'win-64'
             test-type: 'integration'
             test-group: '3'
@@ -314,10 +314,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
+        include:
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            test-type: 'unit'
+            test-group: '1'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            test-type: 'unit'
+            test-group: '2'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            test-type: 'unit'
+            test-group: '3'
+          - default-channel: 'defaults'
+            python-version: '3.9'
+            test-type: 'integration'
+            test-group: '1'
+          - default-channel: 'defaults'
+            python-version: '3.9'
+            test-type: 'integration'
+            test-group: '2'
+          - default-channel: 'defaults'
+            python-version: '3.9'
+            test-type: 'integration'
+            test-group: '3'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
