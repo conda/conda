@@ -601,7 +601,7 @@ class PackagesNotFoundError(CondaError):
         format_list = lambda iterable: '  - ' + '\n  - '.join(str(x) for x in iterable)
 
         if channel_urls:
-            message = dals(f"""
+            message = dals("""
             The following packages are not available from current channels:
 
             %(packages_formatted)s
