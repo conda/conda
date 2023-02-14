@@ -5,6 +5,7 @@ import json
 import unittest
 import uuid
 import os
+import re
 import stat
 from unittest.mock import patch
 
@@ -142,18 +143,25 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.integration
     def test_search_0(self):
-        with captured():
-            res = capture_json_with_argv("conda search --json --override-channels -c defaults")
-        self.assertIsInstance(res, dict)
-        self.assertIsInstance(res["conda"], list)
-        self.assertIsInstance(res["conda"][0], dict)
-        keys = ("build", "channel", "fn", "version")
-        for key in keys:
-            self.assertIn(key, res["conda"][0])
-
-        stdout, stderr, rc = run_inprocess_conda_command("conda search * --json --override-channels -c defaults")
+        # searching for everything is quite slow; search without name, few
+        # matching packages. py_3 is not a special build tag, but there are just
+        # a few of them in defaults.
+        stdout, stderr, rc = run_inprocess_conda_command("conda search *[build=py_3] --json --override-channels -c defaults")
         assert stderr == ""
         assert rc is None
+
+        res = json.loads(stdout)
+
+        # happens to have py_3 build in noarch
+        package_name = "pydotplus"
+
+        self.assertIsInstance(res, dict)
+        self.assertIsInstance(res[package_name], list)
+        self.assertIsInstance(res[package_name][0], dict)
+        keys = ("build", "channel", "fn", "version")
+        for key in keys:
+            self.assertIn(key, res[package_name][0])
+        assert res[package_name][0]["build"] == "py_3"
 
     @pytest.mark.integration
     def test_search_1(self):
@@ -163,11 +171,33 @@ class TestJson(unittest.TestCase):
     def test_search_2(self):
         with make_temp_env() as prefix:
             stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "nose", "--override-channels", "-c", "defaults", use_exception_handler=True
+                Commands.SEARCH, prefix, "python", 
+                "--override-channels", "-c", "defaults", use_exception_handler=True,
             )
             result = stdout.replace("Loading channels: ...working... done", "")
+            assert re.search(
+                r"""python\s*
+                \d*\.\d*\.\d*\s*
+                \w+\s*
+                pkgs/main""",
+                result,
+                re.VERBOSE,
+            )
 
-            assert "nose                           1.3.7          py37_2  pkgs/main" in result
+            # exact match not found, search wildcards
+            stdout, _, _ = run_command(
+                Commands.SEARCH, prefix, "ython",
+                "--override-channels", "-c", "defaults", use_exception_handler=True
+            )
+
+            assert re.search(
+                r"""python\s*
+                \d*\.\d*\.\d*\s*
+                \w+\s*
+                pkgs/main""",
+                result,
+                re.VERBOSE,
+            )
 
     @pytest.mark.integration
     def test_search_3(self):
@@ -194,14 +224,23 @@ class TestJson(unittest.TestCase):
     @pytest.mark.integration
     def test_search_4(self):
         self.assertIsInstance(
-            capture_json_with_argv("conda search --json --use-index-cache --override-channels -c defaults"), dict
+            capture_json_with_argv("conda search --json --override-channels -c defaults --use-index-cache python"), dict
         )
 
     @pytest.mark.integration
     def test_search_5(self):
         self.assertIsInstance(
-            capture_json_with_argv("conda search --platform win-32 --json --override-channels -c defaults"), dict
+            capture_json_with_argv("conda search --platform win-32 --json --override-channels -c defaults python"), dict
         )
+
+
+@pytest.mark.integration
+def test_search_envs():
+    for extra in ("--info", "--json", ""):
+        stdout, _, _ = run_inprocess_conda_command(f"conda search --envs {extra} conda")
+        if not "--json" in extra:
+            assert "Searching environments" in stdout
+        assert "conda" in stdout
 
 
 def test_run_returns_int():
@@ -275,3 +314,8 @@ def test_run_readonly_env(request):
         reset_permissions()
 
         assert result == 0
+
+
+def test_main():
+    with pytest.raises(SystemExit):
+        __import__("conda.__main__")

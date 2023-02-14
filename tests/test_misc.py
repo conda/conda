@@ -2,11 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import codecs
 import sys
+import warnings
 from unittest.mock import patch
+
 import pytest
 
+from conda.base.context import context
 from conda.core.subdir_data import cache_fn_url
-from conda.misc import url_pat, explicit, walk_prefix
+from conda.misc import explicit, url_pat, walk_prefix
+from conda.testing.integration import Commands, run_command
 from conda.utils import Utf8NamedTemporaryFile
 
 
@@ -77,12 +81,20 @@ def test_explicit_no_cache(ProgressiveFetchExtract):
         )
 
 
-# Patching ProgressiveFetchExtract prevents trying to download a package from the url.
-# Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
-@patch("conda.misc.ProgressiveFetchExtract")
-def test_explicit_missing_cache_entries(ProgressiveFetchExtract):
+def test_explicit_missing_cache_entries(mocker):
     """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
     from conda.core.package_cache_data import PackageCacheData
+
+    if len(PackageCacheData.get_all_extracted_entries()) == 0:
+        # Package cache e.g. ./devenv/Darwin/x86_64/envs/devenv-3.9-c/pkgs/ can
+        # be empty in certain cases (Noted in OSX with Python 3.9, when
+        # Miniconda installs Python 3.10). Install a small package.
+        warnings.warn("test_explicit_missing_cache_entries: No packages in cache.")
+        run_command(Commands.INSTALL, context.target_prefix, "heapdict")
+
+    # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
+    # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
+    mocker.patch("conda.misc.ProgressiveFetchExtract")
 
     with pytest.raises(
         AssertionError, match="Missing package cache records for: pkgs/linux-64::foo==1.0.0=py_0"
