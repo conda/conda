@@ -23,6 +23,9 @@ class PriorityIntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'python=3.8')
                 assert package_is_installed(prefix, 'pycosat')
 
+                # clear config first
+                run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
+
                 # add conda-forge channel
                 o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
                 assert context.channels == ("conda-forge", "defaults"), o + e
@@ -57,6 +60,9 @@ class PriorityIntegrationTests(TestCase):
         """
         with make_temp_env("python=3.8", "pycosat") as prefix:
             assert package_is_installed(prefix, 'python')
+
+            # clear channels config first to not assume default is defaults
+            run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
 
             # add conda-forge channel
             o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
