@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix arg_parse passthrough for ``--version`` and ``--help`` in conda.xsh
+* Fix arg_parse passthrough for ``--version`` and ``--help`` in conda.xsh. (#12344)
 
 ### Deprecations
 
