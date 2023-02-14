@@ -59,11 +59,42 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['conda-forge']
-        python-version: ['3.9'] # ['3.7', '3.8', '3.9', '3.10']
+        default-channel: ['defaults']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+        include:
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            conda-subdir: 'win-64'
+            test-type: 'unit'
+            test-group: '1'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            conda-subdir: 'win-64'
+            test-type: 'unit'
+            test-group: '2'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            conda-subdir: 'win-64'
+            test-type: 'unit'
+            test-group: '3'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            conda-subdir: 'win-64'
+            test-type: 'integration'
+            test-group: '1'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            conda-subdir: 'win-64'
+            test-type: 'integration'
+            test-group: '2'
+          - default-channel: 'conda-forge'
+            python-version: '3.9'
+            conda-subdir: 'win-64'
+            test-type: 'integration'
+            test-group: '3'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
@@ -154,10 +185,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['conda-forge']
-        python-version: ['3.10'] # ['3.7', '3.8', '3.9', '3.10']
+        default-channel: ['defaults']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+        include:
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
+            test-type: 'unit'
+            test-group: '1'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
+            test-type: 'unit'
+            test-group: '2'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
+            test-type: 'unit'
+            test-group: '3'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
+            test-type: 'integration'
+            test-group: '1'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
+            test-type: 'integration'
+            test-group: '2'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
+            test-type: 'integration'
+            test-group: '3'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -209,7 +265,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['conda-forge']
+        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.10']
         platform: ['arm64', 'ppc64le']
     env:
@@ -258,7 +314,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['conda-forge']
+        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.9']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
