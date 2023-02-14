@@ -1617,7 +1617,7 @@ dependencies:
     )
     def test_conda_pip_interop_conda_editable_package(self):
         with env_vars(
-            {"CONDA_REPORT_ERRORS": "false", 
+            {"CONDA_REPORT_ERRORS": "false",
              "CONDA_RESTORE_FREE_CHANNEL": True,
              "CONDA_CHANNELS": "defaults",
             },
