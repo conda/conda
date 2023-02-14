@@ -292,7 +292,7 @@ jobs:
           path: minio
           key:
             ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
-      
+
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
@@ -308,7 +308,7 @@ jobs:
           CONDA_SOLVER: classic
         with:
           activate-environment: conda-test-env
-          miniforge-version: latest 
+          miniforge-version: latest
 
       - name: Setup environment
         shell: bash -l {0}

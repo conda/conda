@@ -171,8 +171,13 @@ class TestJson(unittest.TestCase):
     def test_search_2(self):
         with make_temp_env() as prefix:
             stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "python", 
-                "--override-channels", "-c", "defaults", use_exception_handler=True,
+                Commands.SEARCH,
+                prefix,
+                "python",
+                "--override-channels",
+                "-c",
+                "defaults",
+                use_exception_handler=True,
             )
             result = stdout.replace("Loading channels: ...working... done", "")
             assert re.search(
@@ -207,8 +212,8 @@ class TestJson(unittest.TestCase):
                 prefix,
                 "*/linux-64::nose==1.3.7[build=py37_2]",
                 "--info",
-                "--override-channels", 
-                "-c", 
+                "--override-channels",
+                "-c",
                 "defaults",
                 use_exception_handler=True,
             )

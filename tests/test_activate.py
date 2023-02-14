@@ -2397,7 +2397,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' not in PATH3
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
-    @pytest.mark.flaky(reruns=5)    
+    @pytest.mark.flaky(reruns=5)
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
