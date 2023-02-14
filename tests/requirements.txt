@@ -25,7 +25,7 @@ pkginfo
 pycosat
 pycrypto
 pyflakes
-pytest
+pytest<=7.2.0a0
 pytest-cov
 pytest-mock
 pytest-rerunfailures
