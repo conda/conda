@@ -1011,8 +1011,13 @@ dependencies:
             finally:
                 reset_context()
 
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_rpy_search(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5", "--override-channels", "-c", "defaults") as prefix:
+            run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
             run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
