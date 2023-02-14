@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from json import loads as json_loads
 from unittest import TestCase
 import re
 
@@ -23,8 +24,10 @@ class PriorityIntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'python=3.8')
                 assert package_is_installed(prefix, 'pycosat')
 
-                # clear config first
-                run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
+                payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+                default_channels = json_loads(payload)["get"].get("channels")
+                if default_channels:
+                    run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
 
                 # add conda-forge channel
                 o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
@@ -62,7 +65,10 @@ class PriorityIntegrationTests(TestCase):
             assert package_is_installed(prefix, 'python')
 
             # clear channels config first to not assume default is defaults
-            run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels")
+            if default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
 
             # add conda-forge channel
             o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
