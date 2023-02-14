@@ -618,7 +618,7 @@ class PackagesNotFoundError(CondaError):
             and use the search bar at the top of the page.
             """)
             from .base.context import context
-            
+
             if context.use_only_tar_bz2:
                 message += dals("""
                 Note: 'use_only_tar_bz2' is enabled. This might be omitting some
