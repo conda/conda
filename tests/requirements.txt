@@ -25,10 +25,10 @@ pkginfo
 pycosat
 pycrypto
 pyflakes
-pytest<=7.2.0a0
+pytest
 pytest-cov
 pytest-mock
-pytest-rerunfailures
+pytest-rerunfailures<=11.0.0a0  # https://github.com/pytest-dev/pytest-rerunfailures/issues/206
 pytest-timeout
 pytest-xdist
 requests
