@@ -19,7 +19,7 @@ from conda.history import History
 from conda.common.iterators import groupby_to_dict as groupby, unique
 
 
-VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels', 'variables')
+VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables", "optional_dependencies")
 
 
 def validate_keys(data, kwargs):
@@ -202,9 +202,35 @@ class Dependencies(dict):
         self.parse()
 
 
+class OptionalDependencies(dict):
+    def __init__(self, raw, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.raw = raw
+        self.parse()
+
+    def parse(self):
+        if not self.raw:
+            return
+
+        for group, dependencies in self.raw.items():
+            self[group] = Dependencies(dependencies)
+
+    def add(self, group_name):
+        self.raw[group_name] = Dependencies({})
+        self.parse()
+
+
 class Environment:
-    def __init__(self, name=None, filename=None, channels=None,
-                 dependencies=None, prefix=None, variables=None):
+    def __init__(
+        self,
+        name=None,
+        filename=None,
+        channels=None,
+        dependencies=None,
+        prefix=None,
+        variables=None,
+        optional_dependencies=None,
+    ):
         self.name = name
         self.filename = filename
         self.prefix = prefix
@@ -214,6 +240,10 @@ class Environment:
         if channels is None:
             channels = []
         self.channels = channels
+
+        if optional_dependencies is None:
+            optional_dependencies = {}
+        self.optional_dependencies = OptionalDependencies(optional_dependencies)
 
     def add_channels(self, channels):
         self.channels = list(unique(chain.from_iterable((channels, self.channels))))
@@ -231,6 +261,8 @@ class Environment:
             d['variables'] = self.variables
         if self.prefix:
             d['prefix'] = self.prefix
+        if self.optional_dependencies:
+            d["optional_dependencies"] = self.optional_dependencies
         if stream is None:
             return d
         stream.write(json.dumps(d))
@@ -244,3 +276,12 @@ class Environment:
     def save(self):
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
+
+    def enable_optional_dependencies(self, enabled_groups=None, enable_all_groups=False):
+        if not enabled_groups:
+            enabled_groups = ()
+
+        for group_name, dependencies in self.optional_dependencies.items():
+            if enable_all_groups or group_name in enabled_groups:
+                for package in dependencies.raw:
+                    self.dependencies.add(package)
