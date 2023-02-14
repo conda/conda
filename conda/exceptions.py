@@ -601,7 +601,7 @@ class PackagesNotFoundError(CondaError):
         format_list = lambda iterable: '  - ' + '\n  - '.join(str(x) for x in iterable)
 
         if channel_urls:
-            message = dals("""
+            message = dals(f"""
             The following packages are not available from current channels:
 
             %(packages_formatted)s
@@ -617,6 +617,13 @@ class PackagesNotFoundError(CondaError):
 
             and use the search bar at the top of the page.
             """)
+            from .base.context import context
+            
+            if context.use_only_tar_bz2:
+                message += dals("""
+                Note: 'use_only_tar_bz2' is enabled. This might be omitting some
+                packages from the index. Set this option to 'false' and retry.
+                """)
             packages_formatted = format_list(packages)
             channels_formatted = format_list(channel_urls)
         else:
