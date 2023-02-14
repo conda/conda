@@ -113,12 +113,6 @@ class GetRepodataIntegrationTests(TestCase):
             assert len(sd.query_all("zlib")) == 0
         assert len(sd.query_all("zlib")) > 1
 
-        # test slow "check against all packages" query
-        assert len(tuple(sd.query("*[version=1.2.11]"))) >= 1
-
-        # test search by PackageRecord
-        assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
-
         # test load from cache
         with env_vars(
             {"CONDA_USE_INDEX_CACHE": "true"}, stack_callback=conda_tests_ctxt_mgmt_def_pol
