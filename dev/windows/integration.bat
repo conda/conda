@@ -4,7 +4,7 @@ cd \conda_src || goto :error
 CALL dev-init.bat || goto :error
 CALL conda info || goto :error
 CALL conda-build tests\test-recipes\activate_deactivate_package tests\test-recipes\pre_link_messages_package || goto :error
-CALL pytest --cov=conda --store-durations -m "integration" --basetemp=C:\tmp -v --splits=%TEST_SPLITS% --group=%TEST_GROUP% || goto :error
+CALL pytest --cov=conda --store-durations --durations-path=.test_durations_Windows --splitting-algorithm=least_duration -m "integration" --basetemp=C:\tmp -v --splits=%TEST_SPLITS% --group=%TEST_GROUP% || goto :error
 goto :EOF
 
 :error
