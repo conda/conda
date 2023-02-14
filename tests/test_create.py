@@ -1858,14 +1858,17 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/kalefranz"
-            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
+            run_command(Commands.CONFIG, prefix, "--append", "channels", channel_url)
+            # config --append on an empty key pre-populates it with the hardcoded default value!
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
+            print(output)
             yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
             output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                         "linux-64", "--json", use_exception_handler=True)
+                                       "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(output)
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
@@ -1877,6 +1880,7 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+            run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
