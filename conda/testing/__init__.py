@@ -17,6 +17,7 @@ import os
 import sys
 from os.path import dirname, normpath, join, isfile
 from subprocess import check_output
+from pathlib import Path
 
 
 def encode_for_env_var(value) -> str:
@@ -37,11 +38,11 @@ def conda_ensure_sys_python_is_base_env_python():
     # So lets just sys.exit on that.
 
     if 'CONDA_PYTHON_EXE' in os.environ:
-        if os.path.normpath(os.environ['CONDA_PYTHON_EXE']) != sys.executable:
+        if Path(os.environ['CONDA_PYTHON_EXE']).resolve() != Path(sys.executable).resolve():
             print("ERROR :: Running tests from a non-base Python interpreter. "
                   " Tests requires installing menuinst and that causes stderr "
                   " output when activated.\n"
-                  f"- CONDA_PYTHON_EXE={os.path.normpath(os.environ['CONDA_PYTHON_EXE'])}\n"
+                  f"- CONDA_PYTHON_EXE={os.environ['CONDA_PYTHON_EXE']}\n"
                   f"- sys.executable={sys.executable}",
                   file=sys.stderr)
             sys.exit(-1)
