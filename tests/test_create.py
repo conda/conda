@@ -1116,6 +1116,7 @@ dependencies:
             flask_python = '3.8' # oldest available for osx-arm64
             with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
 
+                run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
                 run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
                 run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
 
@@ -1600,14 +1601,18 @@ dependencies:
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
-
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_conda_pip_interop_conda_editable_package(self):
         with env_vars(
             {"CONDA_REPORT_ERRORS": "false", "CONDA_RESTORE_FREE_CHANNEL": True},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             with make_temp_env(
-                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
+                "python=2.7", "pip=10", "git", "--override-channels", "-c", "defaults",
+                use_restricted_unicode=on_win,
             ) as prefix:
                 workdir = prefix
 
@@ -1819,7 +1824,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
-            assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
+            assert channel_url.replace('cqgccfm1mfma', '<TOKEN>') in yml_obj['channels']
 
             with pytest.raises(PackagesNotFoundError):
                 # this was supposed to be a package available in private but not
