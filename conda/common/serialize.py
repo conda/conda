@@ -6,7 +6,6 @@ import functools
 import json
 from logging import getLogger
 
-from .compat import ensure_text_type
 from ..auxlib.entity import EntityEncoder
 
 try:
@@ -73,5 +72,4 @@ def json_load(string):
 
 
 def json_dump(object):
-    return ensure_text_type(json.dumps(object, indent=2, sort_keys=True,
-                                       separators=(',', ': '), cls=EntityEncoder))
+    return json.dumps(object, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder)
