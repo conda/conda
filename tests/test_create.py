@@ -491,7 +491,7 @@ class IntegrationTests(BaseTestCase):
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
 
-        py_ver = "3.9"
+        py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
@@ -507,13 +507,13 @@ class IntegrationTests(BaseTestCase):
                            if line.lower().startswith("flask"))
 
                 # regression test for #3433
-                run_command(Commands.INSTALL, prefix, "python=3.8", no_capture=True)
-                assert package_is_installed(prefix, "python=3.8")
+                run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
+                assert package_is_installed(prefix, "python=3.5")
 
                 # regression test for #5847
                 #   when using rm_rf on a file
                 assert prefix in PrefixData._cache_
-                _rm_rf(join(prefix, get_python_site_packages_short_path("3.8")), "os.py")
+                _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
                 assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
