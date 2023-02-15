@@ -4,8 +4,16 @@
 from logging import getLogger
 from threading import local
 
-from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
-               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth, Retry)
+from . import (
+    AuthBase,
+    BaseAdapter,
+    Session,
+    _basic_auth_str,
+    extract_cookies_to_jar,
+    get_auth_from_url,
+    get_netrc_auth,
+    Retry,
+)
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
@@ -13,29 +21,50 @@ from ..anaconda_client import read_binstar_tokens
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
-from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
-                           split_anaconda_token, urlparse)
+from ...common.url import (
+    add_username_and_password,
+    get_proxy_username_and_pass,
+    split_anaconda_token,
+    urlparse,
+)
 from ...exceptions import ProxyError
+
+from pip._internal.network.session import HTTPAdapter
 
 log = getLogger(__name__)
 RETRIES = 3
 
 
-CONDA_SESSION_SCHEMES = frozenset((
-    "http",
-    "https",
-    "ftp",
-    "s3",
-    "file",
-))
+CONDA_SESSION_SCHEMES = frozenset(
+    (
+        "http",
+        "https",
+        "ftp",
+        "s3",
+        "file",
+    )
+)
+
+
+def _ssl_context():
+    try:
+        import ssl
+        import truststore
+
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except ImportError:
+        return None
+
 
 class EnforceUnusedAdapter(BaseAdapter):
-
     def send(self, request, *args, **kwargs):
-        message = dals("""
+        message = dals(
+            """
         EnforceUnusedAdapter called with url %s
         This command is using a remote connection in offline mode.
-        """ % request.url)
+        """
+            % request.url
+        )
         raise RuntimeError(message)
 
     def close(self):
@@ -49,7 +78,7 @@ class CondaSessionType(type):
     """
 
     def __new__(mcs, name, bases, dct):
-        dct['_thread_local'] = local()
+        dct["_thread_local"] = local()
         return super().__new__(mcs, name, bases, dct)
 
     def __call__(cls):
@@ -61,13 +90,19 @@ class CondaSessionType(type):
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-
     def __init__(self):
         super().__init__()
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
         self.proxies.update(context.proxy_servers)
+
+        ssl_context = _ssl_context()
+        self.ssl_context = ssl_context
+        if ssl_context:
+            log.info("Have truststore ssl_context")
+        else:
+            log.info("Lack truststore ssl_context")
 
         if context.offline:
             unused_adapter = EnforceUnusedAdapter()
@@ -78,11 +113,13 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         else:
             # Configure retries
-            retry = Retry(total=context.remote_max_retries,
-                          backoff_factor=context.remote_backoff_factor,
-                          status_forcelist=[413, 429, 500, 503],
-                          raise_on_status=False)
-            http_adapter = HTTPAdapter(max_retries=retry)
+            retry = Retry(
+                total=context.remote_max_retries,
+                backoff_factor=context.remote_backoff_factor,
+                status_forcelist=[413, 429, 500, 503],
+                raise_on_status=False,
+            )
+            http_adapter = HTTPAdapter(max_retries=retry, ssl_context=self.ssl_context)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
@@ -90,7 +127,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         self.mount("file://", LocalFSAdapter())
 
-        self.headers['User-Agent'] = context.user_agent
+        self.headers["User-Agent"] = context.user_agent
 
         self.verify = context.ssl_verify
 
@@ -106,7 +143,7 @@ class CondaHttpAuth(AuthBase):
     def __call__(self, request):
         request.url = CondaHttpAuth.add_binstar_token(request.url)
         self._apply_basic_auth(request)
-        request.register_hook('response', self.handle_407)
+        request.register_hook("response", self.handle_407)
         return request
 
     @staticmethod
@@ -120,7 +157,7 @@ class CondaHttpAuth(AuthBase):
             auth = get_netrc_auth(request.url)
 
         if isinstance(auth, tuple) and len(auth) == 2:
-            request.headers['Authorization'] = _basic_auth_str(*auth)
+            request.headers["Authorization"] = _basic_auth_str(*auth)
 
         return request
 
@@ -132,6 +169,7 @@ class CondaHttpAuth(AuthBase):
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
                     from ...models.channel import Channel
+
                     channel = Channel(clean_url)
                     channel.token = token
                     return channel.url(with_credentials=True)
@@ -163,7 +201,7 @@ class CondaHttpAuth(AuthBase):
         response.content
         response.close()
 
-        proxies = kwargs.pop('proxies')
+        proxies = kwargs.pop("proxies")
 
         proxy_scheme = urlparse(response.url).scheme
         if proxy_scheme not in proxies:
@@ -185,12 +223,12 @@ class CondaHttpAuth(AuthBase):
         proxy_url = add_username_and_password(proxy_url, username, password)
         proxy_authorization_header = _basic_auth_str(username, password)
         proxies[proxy_scheme] = proxy_url
-        kwargs['proxies'] = proxies
+        kwargs["proxies"] = proxies
 
         prep = response.request.copy()
         extract_cookies_to_jar(prep._cookies, response.request, response.raw)
         prep.prepare_cookies(prep._cookies)
-        prep.headers['Proxy-Authorization'] = proxy_authorization_header
+        prep.headers["Proxy-Authorization"] = proxy_authorization_header
 
         _response = response.connection.send(prep, **kwargs)
         _response.history.append(response)
