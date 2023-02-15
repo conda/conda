@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from argparse import (
     ArgumentParser as ArgumentParserBase,
@@ -37,6 +38,26 @@ on_win = bool(sys.platform == "win32")
 user_rc_path = abspath(expanduser('~/.condarc'))
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
+
+#: List of a built-in commands; these cannot be overriden by plugin subcommands
+BUILTIN_COMMANDS = {
+    "clean",
+    "compare",
+    "config",
+    "create",
+    "info",
+    "init",
+    "install",
+    "list",
+    "package",
+    "remove",
+    "rename",
+    "run",
+    "search",
+    "update",
+    "upgrade",
+    "notices",
+}
 
 
 def generate_parser():
@@ -205,6 +226,31 @@ class ArgumentParser(ArgumentParserBase):
         else:
             super()._check_value(action, value)
 
+    @staticmethod
+    def _get_attempted_override_error(name: str, summary: str):
+        return (
+            f"The plugin '{name}: {summary}' is trying to override "
+            f"the built command {name}, which is not allowed. Please uninstall this plugin "
+            "to stop seeing this error message"
+        )
+
+    def _get_subcommand_plugin(self) -> Namespace | None:
+        """
+        Return a Namespace object containing the ``CondaSubcommand`` object if the current
+        subcommand belongs to a registered plugin
+        """
+        if len(sys.argv) > 1:
+            name = sys.argv[1]
+            for subcommand in self._subcommands:
+                if subcommand.name == name:
+                    if name.lower() in BUILTIN_COMMANDS:
+                        error_msg = self._get_attempted_override_error(
+                            subcommand.name, subcommand.summary
+                        )
+                        log.error(error_msg)
+                    else:
+                        return Namespace(plugin_subcommand=subcommand)
+
     def parse_args(self, args=None, namespace=None):
         """
         We override this method to check if we are running from a known plugin subcommand.
@@ -212,11 +258,10 @@ class ArgumentParser(ArgumentParserBase):
         subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
         which is a ``conda.plugins.CondaSubcommand`` object.
         """
-        if len(sys.argv) > 1:
-            name = sys.argv[1]
-            for subcommand in self._subcommands:
-                if subcommand.name == name:
-                    return Namespace(plugin_subcommand=subcommand)
+        plugin_subcommand = self._get_subcommand_plugin()
+
+        if plugin_subcommand is not None:
+            return plugin_subcommand
 
         return super().parse_args(args, namespace)
 
