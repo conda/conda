@@ -1,11 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from argparse import Namespace
 from logging import getLogger
 import os
 from os.path import isdir, join, lexists
 from tempfile import gettempdir
+from types import SimpleNamespace
 from unittest import TestCase
 from uuid import uuid4
 from unittest.mock import patch
@@ -130,7 +130,10 @@ def test_list_all_known_prefixes_with_none_values_error(
     `list_all_known_prefixes` function.
     """
     mock_is_admin.return_value = True
-    mock_getpwall.return_value = [Namespace(pw_dir=expand("~")), Namespace(pw_dir=None)]
+    mock_getpwall.return_value = [
+        SimpleNamespace(pw_dir=expand("~")),
+        SimpleNamespace(pw_dir=None),
+    ]
     mock_clean_env.return_value = []
     mock_env_dir = tmp_path / "envs"
     mock_env_dir.mkdir()
