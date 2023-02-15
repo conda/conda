@@ -182,11 +182,13 @@ class Dependencies(dict):
         if not self.raw:
             return
 
+        self.clear()
         self.update({'conda': []})
 
         for line in self.raw:
             if isinstance(line, dict):
-                self.update(line)
+                for key, value in line.items():
+                    self.setdefault(key, []).extend(value)
             else:
                 self['conda'].append(common.arg2spec(line))
 
