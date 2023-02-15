@@ -29,7 +29,10 @@ from ...common.url import (
 )
 from ...exceptions import ProxyError
 
-from pip._internal.network.session import HTTPAdapter
+try:
+    from pip._internal.network.session import HTTPAdapter
+except ImportError:
+    from . import HTTPAdapter
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -48,6 +51,8 @@ CONDA_SESSION_SCHEMES = frozenset(
 
 def _ssl_context():
     try:
+        # must use this one, for the feature to work
+        from pip._internal.network.session import HTTPAdapter  # noqa
         import ssl
         import truststore
 
