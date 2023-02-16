@@ -6,7 +6,6 @@ import functools
 import json
 from logging import getLogger
 
-from .compat import odict, ensure_text_type
 from ..auxlib.entity import EntityEncoder
 
 try:
@@ -18,22 +17,6 @@ except ImportError:
         raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
 
 log = getLogger(__name__)
-
-
-def represent_ordereddict(dumper, data):
-    value = []
-
-    for item_key, item_value in data.items():
-        node_key = dumper.represent_data(item_key)
-        node_value = dumper.represent_data(item_value)
-
-        value.append((node_key, node_value))
-
-    return yaml.nodes.MappingNode("tag:yaml.org,2002:map", value)
-
-
-yaml.representer.RoundTripRepresenter.add_representer(odict, represent_ordereddict)
-yaml.representer.SafeRepresenter.add_representer(odict, represent_ordereddict)
 
 
 # FUTURE: Python 3.9+, replace with functools.cache
@@ -50,6 +33,7 @@ def _yaml_safe():
     parser = yaml.YAML(typ="safe", pure=True)
     parser.indent(mapping=2, offset=2, sequence=4)
     parser.default_flow_style = False
+    parser.sort_base_mapping_type_on_output = False
     return parser
 
 
@@ -88,5 +72,4 @@ def json_load(string):
 
 
 def json_dump(object):
-    return ensure_text_type(json.dumps(object, indent=2, sort_keys=True,
-                                       separators=(',', ': '), cls=EntityEncoder))
+    return json.dumps(object, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder)

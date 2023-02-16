@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix several more user facing MatchSpec crashes that were identified by fuzzing efforts. (#12099)
+* Fixed errors when renaming without an active env (#11915)
 
 ### Deprecations
 

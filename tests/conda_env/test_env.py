@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from collections import OrderedDict
 import os
 from os.path import join
 import random
@@ -78,10 +76,10 @@ class from_file_TestCase(unittest.TestCase):
     @pytest.mark.timeout(20)
     def test_add_pip(self):
         e = env.from_file(support_file('add-pip.yml'))
-        expected = OrderedDict([
-            ('conda', ['pip', 'car']),
-            ('pip', ['foo', 'baz'])
-        ])
+        expected = {
+            "conda": ["pip", "car"],
+            "pip": ["foo", "baz"],
+        }
         self.assertEqual(e.dependencies, expected)
 
     @pytest.mark.integration
@@ -142,28 +140,28 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_parses_dependencies_from_raw_file(self):
         e = get_simple_environment()
-        expected = OrderedDict([('conda', ['nltk'])])
+        expected = {"conda": ["nltk"]}
         self.assertEqual(e.dependencies, expected)
 
     def test_builds_spec_from_line_raw_dependency(self):
         # TODO Refactor this inside conda to not be a raw string
-        e = env.Environment(dependencies=['nltk=3.0.0=np18py27_0'])
-        expected = OrderedDict([('conda', ['nltk==3.0.0=np18py27_0'])])
+        e = env.Environment(dependencies=["nltk=3.0.0=np18py27_0"])
+        expected = {"conda": ["nltk==3.0.0=np18py27_0"]}
         self.assertEqual(e.dependencies, expected)
 
     def test_args_are_wildcarded(self):
-        e = env.Environment(dependencies=['python=2.7'])
-        expected = OrderedDict([('conda', ['python=2.7'])])
+        e = env.Environment(dependencies=["python=2.7"])
+        expected = {"conda": ["python=2.7"]}
         self.assertEqual(e.dependencies, expected)
 
     def test_other_tips_of_dependencies_are_supported(self):
         e = env.Environment(
             dependencies=['nltk', {'pip': ['foo', 'bar']}]
         )
-        expected = OrderedDict([
-            ('conda', ['nltk', 'pip']),
-            ('pip', ['foo', 'bar'])
-        ])
+        expected = {
+            "conda": ["nltk", "pip"],
+            "pip": ["foo", "bar"],
+        }
         self.assertEqual(e.dependencies, expected)
 
     def test_channels_default_to_empty_list(self):

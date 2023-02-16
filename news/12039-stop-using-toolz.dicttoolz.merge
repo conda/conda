@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Stop using `toolz.dicttoolz.merge` and `toolz.dicttoolz.merge_with`. (#12039)
 
 ### Bug fixes
 
@@ -16,5 +16,4 @@
 
 ### Other
 
-* Refactor repodata.json fetching; update on-disk cache format. Based on work by
-  @FFY00. (#11600)
+* <news item>

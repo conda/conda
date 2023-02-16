@@ -1,9 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
-from collections import OrderedDict
-from enum import Enum
 from functools import lru_cache
 from itertools import chain
 import json
@@ -349,21 +345,18 @@ class ActivatorUnitTests(TestCase):
                     ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
                     unset_vars = []
 
-                    set_vars = {
-                        'PS1': ps1,
+                    set_vars = {"PS1": ps1}
+                    export_vars = {
+                        "PATH": new_path,
+                        "CONDA_PREFIX": td,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": td,
+                        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                        "PKG_A_ENV": "yerp",
+                        "PKG_B_ENV": "berp",
+                        "ENV_ONE": "one",
+                        "ENV_TWO": "you",
                     }
-
-                    export_vars = OrderedDict((
-                        ('PATH', new_path),
-                        ('CONDA_PREFIX', td),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_DEFAULT_ENV', td),
-                        ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                        ('PKG_A_ENV', 'yerp'),
-                        ('PKG_B_ENV', 'berp'),
-                        ('ENV_ONE', 'one'),
-                        ('ENV_TWO', 'you'),
-                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['set_vars'] == set_vars
@@ -406,22 +399,19 @@ class ActivatorUnitTests(TestCase):
                     ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
                     unset_vars = []
 
-                    set_vars = {
-                        'PS1': ps1,
+                    set_vars = {"PS1": ps1}
+                    export_vars = {
+                        "PATH": new_path,
+                        "CONDA_PREFIX": td,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": td,
+                        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                        "PKG_A_ENV": "teamnope",
+                        "PKG_B_ENV": "berp",
+                        "ENV_ONE": "one",
+                        "ENV_TWO": "you",
+                        "ENV_THREE": "me",
                     }
-
-                    export_vars = OrderedDict((
-                        ('PATH', new_path),
-                        ('CONDA_PREFIX', td),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_DEFAULT_ENV', td),
-                        ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                        ('PKG_A_ENV', 'teamnope'),
-                        ('PKG_B_ENV', 'berp'),
-                        ('ENV_ONE', 'one'),
-                        ('ENV_TWO', 'you'),
-                        ('ENV_THREE', 'me'),
-                    ))
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['set_vars'] == set_vars
@@ -453,25 +443,20 @@ class ActivatorUnitTests(TestCase):
                     ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
                     unset_vars = []
 
-                    set_vars = {
-                        'PS1': ps1,
+                    set_vars = {"PS1": ps1}
+                    export_vars = {
+                        "PATH": new_path,
+                        "CONDA_PREFIX": td,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": td,
+                        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                        "PKG_A_ENV": "yerp",
+                        "PKG_B_ENV": "berp",
+                        "ENV_ONE": "one",
+                        "ENV_TWO": "you",
+                        "ENV_THREE": "me",
+                        "ENV_WITH_SAME_VALUE": "with_same_value",
                     }
-
-                    export_vars = OrderedDict(
-                        (
-                            ("PATH", new_path),
-                            ("CONDA_PREFIX", td),
-                            ("CONDA_SHLVL", 1),
-                            ("CONDA_DEFAULT_ENV", td),
-                            ("CONDA_PROMPT_MODIFIER", conda_prompt_modifier),
-                            ("PKG_A_ENV", "yerp"),
-                            ("PKG_B_ENV", "berp"),
-                            ("ENV_ONE", "one"),
-                            ("ENV_TWO", "you"),
-                            ("ENV_THREE", "me"),
-                            ("ENV_WITH_SAME_VALUE", "with_same_value"),
-                        )
-                    )
                     export_vars, unset_vars = activator.add_export_unset_vars(
                         export_vars, unset_vars
                     )
@@ -521,21 +506,19 @@ class ActivatorUnitTests(TestCase):
                 unset_vars = []
 
                 set_vars = {"PS1": ps1}
-                export_vars = OrderedDict(
-                    (
-                        ("PATH", new_path),
-                        ("CONDA_PREFIX", td),
-                        ("CONDA_SHLVL", 2),
-                        ("CONDA_DEFAULT_ENV", td),
-                        ("CONDA_PROMPT_MODIFIER", conda_prompt_modifier),
-                        ("PKG_A_ENV", "yerp"),
-                        ("PKG_B_ENV", "berp"),
-                        ("ENV_ONE", "one"),
-                        ("ENV_TWO", "you"),
-                        ("ENV_THREE", "me"),
-                        ("ENV_WITH_SAME_VALUE", "with_same_value"),
-                    )
-                )
+                export_vars = {
+                    "PATH": new_path,
+                    "CONDA_PREFIX": td,
+                    "CONDA_SHLVL": 2,
+                    "CONDA_DEFAULT_ENV": td,
+                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                    "PKG_A_ENV": "yerp",
+                    "PKG_B_ENV": "berp",
+                    "ENV_ONE": "one",
+                    "ENV_TWO": "you",
+                    "ENV_THREE": "me",
+                    "ENV_WITH_SAME_VALUE": "with_same_value",
+                }
                 export_vars, _ = activator.add_export_unset_vars(export_vars, None)
                 export_vars['CONDA_PREFIX_1'] = old_prefix
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
@@ -577,12 +560,12 @@ class ActivatorUnitTests(TestCase):
                     assert builder['set_vars'] == {
                         'PS1': '(/old/prefix)',
                     }
-                    export_vars = OrderedDict((
-                        ('CONDA_PREFIX', old_prefix),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_DEFAULT_ENV', old_prefix),
-                        ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix),
-                    ))
+                    export_vars = {
+                        "CONDA_PREFIX": old_prefix,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": old_prefix,
+                        "CONDA_PROMPT_MODIFIER": "(%s)" % old_prefix,
+                    }
                     export_path = {'PATH': old_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
@@ -626,24 +609,20 @@ class ActivatorUnitTests(TestCase):
                 assert td in new_path
                 assert old_prefix in new_path
 
-                set_vars = {
-                    'PS1': ps1,
+                set_vars = {"PS1": ps1}
+                export_vars = {
+                    "PATH": new_path,
+                    "CONDA_PREFIX": td,
+                    "CONDA_SHLVL": 2,
+                    "CONDA_DEFAULT_ENV": td,
+                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                    "PKG_A_ENV": "yerp",
+                    "PKG_B_ENV": "berp",
+                    "ENV_ONE": "one",
+                    "ENV_TWO": "you",
+                    "ENV_THREE": "me",
+                    "ENV_WITH_SAME_VALUE": "with_same_value",
                 }
-                export_vars = OrderedDict(
-                    (
-                        ("PATH", new_path),
-                        ("CONDA_PREFIX", td),
-                        ("CONDA_SHLVL", 2),
-                        ("CONDA_DEFAULT_ENV", td),
-                        ("CONDA_PROMPT_MODIFIER", conda_prompt_modifier),
-                        ("PKG_A_ENV", "yerp"),
-                        ("PKG_B_ENV", "berp"),
-                        ("ENV_ONE", "one"),
-                        ("ENV_TWO", "you"),
-                        ("ENV_THREE", "me"),
-                        ("ENV_WITH_SAME_VALUE", "with_same_value"),
-                    )
-                )
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, [])
                 export_vars['CONDA_PREFIX_1'] = old_prefix
                 export_vars['CONDA_STACKED_2'] = 'true'
@@ -684,13 +663,12 @@ class ActivatorUnitTests(TestCase):
                     assert builder['set_vars'] == {
                         'PS1': '(/old/prefix)',
                     }
-                    export_vars = OrderedDict((
-                        ('CONDA_PREFIX', old_prefix),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_DEFAULT_ENV', old_prefix),
-                        ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix)
-                    ))
-                    export_path = {'PATH': old_path,}
+                    export_vars = {
+                        "CONDA_PREFIX": old_prefix,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": old_prefix,
+                        "CONDA_PROMPT_MODIFIER": f"({old_prefix})",
+                    }
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['export_vars'] == export_vars
@@ -723,14 +701,12 @@ class ActivatorUnitTests(TestCase):
                     conda_prompt_modifier = "(%s) " % old_prefix
                     ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
 
-                    set_vars = {
-                        'PS1': ps1,
+                    set_vars = {"PS1": ps1}
+                    export_vars = {
+                        "PATH": activator.pathsep_join(new_path_parts),
+                        "CONDA_SHLVL": 1,
+                        "CONDA_PROMPT_MODIFIER": "(%s) " % td,
                     }
-                    export_vars = OrderedDict((
-                        ('PATH', activator.pathsep_join(new_path_parts)),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_PROMPT_MODIFIER', "(%s) " % td),
-                    ))
                     assert builder['unset_vars'] == ()
                     assert builder['set_vars'] == set_vars
                     assert builder['export_vars'] == export_vars
@@ -816,18 +792,16 @@ class ActivatorUnitTests(TestCase):
                     conda_prompt_modifier = "(%s) " % old_prefix
                     ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
 
-                    set_vars = {
-                        'PS1': ps1,
+                    set_vars = {"PS1": ps1}
+                    export_vars = {
+                        "CONDA_PREFIX": old_prefix,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": old_prefix,
+                        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                        "PKG_B_ENV": "berp",
+                        "ENV_FOUR": "roar",
+                        "ENV_FIVE": "hive",
                     }
-                    export_vars = OrderedDict((
-                        ('CONDA_PREFIX', old_prefix),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_DEFAULT_ENV', old_prefix),
-                        ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                        ('PKG_B_ENV', 'berp'),
-                        ('ENV_FOUR', 'roar'),
-                        ('ENV_FIVE', 'hive')
-                    ))
                     export_path = {'PATH': original_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
@@ -909,18 +883,16 @@ class ActivatorUnitTests(TestCase):
                 conda_prompt_modifier = "(%s) " % old_prefix
                 ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
 
-                set_vars = {
-                    'PS1': ps1,
+                set_vars = {"PS1": ps1}
+                export_vars = {
+                    "CONDA_PREFIX": old_prefix,
+                    "CONDA_SHLVL": 1,
+                    "CONDA_DEFAULT_ENV": old_prefix,
+                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                    "PKG_B_ENV": "berp",
+                    "ENV_FOUR": "roar",
+                    "ENV_FIVE": "hive",
                 }
-                export_vars = OrderedDict((
-                    ('CONDA_PREFIX', old_prefix),
-                    ('CONDA_SHLVL', 1),
-                    ('CONDA_DEFAULT_ENV', old_prefix),
-                    ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                    ('PKG_B_ENV', 'berp'),
-                    ('ENV_FOUR', 'roar'),
-                    ('ENV_FIVE', 'hive')
-                ))
                 export_path = {'PATH': original_path,}
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
 
@@ -1044,23 +1016,21 @@ class ActivatorUnitTests(TestCase):
 
                 unset_vars = []
 
-                set_vars = {
-                    'PS1': ps1
+                set_vars = {"PS1": ps1}
+                export_vars = {
+                    "PATH": new_path,
+                    "CONDA_PREFIX": td,
+                    "CONDA_SHLVL": 2,
+                    "CONDA_DEFAULT_ENV": td,
+                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+                    "PKG_A_ENV": "yerp",
+                    "PKG_B_ENV": "berp",
+                    "ENV_ONE": "one",
+                    "ENV_TWO": "you",
+                    "ENV_THREE": "me",
+                    "ENV_WITH_SAME_VALUE": "with_same_value",
+                    "__CONDA_SHLVL_1_ENV_ONE": "already_set_env_var",
                 }
-                export_vars = OrderedDict((
-                    ('PATH', new_path),
-                    ('CONDA_PREFIX', td),
-                    ('CONDA_SHLVL', 2),
-                    ('CONDA_DEFAULT_ENV', td),
-                    ('CONDA_PROMPT_MODIFIER', conda_prompt_modifier),
-                    ('PKG_A_ENV', 'yerp'),
-                    ('PKG_B_ENV', 'berp'),
-                    ('ENV_ONE', 'one'),
-                    ('ENV_TWO', 'you'),
-                    ('ENV_THREE', 'me'),
-                    ('ENV_WITH_SAME_VALUE', 'with_same_value'),
-                    ('__CONDA_SHLVL_1_ENV_ONE', 'already_set_env_var')
-                ))
                 export_vars, _ = activator.add_export_unset_vars(export_vars, None)
                 export_vars['CONDA_PREFIX_1'] = old_prefix
                 export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
@@ -1101,12 +1071,12 @@ class ActivatorUnitTests(TestCase):
                     assert builder['set_vars'] == {
                         'PS1': '(/old/prefix)',
                     }
-                    export_vars = OrderedDict((
-                        ('CONDA_PREFIX', old_prefix),
-                        ('CONDA_SHLVL', 1),
-                        ('CONDA_DEFAULT_ENV', old_prefix),
-                        ('CONDA_PROMPT_MODIFIER', '(%s)' % old_prefix),
-                    ))
+                    export_vars = {
+                        "CONDA_PREFIX": old_prefix,
+                        "CONDA_SHLVL": 1,
+                        "CONDA_DEFAULT_ENV": old_prefix,
+                        "CONDA_PROMPT_MODIFIER": f"({old_prefix})",
+                    }
                     export_path = {'PATH': old_path, }
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     export_vars['ENV_ONE'] = 'already_set_env_var'
@@ -1804,8 +1774,8 @@ class ShellWrapperUnitTests(TestCase):
             # use a file as output stream to simulate PY2 default stdout
             with tempdir() as td:
                 with open(join(td, "stdout"), "w") as stdout:
-                    with captured(stdout=stdout) as c:
-                        rc = main_sourced(shell, *activate_args, self.prefix)
+                    with captured(stdout=stdout):
+                        main_sourced(shell, *activate_args, self.prefix)
 
     def test_json_basic(self):
         activator = _build_activator_cls('posix+json')()
@@ -2214,7 +2184,7 @@ class ShellWrapperIntegrationTests(TestCase):
         num_paths_added = len(tuple(activator._get_path_dirs(self.prefix)))
         prefix_p = activator.path_conversion(self.prefix)
         prefix2_p = activator.path_conversion(self.prefix2)
-        prefix3_p = activator.path_conversion(self.prefix3)
+        activator.path_conversion(self.prefix3)
 
         PATH0 = shell.get_env_var('PATH', '')
         assert any(p.endswith("condabin") for p in PATH0.split(":"))
@@ -2823,7 +2793,7 @@ def create_stackable_envs():
 
             if not paths:
                 if on_win:
-                    path = self.prefix / "Library" / "bin" / f"curl.exe"
+                    path = self.prefix / "Library" / "bin" / "curl.exe"
                 else:
                     path = self.prefix / "bin" / "curl"
 

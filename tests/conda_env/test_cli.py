@@ -12,7 +12,6 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call, generate_parser
-from conda.common.compat import odict
 from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
@@ -238,7 +237,22 @@ class IntegrationTests(unittest.TestCase):
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
+    def test_conda_env_create_no_existent_file_with_name(self):
+        """
+        Test `conda env create --file=not_a_file.txt` with a file that does not
+        exist.
+        """
+        try:
+            run_env_command(Commands.ENV_CREATE, None, "--file", "not_a_file.txt", "-n" "foo")
+        except Exception as e:
+            self.assertIsInstance(e, EnvironmentFileNotFound)
+
     def test_create_valid_remote_env(self):
+        """
+        Test retrieving an environment using the BinstarSpec (i.e. it retrieves it from anaconda.org)
+
+        This tests the `remote_origin` command line argument.
+        """
         run_env_command(Commands.ENV_CREATE, None, 'conda-test/env-42')
         self.assertTrue(env_is_created(TEST_ENV_NAME_42))
 
@@ -634,7 +648,7 @@ class NewIntegrationTests(unittest.TestCase):
             ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--no-builds", "--json")
             assert not e.strip()
 
-            env_description = odict(json.loads(snowflake))
+            env_description = json.loads(snowflake)
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1

@@ -925,7 +925,7 @@ class SolverTests:
         # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
         #      have any effect. I have also tried conda.common.io.env_var like
         #      the other tests but no luck.
-        env.repo_packages = collections.OrderedDict()
+        env.repo_packages = {}
         env.repo_packages["channel-A"] = []
         env.repo_packages["channel-1"] = index_packages(1)
 
@@ -950,7 +950,7 @@ class SolverTests:
             "pandas", "python 2.7*", "numpy 1.6*"
         )
         # now lets revert the channels
-        env.repo_packages = collections.OrderedDict(reversed(env.repo_packages.items()))
+        env.repo_packages = dict(reversed(env.repo_packages.items()))
         monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
         assert "channel-1::pandas-0.11.0-np16py27_1" in env.install(
             "pandas", "python 2.7*", "numpy 1.6*"
@@ -961,7 +961,7 @@ class SolverTests:
         # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
         #      have any effect. I have also tried conda.common.io.env_var like
         #      the other tests but no luck.
-        env.repo_packages = collections.OrderedDict()
+        env.repo_packages = {}
         # higher priority
         env.repo_packages["channel-1"] = [
             helpers.record(

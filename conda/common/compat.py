@@ -6,10 +6,7 @@
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
 
-from itertools import chain
-from operator import methodcaller
 import sys
-from tempfile import mkdtemp
 
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
@@ -44,7 +41,6 @@ def encode_arguments(arguments):
 
 
 from collections.abc import Iterable
-from io import StringIO
 
 def isiterable(obj):
     return not isinstance(obj, str) and isinstance(obj, Iterable)
@@ -54,7 +50,7 @@ def isiterable(obj):
 # other
 # #############################
 
-from collections import OrderedDict as odict  # NOQA
+from collections import OrderedDict as odict  # noqa: F401
 
 from io import open as io_open  # NOQA
 
@@ -99,7 +95,7 @@ def ensure_binary(value):
         return value
 
 
-def ensure_text_type(value):
+def ensure_text_type(value) -> str:
     try:
         return value.decode('utf-8')
     except AttributeError:  # pragma: no cover

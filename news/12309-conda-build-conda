@@ -16,5 +16,4 @@
 
 ### Other
 
-* Use `toolz.unique` instead of vendored copy. (#12165)
-* Use `itertools.islice` instead of `toolz.take`. (#12165)
+* Constrain conda-build to at least >=3.18.3, released 2019-06-20. (#12309)

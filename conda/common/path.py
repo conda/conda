@@ -11,11 +11,10 @@ import re
 import subprocess
 from typing import Iterable, Sequence
 from urllib.parse import urlsplit
-import warnings
 
 from .compat import on_win
 from .. import CondaError
-from ..auxlib import NULL
+from ..deprecations import deprecated
 from distutils.spawn import find_executable
 
 
@@ -30,6 +29,10 @@ PATH_MATCH_REGEX = (
     r"|\\\\"            # windows UNC path
     r"|//"              # windows UNC path
 )
+
+# any other extension will be mangled by CondaSession.get() as it tries to find
+# channel names from URLs, through strip_pkg_extension()
+KNOWN_EXTENSIONS = (".conda", ".tar.bz2", ".json", ".jlap", ".json.zst")
 
 
 def is_path(value):
@@ -111,18 +114,10 @@ def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(
-    child_directories: Iterable[tuple[str, ...]],
-    already_split: bool | NULL = NULL,
-) -> set[str]:
+@deprecated.argument("23.3", "23.9", "already_split")
+def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str]:
     # get all directories including parents
     # child_directories must already be split with os.path.split
-    if already_split is not NULL:
-        warnings.warn(
-            "`conda.common.path.explode_directories`'s `already_split` argument is pending "
-            "deprecation and will be removed in a future release.",
-            PendingDeprecationWarning,
-        )
     return set(
         chain.from_iterable(
             accumulate(directory, join) for directory in child_directories if directory
@@ -338,7 +333,7 @@ def which(executable):
     return find_executable(executable)
 
 
-def strip_pkg_extension(path):
+def strip_pkg_extension(path: str):
     """
     Examples:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
@@ -350,14 +345,10 @@ def strip_pkg_extension(path):
     """
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
-    if path[-6:] == ".conda":
-        return path[:-6], ".conda"
-    elif path[-8:] == ".tar.bz2":
-        return path[:-8], ".tar.bz2"
-    elif path[-5:] == ".json":
-        return path[:-5], ".json"
-    else:
-        return path, None
+    for extension in KNOWN_EXTENSIONS:
+        if path.endswith(extension):
+            return path[: -len(extension)], extension
+    return path, None
 
 
 def is_package_file(path):

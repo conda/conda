@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Updated some instances of "Anaconda Cloud" to be "Anaconda.org". (#12238)
 
 ### Other
 
-* Use `itertools.chain.from_iterable` instead of equivalent `tlz.concat`. (#12165)
+* <news item>

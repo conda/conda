@@ -9,11 +9,12 @@ import pathlib
 import pickle
 import re
 import warnings
-from collections import defaultdict
+from collections import UserList, defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
 from io import open as io_open
+from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
@@ -21,13 +22,11 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-from itertools import islice, chain
-
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
     CondaRepoInterface,
-    RepoInterface,
     RepodataIsEmpty,
+    RepoInterface,
     Response304ContentUnchanged,
 )
 
@@ -52,7 +51,7 @@ from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
 
-REPODATA_PICKLE_VERSION = 29
+REPODATA_PICKLE_VERSION = 31
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
@@ -78,6 +77,22 @@ class SubdirDataType(type):
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
+
+
+class PackageRecordList(UserList):
+    """
+    Lazily convert dicts to PackageRecord.
+    """
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return self.__class__(self.data[i])
+        else:
+            record = self.data[i]
+            if not isinstance(record, PackageRecord):
+                record = PackageRecord(**record)
+                self.data[i] = record
+            return record
 
 
 class SubdirData(metaclass=SubdirDataType):
@@ -109,10 +124,13 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
+
         check_allowlist(channel_urls)
-        subdir_query = lambda url: tuple(
-            SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
-        )
+
+        def subdir_query(url):
+            return tuple(
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
+            )
 
         # TODO test timing with ProcessPoolExecutor
         Executor = (
@@ -133,24 +151,16 @@ class SubdirData(metaclass=SubdirDataType):
         if isinstance(param, MatchSpec):
             if param.get_exact_value("name"):
                 package_name = param.get_exact_value("name")
-                for prec in self._names_index[package_name]:
-                    if param.match(prec):
-                        yield prec
-            elif param.get_exact_value("track_features"):
-                track_features = param.get_exact_value("track") or ()
-                candidates = chain.from_iterable(
-                    self._track_features_index[feature_name] for feature_name in track_features
-                )
-                for prec in candidates:
+                for prec in self._iter_records_by_name(package_name):
                     if param.match(prec):
                         yield prec
             else:
-                for prec in self._package_records:
+                for prec in self.iter_records():
                     if param.match(prec):
                         yield prec
         else:
             assert isinstance(param, PackageRecord)
-            for prec in self._names_index[param.name]:
+            for prec in self._iter_records_by_name(param.name):
                 if prec == param:
                     yield prec
 
@@ -231,6 +241,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
+        # Unused since early 2023:
         self._track_features_index = _internal_state["_track_features_index"]
         self._loaded = True
         return self
@@ -239,6 +250,12 @@ class SubdirData(metaclass=SubdirDataType):
         if not self._loaded:
             self.load()
         return iter(self._package_records)
+        # could replace self._package_records with fully-converted UserList.data
+        # after going through entire list
+
+    def _iter_records_by_name(self, name):
+        for i in self._names_index[name]:
+            yield self._package_records[i]
 
     def _load_state(self) -> dict:
         """
@@ -279,7 +296,7 @@ class SubdirData(metaclass=SubdirDataType):
                 return {
                     "_package_records": (),
                     "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),
+                    "_track_features_index": defaultdict(list),  # Unused since early 2023
                 }
             else:
                 mod_etag_headers = {}
@@ -464,7 +481,7 @@ class SubdirData(metaclass=SubdirDataType):
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
-        self._package_records = _package_records = []
+        self._package_records = _package_records = PackageRecordList()
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
@@ -549,15 +566,13 @@ class SubdirData(metaclass=SubdirDataType):
                     )
                     continue
 
-                package_kwargs = dict(info.items())
-                # Python doesn't like duplicate keyword arguments? (PackageRecord(**kwargs, fn=x))
-                package_kwargs.update({"fn": fn, "url": join_url(channel_url, fn)})
-                package_record = PackageRecord(**package_kwargs)
-
-                _package_records.append(package_record)
-                _names_index[package_record.name].append(package_record)
-                for ftr_name in package_record.track_features:
-                    _track_features_index[ftr_name].append(package_record)
+                # lazy
+                # package_record = PackageRecord(**info)
+                info["fn"] = fn
+                info["url"] = join_url(channel_url, fn)
+                _package_records.append(info)
+                record_index = len(_package_records) - 1
+                _names_index[info["name"]].append(record_index)
 
         self._internal_state = _internal_state
         return _internal_state

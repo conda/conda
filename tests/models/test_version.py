@@ -7,7 +7,7 @@ from random import shuffle
 import unittest
 
 from conda.exceptions import InvalidVersionSpec
-from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
+from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval
 import pytest
 
 
@@ -70,11 +70,11 @@ class TestVersionSpec(unittest.TestCase):
         ]
 
         # check parser
-        versions = [(v, VersionOrder(v), l) for v, l in versions]
-        for s, v, l in versions:
+        versions = [(v, VersionOrder(v), expected) for v, expected in versions]
+        for s, v, expected in versions:
             assert VersionOrder(v) is v
             assert str(v) == s.lower().replace('-', '_')
-            self.assertEqual(v.version, l)
+            self.assertEqual(v.version, expected)
         self.assertEqual(VersionOrder("0.4.1.rc"), VersionOrder("  0.4.1.RC  "))
         self.assertEqual(normalized_version("  0.4.1.RC  "), VersionOrder("0.4.1.rc"))
         for ver in ("", "", "  ", "3.5&1", "5.5++", "5.5..mw", "!", "a!1.0", "a!b!1.0"):
