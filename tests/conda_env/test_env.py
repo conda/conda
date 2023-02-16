@@ -98,6 +98,21 @@ class from_file_TestCase(unittest.TestCase):
                 "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/does-not-exist.yml"
             )
 
+    def test_envvars(self):
+        current_conda_token = os.environ.get("CONDA_TOKEN")
+        os.environ["CONDA_TOKEN"] = "aaa-12345"
+        os.environ["OTHER_KEY"] = "12345-aaa"
+        e = get_environment("channels_with_envvars.yml")
+        self.assertEqual(
+            set(e.channels),
+            {'https://localhost/t/aaa-12345/stable', 'https://localhost/t/12345-aaa/stable', 'conda-forge', 'defaults'}
+        )
+        if current_conda_token:
+            os.environ["CONDA_TOKEN"] = current_conda_token
+        else:
+            del os.environ["CONDA_TOKEN"]
+        del os.environ["OTHER_KEY"]
+
 
 class EnvironmentTestCase(unittest.TestCase):
     def test_has_empty_filename_by_default(self):
