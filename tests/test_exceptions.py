@@ -12,7 +12,7 @@ import getpass
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import captured, env_var
+from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -490,3 +490,25 @@ class ExceptionTests(TestCase):
           original data Length: 1404
           new data length: 1104
         """).strip()
+
+    @patch("conda.exceptions.os.isatty", return_value=True)
+    def test_PackagesNotFoundError_use_only_tar_bz2(self, isatty_mock):
+        for use_only_tar_bz2 in (True, False):
+            with env_vars(
+                {"CONDA_USE_ONLY_TAR_BZ2": str(use_only_tar_bz2)},
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+            ):
+                with captured() as c:
+                    ExceptionHandler()(
+                        _raise_helper,
+                        PackagesNotFoundError(
+                            packages=["does-not-exist"],
+                            channel_urls=["https://repo.anaconda.org/pkgs/main"],
+                        ),
+                    )
+
+                assert c.stdout == ""
+                if use_only_tar_bz2:
+                    assert "Note: 'use_only_tar_bz2' is enabled." in c.stderr
+                else:
+                    assert "Note: 'use_only_tar_bz2' is enabled." not in c.stderr
