@@ -57,7 +57,8 @@ def test_info():
 )
 @pytest.mark.integration
 def test_info_package_json():
-    # This is deprecated
+    # This is testing deprecated behaviour. The CLI already says:
+    # WARNING: 'conda info package_name' is deprecated. Use 'conda search package_name --info'.
     with env_var("CONDA_CHANNELS", "defaults", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous=1.0.0=py37_0")
 
