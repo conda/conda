@@ -160,7 +160,7 @@ jobs:
         run: |
           call .\dev\windows\setup.bat
 
-      - name: Python ${{ matrix.python-version }}, ${{ matrix.default-channel }}, ${{ matrix.conda-subdir }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.conda-subdir }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: cmd
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
@@ -231,7 +231,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }} ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
@@ -288,7 +288,7 @@ jobs:
         # Equivalent to locally run:
         #   `docker run --privileged --rm tonistiigi/binfmt --install all`
 
-      - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }} ${{ matrix.python-version }} tests
+      - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }}, ${{ matrix.python-version }} tests
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
@@ -399,7 +399,7 @@ jobs:
         run: |
           ./dev/macos/setup.sh
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }} ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: bash -l {0}
         run: |
           ./dev/macos/${{ matrix.test-type }}.sh
