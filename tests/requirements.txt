@@ -28,7 +28,7 @@ pyflakes
 pytest
 pytest-cov
 pytest-mock
-pytest-rerunfailures<=11.0.0a0  # https://github.com/pytest-dev/pytest-rerunfailures/issues/206
+pytest-rerunfailures
 pytest-timeout
 pytest-xdist
 requests
