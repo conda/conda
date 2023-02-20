@@ -5,6 +5,7 @@ on:
     types:
       - opened
 
+
 jobs:
   add_to_project:
     if: '!github.event.repository.fork'
