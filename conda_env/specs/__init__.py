@@ -13,7 +13,6 @@ from conda.exceptions import (
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 from .binstar import BinstarSpec
-from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
@@ -44,7 +43,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
         raise EnvironmentFileNotFound(filename=filename)
 
 
-SpecTypes = Union[NotebookSpec, BinstarSpec, YamlFileSpec, RequirementsSpec]
+SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
 
 
 def detect(
@@ -69,8 +68,4 @@ def detect(
         if spec.can_handle():
             return spec
 
-    spec = NotebookSpec(name=name)
-    if spec.can_handle():
-        return spec
-    else:
-        raise SpecNotFound(spec.msg)
+    raise SpecNotFound(spec.msg)
