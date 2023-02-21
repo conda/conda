@@ -1058,7 +1058,10 @@ def configure_parser_package(sub_parsers):
 
 
 def configure_parser_remove(sub_parsers, aliases):
-    help_ = "Remove a list of packages from a specified conda environment."
+    help_ = (
+        "Remove a list of packages from a specified conda environment."
+        + " Use `--all` flag to remove all packages and the environment itself."
+    )
     descr = dals(
         f"""
         {help_}
@@ -1081,6 +1084,10 @@ def configure_parser_remove(sub_parsers, aliases):
         Remove a list of packages from an environemnt 'myenv'::
 
             conda remove -n myenv scipy curl wheel
+
+        Remove all packages from environment `myenv` and the environment itself::
+
+            conda remove -n myenv --all
 
         """
     )
