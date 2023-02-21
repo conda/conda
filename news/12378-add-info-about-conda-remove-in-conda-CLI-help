@@ -1,0 +1,20 @@
+### Enhancements
+
+* Added to `conda` CLI help that `conda remove -n <myenv> --all` can be used to delete environments
+#12378
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
