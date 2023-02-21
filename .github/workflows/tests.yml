@@ -231,7 +231,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
