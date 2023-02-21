@@ -36,7 +36,7 @@ repos:
         args: ["--py37-plus"]
         exclude: ^conda/exports.py
   - repo: https://github.com/akaihola/darker
-    rev: 1.6.1
+    rev: 1.7.0
     hooks:
       - id: darker
         additional_dependencies: [black==22.10.0]
@@ -50,7 +50,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.16.0b1
+    rev: v2.16.1
     hooks:
       - id: pylint
         args: [--exit-zero]
@@ -62,7 +62,7 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.4.1
+    rev: v1.4.2
     hooks:
       - id: insert-license
         files: \.py$

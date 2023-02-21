@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import warnings
+
 from functools import lru_cache
 from pprint import pprint
 
@@ -55,6 +57,12 @@ def test_prefix_graph_1(tmpdir):
 
     records, specs = get_conda_build_record_set(tmpdir)
     graph = PrefixGraph(records, specs)
+
+    channel_name = next(graph.records).channel.canonical_name
+    if channel_name.startswith("file:///"):
+        warnings.warn(
+            f"channel name starts with file:/// and is {channel_name}; cache issue in tests?"
+        )
 
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
@@ -217,7 +225,7 @@ def test_prefix_graph_1(tmpdir):
 
     spec_matches = add_subdir_to_iter(
         {
-            "channel-4::intel-openmp-2018.0.3-0": {"intel-openmp"},
+            f"{channel_name}::intel-openmp-2018.0.3-0": {"intel-openmp"},
         }
     )
     assert {
@@ -227,9 +235,7 @@ def test_prefix_graph_1(tmpdir):
     removed_nodes = graph.prune()
     nodes = tuple(rec.dist_str() for rec in graph.records)
     pprint(nodes)
-    order = add_subdir_to_iter((
-        'channel-4::intel-openmp-2018.0.3-0',
-    ))
+    order = add_subdir_to_iter((f"{channel_name}::intel-openmp-2018.0.3-0",))
     assert nodes == order
 
     removed_nodes = tuple(rec.name for rec in removed_nodes)

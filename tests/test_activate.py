@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from enum import Enum
 from functools import lru_cache
 from itertools import chain
 import json
@@ -670,7 +669,6 @@ class ActivatorUnitTests(TestCase):
                         "CONDA_DEFAULT_ENV": old_prefix,
                         "CONDA_PROMPT_MODIFIER": f"({old_prefix})",
                     }
-                    export_path = {'PATH': old_path,}
                     export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
                     assert builder['unset_vars'] == unset_vars
                     assert builder['export_vars'] == export_vars
@@ -1776,8 +1774,8 @@ class ShellWrapperUnitTests(TestCase):
             # use a file as output stream to simulate PY2 default stdout
             with tempdir() as td:
                 with open(join(td, "stdout"), "w") as stdout:
-                    with captured(stdout=stdout) as c:
-                        rc = main_sourced(shell, *activate_args, self.prefix)
+                    with captured(stdout=stdout):
+                        main_sourced(shell, *activate_args, self.prefix)
 
     def test_json_basic(self):
         activator = _build_activator_cls('posix+json')()
@@ -2186,7 +2184,7 @@ class ShellWrapperIntegrationTests(TestCase):
         num_paths_added = len(tuple(activator._get_path_dirs(self.prefix)))
         prefix_p = activator.path_conversion(self.prefix)
         prefix2_p = activator.path_conversion(self.prefix2)
-        prefix3_p = activator.path_conversion(self.prefix3)
+        activator.path_conversion(self.prefix3)
 
         PATH0 = shell.get_env_var('PATH', '')
         assert any(p.endswith("condabin") for p in PATH0.split(":"))
@@ -2399,6 +2397,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' not in PATH3
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
+    @pytest.mark.flaky(reruns=5)
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
@@ -2795,7 +2794,7 @@ def create_stackable_envs():
 
             if not paths:
                 if on_win:
-                    path = self.prefix / "Library" / "bin" / f"curl.exe"
+                    path = self.prefix / "Library" / "bin" / "curl.exe"
                 else:
                     path = self.prefix / "bin" / "curl"
 

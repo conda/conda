@@ -267,7 +267,7 @@ class ContextCustomRcTests(TestCase):
 
         from pprint import pprint
         for name in documented_parameter_names:
-            description = context.get_descriptions()[name]
+            context.get_descriptions()[name]
             pprint(context.describe_parameter(name))
 
     def test_local_build_root_custom_rc(self):

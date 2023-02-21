@@ -19,7 +19,7 @@ import os
 from os.path import abspath, basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 import re
 from shutil import copyfile, rmtree
-from subprocess import CalledProcessError, check_call, check_output, Popen, PIPE, STDOUT
+from subprocess import check_call, check_output, Popen, PIPE
 import sys
 from textwrap import dedent
 from unittest import TestCase
@@ -34,8 +34,6 @@ from conda.common.iterators import groupby_to_dict as groupby
 from conda import (
     CondaError,
     CondaMultiError,
-    __version__ as CONDA_VERSION,
-    CONDA_SOURCE_ROOT,
 )
 from conda.auxlib.ish import dals
 from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, SafetyChecks, PREFIX_MAGIC_FILE
@@ -951,8 +949,8 @@ dependencies:
                 stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
-                assert json_obj['cmd_line'] == {'json': True}
+                assert "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
+                assert json_obj["cmd_line"] == {"json": True}
 
             run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
             with pytest.raises(CondaError):
@@ -981,8 +979,8 @@ dependencies:
                 stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
-                assert json_obj['cmd_line'] == {'json': True}
+                assert "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
+                assert json_obj["cmd_line"] == {"json": True}
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
@@ -1013,10 +1011,18 @@ dependencies:
             finally:
                 reset_context()
 
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_rpy_search(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5", "--override-channels", "-c", "defaults") as prefix:
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
             run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            # config --append on an empty key pre-populates it with the hardcoded default value!
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
             assert 'defaults' not in json_obj['channels']
@@ -1117,9 +1123,12 @@ dependencies:
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
             flask_python = '3.8' # oldest available for osx-arm64
             with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
-
+                payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+                default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
                 run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
-                run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+                # config --append on an empty key pre-populates it with the hardcoded default value!
+                for channel in default_channels:
+                    run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
 
                 run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)
 
@@ -1602,15 +1611,20 @@ dependencies:
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
-
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_conda_pip_interop_conda_editable_package(self):
         with env_vars(
-            {"CONDA_REPORT_ERRORS": "false", "CONDA_RESTORE_FREE_CHANNEL": True},
+            {
+                "CONDA_REPORT_ERRORS": "false",
+                "CONDA_RESTORE_FREE_CHANNEL": True,
+                "CONDA_CHANNELS": "defaults",
+            },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with make_temp_env(
-                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
-            ) as prefix:
+            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1626,8 +1640,8 @@ dependencies:
                 assert package_is_installed(prefix, "urllib3")
                 urllib3_record = next(PrefixData(prefix).query("urllib3"))
                 urllib3_record_dump = urllib3_record.dump()
-                files = urllib3_record_dump.pop("files")
-                paths_data = urllib3_record_dump.pop("paths_data")
+                urllib3_record_dump.pop("files")
+                urllib3_record_dump.pop("paths_data")
                 print(json_dump(urllib3_record_dump))
 
                 assert json_loads(json_dump(urllib3_record_dump)) == {
@@ -1681,8 +1695,8 @@ dependencies:
                 assert package_is_installed(prefix, "urllib3")
                 urllib3_record = next(PrefixData(prefix).query("urllib3"))
                 urllib3_record_dump = urllib3_record.dump()
-                files = urllib3_record_dump.pop("files")
-                paths_data = urllib3_record_dump.pop("paths_data")
+                urllib3_record_dump.pop("files")
+                urllib3_record_dump.pop("paths_data")
                 print(json_dump(urllib3_record_dump))
 
                 assert json_loads(json_dump(urllib3_record_dump)) == {
@@ -1821,7 +1835,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
-            assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
+            assert channel_url.replace('cqgccfm1mfma', '<TOKEN>') in yml_obj['channels']
 
             with pytest.raises(PackagesNotFoundError):
                 # this was supposed to be a package available in private but not
@@ -1860,14 +1874,19 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/kalefranz"
-            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
+            run_command(Commands.CONFIG, prefix, "--append", "channels", channel_url)
+            # config --append on an empty key pre-populates it with the hardcoded default value!
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
+            print(output)
             yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
             output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                         "linux-64", "--json", use_exception_handler=True)
+                                       "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(output)
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
@@ -1879,8 +1898,11 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
 
@@ -2124,10 +2146,11 @@ dependencies:
 
     def test_download_only_flag(self):
         from conda.core.link import UnlinkLinkTransaction
-        with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:
-            with make_temp_env('openssl', '--download-only', use_exception_handler=True) as prefix:
+
+        with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
+            with make_temp_env("openssl", "--download-only", use_exception_handler=True):
                 assert mock_method.call_count == 0
-            with make_temp_env('openssl', use_exception_handler=True) as prefix:
+            with make_temp_env("openssl", use_exception_handler=True):
                 assert mock_method.call_count == 1
 
     def test_transactional_rollback_simple(self):
@@ -2338,7 +2361,7 @@ dependencies:
     # https://github.com/conda/conda/issues/10116
     @pytest.mark.skipif(not context.subdir.startswith('linux'), reason="__glibc only available on linux")
     def test_install_bound_virtual_package(self):
-        with make_temp_env("__glibc>0") as prefix:
+        with make_temp_env("__glibc>0"):
             pass
 
     @pytest.mark.integration
@@ -2353,7 +2376,7 @@ dependencies:
             filename = join(prefix, "file.dat")
 
             os.mkdir(prefix)
-            with open(filename, "wb") as empty:
+            with open(filename, "wb"):
                 pass
 
             with pytest.raises(DirectoryNotACondaEnvironmentError):

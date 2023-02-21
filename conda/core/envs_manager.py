@@ -78,7 +78,7 @@ def list_all_known_prefixes():
             search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
     else:
         search_dirs = (expand('~'),)
-    for home_dir in search_dirs:
+    for home_dir in filter(None, search_dirs):
         environments_txt_file = get_user_environments_txt_file(home_dir)
         if isfile(environments_txt_file):
             try:

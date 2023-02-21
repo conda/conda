@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from functools import wraps
+import logging
 import time
+from functools import wraps
 from typing import Sequence
 
 from ..base.context import context, Context
@@ -18,6 +19,8 @@ from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
 # Used below in type hints
 ChannelName = str
 ChannelUrl = str
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_notices(
@@ -94,19 +97,28 @@ def notices(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if is_channel_notices_enabled(context) and is_channel_notices_cache_expired():
-            channel_notice_set = retrieve_notices(
-                limit=context.number_channel_notices,
-                always_show_viewed=False,
-                silent=True,
-            )
-            return_value = func(*args, **kwargs)
-            display_notices(channel_notice_set)
+        if is_channel_notices_enabled(context):
+            channel_notice_set = None
 
-            return return_value
+            try:
+                if is_channel_notices_cache_expired():
+                    channel_notice_set = retrieve_notices(
+                        limit=context.number_channel_notices,
+                        always_show_viewed=False,
+                        silent=True,
+                    )
+            except OSError as exc:
+                # If we encounter any OSError related error, we simply abandon
+                # fetching notices
+                logger.error(f"Unable to open cache file: {str(exc)}")
 
-        else:
-            return func(*args, **kwargs)
+            if channel_notice_set is not None:
+                return_value = func(*args, **kwargs)
+                display_notices(channel_notice_set)
+
+                return return_value
+
+        return func(*args, **kwargs)
 
     return wrapper
 

@@ -1,10 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
-from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
-from unittest.mock import patch
 
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
@@ -567,7 +565,6 @@ class CustomConfigChannelTests(TestCase):
         conda_bld_path = join(gettempdir(), 'conda-bld')
         mkdir_p(conda_bld_path)
         try:
-            from functools import partial
             with env_var('CONDA_CROOT', conda_bld_path, stack_callback=conda_tests_ctxt_mgmt_def_pol):
                 Channel._reset_state()
                 channel = Channel('local')
@@ -1134,3 +1131,28 @@ def test_ppc64le_vs_ppc64():
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
     assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+
+
+def test_channel_mangles_urls():
+    """
+    CondaSession() runs urls through Channel, and cannot be used to fetch files
+    with unknown extensions (it will mangle the URL)
+    """
+    cases = [
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+        ),
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+        ),
+        # This strange behavior may need to change:
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json.bz2",
+            "https://conda.anaconda.org/conda-forge/repodata.json.bz2/linux-64",
+        ),
+    ]
+
+    for url, expected in cases:
+        assert str(Channel(url)) == expected

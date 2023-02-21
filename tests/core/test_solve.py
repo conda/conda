@@ -141,7 +141,7 @@ def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
-                final_state = solver.solve_final_state()
+                solver.solve_final_state()
 
     assert "__cuda==10.0" not in str(exc.value).strip()
 
@@ -179,7 +179,7 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
-                final_state = solver.solve_final_state()
+                solver.solve_final_state()
 
     if sys.platform == "darwin":
         if "ARM_8" in get_cpu_info()["arch"]:
@@ -211,7 +211,7 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', ''):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
-                final_state = solver.solve_final_state()
+                solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -255,7 +255,7 @@ def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
-                final_state = solver.solve_final_state()
+                solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -287,7 +287,7 @@ def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
     with env_var('CONDA_OVERRIDE_CUDA', '8.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.23'):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
-                final_state = solver.solve_final_state()
+                solver.solve_final_state()
 
     assert str(exc.value).strip() == dals("""The following specifications were found to be incompatible with your system:
 
@@ -304,8 +304,8 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
 
     with env_var('CONDA_OVERRIDE_CUDA', '10.0'), env_var('CONDA_OVERRIDE_GLIBC', '2.12'):
         with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
-                final_state = solver.solve_final_state()
+            with pytest.raises(UnsatisfiableError):
+                solver.solve_final_state()
 
 
 def test_prune_1(tmpdir):
