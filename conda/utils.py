@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from functools import lru_cache, wraps
+from io import StringIO
 import logging
 from os.path import abspath, join, isfile, basename, dirname
 from os import environ, PathLike
@@ -96,8 +97,10 @@ def human_bytes(n):
 #    either an executable on PATH, or a full path to an executable for a shell
 unix_shell_base = dict(
                        binpath="/bin/",  # mind the trailing slash.
+                       debug_args=['-x'],
                        echo="echo",
                        env_script_suffix=".sh",
+                       exec='exec ',
                        nul='2>/dev/null',
                        path_from=path_identity,
                        path_to=path_identity,
@@ -163,6 +166,8 @@ if on_win:
             printpath="@echo %PATH%",
             exe="cmd.exe",
             shell_args=["/d", "/c"],
+            debug_args=[],
+            exec='',
             path_from=path_identity,
             path_to=path_identity,
             slash_convert=("/", "\\"),
@@ -211,6 +216,7 @@ else:
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",
+            debug_args=["--debug='complete,*history*'"],
         ),
     }
 
@@ -461,6 +467,127 @@ def wrap_subprocess_call(
             command_args = [shell_path, script_caller]
 
     return script_caller, command_args
+
+
+def wrap_exec_call(
+        root_prefix,
+        prefix,
+        dev_mode,
+        debug_wrapper_scripts,
+        arguments,
+):
+    arguments = massage_arguments(arguments)
+    multiline = False
+    if len(arguments) == 1 and '\n' in arguments[0]:
+        multiline = True
+    shell = {}
+    # use first matching shell
+    for shopts in shells.values():
+        if which(shopts.get('exe','')):
+            shell = shopts.copy()
+            shell['which'] = which(shell['exe'])
+            break
+    if not shell:
+        Exception("No compatible shell found!")
+    if on_win:
+        if shell['exe']=='cmd.exe':
+            shell['which'] = get_comspec()  # fail early with KeyError if undefined
+        if dev_mode:
+            from conda import CONDA_PACKAGE_ROOT
+            conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
+        else:
+            conda_bat = environ.get("CONDA_BAT",
+                                    abspath(join(root_prefix, 'condabin', 'conda.bat')))
+        with StringIO() as fh:
+            silencer = "" if debug_wrapper_scripts else "@"
+            fh.write(f"{silencer}ECHO OFF\n")
+            fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
+            fh.write(f"{silencer}SET PYTHONUTF8=1\n")
+            fh.write(
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+            )
+            fh.write(f"{silencer}chcp 65001 > NUL\n")
+            if dev_mode:
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(f"{silencer}SET CONDA_DEV=1\n")
+                # In dev mode, conda is really:
+                # 'python -m conda'
+                # *with* PYTHONPATH set.
+                fh.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")
+                fh.write(f"{silencer}SET CONDA_EXE={sys.executable}\n")
+                fh.write(f"{silencer}SET _CE_M=-m\n")
+                fh.write(f"{silencer}SET _CE_CONDA=conda\n")
+            if debug_wrapper_scripts:
+                fh.write('echo *** environment before *** 1>&2\n')
+                fh.write('SET 1>&2\n')
+            # Not sure there is any point in backing this up, nothing will get called with it reset
+            # after all!
+            # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
+            # fh.write('@chcp 65001>NUL\n')
+            fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
+            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            if debug_wrapper_scripts:
+                fh.write('echo *** environment after *** 1>&2\n')
+                fh.write('SET 1>&2\n')
+            if multiline:
+                # No point silencing the first line. If that's what's wanted then
+                # it needs doing for each line and the caller may as well do that.
+                fh.write(f"{arguments[0]}\n")
+            else:
+                assert not any("\n" in arg for arg in arguments), (
+                    "Support for scripts where arguments contain newlines not implemented.\n"
+                    ".. requires writing the script to an external file and knowing how to "
+                    "transform the command-line (e.g. `python -c args` => `python file`) "
+                    "in a tool dependent way, or attempting something like:\n"
+                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
+                    "requirements)"
+                )
+                fh.write(f"{silencer}{shell['exec']}{quote_for_shell(*arguments)}\n")
+            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
+            commands = fh.getvalue()
+            
+    else:
+
+        # During tests, we sometimes like to have a temp env with e.g. an old python in it
+        # and have it run tests against the very latest development sources. For that to
+        # work we need extra smarts here, we want it to be instead:
+        if dev_mode:
+            conda_exe = [abspath(join(root_prefix, 'bin', 'python')), '-m', 'conda']
+            dev_arg = '--dev'
+            dev_args = [dev_arg]
+        else:
+            conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
+            dev_arg = ''
+            dev_args = []
+        with StringIO() as fh:
+            if dev_mode:
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
+            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
+            if debug_wrapper_scripts:
+                fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
+                fh.write(f'>&2 echo "$({hook_quoted})"\n')
+            fh.write(f'eval "$({hook_quoted})"\n')
+            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
+            if debug_wrapper_scripts:
+                fh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
+            if multiline:
+                # The ' '.join() is pointless since mutliline is only True when there's 1 arg
+                # still, if that were to change this would prevent breakage.
+                fh.write(f"{shell['exec']}{' '.join(arguments)}\n")
+            else:
+                fh.write(f"{shell['exec']}{quote_for_shell(*arguments)}\n")
+            commands = fh.getvalue()
+
+    return (
+        [shell['which']]
+        + (shell['debug_args'] if debug_wrapper_scripts else [])
+        + shell['shell_args']
+        + [commands]
+    )
 
 
 def get_comspec():

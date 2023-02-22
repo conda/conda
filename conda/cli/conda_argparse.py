@@ -1267,13 +1267,6 @@ def configure_parser_run(sub_parsers):
              "the user's current working directory if no directory is specified.",
         default=os.getcwd()
     )
-    p.add_argument(
-        "--no-capture-output",
-        "--live-stream",
-        action="store_true",
-        help="Don't capture stdout/stderr (standard out/standard error).",
-        default=False,
-    )
 
     p.add_argument(
         'executable_call',
