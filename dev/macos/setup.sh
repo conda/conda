@@ -11,9 +11,7 @@ sudo cp minio /usr/local/bin/minio
 
 # restoring the default for changeps1 to have parity with dev
 conda config --set changeps1 true
-# .conda-only will become the norm. previously claimed "only tar.bz2" was
-# required for caching; does this still break caching?
-conda config --set use_only_tar_bz2 false
+conda config --set use_only_tar_bz2 true
 # install all test requirements
 conda install --yes --name conda-test-env --file tests/requirements.txt
 conda update --yes openssl ca-certificates certifi
