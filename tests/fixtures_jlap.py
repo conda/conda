@@ -94,6 +94,7 @@ def prepare_socket() -> socket.socket:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.set_inheritable(True)
     s.bind(server_address)
+    s.listen()
     return s
 
 
