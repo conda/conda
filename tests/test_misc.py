@@ -10,7 +10,7 @@ import pytest
 from conda.base.context import context
 from conda.core.subdir_data import cache_fn_url
 from conda.misc import explicit, url_pat, walk_prefix
-from conda.testing.integration import Commands, run_command
+from conda.testing.integration import Commands, make_temp_env, make_temp_prefix, run_command
 from conda.utils import Utf8NamedTemporaryFile
 
 
@@ -90,7 +90,8 @@ def test_explicit_missing_cache_entries(mocker):
         # be empty in certain cases (Noted in OSX with Python 3.9, when
         # Miniconda installs Python 3.10). Install a small package.
         warnings.warn("test_explicit_missing_cache_entries: No packages in cache.")
-        run_command(Commands.INSTALL, context.target_prefix, "heapdict")
+        prefix = make_temp_prefix()
+        run_command(Commands.INSTALL, prefix, "heapdict")
 
     # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
     # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
