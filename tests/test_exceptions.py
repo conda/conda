@@ -30,6 +30,8 @@ from conda.exceptions import (
     conda_exception_handler,
     ExceptionHandler,
 )
+from pytest import raises
+
 
 def _raise_helper(exception):
     raise exception
@@ -493,22 +495,14 @@ class ExceptionTests(TestCase):
 
     @patch("conda.exceptions.os.isatty", return_value=True)
     def test_PackagesNotFoundError_use_only_tar_bz2(self, isatty_mock):
+        note = "use_only_tar_bz2"
         for use_only_tar_bz2 in (True, False):
+            expected = ["", note][use_only_tar_bz2]
             with env_vars(
                 {"CONDA_USE_ONLY_TAR_BZ2": str(use_only_tar_bz2)},
                 stack_callback=conda_tests_ctxt_mgmt_def_pol,
-            ):
-                with captured() as c:
-                    ExceptionHandler()(
-                        _raise_helper,
-                        PackagesNotFoundError(
-                            packages=["does-not-exist"],
-                            channel_urls=["https://repo.anaconda.org/pkgs/main"],
-                        ),
-                    )
-
-                assert c.stdout == ""
-                if use_only_tar_bz2:
-                    assert "Note: 'use_only_tar_bz2' is enabled." in c.stderr
-                else:
-                    assert "Note: 'use_only_tar_bz2' is enabled." not in c.stderr
+            ), raises(PackagesNotFoundError, match=expected):
+                raise PackagesNotFoundError(
+                    packages=["does-not-exist"],
+                    channel_urls=["https://repo.anaconda.org/pkgs/main"],
+                )
