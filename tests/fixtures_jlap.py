@@ -18,7 +18,7 @@ from pathlib import Path
 
 import flask
 import pytest
-from werkzeug.serving import WSGIRequestHandler, make_server, prepare_socket
+from werkzeug.serving import WSGIRequestHandler, make_server
 
 app = flask.Flask(__name__)
 
@@ -82,8 +82,23 @@ def run_on_random_port():
     return next(_package_server())
 
 
+def prepare_socket() -> socket.socket:
+    """Prepare a socket for use by the WSGI server.
+
+    Based on Werkzeug prepare_socket, removed in 2.2.3
+    """
+    host = "127.0.0.1"
+    port = 0  # automatically choose an available port
+    server_address = (host, port)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.set_inheritable(True)
+    s.bind(server_address)
+    return s
+
+
 def _package_server(cleanup=True, base: Path | None = None):
-    socket = prepare_socket("127.0.0.1", 0)
+    socket = prepare_socket()
     context = multiprocessing.get_context("spawn")
     process = context.Process(target=make_server_with_socket, args=(socket, base), daemon=True)
     process.start()
