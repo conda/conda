@@ -103,7 +103,8 @@ class TestSolve(unittest.TestCase):
         b = r.install(['mkl'])
         # cached difference?
         c = r.install(["mkl 11*", MatchSpec(track_features="mkl")])
-        assert b == c
+        d = r.install(["mkl"])
+        assert c == d
 
     def test_accelerate(self):
         self.assertEqual(
