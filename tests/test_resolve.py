@@ -99,9 +99,7 @@ class TestSolve(unittest.TestCase):
         ])
 
     def test_mkl(self):
-        a = r.install(['mkl 11*', MatchSpec(track_features='mkl')])
-        b = r.install(['mkl'])
-        # cached difference?
+        r.install(["python 2.7.*"])
         c = r.install(["mkl 11*", MatchSpec(track_features="mkl")])
         d = r.install(["mkl"])
         assert c == d
