@@ -100,12 +100,10 @@ class TestSolve(unittest.TestCase):
         ])
 
     def test_mkl(self):
-        SubdirData._cache_.clear()
-        Channel._cache_.clear()
-        r.install(["python 2.7.*"])
-        c = r.install(["mkl 11*", MatchSpec(track_features="mkl")])
-        d = r.install(["mkl"])
-        assert c == d
+        _, r = get_index_r_1()
+        a = r.install(["mkl 11*", MatchSpec(track_features="mkl")])
+        b = r.install(["mkl"])
+        assert a == b
 
     def test_accelerate(self):
         self.assertEqual(
