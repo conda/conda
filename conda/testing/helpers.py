@@ -305,7 +305,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-@lru_cache(maxsize=None)
+# @lru_cache(maxsize=None)
 def get_index_r_1(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index.json")) as fi:
         packages = json.load(fi)
