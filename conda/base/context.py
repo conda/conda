@@ -635,13 +635,6 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
-    # This is deprecated, please use conda_exe_vars_dict instead.
-    def conda_exe(self):
-        bin_dir = 'Scripts' if on_win else 'bin'
-        exe = 'conda.exe' if on_win else 'conda'
-        return join(self.conda_prefix, bin_dir, exe)
-
-    @property
     def av_data_dir(self):
         """ Directory where critical data for artifact verification (e.g.,
         various public keys) can be found. """
