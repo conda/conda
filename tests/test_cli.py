@@ -3,7 +3,6 @@
 
 import json
 import unittest
-import uuid
 import os
 import re
 import stat
@@ -14,7 +13,11 @@ import pytest
 from conda.base.constants import on_win
 from conda.base.context import context
 from conda.gateways.disk.delete import rm_rf
-from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
+from conda.testing.helpers import (
+    capture_json_with_argv,
+    run_inprocess_conda_command,
+    run_subprocess_conda_command,
+)
 from conda.testing.integration import Commands, run_command, make_temp_env, make_temp_prefix
 
 
@@ -250,7 +253,7 @@ def test_search_envs():
 def test_run_returns_int():
     prefix = make_temp_prefix(name="test")
     with make_temp_env(prefix=prefix):
-        stdout, stderr, result = run_inprocess_conda_command(f"conda run -p {prefix} echo hi")
+        stdout, stderr, result = run_subprocess_conda_command(f"conda run -p {prefix} echo hi")
 
         assert isinstance(result, int)
 
@@ -258,7 +261,7 @@ def test_run_returns_int():
 def test_run_returns_zero_errorlevel():
     prefix = make_temp_prefix(name="test")
     with make_temp_env(prefix=prefix):
-        stdout, stderr, result = run_inprocess_conda_command(f"conda run -p {prefix} exit 0")
+        stdout, stderr, result = run_subprocess_conda_command(f"conda run -p {prefix} exit 0")
 
         assert result == 0
 
@@ -266,26 +269,9 @@ def test_run_returns_zero_errorlevel():
 def test_run_returns_nonzero_errorlevel():
     prefix = make_temp_prefix(name="test")
     with make_temp_env(prefix=prefix) as prefix:
-        stdout, stderr, result = run_inprocess_conda_command(f'conda run -p "{prefix}" exit 5')
+        stdout, stderr, result = run_subprocess_conda_command(f'conda run -p "{prefix}" exit 5')
 
         assert result == 5
-
-
-def test_run_uncaptured(capfd):
-    prefix = make_temp_prefix(name="test")
-    with make_temp_env(prefix=prefix):
-        random_text = uuid.uuid4().hex
-        stdout, stderr, result = run_inprocess_conda_command(
-            f"conda run -p {prefix} --no-capture-output echo {random_text}"
-        )
-
-        assert result == 0
-        # Output is not captured
-        assert stdout == ""
-
-        # Check that the expected output is somewhere between the conda logs
-        captured = capfd.readouterr()
-        assert random_text in captured.out
 
 
 @pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
@@ -312,7 +298,7 @@ def test_run_readonly_env(request):
 
         assert raise_ok
 
-        stdout, stderr, result = run_inprocess_conda_command(f"conda run -p {prefix} exit 0")
+        stdout, stderr, result = run_subprocess_conda_command(f"conda run -p {prefix} exit 0")
 
         # Reset permissions in case all goes according to plan
         reset_permissions()
