@@ -12,8 +12,8 @@ from .common import validate_prefix
 
 def execute(args, parser):
 
-    # create run script    
-    call_args = wrap_exec_call(
+    # create run script
+    _, call_args = wrap_exec_call(
         context.root_prefix,
         validate_prefix(context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix),
         args.dev,
