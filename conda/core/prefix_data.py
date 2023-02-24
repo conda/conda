@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-from collections import OrderedDict
 import json
 from logging import getLogger
 import os
@@ -14,7 +10,6 @@ from ..base.constants import PREFIX_STATE_FILE
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PREFIX_MAGIC_FILE, CONDA_ENV_VARS_UNSET_VAR
 from ..base.context import context
-from ..common.compat import odict
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -43,8 +38,7 @@ class PrefixDataType(type):
         elif isinstance(prefix_path, PrefixData):
             return prefix_path
         else:
-            prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path,
-                                                                       pip_interop_enabled)
+            prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
             PrefixData._cache_[prefix_path] = prefix_data_instance
             return prefix_data_instance
 
@@ -273,7 +267,7 @@ class PrefixData(metaclass=PrefixDataType):
             )
             try:
                 rm_rf(prefix_rec_json_path)
-            except EnvironmentError:
+            except OSError:
                 log.debug("stale information, but couldn't remove: %s", prefix_rec_json_path)
             else:
                 log.debug("removed due to stale information: %s", prefix_rec_json_path)
@@ -283,7 +277,7 @@ class PrefixData(metaclass=PrefixDataType):
         for af in non_conda_anchor_files:
             try:
                 python_record = read_python_record(self.prefix_path, af, python_pkg_record.version)
-            except EnvironmentError as e:
+            except OSError as e:
                 log.info("Python record ignored for anchor path '%s'\n  due to %s", af, e)
                 continue
             except ValidationError:
@@ -306,8 +300,8 @@ class PrefixData(metaclass=PrefixDataType):
     def _get_environment_state_file(self):
         env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
         if lexists(env_vars_file):
-            with open(env_vars_file, 'r') as f:
-                prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
+            with open(env_vars_file) as f:
+                prefix_state = json.loads(f.read())
         else:
             prefix_state = {}
         return prefix_state
@@ -319,11 +313,8 @@ class PrefixData(metaclass=PrefixDataType):
 
     def get_environment_env_vars(self):
         prefix_state = self._get_environment_state_file()
-        env_vars_all = OrderedDict(prefix_state.get('env_vars', {}))
-        env_vars = {
-            k: v for k, v in env_vars_all.items()
-            if v != CONDA_ENV_VARS_UNSET_VAR
-        }
+        env_vars_all = dict(prefix_state.get("env_vars", {}))
+        env_vars = {k: v for k, v in env_vars_all.items() if v != CONDA_ENV_VARS_UNSET_VAR}
         return env_vars
 
     def set_environment_env_vars(self, env_vars):
@@ -350,10 +341,10 @@ class PrefixData(metaclass=PrefixDataType):
 def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
     """Return the anchor files for the conda records of python packages."""
     anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
-    conda_python_packages = odict()
+    conda_python_packages = {}
 
     matcher = re.compile(
-        r"^%s/[^/]+(?:%s)$" % (
+        r"^{}/[^/]+(?:{})$".format(
             re.escape(site_packages_short_path),
             r"|".join(re.escape(fn) for fn in anchor_file_endings)
         )

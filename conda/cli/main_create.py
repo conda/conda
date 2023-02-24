@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os.path import isdir
@@ -13,10 +11,12 @@ from ..common.path import paths_equal
 from ..exceptions import CondaValueError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import is_conda_environment
+from ..notices import notices
 
 log = getLogger(__name__)
 
 
+@notices
 def execute(args, parser):
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):

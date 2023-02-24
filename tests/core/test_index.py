@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from unittest import TestCase
@@ -10,44 +8,69 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, Context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol, non_x86_machines
 from conda.common.compat import on_win, on_mac, on_linux
 from conda.common.io import env_vars
-from conda.core.index import check_whitelist, get_index, get_reduced_index, _supplement_index_with_system
+from conda.core.index import check_allowlist, get_index, get_reduced_index, _supplement_index_with_system
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_subdir_data import platform_in_record
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
 log = getLogger(__name__)
 
-def test_check_whitelist():
-    whitelist = (
+def test_check_allowlist():
+    allowlist = (
         'defaults',
         'conda-forge',
         'https://beta.conda.anaconda.org/conda-test'
     )
-    with env_vars({'CONDA_WHITELIST_CHANNELS': ','.join(whitelist)}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_vars({'CONDA_ALLOWLIST_CHANNELS': ','.join(allowlist)}, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 
         with pytest.raises(ChannelNotAllowed):
             get_index(("https://repo.anaconda.com/pkgs/denied",))
 
-        check_whitelist(("defaults",))
-        check_whitelist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
-        check_whitelist(("https://conda.anaconda.org/conda-forge/linux-64",))
+        check_allowlist(("defaults",))
+        check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+        check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
 
-    check_whitelist(("conda-canary",))
+    check_allowlist(("conda-canary",))
 
 
-def test_supplement_index_with_system_cuda():
+def test_supplement_index_with_system():
+    index = {}
+    _supplement_index_with_system(index)
+
+    has_virtual_pkgs = {
+        rec.name
+        for rec in index
+        if rec.package_type == PackageType.VIRTUAL_SYSTEM
+    }.issuperset
+    if on_win:
+        assert has_virtual_pkgs({"__win"})
+    elif on_mac:
+        assert has_virtual_pkgs({"__osx", "__unix"})
+    elif on_linux:
+        assert has_virtual_pkgs({"__glibc", "__linux", "__unix"})
+
+
+@pytest.mark.skipif(
+    context.subdir.split("-", 1)[1] not in {"32", "64", *non_x86_machines},
+    reason=f"archspec not available for subdir {context.subdir}",
+)
+def test_supplement_index_with_system_archspec():
+    index = {}
+    _supplement_index_with_system(index)
+    assert any(
+        rec.package_type == PackageType.VIRTUAL_SYSTEM and rec.name == "__archspec"
+        for rec in index
+    )
+
+
+def test_supplement_index_with_system_cuda(clear_cuda_version):
     index = {}
     with env_vars({'CONDA_OVERRIDE_CUDA': '3.2'}):
         _supplement_index_with_system(index)
@@ -59,13 +82,13 @@ def test_supplement_index_with_system_cuda():
 
 @pytest.mark.skipif(not on_mac, reason="osx-only test")
 def test_supplement_index_with_system_osx():
-      index = {}
-      with env_vars({'CONDA_OVERRIDE_OSX': '0.15'}):
-          _supplement_index_with_system(index)
+    index = {}
+    with env_vars({"CONDA_OVERRIDE_OSX": "0.15"}):
+        _supplement_index_with_system(index)
 
-      osx_pkg = next(iter(_ for _ in index if _.name == '__osx'))
-      assert osx_pkg.version == '0.15'
-      assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
+    osx_pkg = next(iter(_ for _ in index if _.name == "__osx"))
+    assert osx_pkg.version == "0.15"
+    assert osx_pkg.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")

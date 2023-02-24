@@ -23,6 +23,11 @@ corresponds to the package. The currently supported list of virtual packages inc
 Other virtual packages will be added in future conda releases. These are denoted
 by a leading double-underscore in the package name.
 
+.. note::
+
+   Note that as of version ``22.11.0``,
+   :doc:`virtual packages <../../dev-guide/plugins/virtual_packages>` are
+   implemented as :doc:`conda plugins <../../user-guide/concepts/conda-plugins>`.
 
 Listing detected virtual packages
 =================================

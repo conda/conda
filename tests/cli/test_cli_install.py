@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import tempfile
-from unittest import TestCase
+from unittest.mock import patch
 from conda.testing.integration import run_command, Commands
 
 import pytest
@@ -11,11 +9,6 @@ import pytest
 from conda.models.match_spec import MatchSpec
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.delete import rm_rf
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 
 @pytest.fixture

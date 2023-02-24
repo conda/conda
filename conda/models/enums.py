@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from platform import machine
 import sys
@@ -17,7 +15,7 @@ from ..exceptions import CondaUpgradeError
 class Arch(Enum):
     x86 = 'x86'
     x86_64 = 'x86_64'
-    # arm64 is for macOS only
+    # arm64 is for macOS and Windows
     arm64 = 'arm64'
     armv6l = 'armv6l'
     armv7l = 'armv7l'
@@ -25,6 +23,7 @@ class Arch(Enum):
     aarch64 = 'aarch64'
     ppc64 = 'ppc64'
     ppc64le = 'ppc64le'
+    riscv64 = 'riscv64'
     s390x = 's390x'
     z = 'z'
 
@@ -182,10 +181,3 @@ class NoarchType(Enum):
                     Please update conda.
                     """ % val))
         return val
-
-
-class MetadataSignatureStatus(Enum):
-    # TODO (AV): more detailed error states?
-    unsigned = -1
-    verified = 0
-    error = 1

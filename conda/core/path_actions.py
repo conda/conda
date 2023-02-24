@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
@@ -16,7 +15,6 @@ from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .. import CondaError
 from ..auxlib.ish import dals
-from .._vendor.toolz import concat
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
@@ -89,9 +87,12 @@ class PathAction(metaclass=ABCMeta):
         return self._verified
 
     def __repr__(self):
-        args = ('%s=%r' % (key, value) for key, value in vars(self).items()
-                if key not in REPR_IGNORE_KWARGS)
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+        args = (
+            f"{key}={value!r}"
+            for key, value in vars(self).items()
+            if key not in REPR_IGNORE_KWARGS
+        )
+        return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
 class MultiPathAction(metaclass=ABCMeta):
@@ -126,13 +127,15 @@ class MultiPathAction(metaclass=ABCMeta):
         return self._verified
 
     def __repr__(self):
-        args = ('%s=%r' % (key, value) for key, value in vars(self).items()
-                if key not in REPR_IGNORE_KWARGS)
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+        args = (
+            f"{key}={value!r}"
+            for key, value in vars(self).items()
+            if key not in REPR_IGNORE_KWARGS
+        )
+        return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
 class PrefixPathAction(PathAction, metaclass=ABCMeta):
-
     def __init__(self, transaction_context, target_prefix, target_short_path):
         self.transaction_context = transaction_context
         self.target_prefix = target_prefix
@@ -155,14 +158,21 @@ class PrefixPathAction(PathAction, metaclass=ABCMeta):
 #  Creation of Paths within a Prefix
 # ######################################################
 
+
 class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path):
-        super(CreateInPrefixPathAction, self).__init__(transaction_context,
-                                                       target_prefix, target_short_path)
+    def __init__(
+        self,
+        transaction_context,
+        package_info,
+        source_prefix,
+        source_short_path,
+        target_prefix,
+        target_short_path,
+    ):
+        super().__init__(transaction_context, target_prefix, target_short_path)
         self.package_info = package_info
         self.source_prefix = source_prefix
         self.source_short_path = source_short_path
@@ -262,30 +272,58 @@ class LinkPathAction(CreateInPrefixPathAction):
             _path=target_short_path,
             path_type=PathType.windows_python_entry_point_exe,
         )
-        return cls(transaction_context, package_info, source_directory,
-                   source_short_path, target_prefix, target_short_path,
-                   requested_link_type, source_path_data)
+        return cls(
+            transaction_context,
+            package_info,
+            source_directory,
+            source_short_path,
+            target_prefix,
+            target_short_path,
+            requested_link_type,
+            source_path_data,
+        )
 
-    def __init__(self, transaction_context, package_info,
-                 extracted_package_dir, source_short_path,
-                 target_prefix, target_short_path, link_type, source_path_data):
-        super(LinkPathAction, self).__init__(transaction_context, package_info,
-                                             extracted_package_dir, source_short_path,
-                                             target_prefix, target_short_path)
+    def __init__(
+        self,
+        transaction_context,
+        package_info,
+        extracted_package_dir,
+        source_short_path,
+        target_prefix,
+        target_short_path,
+        link_type,
+        source_path_data,
+    ):
+        super().__init__(
+            transaction_context,
+            package_info,
+            extracted_package_dir,
+            source_short_path,
+            target_prefix,
+            target_short_path,
+        )
         self.link_type = link_type
         self._execute_successful = False
         self.source_path_data = source_path_data
         self.prefix_path_data = None
 
     def verify(self):
-        if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. The path '%s'
+        if self.link_type != LinkType.directory and not lexists(
+            self.source_full_path
+        ):  # pragma: no cover  # NOQA
+            return CondaVerificationError(
+                dals(
+                    """
+            The package for {} located at {}
+            appears to be corrupted. The path '{}'
             specified in the package manifest cannot be found.
-            """ % (self.package_info.repodata_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path)))
+            """.format(
+                        self.package_info.repodata_record.name,
+                        self.package_info.extracted_package_dir,
+                        self.source_short_path,
+                    )
+                )
+            )
 
         source_path_data = self.source_path_data
         try:
@@ -318,41 +356,54 @@ class LinkPathAction(CreateInPrefixPathAction):
             if reported_size_in_bytes:
                 source_size_in_bytes = getsize(self.source_full_path)
                 if reported_size_in_bytes != source_size_in_bytes:
-                    return SafetyError(dals("""
-                    The package for %s located at %s
-                    appears to be corrupted. The path '%s'
+                    return SafetyError(
+                        dals(
+                            """
+                    The package for {} located at {}
+                    appears to be corrupted. The path '{}'
                     has an incorrect size.
-                      reported size: %s bytes
-                      actual size: %s bytes
-                    """ % (self.package_info.repodata_record.name,
-                           self.package_info.extracted_package_dir,
-                           self.source_short_path,
-                           reported_size_in_bytes,
-                           source_size_in_bytes,
-                           )))
+                      reported size: {} bytes
+                      actual size: {} bytes
+                    """.format(
+                                self.package_info.repodata_record.name,
+                                self.package_info.extracted_package_dir,
+                                self.source_short_path,
+                                reported_size_in_bytes,
+                                source_size_in_bytes,
+                            )
+                        )
+                    )
 
             try:
                 reported_sha256 = source_path_data.sha256
             except AttributeError:
                 reported_sha256 = None
             # sha256 is expensive.  Only run if file sizes agree, and then only if enabled
-            if (source_size_in_bytes and reported_size_in_bytes == source_size_in_bytes
-                    and context.extra_safety_checks):
+            if (
+                source_size_in_bytes
+                and reported_size_in_bytes == source_size_in_bytes
+                and context.extra_safety_checks
+            ):
                 source_sha256 = compute_sha256sum(self.source_full_path)
 
                 if reported_sha256 and reported_sha256 != source_sha256:
-                    return SafetyError(dals("""
-                    The package for %s located at %s
-                    appears to be corrupted. The path '%s'
+                    return SafetyError(
+                        dals(
+                            """
+                    The package for {} located at {}
+                    appears to be corrupted. The path '{}'
                     has a sha256 mismatch.
-                    reported sha256: %s
-                    actual sha256: %s
-                    """ % (self.package_info.repodata_record.name,
-                           self.package_info.extracted_package_dir,
-                           self.source_short_path,
-                           reported_sha256,
-                           source_sha256,
-                           )))
+                    reported sha256: {}
+                    actual sha256: {}
+                    """.format(
+                                self.package_info.repodata_record.name,
+                                self.package_info.extracted_package_dir,
+                                self.source_short_path,
+                                reported_sha256,
+                                source_sha256,
+                            )
+                        )
+                    )
             self.prefix_path_data = PathDataV1.from_objects(
                 source_path_data,
                 sha256=reported_sha256,
@@ -380,35 +431,49 @@ class LinkPathAction(CreateInPrefixPathAction):
 
 
 class PrefixReplaceLinkAction(LinkPathAction):
-
-    def __init__(self, transaction_context, package_info,
-                 extracted_package_dir, source_short_path,
-                 target_prefix, target_short_path,
-                 link_type,
-                 prefix_placeholder, file_mode, source_path_data):
+    def __init__(
+        self,
+        transaction_context,
+        package_info,
+        extracted_package_dir,
+        source_short_path,
+        target_prefix,
+        target_short_path,
+        link_type,
+        prefix_placeholder,
+        file_mode,
+        source_path_data,
+    ):
         # This link_type used in execute(). Make sure we always respect LinkType.copy request.
         link_type = LinkType.copy if link_type == LinkType.copy else LinkType.hardlink
-        super(PrefixReplaceLinkAction, self).__init__(transaction_context, package_info,
-                                                      extracted_package_dir, source_short_path,
-                                                      target_prefix, target_short_path,
-                                                      link_type, source_path_data)
+        super().__init__(
+            transaction_context,
+            package_info,
+            extracted_package_dir,
+            source_short_path,
+            target_prefix,
+            target_short_path,
+            link_type,
+            source_path_data,
+        )
         self.prefix_placeholder = prefix_placeholder
         self.file_mode = file_mode
         self.intermediate_path = None
 
     def verify(self):
-        validation_error = super(PrefixReplaceLinkAction, self).verify()
+        validation_error = super().verify()
         if validation_error:
             return validation_error
 
         if islink(self.source_full_path):
-            log.trace("ignoring prefix update for symlink with source path %s",
-                      self.source_full_path)
+            log.trace(
+                "ignoring prefix update for symlink with source path %s", self.source_full_path
+            )
             # return
             assert False, "I don't think this is the right place to ignore this"
 
-        mkdir_p(self.transaction_context['temp_dir'])
-        self.intermediate_path = join(self.transaction_context['temp_dir'], str(uuid4()))
+        mkdir_p(self.transaction_context["temp_dir"])
+        self.intermediate_path = join(self.transaction_context["temp_dir"], str(uuid4()))
 
         log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
         create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
@@ -450,15 +515,19 @@ class MakeMenuAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         if on_win and context.shortcuts:
-            MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-            return tuple(cls(transaction_context, package_info, target_prefix, spi.path)
-                         for spi in package_info.paths_data.paths if bool(MENU_RE.match(spi.path)))
+            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
+            return tuple(
+                cls(transaction_context, package_info, target_prefix, spi.path)
+                for spi in package_info.paths_data.paths
+                if bool(MENU_RE.match(spi.path))
+            )
         else:
             return ()
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path):
-        super(MakeMenuAction, self).__init__(transaction_context, package_info,
-                                             None, None, target_prefix, target_short_path)
+        super().__init__(
+            transaction_context, package_info, None, None, target_prefix, target_short_path
+        )
         self._execute_successful = False
 
     def execute(self):
@@ -473,17 +542,15 @@ class MakeMenuAction(CreateInPrefixPathAction):
 
 
 class CreateNonadminAction(CreateInPrefixPathAction):
-
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if on_win and lexists(join(context.root_prefix, '.nonadmin')):
-            return cls(transaction_context, package_info, target_prefix),
+        if on_win and lexists(join(context.root_prefix, ".nonadmin")):
+            return (cls(transaction_context, package_info, target_prefix),)
         else:
             return ()
 
     def __init__(self, transaction_context, package_info, target_prefix):
-        super(CreateNonadminAction, self).__init__(transaction_context, package_info, None, None,
-                                                   target_prefix, '.nonadmin')
+        super().__init__(transaction_context, package_info, None, None, target_prefix, ".nonadmin")
         self._file_created = False
 
     def execute(self):
@@ -497,24 +564,38 @@ class CreateNonadminAction(CreateInPrefixPathAction):
 
 
 class CompileMultiPycAction(MultiPathAction):
-
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       file_link_actions):
+    def create_actions(
+        cls,
+        transaction_context,
+        package_info,
+        target_prefix,
+        requested_link_type,
+        file_link_actions,
+    ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
-            noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
-            py_ver = transaction_context['target_python_version']
-            py_files = tuple((axn.target_short_path for axn in file_link_actions
-                              if getattr(axn, 'source_short_path') and
-                              noarch_py_file_re.match(axn.source_short_path)))
-            pyc_files = tuple((pyc_path(pf, py_ver) for pf in py_files))
-            return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
+            noarch_py_file_re = re.compile(r"^site-packages[/\\][^\t\n\r\f\v]+\.py$")
+            py_ver = transaction_context["target_python_version"]
+            py_files = tuple(
+                axn.target_short_path
+                for axn in file_link_actions
+                if getattr(axn, "source_short_path")
+                and noarch_py_file_re.match(axn.source_short_path)
+            )
+            pyc_files = tuple(pyc_path(pf, py_ver) for pf in py_files)
+            return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files),)
         else:
             return ()
 
-    def __init__(self, transaction_context, package_info, target_prefix,
-                 source_short_paths, target_short_paths):
+    def __init__(
+        self,
+        transaction_context,
+        package_info,
+        target_prefix,
+        source_short_paths,
+        target_short_paths,
+    ):
         self.transaction_context = transaction_context
         self.package_info = package_info
         self.target_prefix = target_prefix
@@ -575,6 +656,7 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
     """Bunch up all of our compile actions, so that they all get carried out at once.
     This avoids clobbering and is faster when we have several individual packages requiring
     compilation"""
+
     def __init__(self, *individuals, **kw):
         transaction_context = individuals[0].transaction_context
         # not used; doesn't matter
@@ -585,45 +667,55 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
         for individual in individuals:
             source_short_paths.update(individual.source_short_paths)
             target_short_paths.update(individual.target_short_paths)
-        super(AggregateCompileMultiPycAction, self).__init__(
-            transaction_context, package_info, target_prefix,
-            source_short_paths, target_short_paths)
+        super().__init__(
+            transaction_context,
+            package_info,
+            target_prefix,
+            source_short_paths,
+            target_short_paths,
+        )
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
-
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
+
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+                target_short_path = f"{get_bin_directory_short_path()}/{command}"
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func
 
-            actions = tuple(cls(transaction_context, package_info, target_prefix,
-                                *this_triplet(ep_def))
-                            for ep_def in noarch.entry_points or ())
+            actions = tuple(
+                cls(transaction_context, package_info, target_prefix, *this_triplet(ep_def))
+                for ep_def in noarch.entry_points or ()
+            )
 
             if on_win:  # pragma: unix no cover
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
-                        transaction_context, package_info, target_prefix,
-                        requested_link_type, ep_def
-                    ) for ep_def in noarch.entry_points or ()
+                        transaction_context,
+                        package_info,
+                        target_prefix,
+                        requested_link_type,
+                        ep_def,
+                    )
+                    for ep_def in noarch.entry_points or ()
                 )
 
             return actions
         else:
             return ()
 
-    def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
-                 module, func):
-        super(CreatePythonEntryPointAction, self).__init__(transaction_context, package_info,
-                                                           None, None,
-                                                           target_prefix, target_short_path)
+    def __init__(
+        self, transaction_context, package_info, target_prefix, target_short_path, module, func
+    ):
+        super().__init__(
+            transaction_context, package_info, None, None, target_prefix, target_short_path
+        )
         self.module = module
         self.func = func
 
@@ -829,19 +921,43 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
     # this is the action that creates a packages json file in the conda-meta/ directory
 
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       requested_spec, all_link_path_actions):
+    def create_actions(
+        cls,
+        transaction_context,
+        package_info,
+        target_prefix,
+        requested_link_type,
+        requested_spec,
+        all_link_path_actions,
+    ):
 
         extracted_package_dir = package_info.extracted_package_dir
-        target_short_path = 'conda-meta/%s.json' % basename(extracted_package_dir)
-        return cls(transaction_context, package_info, target_prefix, target_short_path,
-                   requested_link_type, requested_spec, all_link_path_actions),
+        target_short_path = "conda-meta/%s.json" % basename(extracted_package_dir)
+        return (
+            cls(
+                transaction_context,
+                package_info,
+                target_prefix,
+                target_short_path,
+                requested_link_type,
+                requested_spec,
+                all_link_path_actions,
+            ),
+        )
 
-    def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
-                 requested_link_type, requested_spec, all_link_path_actions):
-        super(CreatePrefixRecordAction, self).__init__(transaction_context, package_info,
-                                                       None, None, target_prefix,
-                                                       target_short_path)
+    def __init__(
+        self,
+        transaction_context,
+        package_info,
+        target_prefix,
+        target_short_path,
+        requested_link_type,
+        requested_spec,
+        all_link_path_actions,
+    ):
+        super().__init__(
+            transaction_context, package_info, None, None, target_prefix, target_short_path
+        )
         self.requested_link_type = requested_link_type
         self.requested_spec = requested_spec
         self.all_link_path_actions = list(all_link_path_actions)
@@ -868,16 +984,22 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             if isinstance(link_path_action, CompileMultiPycAction):
                 return link_path_action.prefix_paths_data
             else:
-                if (not hasattr(link_path_action, 'prefix_path_data') or
-                        link_path_action.prefix_path_data is None):
+                if (
+                    not hasattr(link_path_action, "prefix_path_data")
+                    or link_path_action.prefix_path_data is None
+                ):
                     return ()
                 else:
-                    return (link_path_action.prefix_path_data, )
+                    return (link_path_action.prefix_path_data,)
 
-        files = list(concat(files_from_action(x) for x in self.all_link_path_actions if x))
+        files = list(
+            chain.from_iterable(files_from_action(x) for x in self.all_link_path_actions if x)
+        )
         paths_data = PathsData(
             paths_version=1,
-            paths=concat((paths_from_action(x) for x in self.all_link_path_actions if x)),
+            paths=chain.from_iterable(
+                paths_from_action(x) for x in self.all_link_path_actions if x
+            ),
         )
 
         self.prefix_record = PrefixRecord.from_objects(
@@ -904,18 +1026,32 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):
-
     @classmethod
-    def create_actions(cls, transaction_context, target_prefix, remove_specs, update_specs,
-                       neutered_specs):
-        target_short_path = join('conda-meta', 'history')
-        return cls(transaction_context, target_prefix, target_short_path,
-                   remove_specs, update_specs, neutered_specs),
+    def create_actions(
+        cls, transaction_context, target_prefix, remove_specs, update_specs, neutered_specs
+    ):
+        target_short_path = join("conda-meta", "history")
+        return (
+            cls(
+                transaction_context,
+                target_prefix,
+                target_short_path,
+                remove_specs,
+                update_specs,
+                neutered_specs,
+            ),
+        )
 
-    def __init__(self, transaction_context, target_prefix, target_short_path, remove_specs,
-                 update_specs, neutered_specs):
-        super(UpdateHistoryAction, self).__init__(transaction_context, None, None, None,
-                                                  target_prefix, target_short_path)
+    def __init__(
+        self,
+        transaction_context,
+        target_prefix,
+        target_short_path,
+        remove_specs,
+        update_specs,
+        neutered_specs,
+    ):
+        super().__init__(transaction_context, None, None, None, target_prefix, target_short_path)
         self.remove_specs = remove_specs
         self.update_specs = update_specs
         self.neutered_specs = neutered_specs
@@ -979,11 +1115,10 @@ class RegisterEnvironmentLocationAction(PathAction):
 #  Removal of Paths within a Prefix
 # ######################################################
 
-class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
 
+class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
-        super(RemoveFromPrefixPathAction, self).__init__(transaction_context,
-                                                         target_prefix, target_short_path)
+        super().__init__(transaction_context, target_prefix, target_short_path)
         self.linked_package_data = linked_package_data
 
     def verify(self):
@@ -993,10 +1128,17 @@ class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
 
 
 class UnlinkPathAction(RemoveFromPrefixPathAction):
-    def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path,
-                 link_type=LinkType.hardlink):
-        super(UnlinkPathAction, self).__init__(transaction_context, linked_package_data,
-                                               target_prefix, target_short_path)
+    def __init__(
+        self,
+        transaction_context,
+        linked_package_data,
+        target_prefix,
+        target_short_path,
+        link_type=LinkType.hardlink,
+    ):
+        super().__init__(
+            transaction_context, linked_package_data, target_prefix, target_short_path
+        )
         self.holding_short_path = self.target_short_path + CONDA_TEMP_EXTENSION
         self.holding_full_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.link_type = link_type
@@ -1021,16 +1163,19 @@ class RemoveMenuAction(RemoveFromPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
         if on_win:
-            MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-            return tuple(cls(transaction_context, linked_package_data, target_prefix, trgt)
-                         for trgt in linked_package_data.files if bool(MENU_RE.match(trgt)))
+            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
+            return tuple(
+                cls(transaction_context, linked_package_data, target_prefix, trgt)
+                for trgt in linked_package_data.files
+                if bool(MENU_RE.match(trgt))
+            )
         else:
             return ()
 
-    def __init__(self, transaction_context, linked_package_data,
-                 target_prefix, target_short_path):
-        super(RemoveMenuAction, self).__init__(transaction_context, linked_package_data,
-                                               target_prefix, target_short_path)
+    def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
+        super().__init__(
+            transaction_context, linked_package_data, target_prefix, target_short_path
+        )
 
     def execute(self):
         log.trace("removing menu for %s ", self.target_prefix)
@@ -1045,23 +1190,21 @@ class RemoveMenuAction(RemoveFromPrefixPathAction):
 
 
 class RemoveLinkedPackageRecordAction(UnlinkPathAction):
-
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
-        super(RemoveLinkedPackageRecordAction, self).__init__(transaction_context,
-                                                              linked_package_data,
-                                                              target_prefix, target_short_path)
+        super().__init__(
+            transaction_context, linked_package_data, target_prefix, target_short_path
+        )
 
     def execute(self):
-        super(RemoveLinkedPackageRecordAction, self).execute()
+        super().execute()
         PrefixData(self.target_prefix).remove(self.linked_package_data.name)
 
     def reverse(self):
-        super(RemoveLinkedPackageRecordAction, self).reverse()
+        super().reverse()
         PrefixData(self.target_prefix)._load_single_record(self.target_full_path)
 
 
 class UnregisterEnvironmentLocationAction(PathAction):
-
     def __init__(self, transaction_context, target_prefix):
         self.transaction_context = transaction_context
         self.target_prefix = target_prefix
@@ -1208,13 +1351,22 @@ class CacheUrlAction(PathAction):
         return join(self.target_pkgs_dir, self.target_package_basename)
 
     def __str__(self):
-        return 'CacheUrlAction<url=%r, target_full_path=%r>' % (self.url, self.target_full_path)
+        return "CacheUrlAction<url={!r}, target_full_path={!r}>".format(
+            self.url, self.target_full_path
+        )
 
 
 class ExtractPackageAction(PathAction):
-
-    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 record_or_spec, sha256, size, md5):
+    def __init__(
+        self,
+        source_full_path,
+        target_pkgs_dir,
+        target_extracted_dirname,
+        record_or_spec,
+        sha256,
+        size,
+        md5,
+    ):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
@@ -1231,26 +1383,32 @@ class ExtractPackageAction(PathAction):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache_data import PackageCacheData
+
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(self.source_full_path, self.target_full_path,
-                        progress_update_callback=progress_update_callback)
+        extract_tarball(
+            self.source_full_path,
+            self.target_full_path,
+            progress_update_callback=progress_update_callback,
+        )
 
         try:
             raw_index_json = read_index_json(self.target_full_path)
-        except (IOError, OSError, JSONDecodeError, FileNotFoundError):
+        except (OSError, JSONDecodeError, FileNotFoundError):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
-            print("ERROR: Encountered corrupt package tarball at %s. Conda has "
-                  "left it in place. Please report this to the maintainers "
-                  "of the package." % self.source_full_path)
+            print(
+                "ERROR: Encountered corrupt package tarball at %s. Conda has "
+                "left it in place. Please report this to the maintainers "
+                "of the package." % self.source_full_path
+            )
             sys.exit(1)
 
         if isinstance(self.record_or_spec, MatchSpec):
-            url = self.record_or_spec.get_raw_value('url')
+            url = self.record_or_spec.get_raw_value("url")
             assert url
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)

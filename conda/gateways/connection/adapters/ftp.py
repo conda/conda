@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Taken from requests-ftp
@@ -17,7 +16,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from base64 import b64decode
 import cgi
@@ -48,7 +46,7 @@ ftplib.FTP.makepasv = _new_makepasv
 class FTPAdapter(BaseAdapter):
     """A Requests Transport Adapter that handles FTP urls."""
     def __init__(self):
-        super(FTPAdapter, self).__init__()
+        super().__init__()
 
         # Build a dictionary keyed off the methods we support in upper case.
         # The values of this dictionary should be the functions we use to
@@ -225,7 +223,6 @@ def data_callback_factory(variable):
     variable should be a file-like structure."""
     def callback(data):
         variable.write(data)
-        return
 
     return callback
 

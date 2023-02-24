@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import lru_cache
 from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
@@ -11,7 +10,6 @@ from uuid import uuid4
 from .create import create_link
 from .delete import rm_rf
 from .link import islink, lexists
-from ...auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.path import expand
 from ...models.enums import LinkType
@@ -26,7 +24,7 @@ def file_path_is_writable(path):
         path_existed = lexists(path)
         try:
             fh = open(path, 'a+')
-        except (IOError, OSError) as e:
+        except OSError as e:
             log.debug(e)
             return False
         else:
@@ -39,9 +37,9 @@ def file_path_is_writable(path):
         return access(path, W_OK)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def hardlink_supported(source_file, dest_dir):
-    test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), str(uuid4())[:8]))
+    test_file = join(dest_dir, f".tmp.{basename(source_file)}.{str(uuid4())[:8]}")
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
     if lexists(test_file):
@@ -57,14 +55,14 @@ def hardlink_supported(source_file, dest_dir):
         else:
             log.trace("hard link IS NOT supported for %s => %s", source_file, dest_dir)
         return is_supported
-    except (IOError, OSError):
+    except OSError:
         log.trace("hard link IS NOT supported for %s => %s", source_file, dest_dir)
         return False
     finally:
         rm_rf(test_file)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.
@@ -76,7 +74,7 @@ def softlink_supported(source_file, dest_dir):
     try:
         create_link(source_file, test_path, LinkType.softlink, force=True)
         return islink(test_path)
-    except (IOError, OSError):
+    except OSError:
         return False
     finally:
         rm_rf(test_path)

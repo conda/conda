@@ -17,7 +17,7 @@ exclude: |
   )/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.4.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -29,24 +29,28 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
-      - id: fix-encoding-pragma
-        exclude: ^conda/auxlib/
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        args: ["--py37-plus"]
+        exclude: ^conda/exports.py
   - repo: https://github.com/akaihola/darker
-    rev: 1.5.0
+    rev: 1.7.0
     hooks:
       - id: darker
-        additional_dependencies: [black==21.9b0]
+        additional_dependencies: [black==22.10.0]
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
+    rev: 1.13.0
     hooks:
       - id: blacken-docs
-        additional_dependencies: [black==21.9b0]
+        additional_dependencies: [black]
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 6.0.0
     hooks:
       - id: flake8
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.13.8
+    rev: v2.16.2
     hooks:
       - id: pylint
         args: [--exit-zero]
@@ -58,9 +62,9 @@ repos:
         # ignore all tests, not just tests data
         exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.13
+    rev: v1.4.2
     hooks:
       - id: insert-license
         files: \.py$
-        args: [--license-filepath, .github/disclaimer.txt]
+        args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
         exclude: ^conda/auxlib/

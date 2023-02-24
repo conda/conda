@@ -13,8 +13,8 @@ env:
 jobs:
   # NOTE: doesn't catch cases where multiple users act as the author/reporter,
   # this is just an effort to catch the majority of support cases
-  # TODO: create conda-triaging team and modify this to toggle label based on
-  # whether a non-triaging engineer commented
+  # TODO: create conda-issue-sorting team and modify this to toggle label based on
+  # whether a non-issue-sorting engineer commented
   pending_support:
     # if [pending::feedback] and the author responds
     if: >-

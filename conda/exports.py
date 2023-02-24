@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections.abc import Hashable as _Hashable
 import errno
@@ -9,14 +7,13 @@ import functools
 import os
 import sys
 import threading
-import warnings as _warnings
 
 # necessary for conda-build
-from ._vendor.six import PY3, iteritems, string_types, text_type  # noqa: F401
 from io import StringIO  # noqa: F401
 from builtins import input  # noqa: F401
 
 from . import CondaError  # noqa: F401
+from .deprecations import deprecated
 from .base.context import reset_context
 
 reset_context()  # initialize context when conda.exports is imported
@@ -34,8 +31,10 @@ from .common.toposort import _toposort  # noqa: F401
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.connection.download import TmpDownload, download as _download  # noqa: F401
 
-handle_proxy_407 = lambda x, y: _warnings.warn("handle_proxy_407 is deprecated. "
-                                               "Now handled by CondaSession.")
+@deprecated("23.3", "23.9", addendum="Handled by CondaSession.")
+def handle_proxy_407(x, y):
+    pass
+
 
 from .core.package_cache_data import rm_fetched  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
@@ -81,7 +80,6 @@ platform = conda.base.context.context.platform
 root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
-conda_private = conda.base.context.context.conda_private
 conda_build = conda.base.context.context.conda_build
 
 from .models.channel import get_conda_build_local_url  # NOQA
@@ -110,8 +108,17 @@ from .core.subdir_data import cache_fn_url  # noqa: F401
 from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .exceptions import CondaHTTPError, LockError, UnsatisfiableError  # noqa: F401
 
+# Replacements for six exports for compatibility
+PY3 = True  # noqa: F401
+string_types = str  # noqa: F401
+text_type = str  # noqa: F401
 
-class Completer(object):  # pragma: no cover
+
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+
+
+class Completer:  # pragma: no cover
     def get_items(self):
         return self._get_items()
 
@@ -122,11 +129,12 @@ class Completer(object):  # pragma: no cover
         return iter(self.get_items())
 
 
-class InstalledPackages(object):
+class InstalledPackages:
     pass
 
 
-class memoized(object):  # pragma: no cover
+@deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
+class memoized:  # pragma: no cover
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
     (not reevaluated).
@@ -223,7 +231,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 def package_cache():
     from .core.package_cache_data import PackageCacheData
 
-    class package_cache(object):
+    class package_cache:
 
         def __contains__(self, dist):
             return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
@@ -269,7 +277,7 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
-        except (IOError, OSError) as e:
+        except OSError as e:
             if (os.path.lexists(prefix_file) and (e.errno in (
                     errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST
             ))):
@@ -342,7 +350,7 @@ def linked(prefix, ignore_channels=False):
     from .models.enums import PackageType
     conda_package_types = PackageType.conda_package_types()
     ld = linked_data(prefix, ignore_channels=ignore_channels).items()
-    return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
+    return {dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types}
 
 
 # exports

@@ -1,15 +1,14 @@
-from __future__ import absolute_import, division, print_function
-try:
-    from collections.abc import Hashable
-except ImportError:
-    from collections import Hashable
+from collections.abc import Hashable
 from types import GeneratorType
 
-from .._vendor.six import wraps
+from functools import wraps
+from ..deprecations import deprecated
+
 
 # TODO: spend time filling out functionality and make these more robust
 
 
+@deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
 def memoize(func):
     """
     Decorator to cause a function to cache it's results for each combination of
@@ -262,7 +261,7 @@ def memoizedproperty(func):
 
     def new_fget(self):
         if not hasattr(self, '_cache_'):
-            self._cache_ = dict()
+            self._cache_ = {}
         cache = self._cache_
         if inner_attname not in cache:
             cache[inner_attname] = func(self)
@@ -306,7 +305,8 @@ def memoizedproperty(func):
 #
 #     return property(fget_memoized)
 
-class classproperty(object):  # pylint: disable=C0103
+
+class classproperty:  # pylint: disable=C0103
     # from celery.five
 
     def __init__(self, getter=None, setter=None):

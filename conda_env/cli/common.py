@@ -1,31 +1,28 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 from os.path import isdir, join, abspath, expanduser, expandvars
-import sys
 
-from conda.auxlib.entity import EntityEncoder
-from conda.base.context import context
+from conda.deprecations import deprecated
+from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
-from conda.cli import common as cli_common
+from conda.cli.common import stdout_json as _stdout_json, stdout_json_success
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 base_env_name = 'base'
 
 
+@deprecated("23.3", "23.9", addendum="Use `conda.cli.common.stdout_json` instead.")
 def stdout_json(d):
-    import json
-
-    json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
-    sys.stdout.write('\n')
+    _stdout_json(d)
 
 
+@deprecated("23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead.")
 def get_prefix(args, search=True):
-    from conda.base.context import determine_target_prefix
     return determine_target_prefix(context, args)
 
 
+@deprecated("23.3", "23.9")
 def find_prefix_name(name):
     if name == base_env_name:
         return context.root_prefix
@@ -40,7 +37,7 @@ def find_prefix_name(name):
 def print_result(args, prefix, result):
     if context.json:
         if result["conda"] is None and result["pip"] is None:
-            cli_common.stdout_json_success(message='All requested packages already installed.')
+            stdout_json_success(message="All requested packages already installed.")
         else:
             if result["conda"] is not None:
                 actions = result["conda"]
@@ -48,9 +45,9 @@ def print_result(args, prefix, result):
                 actions = {}
             if result["pip"] is not None:
                 actions["PIP"] = result["pip"]
-            cli_common.stdout_json_success(prefix=prefix, actions=actions)
+            stdout_json_success(prefix=prefix, actions=actions)
     else:
-        cli_install.print_activate(args.name if args.name else prefix)
+        cli_install.print_activate(args.name or prefix)
 
 
 def get_filename(filename):

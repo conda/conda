@@ -18,7 +18,13 @@ CALL \conda_bin\scripts\activate.bat || goto :error
 CALL conda create -n conda-test-env -y python=%PYTHON% pywin32 --file=tests\requirements.txt || goto :error
 CALL conda activate conda-test-env || goto :error
 CALL conda update openssl ca-certificates certifi || goto :error
+python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error
+
+:: Download minio server needed for S3 tests and place it in our conda environment so is in PATH
+powershell.exe -Command "If (-Not (Test-Path 'minio.exe')) { Invoke-WebRequest -Uri 'https://dl.minio.io/server/minio/release/windows-amd64/minio.exe' -OutFile 'minio.exe' | Out-Null }" || goto :error
+copy minio.exe %CONDA_PREFIX%\minio.exe || goto :error
+
 goto :EOF
 
 :error

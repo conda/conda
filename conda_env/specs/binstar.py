@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import importlib
@@ -14,7 +13,7 @@ ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
 
 
-class BinstarSpec(object):
+class BinstarSpec:
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
@@ -64,7 +63,7 @@ class BinstarSpec(object):
         elif self.name is None:
             self.msg = "Can't process without a name"
         else:
-            self.msg = "Invalid name, try the format: user/package"
+            self.msg = f"Invalid name {self.name!r}, try the format: user/package"
         return False
 
     def valid_package(self):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import importlib
@@ -7,8 +6,8 @@ ENTRY_POINT = 'conda_env.installers'
 
 class InvalidInstaller(Exception):
     def __init__(self, name):
-        msg = 'Unable to load installer for {}'.format(name)
-        super(InvalidInstaller, self).__init__(msg)
+        msg = f"Unable to load installer for {name}"
+        super().__init__(msg)
 
 
 def get_installer(name):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +6,6 @@ import pytest
 
 from contextlib import contextmanager
 from textwrap import dedent
-import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 
@@ -90,7 +88,6 @@ def test_invalid_yaml():
         """)
     try:
         with make_temp_condarc(condarc) as rc:
-            rc_path = rc
             run_command(Commands.CONFIG, '--file', rc, '--add', 'channels', 'test')
     except ConfigurationLoadError as err:
         assert "reason: invalid yaml at line" in err.message, err.message
@@ -508,7 +505,7 @@ def test_set_rc_without_user_rc():
 
     if os.path.exists(sys_rc_path):
         # Backup system rc_config
-        with open(sys_rc_path, 'r') as fh:
+        with open(sys_rc_path) as fh:
             sys_rc_config_backup = yaml_round_trip_load(fh)
         restore_sys_rc_config_backup = True
     else:
@@ -516,7 +513,7 @@ def test_set_rc_without_user_rc():
 
     if os.path.exists(user_rc_path):
         # Backup user rc_config
-        with open(user_rc_path, 'r') as fh:
+        with open(user_rc_path) as fh:
             user_rc_config_backup = yaml_round_trip_load(fh)
         # Remove user rc_path
         os.remove(user_rc_path)
@@ -528,7 +525,7 @@ def test_set_rc_without_user_rc():
         # Write custom system sys_rc_config
         with open(sys_rc_path, 'w') as rc:
             rc.write(yaml_round_trip_dump({'channels':['conda-forge']}))
-    except (OSError, IOError):
+    except OSError:
         # In case, we don't have writing right to the system rc config file
         pytest.skip("No writing right to root prefix.")
 

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 import os
@@ -26,8 +24,8 @@ def pip_installed_post_parse_hook(args, p):
 
 
 def main(*args, **kwargs):
-    os.environ[str('CONDA_PIP_UNINITIALIZED')] = str('true')
-    kwargs['post_parse_hook'] = pip_installed_post_parse_hook
+    os.environ["CONDA_PIP_UNINITIALIZED"] = "true"
+    kwargs["post_parse_hook"] = pip_installed_post_parse_hook
     return main_main(*args, **kwargs)
 
 

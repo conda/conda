@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -104,7 +103,7 @@ def main():
     )
 
     keep = {}
-    missing_in_whitelist = set()
+    missing_in_allowlist = set()
 
     for fn, info in packages.items():
         if info['name'] in keep_list:
@@ -112,11 +111,11 @@ def main():
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list:
-                    missing_in_whitelist.add(dep)
+                    missing_in_allowlist.add(dep)
 
-    if missing_in_whitelist:
+    if missing_in_allowlist:
         print(">>> missing <<<")
-        pprint(missing_in_whitelist)
+        pprint(missing_in_allowlist)
 
     r2json = read_data_source("conda-test_noarch")
     keep.update(r2json['packages'])

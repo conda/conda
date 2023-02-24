@@ -4,7 +4,7 @@
 build/
 dist/
 docs/_build
-docs/source/umls/*.puml
+docs/source/umls/dev-guide/*.puml
 .cache/
 .idea/
 ve/
@@ -36,6 +36,7 @@ conda.tmp/
 *.iml
 *.ipr
 *.iws
+test-report.xml
 
 # Rever
 rever/

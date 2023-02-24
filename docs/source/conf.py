@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,13 +44,16 @@ extensions = [
     "sphinxarg.ext",
     "sphinxcontrib.programoutput",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx.ext.graphviz",
     "sphinx.ext.ifconfig",
     "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.intersphinx",
     "sphinxcontrib.plantuml",
     "conda_umls",
+    "sphinx_sitemap",
 ]
 
 myst_heading_anchors = 3
@@ -136,6 +138,8 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_style = "css/custom.css"
 html_favicon = "conda-logo.png"
+# Serving the robots.txt since we want to point to the sitemap.xml file
+html_extra_path = ["robots.txt"]
 
 html_js_files = [
     "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.js",
@@ -162,6 +166,12 @@ html_sidebars = {
     ]
 }
 
+# Setting the prod URL of the site here as the base URL.
+html_baseurl = f"https://docs.conda.io/projects/{project}/"
+# We don't have a locale set, so we can safely ignore that for the sitemaps.
+sitemap_locales = [None]
+# We're hard-coding stable here since that's what we want Google to point to.
+sitemap_url_scheme = "{lang}stable/{link}"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -223,3 +233,11 @@ plantuml_jarfile_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "_build", "plantuml.jar")
 )
 plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
+
+add_module_names = False
+
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'pluggy': ('https://pluggy.readthedocs.io/en/stable/', None),
+}

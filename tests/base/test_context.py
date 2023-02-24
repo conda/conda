@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 import os
 from os.path import join, abspath
+from pathlib import Path
 from tempfile import gettempdir
 from unittest import TestCase, mock
 
@@ -14,16 +13,20 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict, ChannelPriority
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import odict
+from conda.base.context import (
+    context,
+    reset_context,
+    conda_tests_ctxt_mgmt_def_pol,
+    validate_prefix_name,
+)
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.package_cache_data import PackageCacheData
+from conda.exceptions import EnvironmentNameNotFound, CondaValueError
 from conda.gateways.disk.create import mkdir_p, create_package_cache_directory
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
@@ -34,40 +37,53 @@ from conda.utils import on_win
 
 from conda.testing.helpers import tempdir
 
+TEST_CONDARC = """
+custom_channels:
+  darwin: https://some.url.somewhere/stuff
+  chuck: http://another.url:8080/with/path
+custom_multichannels:
+  michele:
+    - https://do.it.with/passion
+    - learn_from_every_thing
+  steve:
+    - more-downloads
+channel_settings:
+  - channel: darwin
+    param_one: value_one
+    param_two: value_two
+  - channel: "http://localhost"
+    param_one: value_one
+    param_two: value_two
+migrated_custom_channels:
+  darwin: s3://just/cant
+  chuck: file:///var/lib/repo/
+migrated_channel_aliases:
+  - https://conda.anaconda.org
+channel_alias: ftp://new.url:8082
+conda-build:
+  root-dir: /some/test/path
+proxy_servers:
+  http: http://user:pass@corp.com:8080
+  https: none
+  ftp:
+  sftp: ''
+  ftps: false
+  rsync: 'false'
+aggressive_update_packages: []
+channel_priority: false
+"""
+
 
 class ContextCustomRcTests(TestCase):
 
     def setUp(self):
-        string = dals("""
-        custom_channels:
-          darwin: https://some.url.somewhere/stuff
-          chuck: http://another.url:8080/with/path
-        custom_multichannels:
-          michele:
-            - https://do.it.with/passion
-            - learn_from_every_thing
-          steve:
-            - more-downloads
-        migrated_custom_channels:
-          darwin: s3://just/cant
-          chuck: file:///var/lib/repo/
-        migrated_channel_aliases:
-          - https://conda.anaconda.org
-        channel_alias: ftp://new.url:8082
-        conda-build:
-          root-dir: /some/test/path
-        proxy_servers:
-          http: http://user:pass@corp.com:8080
-          https: none
-          ftp:
-          sftp: ''
-          ftps: false
-          rsync: 'false'
-        aggressive_update_packages: []
-        channel_priority: false
-        """)
+        string = TEST_CONDARC
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
 
     def tearDown(self):
@@ -103,7 +119,11 @@ class ContextCustomRcTests(TestCase):
         SIGNING_URL_BASE = "https://conda.example.com/pkgs"
         string = f"signing_metadata_url_base: {SIGNING_URL_BASE}"
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         assert context.signing_metadata_url_base == SIGNING_URL_BASE
 
@@ -112,9 +132,13 @@ class ContextCustomRcTests(TestCase):
         default_channels: []
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
-        assert len(context.default_channels) is 0
+        assert len(context.default_channels) == 0
         assert context.signing_metadata_url_base is None
 
 
@@ -123,7 +147,11 @@ class ContextCustomRcTests(TestCase):
         client_ssl_cert_key: /some/key/path
         """)
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         pytest.raises(ValidationError, context.validate_configuration)
 
@@ -166,10 +194,15 @@ class ContextCustomRcTests(TestCase):
                 assert channel.scheme is None
                 assert channel.canonical_name == "local"
                 assert channel.url() is None
-                urls = list(concat((
-                               join_url(url, context.subdir),
-                               join_url(url, 'noarch'),
-                           ) for url in context.conda_build_local_urls))
+                urls = list(
+                    chain.from_iterable(
+                        (
+                            join_url(url, context.subdir),
+                            join_url(url, "noarch"),
+                        )
+                        for url in context.conda_build_local_urls
+                    )
+                )
                 assert channel.urls() == urls
 
                 channel = Channel(conda_bld_url)
@@ -234,7 +267,7 @@ class ContextCustomRcTests(TestCase):
 
         from pprint import pprint
         for name in documented_parameter_names:
-            description = context.get_descriptions()[name]
+            context.get_descriptions()[name]
             pprint(context.describe_parameter(name))
 
     def test_local_build_root_custom_rc(self):
@@ -278,28 +311,13 @@ class ContextCustomRcTests(TestCase):
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
 
     def test_aggressive_update_packages(self):
-        assert context.aggressive_update_packages == tuple()
+        assert context.aggressive_update_packages == ()
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), stack_callback=conda_tests_ctxt_mgmt_def_pol):
             assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
 
     def test_channel_priority(self):
         assert context.channel_priority == ChannelPriority.DISABLED
-
-    def test_cuda_detection(self):
-        # confirm that CUDA detection doesn't raise exception
-        version = context.cuda_version
-        assert version is None or isinstance(version, str)
-
-    def test_cuda_override(self):
-        with env_var('CONDA_OVERRIDE_CUDA', '4.5'):
-            version = context.cuda_version
-            assert version == '4.5'
-
-    def test_cuda_override_none(self):
-        with env_var('CONDA_OVERRIDE_CUDA', ''):
-            version = context.cuda_version
-            assert version is None
 
     def test_threads(self):
         default_value = None
@@ -357,10 +375,16 @@ class ContextCustomRcTests(TestCase):
         Test when no channels provided in cli, but some in condarc
         """
         reset_context(())
-        string = dals("""
+        string = dals(
+            """
         channels: ['defaults', 'conda-forge']
-        """)
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        """
+        )
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         assert context.channels == ('defaults', 'conda-forge')
 
@@ -377,11 +401,17 @@ class ContextCustomRcTests(TestCase):
         When the channel have been specified in condarc, these channels
         should be used along with the one specified
         """
-        reset_context((), argparse_args=AttrDict(channel=['conda-forge']))
-        string = dals("""
+        reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
+        string = dals(
+            """
         channels: ['defaults', 'conda-forge']
-        """)
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        """
+        )
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         assert context.channels == ('defaults', 'conda-forge')
 
@@ -392,11 +422,17 @@ class ContextCustomRcTests(TestCase):
         In this test, the given channel in cli is different from condarc
         'defaults' should not be added
         """
-        reset_context((), argparse_args=AttrDict(channel=['other']))
-        string = dals("""
+        reset_context((), argparse_args=AttrDict(channel=["other"]))
+        string = dals(
+            """
         channels: ['conda-forge']
-        """)
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        """
+        )
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         assert context.channels == ('conda-forge', 'other')
 
@@ -409,11 +445,17 @@ class ContextCustomRcTests(TestCase):
         'defaults' should not be added
         See https://github.com/conda/conda/issues/10732
         """
-        reset_context((), argparse_args=AttrDict(channel=['conda-forge']))
-        string = dals("""
+        reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
+        string = dals(
+            """
         channels: ['conda-forge']
-        """)
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        """
+        )
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         assert context.channels == ('conda-forge',)
 
@@ -425,33 +467,37 @@ class ContextCustomRcTests(TestCase):
             with mock.patch.dict(os.environ, {"TEST_VAR": env_value}):
                 reset_context(())
                 string = f"{attr}: {config_expr}"
-                rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+                rd = {
+                    "testdata": YamlRawParameter.make_raw_parameters(
+                        "testdata", yaml_round_trip_load(string)
+                    )
+                }
                 context._set_raw_data(rd)
                 return getattr(context, attr)
 
         ssl_verify = _get_expandvars_context("ssl_verify", "${TEST_VAR}", "yes")
         assert ssl_verify
 
-        for attr, env_value in [
+        for attr, env_value in (
             ("client_ssl_cert", "foo"),
             ("client_ssl_cert_key", "foo"),
             ("channel_alias", "http://foo"),
-        ]:
+        ):
             value = _get_expandvars_context(attr, "${TEST_VAR}", env_value)
             assert value == env_value
 
-        for attr in [
+        for attr in (
             "migrated_custom_channels",
             "proxy_servers",
-        ]:
+        ):
             value = _get_expandvars_context("proxy_servers", "{'x': '${TEST_VAR}'}", "foo")
             assert value == {"x": "foo"}
 
-        for attr in [
+        for attr in (
             "channels",
             "default_channels",
-            "whitelist_channels",
-        ]:
+            "allowlist_channels",
+        ):
             value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
             assert value == ("foo",)
 
@@ -468,6 +514,15 @@ class ContextCustomRcTests(TestCase):
         pkgs_dirs = _get_expandvars_context("pkgs_dirs", "['${TEST_VAR}']", "/foo")
         assert any("foo" in d for d in pkgs_dirs)
 
+    def test_channel_settings(self):
+        """
+        Makes sure that "channel_settings" appears as we expect it to on the context object
+        """
+        assert context.channel_settings == (
+            {"channel": "darwin", "param_one": "value_one", "param_two": "value_two"},
+            {"channel": "http://localhost", "param_one": "value_one", "param_two": "value_two"},
+        )
+
 
 class ContextDefaultRcTests(TestCase):
 
@@ -483,3 +538,60 @@ class ContextDefaultRcTests(TestCase):
             assert context.local_build_root == join(context.root_prefix, 'conda-bld')
         else:
             assert context.local_build_root == expand('~/conda-bld')
+
+
+if on_win:
+    VALIDATE_PREFIX_NAME_BASE_DIR = Path("C:\\Users\\name\\prefix_dir\\")
+else:
+    VALIDATE_PREFIX_NAME_BASE_DIR = Path("/home/user/prefix_dir/")
+
+VALIDATE_PREFIX_ENV_NAME = "env-name"
+
+VALIDATE_PREFIX_TEST_CASES = (
+    # First scenario which triggers an Environment not found error
+    (
+        VALIDATE_PREFIX_ENV_NAME,
+        False,
+        (VALIDATE_PREFIX_NAME_BASE_DIR, EnvironmentNameNotFound(VALIDATE_PREFIX_ENV_NAME)),
+        VALIDATE_PREFIX_NAME_BASE_DIR.joinpath(VALIDATE_PREFIX_ENV_NAME),
+    ),
+    # Passing in not allowed characters as the prefix name
+    (
+        "not/allow#characters:in-path",
+        False,
+        (None, None),
+        CondaValueError("Invalid environment name"),
+    ),
+    # Passing in not allowed characters as the prefix name
+    (
+        "base",
+        False,
+        (None, None),
+        CondaValueError("Use of 'base' as environment name is not allowed here."),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "prefix,allow_base,mock_return_values,expected", VALIDATE_PREFIX_TEST_CASES
+)
+def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
+    ctx = mock.MagicMock()
+
+    with mock.patch("conda.base.context._first_writable_envs_dir") as mock_one, mock.patch(
+        "conda.base.context.locate_prefix_by_name"
+    ) as mock_two:
+
+        mock_one.side_effect = [mock_return_values[0]]
+        mock_two.side_effect = [mock_return_values[1]]
+
+        if isinstance(expected, CondaValueError):
+            with pytest.raises(CondaValueError) as exc:
+                validate_prefix_name(prefix, ctx, allow_base=allow_base)
+
+            # We fuzzy match the error message here. Doing this exactly is not important
+            assert str(expected) in str(exc)
+
+        else:
+            actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
+            assert actual == str(expected)

@@ -1,20 +1,20 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
-from functools import reduce
+from functools import lru_cache, reduce
+from itertools import accumulate, chain
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
+from typing import Iterable, Sequence
 from urllib.parse import urlsplit
 
 from .compat import on_win
 from .. import CondaError
-from ..auxlib.decorators import memoize
-from .._vendor.toolz import accumulate, concat
+from ..deprecations import deprecated
 from distutils.spawn import find_executable
 
 
@@ -29,6 +29,10 @@ PATH_MATCH_REGEX = (
     r"|\\\\"            # windows UNC path
     r"|//"              # windows UNC path
 )
+
+# any other extension will be mangled by CondaSession.get() as it tries to find
+# channel names from URLs, through strip_pkg_extension()
+KNOWN_EXTENSIONS = (".conda", ".tar.bz2", ".json", ".jlap", ".json.zst")
 
 
 def is_path(value):
@@ -53,7 +57,8 @@ def paths_equal(path1, path2):
     else:
         return abspath(path1) == abspath(path2)
 
-@memoize
+
+@lru_cache(maxsize=None)
 def url_to_path(url):
     """Convert a file:// URL to a path.
 
@@ -82,14 +87,13 @@ def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
-def get_all_directories(files):
-    return sorted(set(tuple(f.split('/')[:-1]) for f in files) - {()})
+def get_all_directories(files: Iterable[str]) -> list[tuple[str]]:
+    return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
 
 
-def get_leaf_directories(files):
-    # type: (List[str]) -> List[str]
-    # give this function a list of files, and it will hand back a list of leaf directories to
-    #   pass to os.makedirs()
+def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
+    # give this function a list of files, and it will hand back a list of leaf
+    # directories to pass to os.makedirs()
     directories = get_all_directories(files)
     if not directories:
         return ()
@@ -110,12 +114,15 @@ def get_leaf_directories(files):
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(child_directories, already_split=False):
+@deprecated.argument("23.3", "23.9", "already_split")
+def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str]:
     # get all directories including parents
-    # use already_split=True for the result of get_all_directories()
-    maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory))
-                      for directory in child_directories if directory))
+    # child_directories must already be split with os.path.split
+    return set(
+        chain.from_iterable(
+            accumulate(directory, join) for directory in child_directories if directory
+        )
+    )
 
 
 def pyc_path(py_path, python_major_minor_version):
@@ -131,9 +138,8 @@ def pyc_path(py_path, python_major_minor_version):
     else:
         directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = "__pycache__" + '/' + "%s.cpython-%s%sc" % (
-            basename_root, pyver_string, extension)
-        return "%s%s%s" % (directory, '/', pyc_file) if directory else pyc_file
+        pyc_file = "__pycache__" + "/" + f"{basename_root}.cpython-{pyver_string}{extension}c"
+        return "{}{}{}".format(directory, "/", pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):
@@ -242,7 +248,7 @@ def ensure_pad(name, pad="_"):
     if not name or name[0] == name[-1] == pad:
         return name
     else:
-        return "%s%s%s" % (pad, name, pad)
+        return f"{pad}{name}{pad}"
 
 
 def is_private_env_name(env_name):
@@ -327,7 +333,7 @@ def which(executable):
     return find_executable(executable)
 
 
-def strip_pkg_extension(path):
+def strip_pkg_extension(path: str):
     """
     Examples:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
@@ -339,14 +345,10 @@ def strip_pkg_extension(path):
     """
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
-    if path[-6:] == ".conda":
-        return path[:-6], ".conda"
-    elif path[-8:] == ".tar.bz2":
-        return path[:-8], ".tar.bz2"
-    elif path[-5:] == ".json":
-        return path[:-5], ".json"
-    else:
-        return path, None
+    for extension in KNOWN_EXTENSIONS:
+        if path.endswith(extension):
+            return path[: -len(extension)], extension
+    return path, None
 
 
 def is_package_file(path):

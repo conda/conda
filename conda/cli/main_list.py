@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 from os.path import isdir, isfile
@@ -52,10 +50,10 @@ def list_packages(prefix, regex=None, format='human',
             result.append('='.join((prec.name, prec.version, prec.build)))
             continue
 
-        features = set(prec.get('features') or ())
-        disp = '%(name)-25s %(version)-15s %(build)15s' % prec  # NOQA lgtm [py/percent-format/wrong-arguments]
-        disp += '  %s' % disp_features(features)
-        schannel = prec.get('schannel')
+        features = set(prec.get("features") or ())
+        disp = "%(name)-25s %(version)-15s %(build)15s" % prec
+        disp += "  %s" % disp_features(features)
+        schannel = prec.get("schannel")
         show_channel_urls = show_channel_urls or context.show_channel_urls
         if (show_channel_urls or show_channel_urls is None
                 and schannel != DEFAULTS_CHANNEL_NAME):

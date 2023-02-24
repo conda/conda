@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
@@ -6,13 +5,18 @@ import os
 import sys
 import textwrap
 
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
-    add_parser_experimental_solver
+from conda.base.context import context, determine_target_prefix
+from conda.cli.conda_argparse import (
+    add_parser_json,
+    add_parser_prefix,
+    add_parser_solver,
+)
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaEnvException, SpecNotFound
+from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
+from conda.notices import notices
 
-from .common import get_prefix, print_result, get_filename
+from .common import print_result, get_filename
 from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -59,19 +63,19 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
-    add_parser_experimental_solver(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_update.execute')
 
 
+@notices
 def execute(args, parser):
-    name = args.remote_definition or args.name
-
-    try:
-        spec = install_specs.detect(name=name, filename=get_filename(args.file),
-                                    directory=os.getcwd())
-        env = spec.environment
-    except SpecNotFound:
-        raise
+    spec = install_specs.detect(
+        name=args.name,
+        filename=get_filename(args.file),
+        directory=os.getcwd(),
+        remote_definition=args.remote_definition,
+    )
+    env = spec.environment
 
     if not (args.name or args.prefix):
         if not env.name:
@@ -93,7 +97,7 @@ def execute(args, parser):
         # be specified.
         args.name = env.name
 
-    prefix = get_prefix(args, search=False)
+    prefix = determine_target_prefix(context, args)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
