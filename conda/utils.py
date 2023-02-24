@@ -362,11 +362,12 @@ def massage_arguments(arguments, errors='assert'):
 
 
 def _wrap_bat(
-        root_prefix,
-        prefix,
-        dev_mode,
-        debug_wrapper_scripts,
-        arguments,
+    root_prefix,
+    prefix,
+    dev_mode,
+    debug_wrapper_scripts,
+    arguments,
+    newline="\n",
 ):
     """wrap :param arguments: in a .bat file"""
     with StringIO() as bat:
@@ -377,42 +378,42 @@ def _wrap_bat(
             conda_bat = environ.get("CONDA_BAT",
                                     abspath(join(root_prefix, 'condabin', 'conda.bat')))
         silencer = "" if debug_wrapper_scripts else "@"
-        bat.write(f"{silencer}ECHO OFF\n")
-        bat.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
-        bat.write(f"{silencer}SET PYTHONUTF8=1\n")
+        bat.write(f"{silencer}ECHO OFF{newline}")
+        bat.write(f"{silencer}SET PYTHONIOENCODING=utf-8{newline}")
+        bat.write(f"{silencer}SET PYTHONUTF8=1{newline}")
         bat.write(
             f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
         )
-        bat.write(f"{silencer}chcp 65001 > NUL\n")
+        bat.write(f"{silencer}chcp 65001 > NUL{newline}")
         if dev_mode:
             from . import CONDA_SOURCE_ROOT
 
-            bat.write(f"{silencer}SET CONDA_DEV=1\n")
+            bat.write(f"{silencer}SET CONDA_DEV=1{newline}")
             # In dev mode, conda is really:
             # 'python -m conda'
             # *with* PYTHONPATH set.
-            bat.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")
-            bat.write(f"{silencer}SET CONDA_EXE={sys.executable}\n")
-            bat.write(f"{silencer}SET _CE_M=-m\n")
-            bat.write(f"{silencer}SET _CE_CONDA=conda\n")
+            bat.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}{newline}")
+            bat.write(f"{silencer}SET CONDA_EXE={sys.executable}{newline}")
+            bat.write(f"{silencer}SET _CE_M=-m{newline}")
+            bat.write(f"{silencer}SET _CE_CONDA=conda{newline}")
         if debug_wrapper_scripts:
-            bat.write("echo *** environment before *** 1>&2\n")
-            bat.write("SET 1>&2\n")
+            bat.write(f"echo *** environment before *** 1>&2{newline}")
+            bat.write(f"SET 1>&2{newline}")
         # Not sure there is any point in backing this up, nothing will get called with it reset
         # after all!
         # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
         # fh.write('@chcp 65001>NUL\n')
-        bat.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
-        bat.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+        bat.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"{newline}')
+        bat.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%{newline}")
         if debug_wrapper_scripts:
-            bat.write("echo *** environment after *** 1>&2\n")
-            bat.write("SET 1>&2\n")
-        if len(arguments) == 1 and "\n" in arguments[0]:  # multiline
+            bat.write(f"echo *** environment after *** 1>&2{newline}")
+            bat.write(f"SET 1>&2{newline}")
+        if len(arguments) == 1 and newline in arguments[0]:  # multiline
             # No point silencing the first line. If that's what's wanted then
             # it needs doing for each line and the caller may as well do that.
-            bat.write(f"{arguments[0]}\n")
+            bat.write(f"{arguments[0]}{newline}")
         else:
-            assert not any("\n" in arg for arg in arguments), (
+            assert not any(newline in arg for arg in arguments), (
                 "Support for scripts where arguments contain newlines not implemented.\n"
                 ".. requires writing the script to an external file and knowing how to "
                 "transform the command-line (e.g. `python -c args` => `python file`) "
@@ -420,9 +421,9 @@ def _wrap_bat(
                 ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
                 "requirements)"
             )
-            bat.write(f"{silencer}{quote_for_shell(*arguments)}\n")
-        bat.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
-        bat.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
+            bat.write(f"{silencer}{quote_for_shell(*arguments)}{newline}")
+        bat.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%{newline}")
+        bat.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL")
         return bat.getvalue()
 
 
@@ -432,13 +433,14 @@ def _wrap_sh(
     dev_mode,
     debug_wrapper_scripts,
     arguments,
+    newline="\n",
 ):
     """wrap :param arguments: in a .sh script"""
     with StringIO() as sh:
         if dev_mode:
             from . import CONDA_SOURCE_ROOT
 
-            sh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
+            sh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + newline)
             conda_exe = [abspath(join(root_prefix, 'bin', 'python')), '-m', 'conda']
             dev_arg = '--dev'
             dev_args = [dev_arg]
@@ -448,18 +450,18 @@ def _wrap_sh(
             dev_args = []
         hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
         if debug_wrapper_scripts:
-            sh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
-            sh.write(f'>&2 echo "$({hook_quoted})"\n')
-        sh.write(f'eval "$({hook_quoted})"\n')
-        sh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
+            sh.write(f">&2 echo '*** environment before ***'{newline}>&2 env{newline}")
+            sh.write(f'>&2 echo "$({hook_quoted})"{newline}')
+        sh.write(f'eval "$({hook_quoted})"{newline}')
+        sh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}{newline}")
         if debug_wrapper_scripts:
-            sh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
-        if len(arguments) == 1 and "\n" in arguments[0]:  # multiline
+            sh.write(f">&2 echo '*** environment after ***'{newline}>&2 env{newline}")
+        if len(arguments) == 1 and newline in arguments[0]:  # multiline
             # The ' '.join() is pointless since mutliline is only True when there's 1 arg
             # still, if that were to change this would prevent breakage.
-            sh.write("{}\n".format(" ".join(arguments)))
+            sh.write("{}".format(" ".join(arguments)))
         else:
-            sh.write(f"{quote_for_shell(*arguments)}\n")
+            sh.write(f"{quote_for_shell(*arguments)}")
         return sh.getvalue()
 
 
@@ -514,9 +516,25 @@ def wrap_subprocess_call(
         mode="w", prefix=tmp_prefix, suffix=shell["shell_suffix"], delete=False
     ) as fh:
         if shell["shell_suffix"] == ".sh":
-            fh.write(_wrap_sh(root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments))
+            fh.write(
+                _wrap_sh(
+                    root_prefix,
+                    prefix,
+                    dev_mode,
+                    debug_wrapper_scripts,
+                    arguments,
+                )
+            )
         elif shell["shell_suffix"] == ".bat":
-            fh.write(_wrap_bat(root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments))
+            fh.write(
+                _wrap_bat(
+                    root_prefix,
+                    prefix,
+                    dev_mode,
+                    debug_wrapper_scripts,
+                    arguments,
+                )
+            )
         else:
             raise ValueError(f"cannot wrap commands in '{shell['shell_suffix']}' script")
         script_caller = fh.name
@@ -546,21 +564,30 @@ def wrap_exec_call(
     if shell["exec"]:
         arguments.insert(0, shell["exec"])
     if shell["shell_suffix"] == ".sh":
-        script = _wrap_sh(root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments)
+        script = _wrap_sh(
+            root_prefix,
+            prefix,
+            dev_mode,
+            debug_wrapper_scripts,
+            arguments,
+            newline=shell.get("line_join") or "\n",
+        )
     elif shell["shell_suffix"] == ".bat":
-        script = _wrap_bat(root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments)
+        script = _wrap_bat(
+            root_prefix,
+            prefix,
+            dev_mode,
+            debug_wrapper_scripts,
+            arguments,
+            newline=shell.get("line_join") or "\n",
+        )
     else:
         raise ValueError(f"cannot wrap commands in '{shell['shell_suffix']}' script")
-    if shell.get("line_join"):
-        # join lines with shell['line_join'], dropping empty lines
-        command = shell["line_join"].join(line for line in script.splitlines() if line)
-    else:
-        command = script
     command_args = [
         shell["which"],
         *(shell["debug_args"] if debug_wrapper_scripts else []),
         *shell["shell_args"],
-        command,
+        script,
     ]
     return script, command_args
 
