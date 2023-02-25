@@ -173,6 +173,7 @@ if on_win:
             script_args=["/d", "/c"],
             shell_args=["/d", "/c"],
             debug_args=[],
+            line_join="&&",
             exec='',
             path_from=path_identity,
             path_to=path_identity,
@@ -368,6 +369,7 @@ def _wrap_bat(
     debug_wrapper_scripts,
     arguments,
     newline="\n",
+    shell=False,
 ):
     """wrap :param arguments: in a .bat file"""
     with StringIO() as bat:
@@ -382,7 +384,9 @@ def _wrap_bat(
         bat.write(f"{silencer}SET PYTHONIOENCODING=utf-8{newline}")
         bat.write(f"{silencer}SET PYTHONUTF8=1{newline}")
         bat.write(
-            f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+            f'{silencer}FOR /F "tokens=2 delims=:." {"%" if shell else "%%"}A in (\'chcp\') do '
+            + f'{silencer}for {"%" if shell else "%%"}B in ({"%" if shell else "%%"}A) do '
+            + f'{silencer}set "_CONDA_OLD_CHCP={"%" if shell else "%%"}B"{newline}'
         )
         bat.write(f"{silencer}chcp 65001 > NUL{newline}")
         if dev_mode:
@@ -399,12 +403,8 @@ def _wrap_bat(
         if debug_wrapper_scripts:
             bat.write(f"echo *** environment before *** 1>&2{newline}")
             bat.write(f"SET 1>&2{newline}")
-        # Not sure there is any point in backing this up, nothing will get called with it reset
-        # after all!
-        # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
-        # fh.write('@chcp 65001>NUL\n')
         bat.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"{newline}')
-        bat.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%{newline}")
+        bat.write(f"( {silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL% ){newline}")
         if debug_wrapper_scripts:
             bat.write(f"echo *** environment after *** 1>&2{newline}")
             bat.write(f"SET 1>&2{newline}")
@@ -421,8 +421,8 @@ def _wrap_bat(
                 ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
                 "requirements)"
             )
-            bat.write(f"{silencer}{quote_for_shell(*arguments)}{newline}")
-        bat.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%{newline}")
+            bat.write(f"{quote_for_shell(*arguments)}{newline}")
+        bat.write(f"( {silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL% ){newline}")
         bat.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL")
         return bat.getvalue()
 
@@ -580,6 +580,7 @@ def wrap_exec_call(
             debug_wrapper_scripts,
             arguments,
             newline=shell.get("line_join") or "\n",
+            shell=True,
         )
     else:
         raise ValueError(f"cannot wrap commands in '{shell['shell_suffix']}' script")

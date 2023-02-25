@@ -5,8 +5,7 @@
 import os
 
 from ..base.context import context
-from ..utils import wrap_exec_call
-from ..common.compat import encode_environment
+from ..utils import wrap_exec_call, on_win
 from .common import validate_prefix
 
 
@@ -24,9 +23,16 @@ def execute(args, parser):
     if args.cwd:
         os.chdir(args.cwd)
 
-    # run script, replacing conda python process
-    os.execvpe(
-        file=call_args[0],
-        args=call_args,
-        env=encode_environment(os.environ),
-    )
+    if on_win:
+        # fork process - os.exec* does not work as expected in Windows
+        return os.spawnv(
+            os.P_WAIT,
+            call_args[0],
+            call_args,
+        )
+    else:
+        # exec process, replacing conda python process completely
+        os.execvp(
+            file=call_args[0],
+            args=call_args,
+        )
