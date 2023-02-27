@@ -64,8 +64,6 @@ class RepodataOnDisk(Exception):
     instead of returning a string.
     """
 
-    pass
-
 
 class RepoInterface(abc.ABC):
     # TODO: Support async operations
@@ -560,7 +558,8 @@ class RepodataCache:
     @property
     def cache_path_json(self):
         return pathlib.Path(
-            self.cache_dir, self.name + ("1" if context.use_only_tar_bz2 else "") + ".json"
+            self.cache_dir,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + ".json",
         )
 
     @property
