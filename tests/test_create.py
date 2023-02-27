@@ -2199,10 +2199,21 @@ dependencies:
 
     def test_multiline_run_command(self):
         with make_temp_env() as prefix:
-            env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
-            {env} | sort
+            env_which_etc, errs_etc, _ = run_command(
+                Commands.RUN,
+                prefix,
+                "--cwd",
+                prefix,
+                dedent(
+                    """
+            {env}
             {which} conda
-            """.format(env=env_or_set, which=which_or_where)), dev=True)
+            """.format(
+                        env=env_or_set, which=which_or_where
+                    )
+                ),
+                dev=True,
+            )
         assert env_which_etc
         assert not errs_etc
 
