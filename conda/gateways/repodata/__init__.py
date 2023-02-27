@@ -634,7 +634,7 @@ class RepodataCache:
         """
         Write data to <repodata>.json cache path, synchronize state.
         """
-        temp_path = self.cache_dir / self.cache_dir.with_suffix(f".{os.urandom(4).hex()}.tmp")
+        temp_path = self.cache_dir / f"{self.name}.{os.urandom(4).hex()}.tmp"
 
         try:
             with temp_path.open("x") as temp:  # exclusive mode, error if exists
