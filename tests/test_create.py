@@ -2205,12 +2205,10 @@ dependencies:
                 "--cwd",
                 prefix,
                 dedent(
+                    f"""
+                    {env_or_set}
+                    {which_or_where} conda
                     """
-            {env}
-            {which} conda
-            """.format(
-                        env=env_or_set, which=which_or_where
-                    )
                 ),
                 dev=True,
             )
