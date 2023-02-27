@@ -8,5 +8,5 @@ TEST_GROUP="${TEST_GROUP:-1}"
 eval "$(sudo python -m conda init bash --dev)"
 conda info
 conda-build tests/test-recipes/activate_deactivate_package
-python -m pytest --cov=conda -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+python -m pytest --cov=conda --store-durations --durations-path=.test_durations_${OS} --splitting-algorithm=least_duration -m "integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
 python -m conda.common.io

@@ -17,4 +17,4 @@ sudo rm -rf /opt/conda/pkgs/*-*-*
 # put temporary files on same filesystem
 export TMP=$HOME/pytesttmp
 mkdir -p $TMP
-python -m pytest --cov=conda --basetemp=$TMP -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+python -m pytest --cov=conda --store-durations --durations-path=.test_durations_${OS} --splitting-algorithm=least_duration --basetemp=$TMP -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
