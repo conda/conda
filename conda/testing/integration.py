@@ -53,6 +53,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import link
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import DEBUG
+from conda.gateways.subprocess import subprocess_call
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.utils import massage_arguments
@@ -276,20 +277,18 @@ def run_command(command, prefix, *arguments, **kwargs):
     # list2cmdline is not exact, but it is only informational.
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % " ".join(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(TEST_LOG_LEVEL, "requests"):
-        arguments = encode_arguments(arguments)
-        is_run = arguments[0] == "run"
-        if is_run:
-            cap_args = (None, None)
-        with argv(["python_api"] + arguments), captured(*cap_args) as c:
-            if use_exception_handler:
-                result = conda_exception_handler(do_call, args, p)
-            else:
-                result = do_call(args, p)
-        if is_run:
-            stdout = result.stdout
-            stderr = result.stderr
-            result = result.rc
+        if arguments[0] == "run":
+            resp = subprocess_call(" ".join("conda", *arguments))
+            stdout = resp.stdout
+            stderr = resp.stderr
+            result = resp.rc
         else:
+            arguments = encode_arguments(arguments)
+            with argv(["python_api"] + arguments), captured(*cap_args) as c:
+                if use_exception_handler:
+                    result = conda_exception_handler(do_call, args, p)
+                else:
+                    result = do_call(args, p)
             stdout = c.stdout
             stderr = c.stderr
         print(stdout, file=sys.stdout)

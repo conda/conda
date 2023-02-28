@@ -101,6 +101,7 @@ unix_shell_base = dict(
     echo="echo",
     env_script_suffix=".sh",
     exec="exec",
+    exec_check="which",
     line_join=" && ",
     nul="2>/dev/null",
     path_from=path_identity,
@@ -175,6 +176,7 @@ if on_win:
             debug_args=[],
             line_join="&&",
             exec='',
+            exec_check=False,
             path_from=path_identity,
             path_to=path_identity,
             slash_convert=("/", "\\"),
@@ -184,6 +186,7 @@ if on_win:
         "cygwin": dict(
             unix_shell_base,
             exe="bash.exe",
+            exec_check="type -p",
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=cygwin_path_to_win,
             path_to=win_path_to_cygwin
@@ -193,9 +196,11 @@ if on_win:
         #    filesystem root.
         "bash.exe": dict(
             msys2_shell_base, exe="bash.exe",
+            exec_check="type -p",
         ),
         "bash": dict(
             msys2_shell_base, exe="bash",
+            exec_check="type -p",
         ),
         "sh.exe": dict(
             msys2_shell_base, exe="sh.exe",
@@ -212,6 +217,7 @@ else:
     shells = {
         "bash": dict(
             unix_shell_base, exe="bash",
+            exec_check="type -p",
         ),
         "dash": dict(
             unix_shell_base, exe="dash",
@@ -434,6 +440,7 @@ def _wrap_sh(
     debug_wrapper_scripts,
     arguments,
     newline="\n",
+    _no_quote_for_shell=False,
 ):
     """wrap :param arguments: in a .sh script"""
     with StringIO() as sh:
@@ -460,6 +467,9 @@ def _wrap_sh(
             # The ' '.join() is pointless since mutliline is only True when there's 1 arg
             # still, if that were to change this would prevent breakage.
             sh.write("{}".format(" ".join(arguments)))
+        elif _no_quote_for_shell:
+            for a in arguments:
+                sh.write(a)
         else:
             sh.write(f"{quote_for_shell(*arguments)}")
         return sh.getvalue()
@@ -562,7 +572,21 @@ def wrap_exec_call(
     arguments = massage_arguments(arguments)
     shell = _get_shell(condition=lambda s: s["shell_suffix"] in [".bat", ".sh"])
     if shell["exec"]:
-        arguments.insert(0, shell["exec"])
+        if shell["exec_check"] and shell["shell_suffix"] == ".sh":
+            # conditional logic to check if the command is exec-able (i.e. don't exec builtins)
+            arguments = " ".join(
+                # ["if", "[", "-n", f'"$({shell["exec_check"]} {arguments[0]})"', "];", "then"]
+                [f'if [ -n "$({shell["exec_check"]} {arguments[0]})" ]; then']
+                + [shell["exec"]]
+                + [quote_for_shell(arguments)]
+                + [";"]
+                + ["else"]
+                + [quote_for_shell(arguments)]
+                + [";"]
+                + ["fi"]
+            )
+        else:
+            arguments.insert(0, shell["exec"])
     if shell["shell_suffix"] == ".sh":
         script = _wrap_sh(
             root_prefix,
@@ -571,6 +595,7 @@ def wrap_exec_call(
             debug_wrapper_scripts,
             arguments,
             newline=shell.get("line_join") or "\n",
+            _no_quote_for_shell=bool(shell["exec_check"]),
         )
     elif shell["shell_suffix"] == ".bat":
         script = _wrap_bat(

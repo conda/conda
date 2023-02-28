@@ -133,6 +133,8 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     if command.startswith("conda env"):
         command = command.replace("env", "")  # Remove 'env' because of command parser
         main_func = conda_env_cli.main
+    elif command.startswith("conda run"):
+        raise ValueError("'conda run' must be tested in a subprocess")
     else:
         main_func = cli.main
 
