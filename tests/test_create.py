@@ -490,6 +490,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
+
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
@@ -507,7 +508,7 @@ class IntegrationTests(BaseTestCase):
 
                 # regression test for #3433
                 run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
-                assert package_is_installed(prefix, 'python=3.5')
+                assert package_is_installed(prefix, "python=3.5")
 
                 # regression test for #5847
                 #   when using rm_rf on a file
@@ -1624,7 +1625,9 @@ dependencies:
             },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
+            with make_temp_env(
+                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
+            ) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1835,7 +1838,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
-            assert channel_url.replace('cqgccfm1mfma', '<TOKEN>') in yml_obj['channels']
+            assert channel_url.replace("cqgccfm1mfma", "<TOKEN>") in yml_obj["channels"]
 
             with pytest.raises(PackagesNotFoundError):
                 # this was supposed to be a package available in private but not
@@ -1885,8 +1888,15 @@ dependencies:
             yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
-            output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                       "linux-64", "--json", use_exception_handler=True)
+            output, _, _ = run_command(
+                Commands.SEARCH,
+                prefix,
+                "anyjson",
+                "--platform",
+                "linux-64",
+                "--json",
+                use_exception_handler=True,
+            )
             json_obj = json_loads(output)
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
@@ -2189,10 +2199,19 @@ dependencies:
 
     def test_multiline_run_command(self):
         with make_temp_env() as prefix:
-            env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
-            {env} | sort
-            {which} conda
-            """.format(env=env_or_set, which=which_or_where)), dev=True)
+            env_which_etc, errs_etc, _ = run_command(
+                Commands.RUN,
+                prefix,
+                "--cwd",
+                prefix,
+                dedent(
+                    f"""
+                    {env_or_set}
+                    {which_or_where} conda
+                    """
+                ),
+                dev=True,
+            )
         assert env_which_etc
         assert not errs_etc
 
