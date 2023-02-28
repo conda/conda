@@ -9,7 +9,7 @@ from unittest import mock
 import pytest
 
 from conda.base.context import context
-from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL, NOTICES_CACHE_FN
+from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.cli import main_notices as notices
 from conda.cli import conda_argparse
 from conda.notices import fetch
@@ -333,7 +333,7 @@ def test_notices_cannot_read_cache_files(notices_cache_dir, notices_mock_http_se
     with mock.patch("conda.notices.cache.open") as mock_open:
         mock_open.side_effect = [PermissionError(error_message)]
         out, err, exit_code = run(
-            f"conda notices -c local --override-channels", disallow_stderr=False
+            "conda notices -c local --override-channels", disallow_stderr=False
         )
 
         assert f"Unable to retrieve notices: {error_message}" in err
