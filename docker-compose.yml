@@ -6,10 +6,12 @@ x-base: &base
     # cache_from:
     #   - debian:buster-slim
     args:
-      - python_version=${CONDA_DOCKER_PYTHON:-3.9}
+      python_version: "${CONDA_DOCKER_PYTHON:-3.9}"
+      default_channel: "${CONDA_DOCKER_DEFAULT_CHANNEL:-conda-forge}"
   volumes:
     - .:/opt/conda-src
-  container_name: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}
+  image: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}-${CONDA_DOCKER_DEFAULT_CHANNEL:-defaults}
+  container_name: conda-linux-python-${CONDA_DOCKER_PYTHON:-3.9}-${CONDA_DOCKER_DEFAULT_CHANNEL:-defaults}
 
 services:
   interactive:

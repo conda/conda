@@ -2,6 +2,9 @@
 
 set -o errtrace -o pipefail -o errexit
 
+### Prevent git safety errors when mounting directories ###
+git config --global --add safe.directory /opt/conda-src
+
 TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
@@ -14,4 +17,4 @@ sudo rm -rf /opt/conda/pkgs/*-*-*
 # put temporary files on same filesystem
 export TMP=$HOME/pytesttmp
 mkdir -p $TMP
-pytest --cov=conda --basetemp=$TMP -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+python -m pytest --cov=conda --store-durations --durations-path=.test_durations_${OS} --splitting-algorithm=least_duration --basetemp=$TMP -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}

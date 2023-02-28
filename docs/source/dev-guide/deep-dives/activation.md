@@ -44,7 +44,7 @@ However, it will intercept two very specific subcommands:
 * `conda deactivate`
 
 This interception is needed because activation/deactivation requires exporting (or unsetting)
-enviroment variables back to the shell session (and not just temporarily in the Python
+environment variables back to the shell session (and not just temporarily in the Python
 process). This will be discussed in the next section.
 
 So how is initialization performed? This is the job of the `conda init` subcommand, driven by

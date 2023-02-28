@@ -11,7 +11,6 @@ import platform
 import sys
 import struct
 from contextlib import contextmanager
-import warnings
 
 from .constants import (
     APP_NAME,
@@ -36,6 +35,7 @@ from .constants import (
     PREFIX_NAME_DISALLOWED_CHARS,
 )
 from .. import __version__ as CONDA_VERSION
+from ..deprecations import deprecated
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
@@ -78,6 +78,7 @@ non_x86_machines = {
     'arm64',
     'ppc64',
     'ppc64le',
+    'riscv64',
     's390x',
 }
 _arch_names = {
@@ -338,13 +339,8 @@ class Context(Configuration):
     )
 
     @property
+    @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
     def experimental_solver(self):
-        # TODO: Remove in a later release
-        warnings.warn(
-            "'context.experimental_solver' is pending deprecation and will be removed. "
-            "Please consider using 'context.solver' instead.",
-            PendingDeprecationWarning
-        )
         return self.solver
 
     # # CLI-only
@@ -471,13 +467,12 @@ class Context(Configuration):
             return _arch_names[self.bits]
 
     @property
+    @deprecated(
+        "23.3",
+        "23.9",
+        addendum="It's meaningless and any special meaning it may have held is now void.",
+    )
     def conda_private(self):
-        warnings.warn(
-            "`conda.base.context.context.conda_private` is pending deprecation and will be "
-            "removed in a future release. It's meaningless and any special meaning it may have "
-            "held is now void.",
-            PendingDeprecationWarning,
-        )
         return False
 
     @property
@@ -611,7 +606,7 @@ class Context(Configuration):
 
     @property
     def active_prefix(self):
-        return os.getenv('CONDA_PREFIX')
+        return os.getenv("CONDA_PREFIX")
 
     @property
     def shlvl(self):
@@ -802,18 +797,11 @@ class Context(Configuration):
 
     @property
     def use_only_tar_bz2(self):
-        from ..models.version import VersionOrder
         # we avoid importing this at the top to avoid PATH issues.  Ensure that this
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
         use_only_tar_bz2 = False
         if self._use_only_tar_bz2 is None:
-            try:
-                import conda_build
-                use_only_tar_bz2 = VersionOrder(conda_build.__version__) < VersionOrder("3.18.3")
-
-            except ImportError:
-                pass
             if self._argparse_args and 'use_only_tar_bz2' in self._argparse_args:
                 use_only_tar_bz2 &= self._argparse_args['use_only_tar_bz2']
         return ((hasattr(conda_package_handling.api, 'libarchive_enabled') and
@@ -935,18 +923,18 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
+    @deprecated(
+        "23.3",
+        "23.9",
+        addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
+        stack=+1,
+    )
     def cuda_version(self) -> Optional[str]:
         """
         Retrieves the current cuda version.
         """
         from conda.plugins.virtual_packages import cuda
 
-        warnings.warn(
-            "`context.cuda_version` is pending deprecation and "
-            "will be removed in a future release. Please use "
-            "`conda.plugins.virtual_packages.cuda.cuda_version` instead.",
-            PendingDeprecationWarning,
-        )
         return cuda.cuda_version()
 
     @property
@@ -1858,12 +1846,8 @@ def _first_writable_envs_dir():
 
 
 # backward compatibility for conda-build
+@deprecated("23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead.")
 def get_prefix(ctx, args, search=True):  # pragma: no cover
-    warnings.warn(
-        "`conda.base.context.get_prefix` is pending deprecation and will be removed in a future "
-        "release. Please use `conda.base.context.determine_target_prefix` instead.",
-        PendingDeprecationWarning,
-    )
     return determine_target_prefix(ctx or context, args)
 
 

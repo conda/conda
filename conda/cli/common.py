@@ -1,12 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
-from warnings import warn
 
+from ..deprecations import deprecated
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
@@ -63,22 +62,21 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     return True
 
 
+@deprecated("23.3", "23.9")
 def ensure_name_or_prefix(args, command):
-    warn(
-        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
-        PendingDeprecationWarning,
-    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
 
-def is_active_prefix(prefix):
+def is_active_prefix(prefix: str) -> bool:
     """
     Determines whether the args we pass in are pointing to the active prefix.
     Can be used a validation step to make sure operations are not being
     performed on the active prefix.
     """
+    if context.active_prefix is None:
+        return False
     return (
         paths_equal(prefix, context.active_prefix)
         # normcasing our prefix check for Windows, for case insensitivity

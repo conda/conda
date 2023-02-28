@@ -8,6 +8,7 @@ import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
+from conda.core.subdir_data import SubdirData
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.read import read_python_record
 from conda.models.channel import Channel
@@ -99,8 +100,11 @@ class TestSolve(unittest.TestCase):
         ])
 
     def test_mkl(self):
-        a = r.install(['mkl 11*', MatchSpec(track_features='mkl')])
-        b = r.install(['mkl'])
+        SubdirData._cache_.clear()
+        Channel._cache_.clear()
+        _, r = get_index_r_1()
+        a = r.install(["mkl 11*", MatchSpec(track_features="mkl")])
+        b = r.install(["mkl"])
         assert a == b
 
     def test_accelerate(self):
