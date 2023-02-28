@@ -11,6 +11,7 @@ import re
 import sys
 
 from . import CondaError
+from .deprecations import deprecated
 from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
@@ -218,21 +219,15 @@ else:
 urlpath = url_path = path_to_url
 
 
-def md5_file(path):  # pragma: no cover
+@deprecated("23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_md5sum` instead.")
+def md5_file(path: str | os.PathLike) -> str:
     from .gateways.disk.read import compute_md5sum
     return compute_md5sum(path)
 
 
-def hashsum_file(path, mode='md5'):  # pragma: no cover
-    import hashlib
-    h = hashlib.new(mode)
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
+@deprecated("23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead.")
+def hashsum_file(path: str | os.PathLike, mode: Literal["md5", "sha256"] = "md5") -> str:
+    return compute_sum(path, mode)
 
 
 @lru_cache(maxsize=None)
