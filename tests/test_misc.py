@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.base.context import context
 from conda.core.subdir_data import cache_fn_url
 from conda.misc import explicit, url_pat, walk_prefix
 from conda.testing.integration import Commands, make_temp_env, run_command

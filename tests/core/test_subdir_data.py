@@ -26,7 +26,6 @@ from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvali
 from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
-from conda.testing.helpers import CHANNEL_DIR
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
