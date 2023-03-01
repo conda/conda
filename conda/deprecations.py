@@ -15,6 +15,9 @@ except ImportError:
         def __lt__(self, other):
             return True
 
+        def __gt__(self, other):
+            return False
+
     def parse(version):
         return Version()
 
