@@ -84,7 +84,7 @@ class SubdirDataType(type):
                 channel_url = channel.url()
                 if channel_url:
                     file_path = url_to_path(channel_url + "/" + repodata_fn)
-                    if exists(file_path) and cache_entry._mtime > getmtime(file_path):
+                    if exists(file_path) and cache_entry._mtime >= getmtime(file_path):
                         return cache_entry
             else:
                 return cache_entry
