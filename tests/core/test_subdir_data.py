@@ -370,6 +370,10 @@ def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
 
 
 def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
+    """
+    SubdirData has a ValueError exception handler, that is hard to invoke
+    currently.
+    """
     local_channel = Channel(join(CHANNEL_DIR, platform))
 
     bad_cache = tmp_path / "not_json.json"
