@@ -8,6 +8,8 @@ build:
   jobs:
     post_checkout:
       - git fetch --unshallow
+  apt_packages:
+    - graphviz
 
 python:
   install:
