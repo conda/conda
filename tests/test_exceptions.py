@@ -496,7 +496,7 @@ class ExceptionTests(TestCase):
     def test_PackagesNotFoundError_use_only_tar_bz2(self):
         note = "use_only_tar_bz2"
         for use_only_tar_bz2 in (True, False):
-            expected = "use_only_tar_bz2" if use_only_tar_bz2 else ""
+            expected = note if use_only_tar_bz2 else ""
             with env_vars(
                 {"CONDA_USE_ONLY_TAR_BZ2": str(use_only_tar_bz2)},
                 stack_callback=conda_tests_ctxt_mgmt_def_pol,
