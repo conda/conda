@@ -1,11 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from contextlib import contextmanager
 from functools import lru_cache, wraps
 import logging
 from os.path import abspath, join, isfile, basename, dirname
-from os import environ
+from os import environ, PathLike
 from pathlib import Path
 import re
 import sys
@@ -220,13 +221,13 @@ urlpath = url_path = path_to_url
 
 
 @deprecated("23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_md5sum` instead.")
-def md5_file(path: str | os.PathLike) -> str:
+def md5_file(path: str | PathLike) -> str:
     from .gateways.disk.read import compute_md5sum
     return compute_md5sum(path)
 
 
 @deprecated("23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead.")
-def hashsum_file(path: str | os.PathLike, mode: Literal["md5", "sha256"] = "md5") -> str:
+def hashsum_file(path: str | PathLike, mode: Literal["md5", "sha256"] = "md5") -> str:
     return compute_sum(path, mode)
 
 
