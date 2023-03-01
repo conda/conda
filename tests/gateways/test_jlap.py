@@ -264,8 +264,7 @@ def test_jlap_sought(
 
         print(state_object)
 
-        # XXX use CEP 'we checked for jlap' key.
-        assert state_object["jlap_unavailable"]
+        assert state_object.should_check_format("jlap") is False
 
         # This test can be sensitive to whether osx-64/repodata.json is saved
         # with \n or \r\n newlines, since we need its exact hash. Change all
@@ -282,7 +281,7 @@ def test_jlap_sought(
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
-        del state[jlapper.JLAP_UNAVAILABLE]
+        state.clear_has_format("jlap")
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
 
@@ -315,7 +314,7 @@ def test_jlap_sought(
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
-        assert jlapper.JLAP_UNAVAILABLE not in state  # from previous portion of test
+        assert state.has_format("jlap")[0] is True
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
 

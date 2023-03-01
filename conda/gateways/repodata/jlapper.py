@@ -181,20 +181,25 @@ def timeme(message):
     log.info("%sTook %0.02fs", message, end - begin)
 
 
+def build_headers(json_path: pathlib.Path, state: RepodataState):
+    """
+    Caching headers for a path and state.
+    """
+    headers = {}
+    # simplify if we require state to be empty when json_path is missing.
+    if json_path.exists():
+        etag = state.get("_etag")
+        if etag:
+            headers["if-none-match"] = etag
+    return headers
+
+
 def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
     """
     Download url if it doesn't exist, passing bytes through hasher.update()
     """
     state = state or RepodataState()
-    headers = {}
-
-    # XXX check cache-control May be caller's job to compare with 'have_hash'
-    # saved on previous download to detect cache tampering
-    if json_path.exists():
-        etag = state.get("_etag")
-        if etag:
-            headers["if-none-match"] = etag
-
+    headers = build_headers(json_path, state)
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     response = session.get(url, stream=True, timeout=timeout, headers=headers)
     log.debug("%s %s", url, response.headers)
@@ -231,15 +236,7 @@ def download_and_hash_zst(hasher, url, json_path, session: Session, state: Repod
     decompression then hasher.update()
     """
     state = state or RepodataState()
-    headers = {}
-
-    # XXX check cache-control. May be caller's job to compare with 'have_hash'
-    # saved on previous download to detect cache tampering
-    if json_path.exists():
-        etag = state.get("_etag")
-        if etag:
-            headers["if-none-match"] = etag
-
+    headers = build_headers(json_path, state)
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     response = session.get(url, stream=True, timeout=timeout, headers=headers)
     log.debug("%s %s", url, response.headers)
@@ -273,7 +270,7 @@ def request_url_jlap_state(
     if (
         full_download
         or not (NOMINAL_HASH in state and json_path.exists())
-        or state.get(JLAP_UNAVAILABLE)
+        or not state.should_check_format("jlap")
     ):
         hasher = hash()
         with timeme(f"Download complete {url} "):
@@ -341,7 +338,6 @@ def request_url_jlap_state(
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
             if e.response.status_code == 404:
-                state[JLAP_UNAVAILABLE] = time.time_ns()  # XXX alternative method
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
                     url, state, get_place=get_place, full_download=True, session=session
@@ -355,7 +351,6 @@ def request_url_jlap_state(
                 log.exception("Error parsing jlap", exc_info=e)
                 # a 'latest' hash that we can't achieve, triggering later error handling
                 buffer = [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
-                state[JLAP_UNAVAILABLE] = time.time_ns()  # alternative method
                 state.set_has_format("jlap", False)
 
         state[JLAP] = jlap_state
