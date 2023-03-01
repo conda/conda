@@ -493,7 +493,7 @@ class ExceptionTests(TestCase):
           new data length: 1104
         """).strip()
 
-    def test_PackagesNotFoundError_use_only_tar_bz2(self, isatty_mock):
+    def test_PackagesNotFoundError_use_only_tar_bz2(self):
         note = "use_only_tar_bz2"
         for use_only_tar_bz2 in (True, False):
             expected = "use_only_tar_bz2" if use_only_tar_bz2 else ""
