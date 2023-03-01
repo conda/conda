@@ -1929,7 +1929,8 @@ dependencies:
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix, no_capture=True):
@@ -1951,7 +1952,7 @@ dependencies:
                             del result.headers[header]
                     return result
 
-                SubdirData._cache_.clear()
+                SubdirData.clear_cached_local_channel_data(exclude_file=False)
                 mock_method.side_effect = side_effect
                 stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
                 assert mock_method.called
@@ -1970,7 +1971,8 @@ dependencies:
 
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         try:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
@@ -2002,7 +2004,7 @@ dependencies:
                         with patch.object(CondaSession, 'get', autospec=True) as mock_method:
                             mock_method.side_effect = side_effect
 
-                            SubdirData._cache_.clear()
+                            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
@@ -2018,7 +2020,7 @@ dependencies:
                                 run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
                             assert not package_is_installed(prefix, "pytz")
         finally:
-            SubdirData._cache_.clear()
+            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
