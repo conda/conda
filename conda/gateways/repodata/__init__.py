@@ -48,7 +48,7 @@ stderrlog = logging.getLogger("conda.stderrlog")
 
 # if repodata.json.zst or repodata.jlap were unavailable, check again after this
 # amonut of time.
-CHECK_ALTERNATIVE_FORMAT_INTERVAL = datetime.timedelta(days=7)
+CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -461,7 +461,7 @@ class RepodataState(UserDict):
             has is True
             or isinstance(when, datetime.datetime)
             and datetime.datetime.now(tz=datetime.timezone.utc) - when
-            > CHECK_ALTERNATIVE_FORMAT_INTERVAL
+            > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
 
     def __setitem__(self, key: str, item: Any) -> None:
