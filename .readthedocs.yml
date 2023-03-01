@@ -9,6 +9,8 @@ build:
     post_checkout:
       # Unshallow the git clone to make sure we can identify the version
       - git fetch --unshallow
+    pre_install:
+      - git update-index --assume-unchanged docs/requirements.txt docs/conf.py
     pre_build:
       - python docs/source/_ext/conda_umls.py
   apt_packages:
