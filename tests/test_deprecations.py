@@ -161,6 +161,8 @@ def test_packaging_unavailable(mocker):
     is installed" problem, first encountered in the test suite. Disable
     deprecation warnings until conda is completely installed.
     """
+    # might be smart to skip this test to avoid Version() (fallback) and
+    # Version() (the real one) existing in the same program
     mocker.patch.dict("sys.modules", {"packaging.version": None})
     module = importlib.reload(importlib.import_module("conda.deprecations"))
     (a, b) = module.parse("a"), module.parse("b")
