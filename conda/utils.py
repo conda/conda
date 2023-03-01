@@ -15,6 +15,7 @@ from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
+from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
 
