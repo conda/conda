@@ -6,7 +6,17 @@ from functools import wraps
 from types import ModuleType
 import warnings
 
-from packaging.version import parse, Version
+try:
+    from packaging.version import parse, Version
+except ImportError:
+    warnings.warn("`packaging` not available; deprecation warnings will not display.")
+
+    class Version:
+        def __lt__(self, other):
+            return True
+
+    def parse(version):
+        return Version()
 
 from .__version__ import __version__
 
