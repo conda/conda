@@ -12,6 +12,7 @@ import json
 from logging import getLogger
 import os
 from os.path import isdir, isfile, join  # noqa
+from pathlib import Path
 
 from .link import islink, lexists  # noqa
 from .create import TemporaryDirectory
