@@ -13,7 +13,6 @@ import pytest
 
 from conda.base.constants import on_win
 from conda.base.context import context
-from conda.common.io import captured
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.testing.integration import Commands, run_command, make_temp_env, make_temp_prefix
@@ -243,7 +242,7 @@ class TestJson(unittest.TestCase):
 def test_search_envs():
     for extra in ("--info", "--json", ""):
         stdout, _, _ = run_inprocess_conda_command(f"conda search --envs {extra} conda")
-        if not "--json" in extra:
+        if "--json" not in extra:
             assert "Searching environments" in stdout
         assert "conda" in stdout
 

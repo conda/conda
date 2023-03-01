@@ -59,42 +59,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults']
+        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.7', '3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
-        include:
+        exclude:
+          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'unit'
-            test-group: '1'
+            python-version: '3.7'
           - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'unit'
-            test-group: '2'
+            python-version: '3.9'
           - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'unit'
-            test-group: '3'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'integration'
-            test-group: '1'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'integration'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'integration'
-            test-group: '3'
+            python-version: '3.10'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
@@ -179,6 +156,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
+            tests\durations\${OS}.json
             test-report.xml
           retention-days: 1
 
@@ -192,35 +170,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults']
+        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.7', '3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
-        include:
+        exclude:
+          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'unit'
-            test-group: '1'
+            python-version: '3.7'
           - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'unit'
-            test-group: '2'
+            python-version: '3.8'
           - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'unit'
-            test-group: '3'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'integration'
-            test-group: '1'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'integration'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'integration'
-            test-group: '3'
+            python-version: '3.9'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -254,6 +215,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
+            tests/durations/${OS}.json
             test-report.xml
           retention-days: 1
 
@@ -360,7 +322,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: ~/conda_pkgs_dir
           key:
@@ -399,6 +361,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
+        timeout-minutes: 10
         run: |
           ./dev/macos/setup.sh
 
@@ -421,6 +384,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
+            tests/durations/${OS}.json
             test-report.xml
           retention-days: 1
 
