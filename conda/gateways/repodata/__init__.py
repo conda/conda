@@ -445,6 +445,13 @@ class RepodataState(UserDict):
             "value": value,
         }
 
+    def clear_has_format(self, format: str):
+        """
+        Remove 'has_{format}' instead of setting to False
+        """
+        key = f"has_{format}"
+        self.pop(key, None)
+
     def should_check_format(self, format: str) -> bool:
         """
         Return True if named format should be attempted.
