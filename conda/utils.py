@@ -513,6 +513,7 @@ def ensure_dir_exists(func):
     return wrapper
 
 
+@deprecated("23.9", "24.3", addendum="Use `open` instead.")
 @contextmanager
 def safe_open(*args, **kwargs):
     """
