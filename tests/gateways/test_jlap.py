@@ -156,7 +156,9 @@ def test_repodata_state(
         {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
 
         # possibly file cache is left over from test run
 
@@ -222,7 +224,9 @@ def test_jlap_sought(
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        SubdirData._cache_.clear()  # definitely clears cache, including normally-excluded file:// urls
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears cache, including normally-excluded file:// urls
 
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
@@ -245,7 +249,7 @@ def test_jlap_sought(
 
         # now try to re-download or use cache
         # unfortunately this is using devenv/.../pkgs/cache/<x>.json not a tmpdir
-        SubdirData._cache_.clear()
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         # Pretend it's older. (mtime is only used to compare the state
         # and repodata files, and is no longer used to store the 'last checked
@@ -274,7 +278,9 @@ def test_jlap_sought(
         test_jlap.terminate()
         test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
 
-        SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
 
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
@@ -307,7 +313,9 @@ def test_jlap_sought(
         test_jlap.terminate()
         test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
 
-        SubdirData._cache_.clear()  # definitely clears them, including normally-excluded file:// urls
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
 
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
@@ -356,7 +364,9 @@ def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_bas
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        SubdirData._cache_.clear()  # definitely clears cache, including normally-excluded file:// urls
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears cache, including normally-excluded file:// urls
 
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
@@ -368,7 +378,7 @@ def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_bas
         state = cache.load_state()
 
         # now try to re-download or use cache
-        SubdirData._cache_.clear()
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         # Pretend it's older. (mtime is only used to compare the state
         # and repodata files, and is no longer used to store the 'last checked

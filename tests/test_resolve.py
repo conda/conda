@@ -100,7 +100,7 @@ class TestSolve(unittest.TestCase):
         ])
 
     def test_mkl(self):
-        SubdirData._cache_.clear()
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
         Channel._cache_.clear()
         _, r = get_index_r_1()
         a = r.install(["mkl 11*", MatchSpec(track_features="mkl")])
