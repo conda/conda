@@ -391,3 +391,12 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
         # tortured way to get to old ValueError handler
         bad_cache.write_text("NOT JSON")
         sd._read_local_repodata(state)
+
+
+def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
+    """
+    SubdirData can accept a dict instead of a RepodataState, for compatibility.
+    """
+    local_channel = Channel(join(CHANNEL_DIR, platform))
+    sd = SubdirData(channel=local_channel)
+    sd._read_pickled({})  # type: ignore
