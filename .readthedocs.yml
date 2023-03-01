@@ -7,8 +7,10 @@ build:
     python: "3.10"
   jobs:
     post_checkout:
+      # Unshallow the git clone to make sure we can identify the version
       - git fetch --unshallow
   apt_packages:
+    # Needed for the UML graph Sphinx extension
     - graphviz
 
 python:
