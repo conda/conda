@@ -9,14 +9,12 @@ from unittest.mock import patch
 
 import pytest
 
+from conda import CondaError
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
 from conda.core.subdir_data import (
-    CondaRepoInterface,
-    RepodataState,
-    Response304ContentUnchanged,
     SubdirData,
     cache_fn_url,
     fetch_repodata_remote_request,
@@ -26,6 +24,7 @@ from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvali
 from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
+from conda.gateways.repodata import CondaRepoInterface, RepodataCache, Response304ContentUnchanged
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -368,3 +367,27 @@ def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
 
     # test search by PackageRecord
     assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
+
+
+def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
+    local_channel = Channel(join(CHANNEL_DIR, platform))
+
+    bad_cache = tmp_path / "not_json.json"
+    bad_cache.write_text("{}")
+
+    class BadRepodataCache(RepodataCache):
+        cache_path_state = bad_cache
+
+    class BadCacheSubdirData(SubdirData):
+        @property
+        def _repo_cache(self):
+            return BadRepodataCache(self.cache_path_base, self.repodata_fn)
+
+    SubdirData._cache_.clear()
+    sd = BadCacheSubdirData(channel=local_channel)
+
+    with pytest.raises(CondaError):
+        state = sd._load_state()
+        # tortured way to get to old ValueError handler
+        bad_cache.write_text("NOT JSON")
+        sd._read_local_repodata(state)
