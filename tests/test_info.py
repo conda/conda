@@ -51,6 +51,31 @@ def test_info():
     assert_in(conda_info_s_out, conda_info_all_out)
 
 
+@pytest.mark.skipif(
+    context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+    reason="Skip unsupported platforms",
+)
+@pytest.mark.integration
+def test_info_package_json():
+    # This is testing deprecated behaviour. The CLI already says:
+    # WARNING: 'conda info package_name' is deprecated. Use 'conda search package_name --info'.
+    with env_var("CONDA_CHANNELS", "defaults", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous=1.0.0=py37_0")
+
+    out = json.loads(out)
+    assert set(out.keys()) == {"itsdangerous=1.0.0=py37_0"}
+    assert len(out["itsdangerous=1.0.0=py37_0"]) == 1
+    assert isinstance(out["itsdangerous=1.0.0=py37_0"], list)
+
+    with env_var("CONDA_CHANNELS", "defaults", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous")
+
+    out = json.loads(out)
+    assert set(out.keys()) == {"itsdangerous"}
+    assert len(out["itsdangerous"]) > 1
+    assert isinstance(out["itsdangerous"], list)
+
+
 @pytest.mark.skipif(True, reason="only temporary")
 @patch('conda.cli.conda_argparse.do_call', side_effect=KeyError('blarg'))
 def test_get_info_dict(cli_install_mock):

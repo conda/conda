@@ -13,7 +13,9 @@ from ..base.context import context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import on_win
 from ..common.url import mask_anaconda_token
 from ..core.index import _supplement_index_with_system
+from ..deprecations import deprecated
 from ..models.channel import all_channel_urls, offline_keep
+from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
 
 log = getLogger(__name__)
@@ -75,6 +77,29 @@ def pretty_package(prec):
     print('dependencies:')
     for dep in pkg['depends']:
         print('    %s' % dep)
+
+
+def print_package_info(packages):
+    from ..core.subdir_data import SubdirData
+
+    results = {}
+    for package in packages:
+        spec = MatchSpec(package)
+        results[package] = tuple(SubdirData.query_all(spec))
+
+    if context.json:
+        stdout_json({package: results[package] for package in packages})
+    else:
+        for result in results.values():
+            for prec in result:
+                pretty_package(prec)
+
+    deprecated.topic(
+        "23.9",
+        "24.3",
+        topic="`conda info package_name`",
+        addendum="Use `conda search package_name --info` instead.",
+    )
 
 
 def get_info_dict(system=False):
