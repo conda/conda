@@ -94,7 +94,7 @@ def generate_pumls(app, config):
             # Run pyreverse to create the files first
             Run(args)
         except SystemExit:
-            pass
+            raise
         finally:
             # Then post-process the generated files to fix some things.
             post_process(files, output_path)
