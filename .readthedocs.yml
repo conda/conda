@@ -16,6 +16,7 @@ build:
   apt_packages:
     # Needed for the UML graph Sphinx extension
     - graphviz
+    - default-jre
 
 python:
   install:
