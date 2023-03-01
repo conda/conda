@@ -163,8 +163,12 @@ def test_packaging_unavailable(mocker):
     """
     # might be smart to skip this test to avoid Version() (fallback) and
     # Version() (the real one) existing in the same program
-    mocker.patch.dict("sys.modules", {"packaging.version": None})
-    module = importlib.reload(importlib.import_module("conda.deprecations"))
-    (a, b) = module.parse("a"), module.parse("b")
+    modules = sys.modules.copy()
+    del modules["conda.deprecations"]
+    modules["packaging.version"] = None  # type: ignore
+    mocker.patch.dict("sys.modules", values=modules, clear=True)
+    from conda.deprecations import parse
+
+    (a, b) = parse("a"), parse("b")
     assert a < b
     assert b < a
