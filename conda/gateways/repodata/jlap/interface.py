@@ -7,14 +7,14 @@ from pathlib import Path
 
 from conda.gateways.connection.session import CondaSession
 
-from . import (
+from .. import (
     RepodataOnDisk,
-    RepoInterface,
     RepodataState,
+    RepoInterface,
     Response304ContentUnchanged,
     conda_http_errors,
-    jlapper,
 )
+from . import fetch
 
 log = logging.getLogger(__name__)
 
@@ -56,10 +56,10 @@ class JlapRepoInterface(RepoInterface):
 
         try:
             with conda_http_errors(self._url, self._repodata_fn):
-                jlapper.request_url_jlap_state(
+                fetch.request_url_jlap_state(
                     repodata_url, state_, get_place=get_place, session=session
                 )
-        except jlapper.Jlap304NotModified:
+        except fetch.Jlap304NotModified:
             raise Response304ContentUnchanged()
 
         # XXX update caller's state dict-or-RepodataState

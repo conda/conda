@@ -61,7 +61,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]' 
 def get_repo_interface() -> type[RepoInterface]:
     if "jlap" in context.experimental:
         try:
-            from conda.gateways.repodata.repo_jlap import JlapRepoInterface
+            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 
             return JlapRepoInterface
         except ImportError as e:  # pragma: no cover
@@ -386,7 +386,9 @@ class SubdirData(metaclass=SubdirDataType):
             _internal_state = self._read_local_repodata(cache.state)
             return _internal_state
         else:
-            if not isdir(dirname(self.cache_path_json)):  # What happens if it is a directory?
+            # uses isdir() like "exists"; mkdir_p always raises if the path
+            # exists
+            if not isdir(dirname(self.cache_path_json)):
                 mkdir_p(dirname(self.cache_path_json))
             try:
                 if raw_repodata_str is RepodataOnDisk:

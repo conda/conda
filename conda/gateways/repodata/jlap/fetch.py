@@ -22,7 +22,7 @@ from conda.base.context import context
 from conda.gateways.connection import Response, Session
 from conda.gateways.repodata import RepodataState
 
-from .jlapcore import jlap_buffer
+from .core import jlap_buffer
 
 log = logging.getLogger(__name__)
 

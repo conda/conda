@@ -42,6 +42,8 @@ from conda.gateways.connection import (
 from conda.gateways.connection.session import CondaSession
 from conda.models.channel import Channel
 
+from .lock import lock
+
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
@@ -477,71 +479,6 @@ class RepodataState(UserDict):
         return super().__getitem__(key)
 
 
-LOCK_BYTE = 21  # mamba interop
-LOCK_ATTEMPTS = 10
-LOCK_SLEEP = 1
-
-
-@contextmanager
-def _lock_noop(fd):
-    """
-    When locking is not available.
-    """
-    yield
-
-
-try:  # pragma: no cover
-    import msvcrt
-
-    @contextmanager
-    def _lock_impl(fd):  # type: ignore
-        tell = fd.tell()
-        fd.seek(LOCK_BYTE)
-        msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore
-        try:
-            fd.seek(tell)
-            yield
-        finally:
-            fd.seek(LOCK_BYTE)
-            msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
-
-except ImportError:
-    try:
-        import fcntl
-    except ImportError:  # pragma: no cover
-        # "fcntl Availibility: not Emscripten, not WASI."
-        warnings.warn("file locking not available")
-
-        _lock_impl = _lock_noop  # type: ignore
-
-    else:
-
-        class _lock_impl:
-            def __init__(self, fd):
-                self.fd = fd
-
-            def __enter__(self):
-                for attempt in range(LOCK_ATTEMPTS):
-                    try:
-                        # msvcrt locking does something similar
-                        fcntl.lockf(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE)
-                        break
-                    except OSError:
-                        if attempt > LOCK_ATTEMPTS - 2:
-                            raise
-                        time.sleep(LOCK_SLEEP)
-
-            def __exit__(self, *exc):
-                fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
-
-
-def _lock(fd):
-    if "jlap" in context.experimental or "lock" in context.experimental:
-        # locking required for jlap
-        return _lock_impl(fd)
-    return _lock_noop(fd)
-
-
 class RepodataCache:
     """
     Handle caching for a single repodata.json + repodata.state.json
@@ -588,7 +525,7 @@ class RepodataCache:
         # read repodata.json
         # check stat, if wrong clear cache information
 
-        with self.cache_path_state.open("r+") as state_file, _lock(state_file):
+        with self.cache_path_state.open("r+") as state_file, lock(state_file):
             # cannot use pathlib.read_text / write_text on any locked file, as
             # it will release the lock early
             state = json.loads(state_file.read())
@@ -663,7 +600,7 @@ class RepodataCache:
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
-        with self.cache_path_state.open("a+") as state_file, _lock(state_file):
+        with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
             state_file.truncate()
@@ -684,7 +621,7 @@ class RepodataCache:
         """
         Update access time in .state.json to indicate a HTTP 304 Not Modified response.
         """
-        with self.cache_path_state.open("a+") as state_file, _lock(state_file):
+        with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
             state_file.truncate()

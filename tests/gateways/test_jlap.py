@@ -23,10 +23,8 @@ from conda.gateways.repodata import (
     RepodataOnDisk,
     RepodataState,
     Response304ContentUnchanged,
-    jlapcore,
-    jlapper,
-    repo_jlap,
 )
+from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
 
 
@@ -44,7 +42,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     base = f"http://{host}:{port}/test"
 
     url = f"{base}/osx-64"
-    repo = repo_jlap.JlapRepoInterface(
+    repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
         cache_path_json=Path(tmp_path, "repodata.json"),
@@ -52,7 +50,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     )
 
     patched = mocker.patch(
-        "conda.gateways.repodata.jlapper.download_and_hash", wraps=jlapper.download_and_hash
+        "conda.gateways.repodata.jlap.fetch.download_and_hash", wraps=fetch.download_and_hash
     )
 
     state = {}
@@ -87,7 +85,7 @@ def test_download_and_hash(
     destination = tmp_path / "download_not_found"
     # 404 is raised as an exception
     try:
-        jlapper.download_and_hash(jlapper.hash(), url, destination, session, state)
+        fetch.download_and_hash(fetch.hash(), url, destination, session, state)
     except requests.HTTPError as e:
         assert e.response.status_code == 404
         assert not destination.exists()
@@ -96,16 +94,16 @@ def test_download_and_hash(
 
     destination = tmp_path / "repodata.json"
     url2 = base + "/osx-64/repodata.json"
-    hasher2 = jlapper.hash()
-    response = jlapper.download_and_hash(hasher2, url2, destination, session, state)
+    hasher2 = fetch.hash()
+    response = fetch.download_and_hash(hasher2, url2, destination, session, state)
     print(response)
     print(state)
     t = destination.read_text()
     assert len(t)
 
     # assert we don't clobber if 304 not modified
-    response2 = jlapper.download_and_hash(
-        jlapper.hash(),
+    response2 = fetch.download_and_hash(
+        fetch.hash(),
         url2,
         destination,
         session,
@@ -124,8 +122,8 @@ def test_download_and_hash(
     url3 = base + "/osx-64/repodata.json.zst"
     dest_zst = tmp_path / "repodata.json.from-zst"  # should be decompressed
     assert not dest_zst.exists()
-    hasher3 = jlapper.hash()
-    response3 = jlapper.download_and_hash_zst(hasher3, url3, dest_zst, session, RepodataState())
+    hasher3 = fetch.hash()
+    response3 = fetch.download_and_hash_zst(hasher3, url3, dest_zst, session, RepodataState())
     assert response3.status_code == 200
     assert int(response3.headers["content-length"]) < dest_zst.stat().st_size
 
@@ -148,7 +146,7 @@ def test_repodata_state(
     channel_url = f"{base}/osx-64"
 
     if use_jlap:
-        repo_cls = repo_jlap.JlapRepoInterface
+        repo_cls = interface.JlapRepoInterface
     else:
         repo_cls = CondaRepoInterface
 
@@ -338,7 +336,7 @@ def test_jlap_sought(
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
-        assert jlapper.JLAP_UNAVAILABLE not in state  # from previous portion of test
+        assert fetch.JLAP_UNAVAILABLE not in state  # from previous portion of test
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
 
@@ -406,25 +404,25 @@ def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_bas
             sd._repo.repodata(cache.load_state())
 
 
-def test_jlapcore(tmp_path: Path):
+def test_jlap_core(tmp_path: Path):
     """
     Code paths not excercised by other tests.
     """
     with pytest.raises(ValueError):
         # incorrect trailing hash
-        jlapcore.JLAP.from_lines(
-            [jlapcore.DEFAULT_IV.hex().encode("utf-8")] * 3, iv=jlapcore.DEFAULT_IV, verify=True
+        core.JLAP.from_lines(
+            [core.DEFAULT_IV.hex().encode("utf-8")] * 3, iv=core.DEFAULT_IV, verify=True
         )
 
     with pytest.raises(IndexError):
         # Not enough lines to compare trailing hash with previous. This
         # exception might change.
-        jlapcore.JLAP.from_lines(
-            [jlapcore.DEFAULT_IV.hex().encode("utf-8")] * 1, iv=jlapcore.DEFAULT_IV, verify=True
+        core.JLAP.from_lines(
+            [core.DEFAULT_IV.hex().encode("utf-8")] * 1, iv=core.DEFAULT_IV, verify=True
         )
 
-    jlap = jlapcore.JLAP.from_lines(
-        [jlapcore.DEFAULT_IV.hex().encode("utf-8")] * 2, iv=jlapcore.DEFAULT_IV, verify=True
+    jlap = core.JLAP.from_lines(
+        [core.DEFAULT_IV.hex().encode("utf-8")] * 2, iv=core.DEFAULT_IV, verify=True
     )
 
     with pytest.raises(ValueError):
@@ -446,13 +444,13 @@ def make_test_jlap(original: bytes, changes=1):
     """
 
     def jlap_lines():
-        yield jlapcore.DEFAULT_IV.hex().encode("utf-8")
+        yield core.DEFAULT_IV.hex().encode("utf-8")
 
         before = json.loads(original)
         after = json.loads(original)
 
         # add changes junk keys to info for test data
-        h = jlapper.hash()
+        h = fetch.hash()
         h.update(original)
         starting_digest = h.digest().hex()
 
@@ -461,7 +459,7 @@ def make_test_jlap(original: bytes, changes=1):
 
             patch = jsonpatch.make_patch(before, after)
             row = {"from": starting_digest}
-            h = jlapper.hash()
+            h = fetch.hash()
             h.update(json.dumps(after).encode("utf-8"))
             starting_digest = h.digest().hex()
             row["to"] = starting_digest
@@ -474,7 +472,7 @@ def make_test_jlap(original: bytes, changes=1):
         footer = {"url": "repodata.json", "latest": starting_digest}
         yield json.dumps(footer).encode("utf-8")
 
-    j = jlapcore.JLAP.from_lines(jlap_lines(), iv=jlapcore.DEFAULT_IV, verify=False)
+    j = core.JLAP.from_lines(jlap_lines(), iv=core.DEFAULT_IV, verify=False)
 
     return j
 
@@ -483,7 +481,7 @@ def test_jlap_get_place():
     """
     (probably soon to be removed) helper function to get cache filenames.
     """
-    place = jlapper.get_place("https://repo.anaconda.com/main/linux-64/current_repodata.json").name
+    place = fetch.get_place("https://repo.anaconda.com/main/linux-64/current_repodata.json").name
     assert ".c" in place
-    place2 = jlapper.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
+    place2 = fetch.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
     assert ".c" not in place2
