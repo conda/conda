@@ -18,10 +18,6 @@ from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 from conda.testing.helpers import TEST_DATA_DIR, add_subdir, add_subdir_to_iter, \
     get_index_r_1, get_index_r_4, raises
 
-(
-    index,
-    r,
-) = get_index_r_1()
 f_mkl = {"mkl"}
 
 
@@ -55,6 +51,7 @@ class TestSolve(unittest.TestCase):
     #     self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
 
     def test_empty(self):
+        _, r = get_index_r_1()
         self.assertEqual(r.install([]), [])
 
     # def test_anaconda_14(self):
@@ -67,6 +64,7 @@ class TestSolve(unittest.TestCase):
     #     self.assertEqual(r.install(specs), res)
 
     def test_iopro_nomkl(self):
+        _, r = get_index_r_1()
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
         installed = [rec.dist_str() for rec in installed]
         assert installed == add_subdir_to_iter([
@@ -83,6 +81,7 @@ class TestSolve(unittest.TestCase):
         ])
 
     def test_iopro_mkl(self):
+        _, r = get_index_r_1()
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')], returnall=True)
         installed = [prec.dist_str() for prec in installed]
         assert installed == add_subdir_to_iter([
@@ -108,17 +107,20 @@ class TestSolve(unittest.TestCase):
         assert a == b
 
     def test_accelerate(self):
+        _, r = get_index_r_1()
         self.assertEqual(
             r.install(['accelerate']),
             r.install(['accelerate', MatchSpec(track_features='mkl')]))
 
     def test_scipy_mkl(self):
+        _, r = get_index_r_1()
         precs = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
         self.assert_have_mkl(precs, ('numpy', 'scipy'))
         dist_strs = [prec.dist_str() for prec in precs]
         assert add_subdir('channel-1::scipy-0.12.0-np17py27_p0') in dist_strs
 
     def test_anaconda_nomkl(self):
+        _, r = get_index_r_1()
         precs = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         assert len(precs) == 107
         dist_strs = [prec.dist_str() for prec in precs]
@@ -127,7 +129,7 @@ class TestSolve(unittest.TestCase):
 
 def test_generate_eq_1():
     # avoid cache from other tests which may have different result
-    _index, r = get_index_r_1()
+    _, r = get_index_r_1()
 
     reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
     r2 = Resolve(reduced_index, True)
@@ -257,6 +259,7 @@ def test_generate_eq_1():
 
 
 def test_pseudo_boolean():
+    _, r = get_index_r_1()
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
     installed = [rec.dist_str() for rec in installed]
@@ -291,6 +294,7 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
+    _, r = get_index_r_1()
     reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.4.0"), ))
     dist_strs = [prec.dist_str() for prec in reduced_index]
     assert add_subdir('channel-1::anaconda-1.4.0-np17py27_0') in dist_strs
@@ -316,6 +320,7 @@ def test_get_reduced_index_unmanageable():
 
 
 def test_unsat_from_r1():
+    _, r = get_index_r_1()
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
     with pytest.raises(UnsatisfiableError) as excinfo:
         r.install(['numpy 1.5*', 'scipy 0.12.0b1'])
@@ -564,6 +569,7 @@ def test_unsat_channel_priority():
 
 
 def test_nonexistent():
+    _, r = get_index_r_1()
     assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))
     assert raises(ResolvePackageNotFound, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
@@ -571,6 +577,7 @@ def test_nonexistent():
 
 
 def test_timestamps_and_deps():
+    index, r = get_index_r_1()
     # If timestamp maximization is performed too early in the solve optimization,
     # it will force unnecessary changes to dependencies. Timestamp maximization needs
     # to be done at low priority so that conda is free to consider packages with the
@@ -615,6 +622,7 @@ def test_timestamps_and_deps():
     assert installed2 == installed5
 
 def test_nonexistent_deps():
+    index, r = get_index_r_1()
     index2 = index.copy()
     p1 = PackageRecord(**{
         "channel": "defaults",
@@ -884,6 +892,7 @@ def test_nonexistent_deps():
 
 
 def test_install_package_with_feature():
+    index, r = get_index_r_1()
     index2 = index.copy()
     p1 = PackageRecord(**{
         "channel": "defaults",
@@ -918,6 +927,7 @@ def test_install_package_with_feature():
 
 
 def test_unintentional_feature_downgrade():
+    index, r = get_index_r_1()
     # See https://github.com/conda/conda/issues/6765
     # With the bug in place, this bad build of scipy
     # will be selected for install instead of a later
@@ -940,6 +950,7 @@ def test_unintentional_feature_downgrade():
 
 
 def test_circular_dependencies():
+    index, r = get_index_r_1()
     index2 = index.copy()
     package1 = PackageRecord(**{
         "channel": "defaults",
@@ -995,6 +1006,7 @@ def test_circular_dependencies():
 
 
 def test_optional_dependencies():
+    index, r = get_index_r_1()
     index2 = index.copy()
     p1 = PackageRecord(**{
         "channel": "defaults",
@@ -1068,6 +1080,7 @@ def test_optional_dependencies():
 
 
 def test_irrational_version():
+    index, r = get_index_r_1()
     result = r.install(['pytz 2012d', 'python 3*'], returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == add_subdir_to_iter([
@@ -1084,6 +1097,7 @@ def test_irrational_version():
 
 @pytest.mark.flaky(reruns=5, reruns_delay=2)
 def test_no_features():
+    index, r = get_index_r_1()
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)
     result = [rec.dist_str() for rec in result]
@@ -1203,6 +1217,7 @@ def test_no_features():
 
 
 def test_broken_install():
+    index, r = get_index_r_1()
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
     _installed = [rec.dist_str() for rec in installed]
     assert _installed == add_subdir_to_iter([
@@ -1252,6 +1267,7 @@ def test_broken_install():
 
 
 def test_pip_depends_removed_on_inconsistent_env():
+    _, r = get_index_r_1()
     installed = r.install(['python 2.7*'])
     pkg_names = [p.name for p in installed]
     assert 'python' in pkg_names
@@ -1266,6 +1282,7 @@ def test_pip_depends_removed_on_inconsistent_env():
 
 
 def test_remove():
+    _, r = get_index_r_1()
     installed = r.install(['pandas', 'python 2.7*'])
     _installed = [rec.dist_str() for rec in installed]
     assert _installed == add_subdir_to_iter([
@@ -1319,6 +1336,7 @@ def test_remove():
 
 
 def test_channel_priority_1():
+    index, _ = get_index_r_1()
     channels = (
         Channel("channel-A"),
         Channel("channel-1"),
@@ -1372,6 +1390,7 @@ def test_channel_priority_1():
 
 @pytest.mark.integration
 def test_channel_priority_2():
+    index, r = get_index_r_1()
     this_index = index.copy()
     index4, r4 = get_index_r_4()
     this_index.update(index4)
@@ -1847,6 +1866,7 @@ def test_channel_priority_2():
 
 
 def test_dependency_sort():
+    index, r = get_index_r_1()
     specs = ['pandas','python 2.7*','numpy 1.6*']
     installed = r.install(specs)
     must_have = {prec.name: prec for prec in installed}
@@ -1872,6 +1892,7 @@ def test_dependency_sort():
 
 
 def test_update_deps():
+    index, r = get_index_r_1()
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
     result = [rec.dist_str() for rec in installed]
     assert result == add_subdir_to_iter([
@@ -1931,6 +1952,7 @@ def test_update_deps():
 
 
 def test_fast_error_on_unsat():
+    index, r = get_index_r_1()
     installed = r.install(["zope.interface=4.1.1"])
     result = [rec.dist_str() for rec in installed]
 
@@ -2143,6 +2165,7 @@ def test_get_reduced_index_broadening_preferred_solution():
 
 
 def test_arch_preferred_when_otherwise_identical_dependencies():
+    index, r = get_index_r_1()
     index2 = index.copy()
     package1_noarch = PackageRecord(**{
         "channel": "defaults",
