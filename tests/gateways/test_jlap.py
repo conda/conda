@@ -237,7 +237,7 @@ def test_jlap_sought(
 
         sd.load()
 
-        cache = sd._repo_cache
+        cache = sd.repo_cache
 
         # now let's check out state file
         state = json.loads(Path(cache.cache_path_state).read_text())
@@ -374,7 +374,7 @@ def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_bas
         # normal full-fetch
         sd.load()
 
-        cache = sd._repo_cache
+        cache = sd.repo_cache
         state = cache.load_state()
 
         # now try to re-download or use cache

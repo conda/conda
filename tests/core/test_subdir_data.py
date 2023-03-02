@@ -384,7 +384,7 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
 
     class BadCacheSubdirData(SubdirData):
         @property
-        def _repo_cache(self):
+        def repo_cache(self):
             return BadRepodataCache(self.cache_path_base, self.repodata_fn)
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)

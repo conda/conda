@@ -217,7 +217,7 @@ class SubdirData(metaclass=SubdirDataType):
         )
 
     @property
-    def _repo_cache(self) -> RepodataCache:
+    def repo_cache(self) -> RepodataCache:
         return RepodataCache(self.cache_path_base, self.repodata_fn)
 
     def reload(self):
@@ -298,7 +298,7 @@ class SubdirData(metaclass=SubdirDataType):
         stored separately, instead of the previous "added to repodata.json"
         arrangement.
         """
-        return self._repo_cache.load_state()
+        return self.repo_cache.load_state()
 
     def _save_state(self, state: RepodataState):
         assert Path(state.cache_path_json) == Path(self.cache_path_json)
@@ -307,7 +307,7 @@ class SubdirData(metaclass=SubdirDataType):
         return state.save()
 
     def _load(self):
-        cache = self._repo_cache
+        cache = self.repo_cache
         cache.load_state()  # XXX should this succeed even if FileNotFound?
 
         # XXX cache_path_json and cache_path_state must exist; just try loading
@@ -435,7 +435,7 @@ class SubdirData(metaclass=SubdirDataType):
         # pickled data is bad or doesn't exist; load cached json
         log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
 
-        cache = self._repo_cache
+        cache = self.repo_cache
 
         try:
             raw_repodata_str = cache.load()
