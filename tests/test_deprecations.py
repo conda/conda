@@ -155,6 +155,7 @@ def test_topic_remove(deprecated_v3):
         deprecated_v3.topic("2.0", "3.0", topic="Some special topic")
 
 
+@pytest.mark.skip("confuses import system")
 def test_packaging_unavailable(mocker):
     """
     Coverage testing for the "invoke conda deprecations module before packaging
