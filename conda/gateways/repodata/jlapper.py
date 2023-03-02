@@ -135,7 +135,7 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     return response
 
 
-def hf(hash):
+def format_hash(hash):
     """
     Abbreviate hash for formatting.
     """
@@ -148,12 +148,14 @@ def find_patches(patches, have, want):
         if have == want:
             break
         if patch["to"] == want:
-            log.info("Collect %s \N{LEFTWARDS ARROW} %s", hf(want), hf(patch["from"]))
+            log.info(
+                "Collect %s \N{LEFTWARDS ARROW} %s", format_hash(want), format_hash(patch["from"])
+            )
             apply.append(patch)
             want = patch["from"]
 
     if have != want:
-        print(f"No patch from local revision {hf(have)}")
+        log.debug(f"No patch from local revision {format_hash(have)}")
         raise LookupError("patch not found")
 
     return apply
@@ -162,8 +164,8 @@ def find_patches(patches, have, want):
 def apply_patches(data, apply):
     while apply:
         patch = apply.pop()
-        print(
-            f"{hf(patch['from'])} \N{RIGHTWARDS ARROW} {hf(patch['to'])}, "
+        log.debug(
+            f"{format_hash(patch['from'])} \N{RIGHTWARDS ARROW} {format_hash(patch['to'])}, "
             f"{len(patch['patch'])} steps"
         )
         data = jsonpatch.JsonPatch(patch["patch"]).apply(data, in_place=True)
@@ -178,7 +180,7 @@ def timeme(message):
     begin = time.monotonic()
     yield
     end = time.monotonic()
-    log.info("%sTook %0.02fs", message, end - begin)
+    log.debug("%sTook %0.02fs", message, end - begin)
 
 
 def build_headers(json_path: pathlib.Path, state: RepodataState):
@@ -366,7 +368,10 @@ def request_url_jlap_state(
 
         try:
             apply = find_patches(patches, have, want)
-            log.info(f"Apply {len(apply)} patches {hf(have)} \N{RIGHTWARDS ARROW} {hf(want)}")
+            log.info(
+                f"Apply {len(apply)} patches "
+                "{format_hash(have)} \N{RIGHTWARDS ARROW} {format_hash(want)}"
+            )
 
             if apply:
                 with timeme("Load "), json_path.open() as repodata:
