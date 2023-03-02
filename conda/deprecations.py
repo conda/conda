@@ -9,17 +9,30 @@ import warnings
 try:
     from packaging.version import parse, Version
 except ImportError:
-    warnings.warn("`packaging` not available; deprecation warnings will not display.")
+    warnings.warn("`packaging` not available; deprecation warnings will not display correctly.")
 
     class Version:
+        def __init__(self, major, minor):
+            self.major = major
+            self.minor = minor
+
         def __lt__(self, other):
-            return True
+            return (self.major, self.minor) < (other.major, other.minor)
 
         def __gt__(self, other):
-            return False
+            return (self.major, self.minor) > (other.major, other.minor)
 
     def parse(version):
-        return Version()
+        def _p():
+            for component in str(version).split("."):
+                try:
+                    yield int(component)
+                except ValueError:
+                    yield 0
+            yield 0  # minimum 2 items
+
+        major, minor, *_ = _p()
+        return Version(major, minor)
 
 from .__version__ import __version__
 

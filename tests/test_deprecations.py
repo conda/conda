@@ -169,6 +169,6 @@ def test_packaging_unavailable(mocker):
     mocker.patch.dict("sys.modules", values=modules, clear=True)
     from conda.deprecations import parse
 
-    (a, b) = parse("a"), parse("b")
-    assert a < b
-    assert b < a
+    (a, b) = parse("1.0"), parse("1.1.xyz")
+    assert a < b and not b < a
+    assert b > a and not a > b
