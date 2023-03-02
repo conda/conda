@@ -65,7 +65,7 @@ def get_repo_interface() -> type[RepoInterface]:
 
             return JlapRepoInterface
         except ImportError as e:  # pragma: no cover
-            warnings.warn(f"Unable to import repo_jlap. Is jsonpatch installed?  {e}")
+            warnings.warn(f"Could not load the configured jlap repo interface. Is the required jsonpatch package installed?  {e}")
 
     return CondaRepoInterface
 
