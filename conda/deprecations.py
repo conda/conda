@@ -2,21 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import warnings
 from functools import wraps
 from types import ModuleType
-import warnings
 
-# try:
-#     from packaging.version import parse, Version
-# except ImportError:
-#     warnings.warn("`packaging` not available; deprecation warnings will not display.")
-
-#     class Version:
-#         def __lt__(self, other):
-#             return True
-
-#     def parse(version):
-#         return Version()
+from packaging.version import Version, parse
 
 from .__version__ import __version__
 
