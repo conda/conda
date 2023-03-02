@@ -6,8 +6,10 @@ between conda processes. Try to acquire a lock on a single byte in the metadat
 file; modify both files; then release the lock.
 """
 
+import time
 import warnings
 from contextlib import contextmanager
+
 from conda.base.context import context
 
 LOCK_BYTE = 21  # mamba interop

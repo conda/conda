@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import multiprocessing
 import sys
+import traceback
 
 import pytest
 
@@ -26,7 +27,8 @@ def locker(cache: RepodataCache, qout, qin):
         qout.put(e)
     except Exception as e:
         # The wrong exception!
-        print("Not OSError", e)
+        print("Not OSError", e, file=sys.stderr)
+        traceback.print_exception(e)
         qout.put(e)
     else:
         # Speed up test failure if no exception thrown?
