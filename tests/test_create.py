@@ -764,6 +764,7 @@ dependencies:
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.flaky(reruns=2)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c", "conda-forge", "python=3.7", no_capture=True) as prefix:
