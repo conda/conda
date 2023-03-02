@@ -2,13 +2,45 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import warnings
 from functools import wraps
 from types import ModuleType
-import warnings
-
-from packaging.version import parse, Version
 
 from .__version__ import __version__
+
+
+class Version:
+    """
+    Simple dependency-free Version parser to meet the needs of deprecations
+    (never deprecate on finer than a minor-release schedule). Minimally
+    compatible with packaging.version.Version.
+    """
+
+    def __init__(self, major, minor):
+        self.major = major
+        self.minor = minor
+
+    def __lt__(self, other):
+        return (self.major, self.minor) < (other.major, other.minor)
+
+    def __gt__(self, other):
+        return (self.major, self.minor) > (other.major, other.minor)
+
+    def __eq__(self, other):
+        return (self.major, self.minor) == (other.major, other.minor)
+
+
+def parse(version):
+    def _p():
+        for component in str(version).split("."):
+            try:
+                yield int(component)
+            except ValueError:
+                yield 0
+        yield 0  # minimum 2 items
+
+    major, minor, *_ = _p()
+    return Version(major, minor)
 
 
 class DeprecatedError(RuntimeError):

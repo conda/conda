@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from conda.deprecations import DeprecationHandler, DeprecatedError
+from conda.deprecations import DeprecationHandler, DeprecatedError, parse
 
 
 @pytest.fixture(scope="module")
@@ -152,3 +152,24 @@ def test_topic_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
     with pytest.raises(DeprecatedError):
         deprecated_v3.topic("2.0", "3.0", topic="Some special topic")
+
+
+def test_version_class():
+    a = parse("2.0.x")
+    b = parse("2.0")
+    c = parse("3")
+    # it ignores micro or non-numeric versions
+    assert a == b and b == b and c == c
+    assert a != c and b != c
+    # it implements greater-than
+    assert c > a and not a > c
+    # it implements less-than
+    assert b < c and not c < b
+
+    import packaging.version
+
+    d = packaging.version.parse("2.5.0")
+
+    # it uses the same major, minor fields in comparisons
+    assert b < d < c  # type: ignore
+    assert c > d > b  # type: ignore
