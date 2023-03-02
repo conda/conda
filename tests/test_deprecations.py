@@ -1,11 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import importlib
 import sys
 
 import pytest
 
-from conda.deprecations import DeprecatedError, DeprecationHandler
+from conda.deprecations import DeprecationHandler, DeprecatedError
 
 
 @pytest.fixture(scope="module")
@@ -153,23 +152,3 @@ def test_topic_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
     with pytest.raises(DeprecatedError):
         deprecated_v3.topic("2.0", "3.0", topic="Some special topic")
-
-
-@pytest.mark.skip("confuses import system")
-def test_packaging_unavailable(mocker):
-    """
-    Coverage testing for the "invoke conda deprecations module before packaging
-    is installed" problem, first encountered in the test suite. Disable
-    deprecation warnings until conda is completely installed.
-    """
-    # might be smart to skip this test to avoid Version() (fallback) and
-    # Version() (the real one) existing in the same program
-    modules = sys.modules.copy()
-    del modules["conda.deprecations"]
-    modules["packaging.version"] = None  # type: ignore
-    mocker.patch.dict("sys.modules", values=modules, clear=True)
-    from conda.deprecations import parse
-
-    (a, b) = parse("1.0"), parse("1.1.xyz")
-    assert a < b and not b < a
-    assert b > a and not a > b
