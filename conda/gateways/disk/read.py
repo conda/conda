@@ -66,12 +66,12 @@ def _digest_path(algo: Literal["md5", "sha256"], path: str | os.PathLike) -> str
     return compute_sum(path, algo)
 
 
-# FUTURE: Python 3.11+, replace with hashlib.file_digest
 def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
     path = Path(path)
     if not path.is_file():
         raise PathNotFoundError(path)
 
+    # FUTURE: Python 3.11+, replace with hashlib.file_digest
     hasher = hashlib.new(algo)
     with path.open("rb") as fh:
         for chunk in iter(partial(fh.read, 8192), b''):
