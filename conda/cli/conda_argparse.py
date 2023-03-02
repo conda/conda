@@ -1698,7 +1698,13 @@ def add_parser_channels(p):
               "is added for you automatically. For more information, see "
               "conda config --describe repodata_fns.")
     )
-    add_parser_experimental(channel_customization_options)
+    channel_customization_options.add_argument(
+        "--experimental",
+        action="append",
+        choices=["jlap", "lock"],
+        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
+        "lock: use locking when reading, updating index (repodata.json) cache. ",
+    )
     return channel_customization_options
 
 
@@ -1836,20 +1842,6 @@ def add_parser_solver(p):
         choices=solver_choices,
         help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
-    )
-
-
-def add_parser_experimental(p):
-    """
-    Add a command-line flag for incremental repodata.
-    """
-    group = p.add_mutually_exclusive_group()
-    group.add_argument(
-        "--experimental",
-        action="append",
-        choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. ",
     )
 
 
