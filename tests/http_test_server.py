@@ -18,6 +18,10 @@ def run_test_server(directory: str) -> http.server.ThreadingHTTPServer:
     """
 
     class DualStackServer(http.server.ThreadingHTTPServer):
+        daemon_threads = False  # These are per-request threads
+        allow_reuse_address = True  # Good for tests
+        request_queue_size = 64  # Should be more than the number of test packages
+
         def server_bind(self):
             # suppress exception when protocol is IPv4
             with contextlib.suppress(Exception):
