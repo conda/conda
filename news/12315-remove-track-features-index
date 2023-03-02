@@ -9,7 +9,7 @@
 ### Deprecations
 
 * Remove unused optimization for searching packages based on
-  `*[track_features=<feature name>]`.
+  `*[track_features=<feature name>]` (#12314).
 
 ### Docs
 
