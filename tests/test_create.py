@@ -1953,7 +1953,9 @@ dependencies:
 
                 SubdirData._cache_.clear()
                 mock_method.side_effect = side_effect
-                stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
+                stdout, stderr, _ = run_command(
+                    Commands.SEARCH, prefix, "flask", "--info", "--json"
+                )
                 assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
