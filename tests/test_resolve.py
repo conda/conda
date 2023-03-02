@@ -127,7 +127,7 @@ class TestSolve(unittest.TestCase):
 
 def test_generate_eq_1():
     # avoid cache from other tests which may have different result
-    r._reduced_index_cache = {}
+    _index, r = get_index_r_1()
 
     reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
     r2 = Resolve(reduced_index, True)
