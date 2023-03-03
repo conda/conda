@@ -37,7 +37,7 @@ def pre_link_messages_package():
 def clear_cache():
     from conda.core.subdir_data import SubdirData
 
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 @pytest.fixture(scope="session")

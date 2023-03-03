@@ -299,7 +299,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     channel = Channel(url_path(join(CHANNEL_DIR, platform)))
 
     # clear, to see our testing class
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     class SubdirDataRepodataTooNew(SubdirData):
         def _load(self):
@@ -308,7 +308,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     with pytest.raises(CondaUpgradeError):
         SubdirDataRepodataTooNew(channel).load()
 
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
