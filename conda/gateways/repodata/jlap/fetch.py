@@ -22,14 +22,14 @@ from conda.base.context import context
 from conda.gateways.connection import Response, Session
 from conda.gateways.repodata import RepodataState
 
-from .core import jlap_buffer
+from .core import JLAP
 
 log = logging.getLogger(__name__)
 
 
 DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
 
-JLAP = "jlap"
+JLAP_KEY = "jlap"
 HEADERS = "headers"
 NOMINAL_HASH = "nominal_hash"
 ON_DISK_HASH = "actual_hash"
@@ -68,7 +68,7 @@ def process_jlap_response(response: Response, pos=0, iv=b""):
     def lines() -> Iterator[bytes]:
         yield from response.iter_lines(delimiter=b"\n")  # type: ignore
 
-    buffer = jlap_buffer(lines(), iv, pos)
+    buffer = JLAP.from_lines(lines(), iv, pos)
 
     # new iv == initial iv if nothing changed
     pos, footer, _ = buffer[-2]
@@ -242,7 +242,7 @@ def request_url_jlap_state(
     url, state: RepodataState, get_place=get_place, full_download=False, *, session: Session
 ):
 
-    jlap_state = state.get(JLAP, {})
+    jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
 
     json_path = get_place(url)
@@ -340,7 +340,7 @@ def request_url_jlap_state(
                 buffer = [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
                 state.set_has_format("jlap", False)
 
-        state[JLAP] = jlap_state
+        state[JLAP_KEY] = jlap_state
 
     with timeme("Apply Patches "):
         # buffer[0] == previous iv
