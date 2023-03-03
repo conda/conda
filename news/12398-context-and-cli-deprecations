@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda_exe()` in `context.py` and a topic in `print_package_info()` `cli/main_info.py` for official deprecation (#12276)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

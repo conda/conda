@@ -38,10 +38,12 @@ class S3Adapter(BaseAdapter):
         elif have_boto:
             return self._send_boto(boto, resp, request)
         else:
-            stderrlog.info('\nError: boto3 is required for S3 channels. '
-                           'Please install with `conda install boto3`\n'
-                           'Make sure to run `source deactivate` if you '
-                           'are in a conda environment.\n')
+            stderrlog.info(
+                "\nError: boto3 is required for S3 channels. "
+                "Please install with `conda install boto3`\n"
+                "Make sure to run `conda deactivate` if you "
+                "are in a conda environment.\n"
+            )
             resp.status_code = 404
             return resp
 
