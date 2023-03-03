@@ -79,10 +79,20 @@ def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
     return hasher.hexdigest()
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
+)
 def compute_md5sum(path: str | os.PathLike) -> str:
     return compute_sum(path, "md5")
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum='Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead.',
+)
 def compute_sha256sum(path: str | os.PathLike) -> str:
     return compute_sum(path, "sha256")
 
