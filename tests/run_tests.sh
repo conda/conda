@@ -65,7 +65,8 @@ CONDA_TEST_SAVE_TEMPS=1 \
   pytest \
     --cov=conda \
     ${JOBS} \
-    -vvv \
+    -vv \
+    -x \
     --durations=0 \
     ${_BASETEMP} \
     "${_EXTRA_ARGS[@]}" \
