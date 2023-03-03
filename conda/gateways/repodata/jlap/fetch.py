@@ -93,7 +93,6 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
     """
     Return the part of the remote .jlap file we are interested in.
     """
-    # XXX max-age seconds; return dummy buffer if 304 not modified?
     headers = {}
     if pos:
         headers["range"] = f"bytes={pos}-"
@@ -196,27 +195,27 @@ def build_headers(json_path: pathlib.Path, state: RepodataState):
     return headers
 
 
-def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
-    """
-    Download url if it doesn't exist, passing bytes through hasher.update()
-    """
-    state = state or RepodataState()
-    headers = build_headers(json_path, state)
-    timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-    response = session.get(url, stream=True, timeout=timeout, headers=headers)
-    log.debug("%s %s", url, response.headers)
-    response.raise_for_status()
-    length = 0
-    # is there a status code for which we must clear the file?
-    if response.status_code == 200:
-        with json_path.open("wb") as repodata:
-            for block in response.iter_content(chunk_size=1 << 14):
-                hasher.update(block)
-                repodata.write(block)
-                length += len(block)
-    if response.request:
-        log.info("Download %d bytes %r", length, response.request.headers)
-    return response  # can be 304 not modified
+# def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
+#     """
+#     Download url if it doesn't exist, passing bytes through hasher.update()
+#     """
+#     state = state or RepodataState()
+#     headers = build_headers(json_path, state)
+#     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+#     response = session.get(url, stream=True, timeout=timeout, headers=headers)
+#     log.debug("%s %s", url, response.headers)
+#     response.raise_for_status()
+#     length = 0
+#     # is there a status code for which we must clear the file?
+#     if response.status_code == 200:
+#         with json_path.open("wb") as repodata:
+#             for block in response.iter_content(chunk_size=1 << 14):
+#                 hasher.update(block)
+#                 repodata.write(block)
+#                 length += len(block)
+#     if response.request:
+#         log.info("Download %d bytes %r", length, response.request.headers)
+#     return response  # can be 304 not modified
 
 
 class HashWriter(io.RawIOBase):
@@ -232,10 +231,45 @@ class HashWriter(io.RawIOBase):
         self.backing.close()
 
 
+# def download_and_hash_zst(hasher, url, json_path, session: Session, state: RepodataState | None):
+#     """
+#     Download url if it doesn't exist, passing bytes through zstandard
+#     decompression then hasher.update()
+#     """
+#     state = state or RepodataState()
+#     headers = build_headers(json_path, state)
+#     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+#     response = session.get(url, stream=True, timeout=timeout, headers=headers)
+#     log.debug("%s %s", url, response.headers)
+#     response.raise_for_status()
+#     length = 0
+#     # is there a status code for which we must clear the file?
+#     if response.status_code == 200:
+#         decompressor = zstandard.ZstdDecompressor()
+#         with decompressor.stream_writer(
+#             HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
+#         ) as repodata:
+#             for block in response.iter_content(chunk_size=1 << 14):
+#                 repodata.write(block)
+#                 length += len(block)
+#     if response.request:
+#         log.info("Download %d bytes %r", length, response.request.headers)
+#     return response  # can be 304 not modified
+
+
+def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
+    return download_and_hash_x(hasher, url, json_path, session, state, is_zst=False)
+
+
 def download_and_hash_zst(hasher, url, json_path, session: Session, state: RepodataState | None):
+    return download_and_hash_x(hasher, url, json_path, session, state, is_zst=True)
+
+
+def download_and_hash_x(
+    hasher, url, json_path, session: Session, state: RepodataState | None, is_zst=False
+):
     """
-    Download url if it doesn't exist, passing bytes through zstandard
-    decompression then hasher.update()
+    Download url if it doesn't exist, passing bytes through hasher.update()
     """
     state = state or RepodataState()
     headers = build_headers(json_path, state)
@@ -246,13 +280,16 @@ def download_and_hash_zst(hasher, url, json_path, session: Session, state: Repod
     length = 0
     # is there a status code for which we must clear the file?
     if response.status_code == 200:
-        decompressor = zstandard.ZstdDecompressor()
-        with decompressor.stream_writer(
-            HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
-        ) as repodata:
+        if is_zst:
+            decompressor = zstandard.ZstdDecompressor()
+            writer = decompressor.stream_writer(
+                HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
+            )
+        else:
+            writer = HashWriter(json_path.open("wb"), hasher)
+        with writer as repodata:
             for block in response.iter_content(chunk_size=1 << 14):
                 repodata.write(block)
-                length += len(block)
     if response.request:
         log.info("Download %d bytes %r", length, response.request.headers)
     return response  # can be 304 not modified

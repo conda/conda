@@ -485,3 +485,20 @@ def test_jlap_get_place():
     assert ".c" in place
     place2 = fetch.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
     assert ".c" not in place2
+
+
+def test_hashwriter():
+    """
+    Test that HashWriter closes its backing file in a context manager.
+    """
+    closed = False
+
+    class backing:
+        def close(self):
+            nonlocal closed
+            closed = True
+
+    writer = fetch.HashWriter(backing(), None)
+    with writer:
+        pass
+    assert closed
