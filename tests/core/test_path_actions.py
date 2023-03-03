@@ -25,7 +25,7 @@ from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
-from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
+from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
@@ -246,8 +246,8 @@ class PathActionsTests(TestCase):
             assert isfile(windows_exe_axn.target_full_path)
             assert is_executable(windows_exe_axn.target_full_path)
 
-            src = compute_md5sum(join(context.conda_prefix, 'Scripts/conda.exe'))
-            assert src == compute_md5sum(windows_exe_axn.target_full_path)
+            src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
+            assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
 
             windows_exe_axn.reverse()
             assert not isfile(windows_exe_axn.target_full_path)
@@ -256,7 +256,7 @@ class PathActionsTests(TestCase):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 
-        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_sha256 = compute_sum(source_full_path, "sha256")
         correct_size_in_bytes = getsize(source_full_path)
         path_type = PathType.hardlink
 
@@ -287,7 +287,7 @@ class PathActionsTests(TestCase):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 
-        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_sha256 = compute_sum(source_full_path, "sha256")
         correct_size_in_bytes = getsize(source_full_path)
         path_type = PathType.hardlink
 
@@ -332,7 +332,7 @@ class PathActionsTests(TestCase):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 
-        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_sha256 = compute_sum(source_full_path, "sha256")
         correct_size_in_bytes = getsize(source_full_path)
         path_type = PathType.hardlink
 

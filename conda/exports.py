@@ -43,11 +43,9 @@ from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable  
 
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
-from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # noqa: F401
+from .utils import hashsum_file, md5_file, human_bytes, unix_path_to_win, url_path  # noqa: F401
 from .common.path import win_path_to_unix  # noqa: F401
-from .gateways.disk.read import compute_md5sum
-
-md5_file = compute_md5sum
+from .gateways.disk.read import compute_md5sum  # noqa: F401
 
 from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .models.channel import Channel  # noqa: F401

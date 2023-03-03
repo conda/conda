@@ -431,8 +431,9 @@ class PackageCacheRecord(PackageRecord):
 
         from os.path import isfile
         if isfile(self.package_tarball_full_path):
-            from ..gateways.disk.read import compute_md5sum
-            md5sum = compute_md5sum(self.package_tarball_full_path)
+            from ..gateways.disk.read import compute_sum
+
+            md5sum = compute_sum(self.package_tarball_full_path, "md5")
             setattr(self, '_memoized_md5', md5sum)
             return md5sum
 
