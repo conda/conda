@@ -22,14 +22,14 @@ __conda_activate() {
         \unset CONDA_PS1_BACKUP
     fi
     \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix "$@")" || \return
+    ask_conda="$(PS1="${PS1:-}" PYTHONNOUSERSITE=1 __conda_exe shell.posix "$@")" || \return
     \eval "$ask_conda"
     __conda_hashr
 }
 
 __conda_reactivate() {
     \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
+    ask_conda="$(PS1="${PS1:-}" PYTHONNOUSERSITE=1 __conda_exe shell.posix reactivate)" || \return
     \eval "$ask_conda"
     __conda_hashr
 }

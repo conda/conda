@@ -69,7 +69,7 @@ function conda --inherit-variable CONDA_EXE
         set -e argv[1]
         switch $cmd
             case activate deactivate
-                eval ($CONDA_EXE shell.fish $cmd $argv)
+                eval (env PYTHONNOUSERSITE=1 $CONDA_EXE shell.fish $cmd $argv)
             case install update upgrade remove uninstall
                 $CONDA_EXE $cmd $argv
                 and eval ($CONDA_EXE shell.fish reactivate)

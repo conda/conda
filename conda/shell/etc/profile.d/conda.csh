@@ -27,14 +27,14 @@ if ("`alias conda`" == "") then
 else
     switch ( "${1}" )
         case "activate":
-            set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`"
+            set ask_conda="`(setenv prompt '${prompt}' ; setenv PYTHONNOUSERSITE 1 ;'${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`"
             set conda_tmp_status=$status
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"
             rehash
             breaksw
         case "deactivate":
-            set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh deactivate '${2}' ${argv[3-]})`"
+            set ask_conda="`(setenv prompt '${prompt}' ; setenv PYTHONNOUSERSITE 1 ; ${_CONDA_EXE}' shell.csh deactivate '${2}' ${argv[3-]})`"
             set conda_tmp_status=$status
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"

@@ -49,7 +49,7 @@ def _raise_pipeline_error(pipeline):
 def _conda_activate_handler(env_name_or_prefix):
     import os
 
-    __xonsh__.execer.exec($($CONDA_EXE shell.xonsh activate @(env_name_or_prefix)),
+    __xonsh__.execer.exec($($PYTHONNOUSER=1 $CONDA_EXE shell.xonsh activate @(env_name_or_prefix)),
                           glbs=__xonsh__.ctx,
                           filename="$(conda shell.xonsh activate " + env_name_or_prefix + ")")
     if $CONDA_DEFAULT_ENV != os.path.split(env_name_or_prefix)[1]:
@@ -63,7 +63,7 @@ def _conda_activate_handler(env_name_or_prefix):
 
 
 def _conda_deactivate_handler():
-    __xonsh__.execer.exec($($CONDA_EXE shell.xonsh deactivate),
+    __xonsh__.execer.exec($($PYTHONNOUSER=1 $CONDA_EXE shell.xonsh deactivate),
                           glbs=__xonsh__.ctx,
                           filename="$(conda shell.xonsh deactivate)")
 
@@ -77,7 +77,7 @@ def _conda_reactivate_handler(args, name_or_prefix_given):
     pipeline = ![$CONDA_EXE @(args)]
     _raise_pipeline_error(pipeline)
     if not name_or_prefix_given:
-        __xonsh__.execer.exec($($CONDA_EXE shell.xonsh reactivate),
+        __xonsh__.execer.exec($($PYTHONNOUSER=1 $CONDA_EXE shell.xonsh reactivate),
                               glbs=__xonsh__.ctx,
                               filename="$(conda shell.xonsh reactivate)")
 
