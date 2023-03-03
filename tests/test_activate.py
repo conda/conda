@@ -3230,3 +3230,25 @@ def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
         )
         == expected
     )
+
+
+def _getusersitepackages(userbase):
+    if on_win:
+        ver_nodot = sys.winver.replace('.', '')
+        return f'{userbase}\\Python{ver_nodot}\\site-packages'
+    version = sys.version_info
+    return f'{userbase}/lib/python{version[0]}.{version[1]}/site-packages'
+
+
+def test_activation_with_usercustomize():
+    with tempdir() as temp_user_base:
+        user_sitepackages = _getusersitepackages(temp_user_base)
+        os.makedirs(user_sitepackages)
+        usercustomize = Path(user_sitepackages, "usercustomize.py")
+        usercustomize.write_text("print('echo This should not be seen')")
+        if on_win:
+            command = f"set PYTHONUSERBASE={temp_user_base} && conda activate"
+        else:
+            command = f"PYTHONUSERBASE={temp_user_base} conda activate"
+        output = _run_command(command)
+        assert not output
