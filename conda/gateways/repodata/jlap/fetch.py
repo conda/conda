@@ -195,29 +195,6 @@ def build_headers(json_path: pathlib.Path, state: RepodataState):
     return headers
 
 
-# def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
-#     """
-#     Download url if it doesn't exist, passing bytes through hasher.update()
-#     """
-#     state = state or RepodataState()
-#     headers = build_headers(json_path, state)
-#     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-#     response = session.get(url, stream=True, timeout=timeout, headers=headers)
-#     log.debug("%s %s", url, response.headers)
-#     response.raise_for_status()
-#     length = 0
-#     # is there a status code for which we must clear the file?
-#     if response.status_code == 200:
-#         with json_path.open("wb") as repodata:
-#             for block in response.iter_content(chunk_size=1 << 14):
-#                 hasher.update(block)
-#                 repodata.write(block)
-#                 length += len(block)
-#     if response.request:
-#         log.info("Download %d bytes %r", length, response.request.headers)
-#     return response  # can be 304 not modified
-
-
 class HashWriter(io.RawIOBase):
     def __init__(self, backing, hasher):
         self.backing = backing
@@ -231,41 +208,7 @@ class HashWriter(io.RawIOBase):
         self.backing.close()
 
 
-# def download_and_hash_zst(hasher, url, json_path, session: Session, state: RepodataState | None):
-#     """
-#     Download url if it doesn't exist, passing bytes through zstandard
-#     decompression then hasher.update()
-#     """
-#     state = state or RepodataState()
-#     headers = build_headers(json_path, state)
-#     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-#     response = session.get(url, stream=True, timeout=timeout, headers=headers)
-#     log.debug("%s %s", url, response.headers)
-#     response.raise_for_status()
-#     length = 0
-#     # is there a status code for which we must clear the file?
-#     if response.status_code == 200:
-#         decompressor = zstandard.ZstdDecompressor()
-#         with decompressor.stream_writer(
-#             HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
-#         ) as repodata:
-#             for block in response.iter_content(chunk_size=1 << 14):
-#                 repodata.write(block)
-#                 length += len(block)
-#     if response.request:
-#         log.info("Download %d bytes %r", length, response.request.headers)
-#     return response  # can be 304 not modified
-
-
-def download_and_hash(hasher, url, json_path, session: Session, state: RepodataState | None):
-    return download_and_hash_x(hasher, url, json_path, session, state, is_zst=False)
-
-
-def download_and_hash_zst(hasher, url, json_path, session: Session, state: RepodataState | None):
-    return download_and_hash_x(hasher, url, json_path, session, state, is_zst=True)
-
-
-def download_and_hash_x(
+def download_and_hash(
     hasher, url, json_path, session: Session, state: RepodataState | None, is_zst=False
 ):
     """
@@ -322,8 +265,13 @@ def request_url_jlap_state(
 
             try:
                 if state.should_check_format("zst"):
-                    response = download_and_hash_zst(
-                        hasher, withext(url, ".json.zst"), json_path, session=session, state=state
+                    response = download_and_hash(
+                        hasher,
+                        withext(url, ".json.zst"),
+                        json_path,
+                        session=session,
+                        state=state,
+                        is_zst=True,
                     )
                 else:
                     raise JlapSkipZst()
@@ -446,11 +394,6 @@ def request_url_jlap_state(
                 )
 
             assert not full_download, "Recursion error"  # pragma: no cover
-
-            # XXX debugging
-            json_new_path = json_path.with_suffix(".json.old")
-            log.warning("Rename to %s for debugging", json_new_path)
-            json_path.rename(json_new_path)
 
             return request_url_jlap_state(
                 url, state, get_place=get_place, full_download=True, session=session

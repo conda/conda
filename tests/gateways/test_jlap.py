@@ -59,7 +59,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
 
     # however it may make two requests - one to look for .json.zst, the second
     # to look for .json
-    assert patched.call_count == 1
+    assert patched.call_count == 2
 
     # second will try to fetch (non-existent) .jlap, then fall back to .json
     with pytest.raises(RepodataOnDisk):
@@ -68,7 +68,8 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     with pytest.raises(RepodataOnDisk):
         repo.repodata(state)
 
-    assert patched.call_count == 3
+    # we may be able to do better than this by setting "zst unavailable" sooner
+    assert patched.call_count == 4
 
 
 def test_download_and_hash(
@@ -123,7 +124,9 @@ def test_download_and_hash(
     dest_zst = tmp_path / "repodata.json.from-zst"  # should be decompressed
     assert not dest_zst.exists()
     hasher3 = fetch.hash()
-    response3 = fetch.download_and_hash_zst(hasher3, url3, dest_zst, session, RepodataState())
+    response3 = fetch.download_and_hash(
+        hasher3, url3, dest_zst, session, RepodataState(), is_zst=True
+    )
     assert response3.status_code == 200
     assert int(response3.headers["content-length"]) < dest_zst.stat().st_size
 
