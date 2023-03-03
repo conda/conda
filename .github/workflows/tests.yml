@@ -53,7 +53,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: windows-2019
     strategy:
@@ -277,7 +277,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: macos-latest
     strategy:

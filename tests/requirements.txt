@@ -36,3 +36,5 @@ responses
 ruamel.yaml
 toolz
 tqdm
+# dependency that may not be in the cached docker images
+bottle
