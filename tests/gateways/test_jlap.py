@@ -17,6 +17,7 @@ import zstandard
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
     CondaRepoInterface,
@@ -349,9 +350,11 @@ def test_jlap_sought(
         assert len(patched["info"]) == 1  # patches not found in bad jlap file
 
 
-def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_base: Path, mocker):
+def test_jlap_errors(
+    package_server: socket, tmp_path: Path, package_repository_base: Path, mocker
+):
     """
-    Test that we handle 304 Not Modified responses.
+    Test that we handle 304 Not Modified responses, other errors.
     """
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
@@ -388,7 +391,8 @@ def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_bas
 
         test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
         test_jlap.terminate()
-        test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
+        test_jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+        test_jlap.write(test_jlap_path)
 
         sd.load()
 
@@ -399,12 +403,57 @@ def test_jlap_304(package_server: socket, tmp_path: Path, package_repository_bas
         patched = json.loads(sd.cache_path_json.read_text())
         assert len(patched["info"]) == 9
 
+        # Get a checksum error on the jlap file
+        with test_jlap_path.open("a") as test_jlap_file:
+            test_jlap_file.write("x")
+        state = cache.load_state()
+        state["refresh_ns"] -= int(60 * 1e9)
+        with pytest.raises(RepodataOnDisk):
+            sd._repo.repodata(state)  # type: ignore
+
+        # Get an IndexError on a too-short file
+        test_jlap_path.write_text(core.DEFAULT_IV.hex())
+        # clear any jlap failures
+        state.pop("has_jlap", None)
+        state.pop("jlap", None)
+        # gets the failure, falls back to non-jlap path, writes to disk
+        with pytest.raises(RepodataOnDisk):
+            sd._repo.repodata(state)  # type: ignore
+
         # force 304 not modified on the .jlap file (test server doesn't return 304
         # not modified on range requests)
-        mocker.patch.object(CondaSession, "get", return_value=Mock(status_code=304, headers={}))
+        with mocker.patch.object(
+            CondaSession, "get", return_value=Mock(status_code=304, headers={})
+        ), pytest.raises(Response304ContentUnchanged):
+            sd._repo.repodata(cache.load_state())  # type: ignore
 
-        with pytest.raises(Response304ContentUnchanged):
-            sd._repo.repodata(cache.load_state())
+
+def test_jlap_zst_not_404(mocker, package_server, tmp_path):
+    """
+    Test that exception is raised if `repodata.json.zst` produces something
+    other than a 404. For code coverage.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+
+    url = f"{base}/osx-64"
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache_path_json=Path(tmp_path, "repodata.json"),
+        cache_path_state=Path(tmp_path, "repodata.state.json"),
+    )
+
+    def error(*args, **kwargs):
+        class Response:
+            status_code = 405
+
+        raise fetch.HTTPError(response=Response())
+
+    mocker.patch("conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error)
+
+    with pytest.raises(CondaHTTPError, match="HTTP 405"):
+        repo.repodata({})
 
 
 def test_jlap_core(tmp_path: Path):
