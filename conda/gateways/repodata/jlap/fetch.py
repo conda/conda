@@ -59,6 +59,10 @@ class JlapSkipZst(Exception):
     pass
 
 
+class JlapPatchNotFound(LookupError):
+    pass
+
+
 def process_jlap_response(response: Response, pos=0, iv=b""):
     # if response is 304 Not Modified, could return a buffer with only the
     # cached footer...
@@ -155,7 +159,7 @@ def find_patches(patches, have, want):
 
     if have != want:
         log.debug(f"No patch from local revision {format_hash(have)}")
-        raise LookupError("patch not found")
+        raise JlapPatchNotFound(f"No patch from local revision {format_hash(have)}")
 
     return apply
 
@@ -381,10 +385,8 @@ def request_url_jlap_state(
             else:
                 assert state[NOMINAL_HASH] == want
 
-        except (LookupError, json.JSONDecodeError) as e:
-            if isinstance(e, LookupError):
-                if e.args[0] != "patch not found":
-                    raise
+        except (JlapPatchNotFound, json.JSONDecodeError) as e:
+            if isinstance(e, JlapPatchNotFound):
                 # 'have' hash not mentioned in patchset
                 #
                 # XXX or skip jlap at top of fn; make sure it is not
