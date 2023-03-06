@@ -230,7 +230,7 @@ class ArgumentParser(ArgumentParserBase):
     def _get_attempted_override_error(name: str, summary: str):
         return (
             f"The plugin '{name}: {summary}' is trying to override "
-            f"the built command {name}, which is not allowed. Please uninstall this plugin "
+            f"the built-in command {name}, which is not allowed. Please uninstall this plugin "
             "to stop seeing this error message"
         )
 
