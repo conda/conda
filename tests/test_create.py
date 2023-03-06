@@ -490,6 +490,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
+
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
@@ -507,7 +508,7 @@ class IntegrationTests(BaseTestCase):
 
                 # regression test for #3433
                 run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
-                assert package_is_installed(prefix, 'python=3.5')
+                assert package_is_installed(prefix, "python=3.5")
 
                 # regression test for #5847
                 #   when using rm_rf on a file
@@ -763,6 +764,7 @@ dependencies:
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.flaky(reruns=2)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c", "conda-forge", "python=3.7", no_capture=True) as prefix:
@@ -1011,10 +1013,18 @@ dependencies:
             finally:
                 reset_context()
 
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_rpy_search(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5", "--override-channels", "-c", "defaults") as prefix:
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
             run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            # config --append on an empty key pre-populates it with the hardcoded default value!
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
             assert 'defaults' not in json_obj['channels']
@@ -1115,9 +1125,12 @@ dependencies:
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
             flask_python = '3.8' # oldest available for osx-arm64
             with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
-
+                payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+                default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
                 run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
-                run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+                # config --append on an empty key pre-populates it with the hardcoded default value!
+                for channel in default_channels:
+                    run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
 
                 run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)
 
@@ -1600,10 +1613,17 @@ dependencies:
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
-
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_conda_pip_interop_conda_editable_package(self):
         with env_vars(
-            {"CONDA_REPORT_ERRORS": "false", "CONDA_RESTORE_FREE_CHANNEL": True},
+            {
+                "CONDA_REPORT_ERRORS": "false",
+                "CONDA_RESTORE_FREE_CHANNEL": True,
+                "CONDA_CHANNELS": "defaults",
+            },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             with make_temp_env(
@@ -1819,7 +1839,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
-            assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
+            assert channel_url.replace("cqgccfm1mfma", "<TOKEN>") in yml_obj["channels"]
 
             with pytest.raises(PackagesNotFoundError):
                 # this was supposed to be a package available in private but not
@@ -1858,14 +1878,26 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/kalefranz"
-            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
+            run_command(Commands.CONFIG, prefix, "--append", "channels", channel_url)
+            # config --append on an empty key pre-populates it with the hardcoded default value!
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
+            print(output)
             yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
-            output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                         "linux-64", "--json", use_exception_handler=True)
+            output, _, _ = run_command(
+                Commands.SEARCH,
+                prefix,
+                "anyjson",
+                "--platform",
+                "linux-64",
+                "--json",
+                use_exception_handler=True,
+            )
             json_obj = json_loads(output)
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
@@ -1877,8 +1909,11 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
 
@@ -1895,7 +1930,8 @@ dependencies:
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix, no_capture=True):
@@ -1917,9 +1953,11 @@ dependencies:
                             del result.headers[header]
                     return result
 
-                SubdirData._cache_.clear()
+                SubdirData.clear_cached_local_channel_data(exclude_file=False)
                 mock_method.side_effect = side_effect
-                stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
+                stdout, stderr, _ = run_command(
+                    Commands.SEARCH, prefix, "flask", "--info", "--json"
+                )
                 assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
@@ -1936,7 +1974,8 @@ dependencies:
 
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         try:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
@@ -1968,7 +2007,7 @@ dependencies:
                         with patch.object(CondaSession, 'get', autospec=True) as mock_method:
                             mock_method.side_effect = side_effect
 
-                            SubdirData._cache_.clear()
+                            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
@@ -1984,7 +2023,7 @@ dependencies:
                                 run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
                             assert not package_is_installed(prefix, "pytz")
         finally:
-            SubdirData._cache_.clear()
+            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
@@ -2165,10 +2204,19 @@ dependencies:
 
     def test_multiline_run_command(self):
         with make_temp_env() as prefix:
-            env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
-            {env} | sort
-            {which} conda
-            """.format(env=env_or_set, which=which_or_where)), dev=True)
+            env_which_etc, errs_etc, _ = run_command(
+                Commands.RUN,
+                prefix,
+                "--cwd",
+                prefix,
+                dedent(
+                    f"""
+                    {env_or_set}
+                    {which_or_where} conda
+                    """
+                ),
+                dev=True,
+            )
         assert env_which_etc
         assert not errs_etc
 

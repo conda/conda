@@ -26,7 +26,6 @@ from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvali
 from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
-from conda.testing.helpers import CHANNEL_DIR
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -300,7 +299,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     channel = Channel(url_path(join(CHANNEL_DIR, platform)))
 
     # clear, to see our testing class
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     class SubdirDataRepodataTooNew(SubdirData):
         def _load(self):
@@ -309,7 +308,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     with pytest.raises(CondaUpgradeError):
         SubdirDataRepodataTooNew(channel).load()
 
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):

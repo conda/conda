@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add a note about `use_only_tar_bz2` being enabled on `PackagesNotFoundError` exceptions. (#12353)
 
 ### Bug fixes
 
@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Remove unused optimization for searching packages based on
-  `*[track_features=<feature name>]`.
+* <news item>
 
 ### Docs
 

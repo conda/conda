@@ -7,7 +7,7 @@ They serve as the base for hosting and managing packages.
 Conda packages are downloaded from remote channels, which are URLs to
 directories containing conda packages. The conda command searches a default
 set of channels and packages are automatically downloaded and updated
-from https://repo.anaconda.com/pkgs/. Read more about
+from the `default channel`_. Read more about
 :doc:`conda channels <../concepts/channels>` and the various terms of service
 for their use.
 
@@ -115,3 +115,5 @@ Details about it can be seen by typing ``conda config --describe channel_priorit
     True or False. True is now an alias to 'flexible'.
 
     channel_priority: flexible
+
+.. _`default channel`: https://repo.anaconda.com/pkgs/

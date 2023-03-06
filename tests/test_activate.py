@@ -2397,6 +2397,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' not in PATH3
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
+    @pytest.mark.flaky(reruns=5)
     @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
@@ -2572,14 +2573,16 @@ class ShellWrapperIntegrationTests(TestCase):
                 shell.sendline('powershell -NoProfile -c ("get-command conda | Format-List Source")')
                 shell.p.expect_exact('Source : ' + conda_bat)
 
-                shell.sendline('chcp'); shell.expect('.*\n')
+                shell.sendline("chcp")
+                shell.expect(".*\n")
 
                 PATH0 = shell.get_env_var('PATH', '').split(os.pathsep)
                 print(PATH0)
                 shell.sendline('conda activate --dev "%s"' % charizard)
 
-                shell.sendline('chcp'); shell.expect('.*\n')
-                shell.assert_env_var('CONDA_SHLVL', '1\r')
+                shell.sendline("chcp")
+                shell.expect(".*\n")
+                shell.assert_env_var("CONDA_SHLVL", "1\r")
 
                 PATH1 = shell.get_env_var('PATH', '').split(os.pathsep)
                 print(PATH1)
