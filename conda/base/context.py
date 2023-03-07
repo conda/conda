@@ -11,6 +11,7 @@ import platform
 import sys
 import struct
 from contextlib import contextmanager
+from boltons.setutils import IndexedSet
 
 from .constants import (
     APP_NAME,
@@ -39,7 +40,6 @@ from ..deprecations import deprecated
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
-from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from ..common.compat import NoneType, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,

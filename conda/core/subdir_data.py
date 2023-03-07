@@ -19,6 +19,7 @@ from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
 from time import time
+from boltons.setutils import IndexedSet
 
 from genericpath import getmtime, isfile
 
@@ -31,7 +32,6 @@ from conda.gateways.repodata import (
 )
 
 from .. import CondaError
-from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context

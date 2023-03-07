@@ -3,8 +3,8 @@
 
 import tempfile
 from os.path import basename
+from boltons.setutils import IndexedSet
 
-from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import UpdateModifier
 from conda.base.context import context
 from conda.common.constants import NULL

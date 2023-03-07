@@ -5,12 +5,12 @@ from itertools import chain
 from logging import getLogger
 import platform
 import sys
+from boltons.setutils import IndexedSet
 
 from ..deprecations import deprecated
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
-from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec, PluginError

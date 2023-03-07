@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from collections import defaultdict
 from logging import getLogger
+from boltons.setutils import IndexedSet
 
 from .enums import NoarchType
 from .match_spec import MatchSpec
-from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import on_win
 from ..exceptions import CyclicalDependencyError

@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
-from .._vendor.boltons.timeutils import UTC
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import Spinner
@@ -134,7 +133,9 @@ def pretty_record(record):
     push_line("url", "url")
     push_line("md5", "md5")
     if record.timestamp:
-        date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime('%Y-%m-%d %H:%M:%S %Z')
+        date_str = datetime.fromtimestamp(record.timestamp, timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S %Z"
+        )
         builder.append("%-12s: %s" % ("timestamp", date_str))
     if record.track_features:
         builder.append("%-12s: %s" % ("track_features", dashlist(record.track_features)))
