@@ -27,7 +27,7 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from typing import Sequence
 
 from .compat import isiterable, primitive_types
@@ -46,7 +46,7 @@ try:
     from ruamel.yaml.comments import CommentedSeq, CommentedMap
     from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
-except ImportError:
+except ImportError:  # pragma: no cover
     try:
         from ruamel_yaml.comments import CommentedSeq, CommentedMap
         from ruamel_yaml.reader import ReaderError
