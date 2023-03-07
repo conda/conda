@@ -24,3 +24,6 @@ This is one way to debug conda's unit tests using
 6. Press the Erlenmeyer flask "Testing" icon in the VSCode toolbar. Click on
    `Refresh Tests`. You should see a long list of tests.
 7. Press 'Run Test', or 'Debug Test' for the test(s) you would like to examine.
+
+See also [VSCode's documentation for its Python
+debugger](https://code.visualstudio.com/docs/python/debugging).
