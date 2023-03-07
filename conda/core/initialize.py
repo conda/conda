@@ -62,7 +62,7 @@ from ..gateways.disk.create import copy, mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
-from ..gateways.disk.read import compute_md5sum
+from ..gateways.disk.read import compute_sum
 from ..gateways.subprocess import subprocess_call
 from .portability import generate_shebang_for_entry_point
 
@@ -821,7 +821,7 @@ def make_entry_point_exe(target_path, conda_prefix):
     bits = 8 * struct.calcsize("P")
     source_exe_path = join(CONDA_PACKAGE_ROOT, 'shell', 'cli-%d.exe' % bits)
     if isfile(exe_path):
-        if compute_md5sum(exe_path) == compute_md5sum(source_exe_path):
+        if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
             return Result.NO_CHANGE
 
     if not context.dry_run:
