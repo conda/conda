@@ -705,5 +705,5 @@ def test_raise_errors():
 
 
 def test_parameter_flag():
-    # excercise __str__ method of ParameterFlag enum
+    # run __str__ method of ParameterFlag enum
     assert str(ParameterFlag("final")) == "final"
