@@ -12,7 +12,6 @@ This is one way to debug conda's unit tests using
 3. Ensure you have installed the `Python` extension.
 4. Open settings (the gear icon in the lower left corner). Go to `Open Settings
    (JSON)` (the paper icon with an arrow on it, above the settings editor).
-   Change
 5. Conda's tests really want to run under the under-develoment version of conda,
    and may refuse to run at all otherwise. Add or edit `"python.condaPath":
    "(full path to conda in development environment)",`.
