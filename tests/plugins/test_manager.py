@@ -75,34 +75,35 @@ def test_get_hook_results(plugin_manager):
 
 
 def test_load_plugins_error(plugin_manager, mocker):
-    with mocker.patch.object(
+    mocker.patch.object(
         plugin_manager, "register", side_effect=ValueError("load_plugins error")
-    ):
-        with pytest.raises(PluginError) as exc:
-            plugin_manager.load_plugins(VerboseSolverPlugin)
-        assert plugin_manager.get_plugins() == set()
-        assert exc.value.return_code == 1
-        assert "load_plugins error" in str(exc.value)
+    )
+    with pytest.raises(PluginError) as exc:
+        plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.get_plugins() == set()
+    assert exc.value.return_code == 1
+    assert "load_plugins error" in str(exc.value)
 
 
 def test_load_setuptools_entrypoints_valueerror(plugin_manager, mocker):
-    with mocker.patch(
+    mocker.patch(
         "pluggy._manager.importlib_metadata.distributions",
         side_effect=ValueError("load_setuptools_entrypoints ValueError"),
-    ):
-        with pytest.raises(PluginError) as exc:
-            plugin_manager.load_setuptools_entrypoints("conda")
-        assert plugin_manager.get_plugins() == set()
-        assert exc.value.return_code == 1
-        assert "load_setuptools_entrypoints ValueError" in str(exc.value)
+    )
+    with pytest.raises(PluginError) as exc:
+        plugin_manager.load_setuptools_entrypoints("conda")
+    assert plugin_manager.get_plugins() == set()
+    assert exc.value.return_code == 1
+    assert "load_setuptools_entrypoints ValueError" in str(exc.value)
 
 
-def test_load_setuptools_entrypoints_importerror(caplog, plugin_manager, mocker):
-    with mocker.patch(
+def test_load_setuptools_entrypoints_importerror(recwarn, plugin_manager, mocker):
+    mocker.patch(
         "pluggy._manager.importlib_metadata.distributions",
         side_effect=ImportError("load_setuptools_entrypoints ImportError"),
-    ):
-        caplog.set_level(logging.INFO, logger="conda.plugins.manager")
-        plugin_manager.load_setuptools_entrypoints("conda")
-        assert plugin_manager.get_plugins() == set()
-        assert "load_setuptools_entrypoints ImportError" in caplog.text
+    )
+    plugin_manager.load_setuptools_entrypoints("conda")
+    assert plugin_manager.get_plugins() == set()
+    assert len(recwarn) == 1
+    warning = recwarn.pop(UserWarning)
+    assert "load_setuptools_entrypoints ImportError" in str(warning.message)
