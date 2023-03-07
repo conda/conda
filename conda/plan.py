@@ -13,8 +13,8 @@ NOTE:
 from collections import defaultdict
 from logging import getLogger
 import sys
+from boltons.setutils import IndexedSet
 
-from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
 from .common.io import dashlist, env_vars, time_recorder
@@ -440,7 +440,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
     }, stack_callback=stack_context_default):
         from os.path import basename
-        from ._vendor.boltons.setutils import IndexedSet
         from .models.channel import Channel
         from .models.dist import Dist
         if channel_priority_map:
