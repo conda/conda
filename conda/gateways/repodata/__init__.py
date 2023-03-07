@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import abc
 import datetime
+import errno
 import hashlib
 import json
 import logging
@@ -22,11 +23,14 @@ from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
 from conda.common.url import join_url, maybe_unquote
+from conda.core.package_cache_data import PackageCacheData
+from conda.core.subdir_data import create_cache_dir
 from conda.deprecations import deprecated
 from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    NotWritableError,
     ProxyError,
     UnavailableInvalidChannel,
 )
@@ -40,6 +44,7 @@ from conda.gateways.connection import (
     SSLError,
 )
 from conda.gateways.connection.session import CondaSession
+from conda.gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from conda.models.channel import Channel
 
 from .lock import lock
@@ -663,6 +668,201 @@ class RepodataCache:
         return ((now - refresh) + max_age) / 1e9
 
 
+class RepodataFetch:
+    """
+    Combine RepodataCache and RepoInterface to provide subdir_data.SubdirData()
+    with what it needs.
+
+    Provide a variety of formats since some ``RepoInterface`` have to
+    ``json.loads(...)`` anyway, and some clients don't need the Python data
+    structure at all.
+    """
+
+    def __init__(
+        self,
+        cache_path_base: Path,
+        channel: Channel,
+        repodata_fn: str,
+        *,
+        repo_interface=CondaRepoInterface,
+    ):
+        self.cache_path_base = cache_path_base
+        self.channel = channel
+        self.repodata_fn = repodata_fn
+
+        self.url_w_subdir = self.channel.url(with_credentials=False) or ""
+        self.url_w_credentials = self.channel.url(with_credentials=True) or ""
+
+    def fetch_latest_parsed(self) -> tuple[dict, RepodataState]:
+        """
+        Retrieve parsed latest or latest-cached repodata as a dict; update
+        cache.
+
+        :return: (repodata contents, state including cache headers)
+        """
+        return {}, RepodataState("", "", "", {})
+
+    def fetch_latest_str(self) -> tuple[str, RepodataState]:
+        """
+        Retrieve unparsed latest or latest-cached repodata as a dict; update
+        cache.
+
+        :return: (repodata contents, RepodataState)
+        """
+        return "", RepodataState("", "", "", {})
+
+    def fetch_latest_path(self) -> tuple[Path, RepodataState]:
+        """
+        Retrieve latest or latest-cached repodata; update cache.
+
+        :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
+        """
+        return Path(), RepodataState("", "", "", {})
+
+    # XXX internal:
+
+    @property
+    def cache_path_base(self):
+        if not hasattr(self, "_cache_dir"):
+            # searches for writable directory; memoize per-instance.
+            self._cache_dir = create_cache_dir()
+        # self.repodata_fn may change
+        return join(
+            self._cache_dir, splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0]
+        )
+
+    @property
+    def url_w_repodata_fn(self):
+        return self.url_w_subdir + "/" + self.repodata_fn
+
+    @property
+    def cache_path_json(self):
+        return Path(self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json")
+
+    @property
+    def cache_path_state(self):
+        """
+        Out-of-band etag and other state needed by the RepoInterface.
+        """
+        return Path(
+            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+        )
+
+    @property
+    def repo_cache(self) -> RepodataCache:
+        return RepodataCache(self.cache_path_base, self.repodata_fn)
+
+    def whatever_subdir_data_used_to_do(self):
+        cache = self.repo_cache
+        cache.load_state()  # XXX should this succeed even if FileNotFound?
+
+        # XXX cache_path_json and cache_path_state must exist; just try loading
+        # it and fall back to this on error?
+        if not cache.cache_path_json.exists():
+            log.debug(
+                "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
+            )
+            if context.use_index_cache or (
+                context.offline and not self.url_w_subdir.startswith("file://")
+            ):
+                log.debug(
+                    "Using cached data for %s at %s forced. Returning empty repodata.",
+                    self.url_w_repodata_fn,
+                    self.cache_path_json,
+                )
+                return {
+                    "_package_records": (),
+                    "_names_index": defaultdict(list),
+                    "_track_features_index": defaultdict(list),  # Unused since early 2023
+                }
+
+        else:
+            if context.use_index_cache:
+                log.debug(
+                    "Using cached repodata for %s at %s because use_cache=True",
+                    self.url_w_repodata_fn,
+                    self.cache_path_json,
+                )
+
+                _internal_state = self._read_local_repodata(cache.state)
+                return _internal_state
+
+            stale = cache.stale()
+            if (not stale or context.offline) and not self.url_w_subdir.startswith("file://"):
+                timeout = cache.timeout()
+                log.debug(
+                    "Using cached repodata for %s at %s. Timeout in %d sec",
+                    self.url_w_repodata_fn,
+                    self.cache_path_json,
+                    timeout,
+                )
+                _internal_state = self._read_local_repodata(cache.state)
+                return _internal_state
+
+            log.debug(
+                "Local cache timed out for %s at %s", self.url_w_repodata_fn, self.cache_path_json
+            )
+
+        try:
+            try:
+                raw_repodata_str = self._repo.repodata(cache.state)  # type: ignore
+            except RepodataIsEmpty:
+                if self.repodata_fn != REPODATA_FN:
+                    raise  # is UnavailableInvalidChannel subclass
+                # the surrounding try/except/else will cache "{}"
+                raw_repodata_str = None
+            except RepodataOnDisk:
+                # used as a sentinel, not the raised exception object
+                raw_repodata_str = RepodataOnDisk
+
+        except UnavailableInvalidChannel:
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
+                return self._load()
+            else:
+                raise
+        except Response304ContentUnchanged:
+            log.debug(
+                "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
+                self.url_w_repodata_fn,
+            )
+            cache.refresh()
+            # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
+            # self._save_state(mod_etag_headers)
+            _internal_state = self._read_local_repodata(cache.state)
+            return _internal_state
+        else:
+            # uses isdir() like "exists"; mkdir_p always raises if the path
+            # exists
+            if not self.cache_path_json.parent.is_dir():
+                mkdir_p(dirname(self.cache_path_json.parent))
+            try:
+                if raw_repodata_str is RepodataOnDisk:
+                    # this is handled very similar to a 304. Can the cases be merged?
+                    # we may need to read_bytes() and compare a hash to the state, instead.
+                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
+                    raw_repodata_str = self.cache_path_json.read_text()
+                    cache.state["size"] = len(raw_repodata_str)  # type: ignore
+                    stat = self.cache_path_json.stat()
+                    mtime_ns = stat.st_mtime_ns
+                    cache.state["mtime_ns"] = mtime_ns  # type: ignore
+                    cache.refresh()
+                elif isinstance(raw_repodata_str, (str, type(None))):
+                    # XXX skip this if self._repo already wrote the data
+                    # Can we pass this information in state or with a sentinel/special exception?
+                    cache.save(raw_repodata_str or "{}")
+                else:  # pragma: no cover
+                    # it can be a dict?
+                    assert False, f"Unreachable {raw_repodata_str}"
+            except OSError as e:
+                if e.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
+                    raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
+                else:
+                    raise
+
+            return raw_repodata_str, cache.state
+
+
 try:
     hashlib.md5(b"", usedforsecurity=False)
 
@@ -692,3 +892,9 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
 def get_cache_control_max_age(cache_control_value):
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
+
+
+def create_cache_dir():
+    cache_dir = os.path.join(PackageCacheData.first_writable().pkgs_dir, "cache")
+    mkdir_p_sudo_safe(cache_dir)
+    return cache_dir

@@ -24,6 +24,7 @@ from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
+    RepodataFetch,
     RepodataIsEmpty,
     RepodataOnDisk,
     RepodataState,
@@ -220,6 +221,13 @@ class SubdirData(metaclass=SubdirDataType):
     def repo_cache(self) -> RepodataCache:
         return RepodataCache(self.cache_path_base, self.repodata_fn)
 
+    @property
+    def repo_fetch(self) -> RepodataFetch:
+        """
+        Most modern "exactly what we need" interface.
+        """
+        return RepodataFetch(Path(self.cache_path_base), self.channel, self.repodata_fn)
+
     def reload(self):
         self._loaded = False
         self.load()
@@ -307,116 +315,8 @@ class SubdirData(metaclass=SubdirDataType):
         return state.save()
 
     def _load(self):
-        cache = self.repo_cache
-        cache.load_state()  # XXX should this succeed even if FileNotFound?
-
-        # XXX cache_path_json and cache_path_state must exist; just try loading
-        # it and fall back to this on error?
-        if not cache.cache_path_json.exists():
-            log.debug(
-                "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
-            )
-            if context.use_index_cache or (
-                context.offline and not self.url_w_subdir.startswith("file://")
-            ):
-                log.debug(
-                    "Using cached data for %s at %s forced. Returning empty repodata.",
-                    self.url_w_repodata_fn,
-                    self.cache_path_json,
-                )
-                return {
-                    "_package_records": (),
-                    "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),  # Unused since early 2023
-                }
-
-        else:
-            if context.use_index_cache:
-                log.debug(
-                    "Using cached repodata for %s at %s because use_cache=True",
-                    self.url_w_repodata_fn,
-                    self.cache_path_json,
-                )
-
-                _internal_state = self._read_local_repodata(cache.state)
-                return _internal_state
-
-            stale = cache.stale()
-            if (not stale or context.offline) and not self.url_w_subdir.startswith("file://"):
-                timeout = cache.timeout()
-                log.debug(
-                    "Using cached repodata for %s at %s. Timeout in %d sec",
-                    self.url_w_repodata_fn,
-                    self.cache_path_json,
-                    timeout,
-                )
-                _internal_state = self._read_local_repodata(cache.state)
-                return _internal_state
-
-            log.debug(
-                "Local cache timed out for %s at %s", self.url_w_repodata_fn, self.cache_path_json
-            )
-
-        try:
-            try:
-                raw_repodata_str = self._repo.repodata(cache.state)  # type: ignore
-            except RepodataIsEmpty:
-                if self.repodata_fn != REPODATA_FN:
-                    raise  # is UnavailableInvalidChannel subclass
-                # the surrounding try/except/else will cache "{}"
-                raw_repodata_str = None
-            except RepodataOnDisk:
-                # used as a sentinel, not the raised exception object
-                raw_repodata_str = RepodataOnDisk
-
-        except UnavailableInvalidChannel:
-            if self.repodata_fn != REPODATA_FN:
-                self.repodata_fn = REPODATA_FN
-                return self._load()
-            else:
-                raise
-        except Response304ContentUnchanged:
-            log.debug(
-                "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                self.url_w_repodata_fn,
-            )
-            cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
-            # self._save_state(mod_etag_headers)
-            _internal_state = self._read_local_repodata(cache.state)
-            return _internal_state
-        else:
-            # uses isdir() like "exists"; mkdir_p always raises if the path
-            # exists
-            if not isdir(dirname(self.cache_path_json)):
-                mkdir_p(dirname(self.cache_path_json))
-            try:
-                if raw_repodata_str is RepodataOnDisk:
-                    # this is handled very similar to a 304. Can the cases be merged?
-                    # we may need to read_bytes() and compare a hash to the state, instead.
-                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata_str = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata_str)  # type: ignore
-                    stat = self.cache_path_json.stat()
-                    mtime_ns = stat.st_mtime_ns
-                    cache.state["mtime_ns"] = mtime_ns  # type: ignore
-                    cache.refresh()
-                elif isinstance(raw_repodata_str, (str, type(None))):
-                    # XXX skip this if self._repo already wrote the data
-                    # Can we pass this information in state or with a sentinel/special exception?
-                    cache.save(raw_repodata_str or "{}")
-                else:  # pragma: no cover
-                    # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata_str}"
-            except OSError as e:
-                if e.errno in (EACCES, EPERM, EROFS):
-                    raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
-                else:
-                    raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
-            self._internal_state = _internal_state
-            self._pickle_me()
-            return _internal_state
+        repodata, state = self.repo_fetch.fetch_latest_parsed()
+        return self._process_raw_repodata(repodata, state)
 
     def _pickle_me(self):
         try:
@@ -437,6 +337,7 @@ class SubdirData(metaclass=SubdirDataType):
         # pickled data is bad or doesn't exist; load cached json
         log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
 
+        # XXX use repo_fetch
         cache = self.repo_cache
 
         try:
