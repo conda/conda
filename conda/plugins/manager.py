@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 
 import pluggy
 
@@ -12,6 +13,9 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
+
+
+log = logging.getLogger(__name__)
 
 
 class CondaPluginManager(pluggy.PluginManager):
@@ -50,19 +54,21 @@ class CondaPluginManager(pluggy.PluginManager):
                 plugin_names.append(plugin_name)
         return plugin_names
 
-    def load_setuptools_entrypoints(self, *args, **kwargs) -> int:
+    def load_setuptools_entrypoints(self, group, name=None) -> int:
         """
         Overloading the parent method from pluggy to add conda specific exceptions.
 
         See :meth:`pluggy.PluginManager.load_setuptools_entrypoints` for
         more information.
         """
+        error_message = "Error while loading conda plugin '{plugin}': {err}"
+        plugin = name or group
         try:
-            return super().load_setuptools_entrypoints(*args, **kwargs)
+            return super().load_setuptools_entrypoints(group, name=None)
+        except ImportError as err:
+            log.error(error_message.format(err=err, plugin=plugin))
         except Exception as err:
-            raise PluginError(
-                f"Error while loading conda plugins from entrypoints: {err}"
-            )
+            raise PluginError(error_message.format(err=err, plugin=plugin))
 
     def get_hook_results(self, name: str) -> list:
         """
