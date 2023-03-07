@@ -120,26 +120,6 @@ class InvalidTypeError(ValidationError):
         super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
-class InvalidElementTypeError(InvalidTypeError):
-    def __init__(self, parameter_name, parameter_value, source, wrong_type,
-                 valid_types, index_or_key):
-        qualifier = "at index" if isinstance(index_or_key, int) else "for key"
-        msg = (
-            "Parameter %s declared in %s has invalid element %r %s %s.\n"
-            "Valid element types:\n"
-            "%s."
-            % (
-                parameter_name,
-                source,
-                parameter_value,
-                qualifier,
-                index_or_key,
-                pretty_list(valid_types),
-            )
-        )
-        super().__init__(parameter_name, parameter_value, source, wrong_type, valid_types, msg=msg)
-
-
 class CustomValidationError(ValidationError):
     def __init__(self, parameter_name, parameter_value, source, custom_message):
         msg = "Parameter %s = %r declared in %s is invalid.\n" "%s" % (

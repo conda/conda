@@ -19,7 +19,6 @@ from conda.common.configuration import (
     YamlRawParameter,
     load_file_configs,
     InvalidTypeError,
-    InvalidElementTypeError,
     CustomValidationError,
     pretty_list,
     raise_errors,
@@ -683,19 +682,6 @@ def test_pretty_list():
             raise TypeError()
 
     print(pretty_list(RaisesTypeErrorInStr()))
-
-
-def test_invalid_element_type_error():
-    # instantiate exception with alternate argument
-    with pytest.raises(InvalidElementTypeError, match="for key"):
-        raise InvalidElementTypeError(
-            "jim",
-            "james",
-            "jimjames.py",
-            str,
-            (int, object),
-            index_or_key="key, not int",
-        )
 
 
 def test_raise_errors():
