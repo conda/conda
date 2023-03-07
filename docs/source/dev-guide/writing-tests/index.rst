@@ -20,6 +20,7 @@ of tests.
    :maxdepth: 1
 
    integration-tests
+   debugging-with-vscode
 
 ----
 
