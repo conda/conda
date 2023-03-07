@@ -272,12 +272,14 @@ class DummyTestObject(ConfigurationObject):
 
 class SampleConfiguration(Configuration):
     always_yes = ParameterLoader(
-        PrimitiveParameter(False), aliases=("always_yes_altname1", "yes", "always_yes_altname2")
+        PrimitiveParameter(False),
+        aliases=("always_yes_altname1", "yes", "always_yes_altname2"),
     )
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=str)))
     channels = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str)), aliases=("channels_altname",)
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("channels_altname",),
     )
 
     always_an_int = ParameterLoader(PrimitiveParameter(0))
@@ -687,7 +689,12 @@ def test_invalid_element_type_error():
     # instantiate exception with alternate argument
     with pytest.raises(InvalidElementTypeError, match="for key"):
         raise InvalidElementTypeError(
-            "jim", "james", "jimjames.py", str, (int, object), index_or_key="key, not int"
+            "jim",
+            "james",
+            "jimjames.py",
+            str,
+            (int, object),
+            index_or_key="key, not int",
         )
 
 
