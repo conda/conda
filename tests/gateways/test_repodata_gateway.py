@@ -25,6 +25,9 @@ from conda.exceptions import (
 )
 from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
     RepodataCache,
     RepodataIsEmpty,
     RepodataState,
@@ -76,7 +79,7 @@ def test_stale(tmp_path):
     cache.state.mod = MOD
     CACHE_CONTROL = "public, max-age=30"
     cache.state.cache_control = CACHE_CONTROL
-    ETAG = '"etag"'
+    ETAG = "ETAG_KEY"
     cache.state.etag = ETAG
     cache.save(TEST_DATA)
 
@@ -113,7 +116,7 @@ def test_stale(tmp_path):
 
     # mismatched mtime empties cache headers
     state = dict(cache.state)
-    assert state["etag"]
+    assert state[ETAG_KEY]
     assert cache.state.etag
     state["mtime_ns"] = 0
     cache.cache_path_state.write_text(json.dumps(state))
@@ -277,14 +280,14 @@ def test_cache_json(tmp_path: Path):
     state = RepodataState(cache_json, cache_state, "repodata.json")
     state.mod = mod  # this is the last-modified header not mtime_ns
     state.cache_control = "cache control"
-    state.etag = "etag"
+    state.etag = ETAG_KEY
     state.save()
 
     on_disk_format = json.loads(cache_state.read_text())
     print("disk format", on_disk_format)
-    assert on_disk_format["mod"] == mod
-    assert on_disk_format["cache_control"]
-    assert on_disk_format["etag"]
+    assert on_disk_format[LAST_MODIFIED_KEY] == mod
+    assert on_disk_format[CACHE_CONTROL_KEY]
+    assert on_disk_format[ETAG_KEY]
     assert isinstance(on_disk_format["size"], int)
     assert isinstance(on_disk_format["mtime_ns"], int)
 
@@ -293,11 +296,11 @@ def test_cache_json(tmp_path: Path):
     assert state2.cache_control
     assert state2.etag
 
-    assert state2["mod"] == state2.mod
-    assert state2["etag"] == state2.etag
-    assert state2["cache_control"] == state2.cache_control
+    assert state2[LAST_MODIFIED_KEY] == state2.mod
+    assert state2[ETAG_KEY] == state2.etag
+    assert state2[CACHE_CONTROL_KEY] == state2.cache_control
 
     cache_json.write_text("{ }")  # now invalid due to size
 
     state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state_invalid.get("mod") == ""
+    assert state_invalid.get(LAST_MODIFIED_KEY) == ""
