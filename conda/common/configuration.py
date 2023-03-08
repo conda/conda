@@ -30,6 +30,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Sequence
 
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
+
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .path import expand
@@ -40,7 +45,6 @@ from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
 from .._vendor.frozendict import frozendict
-from .._vendor.boltons.setutils import IndexedSet
 
 try:
     from ruamel.yaml.comments import CommentedSeq, CommentedMap
