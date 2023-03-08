@@ -32,7 +32,6 @@ from conda.gateways.repodata import (
     get_repo_interface,
 )
 
-from .. import CondaError
 from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -331,32 +330,12 @@ class SubdirData(metaclass=SubdirDataType):
         if _pickled_state:
             return _pickled_state
 
-        # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
-
-        # XXX use repo_fetch
-        cache = self.repo_cache
-
-        try:
-            raw_repodata_str = cache.load()
-        except ValueError as e:
-            # OSError (locked) may happen here
-            # ValueError: Expecting object: line 11750 column 6 (char 303397)
-            log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
-            message = dals(
-                """
-            An error occurred when loading cached repodata.  Executing
-            `conda clean --index-cache` will remove cached repodata files
-            so they can be downloaded again.
-            """
-            )
-            raise CondaError(message)
-        else:
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
-            # taken care of by _process_raw_repodata():
-            assert self._internal_state is _internal_state
-            self._pickle_me()
-            return _internal_state
+        raw_repodata_str, state = self.repo_fetch.read_local_repodata()
+        _internal_state = self._process_raw_repodata_str(raw_repodata_str, state)
+        # taken care of by _process_raw_repodata():
+        assert self._internal_state is _internal_state
+        self._pickle_me()
+        return _internal_state
 
     def _pickle_valid_checks(self, pickled_state, mod, etag):
         """

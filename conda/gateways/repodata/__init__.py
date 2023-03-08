@@ -827,7 +827,7 @@ class RepodataFetch:
                     self.cache_path_json,
                 )
 
-                _internal_state = self._read_local_repodata(cache.state)
+                _internal_state = self.read_local_repodata()
                 return _internal_state
 
             stale = cache.stale()
@@ -839,7 +839,7 @@ class RepodataFetch:
                     self.cache_path_json,
                     timeout,
                 )
-                _internal_state = self._read_local_repodata(cache.state)
+                _internal_state = self.read_local_repodata(cache.state)
                 return _internal_state
 
             log.debug(
@@ -870,7 +870,7 @@ class RepodataFetch:
             cache.refresh()
             # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
             # self._save_state(mod_etag_headers)
-            _internal_state = self._read_local_repodata(cache.state)
+            _internal_state = self.read_local_repodata(cache.state)
             return _internal_state
         else:
             try:
@@ -909,7 +909,7 @@ class RepodataFetch:
 
             return raw_repodata, cache.state
 
-    def _read_local_repodata(self, state: RepodataState) -> tuple[str, RepodataState]:
+    def read_local_repodata(self) -> tuple[str, RepodataState]:
         """
         Read repodata from disk, without trying to fetch a fresh version.
         """
