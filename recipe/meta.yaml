@@ -49,6 +49,7 @@ requirements:
     - toolz >=0.8.1
     - pluggy >=1.0.0
     - tqdm >=4
+    - jsonpatch
   run_constrained:
     - conda-build >=3.18.3
     - conda-env >=2.6
