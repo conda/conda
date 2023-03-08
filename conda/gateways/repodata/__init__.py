@@ -53,9 +53,15 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata.json.zst or repodata.jlap were unavailable, check again after this
-# amonut of time.
+# if repodata.json.zst or repodata.jlap were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
+
+# repodata.info/state.json keys to keep up with the CEP
+LAST_MODIFIED_KEY = "last_modified"
+ETAG_KEY = "etag"
+CACHE_CONTROL_KEY = "cache_control"
+URL_KEY = "url"
+CACHE_STATE_EXTENSION = ".info.json"
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -344,7 +350,12 @@ class RepodataState(UserDict):
     Load/save `.state.json` that accompanies cached `repodata.json`
     """
 
-    _aliased = ("_mod", "_etag", "_cache_control", "_url")
+    _aliased = {
+        "_mod": LAST_MODIFIED_KEY,
+        "_etag": ETAG_KEY,
+        "_cache_control": CACHE_CONTROL_KEY,
+        "_url": URL_KEY,
+    }
 
     def __init__(
         self,
@@ -400,22 +411,22 @@ class RepodataState(UserDict):
         """
         Last-Modified header or ""
         """
-        return self.get("mod", "")
+        return self.get(LAST_MODIFIED_KEY, "")
 
     @mod.setter
     def mod(self, value):
-        self["mod"] = value or ""
+        self[LAST_MODIFIED_KEY] = value or ""
 
     @property
     def etag(self) -> str:
         """
         Etag header or ""
         """
-        return self.get("etag", "")
+        return self.get(ETAG_KEY, "")
 
     @etag.setter
     def etag(self, value):
-        self["etag"] = value or ""
+        self[ETAG_KEY] = value or ""
 
     @property
     def cache_control(self) -> str:
@@ -488,12 +499,12 @@ class RepodataState(UserDict):
 
     def __setitem__(self, key: str, item: Any) -> None:
         if key in self._aliased:
-            key = key[1:]  # strip underscore
+            key = self._aliased[key]
         return super().__setitem__(key, item)
 
     def __missing__(self, key: str):
         if key in self._aliased:
-            key = key[1:]  # strip underscore
+            key = self._aliased[key]
         else:
             raise KeyError(key)
         return super().__getitem__(key)
@@ -534,7 +545,7 @@ class RepodataCache:
         """
         return pathlib.Path(
             self.cache_dir,
-            self.name + ("1" if context.use_only_tar_bz2 else "") + ".state.json",
+            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_EXTENSION,
         )
 
     def load(self, *, state_only=False) -> str:

@@ -41,7 +41,7 @@ from ..common.path import url_to_path
 from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError
+from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk import mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
@@ -296,8 +296,20 @@ class SubdirData(metaclass=SubdirDataType):
         return state.save()
 
     def _load(self):
-        repodata, state = self.repo_fetch.fetch_latest_parsed()
-        return self._process_raw_repodata(repodata, state)
+        """
+        Try to load repodata. If e.g. we are downloading
+        `current_repodata.json`, fall back to `repodata.json` when the former is
+        unavailable.
+        """
+        try:
+            repodata, state = self.repo_fetch.fetch_latest_parsed()
+            return self._process_raw_repodata(repodata, state)
+        except UnavailableInvalidChannel:
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
+                return self._load()
+            else:
+                raise
 
     def _pickle_me(self):
         try:
