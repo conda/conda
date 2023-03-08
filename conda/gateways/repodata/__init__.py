@@ -389,7 +389,9 @@ class RepodataState(UserDict):
                 and state.get("size") == json_stat.st_size
             ):
                 # clear mod, etag, cache_control to encourage re-download
-                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+                state.update(
+                    {ETAG_KEY: "", LAST_MODIFIED_KEY: "", CACHE_CONTROL_KEY: "", "size": 0}
+                )
             self.update(state)  # allow all fields
         except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
@@ -574,7 +576,9 @@ class RepodataCache:
                 and state.get("size") == json_stat.st_size
             ):
                 # clear mod, etag, cache_control to encourage re-download
-                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+                state.update(
+                    {ETAG_KEY: "", LAST_MODIFIED_KEY: "", CACHE_CONTROL_KEY: "", "size": 0}
+                )
             self.state.clear()
             self.state.update(
                 state
