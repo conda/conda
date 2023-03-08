@@ -244,7 +244,7 @@ def download_and_hash(
 
 def request_url_jlap_state(
     url, state: RepodataState, get_place=get_place, full_download=False, *, session: Session
-):
+) -> dict | None:
 
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
@@ -382,6 +382,8 @@ def request_url_jlap_state(
                     # hash of equivalent upstream json
                     state[NOMINAL_HASH] = want
 
+                    # avoid duplicate parsing
+                    return repodata_json
             else:
                 assert state[NOMINAL_HASH] == want
 

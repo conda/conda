@@ -738,7 +738,10 @@ class RepodataFetch:
         :return: (repodata contents, state including cache headers)
         """
         parsed, state = self.whatever_subdir_data_used_to_do()
-        return json.loads(parsed), state
+        if isinstance(parsed, str):
+            return json.loads(parsed), state
+        else:
+            return parsed, state
 
     def fetch_latest_str(self) -> tuple[str, RepodataState]:
         """
@@ -796,7 +799,7 @@ class RepodataFetch:
             cache_path_state=self.cache_path_state,
         )
 
-    def whatever_subdir_data_used_to_do(self) -> tuple[str, RepodataState]:
+    def whatever_subdir_data_used_to_do(self) -> tuple[dict | str, RepodataState]:
         cache = self.repo_cache
         cache.load_state()
 
@@ -845,15 +848,19 @@ class RepodataFetch:
 
         try:
             try:
-                raw_repodata_str = self._repo.repodata(cache.state)  # type: ignore
+                repo = self._repo
+                if hasattr(repo, "repodata_parsed"):
+                    raw_repodata = repo.repodata_parsed(cache.state)  # type: ignore
+                else:
+                    raw_repodata = self._repo.repodata(cache.state)  # type: ignore
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
                 # the surrounding try/except/else will cache "{}"
-                raw_repodata_str = None
+                raw_repodata = None
             except RepodataOnDisk:
                 # used as a sentinel, not the raised exception object
-                raw_repodata_str = RepodataOnDisk
+                raw_repodata = RepodataOnDisk
 
         except Response304ContentUnchanged:
             log.debug(
@@ -871,30 +878,38 @@ class RepodataFetch:
             if not self.cache_path_json.parent.is_dir():
                 mkdir_p(dirname(self.cache_path_json.parent))
             try:
-                if raw_repodata_str is RepodataOnDisk:
+                if raw_repodata is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata_str = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata_str)  # type: ignore
+                    raw_repodata = self.cache_path_json.read_text()
+                    cache.state["size"] = len(raw_repodata)  # type: ignore
                     stat = self.cache_path_json.stat()
                     mtime_ns = stat.st_mtime_ns
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
-                elif isinstance(raw_repodata_str, (str, type(None))):
+                elif isinstance(raw_repodata, dict):
+                    # repo implementation cached it, and parsed it
+                    # XXX check size upstream for locking reasons
+                    stat = self.cache_path_json.stat()
+                    cache.state["size"] = stat.st_size
+                    mtime_ns = stat.st_mtime_ns
+                    cache.state["mtime_ns"] = mtime_ns  # type: ignore
+                    cache.refresh()
+                elif isinstance(raw_repodata, (str, type(None))):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
-                    cache.save(raw_repodata_str or "{}")
+                    cache.save(raw_repodata or "{}")
                 else:  # pragma: no cover
                     # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata_str}"
+                    assert False, f"Unreachable {raw_repodata}"
             except OSError as e:
                 if e.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
 
-            return raw_repodata_str, cache.state
+            return raw_repodata, cache.state
 
     def _read_local_repodata(self, state: RepodataState) -> tuple[str, RepodataState]:
         """
