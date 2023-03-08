@@ -716,7 +716,7 @@ class RepodataFetch:
     repo_interface_cls: Any
 
     def __init__(
-        self, cache_path_base: Path, channel: Channel, repodata_fn: str, *, repo_interface_cls=None
+        self, cache_path_base: Path, channel: Channel, repodata_fn: str, *, repo_interface_cls
     ):
         self.cache_path_base = cache_path_base
         self.channel = channel
@@ -725,10 +725,7 @@ class RepodataFetch:
         self.url_w_subdir = self.channel.url(with_credentials=False) or ""
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
 
-        if repo_interface_cls is not None:
-            self.repo_interface_cls = repo_interface_cls
-        else:
-            self.repo_interface_cls = get_repo_interface()
+        self.repo_interface_cls = repo_interface_cls
 
     def fetch_latest_parsed(self) -> tuple[dict, RepodataState]:
         """

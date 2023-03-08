@@ -29,6 +29,7 @@ from conda.gateways.repodata import (
     RepodataState,
     RepoInterface,
     cache_fn_url,
+    get_repo_interface,
 )
 
 from .. import CondaError
@@ -75,7 +76,9 @@ class SubdirDataType(type):
                         return cache_entry
             else:
                 return cache_entry
-        subdir_data_instance = super().__call__(channel, repodata_fn)
+        subdir_data_instance = super().__call__(
+            channel, repodata_fn, RepoInterface=get_repo_interface()
+        )
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
@@ -202,7 +205,12 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Most modern "exactly what we need" interface.
         """
-        return RepodataFetch(Path(self.cache_path_base), self.channel, self.repodata_fn)
+        return RepodataFetch(
+            Path(self.cache_path_base),
+            self.channel,
+            self.repodata_fn,
+            repo_interface_cls=self.RepoInterface,
+        )
 
     def reload(self):
         self._loaded = False
