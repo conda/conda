@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import pickle
 import re
-import warnings
 from collections import UserList, defaultdict
 from contextlib import closing
 from errno import ENODEV
@@ -57,21 +56,6 @@ MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
 
-def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
-        try:
-            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
-
-            return JlapRepoInterface
-        except ImportError as e:  # pragma: no cover
-            warnings.warn(
-                "Could not load the configured jlap repo interface. "
-                f"Is the required jsonpatch package installed?  {e}"
-            )
-
-    return CondaRepoInterface
-
-
 class SubdirDataType(type):
     def __call__(cls, channel, repodata_fn=REPODATA_FN):
         assert channel.subdir
@@ -90,9 +74,7 @@ class SubdirDataType(type):
                         return cache_entry
             else:
                 return cache_entry
-        subdir_data_instance = super().__call__(
-            channel, repodata_fn, RepoInterface=get_repo_interface()
-        )
+        subdir_data_instance = super().__call__(channel, repodata_fn)
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
@@ -233,6 +215,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_base(self):
+        # XXX should this move to RepodataFetch, removing all Path from SubdirData?
         if not hasattr(self, "_cache_dir"):
             # searches for writable directory; memoize per-instance.
             self._cache_dir = create_cache_dir()
@@ -409,14 +392,14 @@ class SubdirData(metaclass=SubdirDataType):
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str, state: RepodataState | None = None):
+    def _process_raw_repodata_str(self, raw_repodata_str: str, state: RepodataState | None = None):
         """
         state contains information that was previously in-band in raw_repodata_str.
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata, state: RepodataState | None):
+    def _process_raw_repodata(self, repodata: dict, state: RepodataState | None):
         if not isinstance(state, RepodataState):
             state = RepodataState(
                 self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state

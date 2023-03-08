@@ -18,13 +18,13 @@ from contextlib import contextmanager
 from os.path import dirname
 from pathlib import Path
 from typing import Any
+from conda import CondaError
 
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
 from conda.common.url import join_url, maybe_unquote
 from conda.core.package_cache_data import PackageCacheData
-from conda.core.subdir_data import create_cache_dir
 from conda.deprecations import deprecated
 from conda.exceptions import (
     CondaDependencyError,
@@ -86,6 +86,21 @@ class RepoInterface(abc.ABC):
 
 class Response304ContentUnchanged(Exception):
     pass
+
+
+def get_repo_interface() -> type[RepoInterface]:
+    if "jlap" in context.experimental:
+        try:
+            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
+
+            return JlapRepoInterface
+        except ImportError as e:  # pragma: no cover
+            warnings.warn(
+                "Could not load the configured jlap repo interface. "
+                f"Is the required jsonpatch package installed?  {e}"
+            )
+
+    return CondaRepoInterface
 
 
 class CondaRepoInterface(RepoInterface):
@@ -678,13 +693,20 @@ class RepodataFetch:
     structure at all.
     """
 
+    cache_path_base: Path
+    channel: Channel
+    repodata_fn: str
+    url_w_subdir: str
+    url_w_credentials: str
+    repo_interface: type[RepoInterface]
+
     def __init__(
         self,
         cache_path_base: Path,
         channel: Channel,
         repodata_fn: str,
         *,
-        repo_interface=CondaRepoInterface,
+        repo_interface_cls=type[RepoInterface] | None,
     ):
         self.cache_path_base = cache_path_base
         self.channel = channel
@@ -692,6 +714,11 @@ class RepodataFetch:
 
         self.url_w_subdir = self.channel.url(with_credentials=False) or ""
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
+
+        if repo_interface_cls is not None:
+            self.repo_interface_cls = repo_interface_cls
+        else:
+            self.repo_interface_cls = get_repo_interface()
 
     def fetch_latest_parsed(self) -> tuple[dict, RepodataState]:
         """
@@ -722,22 +749,14 @@ class RepodataFetch:
     # XXX internal:
 
     @property
-    def cache_path_base(self):
-        if not hasattr(self, "_cache_dir"):
-            # searches for writable directory; memoize per-instance.
-            self._cache_dir = create_cache_dir()
-        # self.repodata_fn may change
-        return join(
-            self._cache_dir, splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0]
-        )
-
-    @property
     def url_w_repodata_fn(self):
         return self.url_w_subdir + "/" + self.repodata_fn
 
     @property
     def cache_path_json(self):
-        return Path(self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json")
+        return Path(
+            str(self.cache_path_base) + ("1" if context.use_only_tar_bz2 else "") + ".json"
+        )
 
     @property
     def cache_path_state(self):
@@ -745,7 +764,7 @@ class RepodataFetch:
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return Path(
-            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+            str(self.cache_path_base) + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
         )
 
     @property
@@ -754,7 +773,7 @@ class RepodataFetch:
 
     def whatever_subdir_data_used_to_do(self):
         cache = self.repo_cache
-        cache.load_state()  # XXX should this succeed even if FileNotFound?
+        cache.load_state()
 
         # XXX cache_path_json and cache_path_state must exist; just try loading
         # it and fall back to this on error?
@@ -770,11 +789,7 @@ class RepodataFetch:
                     self.url_w_repodata_fn,
                     self.cache_path_json,
                 )
-                return {
-                    "_package_records": (),
-                    "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),  # Unused since early 2023
-                }
+                return {}  # XXX basic properties like info, packages, packages.conda?
 
         else:
             if context.use_index_cache:
@@ -861,6 +876,38 @@ class RepodataFetch:
                     raise
 
             return raw_repodata_str, cache.state
+
+    def _read_local_repodata(self, state: RepodataState):
+        """
+        Read repodata from disk, without trying to fetch a fresh version.
+        """
+
+        # pickled data is bad or doesn't exist; load cached json
+        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
+
+        # XXX use repo_fetch
+        cache = self.repo_cache
+
+        try:
+            raw_repodata_str = cache.load()
+        except ValueError as e:
+            # OSError (locked) may happen here
+            # ValueError: Expecting object: line 11750 column 6 (char 303397)
+            log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
+            message = dals(
+                """
+            An error occurred when loading cached repodata.  Executing
+            `conda clean --index-cache` will remove cached repodata files
+            so they can be downloaded again.
+            """
+            )
+            raise CondaError(message)
+        else:
+            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
+            # taken care of by _process_raw_repodata():
+            assert self._internal_state is _internal_state
+            self._pickle_me()
+            return _internal_state
 
 
 try:
