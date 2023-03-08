@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from collections import defaultdict
 from logging import getLogger
-from boltons.setutils import IndexedSet
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from .enums import NoarchType
 from .match_spec import MatchSpec

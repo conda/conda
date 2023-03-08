@@ -7,7 +7,7 @@ from os.path import basename
 try:
     from boltons.setutils import IndexedSet
 except ImportError:
-    from .._vendor.boltons.setutils import IndexedSet
+    from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.base.constants import UpdateModifier
 from conda.base.context import context
