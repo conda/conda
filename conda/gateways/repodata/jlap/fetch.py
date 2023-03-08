@@ -31,12 +31,14 @@ DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
 
 JLAP_KEY = "jlap"
 HEADERS = "headers"
-NOMINAL_HASH = "nominal_hash"
-ON_DISK_HASH = "actual_hash"
+# Better names?
+# NOMINAL_HASH = "blake2_256_nominal"
+# ON_DISK_HASH = "blake2_256"
+NOMINAL_HASH = "blake2_256_nominal"
+ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 ZSTD_UNAVAILABLE = "zstd_unavailable"
-
 
 def hash():
     """

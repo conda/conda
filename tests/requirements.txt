@@ -13,6 +13,7 @@ conda-forge::werkzeug >=2.2
 conda-forge::xdoctest
 conda-package-handling
 conda-verify
+coverage >=7
 filelock
 flake8
 flask >=2.2
@@ -29,7 +30,7 @@ pycosat
 pycrypto
 pyflakes
 pytest
-pytest-cov
+pytest-cov >=4
 pytest-mock
 pytest-rerunfailures
 pytest-timeout
