@@ -9,6 +9,11 @@ from os.path import join
 import sys
 from textwrap import dedent
 
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
+
 from conda.common.iterators import groupby_to_dict as groupby
 
 from .index import get_reduced_index, _supplement_index_with_system
@@ -19,7 +24,6 @@ from .. import CondaError, __version__ as CONDA_VERSION
 from ..deprecations import deprecated
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
-from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier, REPODATA_FN
 from ..base.context import context
 from ..common.constants import NULL

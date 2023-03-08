@@ -251,12 +251,8 @@ jobs:
           docker run
           --rm -v ${PWD}:/opt/conda-src
           --platform linux/${{ matrix.platform }}
-          -e TEST_SPLITS
-          -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          bash -c "source /opt/conda/etc/profile.d/conda.sh; \
-                   sudo /opt/conda/bin/conda install --quiet -y -c defaults --file tests/requirements.txt; \
-                   pytest --cov=conda -k test_DepsModifier_contract"
+          /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
         if: always()

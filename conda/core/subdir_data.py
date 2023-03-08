@@ -20,7 +20,7 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-from conda.common.iterators import groupby_to_dict as groupby
+from conda._vendor.boltons.setutils import IndexedSet
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
@@ -33,12 +33,12 @@ from conda.gateways.repodata import (
 )
 
 from .. import CondaError
-from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
 from ..common.compat import ensure_unicode
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
