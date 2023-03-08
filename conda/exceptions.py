@@ -617,6 +617,13 @@ class PackagesNotFoundError(CondaError):
 
             and use the search bar at the top of the page.
             """)
+            from .base.context import context
+
+            if context.use_only_tar_bz2:
+                message += dals("""
+                Note: 'use_only_tar_bz2' is enabled. This might be omitting some
+                packages from the index. Set this option to 'false' and retry.
+                """)
             packages_formatted = format_list(packages)
             channels_formatted = format_list(channel_urls)
         else:
