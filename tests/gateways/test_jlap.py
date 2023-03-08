@@ -20,7 +20,11 @@ from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
     CACHE_STATE_SUFFIX,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    URL_KEY,
     CondaRepoInterface,
     RepodataOnDisk,
     RepodataState,
@@ -188,7 +192,7 @@ def test_repodata_state(
 
         # not all required depending on server response, but our test server
         # will include them
-        for field in ("mod", "etag", "cache_control", "size", "mtime_ns"):
+        for field in (LAST_MODIFIED_KEY, ETAG_KEY, CACHE_CONTROL_KEY, URL_KEY, "size", "mtime_ns"):
             assert field in state
             assert f"_{field}" not in state
 

@@ -856,6 +856,7 @@ class RepodataFetch:
                 raw_repodata_str = RepodataOnDisk
 
         except UnavailableInvalidChannel:
+            # XXX nested exception handling should go away, handle these conditions in SubdirData?
             if self.repodata_fn != REPODATA_FN:
                 self.repodata_fn = REPODATA_FN
                 return self._load()
@@ -902,7 +903,7 @@ class RepodataFetch:
 
             return raw_repodata_str, cache.state
 
-    def _read_local_repodata(self, state: RepodataState):
+    def _read_local_repodata(self, state: RepodataState) -> tuple[str, RepodataState]:
         """
         Read repodata from disk, without trying to fetch a fresh version.
         """
@@ -915,6 +916,7 @@ class RepodataFetch:
 
         try:
             raw_repodata_str = cache.load()
+            return raw_repodata_str, cache.state
         except ValueError as e:
             # OSError (locked) may happen here
             # ValueError: Expecting object: line 11750 column 6 (char 303397)
@@ -927,12 +929,6 @@ class RepodataFetch:
             """
             )
             raise CondaError(message)
-        else:
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
-            # taken care of by _process_raw_repodata():
-            assert self._internal_state is _internal_state
-            self._pickle_me()
-            return _internal_state
 
 
 try:
