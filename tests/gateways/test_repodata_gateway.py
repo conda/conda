@@ -281,7 +281,7 @@ def test_cache_json(tmp_path: Path):
     state = RepodataState(cache_json, cache_state, "repodata.json")
     state.mod = mod  # this is the last-modified header not mtime_ns
     state.cache_control = "cache control"
-    state.etag = ETAG_KEY
+    state.etag = '"unambiguous-etag"'
     state.save()
 
     on_disk_format = json.loads(cache_state.read_text())
