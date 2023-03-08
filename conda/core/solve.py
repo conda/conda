@@ -8,7 +8,11 @@ from logging import DEBUG, getLogger
 from os.path import join
 import sys
 from textwrap import dedent
-from boltons.setutils import IndexedSet
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from conda.common.iterators import groupby_to_dict as groupby
 

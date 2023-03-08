@@ -12,7 +12,12 @@
 """
 
 from os.path import basename, join
-from boltons.timeutils import dt_to_timestamp, isoparse
+
+try:
+    from boltons.timeutils import dt_to_timestamp, isoparse
+except ImportError:
+    from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
+
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform

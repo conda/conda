@@ -4,7 +4,11 @@
 from copy import copy
 from itertools import chain
 from logging import getLogger
-from boltons.setutils import IndexedSet
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context, Context

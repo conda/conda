@@ -5,7 +5,11 @@ from itertools import chain
 from logging import getLogger
 import platform
 import sys
-from boltons.setutils import IndexedSet
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from ..deprecations import deprecated
 from .package_cache_data import PackageCacheData

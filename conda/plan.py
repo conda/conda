@@ -13,7 +13,11 @@ NOTE:
 from collections import defaultdict
 from logging import getLogger
 import sys
-from boltons.setutils import IndexedSet
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default

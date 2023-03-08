@@ -241,7 +241,11 @@ from enum import Enum
 from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
-from boltons.timeutils import isoparse
+
+try:
+    from boltons.timeutils import isoparse
+except ImportError:
+    from .._vendor.boltons.timeutils import isoparse
 
 from . import NULL
 from .._vendor.frozendict import frozendict

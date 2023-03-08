@@ -13,23 +13,18 @@ from collections import UserList, defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
+from genericpath import getmtime, isfile
 from io import open as io_open
 from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, exists, isdir, join, splitext
 from time import time
-from boltons.setutils import IndexedSet
 
-from genericpath import getmtime, isfile
-
-from conda.common.iterators import groupby_to_dict as groupby
-from conda.gateways.repodata import (
-    CondaRepoInterface,
-    RepodataIsEmpty,
-    RepoInterface,
-    Response304ContentUnchanged,
-)
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from .. import CondaError
 from ..auxlib.ish import dals
@@ -37,6 +32,7 @@ from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_unicode
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
@@ -44,6 +40,12 @@ from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalid
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
+from ..gateways.repodata import (
+    CondaRepoInterface,
+    RepodataIsEmpty,
+    RepoInterface,
+    Response304ContentUnchanged,
+)
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord

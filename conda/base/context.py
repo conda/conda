@@ -11,7 +11,11 @@ import platform
 import sys
 import struct
 from contextlib import contextmanager
-from boltons.setutils import IndexedSet
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from .constants import (
     APP_NAME,

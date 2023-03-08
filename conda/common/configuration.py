@@ -30,7 +30,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Sequence
 
-from boltons.setutils import IndexedSet
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from .compat import isiterable, primitive_types
 from .constants import NULL
