@@ -820,7 +820,7 @@ class RepodataFetch:
                     self.url_w_repodata_fn,
                     self.cache_path_json,
                 )
-                return {}  # XXX basic properties like info, packages, packages.conda?
+                return {}, cache.state  # XXX basic properties like info, packages, packages.conda?
 
         else:
             if context.use_index_cache:
@@ -902,7 +902,9 @@ class RepodataFetch:
                 elif isinstance(raw_repodata, (str, type(None))):
                     # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
-                    cache.save(raw_repodata or "{}")
+                    if raw_repodata is None:
+                        raw_repodata = "{}"
+                    cache.save(raw_repodata)
                 else:  # pragma: no cover
                     # it can be a dict?
                     assert False, f"Unreachable {raw_repodata}"
