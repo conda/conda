@@ -26,6 +26,7 @@ from conda.exceptions import (
 from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
 from conda.gateways.repodata import (
     CACHE_CONTROL_KEY,
+    CACHE_STATE_SUFFIX,
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     RepodataCache,
@@ -130,7 +131,7 @@ def test_coverage_repodata_state(tmp_path):
 
     # assert invalid state is equal to no state
     state = RepodataState(
-        tmp_path / "garbage.json", tmp_path / "garbage.state.json", "repodata.json"
+        tmp_path / "garbage.json", tmp_path / f"garbage{CACHE_STATE_SUFFIX}", "repodata.json"
     )
     state.cache_path_state.write_text("not json")
     assert dict(state.load()) == {}
@@ -267,7 +268,7 @@ def test_cache_json(tmp_path: Path):
     cached json.
     """
     cache_json = tmp_path / "cached.json"
-    cache_state = tmp_path / "cached.state.json"
+    cache_state = tmp_path / f"cached{CACHE_STATE_SUFFIX}"
 
     cache_json.write_text("{}")
 

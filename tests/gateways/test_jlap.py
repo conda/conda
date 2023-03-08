@@ -20,6 +20,7 @@ from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
+    CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataOnDisk,
     RepodataState,
@@ -47,7 +48,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
         url,
         repodata_fn="repodata.json",
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     patched = mocker.patch(
@@ -441,7 +442,7 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
         url,
         repodata_fn="repodata.json",
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     def error(*args, **kwargs):

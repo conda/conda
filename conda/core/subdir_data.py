@@ -21,6 +21,7 @@ from genericpath import getmtime, isfile
 
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.gateways.repodata import (
+    CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
     RepodataFetch,
@@ -238,7 +239,7 @@ class SubdirData(metaclass=SubdirDataType):
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return Path(
-            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX
         )
 
     @property

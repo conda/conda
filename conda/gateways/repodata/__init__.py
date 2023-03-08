@@ -61,7 +61,7 @@ LAST_MODIFIED_KEY = "last_modified"
 ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
-CACHE_STATE_EXTENSION = ".info.json"
+CACHE_STATE_SUFFIX = ".info.json"
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -547,7 +547,7 @@ class RepodataCache:
         """
         return pathlib.Path(
             self.cache_dir,
-            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_EXTENSION,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX,
         )
 
     def load(self, *, state_only=False) -> str:
@@ -779,7 +779,9 @@ class RepodataFetch:
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return Path(
-            str(self.cache_path_base) + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+            str(self.cache_path_base)
+            + ("1" if context.use_only_tar_bz2 else "")
+            + CACHE_STATE_SUFFIX
         )
 
     @property
