@@ -750,7 +750,11 @@ class RepodataFetch:
 
         :return: (repodata contents, RepodataState)
         """
-        return "", RepodataState("", "", "", {})
+        parsed, state = self.whatever_subdir_data_used_to_do()
+        if isinstance(parsed, dict):
+            return json.dumps(parsed), state
+        else:
+            return parsed, state
 
     def fetch_latest_path(self) -> tuple[Path, RepodataState]:
         """
@@ -758,9 +762,8 @@ class RepodataFetch:
 
         :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
         """
-        return Path(), RepodataState("", "", "", {})
-
-    # XXX internal:
+        _, state = self.whatever_subdir_data_used_to_do()
+        return self.cache_path_json, state
 
     @property
     def url_w_repodata_fn(self):
