@@ -44,7 +44,7 @@ from conda.gateways.connection import (
     SSLError,
 )
 from conda.gateways.connection.session import CondaSession
-from conda.gateways.disk import mkdir_p, mkdir_p_sudo_safe
+from conda.gateways.disk import mkdir_p_sudo_safe
 from conda.models.channel import Channel
 
 from .lock import lock
@@ -873,10 +873,6 @@ class RepodataFetch:
             _internal_state = self._read_local_repodata(cache.state)
             return _internal_state
         else:
-            # uses isdir() like "exists"; mkdir_p always raises if the path
-            # exists
-            if not self.cache_path_json.parent.is_dir():
-                mkdir_p(dirname(self.cache_path_json.parent))
             try:
                 if raw_repodata is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?

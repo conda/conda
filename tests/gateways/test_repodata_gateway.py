@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from conda.base.constants import REPODATA_FN
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.exceptions import (
@@ -29,11 +30,15 @@ from conda.gateways.repodata import (
     CACHE_STATE_SUFFIX,
     ETAG_KEY,
     LAST_MODIFIED_KEY,
+    CondaRepoInterface,
     RepodataCache,
+    RepodataFetch,
     RepodataIsEmpty,
     RepodataState,
     conda_http_errors,
 )
+from conda.gateways.repodata.jlap.interface import JlapRepoInterface
+from conda.models.channel import Channel
 
 
 def test_save(tmp_path):
@@ -305,3 +310,39 @@ def test_cache_json(tmp_path: Path):
 
     state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
     assert state_invalid.get(LAST_MODIFIED_KEY) == ""
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_fetch_formats(
+    package_server: socket,
+    use_jlap: bool,
+    tmp_path: Path,
+):
+    """
+    Test that repodata fetch can return parsed, str, or Path.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    if use_jlap:
+        repo_cls = JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
+
+    # we always check for *and create* a writable cache dir before fetch
+    cache_path_base = tmp_path / "fetch_formats" / "xyzzy"
+    cache_path_base.parent.mkdir(exist_ok=True)
+
+    channel = Channel(channel_url)
+
+    fetch = RepodataFetch(cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls)
+
+    a, state = fetch.fetch_latest_parsed()
+    b, state = fetch.fetch_latest_path()
+    c, state = fetch.fetch_latest_str()
+
+    assert a == json.loads(b.read_text())
+    assert a == json.loads(c)
+
+    assert isinstance(state, RepodataState)

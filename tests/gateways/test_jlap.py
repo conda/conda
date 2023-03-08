@@ -29,6 +29,7 @@ from conda.gateways.repodata import (
     RepodataOnDisk,
     RepodataState,
     Response304ContentUnchanged,
+    get_repo_interface,
 )
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
@@ -209,6 +210,9 @@ def test_jlap_flag(use_jlap):
     ):
         expected = "jlap" in use_jlap.split(",")
         assert ("jlap" in context.experimental) is expected
+
+        expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
+        assert get_repo_interface() is expected_cls
 
 
 def test_jlap_sought(
