@@ -81,12 +81,12 @@ def test_stale(tmp_path):
     """
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
-    arbitrary_thursday = "Thu, 26 Jan 2023 19:34:01 GMT"
-    cache.state.mod = arbitrary_thursday
-    CACHE_CONTROL = "public, max-age=30"
-    cache.state.cache_control = CACHE_CONTROL
-    ETAG = "ETAG_KEY"
-    cache.state.etag = ETAG
+    last_modified = "Thu, 26 Jan 2023 19:34:01 GMT"
+    cache.state.mod = last_modified
+    cache_control = "public, max-age=30"
+    cache.state.cache_control = cache_control
+    etag = '"unambiguous-etag"'
+    cache.state.etag = etag
     cache.save(TEST_DATA)
 
     cache.load()
@@ -114,9 +114,9 @@ def test_stale(tmp_path):
         context.local_repodata_ttl = original_ttl
 
     # since state's mtime_ns matches repodata.json stat(), these will be preserved
-    assert cache.state.mod == arbitrary_thursday
-    assert cache.state.cache_control == CACHE_CONTROL
-    assert cache.state.etag == ETAG
+    assert cache.state.mod == last_modified
+    assert cache.state.cache_control == cache_control
+    assert cache.state.etag == etag
 
     # XXX rewrite state without replacing repodata.json, assert still stale...
 
