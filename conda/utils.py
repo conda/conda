@@ -12,7 +12,6 @@ import re
 import sys
 
 from . import CondaError
-from .deprecations import deprecated
 from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
