@@ -9,12 +9,12 @@ import re
 import warnings
 from collections import UserList, defaultdict
 from contextlib import closing
-from errno import EACCES, ENODEV, EPERM, EROFS
+from errno import ENODEV
 from functools import partial
 from itertools import chain, islice
 from logging import getLogger
 from mmap import ACCESS_READ, mmap
-from os.path import dirname, exists, isdir, join, splitext
+from os.path import exists, join, splitext
 from pathlib import Path
 from time import time
 
@@ -26,10 +26,8 @@ from conda.gateways.repodata import (
     RepodataCache,
     RepodataFetch,
     RepodataIsEmpty,
-    RepodataOnDisk,
     RepodataState,
     RepoInterface,
-    Response304ContentUnchanged,
     cache_fn_url,
 )
 
@@ -44,8 +42,8 @@ from ..common.path import url_to_path
 from ..common.url import join_url
 from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
-from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
+from ..exceptions import CondaUpgradeError
+from ..gateways.disk import mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
@@ -572,18 +570,19 @@ def make_feature_record(feature_name):
     )
 
 
+@deprecated(
+    "23.1",
+    "24.1",
+    addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
+    "is pending deprecation and will be removed in the future. "
+    "Please use `conda.core.subdir_data.SubdirData` instead.",
+)
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     """
     :param etag: cached etag header
     :param mod_stamp: cached last-modified header
     """
     # this function should no longer be used by conda but is kept for API stability
-    warnings.warn(
-        "The `conda.core.subdir_data.fetch_repodata_remote_request` function "
-        "is pending deprecation and will be removed in the future. "
-        "Please use `conda.core.subdir_data.SubdirData` instead.",
-        PendingDeprecationWarning,
-    )
 
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
