@@ -239,12 +239,12 @@ class ArgumentParser(ArgumentParserBase):
             for subcommand in self._subcommands:
                 if subcommand.name == name:
                     if name.lower() in BUILTIN_COMMANDS:
-                        error_msg = dals(
+                        error_message = dals(
                             f"The plugin '{subcommand.name}: {subcommand.summary}' is trying "
                             f"to override the built-in command {name}, which is not allowed. "
                             "Please uninstall this plugin to stop seeing this error message"
                         )
-                        log.error(error_msg)
+                        log.error(error_message)
                     else:
                         plugin_subcommand = Namespace(plugin_subcommand=subcommand)
 
