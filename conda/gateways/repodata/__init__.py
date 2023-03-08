@@ -855,13 +855,6 @@ class RepodataFetch:
                 # used as a sentinel, not the raised exception object
                 raw_repodata_str = RepodataOnDisk
 
-        except UnavailableInvalidChannel:
-            # XXX nested exception handling should go away, handle these conditions in SubdirData?
-            if self.repodata_fn != REPODATA_FN:
-                self.repodata_fn = REPODATA_FN
-                return self._load()
-            else:
-                raise
         except Response304ContentUnchanged:
             log.debug(
                 "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
