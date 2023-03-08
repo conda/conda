@@ -759,7 +759,7 @@ class RepodataFetch:
 
         :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
         """
-        _, state = self.whatever_subdir_data_used_to_do()
+        _, state = self.whatever_subdir_data_used_to_do(repodata_needed=False)
         return self.cache_path_json, state
 
     @property
@@ -799,7 +799,13 @@ class RepodataFetch:
             cache_path_state=self.cache_path_state,
         )
 
-    def whatever_subdir_data_used_to_do(self) -> tuple[dict | str, RepodataState]:
+    def whatever_subdir_data_used_to_do(
+        self, *, repodata_needed=True
+    ) -> tuple[dict | str, RepodataState]:
+        """
+        Pass repodata_needed=False to avoid reading/parsing repodata if
+        possible. On-disk cache will be updated.
+        """
         cache = self.repo_cache
         cache.load_state()
 
@@ -852,7 +858,7 @@ class RepodataFetch:
         try:
             try:
                 repo = self._repo
-                if hasattr(repo, "repodata_parsed"):
+                if repodata_needed and hasattr(repo, "repodata_parsed"):
                     raw_repodata = repo.repodata_parsed(cache.state)  # type: ignore
                 else:
                     raw_repodata = self._repo.repodata(cache.state)  # type: ignore
@@ -881,9 +887,13 @@ class RepodataFetch:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata)  # type: ignore
+                    raw_repodata = ""
+                    if repodata_needed:
+                        raw_repodata = self.cache_path_json.read_text()
+                        cache.state["size"] = len(raw_repodata)  # type: ignore
                     stat = self.cache_path_json.stat()
+                    if not repodata_needed:
+                        cache.state["size"] = stat.st_size
                     mtime_ns = stat.st_mtime_ns
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()

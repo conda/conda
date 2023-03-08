@@ -42,7 +42,7 @@ class JlapRepoInterface(RepoInterface):
 
     def repodata(self, state: dict | RepodataState) -> str | None:
         """
-        Fetch newest repodat if necessary.
+        Fetch newest repodata if necessary.
 
         Always writes to ``cache_path_json``.
         """

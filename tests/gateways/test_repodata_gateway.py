@@ -314,7 +314,7 @@ def test_cache_json(tmp_path: Path):
 
 
 @pytest.mark.parametrize("use_jlap", [True, False])
-def test_repodata_fetch_formats(
+def test_repodata_fetch_types(
     package_server: socket,
     use_jlap: bool,
     tmp_path: Path,
@@ -339,9 +339,9 @@ def test_repodata_fetch_formats(
 
     fetch = RepodataFetch(cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls)
 
-    a, state = fetch.fetch_latest_parsed()
-    b, state = fetch.fetch_latest_path()
     c, state = fetch.fetch_latest_str()
+    b, state = fetch.fetch_latest_path()
+    a, state = fetch.fetch_latest_parsed()
 
     assert a == json.loads(b.read_text())
     assert a == json.loads(c)
