@@ -713,15 +713,10 @@ class RepodataFetch:
     repodata_fn: str
     url_w_subdir: str
     url_w_credentials: str
-    repo_interface: type[RepoInterface]
+    repo_interface_cls: Any
 
     def __init__(
-        self,
-        cache_path_base: Path,
-        channel: Channel,
-        repodata_fn: str,
-        *,
-        repo_interface_cls=type[RepoInterface] | None,
+        self, cache_path_base: Path, channel: Channel, repodata_fn: str, *, repo_interface_cls=None
     ):
         self.cache_path_base = cache_path_base
         self.channel = channel
@@ -742,7 +737,8 @@ class RepodataFetch:
 
         :return: (repodata contents, state including cache headers)
         """
-        return {}, RepodataState("", "", "", {})
+        parsed, state = self.whatever_subdir_data_used_to_do()
+        return json.loads(parsed), state
 
     def fetch_latest_str(self) -> tuple[str, RepodataState]:
         """
@@ -788,7 +784,19 @@ class RepodataFetch:
     def repo_cache(self) -> RepodataCache:
         return RepodataCache(self.cache_path_base, self.repodata_fn)
 
-    def whatever_subdir_data_used_to_do(self):
+    @property
+    def _repo(self) -> RepoInterface:
+        """
+        Changes as we mutate self.repodata_fn.
+        """
+        return self.repo_interface_cls(
+            self.url_w_credentials,
+            self.repodata_fn,
+            cache_path_json=self.cache_path_json,
+            cache_path_state=self.cache_path_state,
+        )
+
+    def whatever_subdir_data_used_to_do(self) -> tuple[str, RepodataState]:
         cache = self.repo_cache
         cache.load_state()
 

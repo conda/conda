@@ -191,16 +191,11 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Changes as we mutate self.repodata_fn.
         """
-        return self.RepoInterface(
-            self.url_w_credentials,
-            self.repodata_fn,
-            cache_path_json=self.cache_path_json,
-            cache_path_state=self.cache_path_state,
-        )
+        return self.repo_fetch._repo
 
     @property
     def repo_cache(self) -> RepodataCache:
-        return RepodataCache(self.cache_path_base, self.repodata_fn)
+        return self.repo_fetch.repo_cache
 
     @property
     def repo_fetch(self) -> RepodataFetch:
