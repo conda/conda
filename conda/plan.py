@@ -17,7 +17,7 @@ import sys
 try:
     from boltons.setutils import IndexedSet
 except ImportError:
-    from .._vendor.boltons.setutils import IndexedSet
+    from ._vendor.boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default

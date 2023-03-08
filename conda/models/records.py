@@ -18,7 +18,6 @@ try:
 except ImportError:
     from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 
-
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .match_spec import MatchSpec
