@@ -1,11 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from unittest import mock
-
 import pytest
 
 from conda import plugins
-from conda.cli.conda_argparse import BUILTIN_COMMANDS, ArgumentParser
+from conda.auxlib.ish import dals
+from conda.cli.conda_argparse import BUILTIN_COMMANDS
 from conda.plugins.types import CondaSubcommand
 from conda.testing.helpers import run_inprocess_conda_command as run
 
@@ -81,14 +80,19 @@ def test_cannot_override_builtin_commands(builtin_command, plugin_manager, mocke
     mock_log = mocker.patch("conda.cli.conda_argparse.log")
 
     # setup
-    plugin = SubcommandPlugin(name=builtin_command)
-    expected_error = ArgumentParser._get_attempted_override_error(plugin.name, plugin.summary)
+    command_summary = "Command summary"
+    plugin = SubcommandPlugin(name=builtin_command, summary=command_summary)
+    expected_error = dals(
+        f"The plugin '{builtin_command}: {command_summary}' is trying "
+        f"to override the built-in command {builtin_command}, which is not allowed. "
+        "Please uninstall this plugin to stop seeing this error message"
+    )
     plugin_manager.register(plugin)
 
     # run code under test
     run(f"conda {builtin_command} --help")
 
     # assertions; make sure we got the right error messages and didn't invoke the custom command
-    assert mock_log.error.mock_calls == [mock.call(expected_error)]
+    assert mock_log.error.mock_calls == [mocker.call(expected_error)]
 
     assert plugin.custom_command.mock_calls == []

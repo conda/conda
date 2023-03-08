@@ -29,7 +29,6 @@ from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier
     UpdateModifier
 from ..base.context import context
 from ..common.constants import NULL
-from ..plugins import CondaSubcommand
 
 log = getLogger(__name__)
 
@@ -112,7 +111,7 @@ def do_call(args, parser):
     all registered plugin subcommands.
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if hasattr(args, "plugin_subcommand") and isinstance(args.plugin_subcommand, CondaSubcommand):
+    if getattr(args, "plugin_subcommand", None):
         return args.plugin_subcommand.action(sys.argv[2:])
 
     relative_mod, func_name = args.func.rsplit('.', 1)
@@ -226,31 +225,6 @@ class ArgumentParser(ArgumentParserBase):
         else:
             super()._check_value(action, value)
 
-    @staticmethod
-    def _get_attempted_override_error(name: str, summary: str):
-        return (
-            f"The plugin '{name}: {summary}' is trying to override "
-            f"the built-in command {name}, which is not allowed. Please uninstall this plugin "
-            "to stop seeing this error message"
-        )
-
-    def _get_subcommand_plugin(self) -> Namespace | None:
-        """
-        Return a Namespace object containing the ``CondaSubcommand`` object if the current
-        subcommand belongs to a registered plugin
-        """
-        if len(sys.argv) > 1:
-            name = sys.argv[1]
-            for subcommand in self._subcommands:
-                if subcommand.name == name:
-                    if name.lower() in BUILTIN_COMMANDS:
-                        error_msg = self._get_attempted_override_error(
-                            subcommand.name, subcommand.summary
-                        )
-                        log.error(error_msg)
-                    else:
-                        return Namespace(plugin_subcommand=subcommand)
-
     def parse_args(self, args=None, namespace=None):
         """
         We override this method to check if we are running from a known plugin subcommand.
@@ -258,7 +232,21 @@ class ArgumentParser(ArgumentParserBase):
         subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
         which is a ``conda.plugins.CondaSubcommand`` object.
         """
-        plugin_subcommand = self._get_subcommand_plugin()
+        plugin_subcommand = None
+
+        if len(sys.argv) > 1:
+            name = sys.argv[1]
+            for subcommand in self._subcommands:
+                if subcommand.name == name:
+                    if name.lower() in BUILTIN_COMMANDS:
+                        error_msg = dals(
+                            f"The plugin '{subcommand.name}: {subcommand.summary}' is trying "
+                            f"to override the built-in command {name}, which is not allowed. "
+                            "Please uninstall this plugin to stop seeing this error message"
+                        )
+                        log.error(error_msg)
+                    else:
+                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
 
         if plugin_subcommand is not None:
             return plugin_subcommand
