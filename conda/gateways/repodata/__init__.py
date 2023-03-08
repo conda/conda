@@ -817,7 +817,10 @@ class RepodataFetch:
                     self.url_w_repodata_fn,
                     self.cache_path_json,
                 )
-                return {}, cache.state  # XXX basic properties like info, packages, packages.conda?
+                return (
+                    {},
+                    cache.state,
+                )  # XXX basic properties like info, packages, packages.conda? instead of {}?
 
         else:
             if context.use_index_cache:
@@ -839,7 +842,7 @@ class RepodataFetch:
                     self.cache_path_json,
                     timeout,
                 )
-                _internal_state = self.read_local_repodata(cache.state)
+                _internal_state = self.read_local_repodata()
                 return _internal_state
 
             log.debug(
@@ -870,7 +873,7 @@ class RepodataFetch:
             cache.refresh()
             # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
             # self._save_state(mod_etag_headers)
-            _internal_state = self.read_local_repodata(cache.state)
+            _internal_state = self.read_local_repodata()
             return _internal_state
         else:
             try:
@@ -893,7 +896,6 @@ class RepodataFetch:
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
                 elif isinstance(raw_repodata, (str, type(None))):
-                    # XXX skip this if self._repo already wrote the data
                     # Can we pass this information in state or with a sentinel/special exception?
                     if raw_repodata is None:
                         raw_repodata = "{}"
@@ -917,7 +919,6 @@ class RepodataFetch:
         # pickled data is bad or doesn't exist; load cached json
         log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
 
-        # XXX use repo_fetch
         cache = self.repo_cache
 
         try:
