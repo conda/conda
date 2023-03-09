@@ -301,8 +301,11 @@ def request_url_jlap_state(
 
         have = state[NOMINAL_HASH]
 
-        # a jlap buffer with zero patches.
-        buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
+        # a jlap buffer with zero patches. the buffer format is (position,
+        # payload, checksum) where position is the offset from the beginning of
+        # the file; payload is the leading or trailing checksum or other data;
+        # and checksum is the running checksum for the file up to that point.
+        buffer = [[-1, "", ""], [0, json.dumps({LATEST: have}), ""], [1, "", ""]]
 
     else:
         have = state[NOMINAL_HASH]
