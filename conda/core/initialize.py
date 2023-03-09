@@ -42,11 +42,6 @@ import re
 import sys
 import struct
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..auxlib.ish import dals
@@ -66,7 +61,7 @@ from ..gateways.disk.read import compute_sum
 from ..gateways.subprocess import subprocess_call
 from .portability import generate_shebang_for_entry_point
 
-if on_win:
+if on_win:  # pragma: no cover
     import winreg
     from menuinst.knownfolders import get_folder_path, FOLDERID
     from menuinst.winshortcut import create_shortcut
