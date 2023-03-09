@@ -6,9 +6,9 @@ import sys
 
 from setuptools import setup
 
-if not sys.version_info[:2] >= (3, 7):
+if not sys.version_info[:2] >= (3, 8):
     sys.exit(
-        f"conda is only meant for Python 3.7 and up. "
+        f"conda is only meant for Python 3.8 and up. "
         f"current version: {sys.version_info.major}.{sys.version_info.minor}"
     )
 
@@ -64,7 +64,6 @@ setup(
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -85,6 +84,6 @@ setup(
         ],
     },
     install_requires=install_requires,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     zip_safe=False,
 )

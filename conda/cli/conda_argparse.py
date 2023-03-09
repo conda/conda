@@ -831,7 +831,7 @@ def configure_parser_install(sub_parsers):
 
     Install a specific version of 'python' into an environment, myenv::
 
-        conda install -p path/to/myenv python=3.7.13
+        conda install -p path/to/myenv python=3.10.9
 
     """)
     p = sub_parsers.add_parser(

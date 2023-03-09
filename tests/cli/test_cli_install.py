@@ -15,7 +15,7 @@ from conda.gateways.disk.delete import rm_rf
 def prefix(tmpdir):
     prefix = tmpdir.mkdir("cli_install_prefix")
     test_env = tmpdir.mkdir("cli_install_test_env")
-    run_command(Commands.CREATE, str(prefix), 'python=3.7')
+    run_command(Commands.CREATE, str(prefix), 'python=3.10')
     yield str(prefix), str(test_env)
     rm_rf(prefix)
     rm_rf(test_env)
@@ -52,5 +52,5 @@ def test_find_conflicts_called_once(prefix):
 
             mocked_find_conflicts.reset_mock()
             with pytest.raises(UnsatisfiableError):
-                run_command(Commands.CREATE, test_env, "statistics", "python=3.7")
+                run_command(Commands.CREATE, test_env, "statistics", "python=3.10")
             assert mocked_find_conflicts.call_count == 1
