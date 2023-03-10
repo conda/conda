@@ -8,7 +8,7 @@ from setuptools import setup
 
 if not sys.version_info[:2] >= (3, 8):
     sys.exit(
-        f"conda is only meant for Python 3.8 and up. "
+        f"conda requires Python 3.8 or newer. "
         f"current version: {sys.version_info.major}.{sys.version_info.minor}"
     )
 
