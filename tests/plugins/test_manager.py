@@ -85,13 +85,13 @@ def test_load_plugins_error(plugin_manager, mocker):
     assert "load_plugins error" in str(exc.value)
 
 
-def test_load_setuptools_entrypoints_importerror(recwarn, plugin_manager, mocker):
+def test_load_entrypoints_importerror(plugin_manager, mocker):
     mocker.patch(
         "pluggy._manager.importlib_metadata.distributions",
-        side_effect=ImportError("load_setuptools_entrypoints ImportError"),
+        side_effect=ImportError("load_entrypoints ImportError"),
     )
-    plugin_manager.load_setuptools_entrypoints("conda")
+    mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
+    plugin_manager.load_entrypoints("conda")
     assert plugin_manager.get_plugins() == set()
-    assert len(recwarn) == 1
-    warning = recwarn.pop(UserWarning)
-    assert "load_setuptools_entrypoints ImportError" in str(warning.message)
+    assert mocked_warning.call_count == 1
+    assert "Could not load conda plugin" in mocked_warning.call_args.args[0]
