@@ -50,6 +50,7 @@ requirements:
     - toolz >=0.8.1
     - pluggy >=1.0.0
     - tqdm >=4
+    - jsonpatch
     - boltons >= 23.0.0
   run_constrained:
     - conda-build >=3.18.3
