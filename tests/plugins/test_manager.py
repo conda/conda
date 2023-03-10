@@ -87,7 +87,7 @@ def test_load_plugins_error(plugin_manager, mocker):
 
 def test_load_entrypoints_importerror(plugin_manager, mocker):
     mocker.patch(
-        "pluggy._manager.importlib_metadata.distributions",
+        "conda.plugins.manager.distributions",
         side_effect=ImportError("load_entrypoints ImportError"),
     )
     mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
