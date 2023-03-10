@@ -218,7 +218,6 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_base(self):
-        # XXX should this move to RepodataFetch, removing all Path from SubdirData?
         if not hasattr(self, "_cache_dir"):
             # searches for writable directory; memoize per-instance.
             self._cache_dir = create_cache_dir()

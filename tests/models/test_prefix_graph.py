@@ -177,6 +177,9 @@ def test_prefix_graph_1(tmpdir):
     )
     assert nodes == order
 
+    # separate code path to remove track_features= matches
+    assert graph.remove_spec(MatchSpec("requests[track_features=x]")) == ()
+
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
     order = (

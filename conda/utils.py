@@ -12,12 +12,13 @@ import re
 import sys
 
 from . import CondaError
-from .deprecations import deprecated
 from .auxlib.compat import shlex_split_unicode, Utf8NamedTemporaryFile
 from .common.compat import on_win, isiterable
 from .common.path import win_path_to_unix, which
 from .common.url import path_to_url
+from .deprecations import deprecated
 from .gateways.disk.read import compute_sum
+
 
 log = logging.getLogger(__name__)
 
@@ -513,6 +514,7 @@ def ensure_dir_exists(func):
     return wrapper
 
 
+@deprecated("23.9", "24.3", addendum="Use `open` instead.")
 @contextmanager
 def safe_open(*args, **kwargs):
     """

@@ -253,7 +253,7 @@ def request_url_jlap_state(
 
     json_path = get_place(url)
 
-    buffer = []  # type checks
+    buffer = JLAP()  # type checks
 
     if (
         full_download
@@ -303,8 +303,11 @@ def request_url_jlap_state(
 
         have = state[NOMINAL_HASH]
 
-        # a jlap buffer with zero patches.
-        buffer = [[-1, b"", ""], [0, json.dumps({LATEST: have}), ""], [1, b"", ""]]
+        # a jlap buffer with zero patches. the buffer format is (position,
+        # payload, checksum) where position is the offset from the beginning of
+        # the file; payload is the leading or trailing checksum or other data;
+        # and checksum is the running checksum for the file up to that point.
+        buffer = JLAP([[-1, "", ""], [0, json.dumps({LATEST: have}), ""], [1, "", ""]])
 
     else:
         have = state[NOMINAL_HASH]
@@ -343,7 +346,7 @@ def request_url_jlap_state(
             except (ValueError, IndexError) as e:
                 log.exception("Error parsing jlap", exc_info=e)
                 # a 'latest' hash that we can't achieve, triggering later error handling
-                buffer = [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
+                buffer = JLAP([[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]])
                 state.set_has_format("jlap", False)
 
         state[JLAP_KEY] = jlap_state
@@ -354,8 +357,9 @@ def request_url_jlap_state(
         # buffer[-2] == footer = new_state["footer"]
         # buffer[-1] == trailing checksum
 
-        patches = list(json.loads(patch) for _, patch, _ in buffer[1:-2])
-        want = json.loads(buffer[-2][1])["latest"]
+        patches = list(json.loads(patch) for _, patch, _ in buffer.body)
+        _, footer, _ = buffer.penultimate
+        want = json.loads(footer)["latest"]
 
         try:
             apply = find_patches(patches, have, want)

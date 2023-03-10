@@ -498,6 +498,11 @@ def test_jlap_core(tmp_path: Path):
 
     assert jlap2 == jlap
 
+    # helper properties
+    assert jlap2.last == jlap2[-1]
+    assert jlap2.penultimate == jlap2[-2]
+    assert jlap2.body == jlap2[1:-2]
+
 
 def make_test_jlap(original: bytes, changes=1):
     """

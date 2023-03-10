@@ -23,7 +23,7 @@ machine_bits = 8 * struct.calcsize("P")
 
 APP_NAME = 'conda'
 
-if on_win:
+if on_win:  # pragma: no cover
     SEARCH_PATH = (
         'C:/ProgramData/conda/.condarc',
         'C:/ProgramData/conda/condarc',
@@ -120,7 +120,7 @@ DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
     'openssl',
 )
 
-if on_win:
+if on_win:  # pragma: no cover
     COMPATIBLE_SHELLS = (
         'bash',
         'cmd.exe',
