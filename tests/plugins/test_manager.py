@@ -75,9 +75,7 @@ def test_get_hook_results(plugin_manager):
 
 
 def test_load_plugins_error(plugin_manager, mocker):
-    mocker.patch.object(
-        plugin_manager, "register", side_effect=ValueError("load_plugins error")
-    )
+    mocker.patch.object(plugin_manager, "register", side_effect=ValueError("load_plugins error"))
     with pytest.raises(PluginError) as exc:
         plugin_manager.load_plugins(VerboseSolverPlugin)
     assert plugin_manager.get_plugins() == set()
@@ -85,13 +83,13 @@ def test_load_plugins_error(plugin_manager, mocker):
     assert "load_plugins error" in str(exc.value)
 
 
-def test_load_entrypoints_importerror(plugin_manager, mocker):
-    mocker.patch(
-        "importlib.metadata.EntryPoint.load",
-        side_effect=ImportError("load_entrypoints ImportError"),
-    )
+def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
+    # the fake package under data/test-plugin is added to the PYTHONPATH
+    # via the pytest config
     mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
     plugin_manager.load_entrypoints("conda")
     assert plugin_manager.get_plugins() == set()
     assert mocked_warning.call_count == 1
-    assert "Could not load conda plugin" in mocked_warning.call_args.args[0]
+    assert mocked_warning.call_args.args[0] == (
+        "Could not load conda plugin `conda-test-plugin`:\n\nNo module named 'package_that_does_not_exist'"
+    )
