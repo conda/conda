@@ -120,14 +120,23 @@ class JLAP(UserList):
         with Path(path).open("w", encoding="utf-8", newline="\n") as p:
             return p.write("\n".join(b[1] for b in self))
 
+    @property
+    def body(self):
+        """
+        All lines except the first, and last two.
+        """
+        return self[1:-2]
+
+    @property
     def penultimate(self):
         """
-        Next-to-last line usually containing the footer.
+        Next-to-last line. Should contain the footer.
         """
         return self[-2]
 
+    @property
     def last(self):
         """
-        Last line usually containing the trailing checksum.
+        Last line. Should contain the trailing checksum.
         """
         return self[-1]
