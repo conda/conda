@@ -3,9 +3,13 @@
 from collections import defaultdict
 from logging import getLogger
 
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
+
 from .enums import NoarchType
 from .match_spec import MatchSpec
-from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import on_win
 from ..exceptions import CyclicalDependencyError
