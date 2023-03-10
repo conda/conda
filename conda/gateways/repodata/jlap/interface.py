@@ -41,6 +41,23 @@ class JlapRepoInterface(RepoInterface):
         self._stderrlog = logging.getLogger("conda.stderrlog")
 
     def repodata(self, state: dict | RepodataState) -> str | None:
+        """
+        Fetch newest repodata if necessary.
+
+        Always writes to ``cache_path_json``.
+        """
+        self.repodata_parsed(state)
+        raise RepodataOnDisk()
+
+    def repodata_parsed(self, state: dict | RepodataState) -> dict | None:
+        """
+        JLAP has to parse the JSON anyway.
+
+        Use this to avoid a redundant parse when repodata is updated.
+
+        When repodata is not updated, it doesn't matter whether this function or
+        the caller reads from a file.
+        """
         session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
@@ -56,7 +73,7 @@ class JlapRepoInterface(RepoInterface):
 
         try:
             with conda_http_errors(self._url, self._repodata_fn):
-                fetch.request_url_jlap_state(
+                repodata_json_or_none = fetch.request_url_jlap_state(
                     repodata_url, state_, get_place=get_place, session=session
                 )
         except fetch.Jlap304NotModified:
@@ -74,5 +91,8 @@ class JlapRepoInterface(RepoInterface):
             state["_mod"] = headers.get("last-modified")
             state["_cache_control"] = headers.get("cache-control")
 
-        # Indicate that subdir_data mustn't rewrite cache_path_json
-        raise RepodataOnDisk()
+        if repodata_json_or_none is None:  # common
+            # Indicate that subdir_data mustn't rewrite cache_path_json
+            raise RepodataOnDisk()
+        else:
+            return repodata_json_or_none

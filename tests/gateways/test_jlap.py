@@ -21,10 +21,16 @@ from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
+    CACHE_STATE_SUFFIX,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    URL_KEY,
     CondaRepoInterface,
     RepodataOnDisk,
     RepodataState,
     Response304ContentUnchanged,
+    get_repo_interface,
 )
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
@@ -48,7 +54,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
         url,
         repodata_fn="repodata.json",
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     patched = mocker.patch(
@@ -189,7 +195,7 @@ def test_repodata_state(
 
         # not all required depending on server response, but our test server
         # will include them
-        for field in ("mod", "etag", "cache_control", "size", "mtime_ns"):
+        for field in (LAST_MODIFIED_KEY, ETAG_KEY, CACHE_CONTROL_KEY, URL_KEY, "size", "mtime_ns"):
             assert field in state
             assert f"_{field}" not in state
 
@@ -206,6 +212,9 @@ def test_jlap_flag(use_jlap):
     ):
         expected = "jlap" in use_jlap.split(",")
         assert ("jlap" in context.experimental) is expected
+
+        expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
+        assert get_repo_interface() is expected_cls
 
 
 def test_jlap_sought(
@@ -534,7 +543,7 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
         url,
         repodata_fn="repodata.json",
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     def error(*args, **kwargs):

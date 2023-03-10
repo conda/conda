@@ -32,7 +32,7 @@ pycosat
 pycrypto
 pyflakes
 pytest
-pytest-cov
+pytest-cov >=4
 pytest-mock
 pytest-rerunfailures
 pytest-timeout
