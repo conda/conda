@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import functools
 import logging
-from textwrap import dedent
-import traceback
+from importlib.metadata import distributions
 
-import importlib_metadata
 import pluggy
 
 from . import solvers, virtual_packages
@@ -16,7 +14,6 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from ..gateways.logging import initialize_logging
 
 log = logging.getLogger(__name__)
 
@@ -67,7 +64,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :return: The number of plugins loaded by this call.
         """
         count = 0
-        for dist in list(importlib_metadata.distributions()):
+        for dist in list(distributions()):
             for entry_point in dist.entry_points:
                 if (
                     entry_point.group != group
