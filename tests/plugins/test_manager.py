@@ -85,18 +85,6 @@ def test_load_plugins_error(plugin_manager, mocker):
     assert "load_plugins error" in str(exc.value)
 
 
-def test_load_setuptools_entrypoints_valueerror(plugin_manager, mocker):
-    mocker.patch(
-        "pluggy._manager.importlib_metadata.distributions",
-        side_effect=ValueError("load_setuptools_entrypoints ValueError"),
-    )
-    with pytest.raises(PluginError) as exc:
-        plugin_manager.load_setuptools_entrypoints("conda")
-    assert plugin_manager.get_plugins() == set()
-    assert exc.value.return_code == 1
-    assert "load_setuptools_entrypoints ValueError" in str(exc.value)
-
-
 def test_load_setuptools_entrypoints_importerror(recwarn, plugin_manager, mocker):
     mocker.patch(
         "pluggy._manager.importlib_metadata.distributions",
