@@ -373,6 +373,7 @@ def configure_parser_info(sub_parsers):
         "--all",
         "-v",
         "--verbose",
+        dest="verbosity",
         action="store_true",
         help="Show all information.",
     )
