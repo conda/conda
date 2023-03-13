@@ -329,6 +329,7 @@ class Context(Configuration):
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
+    experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
     # ######################################################
     # ##               Solver Configuration               ##
@@ -965,6 +966,7 @@ class Context(Configuration):
                 "use_only_tar_bz2",
                 "repodata_threads",
                 "fetch_threads",
+                "experimental",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1608,6 +1610,11 @@ class Context(Configuration):
                 Sets the number of channel notices to be displayed when running commands
                 the "install", "create", "update", "env create", and "env update" . Defaults
                 to 5. In order to completely suppress channel notices, set this to 0.
+                """
+            ),
+            experimental=dals(
+                """
+                List of experimental features to enable.
                 """
             ),
         )
