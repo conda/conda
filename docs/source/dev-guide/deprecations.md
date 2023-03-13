@@ -52,7 +52,7 @@ def bar():
 ## Keyword Arguments
 
 :::{warning}
-    Deprecating or renaming a positional argument is unnecessarily complicated and so it isn't supported. It is recommended to either (1) devise a custom way of detecting usage of a deprecated positional argument (e.g., type checking) and using the `conda.deprecations.deprecated.topic` function (see [Topics](#topics)) or (2) deprecate the function/method itself and defining a new function/method without the deprecated argument.
+Deprecating or renaming a positional argument is unnecessarily complicated and so it isn't supported. It is recommended to either (1) devise a custom way of detecting usage of a deprecated positional argument (e.g., type checking) and using the `conda.deprecations.deprecated.topic` function (see [Topics](#topics)) or (2) deprecate the function/method itself and defining a new function/method without the deprecated argument.
 :::
 
 Similarly to deprecating a function or method it is common to deprecate a keyword argument:
