@@ -1151,8 +1151,11 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):
-    assert isinstance(final_precs, IndexedSet)
-    final_precs = final_precs
+    # Ensure final_precs supports the IndexedSet interface
+    if not isinstance(final_precs, IndexedSet):
+        assert hasattr(final_precs, "__getitem__"), "final_precs must support list indexing"
+        assert hasattr(final_precs, "__sub__"), "final_precs must support set difference"
+
     previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
     force_reinstall = context.force_reinstall if force_reinstall is NULL else force_reinstall
 
