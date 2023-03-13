@@ -60,16 +60,14 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
           # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
-            python-version: '3.7'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
+            python-version: '3.8'
           - default-channel: 'conda-forge'
             python-version: '3.10'
     env:
@@ -171,13 +169,11 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
           # exclude all but one Python version for conda-forge
-          - default-channel: 'conda-forge'
-            python-version: '3.7'
           - default-channel: 'conda-forge'
             python-version: '3.8'
           - default-channel: 'conda-forge'
@@ -255,11 +251,8 @@ jobs:
           docker run
           --rm -v ${PWD}:/opt/conda-src
           --platform linux/${{ matrix.platform }}
-          -e TEST_SPLITS
-          -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          bash -c "source /opt/conda/etc/profile.d/conda.sh; \
-                   pytest --cov=conda -k test_DepsModifier_contract"
+          /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
         if: always()

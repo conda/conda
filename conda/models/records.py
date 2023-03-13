@@ -13,6 +13,11 @@
 
 from os.path import basename, join
 
+try:
+    from boltons.timeutils import dt_to_timestamp, isoparse
+except ImportError:
+    from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
+
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .match_spec import MatchSpec
@@ -27,7 +32,6 @@ from ..auxlib.entity import (
     NumberField,
     StringField,
 )
-from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError

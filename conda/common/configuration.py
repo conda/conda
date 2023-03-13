@@ -27,8 +27,13 @@ from stat import S_IFDIR, S_IFMT, S_IFREG
 import sys
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from typing import Sequence
+
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
 
 from .compat import isiterable, primitive_types
 from .constants import NULL
@@ -40,13 +45,12 @@ from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
 from .._vendor.frozendict import frozendict
-from .._vendor.boltons.setutils import IndexedSet
 
 try:
     from ruamel.yaml.comments import CommentedSeq, CommentedMap
     from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
-except ImportError:
+except ImportError:  # pragma: no cover
     try:
         from ruamel_yaml.comments import CommentedSeq, CommentedMap
         from ruamel_yaml.reader import ReaderError
@@ -118,26 +122,6 @@ class InvalidTypeError(ValidationError):
                    "Valid types:\n%s" % (parameter_name, parameter_value,
                                          source, wrong_type, pretty_list(valid_types)))
         super().__init__(parameter_name, parameter_value, source, msg=msg)
-
-
-class InvalidElementTypeError(InvalidTypeError):
-    def __init__(self, parameter_name, parameter_value, source, wrong_type,
-                 valid_types, index_or_key):
-        qualifier = "at index" if isinstance(index_or_key, int) else "for key"
-        msg = (
-            "Parameter %s declared in %s has invalid element %r %s %s.\n"
-            "Valid element types:\n"
-            "%s."
-            % (
-                parameter_name,
-                source,
-                parameter_value,
-                qualifier,
-                index_or_key,
-                pretty_list(valid_types),
-            )
-        )
-        super().__init__(parameter_name, parameter_value, source, wrong_type, valid_types, msg=msg)
 
 
 class CustomValidationError(ValidationError):
