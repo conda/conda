@@ -2,7 +2,7 @@
 
 # Deprecations
 
-Conda abides by the Deprecation Schedule defined in [CEP-9][cep9]. To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions facilitate the correct deprecation process.
+Conda abides by the Deprecation Schedule defined in [CEP-9][cep9]. To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions to facilitate the correct deprecation process.
 
 ## Functions, Methods, and Properties
 
@@ -17,9 +17,9 @@ def foo():
     ...
 ```
 
-As a minim we must always specify two versions:
+As a minimum we must always specify two versions:
 
-1. the future deprecation release in which the function, method, or property will be marked as deprecated, prior to that the feature will show up as pending deprecation (which we treat as a commenting period), and
+1. the future deprecation release in which the function, method, or property will be marked as deprecated; prior to that the feature will show up as pending deprecation (which we treat as a commenting period), and
 2. the subsequent deprecation release in which the function, method, or property will be removed from the code base.
 
 Additionally, you may provide an addendum to inform the user what they should do instead:
