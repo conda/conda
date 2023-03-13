@@ -18,7 +18,7 @@ def bar():
     ...
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 >>> foo.bar()
@@ -42,7 +42,7 @@ def bar():
     ...
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 >>> foo.bar()
@@ -72,7 +72,7 @@ def bar():
     ...
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 >>> foo.bar(is_true=True)
@@ -96,7 +96,7 @@ def bar(enabled=True):
     ...
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 >>> foo.bar(is_true=True)
@@ -114,7 +114,7 @@ from conda.deprecations import deprecated
 deprecated.constant("23.9", "24.3", "ULTIMATE_CONSTANT", 42)
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 >>> foo.ULTIMATE_CONSTANT
@@ -136,7 +136,7 @@ from conda.deprecations import deprecated
 deprecated.module("23.9", "24.3")
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 <stdin>:1: PendingDeprecationWarning: foo is pending deprecation and will be removed in 24.3.
@@ -159,7 +159,7 @@ def bar(...):
     # some more logic
 ```
 
-```{code-block} python-repl
+```{code-block} pycon
 :caption: Example invocation.
 >>> import foo
 >>> foo.bar(...)
