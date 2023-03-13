@@ -361,7 +361,7 @@ def configure_parser_info(sub_parsers):
         description=help,
         help=help,
     )
-    add_parser_json(p)
+    add_parser_json(p, include_verbosity_option=False)
     p.add_argument(
         "--offline",
         action='store_true',
@@ -369,7 +369,10 @@ def configure_parser_info(sub_parsers):
         help=SUPPRESS,
     )
     p.add_argument(
-        '-a', "--all",
+        "-a",
+        "--all",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Show all information.",
     )
@@ -1587,7 +1590,7 @@ def add_parser_prefix(p, prefix_required=False):
     )
 
 
-def add_parser_json(p):
+def add_parser_json(p, include_verbosity_option=True):
     output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
     output_and_prompt_options.add_argument(
         "--debug",
@@ -1601,13 +1604,15 @@ def add_parser_json(p):
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically."
     )
-    output_and_prompt_options.add_argument(
-        "-v", "--verbose",
-        action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
-        dest="verbosity",
-        default=NULL,
-    )
+    if include_verbosity_option:
+        output_and_prompt_options.add_argument(
+            "-v",
+            "--verbose",
+            action=NullCountAction,
+            help="Use once for info, twice for debug, three times for trace.",
+            dest="verbosity",
+            default=NULL,
+        )
     output_and_prompt_options.add_argument(
         '-q', "--quiet",
         action="store_true",
