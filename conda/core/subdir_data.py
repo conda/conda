@@ -20,7 +20,11 @@ from time import time
 
 from genericpath import getmtime, isfile
 
-from conda._vendor.boltons.setutils import IndexedSet
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:
+    from .._vendor.boltons.setutils import IndexedSet
+    
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
