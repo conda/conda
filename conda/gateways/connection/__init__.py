@@ -3,11 +3,11 @@
 
 
 try:
-    from requests import ConnectionError, HTTPError, Session, ChunkedEncodingError
+    from requests import ConnectionError, HTTPError, Session
     from requests.adapters import BaseAdapter, HTTPAdapter
     from requests.auth import AuthBase, _basic_auth_str
     from requests.cookies import extract_cookies_to_jar
-    from requests.exceptions import InvalidSchema, SSLError, ProxyError as RequestsProxyError
+    from requests.exceptions import ChunkedEncodingError, InvalidSchema, SSLError, ProxyError as RequestsProxyError
     from requests.hooks import dispatch_hook
     from requests.models import Response
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -16,11 +16,11 @@ try:
     from requests.packages.urllib3.util.retry import Retry
 
 except ImportError:  # pragma: no cover
-    from pip._vendor.requests import ConnectionError, HTTPError, Session, ChunkedEncodingError
+    from pip._vendor.requests import ConnectionError, HTTPError, Session
     from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
     from pip._vendor.requests.auth import AuthBase, _basic_auth_str
     from pip._vendor.requests.cookies import extract_cookies_to_jar
-    from pip._vendor.requests.exceptions import (InvalidSchema, SSLError,
+    from pip._vendor.requests.exceptions import (InvalidSchema, SSLError, ChunkedEncodingError,
                                                  ProxyError as RequestsProxyError)
     from pip._vendor.requests.hooks import dispatch_hook
     from pip._vendor.requests.models import Response
