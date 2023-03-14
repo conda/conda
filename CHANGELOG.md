@@ -1,5 +1,96 @@
 [//]: # (current developments)
 
+## 23.3.0 (2023-03-14)
+
+### Enhancements
+
+* Allow the use of environment variables for channel urls in `environment.yaml`. (#10018)
+* Improved error message for `conda env create` if the environment file is missing. (#11883)
+* Stop using `toolz.dicttoolz.merge` and `toolz.dicttoolz.merge_with`. (#12039)
+* Add support for incremental `repodata.json` updates with `--experimental=jlap` on the command line or `experimental: ["jlap"]` in `.condarc` (#12090). Note: switching between "use jlap" and "don't use jlap" invalidates the cache.
+* Added a new `conda.deprecations` module for easier & standardized deprecation. Includes decorators to mark functions, modules, classes, and arguments for deprecation and functions to mark modules, constants, and topics for deprecation.  (#12125)
+* Adds a new `channel_settings` configuration parameter that will be used to override arbitrary settings on per-channel basis. (#12239)
+* Improve speed of `repodata.json` parsing by deferring creation of individual `PackageRecord` objects. (#8500)
+* Refactor subcommand argument parsing to make it easier to understand. This calls the plugin before invoking the default argument parsing. (#12285)
+* Handle I/O errors raised while retrieving channel notices. (#12312)
+* Add support for the 64-bit RISC-V architecture on Linux. (#12319)
+* Update vendored version of py-cpuinfo to 0.9.0. (#12319)
+* Improved code coverage. (#12346, #12457, #12469)
+* Add a note about `use_only_tar_bz2` being enabled on `PackagesNotFoundError` exceptions. (#12353)
+* Added to `conda` CLI help that `conda remove -n <myenv> --all` can be used to delete environments. (#12378)
+* Handle Python import errors gracefully when loading conda plugins from entrypoints. (#12460)
+
+### Bug fixes
+
+* Fixed errors when renaming without an active environment. (#11915)
+* Prevent double solve attempt if `PackagesNotFoundError` is raised. (#12201)
+* Virtual packages follow `context.subdir` instead of `platform.system()` to enable cross-platform installations. (#12219)
+* Don't export `__glibc` virtual package when `CONDA_OVERRIDE_GLIBC=""`. (#12267)
+* Fix `arg_parse` pass-through for `--version` and `--help` in `conda.xsh`. (#12344)
+* Filter out `None` path values from `pwd.getpwall()` on Unix systems, for users without home directories, when running as root. (#12063)
+
+### Deprecations
+
+* Drop `toolz.itertoolz.unique` in favor of custom `conda.common.iterators.unique` implementation. (#12252)
+* Stop using `OrderedDict`/`odict` since `dict` preserves insert order since Python 3.7. (#12254)
+* Mark `conda._vendor.boltons` for deprecation in 23.9.0. (#12272, #12482)
+* Mark `conda_exe` in `context.py` and a topic in `print_package_info` `cli/main_info.py` for official deprecation. (#12398)
+* Remove unused `chain`, `methodcaller`, `mkdtemp`, `StringIO` imports in `conda.common.compat`; apply other fixes from `ruff --fix .` in the test suite. (#12294)
+* Remove unused optimization for searching packages based on `*[track_features=<feature name>]`. (#12314)
+* Remove Notebook spec support from `conda env`; this was deprecated already and scheduled to be remove in version 4.5. (#12307)
+* Mark `conda_exe` in `context.py` and a topic in `print_package_info` `cli/main_info.py` for official deprecation. (#12276)
+* Marking `conda.utils.hashsum_file` as pending deprecation. Use `conda.gateways.disk.read.compute_sum` instead. (#12414)
+* Marking `conda.utils.md5_file` as pending deprecation. Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead. (#12414)
+* Marking `conda.gateways.disk.read.compute_md5sum` as pending deprecation. Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead. (#12414)
+* Marking `conda.gateways.disk.read.compute_sha256sum` as pending deprecation. Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead. (#12414)
+* Drop Python 3.7 support. (#12436)
+
+### Docs
+
+* Added docs for `conda.deprecations`. (#12452)
+* Updated some instances of "Anaconda Cloud" to be "Anaconda.org". (#12238)
+* Added documentation on the specifications for `conda search` and `conda install`. (#12304)
+* Mark `conda.utils.safe_open` for deprecation. Use builtin `open` instead. (#12415)
+
+### Other
+
+* Update `<cache key>.json.state` `repodata.json` cache format; check `mtime` against cached `repodata.json`. (#12090)
+* Skip redundant `tar --no-same-owner` when running as root on Linux, since newer `conda-package-handling` avoids setting ownership from the archive. (#12231)
+* Add additional extensions to `conda.common.path` for future use. (#12261)
+* Pass `--cov` in test runner scripts but not in `setup.cfg` defaults, for easier debugability. (#12268)
+* Constrain conda-build to at least >=3.18.3, released 2019-06-20. (#12309)
+* Improve `start.bat` windows development script. (#12311)
+* Provide conda-forge-based Docker images and fix the bundled `minio` binary. (#12335)
+* Add support for conda-forge-based CI runtimes. On Linux (all architectures), unit & integration tests will use Python 3.10. On Windows, Python 3.8. On macOS, only the unit tests are run with conda-forge (_instead_ of `defaults`!), using Python 3.9. (#12350, #12447 via #12448)
+* Fix testing data issue where the `subdir` entry in some files was mismatched. (#12389)
+* Initialize conda after installing test requirements during CI. (#12446)
+* Speedup pre-commit by a factor of 15 by removing ignored hooks (pylint/bandit). This locally reduces the pre-commit runtime from ~43sec to 2.9sec and thus makes it possible to run pre-commit in a loop during development to constantly provide feedback and style the code. (#12466)
+
+### Contributors
+
+* @AdrianFreundQC
+* @sanzoghenzo
+* @beeankha
+* @conda-bot
+* @dbast
+* @dholth
+* @FelisNivalis
+* @gforsyth
+* @eltociear
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kannanjayachandran
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @ryanskeith
+* @31Sanskrati
+* @travishathaway
+* @pre-commit-ci[bot]
+
+
+
 ## 23.1.0 (2023-01-17)
 
 ### Bug fixes
