@@ -3,7 +3,7 @@
 
 
 try:
-    from requests import ConnectionError, HTTPError, Session
+    from requests import ConnectionError, HTTPError, Session, ChunkedEncodingError
     from requests.adapters import BaseAdapter, HTTPAdapter
     from requests.auth import AuthBase, _basic_auth_str
     from requests.cookies import extract_cookies_to_jar
@@ -16,7 +16,7 @@ try:
     from requests.packages.urllib3.util.retry import Retry
 
 except ImportError:  # pragma: no cover
-    from pip._vendor.requests import ConnectionError, HTTPError, Session
+    from pip._vendor.requests import ConnectionError, HTTPError, Session, ChunkedEncodingError
     from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
     from pip._vendor.requests.auth import AuthBase, _basic_auth_str
     from pip._vendor.requests.cookies import extract_cookies_to_jar
@@ -42,6 +42,7 @@ extract_cookies_to_jar = extract_cookies_to_jar
 get_auth_from_url = get_auth_from_url
 get_netrc_auth = get_netrc_auth
 ConnectionError = ConnectionError
+ChunkedEncodingError = ChunkedEncodingError
 HTTPError = HTTPError
 InvalidSchema = InvalidSchema
 SSLError = SSLError
