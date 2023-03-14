@@ -1,6 +1,6 @@
 ### Enhancements
 
-* allow the use of environment variables for channel urls in environment.yaml  (#10018)
+* Allow the use of environment variables for channel urls in `environment.yaml`. (#10018)
 
 ### Bug fixes
 

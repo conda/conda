@@ -16,5 +16,4 @@
 
 ### Other
 
-* Pass `--cov` in test runner scripts but not in `setup.cfg` defaults, for
-  easier debuggability (#12268)
+* Pass `--cov` in test runner scripts but not in `setup.cfg` defaults, for easier debugability. (#12268)

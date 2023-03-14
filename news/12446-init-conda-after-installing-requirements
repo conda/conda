@@ -16,4 +16,4 @@
 
 ### Other
 
-* Initialize conda after installing test requirements during CI (#12446)
+* Initialize conda after installing test requirements during CI. (#12446)

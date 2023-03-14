@@ -16,4 +16,4 @@
 
 ### Other
 
-* Speedup pre-commit by factor 15 by removing already ignored hooks (pylint/bandit). This locally reduces the pre-commit runtime from ~43sec to 2.9sec and thus makes it possible to run pre-commit in a loop during development to constantly provide feedback / style the code.
+* Speedup pre-commit by a factor of 15 by removing ignored hooks (pylint/bandit). This locally reduces the pre-commit runtime from ~43sec to 2.9sec and thus makes it possible to run pre-commit in a loop during development to constantly provide feedback and style the code. (#12466)

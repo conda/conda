@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Improved error message for `conda env create` if the environment file is missing. (#11883)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add additional extensions to `conda.common.path` for future use. (#12261)
+* <news item>

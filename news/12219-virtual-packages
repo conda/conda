@@ -4,8 +4,7 @@
 
 ### Bug fixes
 
-* Virtual packages follow `context.subdir` instead of `platform.system()` to
-  enable cross-platform installations (#12219)
+* Virtual packages follow `context.subdir` instead of `platform.system()` to enable cross-platform installations. (#12219)
 
 ### Deprecations
 

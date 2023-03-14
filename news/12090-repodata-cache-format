@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add additional extensions to `conda.common.path` for future use. (#12261)
+* Update `<cache key>.json.state` `repodata.json` cache format; check `mtime` against cached `repodata.json`. (#12090)

@@ -1,5 +1,6 @@
 ### Enhancements
 
+* Handle I/O errors raised while retrieving channel notices. (#12312)
 
 ### Bug fixes
 
@@ -15,5 +16,4 @@
 
 ### Other
 
-* Update `<cache key>.json.state` repodata.json cache format; check mtime
-  against cached `repodata.json`.
+* <news item>

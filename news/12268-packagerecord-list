@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Improve speed of `repodata.json` parsing by deferring creation of indidivual
-  `PackageRecord` objects (#8500)
+* Improve speed of `repodata.json` parsing by deferring creation of individual `PackageRecord` objects. (#8500)
 
 ### Bug fixes
 

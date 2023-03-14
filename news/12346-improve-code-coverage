@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Improved code coverage. (#12346, #12457, #12469)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add additional extensions to `conda.common.path` for future use. (#12261)
+* <news item>

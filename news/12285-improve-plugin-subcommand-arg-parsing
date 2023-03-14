@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Refactor subcommand argument parsing to make it easier to understand. This calls the plugin before invoking the default argument parsing (#12285)
+* Refactor subcommand argument parsing to make it easier to understand. This calls the plugin before invoking the default argument parsing. (#12285)
 
 ### Bug fixes
 

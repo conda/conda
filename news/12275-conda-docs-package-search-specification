@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added documentation on the specifications for ``conda search`` and ``conda install``. (#12304)
+* Added documentation on the specifications for `conda search` and `conda install`. (#12304)
 
 ### Other
 

@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Remove Notebook spec support from conda env; this was deprecated already and scheduled to be remove in version 4.5 (#12307)
+* Remove Notebook spec support from `conda env`; this was deprecated already and scheduled to be remove in version 4.5. (#12307)
 
 ### Docs
 

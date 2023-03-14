@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Don't export `__glibc` virtual package when `CONDA_OVERRIDE_GLIBC=""` (#12267)
+* Don't export `__glibc` virtual package when `CONDA_OVERRIDE_GLIBC=""`. (#12267)
 
 ### Deprecations
 

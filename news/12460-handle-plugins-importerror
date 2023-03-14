@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Handle Python import errors gracefully when loading
-  conda plugins from entrypoints. (#12460)
+* Handle Python import errors gracefully when loading conda plugins from entrypoints. (#12460)
 
 ### Bug fixes
 
