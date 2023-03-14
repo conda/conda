@@ -6,7 +6,11 @@ Strongly related to subdir_data / test_subdir_data.
 
 from __future__ import annotations
 
+import datetime
+import json
 import sys
+import time
+from pathlib import Path
 
 import pytest
 
@@ -20,7 +24,144 @@ from conda.exceptions import (
     UnavailableInvalidChannel,
 )
 from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.repodata import (
+    RepodataCache,
+    RepodataIsEmpty,
+    RepodataState,
+    conda_http_errors,
+)
+
+
+def test_save(tmp_path):
+    """
+    Check regular cache save, load operations.
+    """
+    TEST_DATA = "{}"
+    cache = RepodataCache(tmp_path / "lockme", "repodata.json")
+    cache.save(TEST_DATA)
+
+    assert cache.load() == TEST_DATA
+
+    state = dict(cache.state)
+
+    json_stat = cache.cache_path_json.stat()
+
+    time.sleep(0.1)  # may be necessary on Windows for time.time_ns() to advance
+
+    # update last-checked-timestamp in .state.json
+    cache.refresh()
+
+    # repodata.json's mtime should be equal
+    json_stat2 = cache.cache_path_json.stat()
+    assert json_stat.st_mtime_ns == json_stat2.st_mtime_ns
+
+    state2 = dict(cache.state)
+
+    assert state2 != state
+
+    # force reload repodata, .state.json from disk
+    cache.load()
+    state3 = dict(cache.state)
+
+    assert state3 == state2
+
+
+def test_stale(tmp_path):
+    """
+    RepodataCache should understand cache-control and modified time versus now.
+    """
+    TEST_DATA = "{}"
+    cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
+    MOD = "Thu, 26 Jan 2023 19:34:01 GMT"
+    cache.state.mod = MOD
+    CACHE_CONTROL = "public, max-age=30"
+    cache.state.cache_control = CACHE_CONTROL
+    ETAG = '"etag"'
+    cache.state.etag = ETAG
+    cache.save(TEST_DATA)
+
+    cache.load()
+    assert not cache.stale()
+    assert 29 < cache.timeout() < 30.1  # time difference between record and save timestamp
+
+    # backdate
+    cache.state["refresh_ns"] = time.time_ns() - (60 * 10**9)  # type: ignore
+    cache.cache_path_state.write_text(json.dumps(dict(cache.state)))
+    assert cache.load() == TEST_DATA
+    assert cache.stale()
+
+    # lesser backdate.
+    # excercise stale paths.
+    original_ttl = context.local_repodata_ttl
+    try:
+        cache.state["refresh_ns"] = time.time_ns() - (31 * 10**9)  # type: ignore
+        for ttl, expected in ((0, True), (1, True), (60, False)):
+            # < 1 means max-age: 0; 1 means use cache header; >1 means use
+            # local_repodata_ttl
+            context.local_repodata_ttl = ttl  # type: ignore
+            assert cache.stale() is expected
+            cache.timeout()
+    finally:
+        context.local_repodata_ttl = original_ttl
+
+    # since state's mtime_ns matches repodata.json stat(), these will be preserved
+    assert cache.state.mod == MOD
+    assert cache.state.cache_control == CACHE_CONTROL
+    assert cache.state.etag == ETAG
+
+    # XXX rewrite state without replacing repodata.json, assert still stale...
+
+    # mismatched mtime empties cache headers
+    state = dict(cache.state)
+    assert state["etag"]
+    assert cache.state.etag
+    state["mtime_ns"] = 0
+    cache.cache_path_state.write_text(json.dumps(state))
+    cache.load_state()
+    assert not cache.state.mod
+    assert not cache.state.etag
+
+
+def test_coverage_repodata_state(tmp_path):
+    # now these should be loaded through RepodataCache instead.
+
+    # assert invalid state is equal to no state
+    state = RepodataState(
+        tmp_path / "garbage.json", tmp_path / "garbage.state.json", "repodata.json"
+    )
+    state.cache_path_state.write_text("not json")
+    assert dict(state.load()) == {}
+
+
+from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
 from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
+
+
+def test_repodata_state_has_format():
+    # wrong has_zst format
+    state = RepodataState("", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}})
+    value, dt = state.has_format("zst")
+    assert value is False
+    assert isinstance(dt, datetime.datetime)
+    assert not "has_zst" in state
+
+    # no has_zst information
+    state = RepodataState("", "", "")
+    value, dt = state.has_format("zst")
+    assert value is True
+    assert dt is None  # is this non-datetime type what we want?
+
+    state.set_has_format("zst", True)
+    value, dt = state.has_format("zst")
+    assert value is True
+    assert isinstance(dt, datetime.datetime)
+    assert "has_zst" in state
+
+    state.set_has_format("zst", False)
+    value, dt = state.has_format("zst")
+    assert value is False
+    assert isinstance(dt, datetime.datetime)
+    assert "has_zst" in state
 
 
 def test_coverage_conda_http_errors():
@@ -114,3 +255,49 @@ def test_ssl_unavailable_error_message():
             raise SSLError()
     finally:
         del sys.modules["ssl"]
+
+
+def test_cache_json(tmp_path: Path):
+    """
+    Load and save standardized field names, from internal matches-legacy
+    underscore-prefixed field names. Assert state is only loaded if it matches
+    cached json.
+    """
+    cache_json = tmp_path / "cached.json"
+    cache_state = tmp_path / "cached.state.json"
+
+    cache_json.write_text("{}")
+
+    RepodataState(cache_json, cache_state, "repodata.json").save()
+
+    state = RepodataState(cache_json, cache_state, "repodata.json").load()
+
+    mod = "last modified time"
+
+    state = RepodataState(cache_json, cache_state, "repodata.json")
+    state.mod = mod  # this is the last-modified header not mtime_ns
+    state.cache_control = "cache control"
+    state.etag = "etag"
+    state.save()
+
+    on_disk_format = json.loads(cache_state.read_text())
+    print("disk format", on_disk_format)
+    assert on_disk_format["mod"] == mod
+    assert on_disk_format["cache_control"]
+    assert on_disk_format["etag"]
+    assert isinstance(on_disk_format["size"], int)
+    assert isinstance(on_disk_format["mtime_ns"], int)
+
+    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
+    assert state2.mod == mod
+    assert state2.cache_control
+    assert state2.etag
+
+    assert state2["mod"] == state2.mod
+    assert state2["etag"] == state2.etag
+    assert state2["cache_control"] == state2.cache_control
+
+    cache_json.write_text("{ }")  # now invalid due to size
+
+    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
+    assert state_invalid.get("mod") == ""

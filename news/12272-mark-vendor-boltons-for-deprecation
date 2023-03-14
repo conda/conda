@@ -1,0 +1,20 @@
+
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda._vendor.boltons` for deprecation in 23.9.0 (#12272)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

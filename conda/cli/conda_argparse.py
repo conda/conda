@@ -831,7 +831,7 @@ def configure_parser_install(sub_parsers):
 
     Install a specific version of 'python' into an environment, myenv::
 
-        conda install -p path/to/myenv python=3.7.13
+        conda install -p path/to/myenv python=3.10
 
     """)
     p = sub_parsers.add_parser(
@@ -1698,6 +1698,13 @@ def add_parser_channels(p):
               "is added for you automatically. For more information, see "
               "conda config --describe repodata_fns.")
     )
+    channel_customization_options.add_argument(
+        "--experimental",
+        action="append",
+        choices=["jlap", "lock"],
+        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
+        "lock: use locking when reading, updating index (repodata.json) cache. ",
+    )
     return channel_customization_options
 
 
@@ -1819,9 +1826,7 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    solver_choices = [
-        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
-    ]
+    solver_choices = [solver.name for solver in context.plugin_manager.get_hook_results("solvers")]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",

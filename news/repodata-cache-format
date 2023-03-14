@@ -1,0 +1,19 @@
+### Enhancements
+
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Update `<cache key>.json.state` repodata.json cache format; check mtime
+  against cached `repodata.json`.

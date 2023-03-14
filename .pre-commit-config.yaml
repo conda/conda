@@ -49,18 +49,6 @@ repos:
     rev: 6.0.0
     hooks:
       - id: flake8
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.16.4
-    hooks:
-      - id: pylint
-        args: [--exit-zero]
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.4
-    hooks:
-      - id: bandit
-        args: [--exit-zero]
-        # ignore all tests, not just tests data
-        exclude: ^tests/
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.4.2
     hooks:
