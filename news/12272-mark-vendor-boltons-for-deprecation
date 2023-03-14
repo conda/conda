@@ -9,7 +9,7 @@
 
 ### Deprecations
 
-* Mark `conda._vendor.boltons` for deprecation in 23.9.0 (#12272)
+* Mark `conda._vendor.boltons` for deprecation in 23.9.0 (#12272, #12482)
 
 ### Docs
 
