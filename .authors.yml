@@ -107,10 +107,12 @@
   first_commit: 2019-02-07 07:19:18
   github: davemasino
 - name: Ryan
-  email: rskeith@gmail.com
+  email: rkeith@anaconda.com
   github: ryanskeith
   num_commits: 2
   first_commit: 2015-06-17 19:53:57
+  alternate_emails:
+  - rskeith@gmail.com
 - name: ugurthemaster
   email: ugurthemaster@gmail.com
   num_commits: 7
@@ -647,6 +649,7 @@
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
+  - jaimergp
   - Jaime Rodríguez-Guerra
   - Jaime RGP
   - Jaime RG
@@ -1958,10 +1961,12 @@
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
+  - kenodegard
   - njalerikson
   - Odegard, Ken
   - Odegard, Ken (Flamingo Technologies)
   alternate_emails:
+  - kodegard@anaconda.com
   - ken.odegard@gmail.com
   - ken.odegard@bp.com
 - name: Andrew M. Farrell
@@ -2247,3 +2252,24 @@
   github: dariocurr
   num_commits: 1
   first_commit: 2022-12-07 09:10:25
+- name: Adrian Freund
+  email: adrian.freund@quantco.com
+  github: AdrianFreundQC
+- name: Kannan Jayachandran
+  email: 81518270+kannanjayachandran@users.noreply.github.com
+  github: kannanjayachandran
+- name: FelisNivalis
+  email: 88343630+FelisNivalis@users.noreply.github.com
+  github: FelisNivalis
+- name: Sanskrati
+  email: 31sanskrati@gmail.com
+  github: 31Sanskrati
+- name: Ikko Eltociear Ashimine
+  email: eltociear@gmail.com
+  github: eltociear
+- name: Gil Forsyth
+  email: gforsyth@users.noreply.github.com
+  github: gforsyth
+- name: Andrea Ghensi
+  email: andrea.ghensi@gmail.com
+  github: sanzoghenzo
