@@ -19,7 +19,6 @@ from os.path import abspath, expanduser, join
 from subprocess import Popen
 import sys
 from textwrap import dedent
-import warnings
 
 from .. import __version__
 from ..deprecations import deprecated
@@ -317,21 +316,6 @@ class ExtendConstAction(Action):
         items = [] if items is None else items[:]
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
-
-
-class PendingDeprecationAction(_StoreAction):
-    def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(
-            f"Option {self.option_strings} is pending deprecation.",
-            PendingDeprecationWarning,
-        )
-        super().__call__(parser, namespace, values, option_string)
-
-
-class DeprecatedAction(_StoreAction):
-    def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(f"Option {self.option_strings} is deprecated!", DeprecationWarning)
-        super().__call__(parser, namespace, values, option_string)
 
 
 # #############################################################################################
@@ -1891,7 +1875,7 @@ def add_parser_solver(p):
     )
     group.add_argument(
         "--experimental-solver",
-        action=PendingDeprecationAction,
+        action=deprecated.action("23.9", "24.3", _StoreAction, addendum="Use `--solver` instead."),
         dest="solver",
         choices=solver_choices,
         help="DEPRECATED. Please use '--solver' instead.",
