@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from argparse import RawDescriptionHelpFormatter
+from argparse import RawDescriptionHelpFormatter, _StoreTrueAction
 import json
 import os
 import sys
@@ -17,6 +17,7 @@ from conda.cli.conda_argparse import (
     add_parser_solver,
 )
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.notices import notices
 from conda.misc import touch_nonadmin
@@ -79,9 +80,14 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '--force',
-        help=('Force creation of environment (removing a previously-existing '
-              'environment of the same name).'),
-        action='store_true',
+        dest="yes",
+        help=("DEPRECATED. Use `--yes` instead."),
+        action=deprecated.action(
+            "23.9",
+            "24.3",
+            _StoreTrueAction,
+            addendum="Use `--yes` instead.",
+        ),
         default=False,
     )
     add_parser_default_packages(p)
@@ -107,7 +113,7 @@ def execute(args, parser):
 
     prefix = determine_target_prefix(context, args)
 
-    if args.force and prefix != context.root_prefix and os.path.exists(prefix):
+    if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 
