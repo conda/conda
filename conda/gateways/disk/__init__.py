@@ -79,7 +79,11 @@ def mkdir_p_sudo_safe(path):
     if not isdir(base_dir):
         mkdir_p_sudo_safe(base_dir)
     log.trace('making directory %s', path)
-    os.mkdir(path)
+    try:
+        os.mkdir(path)
+    except OSError as e:
+        if not (e.errno == EEXIST and isdir(path)):
+            raise
     # # per the following issues, removing this code as of 4.6.0:
     # #   - https://github.com/conda/conda/issues/6569
     # #   - https://github.com/conda/conda/issues/6576
