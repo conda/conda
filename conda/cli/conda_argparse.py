@@ -1642,7 +1642,7 @@ def add_parser_json(p):
     output_and_prompt_options.add_argument(
         "-v", "--verbose",
         action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
+        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
         dest="verbosity",
         default=NULL,
     )
@@ -1656,36 +1656,11 @@ def add_parser_json(p):
 
 
 def add_output_and_prompt_options(p):
-    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
-    output_and_prompt_options.add_argument(
-        "--debug",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,
-    )
+    output_and_prompt_options = add_parser_json(p)
     output_and_prompt_options.add_argument(
         "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
-    )
-    output_and_prompt_options.add_argument(
-        "--json",
-        action="store_true",
-        default=NULL,
-        help="Report all output as json. Suitable for using conda programmatically."
-    )
-    output_and_prompt_options.add_argument(
-        '-q', "--quiet",
-        action="store_true",
-        default=NULL,
-        help="Do not display progress bar.",
-    )
-    output_and_prompt_options.add_argument(
-        "-v", "--verbose",
-        action=NullCountAction,
-        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
-        dest="verbosity",
-        default=NULL,
     )
     output_and_prompt_options.add_argument(
         "-y", "--yes",
