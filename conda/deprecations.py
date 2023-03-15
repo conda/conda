@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from argparse import Action
 from functools import wraps
 from types import ModuleType
 import warnings
@@ -119,6 +120,35 @@ class DeprecationHandler:
             return inner
 
         return deprecated_decorator
+
+    def action(
+        self,
+        deprecate_in: str,
+        remove_in: str,
+        action: Action,
+        *,
+        addendum: str | None = None,
+        stack: int = 0,
+    ):
+        class DeprecationMixin:
+            def __call__(_, parser, namespace, values, option_string=None):
+                category, message = self._generate_message(
+                    deprecate_in,
+                    remove_in,
+                    option_string,
+                    addendum=addendum,
+                )
+
+                # alert developer that it's time to remove something
+                if not category:
+                    raise DeprecatedError(message)
+
+                # alert user that it's time to remove something
+                warnings.warn(message, category, stacklevel=2 + stack)
+
+                super().__call__(parser, namespace, values, option_string)
+
+        return type(action.__name__, (DeprecationMixin, action), {})
 
     def module(
         self,
