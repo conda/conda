@@ -6,8 +6,9 @@ import re
 import json
 
 from conda.base.context import context
+from conda.deprecations import deprecated
 from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-from conda.cli import common  # TODO: this should never have to import form conda.cli
+from conda.cli import common
 from conda.common.serialize import yaml_safe_load, yaml_safe_dump
 from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.download import download_text
@@ -58,6 +59,7 @@ def validate_keys(data, kwargs):
     return new_data
 
 
+@deprecated("23.9", "24.3")
 def load_from_directory(directory):
     """Load and return an ``Environment`` from a given ``directory``"""
     files = ['environment.yml', 'environment.yaml']
@@ -74,7 +76,6 @@ def load_from_directory(directory):
     raise EnvironmentFileNotFound(files[0])
 
 
-# TODO tests!!!
 def from_environment(name, prefix, no_builds=False, ignore_channels=False, from_history=False):
     """
         Get environment object from prefix
@@ -171,7 +172,6 @@ def from_file(filename):
     return from_yaml(yamlstr, filename=filename)
 
 
-# TODO test explicitly
 class Dependencies(dict):
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
