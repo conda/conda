@@ -41,17 +41,13 @@ def test_conda_doctor_happy_path_show_help():
 def env_one():
     """pytest fixture that creates and then deletes a new environemnt"""
 
-    out, err, exit_code = run(f"conda create -n {TEST_ENV_1} -y")
-    assert exit_code == 0
+    run(f"conda create -n {TEST_ENV_1} -y")
 
     yield
 
-    out, err, exit_code = run(f"conda remove --all in {TEST_ENV_1}")
-
-    assert exit_code == 0
+    run(f"conda remove --all -n {TEST_ENV_1} -y", disallow_stderr=False)
 
 
-@pytest.mark.skip("enable when conda doctor supports --name/--prefix")
 def test_conda_doctor_with_test_environment(env_one):
     """Make sure that we are able to call ``conda doctor`` command for a specific environment"""
 
@@ -60,3 +56,9 @@ def test_conda_doctor_with_test_environment(env_one):
     assert MISSING_FILES_SUCCESS_MESSAGE in out
     assert err == ""  # no error message
     assert exit_code is None
+
+
+def test_conda_doctor_prints_desired_detail_report(env_one):
+    """
+    Prints a detailed report in exactly the format we expect.
+    """
