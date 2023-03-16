@@ -77,7 +77,7 @@ class BinstarSpec:
         return [data for data in self.package["files"] if data["type"] == ENVIRONMENT_TYPE]
 
     @cached_property
-    def _yaml(self) -> str:
+    def environment(self) -> Environment:
         versions = [
             {"normalized": normalized_version(d["version"]), "original": d["version"]}
             for d in self.file_data
@@ -89,11 +89,7 @@ class BinstarSpec:
         )
         if req is None:
             raise EnvironmentFileNotDownloaded(self.username, self.packagename)
-        return req.text
-
-    @property
-    def environment(self) -> Environment:
-        return from_yaml(self._yaml)
+        return from_yaml(req.text)
 
     @cached_property
     def package(self):
