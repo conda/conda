@@ -948,7 +948,7 @@ def configure_parser_list(sub_parsers):
 
         conda list
 
-    List all packages in reverse order:
+    List all packages in reverse order::
 
         conda list --reverse
 
