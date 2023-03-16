@@ -37,6 +37,7 @@ project that supports Python 3.7, 3.8, 3.9 and 3.10:
      - "3.8"
      - "3.9"
      - "3.10"
+     - "3.11"
    install:
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
