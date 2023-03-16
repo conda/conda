@@ -32,13 +32,13 @@ def get_packages(installed, regex):
 
 def list_packages(prefix, regex=None, format='human', reverse=False,
                   show_channel_urls=None):
-    
+
     res = 0
     result = []
 
     installed = sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
                        key=lambda x: x.name)
-    
+
     pack_list = []
 
     for prec in get_packages(installed, regex) if regex else installed:
@@ -75,7 +75,7 @@ def list_packages(prefix, regex=None, format='human', reverse=False,
 
 def print_packages(prefix, regex=None, format='human', reverse=False, piplist=False,
                    json=False, show_channel_urls=None):
-    
+
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
