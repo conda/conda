@@ -948,6 +948,10 @@ def configure_parser_list(sub_parsers):
 
         conda list
 
+    List all packages in reverse order:
+
+        conda list --reverse
+
     List all packages installed into the environment 'myenv'::
 
         conda list -n myenv
@@ -977,6 +981,11 @@ def configure_parser_list(sub_parsers):
     add_parser_prefix(p)
     add_parser_json(p)
     add_parser_show_channel_urls(p)
+    p.add_argument(
+        "--reverse",
+        action="store_true",
+        help="List installed packages in reverse order."
+    )
     p.add_argument(
         '-c', "--canonical",
         action="store_true",
