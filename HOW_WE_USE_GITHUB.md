@@ -6,7 +6,7 @@
 [project-sorting]: https://github.com/orgs/conda/projects/2/views/11
 [project-support]: https://github.com/orgs/conda/projects/2/views/12
 [project-backlog]: https://github.com/orgs/conda/projects/2/views/13
-[project-sprint]: https://github.com/orgs/conda/projects/2/views/14
+[project-in-progress]: https://github.com/orgs/conda/projects/2/views/14
 
 [docs-toc]: https://github.blog/changelog/2021-04-13-table-of-contents-support-in-markdown-files/
 [docs-actions]: https://docs.github.com/en/actions
@@ -58,8 +58,8 @@ flowchart LR
         board_backlog-- refine -->board_backlog
     end
 
-    subgraph flow_sprint [Sprint]
-        board_sprint{{Sprint}}
+    subgraph flow_progress [In Progress]
+        board_progress{{In Progress}}
     end
 
     state_new(New Issues)
@@ -69,9 +69,9 @@ flowchart LR
     board_sorting-- investigated -->board_backlog
     board_sorting-- duplicates, off-topic -->state_closed
     board_support-- resolved, unresponsive -->state_closed
-    board_backlog-- pending work -->board_sprint
+    board_backlog-- pending work -->board_progress
     board_backlog-- resolved, irrelevant -->state_closed
-    board_sprint-- resolved -->state_closed
+    board_progress-- resolved -->state_closed
 ```
 
 In order to explain how various `conda` issues are evaluated, the following document will provide information about our sorting process in the form of an FAQ.
@@ -129,21 +129,12 @@ The additional tabs in the project board that the issues can be moved to include
 
 All sorted issues will be reviewed by sorting engineers during a weekly Refinement meeting in order to understand how those particular issues fit into the short- and long-term roadmap of `conda`. These meetings enable the sorting engineers to get together to collectively prioritize issues, earmark feature requests for specific future releases (versus a more open-ended backlog), tag issues as ideal for first-time contributors, as well as whether or not to close/reject specific feature requests.
 
-Once issues are deemed ready to be worked on, they will be moved to the [`conda` Backlog tab of the Planning board][project-backlog] on GitHub. Once actively in progress, the issues will be moved to the [Sprint tab of the Planning board][project-sprint] and then closed out once the work is complete.
+Once issues are deemed ready to be worked on, they will be moved to the [`conda` Backlog tab of the Planning board][project-backlog] on GitHub. Once actively in progress, the issues will be moved to the [In Progress tab of the Planning board][project-in-progress] and then closed out once the work is complete.
 
 
 #### What is the purpose of having a "Backlog"?
 
 Issues are "backlogged" when they have been sorted but not yet earmarked for an upcoming release. Weekly Refinement meetings are a time when the `conda` engineers will transition issues from "[Sorting][project-sorting]" to "[Backlog][project-backlog]". Additionally, this time of handoff will include discussions around the kind of issues that were raised, which provides an opportunity to identify any patterns that may point to a larger problem.
-
-
-#### What is the purpose of a "development sprint"?
-
-After issues have been sorted and backlogged, they will eventually be moved into the "Sprint Candidate", "Short-Term", "Medium-Term", "Long-Term", or "No Time Frame" sections of the [Backlog tab of the Planning board][project-backlog] and get one or more sprint cycles dedicated to them.
-
-The purpose of a development sprint is to enable a steady delivery of enhancements, features, and bug fixes by setting aside pre-determined portions of time that are meant for focusing on specifically-assigned items.
-
-Sprints also serve to focus the engineering team's attention on more accurate planning for what is to come during the entire release cycle, as well as keep the scope of development work concise. They enable the setting aside of dedicated time for the engineers to resolve any problems with the work involved, instead of pushing these problems to the end of the release cycle when there may not be any time remaining to fix issues.
 
 
 #### How does labeling work?
