@@ -1,0 +1,3 @@
+### Enhancements
+
+* Use --reverse argument for conda list to get a reversed list of installed packages. Will also work for exports. This functionality was suggested in Issue [#11954](https://github.com/conda/conda/issues/11954 "Issue Link").
