@@ -984,6 +984,7 @@ def configure_parser_list(sub_parsers):
     p.add_argument(
         "--reverse",
         action="store_true",
+        default=False,
         help="List installed packages in reverse order."
     )
     p.add_argument(
