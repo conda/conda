@@ -1,7 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from functools import cached_property
 import re
+from types import ModuleType
 
 from conda.exceptions import EnvironmentFileNotDownloaded
 from conda.models.version import normalized_version
