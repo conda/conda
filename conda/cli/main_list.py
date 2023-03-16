@@ -61,7 +61,7 @@ def list_packages(prefix, regex=None, format='human', reverse=False,
         pack_list.append(disp)
 
     if reverse:
-        result = pack_list[::-1]
+        result = reversed(pack_list)
     else:
         result = pack_list
 
