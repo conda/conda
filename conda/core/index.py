@@ -1,28 +1,23 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import re
 from itertools import chain
 from logging import getLogger
 import platform
 import sys
-import warnings
 
 try:
-    from tlz.itertoolz import concat, concatv
+    from boltons.setutils import IndexedSet
 except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv
+    from .._vendor.boltons.setutils import IndexedSet
 
+from ..deprecations import deprecated
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
-from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..exceptions import ChannelNotAllowed, InvalidSpec
+from ..exceptions import ChannelNotAllowed, InvalidSpec, PluginError
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
@@ -32,20 +27,16 @@ from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, Pref
 log = getLogger(__name__)
 
 
+@deprecated("23.3", "23.9", addendum="Use `conda.core.index.check_allowlist` instead.")
 def check_whitelist(channel_urls):
-    warnings.warn(
-        "`conda.core.index.check_whitelist` is pending deprecation and will be removed in a "
-        "future release. Please use `conda.core.index.check_allowlist` instead.",
-        PendingDeprecationWarning,
-    )
     return check_allowlist(channel_urls)
 
 
 def check_allowlist(channel_urls):
     if context.allowlist_channels:
-        allowlist_channel_urls = tuple(concat(
-            Channel(c).base_urls for c in context.allowlist_channels
-        ))
+        allowlist_channel_urls = tuple(
+            chain.from_iterable(Channel(c).base_urls for c in context.allowlist_channels)
+        )
         for url in channel_urls:
             these_urls = Channel(url).base_urls
             if not all(this_url in allowlist_channel_urls for this_url in these_urls):
@@ -71,7 +62,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         unknown = True
 
     channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    del LAST_CHANNEL_URLS[:]
+    LAST_CHANNEL_URLS.clear()
     LAST_CHANNEL_URLS.extend(channel_urls)
 
     check_allowlist(channel_urls)
@@ -149,18 +140,19 @@ def _supplement_index_with_cache(index):
             index[pcrec] = pcrec
 
 
-def _make_virtual_package(name, version=None, build_string='0'):
+def _make_virtual_package(name, version=None, build_string=None):
     return PackageRecord(
             package_type=PackageType.VIRTUAL_SYSTEM,
             name=name,
             version=version or '0',
-            build_string=build_string,
+            build_string=build_string or '0',
             channel='@',
             subdir=context.subdir,
             md5="12345678901234567890123456789012",
             build_number=0,
             fn=name,
     )
+
 
 def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
@@ -169,53 +161,27 @@ def _supplement_index_with_features(index, features=()):
 
 
 def _supplement_index_with_system(index):
-    cuda_version = context.cuda_version
-    if cuda_version is not None:
-        rec = _make_virtual_package('__cuda', cuda_version)
-        index[rec] = rec
+    """
+    Loads and populates virtual package records from conda plugins
+    and adds them to the provided index, unless there is a naming
+    conflict.
+    """
+    registered_names = []
+    packages = context.plugin_manager.get_hook_results("virtual_packages")
+    for package in packages:
+        if package.name is None:
+            continue
+        if package.name in registered_names:
+            raise PluginError(
+                "Conflicting virtual package entries found for the "
+                f"`{package.name}` key. Multiple conda plugins "
+                "are registering this virtual package via the "
+                "`conda_virtual_packages` hook, please make sure "
+                "you don't have any incompatible plugins installed."
+            )
+        registered_names.append(package.name)
 
-    dist_name, dist_version = context.os_distribution_name_version
-    is_osx = context.subdir.startswith("osx-")
-    if is_osx:
-        # User will have to set env variable when using CONDA_SUBDIR var
-        dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
-        if dist_version:
-            rec = _make_virtual_package('__osx', dist_version)
-            index[rec] = rec
-
-    libc_family, libc_version = context.libc_family_version
-    is_linux = context.subdir.startswith("linux-")
-    if is_linux:
-        # By convention, the kernel release string should be three or four
-        # numeric components, separated by dots, followed by vendor-specific
-        # bits.  For the purposes of versioning the `__linux` virtual package,
-        # discard everything after the last digit of the third or fourth
-        # numeric component; note that this breaks version ordering for
-        # development (`-rcN`) kernels, but we'll deal with that later.
-        dist_version = os.environ.get('CONDA_OVERRIDE_LINUX', context.platform_system_release[1])
-        m = re.match(r'\d+\.\d+(\.\d+)?(\.\d+)?', dist_version)
-        rec = _make_virtual_package('__linux', m.group() if m else "0")
-        index[rec] = rec
-
-        if not (libc_family and libc_version):
-            # Default to glibc when using CONDA_SUBDIR var
-            libc_family = "glibc"
-        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
-        if libc_version:
-            rec = _make_virtual_package('__' + libc_family, libc_version)
-            index[rec] = rec
-
-    if is_linux or is_osx:
-        rec = _make_virtual_package('__unix')
-        index[rec] = rec
-    elif context.subdir.startswith('win-'):
-        rec = _make_virtual_package('__win')
-        index[rec] = rec
-
-    archspec_name = get_archspec_name()
-    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
-    if archspec_name:
-        rec = _make_virtual_package('__archspec', "1", archspec_name)
+        rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
         index[rec] = rec
 
 
@@ -329,7 +295,7 @@ def get_reduced_index(prefix, channels, subdirs, specs, repodata_fn):
     # add feature records for the solver
     known_features = set()
     for rec in reduced_index.values():
-        known_features.update(concatv(rec.track_features, rec.features))
+        known_features.update((*rec.track_features, *rec.features))
     known_features.update(context.track_features)
     for ftr_str in known_features:
         rec = make_feature_record(ftr_str)

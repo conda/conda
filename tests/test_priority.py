@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from datetime import datetime
+from json import loads as json_loads
 from unittest import TestCase
 import re
 
 import pytest
 
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import on_win
 from conda.common.io import env_var
 from conda.testing.integration import Commands, package_is_installed, get_conda_list_tuple, \
     make_temp_env, run_command
@@ -21,10 +19,15 @@ class PriorityIntegrationTests(TestCase):
     def test_channel_order_channel_priority_true(self):
         # This is broken, make_temp_env will reset the context. We get away with it, but really
         # we need a function that does both these at the same time.
-        with env_var("CONDA_PINNED_PACKAGES", "python=3.6", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("pycosat==0.6.2") as prefix:
-                assert package_is_installed(prefix, 'python=3.6')
+        with env_var("CONDA_PINNED_PACKAGES", "python=3.8", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env("pycosat=0.6.3") as prefix:
+                assert package_is_installed(prefix, 'python=3.8')
                 assert package_is_installed(prefix, 'pycosat')
+
+                payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+                default_channels = json_loads(payload)["get"].get("channels")
+                if default_channels:
+                    run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
 
                 # add conda-forge channel
                 o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')
@@ -34,7 +37,7 @@ class PriorityIntegrationTests(TestCase):
 
                 # this assertion works with the pinned_packages config to make sure
                 # conda update --all still respects the pinned python version
-                assert package_is_installed(prefix, 'python=3.6')
+                assert package_is_installed(prefix, 'python=3.8')
 
                 # pycosat should be in the SUPERSEDED list
                 # after the 4.4 solver work, looks like it's in the DOWNGRADED list
@@ -45,7 +48,7 @@ class PriorityIntegrationTests(TestCase):
                 # The following packages will be UPDATED to a higher-priority channel:
                 #
                 installed_str, x = update_stdout.split('UPDATED')
-                assert re.search(r'pkgs/main::pycosat-0.6.2-py36h[^\s]+ --> conda-forge::pycosat', x)
+                assert re.search(r'pkgs/main::pycosat-0.6.3-py38h[^\s]+ --> conda-forge::pycosat', x)
 
                 # python sys.version should show conda-forge python
                 python_tuple = get_conda_list_tuple(prefix, "python")
@@ -58,8 +61,14 @@ class PriorityIntegrationTests(TestCase):
         """
             This case will fail now
         """
-        with make_temp_env("python=3.6.5", "pycosat") as prefix:
+        with make_temp_env("python=3.8", "pycosat") as prefix:
             assert package_is_installed(prefix, 'python')
+
+            # clear channels config first to not assume default is defaults
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels")
+            if default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
 
             # add conda-forge channel
             o, e, _ = run_command(Commands.CONFIG, prefix, "--prepend", "channels", "conda-forge", '--json')

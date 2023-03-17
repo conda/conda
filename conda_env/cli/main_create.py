@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import print_function
 
 from argparse import RawDescriptionHelpFormatter
 import json
@@ -11,10 +9,9 @@ import textwrap
 
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, add_parser_create_platform, \
-    add_parser_prefix, add_parser_networking, add_parser_experimental_solver
+from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
+    add_parser_prefix, add_parser_networking, add_parser_solver, add_parser_create_platform
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import SpecNotFound
 from conda.gateways.disk.delete import rm_rf
 from conda.notices import notices
 from conda.misc import touch_nonadmin
@@ -91,26 +88,25 @@ def configure_parser(sub_parsers):
     )
     add_parser_default_packages(p)
     add_parser_json(p)
-    add_parser_experimental_solver(p)
     add_parser_create_platform(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_create.execute')
 
 
 @notices
 def execute(args, parser):
-    name = args.remote_definition or args.name
+    spec = specs.detect(
+        name=args.name,
+        filename=get_filename(args.file),
+        directory=os.getcwd(),
+        remote_definition=args.remote_definition,
+    )
+    env = spec.environment
 
-    try:
-        spec = specs.detect(name=name, filename=get_filename(args.file), directory=os.getcwd())
-        env = spec.environment
-
-        # FIXME conda code currently requires args to have a name or prefix
-        # don't overwrite name if it's given. gh-254
-        if args.prefix is None and args.name is None:
-            args.name = env.name
-
-    except SpecNotFound:
-        raise
+    # FIXME conda code currently requires args to have a name or prefix
+    # don't overwrite name if it's given. gh-254
+    if args.prefix is None and args.name is None:
+        args.name = env.name
 
     prefix = determine_target_prefix(context, args)
 

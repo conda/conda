@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
 from logging import getLogger
@@ -70,7 +68,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
-    env = encode_environment(env if env else os.environ)
+    env = encode_environment(env or os.environ)
     cwd = sys.prefix if path is None else abspath(path)
     if not isiterable(command):
         command = shlex_split_unicode(command)

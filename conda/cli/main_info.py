@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-from collections import OrderedDict
 import json
 from logging import getLogger
 import os
@@ -13,10 +9,11 @@ import sys
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
-from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
+from ..base.context import context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import on_win
 from ..common.url import mask_anaconda_token
 from ..core.index import _supplement_index_with_system
+from ..deprecations import deprecated
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
@@ -36,11 +33,12 @@ def get_user_site():  # pragma: no cover
         else:
             if 'APPDATA' not in os.environ:
                 return site_dirs
-            APPDATA = os.environ[str('APPDATA')]
-            if exists(join(APPDATA, 'Python')):
-                site_dirs = [join(APPDATA, 'Python', i) for i in
-                             os.listdir(join(APPDATA, 'PYTHON'))]
-    except (IOError, OSError) as e:
+            APPDATA = os.environ["APPDATA"]
+            if exists(join(APPDATA, "Python")):
+                site_dirs = [
+                    join(APPDATA, "Python", i) for i in os.listdir(join(APPDATA, "PYTHON"))
+                ]
+    except OSError as e:
         log.debug('Error accessing user site directory.\n%r', e)
     return site_dirs
 
@@ -58,20 +56,20 @@ def dump_record(pkg):
 def pretty_package(prec):
 
     pkg = dump_record(prec)
-    d = OrderedDict([
-        ('file name', prec.fn),
-        ('name', pkg['name']),
-        ('version', pkg['version']),
-        ('build string', pkg['build']),
-        ('build number', pkg['build_number']),
-        ('channel', str(prec.channel)),
-        ('size', human_bytes(pkg['size'])),
-    ])
+    d = {
+        "file name": prec.fn,
+        "name": pkg["name"],
+        "version": pkg["version"],
+        "build string": pkg["build"],
+        "build number": pkg["build_number"],
+        "channel": str(prec.channel),
+        "size": human_bytes(pkg["size"]),
+    }
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
         d[key] = pkg[key]
 
-    print('')
-    header = "%s %s %s" % (d['name'], d['version'], d['build string'])
+    print()
+    header = "{} {} {}".format(d["name"], d["version"], d["build string"])
     print(header)
     print('-'*len(header))
     for key in d:
@@ -83,6 +81,7 @@ def pretty_package(prec):
 
 def print_package_info(packages):
     from ..core.subdir_data import SubdirData
+
     results = {}
     for package in packages:
         spec = MatchSpec(package)
@@ -95,9 +94,12 @@ def print_package_info(packages):
             for prec in result:
                 pretty_package(prec)
 
-    print("WARNING: 'conda info package_name' is deprecated.\n"
-          "          Use 'conda search package_name --info'.",
-          file=sys.stderr)
+    deprecated.topic(
+        "23.9",
+        "24.3",
+        topic="`conda info package_name`",
+        addendum="Use `conda search package_name --info` instead.",
+    )
 
 
 def get_info_dict(system=False):
@@ -156,7 +158,6 @@ def get_info_dict(system=False):
         conda_build_version=conda_build_version,
         root_prefix=context.root_prefix,
         conda_prefix=context.conda_prefix,
-        conda_private=conda_in_private_env(),
         av_data_dir=context.av_data_dir,
         av_metadata_url_base=context.signing_metadata_url_base,
         root_writable=context.root_writable,
@@ -189,10 +190,11 @@ def get_info_dict(system=False):
         info_dict['GID'] = os.getegid()
 
     env_var_keys = {
-        'CIO_TEST',
-        'CURL_CA_BUNDLE',
-        'REQUESTS_CA_BUNDLE',
-        'SSL_CERT_FILE',
+        "CIO_TEST",
+        "CURL_CA_BUNDLE",
+        "REQUESTS_CA_BUNDLE",
+        "SSL_CERT_FILE",
+        "LD_PRELOAD",
     }
 
     # add all relevant env vars, e.g. startswith('CONDA') or endswith('PATH')
@@ -253,28 +255,32 @@ def get_main_info_str(info_dict):
     if info_dict['conda_shlvl'] >= 0:
         builder.append(format_param('shell level', info_dict['conda_shlvl']))
 
-    builder.extend((
-        format_param('user config file', info_dict['user_rc_path']),
-        format_param('populated config files', info_dict['_config_files']),
-        format_param('conda version', info_dict['conda_version']),
-        format_param('conda-build version', info_dict['conda_build_version']),
-        format_param('python version', info_dict['python_version']),
-        format_param('virtual packages', info_dict['_virtual_pkgs']),
-        format_param('base environment', '%s  (%s)' % (info_dict['root_prefix'],
-                                                       info_dict['_rtwro'])),
-        format_param('conda av data dir', info_dict['av_data_dir']),
-        format_param('conda av metadata url', info_dict['av_metadata_url_base']),
-        format_param('channel URLs', info_dict['_channels']),
-        format_param('package cache', info_dict['_pkgs_dirs']),
-        format_param('envs directories', info_dict['_envs_dirs']),
-        format_param('platform', info_dict['platform']),
-        format_param('user-agent', info_dict['user_agent']),
-    ))
+    builder.extend(
+        (
+            format_param("user config file", info_dict["user_rc_path"]),
+            format_param("populated config files", info_dict["_config_files"]),
+            format_param("conda version", info_dict["conda_version"]),
+            format_param("conda-build version", info_dict["conda_build_version"]),
+            format_param("python version", info_dict["python_version"]),
+            format_param("virtual packages", info_dict["_virtual_pkgs"]),
+            format_param(
+                "base environment",
+                "{}  ({})".format(info_dict["root_prefix"], info_dict["_rtwro"]),
+            ),
+            format_param("conda av data dir", info_dict["av_data_dir"]),
+            format_param("conda av metadata url", info_dict["av_metadata_url_base"]),
+            format_param("channel URLs", info_dict["_channels"]),
+            format_param("package cache", info_dict["_pkgs_dirs"]),
+            format_param("envs directories", info_dict["_envs_dirs"]),
+            format_param("platform", info_dict["platform"]),
+            format_param("user-agent", info_dict["user_agent"]),
+        )
+    )
 
     if on_win:
         builder.append(format_param("administrator", info_dict['is_windows_admin']))
     else:
-        builder.append(format_param("UID:GID", '%s:%s' % (info_dict['UID'], info_dict['GID'])))
+        builder.append(format_param("UID:GID", "{}:{}".format(info_dict["UID"], info_dict["GID"])))
 
     builder.extend((
         format_param('netrc file', info_dict['netrc_file']),
@@ -290,7 +296,7 @@ def execute(args, parser):
         if context.json:
             stdout_json({'root_prefix': context.root_prefix})
         else:
-            print('{}'.format(context.root_prefix))
+            print(f"{context.root_prefix}")
         return
 
     if args.packages:
@@ -332,22 +338,22 @@ def execute(args, parser):
             print("sys.version: %s..." % (sys.version[:40]))
             print("sys.prefix: %s" % sys.prefix)
             print("sys.executable: %s" % sys.executable)
-            print("conda location: %s" % info_dict['conda_location'])
-            for cmd in sorted(set(find_commands() + ('build',))):
-                print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
-            print("user site dirs: ", end='')
-            site_dirs = info_dict['site_dirs']
+            print("conda location: %s" % info_dict["conda_location"])
+            for cmd in sorted(set(find_commands() + ("build",))):
+                print("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+            print("user site dirs: ", end="")
+            site_dirs = info_dict["site_dirs"]
             if site_dirs:
                 print(site_dirs[0])
             else:
-                print('')
+                print()
             for site_dir in site_dirs[1:]:
                 print('                %s' % site_dir)
-            print('')
+            print()
 
             for name, value in sorted(info_dict['env_vars'].items()):
-                print("%s: %s" % (name, value))
-            print('')
+                print(f"{name}: {value}")
+            print()
 
     if context.json:
         stdout_json(info_dict)

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
@@ -43,7 +41,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
     for n in range(max_tries):
         try:
             result = fn(*args, **kwargs)
-        except (OSError, IOError) as e:
+        except OSError as e:
             log.trace(repr(e))
             if e.errno in (EPERM, EACCES):
                 sleep_some(n, e)
@@ -67,7 +65,7 @@ def mkdir_p(path):
         if path:
             os.makedirs(path)
             return isdir(path) and path
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno == EEXIST and isdir(path):
             return path
         else:
@@ -81,7 +79,11 @@ def mkdir_p_sudo_safe(path):
     if not isdir(base_dir):
         mkdir_p_sudo_safe(base_dir)
     log.trace('making directory %s', path)
-    os.mkdir(path)
+    try:
+        os.mkdir(path)
+    except OSError as e:
+        if not (e.errno == EEXIST and isdir(path)):
+            raise
     # # per the following issues, removing this code as of 4.6.0:
     # #   - https://github.com/conda/conda/issues/6569
     # #   - https://github.com/conda/conda/issues/6576
@@ -96,7 +98,7 @@ def mkdir_p_sudo_safe(path):
         # https://github.com/conda/conda/issues/6610#issuecomment-354478489
         try:
             os.chmod(path, 0o2775)
-        except (OSError, IOError) as e:
+        except OSError as e:
             log.trace("Failed to set permissions to 2775 on %s (%d %d)",
                       path, e.errno, errorcode[e.errno])
             pass

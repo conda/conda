@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import itertools
 from collections import defaultdict, namedtuple
+from itertools import chain
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, join
@@ -13,11 +12,6 @@ from pathlib import Path
 from traceback import format_exception_only
 from textwrap import indent
 import warnings
-
-try:
-    from tlz.itertoolz import concat, concatv, interleave
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, concatv, interleave
 
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
@@ -32,7 +26,7 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
 from ..cli.common import confirm_yn
-from ..common.compat import ensure_text_type, odict, on_win
+from ..common.compat import ensure_text_type, on_win
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
@@ -81,16 +75,19 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.version,
-                                                  prefix_record.build)
+            extracted_package_dir = "{}-{}-{}".format(
+                prefix_record.name, prefix_record.version, prefix_record.build
+            )
 
-    meta_short_path = '%s/%s' % ('conda-meta', extracted_package_dir + '.json')
-    remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
-                                                                 prefix_record,
-                                                                 target_prefix, meta_short_path),)
+    meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
+    remove_conda_meta_actions = (
+        RemoveLinkedPackageRecordAction(
+            transaction_context, prefix_record, target_prefix, meta_short_path
+        ),
+    )
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
-    all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
+    all_directories = sorted(explode_directories(_all_d), reverse=True)
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, prefix_record,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
@@ -99,12 +96,12 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     #     transaction_context, package_cache_record, target_prefix
     # )
 
-    return tuple(concatv(
-        unlink_path_actions,
-        directory_remove_actions,
-        # unregister_private_package_actions,
-        remove_conda_meta_actions,
-    ))
+    return (
+        *unlink_path_actions,
+        *directory_remove_actions,
+        # *unregister_private_package_actions,
+        *remove_conda_meta_actions,
+    )
 
 
 def match_specs_to_dists(packages_info_to_link, specs):
@@ -161,11 +158,11 @@ ChangeReport = namedtuple("ChangeReport", (
 ))
 
 
-class UnlinkLinkTransaction(object):
+class UnlinkLinkTransaction:
 
     def __init__(self, *setups):
-        self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
-        self.prefix_action_groups = odict()
+        self.prefix_setups = {stp.target_prefix: stp for stp in setups}
+        self.prefix_action_groups = {}
 
         for stp in self.prefix_setups.values():
             log.info("initializing UnlinkLinkTransaction with\n"
@@ -271,7 +268,7 @@ class UnlinkLinkTransaction(object):
                 for msg_file in all_msg_subdir:
                     print(f"  File {msg_file.name}:\n")
                     print(indent(msg_file.read_text(), "  "))
-                    print("")
+                    print()
         if flag_pre_link:
             confirm_yn()
 
@@ -281,7 +278,9 @@ class UnlinkLinkTransaction(object):
 
         assert not context.dry_run
         try:
-            self._execute(tuple(concat(interleave(self.prefix_action_groups.values()))))
+            # innermost dict.values() is an iterable of PrefixActionGroup namedtuple
+            # zip() is an iterable of each PrefixActionGroup namedtuple key
+            self._execute(tuple(chain(*chain(*zip(*self.prefix_action_groups.values())))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
@@ -292,7 +291,9 @@ class UnlinkLinkTransaction(object):
         elif not self.prefix_setups:
             self._pfe = pfe = ProgressiveFetchExtract(())
         else:
-            link_precs = set(concat(stp.link_precs for stp in self.prefix_setups.values()))
+            link_precs = set(
+                chain.from_iterable(stp.link_precs for stp in self.prefix_setups.values())
+            )
             self._pfe = pfe = ProgressiveFetchExtract(link_precs)
         return pfe
 
@@ -304,7 +305,7 @@ class UnlinkLinkTransaction(object):
         if not isdir(target_prefix):
             try:
                 mkdir_p(target_prefix)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log.debug(repr(e))
                 raise CondaError("Unable to create prefix directory '%s'.\n"
                                  "Check that you have sufficient permissions."
@@ -400,10 +401,12 @@ class UnlinkLinkTransaction(object):
                 target_prefix)
             make_menu_action_groups.append(make_menu_ag)
 
-            all_link_path_actions = concatv(link_ag.actions,
-                                            compile_ag.actions,
-                                            entry_point_ag.actions,
-                                            make_menu_ag.actions)
+            all_link_path_actions = (
+                *link_ag.actions,
+                *compile_ag.actions,
+                *entry_point_ag.actions,
+                *make_menu_ag.actions,
+            )
             record_axns.extend(CreatePrefixRecordAction.create_actions(
                 transaction_context, pkg_info, target_prefix, lt, spec, all_link_path_actions))
 
@@ -432,9 +435,9 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _verify_individual_level(prefix_action_group):
-        all_actions = concat(axngroup.actions
-                             for action_groups in prefix_action_group
-                             for axngroup in action_groups)
+        all_actions = chain.from_iterable(
+            axngroup.actions for action_groups in prefix_action_group for axngroup in action_groups
+        )
 
         # run all per-action (per-package) verify methods
         #   one of the more important of these checks is to verify that a file listed in
@@ -470,10 +473,12 @@ class UnlinkLinkTransaction(object):
         prefix_record_groups = prefix_action_group.prefix_record_groups
 
         lower_on_win = lambda p: p.lower() if on_win else p
-        unlink_paths = set(lower_on_win(axn.target_short_path)
-                           for grp in unlink_action_groups
-                           for axn in grp.actions
-                           if isinstance(axn, UnlinkPathAction))
+        unlink_paths = {
+            lower_on_win(axn.target_short_path)
+            for grp in unlink_action_groups
+            for axn in grp.actions
+            if isinstance(axn, UnlinkPathAction)
+        }
         # we can get all of the paths being linked by looking only at the
         #   CreateLinkedPackageRecordAction actions
         create_lpr_actions = (axn
@@ -491,10 +496,12 @@ class UnlinkLinkTransaction(object):
                 elif isinstance(link_path_action, CreateNonadminAction):
                     continue
                 else:
-                    target_short_paths = ((link_path_action.target_short_path, )
-                                          if not hasattr(link_path_action, 'link_type') or
-                                          link_path_action.link_type != LinkType.directory
-                                          else tuple())
+                    target_short_paths = (
+                        (link_path_action.target_short_path,)
+                        if not hasattr(link_path_action, "link_type")
+                        or link_path_action.link_type != LinkType.directory
+                        else ()
+                    )
                 for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)
@@ -604,7 +611,7 @@ class UnlinkLinkTransaction(object):
             try:
                 dir_existed = mkdir_p(dirname(test_path))
                 open(test_path, "a").close()
-            except EnvironmentError:
+            except OSError:
                 if dir_existed is False:
                     rm_rf(dirname(test_path))
                 yield EnvironmentNotWritableError(prefix_setup.target_prefix)
@@ -730,9 +737,11 @@ class UnlinkLinkTransaction(object):
                 prec = axngroup.pkg_data
 
                 if prec:
-                    log.error("An error occurred while %s package '%s'." % (
-                            'uninstalling' if is_unlink else 'installing',
-                            prec.dist_str()))
+                    log.error(
+                        "An error occurred while {} package '{}'.".format(
+                            "uninstalling" if is_unlink else "installing", prec.dist_str()
+                        )
+                    )
 
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
@@ -744,12 +753,12 @@ class UnlinkLinkTransaction(object):
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)
                             rollback_excs.extend(excs)
 
-                raise CondaMultiError(tuple(concatv(
-                    ((e.errors[0], e.errors[2:])
-                     if isinstance(e, CondaMultiError)
-                     else (e,)),
-                    rollback_excs,
-                )))
+                raise CondaMultiError(
+                    (
+                        *((e.errors[0], e.errors[2:]) if isinstance(e, CondaMultiError) else (e,)),
+                        *rollback_excs,
+                    )
+                )
             else:
                 for axngroup in all_action_groups:
                     for action in axngroup.actions:
@@ -783,11 +792,13 @@ class UnlinkLinkTransaction(object):
             reverse_excs = ()
             if context.rollback_enabled:
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
-            return CondaMultiError(tuple(concatv(
-                (e,),
-                (axngroup,),
-                reverse_excs,
-            )))
+            return CondaMultiError(
+                (
+                    e,
+                    axngroup,
+                    *reverse_excs,
+                )
+            )
 
     @staticmethod
     def _execute_post_link_actions(axngroup):
@@ -803,11 +814,13 @@ class UnlinkLinkTransaction(object):
                 reverse_excs = ()
                 if context.rollback_enabled:
                     reverse_excs = UnlinkLinkTransaction._reverse_actions(axngroup)
-                return CondaMultiError(tuple(concatv(
-                    (e,),
-                    (axngroup,),
-                    reverse_excs,
-                )))
+                return CondaMultiError(
+                    (
+                        e,
+                        axngroup,
+                        *reverse_excs,
+                    )
+                )
 
     @staticmethod
     def _reverse_actions(axngroup, reverse_from_idx=-1):
@@ -877,36 +890,12 @@ class UnlinkLinkTransaction(object):
         )
         create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
 
-        # if requested_spec:
-        #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
-        #         *required_quad
-        #     )
-        #     application_softlink_actions = CreateApplicationSoftlinkAction.create_actions(
-        #         *required_quad
-        #     )
-        # else:
-        #     application_entry_point_actions = ()
-        #     application_softlink_actions = ()
-        # leased_paths = tuple(axn.leased_path_entry for axn in concatv(
-        #     application_entry_point_actions,
-        #     application_softlink_actions,
-        # ))
-
-        # if requested_spec:
-        #     register_private_env_actions = RegisterPrivateEnvAction.create_actions(
-        #         transaction_context, package_info, target_prefix, requested_spec, leased_paths
-        #     )
-        # else:
-        #     register_private_env_actions = ()
-
         # the ordering here is significant
-        return tuple(concatv(
-            create_directory_actions,
-            file_link_actions,
-            create_nonadmin_actions,
-            # application_entry_point_actions,
-            # register_private_env_actions,
-        ))
+        return (
+            *create_directory_actions,
+            *file_link_actions,
+            *create_nonadmin_actions,
+        )
 
     @staticmethod
     def _make_entry_point_actions(transaction_context, package_info, target_prefix,
@@ -934,7 +923,7 @@ class UnlinkLinkTransaction(object):
             actions = defaultdict(list)
             if q == 0:
                 self._pfe.prepare()
-                download_urls = set(axn.url for axn in self._pfe.cache_actions)
+                download_urls = {axn.url for axn in self._pfe.cache_actions}
                 actions['FETCH'].extend(prec for prec in self._pfe.link_precs
                                         if prec.url in download_urls)
 
@@ -954,7 +943,7 @@ class UnlinkLinkTransaction(object):
     def print_transaction_summary(self):
         legacy_action_groups = self._make_legacy_action_groups()
 
-        download_urls = set(axn.url for axn in self._pfe.cache_actions)
+        download_urls = {axn.url for axn in self._pfe.cache_actions}
 
         for actions, (prefix, stp) in zip(legacy_action_groups, self.prefix_setups.items()):
             change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
@@ -1150,7 +1139,7 @@ class UnlinkLinkTransaction(object):
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)
 
-        fetch_precs = set(prec for prec in link_precs if prec.url in download_urls)
+        fetch_precs = {prec for prec in link_precs if prec.url in download_urls}
         change_report = ChangeReport(prefix, specs_to_remove, specs_to_add, removed_precs,
                                      new_precs, updated_precs, downgraded_precs, superseded_precs,
                                      fetch_precs)
@@ -1162,9 +1151,11 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
-    path = join(prefix,
-                'Scripts' if on_win else 'bin',
-                '.%s-%s.%s' % (prec.name, action, 'bat' if on_win else 'sh'))
+    path = join(
+        prefix,
+        "Scripts" if on_win else "bin",
+        ".{}-{}.{}".format(prec.name, action, "bat" if on_win else "sh"),
+    )
     if not isfile(path):
         return True
 
@@ -1239,7 +1230,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
                 if 'openssl' in prec.dist_str():
                     # this is a hack for conda-build string parsing in the conda_build/build.py
                     #   create_env function
-                    message = "%s failed for: %s" % (action, prec)
+                    message = f"{action} failed for: {prec}"
                 else:
                     message = dals("""
                     %s script failed for package %s

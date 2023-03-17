@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,7 +31,7 @@ def test_filelock_locks(tmpdir):
         path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists()
 
-        with pytest.raises(LockError) as execinfo:
+        with pytest.raises(LockError):
             with FileLock(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.path_to_lock == lock1.path_to_lock
@@ -53,8 +52,8 @@ def test_folder_locks(tmpdir):
 
         assert exists(lock1.lock_file_path) and isfile(lock1.lock_file_path)
 
-        with pytest.raises(LockError) as execinfo:
-            with DirectoryLock(tmpfile, retries=1) as lock2:
+        with pytest.raises(LockError):
+            with DirectoryLock(tmpfile, retries=1):
                 assert False  # this should never happen
 
         assert exists(lock1.lock_file_path) and isfile(lock1.lock_file_path)

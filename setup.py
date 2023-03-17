@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,9 +6,9 @@ import sys
 
 from setuptools import setup
 
-if not sys.version_info[:2] >= (3, 7):
+if not sys.version_info[:2] >= (3, 8):
     sys.exit(
-        f"conda is only meant for Python 3.7 and up. "
+        f"conda requires Python 3.8 or newer. "
         f"current version: {sys.version_info.major}.{sys.version_info.minor}"
     )
 
@@ -34,10 +33,12 @@ source.
 
 """
 install_requires = [
+    "pluggy >=1.0.0",
     "pycosat >=0.6.3",
     "requests >=2.20.1",
-    "ruamel_yaml_conda >=0.11.14",
+    "ruamel.yaml >=0.11.14",
     "menuinst ; platform_system=='Windows'",
+    "tqdm >=4",
 ]
 
 def package_files(*root_directories):
@@ -63,7 +64,6 @@ setup(
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -84,6 +84,6 @@ setup(
         ],
     },
     install_requires=install_requires,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     zip_safe=False,
 )

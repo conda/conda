@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
@@ -7,10 +6,13 @@ import sys
 import textwrap
 
 from conda.base.context import context, determine_target_prefix
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix, \
-    add_parser_experimental_solver
+from conda.cli.conda_argparse import (
+    add_parser_json,
+    add_parser_prefix,
+    add_parser_solver,
+)
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaEnvException, SpecNotFound
+from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 
@@ -61,20 +63,19 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
-    add_parser_experimental_solver(p)
+    add_parser_solver(p)
     p.set_defaults(func='.main_update.execute')
 
 
 @notices
 def execute(args, parser):
-    name = args.remote_definition or args.name
-
-    try:
-        spec = install_specs.detect(name=name, filename=get_filename(args.file),
-                                    directory=os.getcwd())
-        env = spec.environment
-    except SpecNotFound:
-        raise
+    spec = install_specs.detect(
+        name=args.name,
+        filename=get_filename(args.file),
+        directory=os.getcwd(),
+        remote_definition=args.remote_definition,
+    )
+    env = spec.environment
 
     if not (args.name or args.prefix):
         if not env.name:

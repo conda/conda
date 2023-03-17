@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from pathlib import Path
@@ -50,7 +48,7 @@ class CondaSessionTests(TestCase):
         session = CondaSession()
         test_path = "file:///some/location/doesnt/exist"
         r = session.get(test_path)
-        with pytest.raises(HTTPError) as exc:
+        with pytest.raises(HTTPError):
             r.raise_for_status()
         assert r.status_code == 404
         assert r.json()["path"] == test_path[len("file://") :]
@@ -73,7 +71,7 @@ class CondaSessionTests(TestCase):
                 rm_rf(test_path)
 
 
-@pytest.mark.skipif(MINIO_EXE is None, reason=f"Minio server not available")
+@pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
 @pytest.mark.integration
 def test_s3_server(minio_s3_server):
     import boto3

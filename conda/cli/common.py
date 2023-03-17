@@ -1,14 +1,11 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 import re
 import sys
-from warnings import warn
 
+from ..deprecations import deprecated
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
@@ -32,11 +29,9 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
             options.append('[%s]' % option[0])
         else:
             options.append(option[0])
-    message = "%s (%s)? " % (message, '/'.join(options))
-    choices = {alt: choice
-               for choice in choices
-               for alt in [choice, choice[0]]}
-    choices[''] = default
+    message = "{} ({})? ".format(message, "/".join(options))
+    choices = {alt: choice for choice in choices for alt in [choice, choice[0]]}
+    choices[""] = default
     while True:
         # raw_input has a bug and prints to stderr, not desirable
         sys.stdout.write(message)
@@ -67,22 +62,21 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     return True
 
 
+@deprecated("23.3", "23.9")
 def ensure_name_or_prefix(args, command):
-    warn(
-        "conda.cli.common.ensure_name_or_prefix is pending deprecation in a future release.",
-        PendingDeprecationWarning,
-    )
     if not (args.name or args.prefix):
         from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
 
-def is_active_prefix(prefix):
+def is_active_prefix(prefix: str) -> bool:
     """
     Determines whether the args we pass in are pointing to the active prefix.
     Can be used a validation step to make sure operations are not being
     performed on the active prefix.
     """
+    if context.active_prefix is None:
+        return False
     return (
         paths_equal(prefix, context.active_prefix)
         # normcasing our prefix check for Windows, for case insensitivity
@@ -100,9 +94,14 @@ def arg2spec(arg, json=False, update=False):
     name = spec.name
     if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
-        raise CondaValueError("""version specifications not allowed with 'update'; use
-    conda update  %s%s  or
-    conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg))
+
+        raise CondaValueError(
+            """version specifications not allowed with 'update'; use
+    conda update  {}{}  or
+    conda install {}""".format(
+                name, " " * (len(arg) - len(name)), arg
+            )
+        )
 
     return str(spec)
 
@@ -137,13 +136,14 @@ def spec_from_line(line):
     if cc:
         return name + cc.replace('=', ' ')
     elif pc:
-        if pc.startswith('~= '):
-            assert pc.count('~=') == 1,\
-                "Overly complex 'Compatible release' spec not handled {}".format(line)
-            assert pc.count('.'), "No '.' in 'Compatible release' version {}".format(line)
-            ver = pc.replace('~= ', '')
-            ver2 = '.'.join(ver.split('.')[:-1]) + '.*'
-            return name + ' >=' + ver + ',==' + ver2
+        if pc.startswith("~= "):
+            assert (
+                pc.count("~=") == 1
+            ), f"Overly complex 'Compatible release' spec not handled {line}"
+            assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
+            ver = pc.replace("~= ", "")
+            ver2 = ".".join(ver.split(".")[:-1]) + ".*"
+            return name + " >=" + ver + ",==" + ver2
         else:
             return name + ' ' + pc.replace(' ', '')
     else:
@@ -172,7 +172,7 @@ def specs_from_url(url, json=False):
                     raise CondaValueError("could not parse '%s' in: %s" %
                                           (line, url))
                 specs.append(spec)
-        except IOError as e:
+        except OSError as e:
             from ..exceptions import CondaFileIOError
             raise CondaFileIOError(path, e)
     return specs
@@ -229,7 +229,7 @@ def print_envs_list(known_conda_prefixes, output=True):
         disp_env(prefix)
 
     if output:
-        print('')
+        print()
 
 
 def check_non_admin():

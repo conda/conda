@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -8,7 +7,6 @@ Think of this as a "more static" source of configuration information.
 
 Another important source of "static" configuration is conda/models/enums.py.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from enum import Enum, EnumMeta
 from os.path import join
@@ -25,7 +23,7 @@ machine_bits = 8 * struct.calcsize("P")
 
 APP_NAME = 'conda'
 
-if on_win:
+if on_win:  # pragma: no cover
     SEARCH_PATH = (
         'C:/ProgramData/conda/.condarc',
         'C:/ProgramData/conda/condarc',
@@ -75,6 +73,7 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "linux-armv7l",
     "linux-ppc64",
     "linux-ppc64le",
+    "linux-riscv64",
     "linux-s390x",
     "osx-64",
     "osx-arm64",
@@ -109,7 +108,7 @@ ROOT_ENV_NAME = 'base'
 ROOT_NO_RM = (
     'python',
     'pycosat',
-    'ruamel_yaml',
+    'ruamel.yaml',
     'conda',
     'openssl',
     'requests',
@@ -121,7 +120,7 @@ DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
     'openssl',
 )
 
-if on_win:
+if on_win:  # pragma: no cover
     COMPATIBLE_SHELLS = (
         'bash',
         'cmd.exe',
@@ -167,6 +166,9 @@ NOTICES_CACHE_FN = "notices.cache"
 
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
+
+#: Determines the subdir for notices cache
+NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
 
 DRY_RUN_PREFIX = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
@@ -216,7 +218,7 @@ class ChannelPriorityMeta(EnumMeta):
 
     def __call__(cls, value, *args, **kwargs):
         try:
-            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+            return super().__call__(value, *args, **kwargs)
         except ValueError:
             if isinstance(value, str):
                 from ..auxlib.type_coercion import typify
@@ -225,7 +227,7 @@ class ChannelPriorityMeta(EnumMeta):
                 value = 'flexible'
             elif value is False:
                 value = cls.DISABLED
-            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+            return super().__call__(value, *args, **kwargs)
 
 
 class ValueEnum(Enum):
@@ -250,10 +252,8 @@ class SatSolverChoice(ValueEnum):
     PYSAT = 'pysat'
 
 
-class ExperimentalSolverChoice(ValueEnum):
-    CLASSIC = 'classic'
-    LIBMAMBA = 'libmamba'
-    LIBMAMBA_DRAFT = 'libmamba-draft'
+#: The name of the default solver, currently "classic"
+DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"
 
 
 class NoticeLevel(ValueEnum):

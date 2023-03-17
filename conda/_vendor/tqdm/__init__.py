@@ -1,3 +1,6 @@
+from ...deprecations import deprecated
+deprecated.module("23.3", "23.9", addendum="Use `tqdm` instead.")
+
 from ._monitor import TMonitor, TqdmSynchronisationWarning
 from .cli import main  # TODO: remove in v5.0.0
 from .std import (

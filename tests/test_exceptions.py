@@ -1,21 +1,18 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 from unittest import TestCase
+from unittest.mock import patch
 
 import sys
-import os
 import getpass
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.compat import on_win
-from conda.common.io import captured, env_var
+from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -33,11 +30,7 @@ from conda.exceptions import (
     conda_exception_handler,
     ExceptionHandler,
 )
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
+from pytest import raises
 
 
 def _raise_helper(exception):
@@ -84,7 +77,7 @@ class ExceptionTests(TestCase):
         source_path = "some/path/on/goodwin.ave"
         target_path = "some/path/to/wright.st"
         exc = BasicClobberError(source_path, target_path, context)
-        t = repr(exc)
+        repr(exc)
         with env_var("CONDA_PATH_CONFLICT", "prevent", stack_callback=conda_tests_ctxt_mgmt_def_pol):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
@@ -412,8 +405,8 @@ class ExceptionTests(TestCase):
                 ExceptionHandler()(_raise_helper, AssertionError())
 
             error_data = json.loads(post_mock.call_args[1].get("data"))
-            assert error_data.get("has_spaces") == True
-            assert error_data.get("is_ascii") == True
+            assert error_data.get("has_spaces") is True
+            assert error_data.get("is_ascii") is True
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
@@ -430,8 +423,8 @@ class ExceptionTests(TestCase):
                 ExceptionHandler()(_raise_helper, AssertionError())
 
             error_data = json.loads(post_mock.call_args[1].get("data"))
-            assert error_data.get("has_spaces") == False
-            assert error_data.get("is_ascii") == False
+            assert error_data.get("has_spaces") is False
+            assert error_data.get("is_ascii") is False
             assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda version" in c.stderr
@@ -440,7 +433,7 @@ class ExceptionTests(TestCase):
     @patch('conda.exceptions.input', return_value='n')
     def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
         with env_var('CONDA_REPORT_ERRORS', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            e = AssertionError()
+            AssertionError()
             with captured() as c:
                 ExceptionHandler()(_raise_helper, AssertionError())
 
@@ -499,3 +492,16 @@ class ExceptionTests(TestCase):
           original data Length: 1404
           new data length: 1104
         """).strip()
+
+    def test_PackagesNotFoundError_use_only_tar_bz2(self):
+        note = "use_only_tar_bz2"
+        for use_only_tar_bz2 in (True, False):
+            expected = note if use_only_tar_bz2 else ""
+            with env_vars(
+                {"CONDA_USE_ONLY_TAR_BZ2": str(use_only_tar_bz2)},
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+            ), raises(PackagesNotFoundError, match=expected):
+                raise PackagesNotFoundError(
+                    packages=["does-not-exist"],
+                    channel_urls=["https://repo.anaconda.org/pkgs/main"],
+                )

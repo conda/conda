@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
 from base64 import b64encode
 from collections import namedtuple
@@ -13,9 +12,11 @@ import json
 from logging import getLogger
 import os
 from os.path import isdir, isfile, join  # noqa
+from pathlib import Path
 
 from .link import islink, lexists  # noqa
 from .create import TemporaryDirectory
+from ...deprecations import deprecated
 from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
@@ -53,30 +54,47 @@ def yield_lines(path):
                 if not line or line.startswith('#'):
                     continue
                 yield line
-    except (IOError, OSError) as e:
+    except OSError as e:
         if e.errno == ENOENT:
             pass
         else:
             raise
 
 
-def _digest_path(algo, path):
-    if not isfile(path):
+@deprecated("23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead.")
+def _digest_path(algo: Literal["md5", "sha256"], path: str | os.PathLike) -> str:
+    return compute_sum(path, algo)
+
+
+def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
+    path = Path(path)
+    if not path.is_file():
         raise PathNotFoundError(path)
 
+    # FUTURE: Python 3.11+, replace with hashlib.file_digest
     hasher = hashlib.new(algo)
-    with open(path, "rb") as fh:
+    with path.open("rb") as fh:
         for chunk in iter(partial(fh.read, 8192), b''):
             hasher.update(chunk)
     return hasher.hexdigest()
 
 
-def compute_md5sum(file_full_path):
-    return _digest_path('md5', file_full_path)
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
+)
+def compute_md5sum(path: str | os.PathLike) -> str:
+    return compute_sum(path, "md5")
 
 
-def compute_sha256sum(file_full_path):
-    return _digest_path('sha256', file_full_path)
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum='Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead.',
+)
+def compute_sha256sum(path: str | os.PathLike) -> str:
+    return compute_sum(path, "sha256")
 
 
 # ####################################################
@@ -140,7 +158,7 @@ def read_package_metadata(extracted_package_directory):
     if not path:
         return None
     else:
-        with open(path, 'r') as f:
+        with open(path) as f:
             data = json.loads(f.read())
             if data.get('package_metadata_version') != 1:
                 raise CondaUpgradeError(dals("""

@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 
 from glob import glob
@@ -30,7 +28,8 @@ from uuid import uuid4
 
 import pytest
 import requests
-from tlz.itertoolz import groupby
+
+from conda.common.iterators import groupby_to_dict as groupby
 
 from conda import (
     CondaError,
@@ -91,9 +90,13 @@ class IntegrationTests(BaseTestCase):
     def setUp(self):
         PackageCacheData.clear()
 
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_install_python2_and_search(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
-            log.warning("Creating empty temporary environment txt file {}".format(env_txt))
+            log.warning(f"Creating empty temporary environment txt file {env_txt}")
             environment_txt = env_txt.name
 
         with patch('conda.core.envs_manager.get_user_environments_txt_file',
@@ -101,8 +104,7 @@ class IntegrationTests(BaseTestCase):
             with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
                 with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', stack_callback=conda_tests_ctxt_mgmt_def_pol):
                     assert exists(join(prefix, PYTHON_BINARY))
-                    assert package_is_installed(prefix, 'python=2')
-
+                    assert package_is_installed(prefix, "python=2")
                     run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.continuum.io/pkgs/not-a-channel")
 
                     # regression test for #4513
@@ -135,20 +137,20 @@ class IntegrationTests(BaseTestCase):
                     assert args[i] == line.replace('\r', '')
 
     def test_create_install_update_remove_smoketest(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.9") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.12')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12.2')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.0.1')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.UPDATE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=0.12.2')
+            assert not package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
@@ -245,7 +247,7 @@ class IntegrationTests(BaseTestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json", "--dry-run", use_exception_handler=True)
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json", "--dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
 
             # regression test for #5825
@@ -254,37 +256,37 @@ class IntegrationTests(BaseTestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.5", "--json")
+            stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json")
             assert_json_parsable(stdout)
             assert not stderr
             json_obj = json.loads(stdout)
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=0.12', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, 'flask=2.0.1', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             # Test force reinstall
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.12', '--json')
+            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=2.0.1', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            assert package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.UPDATE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.12.2')
+            assert not package_is_installed(prefix, 'flask=2.0.1')
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
             stdout, stderr, _ = run_command(Commands.REMOVE, prefix, 'flask', '--json')
             assert_json_parsable(stdout)
             assert not stderr
-            assert not package_is_installed(prefix, 'flask=0.*')
+            assert not package_is_installed(prefix, 'flask=2.*')
             assert package_is_installed(prefix, 'python=3')
 
             # regression test for #5825
@@ -324,7 +326,8 @@ class IntegrationTests(BaseTestCase):
             assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
 
     def test_noarch_python_package_with_entry_points(self):
-        with make_temp_env("-c", "conda-test", "flask") as prefix:
+        # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
+        with make_temp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
@@ -438,7 +441,7 @@ class IntegrationTests(BaseTestCase):
             # way to exclude it, I tried the "nomkl" package but that did not work.
             json_obj["actions"]["LINK"] = [link for link in json_obj["actions"]["LINK"]
                                            if link['name'] not in ('libcxx', 'libcxxabi', 'mkl', 'intel-openmp')]
-            channel_groups = groupby("channel", json_obj["actions"]["LINK"])
+            channel_groups = groupby(lambda x: x["channel"], json_obj["actions"]["LINK"])
             channel_groups = sorted(list(channel_groups))
             assert channel_groups == ["conda-forge",]
 
@@ -451,7 +454,7 @@ class IntegrationTests(BaseTestCase):
             reduced_index = r.get_reduced_index(specs)
             channel_name_groups = {
                 name: {prec.channel.name for prec in group}
-                for name, group in groupby("name", reduced_index).items()
+                for name, group in groupby(lambda x: x["name"], reduced_index).items()
             }
             channel_name_groups = {
                 name: channel_names for name, channel_names in channel_name_groups.items()
@@ -464,14 +467,14 @@ class IntegrationTests(BaseTestCase):
         # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
         # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
         # We elect to test the more complex of the two options.
-        py_ver = "3.7"
+        py_ver = "3.10"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
             with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
+                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==1.0.2",
                            cwd=prefix, shell=True)
                 PrefixData._cache_.clear()
                 stdout, stderr, _ = run_command(Commands.LIST, prefix)
@@ -487,15 +490,19 @@ class IntegrationTests(BaseTestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
-        py_ver = "3.7"
+
+        py_ver = "3.10"
         with make_temp_env("python="+py_ver, "pip") as prefix:
-            evs = dict({"PYTHONUTF8": "1"})
+            evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
             with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
-                           cwd=prefix, shell=True)
+                check_call(
+                    PYTHON_BINARY + " -m pip install flask==1.0.2",
+                    cwd=prefix,
+                    shell=True,
+                )
                 PrefixData._cache_.clear()
                 stdout, stderr, _ = run_command(Commands.LIST, prefix)
                 stdout_lines = stdout.split('\n')
@@ -503,13 +510,13 @@ class IntegrationTests(BaseTestCase):
                            if line.lower().startswith("flask"))
 
                 # regression test for #3433
-                run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
-                assert package_is_installed(prefix, 'python=3.5')
+                run_command(Commands.INSTALL, prefix, "python=3.9", no_capture=True)
+                assert package_is_installed(prefix, "python=3.9")
 
                 # regression test for #5847
                 #   when using rm_rf on a file
                 assert prefix in PrefixData._cache_
-                _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
+                _rm_rf(join(prefix, get_python_site_packages_short_path("3.9")), "os.py")
                 assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
@@ -577,8 +584,8 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         '''
-        with make_temp_env() as prefix, make_temp_channel(["flask-0.12.2"]) as channel:
-            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.12.2', '--json')
+        with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+            run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=2.1.3', '--json')
             assert package_is_installed(prefix, channel + '::' + 'flask')
             flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
@@ -622,23 +629,23 @@ dependencies:
                 from conda.gateways.connection.download import download
                 download('https://repo.anaconda.com/pkgs/main/' + bzip2_data.subdir + '/' + bzip2_fname,
                          tar_old_path, None)
-            assert isfile(tar_old_path), "Failed to cache:\n{}".format(tar_old_path)
+            assert isfile(tar_old_path), f"Failed to cache:\n{tar_old_path}"
             # It would be nice to be able to do this, but the cache folder name comes from
             # the file name and that is then all out of whack with the metadata.
             # tar_new_path = join(prefix, '家' + bzip2_fname)
             tar_new_path = join(prefix, bzip2_fname)
 
             run_command(Commands.RUN, prefix, cp_or_copy, tar_old_path, tar_new_path)
-            assert isfile(tar_new_path), "Failed to copy:\n{}\nto:\n{}".format(tar_old_path, tar_new_path)
+            assert isfile(tar_new_path), f"Failed to copy:\n{tar_old_path}\nto:\n{tar_new_path}"
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'bzip2')
 
     def test_tarball_install_and_bad_metadata(self):
-        with make_temp_env("python=3.7.2", "flask=1.0.2", "--json") as prefix:
-            assert package_is_installed(prefix, 'flask==1.0.2')
+        with make_temp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
+            assert package_is_installed(prefix, 'flask==1.1.1')
             flask_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask==1.0.2')
+            assert not package_is_installed(prefix, 'flask==1.1.1')
             assert package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
@@ -668,7 +675,7 @@ dependencies:
             # regression test for #2626
             # install tarball with relative path, outside channel
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=1.0.2')
+            assert not package_is_installed(prefix, 'flask=1.1.1')
             tar_new_path = relpath(tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'flask=1')
@@ -710,11 +717,11 @@ dependencies:
             assert not package_is_installed(prefix, "python=2.7.12")
 
     def test_pinned_override_with_explicit_spec(self):
-        with make_temp_env("python=3.6") as prefix:
+        with make_temp_env("python=3.9") as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.5")
-            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=True)
-            assert package_is_installed(prefix, "python=3.7")
+                        "--add", "pinned_packages", "python=3.9.16")
+            run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
+            assert package_is_installed(prefix, "python=3.10")
 
     def test_remove_all(self):
         with make_temp_env("python") as prefix:
@@ -760,20 +767,21 @@ dependencies:
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.flaky(reruns=2)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
-        with make_temp_env("-c", "conda-forge", "python=3.7", no_capture=True) as prefix:
+        with make_temp_env("-c", "conda-forge", "python=3.10", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'conda-forge::python=3.7')
+            assert package_is_installed(prefix, 'conda-forge::python=3.10')
             run_command(Commands.INSTALL, prefix, "decorator")
-            assert package_is_installed(prefix, 'conda-forge::python=3.7')
+            assert package_is_installed(prefix, 'conda-forge::python=3.10')
 
             with make_temp_env('--clone', prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'conda-forge::python=3.7')
+                assert package_is_installed(clone_prefix, 'conda-forge::python=3.10')
                 assert package_is_installed(clone_prefix, "decorator")
 
             # Regression test for #2645
-            fn = glob(join(prefix, 'conda-meta', 'python-3.7*.json'))[-1]
+            fn = glob(join(prefix, 'conda-meta', 'python-3.10*.json'))[-1]
             with open(fn) as f:
                 data = json.load(f)
             for field in ('url', 'channel', 'schannel'):
@@ -784,7 +792,7 @@ dependencies:
             PrefixData._cache_ = {}
 
             with make_temp_env('-c', 'conda-forge', '--clone', prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'python=3.7')
+                assert package_is_installed(clone_prefix, 'python=3.10')
                 assert package_is_installed(clone_prefix, 'decorator')
 
     def test_install_prune_flag(self):
@@ -946,8 +954,8 @@ dependencies:
                 stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
-                assert json_obj['cmd_line'] == {'json': True}
+                assert "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
+                assert json_obj["cmd_line"] == {"json": True}
 
             run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
             with pytest.raises(CondaError):
@@ -976,8 +984,8 @@ dependencies:
                 stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources", "--json")
                 assert not stderr
                 json_obj = json.loads(stdout.strip())
-                assert "quiet" in json_obj['envvars'] and json_obj['envvars']["quiet"] == True
-                assert json_obj['cmd_line'] == {'json': True}
+                assert "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
+                assert json_obj["cmd_line"] == {"json": True}
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
@@ -997,15 +1005,29 @@ dependencies:
 
                 assert len(exc.value.errors) == 2
                 str_exc_value = str(exc.value)
-                assert str("must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs") in str_exc_value
-                assert str("default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'") in str_exc_value
+                assert (
+                    "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs"
+                    in str_exc_value
+                )
+                assert (
+                    "default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'"
+                    in str_exc_value
+                )
             finally:
                 reset_context()
 
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_rpy_search(self):
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5", "--override-channels", "-c", "defaults") as prefix:
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
             run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            # config --append on an empty key pre-populates it with the hardcoded default value!
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
             assert 'defaults' not in json_obj['channels']
@@ -1038,7 +1060,7 @@ dependencies:
             else:
                 # We force the use of 'the other' Python on Windows so that Windows
                 # runtime / DLL incompatibilities will be readily apparent.
-                py_ver = "3.7"
+                py_ver = "3.10"
                 packages.append(f"python={py_ver}")
             with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
                 if use_sys_python:
@@ -1104,11 +1126,14 @@ dependencies:
             "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
         }, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
-            flask_python = '3.6'
-            with make_temp_env("python=3.7", use_restricted_unicode=True) as prefix:
-
-                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/free")
-                run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            flask_python = '3.8' # oldest available for osx-arm64
+            with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
+                payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+                default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
+                run_command(Commands.CONFIG, prefix, "--add", "channels", "https://repo.anaconda.com/pkgs/main")
+                # config --append on an empty key pre-populates it with the hardcoded default value!
+                for channel in default_channels:
+                    run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
 
                 run_command(Commands.INSTALL, prefix, "-c", "conda-test", "flask", "python=" + flask_python)
 
@@ -1210,7 +1235,7 @@ dependencies:
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         shortcut_dir = get_shortcut_dir()
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         with make_temp_env(prefix=prefix):
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "console_shortcut",
                                          "--no-shortcuts")
@@ -1221,17 +1246,20 @@ dependencies:
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
         shortcut_dir = get_shortcut_dir()
-        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, context.bits))
+        shortcut_dir = join(
+            shortcut_dir, "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits)
+        )
 
         prefix = make_temp_prefix(str(uuid4())[:7])
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         try:
             with make_temp_env("console_shortcut", prefix=prefix):
-                assert package_is_installed(prefix, 'console_shortcut')
-                assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
-                                               "Contents of dir:\n"
-                                               "{0}".format(os.listdir(shortcut_dir)))
+                assert package_is_installed(prefix, "console_shortcut")
+                assert isfile(shortcut_file), (
+                    "Shortcut not found in menu dir. "
+                    "Contents of dir:\n"
+                    "{}".format(os.listdir(shortcut_dir))
+                )
 
                 # make sure that cleanup without specifying --shortcuts still removes shortcuts
                 run_command(Commands.REMOVE, prefix, 'console_shortcut')
@@ -1245,11 +1273,12 @@ dependencies:
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
         shortcut_dir = get_shortcut_dir()
-        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, context.bits))
+        shortcut_dir = join(
+            shortcut_dir, "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits)
+        )
 
         prefix = make_temp_prefix(str(uuid4())[:7])
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         assert not isfile(shortcut_file)
 
         try:
@@ -1270,11 +1299,12 @@ dependencies:
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_when_condarc_set(self):
         shortcut_dir = get_shortcut_dir()
-        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, context.bits))
+        shortcut_dir = join(
+            shortcut_dir, "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits)
+        )
 
         prefix = make_temp_prefix(str(uuid4())[:7])
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
+        shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         assert not isfile(shortcut_file)
 
         # set condarc shortcuts: False
@@ -1370,7 +1400,7 @@ dependencies:
             run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
         output, _, _ = run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json", use_exception_handler=True)
         loaded = json.loads(output)
-        names = set(d['name'] for d in loaded['actions']['LINK'])
+        names = {d["name"] for d in loaded["actions"]["LINK"]}
         assert "python" in names
         assert "flask" in names
 
@@ -1391,9 +1421,9 @@ dependencies:
             assert "not-a-real-package" in error
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
-        with make_temp_env("python=3.7", "pip", use_restricted_unicode=False) as prefix:
-            pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous")
+        with make_temp_env("python=3.10", "pip", use_restricted_unicode=False) as prefix:
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+            run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous")
 
             PrefixData._cache_.clear()
             output, error, _ = run_command(Commands.LIST, prefix)
@@ -1416,6 +1446,7 @@ dependencies:
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
+    # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
     @pytest.mark.skipif(context.subdir == "win-32", reason="metadata is wrong; give python2.7")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
@@ -1442,7 +1473,7 @@ dependencies:
                                          "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n" \
                                          "for a likely place to add more fixes".format(prefix, output)
             output, _, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
-            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
             assert "six==1.9.0" in pkgs
 
             py_ver = get_python_version_for_prefix(prefix)
@@ -1467,7 +1498,7 @@ dependencies:
             }
             assert package_is_installed(prefix, "six=1.10.0")
             output, err, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
-            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
             assert "six==1.10.0" in pkgs
 
             six_record = next(PrefixData(prefix).query("six"))
@@ -1566,7 +1597,7 @@ dependencies:
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
             output, err, _ = run_command(Commands.RUN, prefix, "python", "-m", "pip", "freeze")
-            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
             six_record = next(PrefixData(prefix).query("six"))
             assert "six==%s" % six_record.version in pkgs
 
@@ -1585,10 +1616,22 @@ dependencies:
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
-
+    @pytest.mark.skipif(
+        context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
+        reason="Skip unsupported platforms",
+    )
     def test_conda_pip_interop_conda_editable_package(self):
-        with env_var('CONDA_RESTORE_FREE_CHANNEL', True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
+        with env_vars(
+            {
+                "CONDA_REPORT_ERRORS": "false",
+                "CONDA_RESTORE_FREE_CHANNEL": True,
+                "CONDA_CHANNELS": "defaults",
+            },
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            with make_temp_env(
+                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
+            ) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1604,8 +1647,8 @@ dependencies:
                 assert package_is_installed(prefix, "urllib3")
                 urllib3_record = next(PrefixData(prefix).query("urllib3"))
                 urllib3_record_dump = urllib3_record.dump()
-                files = urllib3_record_dump.pop("files")
-                paths_data = urllib3_record_dump.pop("paths_data")
+                urllib3_record_dump.pop("files")
+                urllib3_record_dump.pop("paths_data")
                 print(json_dump(urllib3_record_dump))
 
                 assert json_loads(json_dump(urllib3_record_dump)) == {
@@ -1659,8 +1702,8 @@ dependencies:
                 assert package_is_installed(prefix, "urllib3")
                 urllib3_record = next(PrefixData(prefix).query("urllib3"))
                 urllib3_record_dump = urllib3_record.dump()
-                files = urllib3_record_dump.pop("files")
-                paths_data = urllib3_record_dump.pop("paths_data")
+                urllib3_record_dump.pop("files")
+                urllib3_record_dump.pop("paths_data")
                 print(json_dump(urllib3_record_dump))
 
                 assert json_loads(json_dump(urllib3_record_dump)) == {
@@ -1799,10 +1842,21 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
-            assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
+            assert channel_url.replace("cqgccfm1mfma", "<TOKEN>") in yml_obj["channels"]
 
             with pytest.raises(PackagesNotFoundError):
-                run_command(Commands.SEARCH, prefix, "boltons", "--json")
+                # this was supposed to be a package available in private but not
+                # public data-portal; boltons was added to defaults in 2023 Jan.
+                # --override-channels instead.
+                run_command(
+                    Commands.SEARCH,
+                    prefix,
+                    "boltons",
+                    "-c",
+                    channel_url,
+                    "--override-channels",
+                    "--json",
+                )
 
             stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "anaconda-mosaic", "--json")
 
@@ -1827,14 +1881,26 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/kalefranz"
-            run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
+            run_command(Commands.CONFIG, prefix, "--append", "channels", channel_url)
+            # config --append on an empty key pre-populates it with the hardcoded default value!
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
+            print(output)
             yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
-            output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                         "linux-64", "--json", use_exception_handler=True)
+            output, _, _ = run_command(
+                Commands.SEARCH,
+                prefix,
+                "anyjson",
+                "--platform",
+                "linux-64",
+                "--json",
+                use_exception_handler=True,
+            )
             json_obj = json_loads(output)
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
@@ -1846,8 +1912,11 @@ dependencies:
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
             channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+            payload, _, _ = run_command(Commands.CONFIG, prefix, "--get", "channels", "--json")
+            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", "defaults")
+            for channel in default_channels:
+                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
 
@@ -1864,7 +1933,8 @@ dependencies:
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix, no_capture=True):
@@ -1881,14 +1951,16 @@ dependencies:
                     # corresponding HTTP header. This test is supposed to test
                     # whether the --use-index-cache causes the cache to be used.
                     result = orig_get(self, url, **kwargs)
-                    for header in ['Etag', 'Last-Modified', 'Cache-Control']:
+                    for header in ("Etag", "Last-Modified", "Cache-Control"):
                         if header in result.headers:
                             del result.headers[header]
                     return result
 
-                SubdirData._cache_.clear()
+                SubdirData.clear_cached_local_channel_data(exclude_file=False)
                 mock_method.side_effect = side_effect
-                stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
+                stdout, stderr, _ = run_command(
+                    Commands.SEARCH, prefix, "flask", "--info", "--json"
+                )
                 assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
@@ -1905,13 +1977,14 @@ dependencies:
 
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         try:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
                 pkgs_dir = join(prefix, 'pkgs')
                 with env_var('CONDA_PKGS_DIRS', pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                    with make_temp_channel(['flask-0.12.2']) as channel:
+                    with make_temp_channel(['flask-2.1.3']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
                         run_command(Commands.CLEAN, "", "--index-cache", "--yes")
@@ -1928,8 +2001,8 @@ dependencies:
 
                         result_dict = {}
                         def side_effect(self, url, **kwargs):
-                            if not url.startswith('file://'):
-                                raise AssertionError('Attempt to fetch repodata: {}'.format(url))
+                            if not url.startswith("file://"):
+                                raise AssertionError(f"Attempt to fetch repodata: {url}")
                             if url.startswith(channel):
                                 result_dict['local_channel_seen'] = True
                             return orig_get(self, url, **kwargs)
@@ -1937,7 +2010,7 @@ dependencies:
                         with patch.object(CondaSession, 'get', autospec=True) as mock_method:
                             mock_method.side_effect = side_effect
 
-                            SubdirData._cache_.clear()
+                            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
@@ -1953,7 +2026,7 @@ dependencies:
                                 run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
                             assert not package_is_installed(prefix, "pytz")
         finally:
-            SubdirData._cache_.clear()
+            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
@@ -1989,19 +2062,19 @@ dependencies:
             assert isdir(prefix)
             assert isfile(os.path.join(prefix, 'tempfile.txt'))
             with pytest.raises(DirectoryNotACondaEnvironmentError):
-                run_command(Commands.INSTALL, prefix, "python=3.7.2", "--mkdir")
+                run_command(Commands.INSTALL, prefix, "python", "--mkdir")
 
             run_command(Commands.CREATE, prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.7.2", "--mkdir")
-            assert package_is_installed(prefix, "python=3.7.2")
+            run_command(Commands.INSTALL, prefix, "python", "--mkdir")
+            assert package_is_installed(prefix, "python")
 
             rm_rf(prefix, clean_empty_parents=True)
             assert path_is_clean(prefix)
 
             # this part also a regression test for #4849
-            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.1", "python=3.5.6", "--mkdir", no_capture=True)
-            assert package_is_installed(prefix, "python=3.5.6")
-            assert package_is_installed(prefix, "python-dateutil=2.6.1")
+            run_command(Commands.INSTALL, prefix, "python-dateutil", "python", "--mkdir", no_capture=True)
+            assert package_is_installed(prefix, "python")
+            assert package_is_installed(prefix, "python-dateutil")
 
         finally:
             rm_rf(prefix, clean_empty_parents=True)
@@ -2091,10 +2164,11 @@ dependencies:
 
     def test_download_only_flag(self):
         from conda.core.link import UnlinkLinkTransaction
-        with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:
-            with make_temp_env('openssl', '--download-only', use_exception_handler=True) as prefix:
+
+        with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
+            with make_temp_env("openssl", "--download-only", use_exception_handler=True):
                 assert mock_method.call_count == 0
-            with make_temp_env('openssl', use_exception_handler=True) as prefix:
+            with make_temp_env("openssl", use_exception_handler=True):
                 assert mock_method.call_count == 1
 
     def test_transactional_rollback_simple(self):
@@ -2107,19 +2181,19 @@ dependencies:
                 assert not package_is_installed(prefix, 'openssl')
 
     def test_transactional_rollback_upgrade_downgrade(self):
-        with make_temp_env("python=3.5", no_capture=True) as prefix:
+        with make_temp_env("python=3.8", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.12.2')
-            assert package_is_installed(prefix, 'flask=0.12.2')
+            run_command(Commands.INSTALL, prefix, 'flask=2.1.3')
+            assert package_is_installed(prefix, 'flask=2.1.3')
 
             from conda.core.path_actions import CreatePrefixRecordAction
             with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
-                    run_command(Commands.INSTALL, prefix, 'flask=1.0.2')
-                assert package_is_installed(prefix, 'flask=0.12.2')
+                    run_command(Commands.INSTALL, prefix, 'flask=2.0.1')
+                assert package_is_installed(prefix, 'flask=2.1.3')
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2133,10 +2207,19 @@ dependencies:
 
     def test_multiline_run_command(self):
         with make_temp_env() as prefix:
-            env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
-            {env} | sort
-            {which} conda
-            """.format(env=env_or_set, which=which_or_where)), dev=True)
+            env_which_etc, errs_etc, _ = run_command(
+                Commands.RUN,
+                prefix,
+                "--cwd",
+                prefix,
+                dedent(
+                    f"""
+                    {env_or_set}
+                    {which_or_where} conda
+                    """
+                ),
+                dev=True,
+            )
         assert env_which_etc
         assert not errs_etc
 
@@ -2268,9 +2351,14 @@ dependencies:
     @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_legacy_repodata(self):
         channel = join(dirname(abspath(__file__)), 'data', 'legacy_repodata')
-        with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'moto=1.3.7')
+        subdir = context.subdir
+        if subdir not in ("win-64", "linux-64", "osx-64"):
+            # run test even though default subdir doesn't have dependencies
+            subdir = "linux-64"
+        with env_var("CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with make_temp_env('python', 'moto=1.3.7', '-c', channel, '--no-deps') as prefix:
+                assert exists(join(prefix, PYTHON_BINARY))
+                assert package_is_installed(prefix, 'moto=1.3.7')
 
     @pytest.mark.skipif(context.subdir == "win-32", reason="dependencies not available for win-32")
     def test_cross_channel_incompatibility(self):
@@ -2300,7 +2388,7 @@ dependencies:
     # https://github.com/conda/conda/issues/10116
     @pytest.mark.skipif(not context.subdir.startswith('linux'), reason="__glibc only available on linux")
     def test_install_bound_virtual_package(self):
-        with make_temp_env("__glibc>0") as prefix:
+        with make_temp_env("__glibc>0"):
             pass
 
     @pytest.mark.integration
@@ -2315,7 +2403,7 @@ dependencies:
             filename = join(prefix, "file.dat")
 
             os.mkdir(prefix)
-            with open(filename, "wb") as empty:
+            with open(filename, "wb"):
                 pass
 
             with pytest.raises(DirectoryNotACondaEnvironmentError):

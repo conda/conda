@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+import warnings
 
 from functools import lru_cache
 from pprint import pprint
@@ -17,11 +16,6 @@ from conda.models.records import PackageRecord
 from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
 
 import pytest
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
 
 
 @lru_cache(maxsize=None)
@@ -63,6 +57,12 @@ def test_prefix_graph_1(tmpdir):
 
     records, specs = get_conda_build_record_set(tmpdir)
     graph = PrefixGraph(records, specs)
+
+    channel_name = next(graph.records).channel.canonical_name
+    if channel_name.startswith("file:///"):
+        warnings.warn(
+            f"channel name starts with file:/// and is {channel_name}; cache issue in tests?"
+        )
 
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
@@ -177,6 +177,9 @@ def test_prefix_graph_1(tmpdir):
     )
     assert nodes == order
 
+    # separate code path to remove track_features= matches
+    assert graph.remove_spec(MatchSpec("requests[track_features=x]")) == ()
+
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
     order = (
@@ -223,17 +226,19 @@ def test_prefix_graph_1(tmpdir):
     )
     assert nodes == order
 
-    spec_matches = add_subdir_to_iter({
-        'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
-    })
-    assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
+    spec_matches = add_subdir_to_iter(
+        {
+            f"{channel_name}::intel-openmp-2018.0.3-0": {"intel-openmp"},
+        }
+    )
+    assert {
+        node.dist_str(): {str(ms) for ms in specs} for node, specs in graph.spec_matches.items()
+    } == spec_matches
 
     removed_nodes = graph.prune()
     nodes = tuple(rec.dist_str() for rec in graph.records)
     pprint(nodes)
-    order = add_subdir_to_iter((
-        'channel-4::intel-openmp-2018.0.3-0',
-    ))
+    order = add_subdir_to_iter((f"{channel_name}::intel-openmp-2018.0.3-0",))
     assert nodes == order
 
     removed_nodes = tuple(rec.name for rec in removed_nodes)
@@ -698,11 +703,11 @@ def test_windows_sort_orders_2(tmpdir):
             conda.models.prefix_graph.on_win = old_on_win
 
 
-def test_sort_without_prep(tmpdir):
+def test_sort_without_prep(tmpdir, mocker):
     # Test the _toposort_prepare_graph method, here by not running it at all.
     # The method is invoked in every other test.  This is what happens when it's not invoked.
 
-    with patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
+    with mocker.patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
         records, specs = get_windows_conda_build_record_set(tmpdir)
         graph = PrefixGraph(records, specs)
 

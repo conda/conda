@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
@@ -6,12 +5,8 @@
 # If a piece of code is "general" and used in multiple modules, it goes here.
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-from itertools import chain
-from operator import methodcaller
 import sys
-from tempfile import mkdtemp
 
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
@@ -46,7 +41,6 @@ def encode_arguments(arguments):
 
 
 from collections.abc import Iterable
-from io import StringIO
 
 def isiterable(obj):
     return not isinstance(obj, str) and isinstance(obj, Iterable)
@@ -56,7 +50,7 @@ def isiterable(obj):
 # other
 # #############################
 
-from collections import OrderedDict as odict  # NOQA
+from collections import OrderedDict as odict  # noqa: F401
 
 from io import open as io_open  # NOQA
 
@@ -84,7 +78,8 @@ def six_with_metaclass(meta, *bases):
         @classmethod
         def __prepare__(cls, name, this_bases):
             return meta.__prepare__(name, bases)
-    return type.__new__(metaclass, str('temporary_class'), (), {})
+
+    return type.__new__(metaclass, "temporary_class", (), {})
 
 
 NoneType = type(None)
@@ -100,7 +95,7 @@ def ensure_binary(value):
         return value
 
 
-def ensure_text_type(value):
+def ensure_text_type(value) -> str:
     try:
         return value.decode('utf-8')
     except AttributeError:  # pragma: no cover

@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
 import json
 import os
 import tempfile
-import yaml
 
 import pytest
 import unittest
@@ -13,9 +11,7 @@ import unittest
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser
-from conda.common.compat import odict
+from conda.cli.conda_argparse import do_call, generate_parser
 from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
@@ -177,11 +173,11 @@ def run_conda_command(command, prefix, *arguments):
     if arguments:
         arguments = list(map(escape_for_winpath, arguments))
     if command is Commands.INFO:    # INFO
-        command_line = "{0} {1}".format(command, " ".join(arguments))
+        command_line = "{} {}".format(command, " ".join(arguments))
     elif command is Commands.LIST:  # LIST
-        command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
+        command_line = "{} -n {} {}".format(command, prefix, " ".join(arguments))
     else:  # CREATE
-        command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
+        command_line = "{} -y -q -n {} {}".format(command, prefix, " ".join(arguments))
 
     from conda.auxlib.compat import shlex_split_unicode
     commands = shlex_split_unicode(command_line)
@@ -211,7 +207,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
         for env_nb in range(1, 6):
-            run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
+            run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
 
     def tearDown(self):
         rm_rf("environment.yml")
@@ -219,7 +215,7 @@ class IntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
         for env_nb in range(1, 6):
-             run_env_command(Commands.ENV_REMOVE, "envjson-{0}".format(env_nb))
+            run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
 
     def test_conda_env_create_no_file(self):
         '''
@@ -241,7 +237,22 @@ class IntegrationTests(unittest.TestCase):
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound)
 
+    def test_conda_env_create_no_existent_file_with_name(self):
+        """
+        Test `conda env create --file=not_a_file.txt` with a file that does not
+        exist.
+        """
+        try:
+            run_env_command(Commands.ENV_CREATE, None, "--file", "not_a_file.txt", "-n" "foo")
+        except Exception as e:
+            self.assertIsInstance(e, EnvironmentFileNotFound)
+
     def test_create_valid_remote_env(self):
+        """
+        Test retrieving an environment using the BinstarSpec (i.e. it retrieves it from anaconda.org)
+
+        This tests the `remote_origin` command line argument.
+        """
         run_env_command(Commands.ENV_CREATE, None, 'conda-test/env-42')
         self.assertTrue(env_is_created(TEST_ENV_NAME_42))
 
@@ -281,7 +292,7 @@ class IntegrationTests(unittest.TestCase):
         else:
             pytest.fail("Didn't find YAML data in output")
 
-        output = yaml.safe_load('\n'.join(lines[lineno:]))
+        output = yaml_safe_load('\n'.join(lines[lineno:]))
         assert output['name'] == 'env-1'
         assert len(output['dependencies']) > 0
 
@@ -637,7 +648,7 @@ class NewIntegrationTests(unittest.TestCase):
             ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--no-builds", "--json")
             assert not e.strip()
 
-            env_description = odict(json.loads(snowflake))
+            env_description = json.loads(snowflake)
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1

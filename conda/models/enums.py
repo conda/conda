@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from platform import machine
 import sys
@@ -25,6 +23,7 @@ class Arch(Enum):
     aarch64 = 'aarch64'
     ppc64 = 'ppc64'
     ppc64le = 'ppc64le'
+    riscv64 = 'riscv64'
     s390x = 's390x'
     z = 'z'
 

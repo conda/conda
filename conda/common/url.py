@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import codecs
 from collections import namedtuple
 from functools import lru_cache
@@ -10,26 +7,20 @@ from getpass import getpass
 from os.path import abspath, expanduser
 import re
 import socket
-import warnings
 
+from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
-try:  # pragma: py2 no cover
-    # Python 3
-    from urllib.parse import (
-        quote,
-        quote_plus,
-        unquote,
-        unquote_plus,  # NOQA
-        urlparse as _urlparse,
-        urlunparse as _urlunparse,
-        ParseResult,
-    )
-except ImportError:  # pragma: py3 no cover
-    # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus,  # NOQA
-                        urlparse as _urlparse, urlunparse as _urlunparse)
+from urllib.parse import (  # NOQA
+    quote,
+    quote_plus,
+    unquote,
+    unquote_plus,
+    urlparse as _urlparse,
+    urlunparse as _urlunparse,
+    ParseResult,
+)
 
 
 def hex_octal_to_int(ho):
@@ -171,7 +162,7 @@ class Url(namedtuple("Url", url_attrs)):
             scheme = scheme.lower()
         if hostname:
             hostname = hostname.lower()
-        return super(Url, cls).__new__(
+        return super().__new__(
             cls, scheme, path, query, fragment, username, password, hostname, port
         )
 
@@ -272,7 +263,7 @@ def is_ipv4_address(string_ip):
     """
     try:
         socket.inet_aton(string_ip)
-    except socket.error:
+    except OSError:
         return False
     return string_ip.count('.') == 3
 
@@ -287,7 +278,7 @@ def is_ipv6_address(string_ip):
     """
     try:
         socket.inet_pton(socket.AF_INET6, string_ip)
-    except socket.error:
+    except OSError:
         return False
     return True
 
@@ -411,7 +402,9 @@ def split_conda_url_easy_parts(known_subdirs, url):
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
     _, ext = strip_pkg_extension(cleaned_url)
-    cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext else (cleaned_url, None)
+    cleaned_url, package_filename = (
+        cleaned_url.rsplit("/", 1) if ext and "/" in cleaned_url else (cleaned_url, None)
+    )
 
     # TODO: split out namespace using regex
     url_parts = urlparse(cleaned_url)
@@ -489,12 +482,8 @@ def remove_auth(url: str) -> str:
     return str(url_no_auth)
 
 
+@deprecated("23.3", "23.9", addendum="This function now lives in conda-libmamba-solve.")
 def escape_channel_url(channel):
-    warnings.warn(
-        "This function lives now under conda-libmamba-solver "
-        "and will be deprecated in a future release",
-        PendingDeprecationWarning
-    )
     if channel.startswith("file:"):
         if "%" in channel:  # it's escaped already
             return channel

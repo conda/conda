@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
-from .._vendor.boltons.timeutils import UTC
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import Spinner
@@ -74,7 +71,7 @@ def execute(args, parser):
     if not matches and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
         if not context.json:
-            print("No match found for: %s. Search: %s" % (spec, flex_spec))
+            print(f"No match found for: {spec}. Search: {flex_spec}")
         matches = sorted(SubdirData.query_all(flex_spec, channel_urls, subdirs),
                          key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
@@ -136,7 +133,9 @@ def pretty_record(record):
     push_line("url", "url")
     push_line("md5", "md5")
     if record.timestamp:
-        date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime('%Y-%m-%d %H:%M:%S %Z')
+        date_str = datetime.fromtimestamp(record.timestamp, timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S %Z"
+        )
         builder.append("%-12s: %s" % ("timestamp", date_str))
     if record.track_features:
         builder.append("%-12s: %s" % ("track_features", dashlist(record.track_features)))

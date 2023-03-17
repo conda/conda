@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
 #   which is MIT licensed by Jason R. Coombs.
 # https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os import chmod as os_chmod
@@ -53,14 +51,14 @@ else:  # pragma: unix no cover
     def win_hard_link(src, dst):
         """Equivalent to os.link, using the win32 CreateHardLink call."""
         if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed\n  src: %s\n  dst: %s' % (src, dst))
+            raise CondaOSError(f"win32 hard link failed\n  src: {src}\n  dst: {dst}")
 
     def win_soft_link(src, dst):
         """Equivalent to os.symlink, using the win32 CreateSymbolicLink call."""
         if CreateSymbolicLink is None:
             raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed\n  src: %s\n  dst: %s' % (src, dst))
+            raise CondaOSError(f"win32 soft link failed\n  src: {src}\n  dst: {dst}")
 
     link = win_hard_link
     symlink = win_soft_link
@@ -79,8 +77,7 @@ else:  # pragma: no cover
     from os import getcwd
     from os.path import isfile
     import sys
-    from ...auxlib._vendor import six
-    builtins = six.moves.builtins
+    import builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""
@@ -132,7 +129,7 @@ else:  # pragma: no cover
 
     def handle_nonzero_success(result):
         if result == 0:
-            raise WindowsError()
+            raise OSError()
 
     def format_system_message(errno):
         """
@@ -177,7 +174,7 @@ else:  # pragma: no cover
                 value = windll.kernel32.GetLastError()
             strerror = format_system_message(value)
             args = 0, strerror, None, value
-            super(WindowsError, self).__init__(*args)
+            super().__init__(*args)
 
         @property
         def message(self):
@@ -229,7 +226,7 @@ else:  # pragma: no cover
         path = _patch_path(path)
         try:
             return _is_symlink(next(find_files(path)))
-        except WindowsError as orig_error:  # NOQA
+        except OSError as orig_error:  # NOQA
             tmpl = "Error accessing {path}: {orig_error.message}"
             raise builtins.WindowsError(local_format(tmpl))
 
@@ -249,7 +246,7 @@ else:  # pragma: no cover
         handle = FindFirstFile(spec, byref(fd))
         while True:
             if handle == INVALID_HANDLE_VALUE:
-                raise WindowsError()
+                raise OSError()
             yield fd
             fd = WIN32_FIND_DATA()
             res = FindNextFile(handle, byref(fd))
@@ -344,7 +341,7 @@ else:  # pragma: no cover
                             None)
 
         if handle == INVALID_HANDLE_VALUE:
-            raise WindowsError()
+            raise OSError()
 
         res = reparse_DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 10240)
 

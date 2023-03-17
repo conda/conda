@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Conda Libmamba Solver Issues/Features
+    url: https://github.com/conda/conda-libmamba-solver/issues
+    about: Anything related to the `conda-libmamba-solver` project
   - name: Conda Build Issues/Features
     url: https://github.com/conda/conda-build/issues
     about: Anything related to the `conda-build` project

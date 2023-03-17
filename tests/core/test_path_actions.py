@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import importlib.util
 from logging import getLogger
 import os
@@ -12,23 +8,24 @@ import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+import warnings
 
 import pytest
-from tlz.itertoolz import groupby
 
+from conda.common.iterators import groupby_to_dict as groupby
 from conda.auxlib.ish import dals
 from conda.auxlib.collection import AttrDict
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
-    win_path_ok
+    win_path_ok, explode_directories
 from conda.core.path_actions import CompileMultiPycAction, CreatePythonEntryPointAction, LinkPathAction
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
-from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
+from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
@@ -203,9 +200,9 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         if on_win:
-            target_short_path = "%s\\%s-script.py" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
         else:
-            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}/{command}"
         assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
@@ -227,8 +224,7 @@ class PathActionsTests(TestCase):
                     dals(
                         f"""
                         #!/bin/sh
-                        '''exec' "{python_full_path}" "$0" "$@"
-                        ' '''
+                        '''exec' "{python_full_path}" "$0" "$@" #'''
                         """
                     )
                 )
@@ -241,7 +237,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "%s\\%s.exe" % (get_bin_directory_short_path(), command)
+            target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))
@@ -250,8 +246,8 @@ class PathActionsTests(TestCase):
             assert isfile(windows_exe_axn.target_full_path)
             assert is_executable(windows_exe_axn.target_full_path)
 
-            src = compute_md5sum(join(context.conda_prefix, 'Scripts/conda.exe'))
-            assert src == compute_md5sum(windows_exe_axn.target_full_path)
+            src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
+            assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
 
             windows_exe_axn.reverse()
             assert not isfile(windows_exe_axn.target_full_path)
@@ -260,7 +256,7 @@ class PathActionsTests(TestCase):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 
-        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_sha256 = compute_sum(source_full_path, "sha256")
         correct_size_in_bytes = getsize(source_full_path)
         path_type = PathType.hardlink
 
@@ -291,7 +287,7 @@ class PathActionsTests(TestCase):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 
-        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_sha256 = compute_sum(source_full_path, "sha256")
         correct_size_in_bytes = getsize(source_full_path)
         path_type = PathType.hardlink
 
@@ -336,7 +332,7 @@ class PathActionsTests(TestCase):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 
-        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_sha256 = compute_sum(source_full_path, "sha256")
         correct_size_in_bytes = getsize(source_full_path)
         path_type = PathType.hardlink
 
@@ -545,3 +541,34 @@ class PathActionsTests(TestCase):
     #                     axn.execute()
     #             axn.reverse()
     #             assert not lexists(axn.target_full_path)
+
+
+def test_explode_directories():
+    warnings.warn(
+        "`toolz` is pending deprecation and will be removed in a future release.",
+        PendingDeprecationWarning,
+    )
+
+    try:
+        import tlz as toolz
+    except:
+        import conda._vendor.toolz as toolz
+
+    def old_explode_directories(child_directories, already_split=False):
+        # get all directories including parents
+        # use already_split=True for the result of get_all_directories()
+        maybe_split = lambda x: x if already_split else x.split("/")
+        return set(
+            toolz.concat(
+                toolz.accumulate(join, maybe_split(directory))
+                for directory in child_directories
+                if directory
+            )
+        )
+
+    old_version = old_explode_directories(
+        (os.path.split(path) for path in sys.path), already_split=True
+    )
+    new_version = explode_directories(os.path.split(path) for path in sys.path)
+
+    assert new_version == old_version

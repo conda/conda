@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os.path import isdir, join, dirname
 from pprint import pprint
@@ -12,7 +10,6 @@ from conda.common.serialize import json_dump, json_load
 from conda.gateways.disk.read import read_python_record
 import pytest
 from tests.data.env_metadata import (
-    METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
     __file__ as env_metadata_file,
 )
 ENV_METADATA_DIR = dirname(env_metadata_file)
@@ -192,8 +189,8 @@ def test_cherrypy_py36_osx_whl():
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
-    files = dumped_rec.pop("files")
-    paths_data = dumped_rec.pop("paths_data")
+    dumped_rec.pop("files")
+    dumped_rec.pop("paths_data")
     print(json_dump(dumped_rec))
     constrains = dumped_rec.pop("constrains")
     depends = dumped_rec.pop("depends")
@@ -394,8 +391,8 @@ def test_cherrypy_py27_osx_no_binary():
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
-    files = dumped_rec.pop("files")
-    paths_data = dumped_rec.pop("paths_data")
+    dumped_rec.pop("files")
+    dumped_rec.pop("paths_data")
     print(json_dump(dumped_rec))
     constrains = dumped_rec.pop("constrains")
     depends = dumped_rec.pop("depends")
@@ -444,7 +441,7 @@ def test_six_py27_osx_no_binary_unmanageable():
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
     files = dumped_rec.pop("files")
-    paths_data = dumped_rec.pop("paths_data")
+    dumped_rec.pop("paths_data")
     print(json_dump(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",

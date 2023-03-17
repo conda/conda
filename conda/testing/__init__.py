@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Attempt to move any conda entries in PATH to the front of it.
@@ -16,8 +15,12 @@
 
 import os
 import sys
-from os.path import dirname, normpath, join, isfile
+import warnings
+from os.path import dirname, isfile, join, normpath
+from pathlib import Path
 from subprocess import check_output
+
+from conda.common.compat import on_win
 
 
 def encode_for_env_var(value) -> str:
@@ -37,17 +40,24 @@ def conda_ensure_sys_python_is_base_env_python():
     # C:\opt\conda\envs\py27
     # So lets just sys.exit on that.
 
-    if 'CONDA_PYTHON_EXE' in os.environ:
-        if os.path.normpath(os.environ['CONDA_PYTHON_EXE']) != sys.executable:
-            print("ERROR :: Running tests from a non-base Python interpreter. "
-                  " Tests requires installing menuinst and that causes stderr "
-                  " output when activated.", file=sys.stderr)
-            sys.exit(-1)
+    if "CONDA_PYTHON_EXE" in os.environ:
+        if Path(os.environ["CONDA_PYTHON_EXE"]).resolve() != Path(sys.executable).resolve():
+            warnings.warn(
+                "ERROR :: Running tests from a non-base Python interpreter. "
+                " Tests requires installing menuinst and that causes stderr "
+                " output when activated.\n"
+                f"- CONDA_PYTHON_EXE={os.environ['CONDA_PYTHON_EXE']}\n"
+                f"- sys.executable={sys.executable}"
+            )
+
+            # menuinst only really matters on windows
+            if on_win:
+                sys.exit(-1)
 
 
 def conda_move_to_front_of_PATH():
     if 'CONDA_PREFIX' in os.environ:
-        from conda.activate import (PosixActivator, CmdExeActivator)
+        from conda.activate import CmdExeActivator, PosixActivator
         if os.name == 'nt':
             activator_cls = CmdExeActivator
         else:
@@ -78,7 +88,7 @@ def conda_move_to_front_of_PATH():
                     found_condabin = True
                     if join(sys.prefix, 'condabin') != pe:
                         condabin_path = join(sys.prefix, 'condabin')
-                        print("Incorrect condabin, swapping {} to {}".format(pe, condabin_path))
+                        print(f"Incorrect condabin, swapping {pe} to {condabin_path}")
                         new_p.append(condabin_path)
                     else:
                         new_p.append(pe)
@@ -107,7 +117,7 @@ def conda_check_versions_aligned():
     import conda
     version_file = normpath(join(dirname(conda.__file__), '.version'))
     if isfile(version_file):
-        version_from_file = open(version_file, 'rt').read().split('\n')[0]
+        version_from_file = open(version_file).read().split("\n")[0]
     else:
         version_from_file = None
 

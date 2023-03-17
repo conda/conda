@@ -1,21 +1,17 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict, OrderedDict, deque
+from collections import defaultdict, deque
 import copy
+import itertools
 from functools import lru_cache
 from logging import DEBUG, getLogger
 
-try:
-    from tlz.itertoolz import concat, groupby
-except ImportError:
-    from conda._vendor.toolz.itertoolz import concat, groupby
+from conda.common.iterators import groupby_to_dict as groupby
 
 from .auxlib.decorators import memoizemethod
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
-from ._vendor.tqdm import tqdm
+from tqdm import tqdm
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
@@ -53,7 +49,7 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
         c.Require(c.And, *required)
         solution = set(c.sat())
         if not required.issubset(solution):
-            raise RuntimeError("Wrong SAT solution: {}. Required: {}".format(solution, required))
+            raise RuntimeError(f"Wrong SAT solution: {solution}. Required: {required}")
 
     sat_solver = _sat_solvers[sat_solver_choice]
     try:
@@ -64,7 +60,7 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     else:
         log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
         return sat_solver
-    for solver_choice, sat_solver in _sat_solvers.items():
+    for sat_solver in _sat_solvers.values():
         try:
             try_out_solver(sat_solver)
         except Exception as e:
@@ -92,7 +88,7 @@ def exactness_and_number_of_deps(resolve_obj, ms):
     return value
 
 
-class Resolve(object):
+class Resolve:
 
     def __init__(self, index, processed=False, channels=()):
         self.index = index
@@ -102,7 +98,7 @@ class Resolve(object):
         self._channel_priority = context.channel_priority
         self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
-        groups = groupby("name", index.values())
+        groups = groupby(lambda x: x.name, index.values())
         trackers = defaultdict(list)
 
         for name in groups:
@@ -135,15 +131,16 @@ class Resolve(object):
             self.groups[name] = sorted(group, key=self.version_key, reverse=True)
 
     def __hash__(self):
-        return (super(Resolve, self).__hash__() ^
-                hash(frozenset(self.channels)) ^
-                hash(frozendict(self._channel_priorities_map)) ^
-                hash(self._channel_priority) ^
-                hash(self._solver_ignore_timestamps) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.groups.items())) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.trackers.items())) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
-                )
+        return (
+            super().__hash__()
+            ^ hash(frozenset(self.channels))
+            ^ hash(frozendict(self._channel_priorities_map))
+            ^ hash(self._channel_priority)
+            ^ hash(self._solver_ignore_timestamps)
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.groups.items()))
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.trackers.items()))
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
+        )
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -295,8 +292,8 @@ class Resolve(object):
                    'direct': set(),
                    'virtual_package': set(),
                    }
-        specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
-        history_specs = set(MatchSpec(_) for _ in history_specs or [])
+        specs_to_add = {MatchSpec(_) for _ in specs_to_add or []}
+        history_specs = {MatchSpec(_) for _ in history_specs or []}
         for chain in bad_deps:
             # sometimes chains come in as strings
             if len(chain) > 1 and chain[-1].name == 'python' and \
@@ -447,7 +444,7 @@ class Resolve(object):
 
         specs = set(specs) | (specs_to_add or set())
         # Remove virtual packages
-        specs = set([spec for spec in specs if not spec.name.startswith('__')])
+        specs = {spec for spec in specs if not spec.name.startswith("__")}
         if len(specs) == 1:
             matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
@@ -461,7 +458,7 @@ class Resolve(object):
         with tqdm(total=len(specs), desc="Building graph of deps",
                   leave=False, disable=context.json) as t:
             for spec in specs:
-                t.set_description("Examining {}".format(spec))
+                t.set_description(f"Examining {spec}")
                 t.update()
                 dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
                 dep_graph.update(dep_graph_for_spec)
@@ -498,7 +495,7 @@ class Resolve(object):
                 lroots = [_ for _ in roots]
                 current_shortest_chain = []
                 shortest_node = None
-                requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
+                requested_spec_unsat = frozenset(nodes).intersection({_.name for _ in roots})
                 if requested_spec_unsat:
                     chains.append([_ for _ in roots if _.name in requested_spec_unsat])
                     shortest_node = chains[-1][0]
@@ -535,7 +532,7 @@ class Resolve(object):
             channel_name = self._strict_channel_cache[package_name]
         except KeyError:
             if package_name in self.groups:
-                all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
+                all_channel_names = {prec.channel.name for prec in self.groups[package_name]}
                 by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
                 highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
                 channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
@@ -688,9 +685,9 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        specs_by_name_seed = OrderedDict()
+        specs_by_name_seed = {}
         for s in explicit_specs:
-            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
+            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, []) + [s]
         for explicit_spec in explicit_specs:
             add_these_precs2 = tuple(
                 prec for prec in self.find_matches(explicit_spec)
@@ -714,7 +711,7 @@ class Resolve(object):
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
-                    specs = specs_by_name.get(dep.name, list())
+                    specs = specs_by_name.get(dep.name, [])
                     if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
@@ -747,8 +744,9 @@ class Resolve(object):
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, tuple(specs_by_name.get(new_ms.name, tuple())))):
+                                if "track_features" not in new_ms and not self._broader(
+                                    new_ms, tuple(specs_by_name.get(new_ms.name, ()))
+                                ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
@@ -778,9 +776,9 @@ class Resolve(object):
         spec_name = spec.get_exact_value('name')
         if spec_name:
             candidate_precs = self.groups.get(spec_name, ())
-        elif spec.get_exact_value('track_features'):
-            feature_names = spec.get_exact_value('track_features')
-            candidate_precs = concat(
+        elif spec.get_exact_value("track_features"):
+            feature_names = spec.get_exact_value("track_features")
+            candidate_precs = itertools.chain.from_iterable(
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
@@ -820,10 +818,12 @@ class Resolve(object):
     @staticmethod
     def _make_channel_priorities(channels):
         priorities_map = {}
-        for priority_counter, chn in enumerate(concat(
-            (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-            for c in (Channel(c) for c in channels)
-        )):
+        for priority_counter, chn in enumerate(
+            itertools.chain.from_iterable(
+                (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+                for c in (Channel(c) for c in channels)
+            )
+        ):
             channel_name = chn.name
             if channel_name in priorities_map:
                 continue
@@ -850,7 +850,7 @@ class Resolve(object):
 
     @staticmethod
     def to_feature_metric_id(prec_dist_str, feat):
-        return '@fm@%s@%s' % (prec_dist_str, feat)
+        return f"@fm@{prec_dist_str}@{feat}"
 
     def push_MatchSpec(self, C, spec):
         spec = MatchSpec(spec)
@@ -1040,7 +1040,7 @@ class Resolve(object):
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
         for package_name, prec in must_have.items():
             if prec in self.index:
-                digraph[package_name] = set(ms.name for ms in self.ms_depends(prec))
+                digraph[package_name] = {ms.name for ms in self.ms_depends(prec)}
 
         # There are currently at least three special cases to be aware of.
         # 1. The `toposort()` function, called below, contains special case code to remove
@@ -1077,8 +1077,8 @@ class Resolve(object):
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
+        r2 = Resolve({prec: prec for prec in installed}, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -1123,7 +1123,7 @@ class Resolve(object):
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
         new_index = {prec: prec for prec in sat_name_map.values()}
         name_map = {p.name: p for p in new_index}
         if 'python' in name_map and 'pip' not in name_map:
@@ -1217,7 +1217,7 @@ class Resolve(object):
                 nspecs.append(MatchSpec(s, version='@', optional=True))
             else:
                 nspecs.append(MatchSpec(s, optional=True))
-        snames = set(s.name for s in nspecs if s.name)
+        snames = {s.name for s in nspecs if s.name}
         limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for prec in installed:
@@ -1256,7 +1256,7 @@ class Resolve(object):
             log.debug('Solving for: %s', dlist)
 
         if not specs:
-            return tuple()
+            return ()
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
