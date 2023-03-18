@@ -54,7 +54,7 @@ def check_prefix(prefix, json=False):
         )
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
+def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None, pinned=False):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
@@ -66,10 +66,9 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         print("Source:      %s" % src_prefix)
         print("Destination: %s" % dst_prefix)
 
-    actions, untracked_files = clone_env(src_prefix, dst_prefix,
-                                         verbose=not json,
-                                         quiet=quiet,
-                                         index_args=index_args)
+    actions, untracked_files = clone_env(
+        src_prefix, dst_prefix, verbose=not json, quiet=quiet, index_args=index_args, pinned=pinned
+    )
 
     if json:
         common.stdout_json_success(
@@ -215,7 +214,14 @@ def install(args, parser, command='install'):
             raise TooManyArgumentsError(0, len(args.packages), list(args.packages),
                                         'did not expect any arguments for --clone')
 
-        clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
+        clone(
+            args.clone,
+            prefix,
+            json=context.json,
+            quiet=context.quiet,
+            index_args=index_args,
+            pinned=args.pinned,
+        )
         touch_nonadmin(prefix)
         print_activate(args.name or prefix)
         return

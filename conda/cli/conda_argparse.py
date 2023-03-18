@@ -716,6 +716,11 @@ def configure_parser_create(sub_parsers):
         dest="dev",
         default=NULL,
     )
+    p.add_argument(
+        "--pinned",
+        action="store_true",
+        help="Copy pinned file when cloning the environment with `--clone`.",
+    )
     p.set_defaults(func='.main_create.execute')
 
 

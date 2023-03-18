@@ -221,7 +221,7 @@ def touch_nonadmin(prefix):
             fo.write("")
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None, pinned=False):
     """
     clone existing prefix1 into new prefix2
     """
@@ -333,4 +333,20 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     actions = explicit(
         urls, prefix2, verbose=not quiet, index=index, force_extract=False, index_args=index_args
     )
+
+    if pinned:
+        pinned_src = join(prefix1, "conda-meta", "pinned")
+        pinned_dst = join(prefix2, "conda-meta", "pinned")
+        fh = sys.stderr if context.json else sys.stdout
+
+        if exists(pinned_src):
+            if verbose:
+                print(f"Copying pinned file from {pinned_src} to {pinned_dst}", file=fh)
+            try:
+                shutil.copyfile(pinned_src, pinned_dst)
+            except OSError:
+                pass
+        elif verbose:
+            print("Source pinned file not found.", file=fh)
+
     return actions, untracked_files
