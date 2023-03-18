@@ -1144,6 +1144,27 @@ dependencies:
                     assert package_is_installed(clone_prefix, "flask=0.11.1=py_0")
                     assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
+    def test_clone_package_pinning(self):
+        with make_temp_env("python=3.9", "itsdangerous=1.1.0", no_capture=True) as prefix:
+            assert package_is_installed(prefix, "itsdangerous=1.1.0")
+            assert package_is_installed(prefix, "python=3.9")
+
+            with open(join(prefix, "conda-meta", "pinned"), "w") as fh:
+                fh.write("itsdangerous 1.1.0\n")
+
+            assert exists(join(prefix, "conda-meta", "pinned"))
+
+            with make_temp_env("--clone", prefix, "--pinned") as clone_prefix:
+                assert package_is_installed(clone_prefix, "itsdangerous=1.1.0")
+                assert exists(join(clone_prefix, "conda-meta", "pinned"))
+
+                run_command(Commands.UPDATE, clone_prefix, "--all", no_capture=True)
+                assert package_is_installed(clone_prefix, "itsdangerous=1.1.0")
+
+                run_command(Commands.UPDATE, clone_prefix, "--all", "--no-pin", no_capture=True)
+                assert not package_is_installed(clone_prefix, "itsdangerous=1.1.0")
+                breakpoint()
+
     def test_package_pinning(self):
         with make_temp_env("python=2.7", "itsdangerous=0.24", "pytz=2017.3", no_capture=True) as prefix:
             assert package_is_installed(prefix, "itsdangerous=0.24")
