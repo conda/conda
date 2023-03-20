@@ -233,6 +233,10 @@ jobs:
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.10']
         platform: ['arm64', 'ppc64le']
+        include:
+          - default-channel: 'defaults'
+            python-version: '3.10'
+            platform: 's390x'
     env:
       OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
