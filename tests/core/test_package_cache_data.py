@@ -28,6 +28,8 @@ from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.testing.helpers import CHANNEL_DIR
 from conda.testing.integration import make_temp_package_cache
 
+import conda.core.package_cache
+
 assert CHANNEL_DIR == abspath(join(dirname(__file__), "..", "data", "conda_format_repo"))
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)
 
@@ -488,3 +490,10 @@ def test_cover_extract_bad_package(tmp_path):
     with open(fullpath, "w") as archive:
         archive.write("")
     PackageCacheData.first_writable()._make_single_record(str(fullpath))
+
+
+def test_conda_build_alias():
+    """
+    conda-build wants to use an old import.
+    """
+    assert conda.core.package_cache.ProgressiveFetchExtract
