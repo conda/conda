@@ -7,7 +7,12 @@ try:
     from requests.adapters import BaseAdapter, HTTPAdapter
     from requests.auth import AuthBase, _basic_auth_str
     from requests.cookies import extract_cookies_to_jar
-    from requests.exceptions import InvalidSchema, SSLError, ProxyError as RequestsProxyError
+    from requests.exceptions import (
+        ChunkedEncodingError,
+        InvalidSchema,
+        SSLError,
+        ProxyError as RequestsProxyError,
+    )
     from requests.hooks import dispatch_hook
     from requests.models import Response
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -20,8 +25,12 @@ except ImportError:  # pragma: no cover
     from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
     from pip._vendor.requests.auth import AuthBase, _basic_auth_str
     from pip._vendor.requests.cookies import extract_cookies_to_jar
-    from pip._vendor.requests.exceptions import (InvalidSchema, SSLError,
-                                                 ProxyError as RequestsProxyError)
+    from pip._vendor.requests.exceptions import (
+        ChunkedEncodingError,
+        InvalidSchema,
+        SSLError,
+        ProxyError as RequestsProxyError,
+    )
     from pip._vendor.requests.hooks import dispatch_hook
     from pip._vendor.requests.models import Response
     from pip._vendor.requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -42,6 +51,7 @@ extract_cookies_to_jar = extract_cookies_to_jar
 get_auth_from_url = get_auth_from_url
 get_netrc_auth = get_netrc_auth
 ConnectionError = ConnectionError
+ChunkedEncodingError = ChunkedEncodingError
 HTTPError = HTTPError
 InvalidSchema = InvalidSchema
 SSLError = SSLError
