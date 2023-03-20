@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Remove unused optimization for searching packages based on
-  `*[track_features=<feature name>]`.
+* <news item>
 
 ### Docs
 
@@ -17,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Initialize conda after installing test requirements during CI (#12446)

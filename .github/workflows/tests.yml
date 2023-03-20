@@ -59,42 +59,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults']
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
-        include:
+        exclude:
+          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
             python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'unit'
-            test-group: '1'
           - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'unit'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'unit'
-            test-group: '3'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'integration'
-            test-group: '1'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'integration'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-            conda-subdir: 'win-64'
-            test-type: 'integration'
-            test-group: '3'
+            python-version: '3.10'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
@@ -179,6 +154,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
+            tests\durations\${OS}.json
             test-report.xml
           retention-days: 1
 
@@ -192,35 +168,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults']
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
-        include:
+        exclude:
+          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'unit'
-            test-group: '1'
+            python-version: '3.8'
           - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'unit'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'unit'
-            test-group: '3'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'integration'
-            test-group: '1'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'integration'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-            test-type: 'integration'
-            test-group: '3'
+            python-version: '3.9'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -231,7 +188,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test_type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
@@ -254,6 +211,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
+            tests/durations/${OS}.json
             test-report.xml
           retention-days: 1
 
@@ -293,11 +251,8 @@ jobs:
           docker run
           --rm -v ${PWD}:/opt/conda-src
           --platform linux/${{ matrix.platform }}
-          -e TEST_SPLITS
-          -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          bash -c "source /opt/conda/etc/profile.d/conda.sh; \
-                   pytest --cov=conda -k test_DepsModifier_contract"
+          /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
         if: always()
@@ -321,35 +276,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-            test-type: 'unit'
-            test-group: '1'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-            test-type: 'unit'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-            test-type: 'unit'
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.9']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+        # fewer test splits for quicker unit tests, keep 3 splits for integration
+        test-splits: [2, 3]
+        exclude:
+          - test-type: unit
             test-group: '3'
-          - default-channel: 'defaults'
-            python-version: '3.9'
-            test-type: 'integration'
-            test-group: '1'
-          - default-channel: 'defaults'
-            python-version: '3.9'
-            test-type: 'integration'
-            test-group: '2'
-          - default-channel: 'defaults'
-            python-version: '3.9'
-            test-type: 'integration'
-            test-group: '3'
+          - test-type: unit
+            test-splits: 3
+          - test-type: integration
+            test-splits: 2
+          # odd choice kept for parity with previous commit
+          - test-type: integration
+            default-channel: 'conda-forge'
+          - test-type: unit
+            default-channel: 'defaults'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
@@ -360,7 +308,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: ~/conda_pkgs_dir
           key:
@@ -399,6 +347,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
+        timeout-minutes: 10
         run: |
           ./dev/macos/setup.sh
 
@@ -421,6 +370,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
+            tests/durations/${OS}.json
             test-report.xml
           retention-days: 1
 

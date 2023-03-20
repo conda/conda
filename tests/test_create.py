@@ -490,6 +490,7 @@ class IntegrationTests(BaseTestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
+
         py_ver = "3.7"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
@@ -507,7 +508,7 @@ class IntegrationTests(BaseTestCase):
 
                 # regression test for #3433
                 run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
-                assert package_is_installed(prefix, 'python=3.5')
+                assert package_is_installed(prefix, "python=3.5")
 
                 # regression test for #5847
                 #   when using rm_rf on a file
@@ -763,6 +764,7 @@ dependencies:
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.flaky(reruns=2)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c", "conda-forge", "python=3.7", no_capture=True) as prefix:
@@ -1624,7 +1626,9 @@ dependencies:
             },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with make_temp_env("python=2.7", "pip=10", "git", use_restricted_unicode=on_win) as prefix:
+            with make_temp_env(
+                "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
+            ) as prefix:
                 workdir = prefix
 
                 run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
@@ -1835,7 +1839,7 @@ dependencies:
             run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_round_trip_load(stdout)
-            assert channel_url.replace('cqgccfm1mfma', '<TOKEN>') in yml_obj['channels']
+            assert channel_url.replace("cqgccfm1mfma", "<TOKEN>") in yml_obj["channels"]
 
             with pytest.raises(PackagesNotFoundError):
                 # this was supposed to be a package available in private but not
@@ -1885,8 +1889,15 @@ dependencies:
             yml_obj = yaml_round_trip_load(output)
             assert yml_obj['channels'] == [channel_url]
 
-            output, _, _ = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                       "linux-64", "--json", use_exception_handler=True)
+            output, _, _ = run_command(
+                Commands.SEARCH,
+                prefix,
+                "anyjson",
+                "--platform",
+                "linux-64",
+                "--json",
+                use_exception_handler=True,
+            )
             json_obj = json_loads(output)
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
@@ -1919,7 +1930,8 @@ dependencies:
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix, no_capture=True):
@@ -1941,9 +1953,11 @@ dependencies:
                             del result.headers[header]
                     return result
 
-                SubdirData._cache_.clear()
+                SubdirData.clear_cached_local_channel_data(exclude_file=False)
                 mock_method.side_effect = side_effect
-                stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
+                stdout, stderr, _ = run_command(
+                    Commands.SEARCH, prefix, "flask", "--info", "--json"
+                )
                 assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
@@ -1960,7 +1974,8 @@ dependencies:
 
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         try:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
@@ -1992,7 +2007,7 @@ dependencies:
                         with patch.object(CondaSession, 'get', autospec=True) as mock_method:
                             mock_method.side_effect = side_effect
 
-                            SubdirData._cache_.clear()
+                            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
@@ -2008,7 +2023,7 @@ dependencies:
                                 run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
                             assert not package_is_installed(prefix, "pytz")
         finally:
-            SubdirData._cache_.clear()
+            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
@@ -2189,10 +2204,19 @@ dependencies:
 
     def test_multiline_run_command(self):
         with make_temp_env() as prefix:
-            env_which_etc, errs_etc, _ = run_command(Commands.RUN, prefix, '--cwd', prefix, dedent("""
-            {env} | sort
-            {which} conda
-            """.format(env=env_or_set, which=which_or_where)), dev=True)
+            env_which_etc, errs_etc, _ = run_command(
+                Commands.RUN,
+                prefix,
+                "--cwd",
+                prefix,
+                dedent(
+                    f"""
+                    {env_or_set}
+                    {which_or_where} conda
+                    """
+                ),
+                dev=True,
+            )
         assert env_which_etc
         assert not errs_etc
 

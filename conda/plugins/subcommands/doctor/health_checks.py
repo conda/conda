@@ -33,7 +33,7 @@ def get_number_of_missing_files(prefix: str) -> dict[str, int]:
 
 def find_packages_with_missing_files(prefix: str) -> dict[str, list[str]]:
     """
-    Finds packages listed in conda-meta with missing files
+    Finds packages listed in conda-meta which have missing files
     """
     packages = {}
     prefix = Path(prefix)

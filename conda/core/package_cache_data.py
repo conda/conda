@@ -43,7 +43,7 @@ from ..gateways.disk.create import (
 )
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import (
-    compute_md5sum,
+    compute_sum,
     isdir,
     isfile,
     islink,
@@ -307,7 +307,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         tarball_full_path = expand(tarball_path)
 
         if isfile(tarball_full_path) and md5sum is None:
-            md5sum = compute_md5sum(tarball_full_path)
+            md5sum = compute_sum(tarball_full_path, "md5")
 
         return tarball_full_path, md5sum
 
@@ -421,7 +421,7 @@ class PackageCacheData(metaclass=PackageCacheType):
 
             # we were able to read info/index.json, so let's continue
             if isfile(package_tarball_full_path):
-                md5 = compute_md5sum(package_tarball_full_path)
+                md5 = compute_sum(package_tarball_full_path, "md5")
             else:
                 md5 = None
 

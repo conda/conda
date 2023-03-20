@@ -1058,7 +1058,10 @@ def configure_parser_package(sub_parsers):
 
 
 def configure_parser_remove(sub_parsers, aliases):
-    help_ = "Remove a list of packages from a specified conda environment."
+    help_ = (
+        "Remove a list of packages from a specified conda environment. "
+        "Use `--all` flag to remove all packages and the environment itself."
+    )
     descr = dals(
         f"""
         {help_}
@@ -1081,6 +1084,10 @@ def configure_parser_remove(sub_parsers, aliases):
         Remove a list of packages from an environemnt 'myenv'::
 
             conda remove -n myenv scipy curl wheel
+
+        Remove all packages from environment `myenv` and the environment itself::
+
+            conda remove -n myenv --all
 
         """
     )
@@ -1691,6 +1698,13 @@ def add_parser_channels(p):
               "is added for you automatically. For more information, see "
               "conda config --describe repodata_fns.")
     )
+    channel_customization_options.add_argument(
+        "--experimental",
+        action="append",
+        choices=["jlap", "lock"],
+        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
+        "lock: use locking when reading, updating index (repodata.json) cache. ",
+    )
     return channel_customization_options
 
 
@@ -1812,9 +1826,7 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    solver_choices = [
-        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
-    ]
+    solver_choices = [solver.name for solver in context.plugin_manager.get_hook_results("solvers")]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",

@@ -12,7 +12,7 @@ import getpass
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.context import context, conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import captured, env_var
+from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -30,6 +30,8 @@ from conda.exceptions import (
     conda_exception_handler,
     ExceptionHandler,
 )
+from pytest import raises
+
 
 def _raise_helper(exception):
     raise exception
@@ -490,3 +492,16 @@ class ExceptionTests(TestCase):
           original data Length: 1404
           new data length: 1104
         """).strip()
+
+    def test_PackagesNotFoundError_use_only_tar_bz2(self):
+        note = "use_only_tar_bz2"
+        for use_only_tar_bz2 in (True, False):
+            expected = note if use_only_tar_bz2 else ""
+            with env_vars(
+                {"CONDA_USE_ONLY_TAR_BZ2": str(use_only_tar_bz2)},
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+            ), raises(PackagesNotFoundError, match=expected):
+                raise PackagesNotFoundError(
+                    packages=["does-not-exist"],
+                    channel_urls=["https://repo.anaconda.org/pkgs/main"],
+                )

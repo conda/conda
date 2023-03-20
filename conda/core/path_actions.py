@@ -32,8 +32,7 @@ from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
-from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
-                                  read_index_json)
+from ..gateways.disk.read import compute_sum, islink, lexists, read_index_json
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.channel import Channel
@@ -384,7 +383,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 and reported_size_in_bytes == source_size_in_bytes
                 and context.extra_safety_checks
             ):
-                source_sha256 = compute_sha256sum(self.source_full_path)
+                source_sha256 = compute_sum(self.source_full_path, "sha256")
 
                 if reported_sha256 and reported_sha256 != source_sha256:
                     return SafetyError(
@@ -489,7 +488,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             raise PaddingError(self.target_full_path, self.prefix_placeholder,
                                len(self.prefix_placeholder))
 
-        sha256_in_prefix = compute_sha256sum(self.intermediate_path)
+        sha256_in_prefix = compute_sum(self.intermediate_path, "sha256")
 
         self.prefix_path_data = PathDataV1.from_objects(
             self.prefix_path_data,
@@ -1300,7 +1299,7 @@ class CacheUrlAction(PathAction):
             #   any. This also makes sure that we ignore the md5sum of a possible extracted
             #   directory that might exist in this cache because we are going to overwrite it
             #   anyway when we extract the tarball.
-            source_md5sum = compute_md5sum(source_path)
+            source_md5sum = compute_sum(source_path, "md5")
             exclude_caches = self.target_pkgs_dir,
             pc_entry = PackageCacheData.tarball_file_in_cache(
                 source_path, source_md5sum, exclude_caches=exclude_caches
@@ -1412,11 +1411,11 @@ class ExtractPackageAction(PathAction):
             assert url
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)
-            sha256 = self.sha256 or compute_sha256sum(self.source_full_path)
+            sha256 = self.sha256 or compute_sum(self.source_full_path, "sha256")
             size = getsize(self.source_full_path)
             if self.size is not None:
                 assert size == self.size, (size, self.size)
-            md5 = self.md5 or compute_md5sum(self.source_full_path)
+            md5 = self.md5 or compute_sum(self.source_full_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json, url=url, channel=channel, fn=fn, sha256=sha256, size=size, md5=md5,
             )

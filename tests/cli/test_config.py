@@ -462,7 +462,8 @@ def test_set_check_types(key, str_value, py_value):
         assert stdout == stderr == ''
         with open(rc) as fh:
             content = yaml_round_trip_load(fh.read())
-            if "." in key: key = key.split(".", 1)[0]
+            if "." in key:
+                key = key.split(".", 1)[0]
             assert content[key] == py_value
 
 
