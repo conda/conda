@@ -6,16 +6,17 @@ import json
 
 from pathlib import Path
 
-from conda.base.context import context
-
 OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
 DETAILED_REPORT_TITLE = "\nDETAILED ENVIRONMENT HEALTH REPORT\n"
 MISSING_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with missing files.\n"
 
 
-def display_report_heading() -> None:
-    environment = Path(context.active_prefix)
+def display_report_heading(prefix: str) -> None:
+    """
+    Displays our report heading
+    """
+    environment = Path(prefix)
     environment_name = environment.name
     print("-" * 20)
     print(REPORT_TITLE)
@@ -55,12 +56,12 @@ def find_packages_with_missing_files(prefix: str) -> dict[str, list[str]]:
     return packages_with_missing_files
 
 
-def display_health_checks(verbose=False) -> None:
+def display_health_checks(prefix: str) -> None:
     """
     Prints health report
     """
-    display_report_heading()
-    number_of_missing_files = get_number_of_missing_files(context.active_prefix)
+    display_report_heading(prefix)
+    number_of_missing_files = get_number_of_missing_files(prefix)
     if number_of_missing_files:
         print("Number of Missing Files\n")
         for file, number_of_files in number_of_missing_files.items():
@@ -71,16 +72,17 @@ def display_health_checks(verbose=False) -> None:
         print(MISSING_FILES_SUCCESS_MESSAGE)
 
 
-def display_detailed_health_checks() -> None:
+def display_detailed_health_checks(prefix: str) -> None:
     """
     Prints detailed health report
     """
-    display_report_heading()
-    names_of_missing_files = find_packages_with_missing_files(context.active_prefix)
+    display_report_heading(prefix)
+    names_of_missing_files = find_packages_with_missing_files(prefix)
     if names_of_missing_files:
         print("Missing Files\n")
-        for file, number_of_files in names_of_missing_files.items():
-            print(f"{file}:\t{str(number_of_files)}")
+        for file, files in names_of_missing_files.items():
+            files_as_str = "\n".join(files)
+            print(f"{file}:\n{files_as_str}")
 
         print("\n")
     else:

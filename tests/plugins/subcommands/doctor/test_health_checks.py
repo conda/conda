@@ -87,9 +87,9 @@ def test_display_health_checks(conda_mock_dir):
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        health_checks.display_health_checks()
+        health_checks.display_health_checks(conda_mock_dir)
         Path(conda_mock_dir, BIN_TEST_EXE).unlink()
-        health_checks.display_health_checks()
+        health_checks.display_health_checks(conda_mock_dir)
 
 
 def test_display_detailed_health_checks(conda_mock_dir):
@@ -102,6 +102,6 @@ def test_display_detailed_health_checks(conda_mock_dir):
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        health_checks.display_detailed_health_checks()
+        health_checks.display_detailed_health_checks(conda_mock_dir)
         Path(conda_mock_dir, BIN_TEST_EXE).unlink()
-        health_checks.display_detailed_health_checks()
+        health_checks.display_detailed_health_checks(conda_mock_dir)
