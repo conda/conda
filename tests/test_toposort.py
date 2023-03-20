@@ -88,7 +88,6 @@ class TopoSortTests(unittest.TestCase):
         self.assertLess(results.index("python"), results.index("futures"))
         self.assertLess(results.index("python"), results.index("six"))
 
-
 def test_degenerate():
     """
     Edge cases.
@@ -96,6 +95,5 @@ def test_degenerate():
     assert toposort({}) == []
     assert toposort({}, safe=False) == []
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
