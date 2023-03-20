@@ -37,6 +37,8 @@ requirements:
     - pluggy >=1.0.0
     - tqdm >=4
     - boltons >=23.0.0
+    - hatchling
+    - hatch-vcs
   run:
     - python
     - conda-package-handling >=1.3.0
