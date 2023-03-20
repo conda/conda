@@ -12,6 +12,7 @@
 ARF1 <arik@funke.eu> ARF <none@none>
 Aaron Meurer <aaron.meurer@continuum.io> Aaron Meurer <asmeurer@gmail.com>
 Abheek Mathur <f20190475@pilani.bits-pilani.ac.in> unknown <f20190475@pilani.bits-pilani.ac.in>
+Adrian Freund <adrian.freund@quantco.com>
 Alain Domissy <alaindomissy@gmail.com>
 Alan Du <alanhdu@gmail.com>
 Albert DeFusco <albert.defusco@me.com>
@@ -25,6 +26,7 @@ Alisue <lambdalisue@hashnote.net> lambdalisue <lambdalisue@hashnote.net>
 Almar Klein <almar.klein@gmail.com>
 Amelio Vazquez-Reina <amelio.vazquez.reina@gmail.com>
 Amir Mohammadi <183.amir@gmail.com> Amir MOHAMMADI <amir.mohammadi@idiap.ch>
+Andrea Ghensi <andrea.ghensi@gmail.com>
 Andreas Girgensohn <andreasg123@users.noreply.github.com>
 Andrew Achkar <hajapy@users.noreply.github.com>
 Andrew Arendt <andrewarendt@gmail.com>
@@ -166,6 +168,7 @@ Erik Sundell <erik.i.sundell@gmail.com>
 Ernst Reissner <rei3ner@arcor.de>
 Eugene Van den Bulke <eugene.vandenbulke@gmail.com>
 Faustin Carter <faustin.carter@gmail.com>
+FelisNivalis <88343630+FelisNivalis@users.noreply.github.com>
 Flavio Martins <flaviomartins@acm.org>
 Florenz A. P. Hollebrandse <faph@users.noreply.github.com> faph <faph@users.noreply.github.com>
 Floris Bruynooghe <flub@devork.be>
@@ -176,6 +179,7 @@ Gabe Martin-Dempesy <gabetax@gmail.com>
 Gabriel Reis <gabriel.reis@gazprom-mt.com> Gabriel Reis <gabrielcnr@gmail.com>
 Geir Ove Myhr <Geir.Ove.Myhr@lr.org>
 George Hartzell <hartzell@alerce.com>
+Gil Forsyth <gforsyth@users.noreply.github.com>
 Giles Cope <gilescope@gmail.com>
 Gonzalo Peña-Castellanos <goanpeca@gmail.com>
 Greg Brener <g.brener@gmail.com>
@@ -190,6 +194,7 @@ Hugo Buddelmeijer <hugo@buddelmeijer.nl>
 Iain Gillis <iainsgillis@users.noreply.github.com>
 Ian Stokes-Rees <ijstokes@continuum.io>
 Igor Igamberdiev <26900553+ivigamberdiev@users.noreply.github.com> ivigamberdiev <26900553+ivigamberdiev@users.noreply.github.com>
+Ikko Eltociear Ashimine <eltociear@gmail.com>
 Ilan Cosman <ilancosman@gmail.com>
 Ilan Schnell <ilan@continuum.io> Ilan Schnell <ilan@hq-dhcp-20-84.20.10.10.in-addr.arpa>
 Ilan Schnell <ilan@continuum.io> Ilan Schnell <ilanschnell@gmail.com>
@@ -203,6 +208,8 @@ Jacob Smith <jacoblsmith@gmail.com>
 Jacopo Sabbatini <dedalusj@gmail.com> Jacopo <jacopo.sabbatini@roames.com.au>
 Jacopo Sabbatini <dedalusj@gmail.com> Jacopo <dedalusj@gmail.com>
 Jacques Kvam <jwkvam@gmail.com>
+Jaime Rodríguez-Guerra <jaime.rogue@gmail.com> jaimergp <jaimergp@users.noreply.github.com>
+Jaime Rodríguez-Guerra <jaime.rogue@gmail.com> jaimergp <jaime.rogue@gmail.com>
 Jaime Rodríguez-Guerra <jaime.rogue@gmail.com> Jaime Rodríguez-Guerra <jaimergp@users.noreply.github.com>
 Jaime Rodríguez-Guerra <jaime.rogue@gmail.com> Jaime Rodríguez-Guerra <jaime.rogue@gmail.com>
 Jaime Rodríguez-Guerra <jaime.rogue@gmail.com> Jaime RGP <jaimergp@users.noreply.github.com>
@@ -251,12 +258,19 @@ Kai Tietz <ktietz@anaconda.com>
 Kale Franz <kfranz@continuum.io> Kale Franz <kalefranz@users.noreply.github.com>
 Kamil Kwiek <kamil.kwiek@continuum.io> irritum <kamil.kwiek@continuum.io>
 Kamil Kwiek <kamil.kwiek@continuum.io> Kamil Kwiek (irritum) <kamil.kwiek@continuum.io>
+Kannan Jayachandran <81518270+kannanjayachandran@users.noreply.github.com>
 Kara de la Marck <karadelamarck@gmail.com>
 Katherine Kinnaman <kkinnaman@anaconda.com>
+Ken Odegard <kodegard@anaconda.com> kenodegard <kodegard@anaconda.com>
+Ken Odegard <kodegard@anaconda.com> kenodegard <ken.odegard@gmail.com>
+Ken Odegard <kodegard@anaconda.com> kenodegard <ken.odegard@bp.com>
+Ken Odegard <kodegard@anaconda.com> njalerikson <kodegard@anaconda.com>
 Ken Odegard <kodegard@anaconda.com> njalerikson <ken.odegard@gmail.com>
 Ken Odegard <kodegard@anaconda.com> njalerikson <ken.odegard@bp.com>
+Ken Odegard <kodegard@anaconda.com> Odegard, Ken <kodegard@anaconda.com>
 Ken Odegard <kodegard@anaconda.com> Odegard, Ken <ken.odegard@gmail.com>
 Ken Odegard <kodegard@anaconda.com> Odegard, Ken <ken.odegard@bp.com>
+Ken Odegard <kodegard@anaconda.com> Odegard, Ken (Flamingo Technologies) <kodegard@anaconda.com>
 Ken Odegard <kodegard@anaconda.com> Odegard, Ken (Flamingo Technologies) <ken.odegard@gmail.com>
 Ken Odegard <kodegard@anaconda.com> Odegard, Ken (Flamingo Technologies) <ken.odegard@bp.com>
 Kerry Watson <kwatson@continuum.io> Kerry Watson <kwatson@anaconda.com>
@@ -388,7 +402,7 @@ Richard Gowers <richardjgowers@gmail.com>
 Robert Johansson <jrjohansson@gmail.com>
 Roger Erens <roger.erens@e-s-c.biz>
 Rollin Thomas <rcthomas@lbl.gov>
-Ryan <rskeith@gmail.com>
+Ryan <rkeith@anaconda.com> Ryan <rskeith@gmail.com>
 Ryan Grout <rgrout@continuum.io> Ryan Grout <ayr035@gmail.com>
 Ryan Grout <rgrout@continuum.io> Ryan Grout <groutr@users.noreply.github.com>
 Ryan Grout <rgrout@continuum.io> Ryan Grout <ryan@ryangrout.org>
@@ -400,6 +414,7 @@ Sam Nicholls <samstudio8+github@gmail.com>
 Samson Yeung <samson_gh@onepatchdown.net>
 Samuel Debionne <samuel.debionne@esrf.fr>
 Samuel Walters-Nevet <SamuelWN@users.noreply.github.com>
+Sanskrati <31sanskrati@gmail.com>
 Santi Villalba <sdvillal@gmail.com> santi <sdvillal@gmail.com>
 Santiago Castro <sacastro@umich.edu>
 Sarah Bird <github@birdsbits.com>
