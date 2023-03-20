@@ -52,7 +52,7 @@ conda = "conda.cli.main_pip:main"
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = ".version"
+version-file = "conda/__version__.py"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310']
