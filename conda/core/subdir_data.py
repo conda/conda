@@ -27,6 +27,7 @@ from conda.gateways.repodata import (
     RepodataState,
     RepoInterface,
     cache_fn_url,
+    create_cache_dir,
     get_repo_interface,
 )
 
@@ -39,10 +40,8 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
-from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
 from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
-from ..gateways.disk import mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
@@ -606,9 +605,3 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         raw_repodata_str = None
 
     return raw_repodata_str
-
-
-def create_cache_dir():
-    cache_dir = join(PackageCacheData.first_writable().pkgs_dir, "cache")
-    mkdir_p_sudo_safe(cache_dir)
-    return cache_dir

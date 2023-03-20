@@ -361,3 +361,32 @@ def test_repodata_fetch_formats(
     assert a == json.loads(c)
 
     assert isinstance(state, RepodataState)
+
+
+def test_repodata_fetch_formats_2(
+    package_server: socket,
+    tmp_path: Path,
+):
+    """
+    Test that RepodataFetch can convert json to str, for coverage. Should we
+    have this feature?
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    class ReturnsDictInterface(RepodataFetch):
+        def whatever_subdir_data_used_to_do(self):
+            return {}, None
+
+    # we always check for *and create* a writable cache dir before fetch
+    cache_path_base = tmp_path / "fetch_formats" / "xyzzy"
+    cache_path_base.parent.mkdir(exist_ok=True)
+
+    channel = Channel(channel_url)
+    fetch = ReturnsDictInterface(
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
+    )
+    c, _ = fetch.fetch_latest_str()
+    assert isinstance(c, str)
+    assert c == "{}"
