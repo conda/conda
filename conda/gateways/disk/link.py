@@ -25,7 +25,6 @@ try:
 
     lchmod = os_lchmod
 except ImportError:  # pragma: no cover
-
     def lchmod(path, mode):
         # On systems that don't allow permissions on symbolic links, skip
         # links entirely.

@@ -28,9 +28,9 @@ from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.testing.helpers import CHANNEL_DIR
 from conda.testing.integration import make_temp_package_cache
 
-assert CHANNEL_DIR == abspath(
-    join(dirname(__file__), "..", "data", "conda_format_repo")
-)
+import conda.core.package_cache
+
+assert CHANNEL_DIR == abspath(join(dirname(__file__), "..", "data", "conda_format_repo"))
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)
 
 subdir = "win-64"
