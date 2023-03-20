@@ -78,7 +78,7 @@ test:
 about:
   home: https://conda.io
   license: BSD-3-Clause
-  license_file: LICENSE.txt
+  license_file: LICENSE
   summary: OS-agnostic, system-level binary package and environment manager.
   description: >
     Conda is an open source package management system and environment
