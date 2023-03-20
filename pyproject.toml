@@ -51,6 +51,9 @@ conda = "conda.cli.main_pip:main"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.build]
+include = ["conda", "conda_env"]
+
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/__version__.py"
 
