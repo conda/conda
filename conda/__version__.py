@@ -13,16 +13,13 @@ from subprocess import run, CalledProcessError
 
 from .common.compat import on_win
 
-if on_win:
-    release = f"{date.today():%y.%#m}.0"
-else:
-    release = f"{date.today():%y.%-m}.0"
-
+release = f"{date.today():%y.%#m}.0" if on_win else f"{date.today():%y.%-m}.0"
 dev = "0"
 commit = "nogit"
 dirty = ""
-with suppress(CalledProcessError, ValueError):
-    # CalledProcessError: git isn't installed, or an older git is installed
+with suppress(FileNotFoundError, CalledProcessError, ValueError):
+    # FileNotFoundError: git isn't installed
+    # CalledProcessError: got an error while running git
     # ValueError: unable to split describe string
     path = Path(__file__).parent
 
