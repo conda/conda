@@ -9,6 +9,7 @@ from argparse import (
     SUPPRESS,
     Action,
     _StoreAction,
+    _SubParsersAction,
     _CountAction,
     _HelpAction,
     Namespace,
@@ -19,6 +20,7 @@ from os.path import abspath, expanduser, join
 from subprocess import Popen
 import sys
 from textwrap import dedent
+from typing import Any
 import warnings
 
 from .. import __version__
@@ -44,6 +46,7 @@ BUILTIN_COMMANDS = {
     "compare",
     "config",
     "create",
+    "env",
     "info",
     "init",
     "install",
@@ -90,6 +93,7 @@ def generate_parser():
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
+    configure_parser_env(sub_parsers)
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
@@ -105,7 +109,7 @@ def generate_parser():
     return p
 
 
-def do_call(args, parser):
+def do_call(args: Namespace, parser: ArgumentParser) -> Any:
     """
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
@@ -1537,6 +1541,379 @@ def configure_parser_rename(sub_parsers) -> None:
         default=False,
     )
     p.set_defaults(func=".main_rename.execute")
+
+def configure_parser_env(parent: _SubParsersAction) -> None:
+    description = "Conda environment tools"
+    example = ""
+
+    parser = parent.add_parser(
+        "env",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+
+    subparsers = parser.add_subparsers()
+    configure_parser_env_create(subparsers)
+    configure_parser_env_export(subparsers)
+    configure_parser_env_list(subparsers)
+    configure_parser_env_remove(subparsers)
+    configure_parser_env_update(subparsers)
+    configure_parser_env_config(subparsers)
+
+    parser.set_defaults(func=".main_env.execute")
+
+
+def configure_parser_env_config(parent: _SubParsersAction) -> None:
+    description = "Configure a conda environment"
+    example = dals(
+        """
+        examples:
+            conda env config vars list
+            conda env config --append channels conda-forge
+        """
+    )
+
+    parser = parent.add_parser(
+        "config",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    subparsers = parser.add_subparsers()
+    configure_parser_env_config_vars(subparsers)
+
+    parser.set_defaults(func=".main_env_config.execute")
+
+
+def configure_parser_env_config_vars(parent: _SubParsersAction) -> None:
+    description = "Interact with environment variables associated with Conda environments"
+    example = dals(
+        """
+        examples:
+            conda env config vars list -n my_env
+            conda env config vars set MY_VAR=something OTHER_THING=ohhhhya
+            conda env config vars unset MY_VAR
+        """
+    )
+
+    parser = parent.add_parser(
+        "vars",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    subparsers = parser.add_subparsers()
+    configure_parser_env_config_vars_list(subparsers)
+    configure_parser_env_config_vars_set(subparsers)
+    configure_parser_env_config_vars_unset(subparsers)
+
+    parser.set_defaults(func=".main_env_config_vars.execute")
+
+
+def configure_parser_env_config_vars_list(parent: _SubParsersAction) -> None:
+    description = "List environment variables for a conda environment"
+    example = dals(
+        """
+        examples:
+            conda env config vars list -n my_env
+        """
+    )
+
+    parser = parent.add_parser(
+        "list",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    add_parser_prefix(parser)
+    add_parser_json(parser)
+    parser.set_defaults(func=".main_env_config_vars_list.execute")
+
+
+def configure_parser_env_config_vars_set(parent: _SubParsersAction) -> None:
+    description = "Set environment variables for a conda environment"
+    example = dals(
+        """
+        example:
+            conda env config vars set MY_VAR=weee
+        """
+    )
+
+    parser = parent.add_parser(
+        "set",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    parser.add_argument(
+        "vars",
+        action="store",
+        nargs="*",
+        help="Environment variables to set in the form <KEY>=<VALUE> separated by spaces",
+    )
+    add_parser_prefix(parser)
+    parser.set_defaults(func=".main_env_config_vars_set.execute")
+
+
+def configure_parser_env_config_vars_unset(parent: _SubParsersAction) -> None:
+    description = "Unset environment variables for a conda environment"
+    example = dals(
+        """
+        example:
+            conda env config vars unset MY_VAR
+        """
+    )
+
+    parser = parent.add_parser(
+        "unset",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    parser.add_argument(
+        "vars",
+        action="store",
+        nargs="*",
+        help="Environment variables to unset in the form <KEY> separated by spaces",
+    )
+    add_parser_prefix(parser)
+    parser.set_defaults(func=".main_env_config_vars_unset.execute")
+
+
+def configure_parser_env_create(parent: _SubParsersAction) -> None:
+    description = dals(
+        """
+        Create an environment based on an environment definition file.
+
+        If using an environment.yml file (the default), you can name the
+        environment in the first line of the file with 'name: envname' or
+        you can specify the environment name in the CLI command using the
+        -n/--name argument. The name specified in the CLI will override
+        the name specified in the environment.yml file.
+
+        Unless you are in the directory containing the environment definition
+        file, use -f to specify the file path of the environment definition
+        file you want to use.
+        """
+    )
+    example = dals(
+        """
+        examples:
+            conda env create
+            conda env create -n envname
+            conda env create folder/envname
+            conda env create -f /path/to/environment.yml
+            conda env create -f /path/to/requirements.txt -n envname
+            conda env create -f /path/to/requirements.txt -p /home/user/envname
+        """
+    )
+
+    parser = parent.add_parser(
+        "create",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    parser.add_argument(
+        "-f",
+        "--file",
+        action="store",
+        help="Environment definition file (default: environment.yml)",
+        default="environment.yml",
+    )
+
+    # Add name and prefix args
+    add_parser_prefix(parser)
+
+    # Add networking args
+    add_parser_networking(parser)
+
+    parser.add_argument(
+        "remote_definition",
+        help="Remote environment definition / IPython notebook",
+        action="store",
+        default=None,
+        nargs="?",
+    )
+    parser.add_argument(
+        "--force",
+        help=(
+            "Force creation of environment (removing a previously-existing "
+            "environment of the same name)."
+        ),
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-d",
+        "--dry-run",
+        help="Only display what can be done with the current command, arguments, "
+        "and other flags. Remove this flag to actually run the command.",
+        action="store_true",
+        default=False,
+    )
+    add_parser_default_packages(parser)
+    add_parser_json(parser)
+    add_parser_solver(parser)
+    parser.set_defaults(func=".main_env_create.execute")
+
+
+def configure_parser_env_export(parent: _SubParsersAction) -> None:
+    description = "Export a given environment"
+    example = dals(
+        """
+        examples:
+            conda env export
+            conda env export --file SOME_FILE
+        """
+    )
+
+    parser = parent.add_parser(
+        "export",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+
+    parser.add_argument(
+        "-c", "--channel", action="append", help="Additional channel to include in the export"
+    )
+
+    parser.add_argument(
+        "--override-channels",
+        action="store_true",
+        help="Do not include .condarc channels",
+    )
+    add_parser_prefix(parser)
+
+    parser.add_argument("-f", "--file", default=None, required=False)
+
+    parser.add_argument(
+        "--no-builds",
+        default=False,
+        action="store_true",
+        required=False,
+        help="Remove build specification from dependencies",
+    )
+
+    parser.add_argument(
+        "--ignore-channels",
+        default=False,
+        action="store_true",
+        required=False,
+        help="Do not include channel names with package names.",
+    )
+    add_parser_json(parser)
+
+    parser.add_argument(
+        "--from-history",
+        default=False,
+        action="store_true",
+        required=False,
+        help="Build environment spec from explicit specs in history",
+    )
+    parser.set_defaults(func=".main_env_export.execute")
+
+
+def configure_parser_env_list(parent: _SubParsersAction) -> None:
+    description = "List the Conda environments"
+    example = dals(
+        """
+        examples:
+            conda env list
+            conda env list --json
+        """
+    )
+
+    parser = parent.add_parser(
+        "list",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+
+    add_parser_json(parser)
+
+    parser.set_defaults(func=".main_env_list.execute")
+
+
+def configure_parser_env_remove(parent: _SubParsersAction) -> None:
+    help = "Remove an environment"
+    description = dals(
+        f"""
+        {help}
+
+        Removes a provided environment.  You must deactivate the existing
+        environment before you can remove it.
+        """
+    )
+    example = dals(
+        """
+        Examples:
+
+            conda env remove --name FOO
+            conda env remove -n FOO
+        """
+    )
+
+    parser = parent.add_parser(
+        "remove",
+        description=description,
+        help=help,
+        epilog=example,
+    )
+
+    add_parser_prefix(parser)
+    add_parser_solver(parser)
+    add_output_and_prompt_options(parser)
+
+    parser.set_defaults(func=".main_env_remove.execute")
+
+
+def configure_parser_env_update(parent: _SubParsersAction) -> None:
+    description = "Update the current environment based on environment file"
+    example = dals(
+        """
+        examples:
+            conda env update
+            conda env update -n=foo
+            conda env update -f=/path/to/environment.yml
+            conda env update --name=foo --file=environment.yml
+            conda env update vader/deathstar
+        """
+    )
+
+    parser = parent.add_parser(
+        "update",
+        description=description,
+        help=description,
+        epilog=example,
+    )
+    add_parser_prefix(parser)
+    parser.add_argument(
+        "-f",
+        "--file",
+        action="store",
+        help="environment definition (default: environment.yml)",
+        default="environment.yml",
+    )
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        default=False,
+        help="remove installed packages not defined in environment.yml",
+    )
+    parser.add_argument(
+        "remote_definition",
+        help="remote environment definition / IPython notebook",
+        action="store",
+        default=None,
+        nargs="?",
+    )
+    add_parser_json(parser)
+    add_parser_solver(parser)
+    parser.set_defaults(func=".main_env_update.execute")
 
 
 # #############################################################################################
