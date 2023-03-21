@@ -4,7 +4,7 @@
 
 The logic here is used during development installs only so keep it simple. Since conda
 abides by CEP-8, which outlines using CalVer, our development version is simply:
-    YY.MM.0.devN[+dirty]
+    YY.MM.MICRO.devN+gHASH[.dirty]
 """
 from setuptools_scm import get_version
 
