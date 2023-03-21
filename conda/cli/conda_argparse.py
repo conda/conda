@@ -9,6 +9,7 @@ from argparse import (
     SUPPRESS,
     Action,
     _StoreAction,
+    _StoreTrueAction,
     _CountAction,
     _HelpAction,
     Namespace,
@@ -1504,20 +1505,14 @@ def configure_parser_rename(sub_parsers) -> None:
     )
     # Add name and prefix args
     add_parser_prefix(p)
+    add_output_and_prompt_options(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
     p.add_argument(
         "--force",
-        help="Force rename of an environment.",
-        action="store_true",
-        default=False,
-    )
-    p.add_argument(
-        "-d",
-        "--dry-run",
-        help="Only display what would have been done by the current command, arguments, "
-             "and other flags.",
-        action="store_true",
+        dest="yes",
+        help="DEPRECATED. Use `--yes` instead.",
+        action=deprecated.action("23.9", "24.3", _StoreTrueAction, addendum="Use --yes instead."),
         default=False,
     )
     p.set_defaults(func=".main_rename.execute")

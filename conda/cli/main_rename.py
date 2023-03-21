@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import partial
 import os
 
+from .common import confirm_yn
 from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..base.constants import DRY_RUN_PREFIX
 from ..cli import common, install
@@ -30,17 +31,19 @@ def validate_src(name: str | None, prefix: str | None) -> str:
     return locate_prefix_by_name(prefix)
 
 
-def validate_destination(dest: str, force: bool = False) -> str:
+def validate_destination(dest: str, yes: bool, dry_run: bool) -> str:
     """Ensure that our destination does not exist"""
     if os.sep in dest:
         dest = expand(dest)
     else:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
 
-    if not force and os.path.exists(dest):
+    if not (yes or dry_run) and os.path.exists(dest):
         env_name = os.path.basename(os.path.normpath(dest))
-        raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --force."
+        confirm_yn(
+            f"WARNING: The environment {env_name!r} already exists. Remove existing environment",
+            default="no",
+            dry_run=False,
         )
     return dest
 
@@ -50,7 +53,7 @@ def execute(args, _):
     Executes the command for renaming an existing environment
     """
     source = validate_src(args.name, args.prefix)
-    destination = validate_destination(args.destination, force=args.force)
+    destination = validate_destination(args.destination, yes=args.yes, dry_run=args.dry_run)
 
     def clone_and_remove():
         actions: tuple[partial, ...] = (
@@ -61,11 +64,11 @@ def execute(args, _):
         # We now either run collected actions or print dry run statement
         for func in actions:
             if args.dry_run:
-                print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
+                print(f"{DRY_RUN_PREFIX} {func.func.__name__} {', '.join(func.args)}")
             else:
                 func()
 
-    if args.force:
+    if args.yes:
         with rename_context(destination, dry_run=args.dry_run):
             clone_and_remove()
     else:
