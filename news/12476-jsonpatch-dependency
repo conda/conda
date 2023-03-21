@@ -17,4 +17,4 @@
 ### Other
 
 * Add `jsonpatch` dependency to support `--experimental=jlap` feature.
-* Update `pytest`, `coverage` test dependencies.
+* Update `pytest-cov`, `coverage` test dependencies.
