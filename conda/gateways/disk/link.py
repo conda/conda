@@ -21,7 +21,7 @@ PYPY = sys.implementation.name == 'pypy'
 try:
     from os import lchmod as os_lchmod
     lchmod = os_lchmod
-except ImportError:
+except ImportError:  # pragma: no cover
     def lchmod(path, mode):
         # On systems that don't allow permissions on symbolic links, skip
         # links entirely.

@@ -5,7 +5,7 @@ from logging import getLogger
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from .enums import NoarchType

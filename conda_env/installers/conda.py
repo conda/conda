@@ -6,7 +6,7 @@ from os.path import basename
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.base.constants import UpdateModifier

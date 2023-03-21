@@ -46,9 +46,10 @@ def touch(file_name, times=None):
     try:
         with open(file_name, 'a'):
             os.utime(file_name, times)
-    except OSError as e:
-        log.warn("Failed to create lock, do not run conda in parallel processes [errno %d]",
-                 e.errno)
+    except OSError as e:  # pragma: no cover
+        log.warn(
+            "Failed to create lock, do not run conda in parallel processes [errno %d]", e.errno
+        )
 
 
 class FileLock:
@@ -120,7 +121,7 @@ class DirectoryLock(FileLock):  # lgtm [py/missing-call-to-init]
             try:
                 os.makedirs(self.directory_path)
                 log.debug("forced to create %s", self.directory_path)
-            except OSError as e:
+            except OSError as e:  # pragma: no cover
                 log.warn("Failed to create directory %s [errno %d]", self.directory_path, e.errno)
 
 
