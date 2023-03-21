@@ -12,12 +12,16 @@ from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
     add_parser_prefix, add_parser_networking, add_parser_solver
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.notices import notices
 from conda.misc import touch_nonadmin
 from .common import print_result, get_filename
 from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_create` instead.")
 
 description = """
 Create an environment based on an environment definition file.

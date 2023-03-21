@@ -5,6 +5,10 @@ from argparse import RawDescriptionHelpFormatter
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_json
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.deprecations import deprecated
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_list` instead.")
 
 description = """
 List the Conda environments

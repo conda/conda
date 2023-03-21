@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
 
-
+from conda.deprecations import deprecated
 from .main_vars import configure_parser as configure_vars_parser
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_config` instead.")
 
 config_description = '''
 Configure a conda environment

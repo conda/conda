@@ -8,6 +8,10 @@ from conda.cli.conda_argparse import (
     add_parser_prefix,
     add_parser_solver,
 )
+from conda.deprecations import deprecated
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_remove` instead.")
 
 _help = "Remove an environment"
 _description = _help + """

@@ -7,7 +7,11 @@ from conda.base.context import context, determine_target_prefix
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_prefix, add_parser_json
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import EnvironmentLocationNotFound
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_config_vars*` instead.")
 
 var_description = '''
 Interact with environment variables associated with Conda environments

@@ -9,6 +9,7 @@ import sys
 # we need to import conda.exports here so that the context is not lost
 # when importing pip (and pip_util)
 import conda.exports  # noqa
+from conda.deprecations import deprecated
 from conda.base.context import context
 from conda.cli.conda_argparse import ArgumentParser
 from conda.cli.main import init_loggers
@@ -21,6 +22,9 @@ from . import main_list
 from . import main_remove
 from . import main_update
 from . import main_config
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env` instead.")
 
 
 # TODO: This belongs in a helper library somewhere

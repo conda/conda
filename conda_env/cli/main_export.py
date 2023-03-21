@@ -6,8 +6,11 @@ from argparse import RawDescriptionHelpFormatter
 from conda.base.context import context, determine_target_prefix, env_name
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.cli.common import stdout_json
-
+from conda.deprecations import deprecated
 from ..env import from_environment
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_export` instead.")
 
 description = """
 Export a given environment

@@ -12,13 +12,16 @@ from conda.cli.conda_argparse import (
     add_parser_solver,
 )
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
 from conda.notices import notices
-
 from .common import print_result, get_filename
 from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
+
+
+deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_update` instead.")
 
 description = """
 Update the current environment based on environment file
