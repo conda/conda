@@ -13,6 +13,11 @@ from subprocess import run, CalledProcessError
 
 from .common.compat import on_win
 
+if on_win:
+    release = f"{date.today():%y.%#m}.0"
+else:
+    release = f"{date.today():%y.%-m}.0"
+
 dev = "0"
 commit = "nogit"
 dirty = ""
@@ -47,13 +52,13 @@ with suppress(CalledProcessError, ValueError):
         text=True,
     )
     if response.stdout and not response.stderr:
-        _, dev, _ = response.stdout.strip().split("-", 2)
+        older, dev, _ = response.stdout.strip().split("-", 2)
+
+        if older.startswith(release[:-1]):
+            release = f"{release[:-1]}{int(older.rsplit('.', 1)[1]) + 1}"
 
         if response.stdout.strip().endswith("-dirty"):
             dirty = ".dirty"
 
 
-if on_win:
-    __version__ = f"{date.today():%y.%#m}.0.dev{dev}+{commit}{dirty}"
-else:
-    __version__ = f"{date.today():%y.%-m}.0.dev{dev}+{commit}{dirty}"
+__version__ = f"{release}.dev{dev}+{commit}{dirty}"
