@@ -6,6 +6,7 @@ from os.path import isfile, join
 
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache_data import ProgressiveFetchExtract
+from .deprecations import deprecated
 from .exceptions import CondaFileIOError
 from .gateways.disk.link import islink
 
@@ -42,6 +43,7 @@ ACTION_CODES = (
 )
 
 
+@deprecated("23.9", "24.3", addendum="Unused.")
 def PREFIX_CMD(state, prefix):
     state['prefix'] = prefix
 
