@@ -32,7 +32,7 @@ def get_number_of_missing_files(prefix: str) -> dict[str, int]:
     return {k: len(v) for k, v in packages_with_missing_files.items()}
 
 
-def find_packages_with_missing_files(prefix: str) -> dict[str, list[str]]:
+def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
     """
     Finds packages listed in conda-meta which have missing files
     """

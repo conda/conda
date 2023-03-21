@@ -10,8 +10,6 @@ from ....cli.conda_argparse import add_parser_prefix
 from ....base.context import locate_prefix_by_name, context
 from ....exceptions import CondaError
 
-from . import health_checks
-
 
 def get_parsed_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -55,13 +53,15 @@ def get_prefix(args: argparse.Namespace) -> str:
     if args.prefix:
         return validate_prefix(args.prefix)
 
-    return context.active_prefix
+    # context.active_prefix can return None; always return str
+    return context.active_prefix or ""
 
 
 def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """
-    TODO: docstring
+    Display health checks.
     """
+    from . import health_checks
     if verbose:
         health_checks.display_detailed_health_checks(prefix)
     else:
@@ -70,7 +70,7 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
 
 def execute(argv: list[str]) -> None:
     """
-    TODO: docstring
+    Run conda doctor subcommand.
     """
     args = get_parsed_args(argv)
     prefix = get_prefix(args)
