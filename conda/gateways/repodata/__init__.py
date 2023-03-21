@@ -941,13 +941,9 @@ class RepodataFetch:
             # OSError (locked) may happen here
             # ValueError: Expecting object: line 11750 column 6 (char 303397)
             log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
-            message = dals(
-                """
-            An error occurred when loading cached repodata.  Executing
-            `conda clean --index-cache` will remove cached repodata files
-            so they can be downloaded again.
-            """
-            )
+            message = """An error occurred when loading cached repodata.  Executing
+`conda clean --index-cache` will remove cached repodata files
+so they can be downloaded again."""
             raise CondaError(message)
 
 
