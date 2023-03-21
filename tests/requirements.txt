@@ -3,7 +3,7 @@
 # run as 'conda install --file tests/requirements.txt -c conda-forge'
 anaconda-client
 beautifulsoup4
-boto3 # NOTE: we also need the `minio` server, installed manually in CI
+boto3  # also need the `minio` server, installed manually in CI
 boltons >= 23.0.0
 chardet
 conda
@@ -40,5 +40,6 @@ pytest-xdist
 requests
 responses
 ruamel.yaml
+setuptools_scm  # needed for devenv version detection
 toolz
 tqdm
