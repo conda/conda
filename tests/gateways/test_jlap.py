@@ -29,10 +29,6 @@ from conda.gateways.repodata import (
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
 
-import logging
-
-log = logging.getLogger(__name__)
-
 
 def test_server_available(package_server: socket):
     port = package_server.getsockname()[1]
