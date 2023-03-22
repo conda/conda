@@ -120,7 +120,7 @@ def test_get_major_minor_version_no_dot():
     assert get_major_minor_version("python3") is None
 
     assert get_major_minor_version("3.11.0") == "3.11"
-    assert get_major_minor_version("310") == "3.11"
+    assert get_major_minor_version("311") == "3.11"
     assert get_major_minor_version("bin/python3.11") == "3.11"
     assert get_major_minor_version("lib/python310/site-packages/") == "3.11"
     assert get_major_minor_version("python3") is None
@@ -131,8 +131,8 @@ def test_get_major_minor_version_no_dot():
     assert get_major_minor_version("lib/python34/site-packages/", False) == "34"
     assert get_major_minor_version("python3", False) is None
 
-    assert get_major_minor_version("3.11.0", False) == "310"
-    assert get_major_minor_version("310", False) == "310"
-    assert get_major_minor_version("bin/python3.11", False) == "310"
-    assert get_major_minor_version("lib/python310/site-packages/", False) == "310"
+    assert get_major_minor_version("3.11.0", False) == "311"
+    assert get_major_minor_version("311", False) == "311"
+    assert get_major_minor_version("bin/python3.11", False) == "311"
+    assert get_major_minor_version("lib/python310/site-packages/", False) == "311"
     assert get_major_minor_version("python3", False) is None
