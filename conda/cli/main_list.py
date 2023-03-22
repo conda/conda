@@ -32,19 +32,17 @@ def get_packages(installed, regex):
 def list_packages(prefix, regex=None, format='human', reverse=False,
                   show_channel_urls=None):
     res = 0
-    result = []
 
     installed = sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
                        key=lambda x: x.name)
 
-    pack_list = []
-
+    packages = []
     for prec in get_packages(installed, regex) if regex else installed:
         if format == 'canonical':
-            result.append(prec.dist_fields_dump() if context.json else prec.dist_str())
+            packages.append(prec.dist_fields_dump() if context.json else prec.dist_str())
             continue
-        if format == 'export':
-            result.append('='.join((prec.name, prec.version, prec.build)))
+        if format == "export":
+            packages.append("=".join((prec.name, prec.version, prec.build)))
             continue
 
         features = set(prec.get("features") or ())
@@ -56,17 +54,19 @@ def list_packages(prefix, regex=None, format='human', reverse=False,
                 and schannel != DEFAULTS_CHANNEL_NAME):
             disp += '  %s' % schannel
 
-        pack_list.append(disp)
+        packages.append(disp)
 
     if reverse:
-        result = reversed(pack_list)
-    else:
-        result = pack_list
+        packages = reversed(packages)
 
+    result = []
     if format == 'human':
-        result.insert(0, '# packages in environment at %s:' % prefix)
-        result.insert(1, '#')
-        result.insert(2, '# %-23s %-15s %15s  Channel' % ("Name", "Version", "Build"))
+        result = [
+            "# packages in environment at %s:" % prefix,
+            "#",
+            "# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"),
+        ]
+    result.extend(packages)
 
     return res, result
 
