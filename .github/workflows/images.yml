@@ -49,9 +49,11 @@ jobs:
       matrix:
         python: ['3.8', '3.9', '3.10']
         channel: [defaults]
+        platforms: ['linux/amd64,linux/arm64,linux/ppc64le,linux/s390x']
         include:
           - python: '3.10'  # same as miniforge
             channel: conda-forge
+            platforms: 'linux/amd64,linux/arm64,linux/ppc64le'
     steps:
       - uses: actions/checkout@v3
 
@@ -65,7 +67,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: linux/amd64,linux/arm64,linux/ppc64le
+          platforms: ${{ matrix.platforms }}
 
       - name: Set up Docker Buildx
         id: buildx
@@ -93,5 +95,5 @@ jobs:
             default_channel=${{ matrix.channel }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64,linux/ppc64le
+          platforms: ${{ matrix.platforms }}
           push: ${{ github.ref == 'refs/heads/main' }}
