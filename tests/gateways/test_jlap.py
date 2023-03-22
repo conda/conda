@@ -5,6 +5,7 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
 import datetime
 import json
+import time
 from pathlib import Path
 from socket import socket
 from unittest.mock import Mock
@@ -27,6 +28,10 @@ from conda.gateways.repodata import (
 )
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
+
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def test_server_available(package_server: socket):
@@ -426,6 +431,91 @@ def test_jlap_errors(
             CondaSession, "get", return_value=Mock(status_code=304, headers={})
         ), pytest.raises(Response304ContentUnchanged):
             sd._repo.repodata(cache.load_state())  # type: ignore
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_jlap_cache_clock(
+    package_server: socket, tmp_path: Path, package_repository_base: Path, mocker, use_jlap: bool
+):
+    """
+    Test that we add another "local_repodata_ttl" (an alternative to
+    "cache-control: max-age=x") seconds to the clock once the cache expires,
+    whether the response was "200" or "304 Not Modified".
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    now = time.time_ns()
+
+    # mock current time to avoid waiting for CONDA_LOCAL_REPODATA_TTL
+    mocker.patch("time.time_ns", return_value=now)
+    assert time.time_ns() == now
+
+    local_repodata_ttl = 30
+
+    with env_vars(
+        {
+            "CONDA_PLATFORM": "osx-64",
+            "CONDA_EXPERIMENTAL": "jlap" if use_jlap else "",
+            "CONDA_PKGS_DIRS": str(tmp_path),
+            "CONDA_LOCAL_REPODATA_TTL": local_repodata_ttl,
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears cache, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+        cache = sd.repo_cache
+
+        # normal full-fetch
+        sd.load()
+        assert cache.load_state()["refresh_ns"] == time.time_ns()
+
+        # now try to re-download or use cache
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+        test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
+        test_jlap.terminate()
+        test_jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+        test_jlap.write(test_jlap_path)
+
+        later0 = now + (local_repodata_ttl + 1) * int(1e9)
+        mocker.patch("time.time_ns", return_value=later0)
+
+        assert cache.stale()
+        sd.load()
+
+        later1 = now + (2 * local_repodata_ttl + 2) * int(1e9)
+        mocker.patch("time.time_ns", return_value=later1)
+
+        # force 304 not modified on the .jlap file (test server doesn't return 304
+        # not modified on range requests)
+        with mocker.patch.object(
+            CondaSession, "get", return_value=Mock(status_code=304, headers={})
+        ):
+            assert cache.stale()
+            sd.load()
+
+        assert cache.load_state()["refresh_ns"] == later1
+        assert not cache.stale()
+
+        later2 = now + ((3 * local_repodata_ttl + 3) * int(1e9))
+        mocker.patch("time.time_ns", return_value=later2)
+
+        assert cache.stale()
+        sd.load()
+
+        assert cache.load_state()["refresh_ns"] == later2
+
+        # check that non-expried cache avoids updating refresh_ns.
+        mocker.patch("time.time_ns", return_value=now + ((3 * local_repodata_ttl + 4) * int(1e9)))
+
+        sd.load()
+        assert cache.load_state()["refresh_ns"] == later2
 
 
 def test_jlap_zst_not_404(mocker, package_server, tmp_path):
