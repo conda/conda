@@ -244,7 +244,7 @@ from logging import getLogger
 
 try:
     from boltons.timeutils import isoparse
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.timeutils import isoparse
 
 from . import NULL

@@ -16,7 +16,7 @@ import sys
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from ._vendor.boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
