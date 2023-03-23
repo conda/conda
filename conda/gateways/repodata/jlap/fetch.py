@@ -363,7 +363,7 @@ def request_url_jlap_state(
             apply = find_patches(patches, have, want)
             log.info(
                 f"Apply {len(apply)} patches "
-                "{format_hash(have)} \N{RIGHTWARDS ARROW} {format_hash(want)}"
+                f"{format_hash(have)} \N{RIGHTWARDS ARROW} {format_hash(want)}"
             )
 
             if apply:

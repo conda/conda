@@ -22,7 +22,7 @@ from genericpath import getmtime, isfile
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.gateways.repodata import (
