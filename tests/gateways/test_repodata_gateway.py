@@ -332,10 +332,13 @@ def test_repodata_fetch_formats(
     package_server: socket,
     use_jlap: bool,
     tmp_path: Path,
+    temp_package_cache: Path,
 ):
     """
     Test that repodata fetch can return parsed, str, or Path.
     """
+    assert temp_package_cache.exists()
+
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
