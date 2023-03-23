@@ -111,7 +111,7 @@ jobs:
         with:
           path: minio.exe
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
@@ -323,7 +323,7 @@ jobs:
         with:
           path: minio
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
 
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults
