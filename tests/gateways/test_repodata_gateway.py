@@ -333,11 +333,17 @@ def test_repodata_fetch_formats(
     use_jlap: bool,
     tmp_path: Path,
     temp_package_cache: Path,
+    package_repository_base: Path,
 ):
     """
     Test that repodata fetch can return parsed, str, or Path.
     """
     assert temp_package_cache.exists()
+
+    # Remove leftover test data.
+    jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+    if jlap_path.exists():
+        jlap_path.unlink()
 
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
