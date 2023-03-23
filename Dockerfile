@@ -23,7 +23,7 @@ ARG default_channel=defaults
 
 WORKDIR /tmp
 
-RUN apt-get update && apt-get install -y wget
+RUN apt-get update && apt-get install -y wget curl
 
 COPY dev/linux/install_miniconda.sh /tmp
 RUN bash /tmp/install_miniconda.sh
