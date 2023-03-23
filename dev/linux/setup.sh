@@ -19,7 +19,7 @@ elif [ "${minioarch}" = "x86_64" ]; then
 elif [ "${minioarch}" = "ppc64el" ]; then
     minioarch=ppc64le
 fi
-wget --quiet https://dl.minio.io/server/minio/release/linux-${minioarch}/minio
+curl -sL -o minio https://dl.minio.io/server/minio/release/linux-${minioarch}/archive/minio.RELEASE.2023-03-13T19-46-17Z
 chmod +x minio
 sudo mv minio /usr/local/bin/minio
 

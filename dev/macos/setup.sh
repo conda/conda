@@ -4,7 +4,7 @@ set -ex
 # Download the Minio server, needed for S3 tests
 if [[ ! -f minio ]]
 then
-    curl -LO https://dl.minio.io/server/minio/release/darwin-amd64/minio
+    curl -sL -o minio https://dl.min.io/server/minio/release/darwin-amd64/archive/minio.RELEASE.2023-03-13T19-46-17Z
 fi
 chmod +x minio
 sudo cp minio /usr/local/bin/minio
