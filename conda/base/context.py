@@ -1776,7 +1776,7 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
                 f"""
                 Invalid environment name: {prefix_name!r}
                 Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
-                Note that with an environment path, the `-p` flag should be used instead.
+                If you are specifying a path to an environment, the `-p` flag should be used instead.
                 """
             )
         )
