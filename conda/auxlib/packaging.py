@@ -76,7 +76,14 @@ import sys
 from .compat import shlex_split_unicode
 from ..deprecations import deprecated
 
-deprecated.module("23.9", "24.3", addendum="Upgrade your build system to conform with PEP-517.")
+deprecated.module(
+    "23.9",
+    "24.3",
+    addendum=(
+        "Use a modern build systems instead, see https://packaging.python.org/en/latest/tutorials/"
+        "packaging-projects#creating-pyproject-toml for more details."
+    ),
+)
 
 log = getLogger(__name__)
 
