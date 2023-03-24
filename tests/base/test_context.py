@@ -586,7 +586,7 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         mock_two.side_effect = [mock_return_values[1]]
 
         if isinstance(expected, CondaValueError):
-            with pytest.raises() as exc:
+            with pytest.raises(CondaValueError) as exc:
                 validate_prefix_name(prefix, ctx, allow_base=allow_base)
 
             # We fuzzy match the error message here. Doing this exactly is not important
