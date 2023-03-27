@@ -4,7 +4,11 @@
 import tempfile
 from os.path import basename
 
-from conda._vendor.boltons.setutils import IndexedSet
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:  # pragma: no cover
+    from conda._vendor.boltons.setutils import IndexedSet
+
 from conda.base.constants import UpdateModifier
 from conda.base.context import context
 from conda.common.constants import NULL

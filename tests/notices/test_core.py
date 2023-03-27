@@ -65,7 +65,7 @@ def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_
     def dummy(args, parser):
         print(dummy_mesg)
 
-    dummy_args = DummyArgs()
+    dummy_args = DummyArgs(toves="slithy")
     dummy(dummy_args, None)
 
     captured = capsys.readouterr()

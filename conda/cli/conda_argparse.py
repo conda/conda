@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from argparse import (
     ArgumentParser as ArgumentParserBase,
@@ -10,6 +11,7 @@ from argparse import (
     _StoreAction,
     _CountAction,
     _HelpAction,
+    Namespace,
 )
 from logging import getLogger
 import os
@@ -35,6 +37,26 @@ on_win = bool(sys.platform == "win32")
 user_rc_path = abspath(expanduser('~/.condarc'))
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
+
+#: List of a built-in commands; these cannot be overriden by plugin subcommands
+BUILTIN_COMMANDS = {
+    "clean",
+    "compare",
+    "config",
+    "create",
+    "info",
+    "init",
+    "install",
+    "list",
+    "package",
+    "remove",
+    "rename",
+    "run",
+    "search",
+    "update",
+    "upgrade",
+    "notices",
+}
 
 
 def generate_parser():
@@ -84,6 +106,14 @@ def generate_parser():
 
 
 def do_call(args, parser):
+    """
+    Serves as the primary entry point for commands referred to in this file and for
+    all registered plugin subcommands.
+    """
+    # First, check if this is a plugin subcommand; if this attribute is present then it is
+    if getattr(args, "plugin_subcommand", None):
+        return args.plugin_subcommand.action(sys.argv[2:])
+
     relative_mod, func_name = args.func.rsplit('.', 1)
     # func_name should always be 'execute'
     from importlib import import_module
@@ -158,10 +188,6 @@ class ArgumentParser(ArgumentParserBase):
                         self.print_help()
                         sys.exit(0)
                     else:
-                        # Run the subcommand from plugins
-                        for subcommand in self._subcommands:
-                            if cmd == subcommand.name:
-                                sys.exit(subcommand.action(sys.argv[2:]))
                         # Run the subcommand from executables; legacy path
                         deprecated.topic(
                             "23.3",
@@ -198,6 +224,34 @@ class ArgumentParser(ArgumentParserBase):
                 super()._check_value(action, element)
         else:
             super()._check_value(action, value)
+
+    def parse_args(self, args=None, namespace=None):
+        """
+        We override this method to check if we are running from a known plugin subcommand.
+        If we are, we do not want to handle argument parsing as this is delegated to the plugin
+        subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
+        which is a ``conda.plugins.CondaSubcommand`` object.
+        """
+        plugin_subcommand = None
+
+        if len(sys.argv) > 1:
+            name = sys.argv[1]
+            for subcommand in self._subcommands:
+                if subcommand.name == name:
+                    if name.lower() in BUILTIN_COMMANDS:
+                        error_message = dals(
+                            f"The plugin '{subcommand.name}: {subcommand.summary}' is trying "
+                            f"to override the built-in command {name}, which is not allowed. "
+                            "Please uninstall this plugin to stop seeing this error message"
+                        )
+                        log.error(error_message)
+                    else:
+                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
+
+        if plugin_subcommand is not None:
+            return plugin_subcommand
+
+        return super().parse_args(args, namespace)
 
 
 def _exec(executable_args, env_vars):
@@ -831,7 +885,7 @@ def configure_parser_install(sub_parsers):
 
     Install a specific version of 'python' into an environment, myenv::
 
-        conda install -p path/to/myenv python=3.7.13
+        conda install -p path/to/myenv python=3.10
 
     """)
     p = sub_parsers.add_parser(
@@ -1698,6 +1752,13 @@ def add_parser_channels(p):
               "is added for you automatically. For more information, see "
               "conda config --describe repodata_fns.")
     )
+    channel_customization_options.add_argument(
+        "--experimental",
+        action="append",
+        choices=["jlap", "lock"],
+        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
+        "lock: use locking when reading, updating index (repodata.json) cache. ",
+    )
     return channel_customization_options
 
 
@@ -1819,9 +1880,7 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    solver_choices = [
-        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
-    ]
+    solver_choices = [solver.name for solver in context.plugin_manager.get_hook_results("solvers")]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",

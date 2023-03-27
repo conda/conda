@@ -1,20 +1,26 @@
 # conda
-# run as 'conda install --file tests/requirements.txt -c defaults'
+# run as 'conda install --file tests/requirements.txt -c defaults' or
+# run as 'conda install --file tests/requirements.txt -c conda-forge'
 anaconda-client
 beautifulsoup4
 boto3 # NOTE: we also need the `minio` server, installed manually in CI
+boltons >= 23.0.0
 chardet
 conda
 conda-build >=3.23.3
 conda-forge::pre-commit
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
+conda-forge::werkzeug >=2.2
 conda-forge::xdoctest
 conda-package-handling
 conda-verify
+coverage
 filelock
 flake8
+flask >=2.2
 git
+jsonpatch
 nbformat
 packaging
 perl

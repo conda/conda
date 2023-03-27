@@ -13,7 +13,7 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@v0.3.0
+      - uses: actions/add-to-project@v0.4.1
         with:
           # issues are added to the Planning project
           # PRs are added to the Review project

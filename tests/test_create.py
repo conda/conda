@@ -467,14 +467,14 @@ class IntegrationTests(BaseTestCase):
         # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
         # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
         # We elect to test the more complex of the two options.
-        py_ver = "3.7"
+        py_ver = "3.10"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
             with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
+                check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==1.0.2",
                            cwd=prefix, shell=True)
                 PrefixData._cache_.clear()
                 stdout, stderr, _ = run_command(Commands.LIST, prefix)
@@ -491,15 +491,18 @@ class IntegrationTests(BaseTestCase):
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
 
-        py_ver = "3.7"
+        py_ver = "3.10"
         with make_temp_env("python="+py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
                 evs['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
             with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-                check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
-                           cwd=prefix, shell=True)
+                check_call(
+                    PYTHON_BINARY + " -m pip install flask==1.0.2",
+                    cwd=prefix,
+                    shell=True,
+                )
                 PrefixData._cache_.clear()
                 stdout, stderr, _ = run_command(Commands.LIST, prefix)
                 stdout_lines = stdout.split('\n')
@@ -507,13 +510,13 @@ class IntegrationTests(BaseTestCase):
                            if line.lower().startswith("flask"))
 
                 # regression test for #3433
-                run_command(Commands.INSTALL, prefix, "python=3.5", no_capture=True)
-                assert package_is_installed(prefix, "python=3.5")
+                run_command(Commands.INSTALL, prefix, "python=3.9", no_capture=True)
+                assert package_is_installed(prefix, "python=3.9")
 
                 # regression test for #5847
                 #   when using rm_rf on a file
                 assert prefix in PrefixData._cache_
-                _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
+                _rm_rf(join(prefix, get_python_site_packages_short_path("3.9")), "os.py")
                 assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
@@ -638,11 +641,11 @@ dependencies:
             assert package_is_installed(prefix, 'bzip2')
 
     def test_tarball_install_and_bad_metadata(self):
-        with make_temp_env("python=3.7.2", "flask=1.0.2", "--json") as prefix:
-            assert package_is_installed(prefix, 'flask==1.0.2')
+        with make_temp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
+            assert package_is_installed(prefix, 'flask==1.1.1')
             flask_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask==1.0.2')
+            assert not package_is_installed(prefix, 'flask==1.1.1')
             assert package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
@@ -672,7 +675,7 @@ dependencies:
             # regression test for #2626
             # install tarball with relative path, outside channel
             run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask=1.0.2')
+            assert not package_is_installed(prefix, 'flask=1.1.1')
             tar_new_path = relpath(tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, 'flask=1')
@@ -714,11 +717,11 @@ dependencies:
             assert not package_is_installed(prefix, "python=2.7.12")
 
     def test_pinned_override_with_explicit_spec(self):
-        with make_temp_env("python=3.6") as prefix:
+        with make_temp_env("python=3.9") as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add", "pinned_packages", "python=3.6.5")
-            run_command(Commands.INSTALL, prefix, "python=3.7", no_capture=True)
-            assert package_is_installed(prefix, "python=3.7")
+                        "--add", "pinned_packages", "python=3.9.16")
+            run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
+            assert package_is_installed(prefix, "python=3.10")
 
     def test_remove_all(self):
         with make_temp_env("python") as prefix:
@@ -764,20 +767,21 @@ dependencies:
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.flaky(reruns=2)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
-        with make_temp_env("-c", "conda-forge", "python=3.7", no_capture=True) as prefix:
+        with make_temp_env("-c", "conda-forge", "python=3.10", no_capture=True) as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'conda-forge::python=3.7')
+            assert package_is_installed(prefix, 'conda-forge::python=3.10')
             run_command(Commands.INSTALL, prefix, "decorator")
-            assert package_is_installed(prefix, 'conda-forge::python=3.7')
+            assert package_is_installed(prefix, 'conda-forge::python=3.10')
 
             with make_temp_env('--clone', prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'conda-forge::python=3.7')
+                assert package_is_installed(clone_prefix, 'conda-forge::python=3.10')
                 assert package_is_installed(clone_prefix, "decorator")
 
             # Regression test for #2645
-            fn = glob(join(prefix, 'conda-meta', 'python-3.7*.json'))[-1]
+            fn = glob(join(prefix, 'conda-meta', 'python-3.10*.json'))[-1]
             with open(fn) as f:
                 data = json.load(f)
             for field in ('url', 'channel', 'schannel'):
@@ -788,7 +792,7 @@ dependencies:
             PrefixData._cache_ = {}
 
             with make_temp_env('-c', 'conda-forge', '--clone', prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'python=3.7')
+                assert package_is_installed(clone_prefix, 'python=3.10')
                 assert package_is_installed(clone_prefix, 'decorator')
 
     def test_install_prune_flag(self):
@@ -887,7 +891,14 @@ dependencies:
             result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.1")
             assert package_is_installed(prefix, "jinja2=3.0.1")
-            run_command(Commands.INSTALL, prefix, "flask", "python=3.10", "--update-deps", "--only-deps")
+            run_command(
+                Commands.INSTALL,
+                prefix,
+                "flask",
+                "python",
+                "--update-deps",
+                "--only-deps",
+            )
             result_after = subprocess_call_with_clean_env([python, "--version"])
             assert result_before == result_after
             assert package_is_installed(prefix, "flask=2.0.1")
@@ -1056,7 +1067,7 @@ dependencies:
             else:
                 # We force the use of 'the other' Python on Windows so that Windows
                 # runtime / DLL incompatibilities will be readily apparent.
-                py_ver = "3.7"
+                py_ver = "3.10"
                 packages.append(f"python={py_ver}")
             with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
                 if use_sys_python:
@@ -1417,9 +1428,9 @@ dependencies:
             assert "not-a-real-package" in error
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
-        with make_temp_env("python=3.7", "pip", use_restricted_unicode=False) as prefix:
-            pip_ioo, pip_ioe, _ = run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-            pip_o, pip_e, _ = run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous")
+        with make_temp_env("python=3.10", "pip", use_restricted_unicode=False) as prefix:
+            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
+            run_command(Commands.RUN, prefix, "--dev", "python", "-m", "pip", "install", "itsdangerous")
 
             PrefixData._cache_.clear()
             output, error, _ = run_command(Commands.LIST, prefix)
@@ -1929,7 +1940,8 @@ dependencies:
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix, no_capture=True):
@@ -1951,9 +1963,11 @@ dependencies:
                             del result.headers[header]
                     return result
 
-                SubdirData._cache_.clear()
+                SubdirData.clear_cached_local_channel_data(exclude_file=False)
                 mock_method.side_effect = side_effect
-                stdout, stderr, _ = run_command(Commands.INFO, prefix, "flask", "--json")
+                stdout, stderr, _ = run_command(
+                    Commands.SEARCH, prefix, "flask", "--info", "--json"
+                )
                 assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
@@ -1970,7 +1984,8 @@ dependencies:
 
     def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
-        SubdirData._cache_.clear()
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         try:
             with make_temp_env(use_restricted_unicode=on_win) as prefix:
@@ -2002,7 +2017,7 @@ dependencies:
                         with patch.object(CondaSession, 'get', autospec=True) as mock_method:
                             mock_method.side_effect = side_effect
 
-                            SubdirData._cache_.clear()
+                            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
                             # This first install passes because flask and its dependencies are in the
                             # package cache.
@@ -2018,7 +2033,7 @@ dependencies:
                                 run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
                             assert not package_is_installed(prefix, "pytz")
         finally:
-            SubdirData._cache_.clear()
+            SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
@@ -2054,19 +2069,19 @@ dependencies:
             assert isdir(prefix)
             assert isfile(os.path.join(prefix, 'tempfile.txt'))
             with pytest.raises(DirectoryNotACondaEnvironmentError):
-                run_command(Commands.INSTALL, prefix, "python=3.7.2", "--mkdir")
+                run_command(Commands.INSTALL, prefix, "python", "--mkdir")
 
             run_command(Commands.CREATE, prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.7.2", "--mkdir")
-            assert package_is_installed(prefix, "python=3.7.2")
+            run_command(Commands.INSTALL, prefix, "python", "--mkdir")
+            assert package_is_installed(prefix, "python")
 
             rm_rf(prefix, clean_empty_parents=True)
             assert path_is_clean(prefix)
 
             # this part also a regression test for #4849
-            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.1", "python=3.5.6", "--mkdir", no_capture=True)
-            assert package_is_installed(prefix, "python=3.5.6")
-            assert package_is_installed(prefix, "python-dateutil=2.6.1")
+            run_command(Commands.INSTALL, prefix, "python-dateutil", "python", "--mkdir", no_capture=True)
+            assert package_is_installed(prefix, "python")
+            assert package_is_installed(prefix, "python-dateutil")
 
         finally:
             rm_rf(prefix, clean_empty_parents=True)

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixed errors when renaming without an active env (#11915)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add linux-s390x to multi-arch ci/dev container (#12498)

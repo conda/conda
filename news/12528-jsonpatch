@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Stop using `toolz.dicttoolz.merge` and `toolz.dicttoolz.merge_with`. (#12039)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add `jsonpatch` dependency to support `--experimental=jlap` feature.

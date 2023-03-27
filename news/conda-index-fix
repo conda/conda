@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Restore default argument for `SubdirData` method used by `conda-index`. (#12513)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added documentation on the specifications for ``conda search`` and ``conda install``. (#12304)
+* <news item>
 
 ### Other
 

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from . import http_test_server
+from .fixtures_jlap import package_server, package_repository_base  # NOQA
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -37,7 +38,7 @@ def pre_link_messages_package():
 def clear_cache():
     from conda.core.subdir_data import SubdirData
 
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 @pytest.fixture(scope="session")

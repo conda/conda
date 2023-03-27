@@ -12,6 +12,11 @@ import sys
 import struct
 from contextlib import contextmanager
 
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:  # pragma: no cover
+    from .._vendor.boltons.setutils import IndexedSet
+
 from .constants import (
     APP_NAME,
     ChannelPriority,
@@ -39,7 +44,6 @@ from ..deprecations import deprecated
 from .._vendor.appdirs import user_data_dir
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
-from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from ..common.compat import NoneType, on_win
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
@@ -325,6 +329,7 @@ class Context(Configuration):
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=('verbose', 'verbosity'))
+    experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
     # ######################################################
     # ##               Solver Configuration               ##
@@ -635,10 +640,14 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
-    # This is deprecated, please use conda_exe_vars_dict instead.
+    @deprecated(
+        "23.9",
+        "24.3",
+        addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
+    )
     def conda_exe(self):
-        bin_dir = 'Scripts' if on_win else 'bin'
-        exe = 'conda.exe' if on_win else 'conda'
+        bin_dir = "Scripts" if on_win else "bin"
+        exe = "conda.exe" if on_win else "conda"
         return join(self.conda_prefix, bin_dir, exe)
 
     @property
@@ -957,6 +966,7 @@ class Context(Configuration):
                 "use_only_tar_bz2",
                 "repodata_threads",
                 "fetch_threads",
+                "experimental",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1602,6 +1612,11 @@ class Context(Configuration):
                 to 5. In order to completely suppress channel notices, set this to 0.
                 """
             ),
+            experimental=dals(
+                """
+                List of experimental features to enable.
+                """
+            ),
         )
 
 
@@ -1761,6 +1776,8 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
                 f"""
                 Invalid environment name: {prefix_name!r}
                 Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
+                If you are specifying a path to an environment, the `-p`
+                flag should be used instead.
                 """
             )
         )

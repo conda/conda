@@ -16,4 +16,4 @@
 
 ### Other
 
-* Constrain conda-build to at least >=3.18.3, released 2019-06-20. (#12309)
+* Expose a `MINIO_RELEASE` environment variable to provide a way to pin `minio` versions in CI setup scripts. (#12525)
