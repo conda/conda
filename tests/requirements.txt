@@ -15,6 +15,7 @@ conda-forge::werkzeug >=2.2
 conda-forge::xdoctest
 conda-package-handling
 conda-verify
+coverage
 filelock
 flake8
 flask >=2.2

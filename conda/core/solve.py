@@ -11,7 +11,7 @@ from textwrap import dedent
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.common.iterators import groupby_to_dict as groupby

@@ -22,7 +22,7 @@ from genericpath import getmtime, isfile
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.gateways.repodata import (
@@ -521,7 +521,7 @@ class SubdirData(metaclass=SubdirDataType):
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata, state: RepodataState | None):
+    def _process_raw_repodata(self, repodata, state: RepodataState | None = None):
         if not isinstance(state, RepodataState):
             state = RepodataState(
                 self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state

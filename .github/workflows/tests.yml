@@ -24,6 +24,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+env:
+    # see https://github.com/conda/conda/pull/12524
+    MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
+
 jobs:
   # detect whether any code changes are included in this PR
   changes:
@@ -107,11 +111,11 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: minio.exe
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
@@ -319,11 +323,11 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: minio
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
 
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults

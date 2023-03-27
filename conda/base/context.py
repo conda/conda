@@ -14,7 +14,7 @@ from contextlib import contextmanager
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from .constants import (
@@ -1776,6 +1776,8 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
                 f"""
                 Invalid environment name: {prefix_name!r}
                 Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
+                If you are specifying a path to an environment, the `-p`
+                flag should be used instead.
                 """
             )
         )
