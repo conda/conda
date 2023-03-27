@@ -143,7 +143,7 @@ def execute(args, parser):
     if context.json:
         format = 'canonical'
 
-    exitcode = print_packages(prefix, regex, format, args.reverse, piplist=args.pip,
+    exitcode = print_packages(prefix, regex, format, reverse=args.reverse, piplist=args.pip,
                               json=context.json,
                               show_channel_urls=context.show_channel_urls)
     return exitcode
