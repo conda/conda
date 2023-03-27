@@ -435,7 +435,7 @@ def test_instantiating_package_cache_when_unpacked_conda_exist():
         assert zlib_base_fn in pkgs_dir_files
         assert zlib_conda_fn in pkgs_dir_files
 
-        # PackageRecord should have valid url otherwise query won't find a match
+        # PackageRecord should have valid url otherwise query won't find a match when MatchSpec is an explicit url
         assert pcrec.url == pkg_url
         pcrec_match = tuple(pcd.query(MatchSpec(pkg_url)))
         assert len(pcrec_match) == 1
