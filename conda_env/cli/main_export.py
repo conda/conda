@@ -45,7 +45,8 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-f', '--file',
         default=None,
-        required=False
+        required=False,
+        help="Name of the file to export the environment into.",
     )
 
     p.add_argument(
