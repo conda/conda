@@ -1,41 +1,43 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from logging import getLogger
 from os import lstat, walk
 from os.path import isdir, join
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Iterable
 import sys
 
 from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
 from ..base.context import context
 
 log = getLogger(__name__)
-_EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
+_EXTENSIONS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS))
 
 
-def _get_size(*parts: str, warnings: List[Tuple[str, Exception]]) -> int:
+def _get_size(*parts: str, warnings: list[tuple[str, Exception]]) -> int:
     path = join(*parts)
     try:
         stat = lstat(path)
     except OSError as e:
-        if warnings is None:
-            raise
         warnings.append((path, e))
 
-    # TODO: This doesn't handle packages that have hard links to files within
-    # themselves, like bin/python3.3 and bin/python3.3m in the Python package
-    if stat.st_nlink > 1:
+        # let the user deal with the issue
         raise NotImplementedError
+    else:
+        # TODO: This doesn't handle packages that have hard links to files within
+        # themselves, like bin/python3.3 and bin/python3.3m in the Python package
+        if stat.st_nlink > 1:
+            raise NotImplementedError
 
-    return stat.st_size
+        return stat.st_size
 
 
-def _get_pkgs_dirs(pkg_sizes: Dict[str, Dict[str, int]]) -> Dict[str, Tuple[str]]:
+def _get_pkgs_dirs(pkg_sizes: dict[str, dict[str, int]]) -> dict[str, tuple[str]]:
     return {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()}
 
 
-def _get_total_size(pkg_sizes: Dict[str, Dict[str, int]]) -> int:
+def _get_total_size(pkg_sizes: dict[str, dict[str, int]]) -> int:
     return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
 
 
@@ -55,15 +57,15 @@ def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
         else:
             log.info("%r", e)
 
-def find_tarballs() -> Dict[str, Any]:
-    warnings: List[Tuple[str, Exception]] = []
-    pkg_sizes: Dict[str, Dict[str, int]] = {}
+def find_tarballs() -> dict[str, Any]:
+    warnings: list[tuple[str, Exception]] = []
+    pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # tarballs are files in pkgs_dir
         _, _, tars = next(walk(pkgs_dir))
         for tar in tars:
             # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
-            if not tar.endswith(_EXTS):
+            if not tar.endswith(_EXTENSIONS):
                 continue
 
             # get size
@@ -82,9 +84,9 @@ def find_tarballs() -> Dict[str, Any]:
     }
 
 
-def find_pkgs() -> Dict[str, Any]:
-    warnings: List[Tuple[str, Exception]] = []
-    pkg_sizes: Dict[str, Dict[str, int]] = {}
+def find_pkgs() -> dict[str, Any]:
+    warnings: list[tuple[str, Exception]] = []
+    pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # pkgs are directories in pkgs_dir
         _, pkgs, _ = next(walk(pkgs_dir))
@@ -114,10 +116,10 @@ def find_pkgs() -> Dict[str, Any]:
 
 
 def rm_pkgs(
-    pkgs_dirs: Dict[str, Tuple[str]],
-    warnings: List[Tuple[str, Exception]],
+    pkgs_dirs: dict[str, tuple[str]],
+    warnings: list[tuple[str, Exception]],
     total_size: int,
-    pkg_sizes: Dict[str, Dict[str, int]],
+    pkg_sizes: dict[str, dict[str, int]],
     *,
     verbose: bool,
     verbosity: bool,
@@ -128,8 +130,8 @@ def rm_pkgs(
     from ..utils import human_bytes
 
     if verbose and warnings:
-        for fn, exception in warnings:
-            print(exception)
+        for path, exception in warnings:
+            print(path, exception)
 
     if not any(pkgs for pkgs in pkg_sizes.values()):
         if verbose:
@@ -162,7 +164,7 @@ def rm_pkgs(
             _rm_rf(pkgs_dir, pkg, verbose=verbose, verbosity=verbosity)
 
 
-def find_index_cache() -> List[str]:
+def find_index_cache() -> list[str]:
     files = []
     for pkgs_dir in find_pkgs_dirs():
         # caches are directories in pkgs_dir
@@ -172,13 +174,13 @@ def find_index_cache() -> List[str]:
     return files
 
 
-def find_pkgs_dirs() -> List[str]:
+def find_pkgs_dirs() -> list[str]:
     from ..core.package_cache_data import PackageCacheData
 
     return [pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)]
 
 
-def find_tempfiles(paths: Iterable[str]) -> List[str]:
+def find_tempfiles(paths: Iterable[str]) -> list[str]:
     tempfiles = []
     for path in sorted(set(paths or [sys.prefix])):
         # tempfiles are files in path
@@ -193,7 +195,7 @@ def find_tempfiles(paths: Iterable[str]) -> List[str]:
     return tempfiles
 
 
-def find_logfiles() -> List[str]:
+def find_logfiles() -> list[str]:
     files = []
     for pkgs_dir in find_pkgs_dirs():
         # .logs are directories in pkgs_dir
@@ -209,7 +211,7 @@ def find_logfiles() -> List[str]:
 
 
 def rm_items(
-    items: List[str],
+    items: list[str],
     *,
     verbose: bool,
     verbosity: bool,
