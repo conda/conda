@@ -63,3 +63,10 @@ def main():
     context.__init__(argparse_args=args)
     init_loggers(context)
     return conda_exception_handler(do_call, args, parser)
+
+
+if __name__ == '__main__':
+    from conda.deprecations import deprecated
+
+    deprecated.module("23.9", "24.3", addendum="Use `conda env` instead.")
+    sys.exit(main())
