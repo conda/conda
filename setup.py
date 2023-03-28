@@ -68,9 +68,11 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
+    # explicitly include no-__init__.py conda.gateways.repodata.jlap package
     packages=conda.auxlib.packaging.find_packages(
         exclude=("tests", "tests.*", "build", "utils", ".tox")
-    ),
+    )
+    + ["conda.gateways.repodata.jlap"],
     package_data={
         '': package_files('conda/shell') + ['LICENSE'],
     },
