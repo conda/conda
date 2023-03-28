@@ -307,6 +307,7 @@ Authors are sorted alphabetically.
 * Philippe Ombredanne
 * Pradipta Ghosh
 * Preston Moore
+* Qi Z
 * Rachel Rigdon
 * Rafael de Barros
 * Ralf Gommers
