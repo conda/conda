@@ -1,5 +1,23 @@
 [//]: # (current developments)
 
+## 0.0.1 (2023-03-28)
+
+### Enhancements
+
+* Fix and re-enable binstar tests. Replace custom property caching with `functools.cached_property`. (#12495)
+
+### Bug fixes
+
+* Restore default argument for `SubdirData` method used by `conda-index`. (#12513)
+
+### Other
+
+* Add linux-s390x to multi-arch ci/dev container (#12498)
+* Expose a `MINIO_RELEASE` environment variable to provide a way to pin `minio` versions in CI setup scripts. (#12525)
+* Add `jsonpatch` dependency to support `--experimental=jlap` feature.
+
+
+
 ## 23.3.0 (2023-03-14)
 
 ### Enhancements
