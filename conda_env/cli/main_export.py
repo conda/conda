@@ -46,7 +46,9 @@ def configure_parser(sub_parsers):
         '-f', '--file',
         default=None,
         required=False,
-        help="Name of the file to export the environment to.",
+        help="File name or path for the exported environment. "
+        + "Note that if you want to export your environment to a file named `environment.yml`, "
+        + "an already existing `environment.yml` will be overwritten.",
     )
 
     p.add_argument(
