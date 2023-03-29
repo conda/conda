@@ -9,11 +9,11 @@
 ### Bug fixes
 
 * Restore default argument for `SubdirData` method used by `conda-index`. (#12513)
-* Package `conda.gateways.repodata.jlap` (#12545)
+* Include `conda.gateways.repodata.jlap` submodule in package. (#12545)
 
 ### Other
 
-* Add linux-s390x to multi-arch ci/dev container (#12498)
+* Add linux-s390x to multi-arch ci/dev container. (#12498)
 * Expose a `MINIO_RELEASE` environment variable to provide a way to pin `minio` versions in CI setup scripts. (#12525)
 * Add `jsonpatch` dependency to support `--experimental=jlap` feature. (#12528)
 * Release with a version of rever that does not double-count commits for
