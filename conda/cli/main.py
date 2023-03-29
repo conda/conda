@@ -51,7 +51,7 @@ def init_loggers(context=None):
 
 def generate_parser(*args, **kwargs):
     """
-    Some code paths import this function directly from this module instead 
+    Some code paths import this function directly from this module instead
     of from conda_argparse. We add the forwarder for backwards compatibility.
     """
     from .conda_argparse import generate_parser
