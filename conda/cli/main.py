@@ -31,8 +31,6 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-from .conda_argparse import generate_parser
-
 import sys
 
 
@@ -52,6 +50,9 @@ def init_loggers(context=None):
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
+    # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
+    from .conda_argparse import generate_parser
+
     args = args or ["--help"]
 
     p = generate_parser()
@@ -77,6 +78,7 @@ def main_sourced(shell, *args, **kwargs):
     """Entrypoint for the "sourced" invocation of CLI interface. E.g. `conda activate`."""
     shell = shell.replace("shell.", "", 1)
 
+    # This is called any way later in conda.activate, so no point in removing it
     from ..base.context import context
 
     context.__init__()
@@ -98,7 +100,7 @@ def main_sourced(shell, *args, **kwargs):
 def main(*args, **kwargs):
     # conda.common.compat contains only stdlib imports
     from ..common.compat import ensure_text_type
-    from ..exceptions import conda_exception_handler
+    from ..exception_handler import conda_exception_handler
 
     # cleanup argv
     args = args or sys.argv[1:]  # drop executable/script
