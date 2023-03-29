@@ -152,3 +152,11 @@ def test_topic_remove(deprecated_v3):
     # alerting developer that a module needs to be removed
     with pytest.raises(DeprecatedError):
         deprecated_v3.topic("2.0", "3.0", topic="Some special topic")
+
+
+def test_version_fallback():
+    """
+    Test that conda can run even if deprecations can't parse the version.
+    """
+    handler = DeprecationHandler(object())  # type: ignore
+    assert handler._version.major == handler._version.minor == handler._version.micro == 0
