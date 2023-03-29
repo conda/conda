@@ -8,7 +8,7 @@ import warnings
 
 from packaging.version import parse, Version
 
-from .__version__ import __version__
+from . import __version__
 
 
 class DeprecatedError(RuntimeError):
