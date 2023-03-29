@@ -45,7 +45,12 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-f', '--file',
         default=None,
-        required=False
+        required=False,
+        help=(
+            "File name or path for the exported environment. "
+            "Note: This will silently overwrite any existing file "
+            "of the same name in the current directory."
+        ),
     )
 
     p.add_argument(
