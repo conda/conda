@@ -430,3 +430,36 @@ class TestFromEnvironment(unittest.TestCase):
             assert len(out.to_dict()['dependencies']) == 4
 
             m.assert_called()
+
+
+def get_optional_dependencies_environment():
+    return get_environment('optional_dependencies.yml')
+
+
+class TestOptionalDependencies(unittest.TestCase):
+    def test_only_required(self):
+        env = get_optional_dependencies_environment()
+
+        self.assertEqual(env.dependencies["conda"], ["dep1", "dep2", "pip"])
+        self.assertEqual(env.dependencies["pip"], ["pip1", "pip2"])
+
+    def test_some_optional_dependencies(self):
+        env = get_optional_dependencies_environment()
+        env.enable_optional_dependencies(["test"])
+
+        self.assertEqual(env.dependencies["conda"], ["dep1", "dep2", "pip", "test1", "test2"])
+        self.assertEqual(env.dependencies["pip"], ["pip1", "pip2", "testpip1", "testpip2"])
+
+    def test_some_optional_dependencies2(self):
+        env = get_optional_dependencies_environment()
+        env.enable_optional_dependencies(["lint"])
+
+        self.assertEqual(env.dependencies["conda"], ["dep1", "dep2", "pip", "lint1", "lint2"])
+        self.assertEqual(env.dependencies["pip"], ["pip1", "pip2", "lintpip1", "lintpip2"])
+
+    def test_all_optional_dependencies(self):
+        env = get_optional_dependencies_environment()
+        env.enable_optional_dependencies(enable_all_groups=True)
+
+        self.assertEqual(env.dependencies["conda"], ["dep1", "dep2", "pip", "test1", "test2", "lint1", "lint2"])
+        self.assertEqual(env.dependencies["pip"], ["pip1", "pip2", "testpip1", "testpip2", "lintpip1", "lintpip2"])

@@ -57,3 +57,13 @@ def get_filename(filename):
         return filename
     else:
         return abspath(expanduser(expandvars(filename)))
+
+
+def add_optional_dependency_options(p):
+    p.add_argument(
+        "-E",
+        "--extras",
+        action="store",
+        help="Extra dependency groups to install. Can be used multiple times",
+    )
+    p.add_argument("--all-extras", action="store_true", help="Install all extra dependency groups")

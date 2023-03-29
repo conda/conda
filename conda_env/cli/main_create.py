@@ -15,7 +15,7 @@ from conda.core.prefix_data import PrefixData
 from conda.gateways.disk.delete import rm_rf
 from conda.notices import notices
 from conda.misc import touch_nonadmin
-from .common import print_result, get_filename
+from .common import print_result, get_filename, add_optional_dependency_options
 from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -58,6 +58,7 @@ def configure_parser(sub_parsers):
         help='Environment definition file (default: environment.yml)',
         default='environment.yml',
     )
+    add_optional_dependency_options(p)
 
     # Add name and prefix args
     add_parser_prefix(p)
@@ -101,6 +102,8 @@ def execute(args, parser):
         remote_definition=args.remote_definition,
     )
     env = spec.environment
+
+    env.enable_optional_dependencies(enabled_groups=args.extras, enable_all_groups=args.all_extras)
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254

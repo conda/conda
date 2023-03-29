@@ -16,7 +16,7 @@ from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 
-from .common import print_result, get_filename
+from .common import print_result, get_filename, add_optional_dependency_options
 from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
 
@@ -49,6 +49,7 @@ def configure_parser(sub_parsers):
         help='environment definition (default: environment.yml)',
         default='environment.yml',
     )
+    add_optional_dependency_options(p)
     p.add_argument(
         '--prune',
         action='store_true',
@@ -76,6 +77,7 @@ def execute(args, parser):
         remote_definition=args.remote_definition,
     )
     env = spec.environment
+    env.enable_optional_dependencies(enabled_groups=args.extras, enable_all_groups=args.all_extras)
 
     if not (args.name or args.prefix):
         if not env.name:

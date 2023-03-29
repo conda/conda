@@ -1,0 +1,21 @@
+dependencies:
+  - dep1
+  - dep2
+  - pip
+  - pip:
+    - pip1
+    - pip2
+
+optional_dependencies:
+  test:
+    - test1
+    - test2
+    - pip:
+        - testpip1
+        - testpip2
+  lint:
+    - lint1
+    - lint2
+    - pip:
+        - lintpip1
+        - lintpip2

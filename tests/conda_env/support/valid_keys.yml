@@ -6,3 +6,6 @@ dependencies:
 variables:
   VARIABLE: value
 prefix: /something/miniconda/envs/test
+optional_dependencies:
+  test:
+    - pytest
