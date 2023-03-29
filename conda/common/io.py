@@ -20,8 +20,6 @@ from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
 
-from tqdm import tqdm
-
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
@@ -469,7 +467,7 @@ class ProgressBar:
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
             try:
-                self.pbar = tqdm(
+                self.pbar = self._tqdm(
                     desc=description,
                     bar_format=bar_format,
                     ascii=True,
@@ -518,6 +516,13 @@ class ProgressBar:
                 sys.stdout.flush()
         elif self.enabled:
             self.pbar.close()
+
+    @staticmethod
+    def _tqdm(*args, **kwargs):
+        "Deferred import so it doesn't hit the `conda activate` paths."
+        from tqdm.auto import tqdm
+
+        return tqdm(*args, **kwargs)
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
