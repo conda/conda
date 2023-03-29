@@ -26,7 +26,7 @@ from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.signals import get_signal_name
-from .exception_handler import ExceptionHandler, exception_handler  # noqa: 401
+from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: 401
 
 log = getLogger(__name__)
 
