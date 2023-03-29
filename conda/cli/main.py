@@ -37,6 +37,7 @@ import sys
 def init_loggers(context=None):
     from logging import CRITICAL, getLogger
     from ..gateways.logging import initialize_logging, set_verbosity
+
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
