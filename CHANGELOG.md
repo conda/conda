@@ -16,8 +16,6 @@
 * Add linux-s390x to multi-arch ci/dev container. (#12498)
 * Expose a `MINIO_RELEASE` environment variable to provide a way to pin `minio` versions in CI setup scripts. (#12525)
 * Add `jsonpatch` dependency to support `--experimental=jlap` feature. (#12528)
-* Release with a version of rever that does not double-count commits for
-  aliased committers.
 
 ### Contributors
 
