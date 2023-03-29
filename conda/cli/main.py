@@ -48,6 +48,16 @@ def init_loggers(context=None):
             set_verbosity(context.verbosity)
 
 
+def generate_parser(*args, **kwargs):
+    """
+    Some code paths import this function directly from this module instead 
+    of from conda_argparse. We add the forwarder for backwards compatibility.
+    """
+    from .conda_argparse import generate_parser
+
+    return generate_parser(*args, **kwargs)
+
+
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
