@@ -18,7 +18,7 @@ from ...base.context import context
 from ...common.compat import on_win
 
 if not on_win:
-    from ...common.path import which
+    from shutil import which
 
 
 log = getLogger(__name__)

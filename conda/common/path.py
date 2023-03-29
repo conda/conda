@@ -15,7 +15,6 @@ from urllib.parse import urlsplit
 from .compat import on_win
 from .. import CondaError
 from ..deprecations import deprecated
-from distutils.spawn import find_executable
 
 
 log = getLogger(__name__)
@@ -310,6 +309,8 @@ def win_path_to_unix(path, root_prefix=""):
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
     if not path:
         return ''
+    from shutil import which  # rebind to shutil to avoid triggering the deprecation warning
+
     bash = which('bash')
     if bash:
         cygpath = os.environ.get('CYGPATH', os.path.join(os.path.dirname(bash), 'cygpath.exe'))
@@ -330,7 +331,10 @@ def win_path_to_unix(path, root_prefix=""):
 
 
 def which(executable):
-    return find_executable(executable)
+    """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
+    from shutil import which
+
+    return which(executable)
 
 
 def strip_pkg_extension(path: str):

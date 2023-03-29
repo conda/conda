@@ -7,13 +7,13 @@ from os import environ, pathsep
 from os.path import dirname, join
 from pathlib import Path
 from unittest.mock import patch
+from shutil import which
 
 from conda import utils, CondaError
 from conda.common.path import win_path_to_unix
 from conda.testing.helpers import assert_equals
 
 from conda.activate import CmdExeActivator, PosixActivator
-from conda.common.path import which
 from conda.common.compat import on_win
 
 import pytest

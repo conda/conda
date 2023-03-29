@@ -764,7 +764,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
     # different points in the Windows filesystem.  We do our path conversions with one and
     # expect the results to work with the other.  It does not.
-    from .common.path import which
+    from shutil import which
 
     bash = which("bash")
     command = os.path.join(dirname(bash), "cygpath") if bash else "cygpath"
