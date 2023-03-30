@@ -24,6 +24,8 @@ from .constants import (
     REPODATA_FN,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
+    DEFAULT_CHANNELS_UNIX,
+    DEFAULT_CHANNELS_WIN,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CUSTOM_CHANNELS,
     DEFAULT_SOLVER,
@@ -725,7 +727,15 @@ class Context(Configuration):
     def custom_multichannels(self):
         from ..models.channel import Channel
 
-        default_channels = list(self._default_channels)
+        if (
+            not on_win
+            and self.subdir.startswith("win-")
+            and self._default_channels == DEFAULT_CHANNELS_UNIX
+        ):
+            default_channels = list(DEFAULT_CHANNELS_WIN)
+        else:
+            default_channels = list(self._default_channels)
+
         if self.restore_free_channel:
             default_channels.insert(1, 'https://repo.anaconda.com/pkgs/free')
 
