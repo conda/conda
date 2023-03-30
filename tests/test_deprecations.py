@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from conda.deprecations import DeprecationHandler, DeprecatedError
+from conda.deprecations import DeprecatedError, DeprecationHandler
 
 
 @pytest.fixture(scope="module")

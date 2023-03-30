@@ -1,15 +1,25 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from datetime import datetime
 from json import loads as json_loads
 from os import walk
-from os.path import basename, isdir, join, exists
+from os.path import basename, exists, isdir, join
 from shutil import copy
-from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
+
+from conda.base.constants import (
+    CONDA_LOGS_DIR,
+    CONDA_PACKAGE_EXTENSIONS,
+    CONDA_TEMP_EXTENSIONS,
+)
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.disk.create import mkdir_p
-from conda.testing.integration import make_temp_package_cache, run_command, Commands, make_temp_env
+from conda.testing.integration import (
+    Commands,
+    make_temp_env,
+    make_temp_package_cache,
+    run_command,
+)
+
 
 def _get_pkgs(pkgs_dir):
     _, dirs, _ = next(walk(pkgs_dir))
@@ -18,7 +28,11 @@ def _get_pkgs(pkgs_dir):
 
 def _get_tars(pkgs_dir):
     _, _, files = next(walk(pkgs_dir))
-    return [join(pkgs_dir, file) for file in files if file.endswith(CONDA_PACKAGE_EXTENSIONS)]
+    return [
+        join(pkgs_dir, file)
+        for file in files
+        if file.endswith(CONDA_PACKAGE_EXTENSIONS)
+    ]
 
 
 def _get_index_cache():
@@ -29,7 +43,9 @@ def _get_index_cache():
 
 def _get_tempfiles(pkgs_dir):
     _, _, files = next(walk(pkgs_dir))
-    return [join(pkgs_dir, file) for file in files if file.endswith(CONDA_TEMP_EXTENSIONS)]
+    return [
+        join(pkgs_dir, file) for file in files if file.endswith(CONDA_TEMP_EXTENSIONS)
+    ]
 
 
 def _get_logfiles(pkgs_dir):
@@ -58,7 +74,9 @@ def test_clean_force_pkgs_dirs(clear_cache):
         assert isdir(pkgs_dir)
 
         with make_temp_env(pkg):
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--force-pkgs-dirs", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--force-pkgs-dirs", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # pkgs_dir is removed
@@ -81,14 +99,18 @@ def test_clean_and_packages(clear_cache):
             assert_any_pkg(pkg, _get_pkgs(pkgs_dir))
 
             # --json flag is regression test for #5451
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--packages", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
             assert_any_pkg(pkg, _get_pkgs(pkgs_dir))
 
             run_command(Commands.REMOVE, prefix, pkg, "--yes", "--json")
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--packages", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # pkg is removed
@@ -111,7 +133,9 @@ def test_clean_tarballs(clear_cache):
             assert_any_pkg(pkg, _get_tars(pkgs_dir))
 
             # --json flag is regression test for #5451
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--tarballs", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--tarballs", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # tarball is removed
@@ -133,7 +157,9 @@ def test_clean_index_cache(clear_cache):
             # index cache exists
             assert _get_index_cache()
 
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--index-cache", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--index-cache", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # index cache is cleared
@@ -208,7 +234,9 @@ def test_clean_logfiles(clear_cache):
             assert path in _get_logfiles(pkgs_dir)
 
             # --json flag is regression test for #5451
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--logfiles", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--logfiles", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # logfiles removed
@@ -248,7 +276,9 @@ def test_clean_all(clear_cache):
             assert not cache
 
             run_command(Commands.REMOVE, prefix, pkg, "--yes", "--json")
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--packages", "--yes", "--json"
+            )
             json_loads(stdout)  # assert valid json
 
             # pkg is removed
