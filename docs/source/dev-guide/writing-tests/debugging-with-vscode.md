@@ -10,7 +10,7 @@ This is one way to debug conda's unit tests using
     > If `code` is not available, press `⌘-P`, `Shell` to find the `Install
     > 'code' command in PATH` action.
 3. Ensure you have installed the `Python` extension.
-4. Open settings (the gear icon in the lower left corner). Go to `Open Settings
+4. Open Settings (the gear icon in the lower left corner). Go to `Open Settings
    (JSON)` (the paper icon with an arrow on it, above the settings editor).
 5. Conda's tests really want to run under the under-develoment version of conda,
    and may refuse to run at all otherwise. Add or edit `"python.condaPath":
@@ -20,10 +20,11 @@ This is one way to debug conda's unit tests using
     > /Users/dholth/prog/conda/devenv/Darwin/arm64/envs/devenv-3.10-c`, plus
     > `/bin/conda`, so the full setting is `"python.condaPath":
     > "/Users/dholth/prog/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/bin/conda",`
-6. Press the Erlenmeyer flask "Testing" icon in the VSCode toolbar. Click on
-   `Refresh Tests`. You should see a long list of tests.
-7. Press 'Run Test', or 'Debug Test' for the test(s) you would like to examine.
-8. Remember to comment out `// "python.condaPath":` with `//` when you are not
+6. Press the Erlenmeyer flask 'Testing' icon in the VSCode toolbar. If necessary, click 'Configure Tests', then choose "pytest" as your framework and "Root directory" as your test directory.
+    > To reconfigure your tests, use the Command Palette to search for "Python: Configure Tests".
+7. Click on 'Refresh Tests' at the top of the Testing editor. You should see a long list of tests.
+8. Press 'Run Test', or 'Debug Test' for the test(s) you would like to examine.
+9. Remember to comment out `// "python.condaPath":` with `//` when you are not
    debugging conda; normal `VSCode` usage should run the normal `conda`.
 
 See also [VSCode's documentation for its Python
