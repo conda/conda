@@ -11,6 +11,7 @@ from ..base.context import context
 from ..common.io import CaptureTarget, argv, captured
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
+from ..gateways.subprocess import subprocess_call
 
 log = getLogger(__name__)
 
@@ -97,25 +98,24 @@ def run_command(command, *arguments, **kwargs):
     is_run = arguments[0] == 'run'
     if is_run:
         cap_args = (None, None)
+        resp = subprocess_call(" ".join("conda", *arguments))
+        stdout = resp.stdout
+        stderr = resp.stderr
+        result = resp.rc
     else:
         cap_args = (stdout, stderr)
-    try:
-        with argv(['python_api'] + encode_arguments(arguments)), captured(*cap_args) as c:
-            if use_exception_handler:
-                result = conda_exception_handler(do_call, args, p)
-            else:
-                result = do_call(args, p)
-        if is_run:
-            stdout = result.stdout
-            stderr = result.stderr
-            result = result.rc
-        else:
+        try:
+            with argv(["python_api"] + encode_arguments(arguments)), captured(*cap_args) as c:
+                if use_exception_handler:
+                    result = conda_exception_handler(do_call, args, p)
+                else:
+                    result = do_call(args, p)
             stdout = c.stdout
             stderr = c.stderr
-    except Exception as e:
-        log.debug("\n  stdout: %s\n  stderr: %s", stdout, stderr)
-        e.stdout, e.stderr = stdout, stderr
-        raise e
+        except Exception as e:
+            log.debug("\n  stdout: %s\n  stderr: %s", stdout, stderr)
+            e.stdout, e.stderr = stdout, stderr
+            raise e
     return_code = result or 0
     log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", stdout, stderr, return_code)
     return stdout, stderr, return_code

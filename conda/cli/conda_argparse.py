@@ -1270,9 +1270,8 @@ def configure_parser_run(sub_parsers):
     p.add_argument(
         "--no-capture-output",
         "--live-stream",
-        action="store_true",
-        help="Don't capture stdout/stderr (standard out/standard error).",
-        default=False,
+        action=DeprecatedAction,
+        help="DEPRECATED. I/O is no longer captured.",
     )
 
     p.add_argument(

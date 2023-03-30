@@ -27,6 +27,7 @@ from ..core.subdir_data import SubdirData, make_feature_record
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..gateways.logging import initialize_logging
+from ..gateways.subprocess import subprocess_call
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord
@@ -132,6 +133,8 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     if command.startswith("conda env"):
         command = command.replace("env", "")  # Remove 'env' because of command parser
         main_func = conda_env_cli.main
+    elif command.startswith("conda run"):
+        raise ValueError("'conda run' must be tested in a subprocess")
     else:
         main_func = cli.main
 
@@ -145,6 +148,24 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     print(c.stderr, file=sys.stderr)
     print(c.stdout)
     return c.stdout, c.stderr, exit_code
+
+
+def run_subprocess_conda_command(command, disallow_stderr: bool = True):
+
+    reset_context(())
+
+    if command.startswith("conda "):
+        command = "python -m " + command
+
+    with captured(disallow_stderr) as c:
+        initialize_logging()
+        try:
+            response = subprocess_call(command=command, raise_on_error=False, capture_output=False)
+        except SystemExit:
+            pass
+    print(c.stderr, file=sys.stderr)
+    print(c.stdout)
+    return c.stdout, c.stderr, response.rc
 
 
 def add_subdir(dist_string):
