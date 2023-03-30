@@ -1,9 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import os
 import sys
 from functools import lru_cache, partial
 from logging import getLogger
-import os
 
 from .common.compat import ensure_text_type, on_win
 
