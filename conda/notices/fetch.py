@@ -1,15 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Sequence, Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import requests
 
 from ..common.io import Spinner
 from ..gateways.connection.session import CondaSession
-
 from .cache import cached_response
 from .types import ChannelNoticeResponse
 
@@ -17,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_notice_responses(
-    url_and_names: Sequence[Tuple[str, str]], silent: bool = False, max_workers: int = 10
+    url_and_names: Sequence[Tuple[str, str]],
+    silent: bool = False,
+    max_workers: int = 10,
 ) -> Sequence[ChannelNoticeResponse]:
     """
     Provided a list of channel notification url/name tuples, return a sequence of
@@ -55,7 +55,9 @@ def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeRe
     """
     session = CondaSession()
     try:
-        resp = session.get(url, allow_redirects=False, timeout=5)  # timeout: connect, read
+        resp = session.get(
+            url, allow_redirects=False, timeout=5
+        )  # timeout: connect, read
     except requests.exceptions.Timeout:
         logger.info(f"Request timed out for channel: {name} url: {url}")
         return

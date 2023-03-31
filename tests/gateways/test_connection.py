@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
 from logging import getLogger
 from pathlib import Path
 from unittest import TestCase
@@ -18,7 +16,7 @@ from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_tok
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.gateways.fixtures import MINIO_EXE
-from conda.testing.integration import make_temp_env, env_var
+from conda.testing.integration import env_var, make_temp_env
 
 log = getLogger(__name__)
 
@@ -96,7 +94,9 @@ def test_s3_server(minio_s3_server):
         Config(signature_version="s3v4"),  # config
     )
     with pytest.raises(CondaExitZero):
-        with patch.object(boto3.session.Session.resource, "__defaults__", patched_defaults):
+        with patch.object(
+            boto3.session.Session.resource, "__defaults__", patched_defaults
+        ):
             # the .conda files in this repo are somehow corrupted
             with env_var("CONDA_USE_ONLY_TAR_BZ2", "True"):
                 with make_temp_env(
