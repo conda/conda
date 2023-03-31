@@ -40,6 +40,7 @@ LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 ZSTD_UNAVAILABLE = "zstd_unavailable"
 
+
 def hash():
     """
     Ordinary hash.
@@ -255,9 +256,13 @@ def download_and_hash(
 
 
 def request_url_jlap_state(
-    url, state: RepodataState, get_place=get_place, full_download=False, *, session: Session
+    url,
+    state: RepodataState,
+    get_place=get_place,
+    full_download=False,
+    *,
+    session: Session,
 ) -> dict | None:
-
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
 

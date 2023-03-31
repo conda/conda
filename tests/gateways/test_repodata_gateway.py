@@ -144,7 +144,9 @@ def test_coverage_repodata_state(tmp_path):
 
     # assert invalid state is equal to no state
     state = RepodataState(
-        tmp_path / "garbage.json", tmp_path / f"garbage{CACHE_STATE_SUFFIX}", "repodata.json"
+        tmp_path / "garbage.json",
+        tmp_path / f"garbage{CACHE_STATE_SUFFIX}",
+        "repodata.json",
     )
     state.cache_path_state.write_text("not json")
     assert dict(state.load()) == {}
@@ -360,7 +362,9 @@ def test_repodata_fetch_formats(
 
     channel = Channel(channel_url)
 
-    fetch = RepodataFetch(cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls)
+    fetch = RepodataFetch(
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
+    )
 
     a, state = fetch.fetch_latest_parsed()
     b, state = fetch.fetch_latest_path()

@@ -18,8 +18,8 @@ from contextlib import contextmanager
 from os.path import dirname
 from pathlib import Path
 from typing import Any
-from conda import CondaError
 
+from conda import CondaError
 from conda.auxlib.logz import stringify
 from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
@@ -396,7 +396,12 @@ class RepodataState(UserDict):
             ):
                 # clear mod, etag, cache_control to encourage re-download
                 state.update(
-                    {ETAG_KEY: "", LAST_MODIFIED_KEY: "", CACHE_CONTROL_KEY: "", "size": 0}
+                    {
+                        ETAG_KEY: "",
+                        LAST_MODIFIED_KEY: "",
+                        CACHE_CONTROL_KEY: "",
+                        "size": 0,
+                    }
                 )
             self.update(state)  # allow all fields
         except (json.JSONDecodeError, OSError):
@@ -590,7 +595,12 @@ class RepodataCache:
             ):
                 # clear mod, etag, cache_control to encourage re-download
                 state.update(
-                    {ETAG_KEY: "", LAST_MODIFIED_KEY: "", CACHE_CONTROL_KEY: "", "size": 0}
+                    {
+                        ETAG_KEY: "",
+                        LAST_MODIFIED_KEY: "",
+                        CACHE_CONTROL_KEY: "",
+                        "size": 0,
+                    }
                 )
             self.state.clear()
             self.state.update(
@@ -729,7 +739,12 @@ class RepodataFetch:
     repo_interface_cls: Any
 
     def __init__(
-        self, cache_path_base: Path, channel: Channel, repodata_fn: str, *, repo_interface_cls
+        self,
+        cache_path_base: Path,
+        channel: Channel,
+        repodata_fn: str,
+        *,
+        repo_interface_cls,
     ):
         self.cache_path_base = cache_path_base
         self.channel = channel
@@ -782,7 +797,9 @@ class RepodataFetch:
     @property
     def cache_path_json(self):
         return Path(
-            str(self.cache_path_base) + ("1" if context.use_only_tar_bz2 else "") + ".json"
+            str(self.cache_path_base)
+            + ("1" if context.use_only_tar_bz2 else "")
+            + ".json"
         )
 
     @property
@@ -820,7 +837,9 @@ class RepodataFetch:
         # it and fall back to this on error?
         if not cache.cache_path_json.exists():
             log.debug(
-                "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
+                "No local cache found for %s at %s",
+                self.url_w_repodata_fn,
+                self.cache_path_json,
             )
             if context.use_index_cache or (
                 context.offline and not self.url_w_subdir.startswith("file://")
@@ -847,7 +866,9 @@ class RepodataFetch:
                 return _internal_state
 
             stale = cache.stale()
-            if (not stale or context.offline) and not self.url_w_subdir.startswith("file://"):
+            if (not stale or context.offline) and not self.url_w_subdir.startswith(
+                "file://"
+            ):
                 timeout = cache.timeout()
                 log.debug(
                     "Using cached repodata for %s at %s. Timeout in %d sec",
@@ -859,7 +880,9 @@ class RepodataFetch:
                 return _internal_state
 
             log.debug(
-                "Local cache timed out for %s at %s", self.url_w_repodata_fn, self.cache_path_json
+                "Local cache timed out for %s at %s",
+                self.url_w_repodata_fn,
+                self.cache_path_json,
             )
 
         try:
@@ -930,7 +953,11 @@ class RepodataFetch:
         """
 
         # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
+        log.debug(
+            "Loading raw json for %s at %s",
+            self.url_w_repodata_fn,
+            self.cache_path_json,
+        )
 
         cache = self.repo_cache
 

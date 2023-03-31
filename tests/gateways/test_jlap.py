@@ -195,7 +195,14 @@ def test_repodata_state(
 
         # not all required depending on server response, but our test server
         # will include them
-        for field in (LAST_MODIFIED_KEY, ETAG_KEY, CACHE_CONTROL_KEY, URL_KEY, "size", "mtime_ns"):
+        for field in (
+            LAST_MODIFIED_KEY,
+            ETAG_KEY,
+            CACHE_CONTROL_KEY,
+            URL_KEY,
+            "size",
+            "mtime_ns",
+        ):
             assert field in state
             assert f"_{field}" not in state
 
