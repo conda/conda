@@ -41,7 +41,10 @@ def conda_ensure_sys_python_is_base_env_python():
     # So lets just sys.exit on that.
 
     if "CONDA_PYTHON_EXE" in os.environ:
-        if Path(os.environ["CONDA_PYTHON_EXE"]).resolve() != Path(sys.executable).resolve():
+        if (
+            Path(os.environ["CONDA_PYTHON_EXE"]).resolve()
+            != Path(sys.executable).resolve()
+        ):
             warnings.warn(
                 "ERROR :: Running tests from a non-base Python interpreter. "
                 " Tests requires installing menuinst and that causes stderr "
@@ -56,9 +59,10 @@ def conda_ensure_sys_python_is_base_env_python():
 
 
 def conda_move_to_front_of_PATH():
-    if 'CONDA_PREFIX' in os.environ:
+    if "CONDA_PREFIX" in os.environ:
         from conda.activate import CmdExeActivator, PosixActivator
-        if os.name == 'nt':
+
+        if os.name == "nt":
             activator_cls = CmdExeActivator
         else:
             activator_cls = PosixActivator
@@ -77,17 +81,17 @@ def conda_move_to_front_of_PATH():
         # cannot be used multiple times; it will only remove *one* conda
         # prefix from the *original* value of PATH, calling it N times will
         # just return the same value every time, even if you update PATH.
-        p = activator._remove_prefix_from_path(os.environ['CONDA_PREFIX'])
+        p = activator._remove_prefix_from_path(os.environ["CONDA_PREFIX"])
 
         # Replace any non sys.prefix condabin with sys.prefix condabin
         new_p = []
         found_condabin = False
         for pe in p:
-            if pe.endswith('condabin'):
+            if pe.endswith("condabin"):
                 if not found_condabin:
                     found_condabin = True
-                    if join(sys.prefix, 'condabin') != pe:
-                        condabin_path = join(sys.prefix, 'condabin')
+                    if join(sys.prefix, "condabin") != pe:
+                        condabin_path = join(sys.prefix, "condabin")
                         print(f"Incorrect condabin, swapping {pe} to {condabin_path}")
                         new_p.append(condabin_path)
                     else:
@@ -97,12 +101,12 @@ def conda_move_to_front_of_PATH():
 
         new_path = os.pathsep.join(new_p)
         new_path = encode_for_env_var(new_path)
-        os.environ['PATH'] = new_path
+        os.environ["PATH"] = new_path
         activator = activator_cls()
-        p = activator._add_prefix_to_path(os.environ['CONDA_PREFIX'])
+        p = activator._add_prefix_to_path(os.environ["CONDA_PREFIX"])
         new_path = os.pathsep.join(p)
         new_path = encode_for_env_var(new_path)
-        os.environ['PATH'] = new_path
+        os.environ["PATH"] = new_path
 
 
 def conda_check_versions_aligned():
@@ -115,20 +119,22 @@ def conda_check_versions_aligned():
     # it if it disagrees.
 
     import conda
-    version_file = normpath(join(dirname(conda.__file__), '.version'))
+
+    version_file = normpath(join(dirname(conda.__file__), ".version"))
     if isfile(version_file):
         version_from_file = open(version_file).read().split("\n")[0]
     else:
         version_from_file = None
 
-    git_exe = 'git.exe' if sys.platform == 'win32' else 'git'
+    git_exe = "git.exe" if sys.platform == "win32" else "git"
     version_from_git = None
-    for pe in os.environ.get('PATH', '').split(os.pathsep):
+    for pe in os.environ.get("PATH", "").split(os.pathsep):
         if isfile(join(pe, git_exe)):
             try:
-                cmd = join(pe, git_exe) + ' describe --tags --long'
-                version_from_git = check_output(cmd).decode('utf-8').split('\n')[0]
+                cmd = join(pe, git_exe) + " describe --tags --long"
+                version_from_git = check_output(cmd).decode("utf-8").split("\n")[0]
                 from conda.auxlib.packaging import _get_version_from_git_tag
+
                 version_from_git = _get_version_from_git_tag(version_from_git)
                 break
             except:
@@ -137,7 +143,9 @@ def conda_check_versions_aligned():
         print("WARNING :: Could not check versions.")
 
     if version_from_git and version_from_git != version_from_file:
-        print("WARNING :: conda/.version ({}) and git describe ({}) "
-              "disagree, rewriting .version".format(version_from_git, version_from_file))
-        with open(version_file, 'w') as fh:
+        print(
+            "WARNING :: conda/.version ({}) and git describe ({}) "
+            "disagree, rewriting .version".format(version_from_git, version_from_file)
+        )
+        with open(version_file, "w") as fh:
             fh.write(version_from_git)

@@ -23,7 +23,12 @@ from conda.exceptions import (
     ProxyError,
     UnavailableInvalidChannel,
 )
-from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
 from conda.gateways.repodata import (
     RepodataCache,
     RepodataIsEmpty,
@@ -82,7 +87,9 @@ def test_stale(tmp_path):
 
     cache.load()
     assert not cache.stale()
-    assert 29 < cache.timeout() < 30.1  # time difference between record and save timestamp
+    assert (
+        29 < cache.timeout() < 30.1
+    )  # time difference between record and save timestamp
 
     # backdate
     cache.state["refresh_ns"] = time.time_ns() - (60 * 10**9)  # type: ignore
@@ -133,13 +140,20 @@ def test_coverage_repodata_state(tmp_path):
     assert dict(state.load()) == {}
 
 
-from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
 from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 
 def test_repodata_state_has_format():
     # wrong has_zst format
-    state = RepodataState("", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}})
+    state = RepodataState(
+        "", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}}
+    )
     value, dt = state.has_format("zst")
     assert value is False
     assert isinstance(dt, datetime.datetime)

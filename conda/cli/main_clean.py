@@ -2,17 +2,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import sys
 from logging import getLogger
 from os import lstat, walk
 from os.path import isdir, join
 from typing import Any, Iterable
-import sys
 
-from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_TEMP_EXTENSIONS, CONDA_LOGS_DIR
+from ..base.constants import (
+    CONDA_LOGS_DIR,
+    CONDA_PACKAGE_EXTENSIONS,
+    CONDA_TEMP_EXTENSIONS,
+)
 from ..base.context import context
 
 log = getLogger(__name__)
-_EXTENSIONS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS))
+_EXTENSIONS = (
+    *CONDA_PACKAGE_EXTENSIONS,
+    *(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS),
+)
 
 
 def _get_size(*parts: str, warnings: list[tuple[str, Exception]]) -> int:
@@ -56,6 +63,7 @@ def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
             print(f"WARNING: cannot remove, file permissions: {path}\n{e!r}")
         else:
             log.info("%r", e)
+
 
 def find_tarballs() -> dict[str, Any]:
     warnings: list[tuple[str, Exception]] = []
@@ -126,8 +134,8 @@ def rm_pkgs(
     dry_run: bool,
     name: str,
 ) -> None:
-    from .common import confirm_yn
     from ..utils import human_bytes
+    from .common import confirm_yn
 
     if verbose and warnings:
         for path, exception in warnings:
@@ -177,7 +185,9 @@ def find_index_cache() -> list[str]:
 def find_pkgs_dirs() -> list[str]:
     from ..core.package_cache_data import PackageCacheData
 
-    return [pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)]
+    return [
+        pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)
+    ]
 
 
 def find_tempfiles(paths: Iterable[str]) -> list[str]:
@@ -269,7 +279,9 @@ def _execute(args, parser):
     ):
         from ..exceptions import ArgumentError
 
-        raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
+        raise ArgumentError(
+            "At least one removal target must be given. See 'conda clean --help'."
+        )
 
     if args.tarballs or args.all:
         json_result["tarballs"] = tars = find_tarballs()
@@ -297,6 +309,7 @@ def _execute(args, parser):
 
 def execute(args, parser):
     from .common import stdout_json
+
     json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)

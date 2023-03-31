@@ -1,10 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from binstar_client.errors import NotFound
 from pytest_mock import MockerFixture
 
-from binstar_client.errors import NotFound
-from conda_env.specs.binstar import BinstarSpec
 from conda_env.env import Environment
+from conda_env.specs.binstar import BinstarSpec
 
 
 def test_name_not_present():
@@ -28,7 +28,9 @@ def test_package_not_exist(mocker: MockerFixture):
     mocker.patch(
         "conda_env.specs.binstar.BinstarSpec.binstar",
         new_callable=mocker.PropertyMock,
-        return_value=mocker.MagicMock(package=mocker.MagicMock(side_effect=NotFound("msg"))),
+        return_value=mocker.MagicMock(
+            package=mocker.MagicMock(side_effect=NotFound("msg"))
+        ),
     )
 
     spec = BinstarSpec("darth/no-exist")
@@ -41,7 +43,9 @@ def test_package_without_environment_file(mocker: MockerFixture):
     mocker.patch(
         "conda_env.specs.binstar.BinstarSpec.binstar",
         new_callable=mocker.PropertyMock,
-        return_value=mocker.MagicMock(package=mocker.MagicMock(return_value={"files": []})),
+        return_value=mocker.MagicMock(
+            package=mocker.MagicMock(return_value={"files": []})
+        ),
     )
 
     spec = BinstarSpec("darth/no-env-file")
@@ -57,7 +61,9 @@ def test_download_environment(mocker: MockerFixture):
         return_value=mocker.MagicMock(
             package=mocker.MagicMock(
                 return_value={
-                    "files": [{"type": "env", "version": "1", "basename": "environment.yml"}],
+                    "files": [
+                        {"type": "env", "version": "1", "basename": "environment.yml"}
+                    ],
                 },
             ),
             download=mocker.MagicMock(return_value=mocker.MagicMock(text="name: env")),
@@ -80,9 +86,21 @@ def test_environment_version_sorting(mocker: MockerFixture):
             package=mocker.MagicMock(
                 return_value={
                     "files": [
-                        {"type": "env", "version": "0.1.1", "basename": "environment.yml"},
-                        {"type": "env", "version": "0.1a.2", "basename": "environment.yml"},
-                        {"type": "env", "version": "0.2.0", "basename": "environment.yml"},
+                        {
+                            "type": "env",
+                            "version": "0.1.1",
+                            "basename": "environment.yml",
+                        },
+                        {
+                            "type": "env",
+                            "version": "0.1a.2",
+                            "basename": "environment.yml",
+                        },
+                        {
+                            "type": "env",
+                            "version": "0.2.0",
+                            "basename": "environment.yml",
+                        },
                     ],
                 },
             ),
