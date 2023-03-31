@@ -1,14 +1,15 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = [
+  "hatchling >=1.12.2",
+  "hatch-vcs >=0.2.0",
+]
 build-backend = "hatchling.build"
 
 [project]
 name = "conda"
 description = "OS-agnostic, system-level binary package manager."
 readme = "README.md"
-authors = [
-  {name = "Anaconda, Inc.", email = "conda@continuum.io"}
-]
+authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
 license = {file = "LICENSE"}
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -37,11 +38,9 @@ dependencies = [
   "pluggy >=1.0.0",
   "tqdm >=4",
   "boltons >=23.0.0",
-  "jsonpatch",
+  "jsonpatch >=1.32",
 ]
-dynamic = [
-  "version"
-]
+dynamic = ["version"]
 
 [project.urls]
 homepage = "https://github.com/conda/conda"

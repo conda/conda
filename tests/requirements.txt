@@ -4,7 +4,7 @@
 anaconda-client
 beautifulsoup4
 boto3  # also need the `minio` server, installed manually in CI
-boltons >= 23.0.0
+boltons >=23.0.0
 chardet
 conda
 conda-build >=3.23.3
@@ -20,15 +20,15 @@ filelock
 flake8
 flask >=2.2
 git
-jsonpatch
+jsonpatch >=1.32
 nbformat
 packaging
 perl
 pexpect
 pip
-pluggy
+pluggy >=1.0.0
 pkginfo
-pycosat
+pycosat >=0.6.3
 pycrypto
 pyflakes
 pytest
@@ -37,9 +37,9 @@ pytest-mock
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
-requests
+requests >=2.18.4,<3
 responses
-ruamel.yaml
+ruamel.yaml >=0.11.14,<0.18
 setuptools_scm  # needed for devenv version detection
-toolz
-tqdm
+toolz >=0.8.1
+tqdm >=4
