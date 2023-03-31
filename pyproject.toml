@@ -43,7 +43,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-homepage = "https://github.com/conda/conda"
+documentation = "https://docs.conda.io/projects/conda/en/stable/"
+repository = "https://github.com/conda/conda"
+changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
