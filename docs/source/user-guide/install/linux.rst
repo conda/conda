@@ -45,11 +45,11 @@ Using with fish shell
 To use conda with fish shell, run the following in your terminal:
 
  #. Add conda binary to $PATH, if not yet added::
- 
+
       fish_add_path path/to/condabin
- 
+
  #. Configure fish-shell::
- 
+
       conda init fish
 
 Installing in silent mode
