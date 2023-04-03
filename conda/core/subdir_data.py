@@ -705,7 +705,7 @@ def read_mod_and_etag(path):
             raise
 
 
-def get_cache_control_max_age(cache_control_value):
+def get_cache_control_max_age(cache_control_value: str):
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
 
