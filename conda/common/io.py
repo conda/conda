@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import json
 import logging
 import os
@@ -63,7 +62,9 @@ if boolify(os.environ.get("CONDA_TIMED_LOGGING")):
         "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
     )
 else:
-    _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+    _FORMATTER = Formatter(
+        "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
+    )
 
 
 def dashlist(iterable, indent=2):
@@ -118,7 +119,6 @@ class CaptureTarget(Enum):
 
 @contextmanager
 def env_vars(var_map=None, callback=None, stack_callback=None):
-
     if var_map is None:
         var_map = {}
 
@@ -180,6 +180,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         CapturedText: has attributes stdout, stderr which are either strings, None or the
             corresponding file-like function argument.
     """
+
     # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
     # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
     # """
@@ -299,7 +300,12 @@ def disable_logger(logger_name):
 @contextmanager
 def stderr_log_level(level, logger_name=None):
     logr = getLogger(logger_name)
-    _hndlrs, _lvl, _dsbld, _prpgt = logr.handlers, logr.level, logr.disabled, logr.propagate
+    _hndlrs, _lvl, _dsbld, _prpgt = (
+        logr.handlers,
+        logr.level,
+        logr.disabled,
+        logr.propagate,
+    )
     handler = StreamHandler(sys.stderr)
     handler.name = "stderr"
     handler.setLevel(level)
@@ -317,7 +323,9 @@ def stderr_log_level(level, logger_name=None):
             logr.propagate = _prpgt
 
 
-def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatter=None):
+def attach_stderr_handler(
+    level=WARN, logger_name=None, propagate=False, formatter=None
+):
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
@@ -393,7 +401,9 @@ class Spinner:
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.show_spin = (
+            enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        )
         self.fail_message = fail_message
 
     def start(self):
@@ -448,7 +458,9 @@ class ProgressBar:
             cls._lock = RLock()
         return cls._lock
 
-    def __init__(self, description, enabled=True, json=False, position=None, leave=True):
+    def __init__(
+        self, description, enabled=True, json=False, position=None, leave=True
+    ):
         """
         Args:
             description (str):
@@ -513,7 +525,8 @@ class ProgressBar:
         if self.enabled and self.json:
             with self.get_lock():
                 sys.stdout.write(
-                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0' % self.description
+                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                    % self.description
                 )
                 sys.stdout.flush()
         elif self.enabled:
@@ -596,7 +609,9 @@ as_completed = as_completed
 
 def get_instrumentation_record_file():
     default_record_file = join("~", ".conda", "instrumentation-record.csv")
-    return expand(os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file))
+    return expand(
+        os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file)
+    )
 
 
 class time_recorder(ContextDecorator):  # pragma: no cover

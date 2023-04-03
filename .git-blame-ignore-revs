@@ -9,3 +9,6 @@
 
 # pyupgrade generated (#11909)
 fc92ea3353cce71df24fac31ce333ec9f8cf7ba7
+
+# black & isort auto format (#12554)
+7679aed18153056f140e56da98011e27ebf4feb1

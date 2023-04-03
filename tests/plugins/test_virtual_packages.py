@@ -119,7 +119,8 @@ def test_subdir_override():
             virtual = [p for p in packages if p.channel.name == "@"]
             assert any(p.name == expected for p in virtual)
             assert not any(
-                (p.name in platform_virtual_packages and p.name != expected) for p in virtual
+                (p.name in platform_virtual_packages and p.name != expected)
+                for p in virtual
             )
 
 

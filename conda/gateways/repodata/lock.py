@@ -59,7 +59,9 @@ except ImportError:
                 for attempt in range(LOCK_ATTEMPTS):
                     try:
                         # msvcrt locking does something similar
-                        fcntl.lockf(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE)
+                        fcntl.lockf(
+                            self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE
+                        )
                         break
                     except OSError:
                         if attempt > LOCK_ATTEMPTS - 2:
