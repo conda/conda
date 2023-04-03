@@ -60,10 +60,7 @@ setup(
         'test': auxlib.Tox,
     },
 )
-
-
 """
-
 from collections import namedtuple
 from distutils.command.build_py import build_py
 from distutils.command.sdist import sdist
@@ -73,9 +70,20 @@ from logging import getLogger
 from os import getenv, listdir, remove
 from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
-from conda.auxlib.compat import shlex_split_unicode
 from subprocess import CalledProcessError, PIPE, Popen
 import sys
+
+from .compat import shlex_split_unicode
+from ..deprecations import deprecated
+
+deprecated.module(
+    "23.9",
+    "24.3",
+    addendum=(
+        "Use a modern build systems instead, see https://packaging.python.org/en/latest/tutorials/"
+        "packaging-projects#creating-pyproject-toml for more details."
+    ),
+)
 
 log = getLogger(__name__)
 
