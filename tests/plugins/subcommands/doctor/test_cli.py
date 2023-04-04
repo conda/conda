@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 
-from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.plugins.subcommands.doctor.health_checks import MISSING_FILES_SUCCESS_MESSAGE
-
+from conda.testing.helpers import run_inprocess_conda_command as run
 
 TEST_ENV_1 = "test-env-1"
 

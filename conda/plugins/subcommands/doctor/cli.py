@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from ... import CondaSubcommand, hookimpl
+from ....base.context import context, locate_prefix_by_name
 from ....cli.conda_argparse import add_parser_prefix
-from ....base.context import locate_prefix_by_name, context
 from ....exceptions import CondaError
+from ... import CondaSubcommand, hookimpl
 
 
 def get_parsed_args(argv: list[str]) -> argparse.Namespace:
@@ -62,6 +62,7 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
     Display health checks.
     """
     from . import health_checks
+
     if verbose:
         health_checks.display_detailed_health_checks(prefix)
     else:

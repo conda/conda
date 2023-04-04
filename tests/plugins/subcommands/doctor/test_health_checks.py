@@ -15,7 +15,9 @@ TEST_PACKAGE_JSON = "test-package.json"
 
 PACKAGE_JSON = {"files": [BIN_TEST_EXE, LIB_TEST_PACKAGE]}
 
-PACKAGE_JSON_WITH_MISSING_FILES = {"files": [BIN_TEST_EXE, LIB_TEST_PACKAGE, "missing.py"]}
+PACKAGE_JSON_WITH_MISSING_FILES = {
+    "files": [BIN_TEST_EXE, LIB_TEST_PACKAGE, "missing.py"]
+}
 
 
 @pytest.fixture
@@ -49,7 +51,9 @@ def test_find_packages_with_no_missing_files(conda_mock_dir):  # XXX
 
 
 def test_find_packages_with_missing_files(conda_mock_dir_missing_files):
-    result = health_checks.find_packages_with_missing_files(conda_mock_dir_missing_files)
+    result = health_checks.find_packages_with_missing_files(
+        conda_mock_dir_missing_files
+    )
     TEST_PACKAGE_JSON = "test-package"
     assert result == {TEST_PACKAGE_JSON: [BIN_TEST_EXE]}
 
@@ -66,7 +70,9 @@ def test_get_number_of_missing_files_when_no_missing_files(conda_mock_dir):
 
 
 def test_get_names_of_missing_files(conda_mock_dir_missing_files):
-    result = health_checks.find_packages_with_missing_files(conda_mock_dir_missing_files)
+    result = health_checks.find_packages_with_missing_files(
+        conda_mock_dir_missing_files
+    )
     TEST_PACKAGE_JSON = "test-package"
     assert result == {TEST_PACKAGE_JSON: [BIN_TEST_EXE]}
 
