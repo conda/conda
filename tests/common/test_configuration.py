@@ -1,36 +1,35 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+from os import environ, mkdir
+from os.path import join
+from shutil import rmtree
+from tempfile import mkdtemp
+from unittest import TestCase
 
 import pytest
-from conda.common.io import env_var, env_vars
+from pytest import raises
 
 from conda.auxlib.ish import dals
 from conda.common.configuration import (
     Configuration,
     ConfigurationObject,
+    CustomValidationError,
+    InvalidTypeError,
+    MapParameter,
     MultiValidationError,
     ObjectParameter,
     ParameterFlag,
     ParameterLoader,
     PrimitiveParameter,
-    MapParameter,
     SequenceParameter,
+    ValidationError,
     YamlRawParameter,
     load_file_configs,
-    InvalidTypeError,
-    CustomValidationError,
     pretty_list,
     raise_errors,
 )
+from conda.common.io import env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
-from conda.common.configuration import ValidationError
-from os import environ, mkdir
-from os.path import join
-from pytest import raises
-from shutil import rmtree
-from tempfile import mkdtemp
-from unittest import TestCase
 
 test_yaml_raw = {
     "file1": dals(
@@ -275,21 +274,31 @@ class SampleConfiguration(Configuration):
         aliases=("always_yes_altname1", "yes", "always_yes_altname2"),
     )
     changeps1 = ParameterLoader(PrimitiveParameter(True))
-    proxy_servers = ParameterLoader(MapParameter(PrimitiveParameter("", element_type=str)))
+    proxy_servers = ParameterLoader(
+        MapParameter(PrimitiveParameter("", element_type=str))
+    )
     channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("channels_altname",),
     )
 
     always_an_int = ParameterLoader(PrimitiveParameter(0))
-    boolean_map = ParameterLoader(MapParameter(PrimitiveParameter(False, element_type=bool)))
+    boolean_map = ParameterLoader(
+        MapParameter(PrimitiveParameter(False, element_type=bool))
+    )
     commented_map = ParameterLoader(MapParameter(PrimitiveParameter("", str)))
 
-    env_var_map = ParameterLoader(MapParameter(PrimitiveParameter("", str)), expandvars=True)
+    env_var_map = ParameterLoader(
+        MapParameter(PrimitiveParameter("", str)), expandvars=True
+    )
     env_var_str = ParameterLoader(PrimitiveParameter(""), expandvars=True)
-    env_var_bool = ParameterLoader(PrimitiveParameter(False, element_type=bool), expandvars=True)
+    env_var_bool = ParameterLoader(
+        PrimitiveParameter(False, element_type=bool), expandvars=True
+    )
     normal_str = ParameterLoader(PrimitiveParameter(""), expandvars=False)
-    env_var_list = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)), expandvars=True)
+    env_var_list = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", str)), expandvars=True
+    )
 
     nested_map = ParameterLoader(
         MapParameter(SequenceParameter(PrimitiveParameter("", element_type=str)))
@@ -303,20 +312,26 @@ class SampleConfiguration(Configuration):
 
 def load_from_string_data(*seq):
     return {
-        f: YamlRawParameter.make_raw_parameters(f, yaml_round_trip_load(test_yaml_raw[f]))
+        f: YamlRawParameter.make_raw_parameters(
+            f, yaml_round_trip_load(test_yaml_raw[f])
+        )
         for f in seq
     }
 
 
 class ConfigurationTests(TestCase):
     def test_simple_merges_and_caching(self):
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("file1", "file2"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("file1", "file2")
+        )
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.channels == ("porky", "bugs", "elmer", "daffy", "tweety")
         assert config.proxy_servers == {"http": "marv", "https": "sam", "s3": "pepé"}
 
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("file2", "file1"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("file2", "file1")
+        )
         assert len(config._cache_) == 0
         assert config.changeps1 is False
         assert len(config._cache_) == 1
@@ -440,7 +455,9 @@ class ConfigurationTests(TestCase):
             assert not_a_file not in raw_data
             assert raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
             assert raw_data[f1]["always_yes"].value(None) == "no"
-            assert raw_data[f2]["proxy_servers"].value(None)["http"].value(None) == "marv"
+            assert (
+                raw_data[f2]["proxy_servers"].value(None)["http"].value(None) == "marv"
+            )
 
             config = SampleConfiguration(search_path)
 
@@ -466,14 +483,34 @@ class ConfigurationTests(TestCase):
         config = SampleConfiguration()._set_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
-        assert config.channels == ("wile", "porky", "bugs", "elmer", "daffy", "foghorn", "tweety")
-        assert config.proxy_servers == {"http": "foghorn", "https": "sam", "s3": "porky"}
+        assert config.channels == (
+            "wile",
+            "porky",
+            "bugs",
+            "elmer",
+            "daffy",
+            "foghorn",
+            "tweety",
+        )
+        assert config.proxy_servers == {
+            "http": "foghorn",
+            "https": "sam",
+            "s3": "porky",
+        }
 
         raw_data = load_from_string_data("file3", "file2", "file1")
         config = SampleConfiguration()._set_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
-        assert config.channels == ("wile", "bugs", "daffy", "tweety", "porky", "elmer", "foghorn")
+        assert config.channels == (
+            "wile",
+            "bugs",
+            "daffy",
+            "tweety",
+            "porky",
+            "elmer",
+            "foghorn",
+        )
         assert config.proxy_servers == {"http": "foghorn", "https": "sly", "s3": "pepé"}
 
         raw_data = load_from_string_data("file4", "file3", "file1")
@@ -492,7 +529,11 @@ class ConfigurationTests(TestCase):
         config = SampleConfiguration()._set_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
-        assert config.proxy_servers == {"https": "daffy", "http": "foghorn", "s3": "porky"}
+        assert config.proxy_servers == {
+            "https": "daffy",
+            "http": "foghorn",
+            "s3": "porky",
+        }
 
         raw_data = load_from_string_data("file3", "file1")
         config = SampleConfiguration()._set_raw_data(raw_data)
@@ -557,19 +598,29 @@ class ConfigurationTests(TestCase):
         assert config.channels == ("marv", "sam", "pepé", "daffy")
 
     def test_validation(self):
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("bad_boolean"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("bad_boolean")
+        )
         raises(ValidationError, lambda: config.always_yes)
 
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("too_many_aliases"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("too_many_aliases")
+        )
         raises(ValidationError, lambda: config.always_yes)
 
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("not_an_int"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("not_an_int")
+        )
         raises(ValidationError, lambda: config.always_an_int)
 
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("bad_boolean_map"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("bad_boolean_map")
+        )
         raises(ValidationError, lambda: config.boolean_map)
 
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("good_boolean_map"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("good_boolean_map")
+        )
         assert config.boolean_map["a_true"] is True
         assert config.boolean_map["a_yes"] is True
         assert config.boolean_map["a_1"] is True
@@ -584,7 +635,9 @@ class ConfigurationTests(TestCase):
         config = SampleConfiguration()._set_raw_data(load_from_string_data("file1"))
         config.validate_configuration()
 
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("bad_boolean_map"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("bad_boolean_map")
+        )
         try:
             config.validate_configuration()
         except ValidationError as e:
@@ -606,7 +659,11 @@ class ConfigurationTests(TestCase):
         proxy_servers: bad values
         """
         )
-        data = {"s1": YamlRawParameter.make_raw_parameters("s1", yaml_round_trip_load(string))}
+        data = {
+            "s1": YamlRawParameter.make_raw_parameters(
+                "s1", yaml_round_trip_load(string)
+            )
+        }
         config = SampleConfiguration()._set_raw_data(data)
         raises(InvalidTypeError, config.validate_all)
 
@@ -619,34 +676,50 @@ class ConfigurationTests(TestCase):
             assert config.changeps1 is False
 
     def test_empty_map_parameter(self):
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("bad_boolean_map"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("bad_boolean_map")
+        )
         config.check_source("bad_boolean_map")
 
     def test_commented_map_parameter(self):
-        config = SampleConfiguration()._set_raw_data(load_from_string_data("commented_map"))
+        config = SampleConfiguration()._set_raw_data(
+            load_from_string_data("commented_map")
+        )
         assert config.commented_map == {"key": "value"}
 
     def test_invalid_map_parameter(self):
-        data = {"s1": YamlRawParameter.make_raw_parameters("s1", {"proxy_servers": "blah"})}
+        data = {
+            "s1": YamlRawParameter.make_raw_parameters("s1", {"proxy_servers": "blah"})
+        }
         config = SampleConfiguration()._set_raw_data(data)
         with raises(InvalidTypeError):
             config.proxy_servers
 
     def test_invalid_seq_parameter(self):
-        data = {"s1": YamlRawParameter.make_raw_parameters("s1", {"channels": "y_u_no_tuple"})}
+        data = {
+            "s1": YamlRawParameter.make_raw_parameters(
+                "s1", {"channels": "y_u_no_tuple"}
+            )
+        }
         config = SampleConfiguration()._set_raw_data(data)
         with raises(InvalidTypeError):
             config.channels
 
     def test_expanded_variables(self):
         with env_vars({"EXPANDED_VAR": "itsexpanded", "BOOL_VAR": "True"}):
-            config = SampleConfiguration()._set_raw_data(load_from_string_data("env_vars"))
+            config = SampleConfiguration()._set_raw_data(
+                load_from_string_data("env_vars")
+            )
             assert config.env_var_map["expanded"] == "itsexpanded"
             assert config.env_var_map["unexpanded"] == "$UNEXPANDED_VAR"
             assert config.env_var_str == "itsexpanded"
             assert config.env_var_bool is True
             assert config.normal_str == "$EXPANDED_VAR"
-            assert config.env_var_list == ("itsexpanded", "$UNEXPANDED_VAR", "regular_var")
+            assert config.env_var_list == (
+                "itsexpanded",
+                "$UNEXPANDED_VAR",
+                "regular_var",
+            )
 
     def test_nested(self):
         config = SampleConfiguration()._set_raw_data(

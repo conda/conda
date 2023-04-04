@@ -6,11 +6,10 @@ import sys
 
 import pytest
 
+from conda import plugins
 from conda.core import solve
 from conda.exceptions import PluginError
-from conda import plugins
 from conda.plugins import virtual_packages
-
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +74,9 @@ def test_get_hook_results(plugin_manager):
 
 
 def test_load_plugins_error(plugin_manager, mocker):
-    mocker.patch.object(plugin_manager, "register", side_effect=ValueError("load_plugins error"))
+    mocker.patch.object(
+        plugin_manager, "register", side_effect=ValueError("load_plugins error")
+    )
     with pytest.raises(PluginError) as exc:
         plugin_manager.load_plugins(VerboseSolverPlugin)
     assert plugin_manager.get_plugins() == set()
