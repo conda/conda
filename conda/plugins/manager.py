@@ -171,5 +171,5 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager.load_plugins(
         solvers, *virtual_packages.plugins, *subcommands.plugins
     )
-    plugin_manager.load_setuptools_entrypoints(spec_name)
+    plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
