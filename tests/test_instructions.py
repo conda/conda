@@ -1,14 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-import unittest
-from logging import Handler, DEBUG
 import os
+import unittest
+from logging import DEBUG, Handler
 
 from conda import instructions
+from conda.exceptions import CondaFileIOError
 from conda.exports import execute_instructions
 from conda.instructions import commands
-from conda.exceptions import CondaFileIOError
 
 
 def test_expected_operation_order():
@@ -39,7 +38,6 @@ class LoggingTestHandler(Handler):
 
 class TestExecutePlan(unittest.TestCase):
     def test_simple_instruction(self):
-
         index = {"This is an index": True}
 
         def simple_cmd(state, arg):
@@ -56,7 +54,6 @@ class TestExecutePlan(unittest.TestCase):
         self.assertTrue(simple_cmd.call_args, ("arg1",))
 
     def test_state(self):
-
         index = {"This is an index": True}
 
         def simple_cmd(state, arg):

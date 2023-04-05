@@ -4,12 +4,6 @@ on:
   # NOTE: github.event is workflow_dispatch payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
-    # inputs:
-    #   dryrun:
-    #     description: "dryrun: Preview locking issues/prs without marking them (true|false)"
-    #     required: true
-    #     type: boolean
-    #     default: true
 
   schedule:
     - cron: 0 6 * * *
@@ -23,35 +17,27 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      # - id: read_yaml
-      #   uses: conda/actions/read-yaml@v22.2.1
-      #   with:
-      #     path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
-      - uses: dessant/lock-threads@v2
+      - uses: dessant/lock-threads@v4
         with:
           # Number of days of inactivity before a closed issue is locked
-          issue-lock-inactive-days: 365
+          issue-inactive-days: 365
           # Do not lock issues created before a given timestamp, value must follow ISO 8601
-          issue-exclude-created-before: ''
+          exclude-issue-created-before: ''
           # Do not lock issues with these labels, value must be a comma separated list of labels or ''
-          issue-exclude-labels: ''
+          exclude-any-issue-labels: ''
           # Labels to add before locking an issue, value must be a comma separated list of labels or ''
-          issue-lock-labels: 'locked'
-          # Comment to post before locking an issue
-          # issue-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-issue'] }}
+          add-issue-labels: 'locked'
           # Reason for locking an issue, value must be one of resolved, off-topic, too heated, spam or ''
           issue-lock-reason: 'resolved'
 
           # Number of days of inactivity before a closed pull request is locked
-          pr-lock-inactive-days: 365
+          pr-inactive-days: 365
           # Do not lock pull requests created before a given timestamp, value must follow ISO 8601
-          pr-exclude-created-before: ''
+          exclude-pr-created-before: ''
           # Do not lock pull requests with these labels, value must be a comma separated list of labels or ''
-          pr-exclude-labels: ''
+          exclude-any-pr-labels: ''
           # Labels to add before locking a pull request, value must be a comma separated list of labels or ''
-          pr-lock-labels: 'locked'
-          # Comment to post before locking a pull request
-          # pr-lock-comment: ${{ fromJSON(steps.read_yaml.outputs.value)['lock-pr'] }}
+          add-pr-labels: 'locked'
           # Reason for locking a pull request, value must be one of resolved, off-topic, too heated, spam or ''
           pr-lock-reason: 'resolved'
 

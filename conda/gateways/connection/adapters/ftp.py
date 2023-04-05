@@ -17,16 +17,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from base64 import b64decode
 import cgi
 import ftplib
+import os
+from base64 import b64decode
 from io import BytesIO, StringIO
 from logging import getLogger
-import os
 
-from .. import BaseAdapter, Response, dispatch_hook
 from ....common.url import urlparse
 from ....exceptions import AuthenticationError
+from .. import BaseAdapter, Response, dispatch_hook
 
 log = getLogger(__name__)
 
@@ -34,6 +34,8 @@ log = getLogger(__name__)
 # After: https://stackoverflow.com/a/44073062/3257826
 #   And: https://stackoverflow.com/a/35368154/3257826
 _old_makepasv = ftplib.FTP.makepasv
+
+
 def _new_makepasv(self):
     host, port = _old_makepasv(self)
     host = self.sock.getpeername()[0]
@@ -45,17 +47,20 @@ ftplib.FTP.makepasv = _new_makepasv
 
 class FTPAdapter(BaseAdapter):
     """A Requests Transport Adapter that handles FTP urls."""
+
     def __init__(self):
         super().__init__()
 
         # Build a dictionary keyed off the methods we support in upper case.
         # The values of this dictionary should be the functions we use to
         # send the specific queries.
-        self.func_table = {'LIST': self.list,
-                           'RETR': self.retr,
-                           'STOR': self.stor,
-                           'NLST': self.nlst,
-                           'GET': self.retr}
+        self.func_table = {
+            "LIST": self.list,
+            "RETR": self.retr,
+            "STOR": self.stor,
+            "NLST": self.nlst,
+            "GET": self.retr,
+        }
 
     def send(self, request, **kwargs):
         """Sends a PreparedRequest object over FTP. Returns a response object."""
@@ -66,7 +71,7 @@ class FTPAdapter(BaseAdapter):
         host, port, path = self.get_host_and_path_from_url(request)
 
         # Sort out the timeout.
-        timeout = kwargs.get('timeout', None)
+        timeout = kwargs.get("timeout", None)
         if not isinstance(timeout, int):
             # https://github.com/conda/conda/pull/3392
             timeout = 10
@@ -101,7 +106,7 @@ class FTPAdapter(BaseAdapter):
         data.release_conn = data.close
 
         self.conn.cwd(path)
-        code = self.conn.retrbinary('LIST', data_callback_factory(data))
+        code = self.conn.retrbinary("LIST", data_callback_factory(data))
 
         # When that call has finished executing, we'll have all our data.
         response = build_text_response(request, data, code)
@@ -119,7 +124,7 @@ class FTPAdapter(BaseAdapter):
         # method. See self.list().
         data.release_conn = data.close
 
-        code = self.conn.retrbinary('RETR ' + path, data_callback_factory(data))
+        code = self.conn.retrbinary("RETR " + path, data_callback_factory(data))
 
         response = build_binary_response(request, data, code)
 
@@ -143,7 +148,7 @@ class FTPAdapter(BaseAdapter):
 
         # Switch directories and upload the data.
         self.conn.cwd(path)
-        code = self.conn.storbinary('STOR ' + filename, data)
+        code = self.conn.storbinary("STOR " + filename, data)
 
         # Close the connection and build the response.
         self.conn.close()
@@ -160,7 +165,7 @@ class FTPAdapter(BaseAdapter):
         data.release_conn = data.close
 
         self.conn.cwd(path)
-        code = self.conn.retrbinary('NLST', data_callback_factory(data))
+        code = self.conn.retrbinary("NLST", data_callback_factory(data))
 
         # When that call has finished executing, we'll have all our data.
         response = build_text_response(request, data, code)
@@ -175,14 +180,14 @@ class FTPAdapter(BaseAdapter):
         Basic auth to obtain the username and password. Allows the FTP adapter
         to piggyback on the basic auth notation without changing the control
         flow."""
-        auth_header = request.headers.get('Authorization')
+        auth_header = request.headers.get("Authorization")
 
         if auth_header:
             # The basic auth header is of the form 'Basic xyz'. We want the
             # second part. Check that we have the right kind of auth though.
             encoded_components = auth_header.split()[:2]
-            if encoded_components[0] != 'Basic':
-                raise AuthenticationError('Invalid form of Authentication used.')
+            if encoded_components[0] != "Basic":
+                raise AuthenticationError("Invalid form of Authentication used.")
             else:
                 encoded = encoded_components[1]
 
@@ -191,7 +196,7 @@ class FTPAdapter(BaseAdapter):
 
             # The string is of the form 'username:password'. Split on the
             # colon.
-            components = decoded.split(':')
+            components = decoded.split(":")
             username = components[0]
             password = components[1]
             return (username, password)
@@ -208,7 +213,7 @@ class FTPAdapter(BaseAdapter):
         path = parsed.path
 
         # If there is a slash on the front of the path, chuck it.
-        if path[0] == '/':
+        if path[0] == "/":
             path = path[1:]
 
         host = parsed.hostname
@@ -221,6 +226,7 @@ def data_callback_factory(variable):
     """Returns a callback suitable for use by the FTP library. This callback
     will repeatedly save data into the variable provided to this function. This
     variable should be a file-like structure."""
+
     def callback(data):
         variable.write(data)
 
@@ -229,12 +235,12 @@ def data_callback_factory(variable):
 
 def build_text_response(request, data, code):
     """Build a response for textual data."""
-    return build_response(request, data, code, 'ascii')
+    return build_response(request, data, code, "ascii")
 
 
 def build_binary_response(request, data, code):
     """Build a response for data whose encoding is unknown."""
-    return build_response(request, data, code,  None)
+    return build_response(request, data, code, None)
 
 
 def build_response(request, data, code, encoding):
@@ -254,7 +260,7 @@ def build_response(request, data, code, encoding):
     response.raw.seek(0)
 
     # Run the response hook.
-    response = dispatch_hook('response', request.hooks, response)
+    response = dispatch_hook("response", request.hooks, response)
     return response
 
 
@@ -262,7 +268,7 @@ def parse_multipart_files(request):
     """Given a prepared request, return a file-like object containing the
     original data. This is pretty hacky."""
     # Start by grabbing the pdict.
-    _, pdict = cgi.parse_header(request.headers['Content-Type'])
+    _, pdict = cgi.parse_header(request.headers["Content-Type"])
 
     # Now, wrap the multipart data in a BytesIO buffer. This is annoying.
     buf = BytesIO()
@@ -276,7 +282,7 @@ def parse_multipart_files(request):
 
     # Get a BytesIO now, and write the file into it.
     buf = BytesIO()
-    buf.write(''.join(filedata))
+    buf.write("".join(filedata))
     buf.seek(0)
 
     return buf
@@ -305,15 +311,15 @@ def get_status_code_from_code_response(code):
          immediately by Space <SP>, optionally some text, and the Telnet
          end-of-line code."
     """
-    last_valid_line_from_code = [line for line in code.split('\n') if line][-1]
+    last_valid_line_from_code = [line for line in code.split("\n") if line][-1]
     status_code_from_last_line = int(last_valid_line_from_code.split()[0])
     status_code_from_first_digits = int(code[:3])
     if status_code_from_last_line != status_code_from_first_digits:
         log.warning(
-            'FTP response status code seems to be inconsistent.\n'
-            'Code received: %s, extracted: %s and %s',
+            "FTP response status code seems to be inconsistent.\n"
+            "Code received: %s, extracted: %s and %s",
             code,
             status_code_from_last_line,
-            status_code_from_first_digits
+            status_code_from_first_digits,
         )
     return status_code_from_last_line
