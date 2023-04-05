@@ -159,4 +159,6 @@ def test_version_fallback():
     Test that conda can run even if deprecations can't parse the version.
     """
     handler = DeprecationHandler(object())  # type: ignore
-    assert handler._version.major == handler._version.minor == handler._version.micro == 0
+    assert (
+        handler._version.major == handler._version.minor == handler._version.micro == 0
+    )
