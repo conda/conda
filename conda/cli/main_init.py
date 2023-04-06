@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from logging import getLogger
 
 from ..base.context import context
@@ -30,5 +29,11 @@ def execute(args, parser):
     else:
         for_user = args.user and not args.system
         anaconda_prompt = on_win and args.anaconda_prompt
-        return initialize(context.conda_prefix, selected_shells, for_user, args.system,
-                          anaconda_prompt, args.reverse)
+        return initialize(
+            context.conda_prefix,
+            selected_shells,
+            for_user,
+            args.system,
+            anaconda_prompt,
+            args.reverse,
+        )

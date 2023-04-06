@@ -2,3 +2,4 @@
 *.psm1 text eol=lf
 dev/start text eol=lf
 *.bat text eol=crlf
+.git_archival.txt export-subst

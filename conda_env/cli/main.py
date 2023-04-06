@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import os
 import sys
 
@@ -15,12 +14,7 @@ from conda.cli.main import init_loggers
 from conda.gateways.logging import initialize_logging
 from conda.exceptions import conda_exception_handler
 
-from . import main_create
-from . import main_export
-from . import main_list
-from . import main_remove
-from . import main_update
-from . import main_config
+from . import main_config, main_create, main_export, main_list, main_remove, main_update
 
 
 # TODO: This belongs in a helper library somewhere
@@ -28,7 +22,7 @@ from . import main_config
 # merged into conda-env, this needs to be adjusted.
 def show_help_on_empty_command():
     if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
-        sys.argv.append('--help')
+        sys.argv.append("--help")
 
 
 def create_parser():
@@ -47,10 +41,11 @@ def create_parser():
 
 
 def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit('.', 1)
+    relative_mod, func_name = args.func.rsplit(".", 1)
     # func_name should always be 'execute'
     from importlib import import_module
-    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+
+    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
     exit_code = getattr(module, func_name)(args, parser)
     return exit_code
 

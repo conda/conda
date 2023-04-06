@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Provide fallback version if `conda.deprecations.DeprecationHandler` receives a bad version. (#12541)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add `jsonpatch` dependency to support `--experimental=jlap` feature.
+* <news item>
