@@ -6,11 +6,10 @@ import re
 from itertools import chain
 
 from conda.base.context import context
-from conda.deprecations import deprecated
-from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.cli import common
-from conda.common.serialize import yaml_safe_load, yaml_safe_dump
+from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES

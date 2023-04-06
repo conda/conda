@@ -11,8 +11,8 @@ import conda.exports  # noqa
 from conda.base.context import context
 from conda.cli.conda_argparse import ArgumentParser
 from conda.cli.main import init_loggers
-from conda.gateways.logging import initialize_logging
 from conda.exceptions import conda_exception_handler
+from conda.gateways.logging import initialize_logging
 
 from . import main_config, main_create, main_export, main_list, main_remove, main_update
 
@@ -60,7 +60,7 @@ def main():
     return conda_exception_handler(do_call, args, parser)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from conda.deprecations import deprecated
 
     deprecated.module("23.9", "24.3", addendum="Use `conda env` instead.")
