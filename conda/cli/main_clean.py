@@ -16,10 +16,7 @@ from ..base.constants import (
 from ..base.context import context
 
 log = getLogger(__name__)
-_EXTENSIONS = (
-    *CONDA_PACKAGE_EXTENSIONS,
-    *(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS),
-)
+_EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
 def _get_size(*parts: str, warnings: list[tuple[str, Exception]]) -> int:
@@ -73,7 +70,7 @@ def find_tarballs() -> dict[str, Any]:
         _, _, tars = next(walk(pkgs_dir))
         for tar in tars:
             # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
-            if not tar.endswith(_EXTENSIONS):
+            if not tar.endswith(_EXTS):
                 continue
 
             # get size
