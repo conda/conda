@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Provide fallback version if `conda.deprecations.DeprecationHandler` receives a bad version. (#12541)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add linux-s390x to multi-arch ci/dev container (#12498)
+* <news item>

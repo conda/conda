@@ -77,7 +77,9 @@ class JLAP(UserList):
     def from_path(cls, path: Path | str, verify=True):
         # in binary mode, line separator is hardcoded as \n
         with Path(path).open("rb") as p:
-            return cls.from_lines((line.rstrip(b"\n") for line in p), b"", verify=verify)
+            return cls.from_lines(
+                (line.rstrip(b"\n") for line in p), b"", verify=verify
+            )
 
     def add(self, line: str):
         """
@@ -99,7 +101,9 @@ class JLAP(UserList):
         # include last line's utf-8 encoded length, plus 1 in pos?
         pos += len(last_line.encode("utf-8")) + 1
         self.extend(
-            JLAP.from_lines((line.encode("utf-8"),), bytes.fromhex(iv), pos, verify=False)[1:]
+            JLAP.from_lines(
+                (line.encode("utf-8"),), bytes.fromhex(iv), pos, verify=False
+            )[1:]
         )
         return self
 

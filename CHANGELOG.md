@@ -1,5 +1,33 @@
 [//]: # (current developments)
 
+## 23.3.1 (2023-03-28)
+
+### Enhancements
+
+* Fix and re-enable binstar tests. Replace custom property caching with `functools.cached_property`. (#12495)
+
+### Bug fixes
+
+* Restore default argument for `SubdirData` method used by `conda-index`. (#12513)
+* Include `conda.gateways.repodata.jlap` submodule in package. (#12545)
+
+### Other
+
+* Add linux-s390x to multi-arch ci/dev container. (#12498)
+* Expose a `MINIO_RELEASE` environment variable to provide a way to pin `minio` versions in CI setup scripts. (#12525)
+* Add `jsonpatch` dependency to support `--experimental=jlap` feature. (#12528)
+
+### Contributors
+
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @kenodegard
+* @ForgottenProgramme
+
+
+
 ## 23.3.0 (2023-03-14)
 
 ### Enhancements
