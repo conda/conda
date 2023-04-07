@@ -7,6 +7,8 @@ from itertools import chain
 
 from conda.base.context import context
 from conda.cli import common
+from conda.common.iterators import groupby_to_dict as groupby
+from conda.common.iterators import unique
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.prefix_data import PrefixData
 from conda.deprecations import deprecated
