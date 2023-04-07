@@ -28,7 +28,9 @@ def get_packages(installed, regex):
         yield prefix_rec
 
 
-def list_packages(prefix, regex=None, format="human", reverse=False, show_channel_urls=None):
+def list_packages(
+    prefix, regex=None, format="human", reverse=False, show_channel_urls=None
+):
     res = 0
 
     installed = sorted(
@@ -39,7 +41,9 @@ def list_packages(prefix, regex=None, format="human", reverse=False, show_channe
     packages = []
     for prec in get_packages(installed, regex) if regex else installed:
         if format == "canonical":
-            packages.append(prec.dist_fields_dump() if context.json else prec.dist_str())
+            packages.append(
+                prec.dist_fields_dump() if context.json else prec.dist_str()
+            )
             continue
         if format == "export":
             packages.append("=".join((prec.name, prec.version, prec.build)))
