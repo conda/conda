@@ -35,7 +35,7 @@ repos:
       - id: check-merge-conflict
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.4.2
+    rev: v1.5.1
     hooks:
       # auto inject license blurb
       - id: insert-license
