@@ -1,16 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from datetime import datetime
 from json import loads as json_loads
-from os import walk
+from os import PathLike, walk
 from os.path import basename, exists, isdir, join
 from shutil import copy
+
+import pytest
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,
     CONDA_PACKAGE_EXTENSIONS,
     CONDA_TEMP_EXTENSIONS,
 )
+from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.disk.create import mkdir_p
 from conda.testing.integration import (
@@ -246,9 +251,13 @@ def test_clean_logfiles(clear_cache):
         assert not _get_logfiles(pkgs_dir)
 
 
-# conda clean --all
-def test_clean_all(clear_cache):
+# conda clean --all [--verbose]
+@pytest.mark.parametrize("verbose", [True, False])
+def test_clean_all(clear_cache, verbose: bool):
     pkg = "bzip2"
+    args = ("--yes", "--json")
+    if verbose:
+        args = (*args, "--verbose")
 
     with make_temp_package_cache() as pkgs_dir:
         # pkg, tarball, & index cache doesn't exist ahead of time
@@ -264,7 +273,7 @@ def test_clean_all(clear_cache):
             assert_any_pkg(pkg, tars)
             assert cache
 
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--all", "--yes", "--json")
+            stdout, _, _ = run_command(Commands.CLEAN, "", "--all", *args)
             json_loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
@@ -275,10 +284,8 @@ def test_clean_all(clear_cache):
             assert_not_pkg(pkg, tars)
             assert not cache
 
-            run_command(Commands.REMOVE, prefix, pkg, "--yes", "--json")
-            stdout, _, _ = run_command(
-                Commands.CLEAN, "", "--packages", "--yes", "--json"
-            )
+            run_command(Commands.REMOVE, prefix, pkg, *args)
+            stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", *args)
             json_loads(stdout)  # assert valid json
 
             # pkg is removed
@@ -296,3 +303,26 @@ def test_clean_all(clear_cache):
         assert_not_pkg(pkg, pkgs)
         assert_not_pkg(pkg, tars)
         assert not cache
+
+
+# _get_size unittest, valid file
+def test_get_size(tmp_path: Path):
+    warnings = []
+    path = tmp_path / "file"
+    path.write_text("hello")
+    assert _get_size(path, warnings=warnings)
+    assert not warnings
+
+
+# _get_size unittest, invalid file
+def test_get_size_None():
+    with pytest.raises(OSError):
+        _get_size("not-a-file", warnings=None)
+
+
+# _get_size unittest, invalid file and collect warnings
+def test_get_size_list():
+    warnings = []
+    with pytest.raises(NotImplementedError):
+        _get_size("not-a-file", warnings=warnings)
+    assert warnings

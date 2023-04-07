@@ -19,12 +19,14 @@ log = getLogger(__name__)
 _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
-def _get_size(*parts: str, warnings: list[tuple[str, Exception]]) -> int:
+def _get_size(*parts: str, warnings: list[str] | None) -> int:
     path = join(*parts)
     try:
         stat = lstat(path)
     except OSError as e:
-        warnings.append((path, e))
+        if warnings is None:
+            raise
+        warnings.append(f"WARNING: {path}: {e}")
 
         # let the user deal with the issue
         raise NotImplementedError
@@ -63,7 +65,7 @@ def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    warnings: list[tuple[str, Exception]] = []
+    warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # tarballs are files in pkgs_dir
@@ -90,7 +92,7 @@ def find_tarballs() -> dict[str, Any]:
 
 
 def find_pkgs() -> dict[str, Any]:
-    warnings: list[tuple[str, Exception]] = []
+    warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # pkgs are directories in pkgs_dir
@@ -122,7 +124,7 @@ def find_pkgs() -> dict[str, Any]:
 
 def rm_pkgs(
     pkgs_dirs: dict[str, tuple[str]],
-    warnings: list[tuple[str, Exception]],
+    warnings: list[str],
     total_size: int,
     pkg_sizes: dict[str, dict[str, int]],
     *,
@@ -135,8 +137,8 @@ def rm_pkgs(
     from .common import confirm_yn
 
     if verbose and warnings:
-        for path, exception in warnings:
-            print(path, exception)
+        for warning in warnings:
+            print(warning)
 
     if not any(pkgs for pkgs in pkg_sizes.values()):
         if verbose:
