@@ -58,7 +58,7 @@ stderrlog = logging.getLogger("conda.stderrlog")
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
-LAST_MODIFIED_KEY = "last_modified"
+LAST_MODIFIED_KEY = "mod"
 ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"

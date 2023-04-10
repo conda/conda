@@ -20,7 +20,7 @@ from requests import HTTPError
 
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import RepodataState
+from conda.gateways.repodata import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 
 from .core import JLAP
 
@@ -280,8 +280,8 @@ def request_url_jlap_state(
             # Don't deal with 304 Not Modified if hash unavailable e.g. if
             # cached without jlap
             if NOMINAL_HASH not in state:
-                state.pop("etag", None)
-                state.pop("mod", None)
+                state.pop(ETAG_KEY, None)
+                state.pop(LAST_MODIFIED_KEY, None)
 
             try:
                 if state.should_check_format("zst"):
