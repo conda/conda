@@ -64,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
@@ -73,7 +73,7 @@ jobs:
           - default-channel: 'conda-forge'
             python-version: '3.8'
           - default-channel: 'conda-forge'
-            python-version: '3.11'
+            python-version: '3.10'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
@@ -173,7 +173,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:

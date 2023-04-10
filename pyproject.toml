@@ -65,12 +65,6 @@ version-file = "conda/__version__.py"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310']
-extend-exclude = '''
-^/(
-    conda/_vendor
-  | devenv
-)/
-'''
 
 [tool.isort]
 profile = "black"
