@@ -135,11 +135,13 @@ class DeprecationHandler:
         stack: int = 0,
     ):
         class DeprecationMixin:
-            def __call__(_, parser, namespace, values, option_string=None):
+            def __init__(inner_self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
                 category, message = self._generate_message(
                     deprecate_in,
                     remove_in,
-                    option_string,
+                    f"`{inner_self.option_strings[0]}`",
                     addendum=addendum,
                 )
 
@@ -147,8 +149,14 @@ class DeprecationHandler:
                 if not category:
                     raise DeprecatedError(message)
 
+                inner_self.category = category
+                inner_self.help = message
+
+            def __call__(inner_self, parser, namespace, values, option_string=None):
                 # alert user that it's time to remove something
-                warnings.warn(message, category, stacklevel=2 + stack)
+                warnings.warn(
+                    inner_self.help, inner_self.category, stacklevel=2 + stack
+                )
 
                 super().__call__(parser, namespace, values, option_string)
 

@@ -82,7 +82,6 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--force",
         dest="yes",
-        help="DEPRECATED. Use `--yes` instead.",
         action=deprecated.action(
             "23.9",
             "24.3",

@@ -1575,9 +1575,11 @@ def configure_parser_rename(sub_parsers) -> None:
     p.add_argument(
         "--force",
         dest="yes",
-        help="DEPRECATED. Use `--yes` instead.",
         action=deprecated.action(
-            "23.9", "24.3", _StoreTrueAction, addendum="Use --yes instead."
+            "23.9",
+            "24.3",
+            _StoreTrueAction,
+            addendum="Use --yes instead.",
         ),
         default=False,
     )
@@ -1930,11 +1932,13 @@ def add_parser_solver(p):
     group.add_argument(
         "--experimental-solver",
         action=deprecated.action(
-            "23.9", "24.3", _StoreAction, addendum="Use `--solver` instead."
+            "23.9",
+            "24.3",
+            _StoreAction,
+            addendum="Use `--solver` instead.",
         ),
         dest="solver",
         choices=solver_choices,
-        help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )
 
