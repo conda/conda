@@ -6,11 +6,12 @@ import re
 from itertools import chain
 
 from conda.base.context import context
-from conda.cli import common  # TODO: this should never have to import form conda.cli
+from conda.cli import common
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.iterators import unique
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -62,6 +63,7 @@ def validate_keys(data, kwargs):
     return new_data
 
 
+@deprecated("23.9", "24.3")
 def load_from_directory(directory):
     """Load and return an ``Environment`` from a given ``directory``"""
     files = ["environment.yml", "environment.yaml"]
@@ -78,7 +80,6 @@ def load_from_directory(directory):
     raise EnvironmentFileNotFound(files[0])
 
 
-# TODO tests!!!
 def from_environment(
     name, prefix, no_builds=False, ignore_channels=False, from_history=False
 ):
@@ -189,7 +190,6 @@ def from_file(filename):
     return from_yaml(yamlstr, filename=filename)
 
 
-# TODO test explicitly
 class Dependencies(dict):
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
