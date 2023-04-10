@@ -196,6 +196,7 @@ class Commands:
     SEARCH = "search"
     UPDATE = "update"
     RUN = "run"
+    RENAME = "rename"
 
 
 @contextmanager
@@ -211,7 +212,6 @@ def temp_chdir(target_dir):
 
 
 def run_command(command, prefix, *arguments, **kwargs):
-    assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
 
     use_exception_handler = kwargs.get("use_exception_handler", False)
@@ -235,12 +235,16 @@ def run_command(command, prefix, *arguments, **kwargs):
     dev = kwargs.get("dev", True if command_defaults_to_dev else False)
     debug = kwargs.get("debug_wrapper_scripts", False)
 
-    p = generate_parser()
+    # detect whether a name or a prefix was provided
+    name = None
+    if not os.path.isabs(prefix):
+        name = prefix
+        prefix = join(context.active_prefix, prefix)
 
     if command is Commands.CONFIG:
         arguments.append("--file")
         arguments.append(join(prefix, "condarc"))
-    if command in (
+    elif command in (
         Commands.LIST,
         Commands.COMPARE,
         Commands.CREATE,
@@ -248,9 +252,16 @@ def run_command(command, prefix, *arguments, **kwargs):
         Commands.REMOVE,
         Commands.UPDATE,
         Commands.RUN,
+        Commands.RENAME,
     ):
-        arguments.insert(0, "-p")
-        arguments.insert(1, prefix)
+        # determine whether to inject name/prefix
+        if name:
+            arguments.insert(0, "--name")
+            arguments.insert(1, name)
+        else:
+            arguments.insert(0, "--prefix")
+            arguments.insert(1, prefix)
+
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
@@ -265,6 +276,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     # python_api_run_command
     # .. but that does not support no_capture and probably more stuff.
 
+    p = generate_parser()
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
     init_loggers(context)

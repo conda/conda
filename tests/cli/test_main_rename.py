@@ -4,285 +4,227 @@ from __future__ import annotations
 
 import json
 import os.path
-import pathlib
 import tempfile
+import uuid
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
 from conda.base.context import context, locate_prefix_by_name
-from conda.exceptions import CondaError, EnvironmentNameNotFound
-from conda.testing.helpers import run_inprocess_conda_command as run
+from conda.core.envs_manager import list_all_known_prefixes
+from conda.exceptions import CondaEnvException, CondaError, EnvironmentNameNotFound
 from conda.testing.helpers import set_active_prefix
-
-TEST_ENV_NAME_1 = "env-1"
-TEST_ENV_NAME_2 = "env-2"
-TEST_ENV_NAME_RENAME = "renamed-env"
-
-ENV_LIST_COMMAND = "conda env list --json"
-
-
-@pytest.fixture(scope="module")
-def env_one():
-    """
-    This fixture has been given a module scope to help decrease execution time.
-    When using the fixture, please rename the original environment back to what it
-    was (i.e. always make sure there is a TEST_ENV_NAME_1 present).
-    """
-    # Setup
-    run(f"conda create -n {TEST_ENV_NAME_1} -y", disallow_stderr=False)
-
-    yield
-
-    # Teardown
-    run(f"conda remove --all -y -n {TEST_ENV_NAME_1}", disallow_stderr=False)
-    run(f"conda remove --all -y -n {TEST_ENV_NAME_RENAME}", disallow_stderr=False)
+from conda.testing.integration import Commands, run_command
 
 
 @pytest.fixture
-def env_two():
-    # Setup
-    run(f"conda create -n {TEST_ENV_NAME_2} -y", disallow_stderr=False)
+def name_rename() -> Generator[str, None, None]:
+    """A teardown fixture, removes the renamed environment if present."""
+    name = uuid.uuid4().hex
 
-    yield
+    yield name
 
-    # Teardown
-    run(f"conda remove --all -y -n {TEST_ENV_NAME_2}", disallow_stderr=False)
+    run_command(Commands.REMOVE, name, "--all")
 
 
 @pytest.fixture
-def env_prefix_one():
-    """Used to get an environment created using -p flag"""
-    # Setup
-    tmpdir = tempfile.mkdtemp()
-    run(f"conda create -p {tmpdir} -y", disallow_stderr=False)
+def name_one(name_rename: str) -> Generator[str, None, None]:
+    """A setup fixture, creates an empty testing environment and removes it at the end if present."""
+    name = uuid.uuid4().hex
+    run_command(Commands.CREATE, name)
 
-    yield tmpdir
+    yield name
 
-    # Teardown
-    run(f"conda remove --all -y -p {tmpdir}", disallow_stderr=False)
+    run_command(Commands.REMOVE, name, "--all")
 
 
-def list_envs():
-    out, err, exit_code = run(ENV_LIST_COMMAND)
-    data = json.loads(out)
+@pytest.fixture
+def name_two() -> Generator[str, None, None]:
+    """A setup fixture, creates an empty testing environment and removes it at the end if present."""
+    name = uuid.uuid4().hex
+    run_command(Commands.CREATE, name)
 
-    return (out, err, exit_code), data
+    yield name
+
+    run_command(Commands.REMOVE, name, "--all")
 
 
-def test_rename_by_name_success(env_one):
-    run(
-        f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME}",
-        disallow_stderr=False,
-    )
+@pytest.fixture
+def prefix_rename() -> Generator[Path, None, None]:
+    """A teardown fixture, removes the renamed environment if present."""
+    with tempfile.TemporaryDirectory() as root:
+        prefix = Path(root, uuid.uuid4().hex)
 
-    assert locate_prefix_by_name(TEST_ENV_NAME_RENAME)
+        yield prefix
+
+        run_command(Commands.REMOVE, str(prefix), "--all")
+
+
+@pytest.fixture
+def prefix_one(prefix_rename: Path) -> Generator[Path, None, None]:
+    """A setup fixture, creates an empty testing environment and removes it at the end if present."""
+    with tempfile.TemporaryDirectory() as prefix:
+        run_command(Commands.CREATE, prefix)
+
+        yield Path(prefix)
+
+        run_command(Commands.REMOVE, prefix, "--all")
+
+
+@pytest.fixture
+def prefix_two() -> Generator[Path, None, None]:
+    """A setup fixture, creates an empty testing environment and removes it at the end if present."""
+    with tempfile.TemporaryDirectory() as prefix:
+        run_command(Commands.CREATE, prefix)
+
+        yield Path(prefix)
+
+        run_command(Commands.REMOVE, prefix, "--all")
+
+
+def test_rename_by_name_success(name_one: str, name_rename: str):
+    """Test renaming from one name to another unused name."""
+    run_command(Commands.RENAME, name_one, name_rename)
+
+    # only the new environment is present
+    assert locate_prefix_by_name(name_rename)
     with pytest.raises(EnvironmentNameNotFound):
-        locate_prefix_by_name(TEST_ENV_NAME_1)
-
-    # Clean up
-    run(
-        f"conda rename -n {TEST_ENV_NAME_RENAME} {TEST_ENV_NAME_1}",
-        disallow_stderr=False,
-    )
+        locate_prefix_by_name(name_one)
 
 
-def test_rename_by_path_success(env_one):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        new_name = str(pathlib.Path(temp_dir).joinpath("new-env"))
-        run(f"conda rename -n {TEST_ENV_NAME_1} {new_name}", disallow_stderr=False)
+def test_rename_by_path_success(name_one: str, prefix_rename: Path):
+    """Test renaming from one name to another unused path."""
+    run_command(Commands.RENAME, name_one, str(prefix_rename))
 
-        (out, err, exit_code), data = list_envs()
-        result = data.get("envs", [])
-
-        # Clean up
-        run(f"conda rename -p {new_name} {TEST_ENV_NAME_1}")
-
-        path_appears_in_env_list = any(new_name == path for path in result)
-        original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
-
-        assert path_appears_in_env_list
-        assert not original_name_in_envs
-        assert exit_code is None
+    # only the new environment is present
+    assert any(prefix_rename.samefile(path) for path in list_all_known_prefixes())
+    with pytest.raises(EnvironmentNameNotFound):
+        locate_prefix_by_name(name_one)
 
 
-def test_rename_by_name_name_already_exists_error(env_one):
+def test_rename_by_name_name_already_exists_error(name_one: str):
     """Test to ensure that we do not rename if the name already exists"""
-    out, err, exit_code = run(
-        f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_1}", disallow_stderr=False
-    )
-    assert (
-        f"The environment '{TEST_ENV_NAME_1}' already exists. Override with --force"
-        in err
-    )
+    with pytest.raises(CondaEnvException, match="already exists"):
+        run_command(Commands.RENAME, name_one, name_one)
 
 
-def test_rename_by_path_path_already_exists_error(env_one):
+def test_rename_by_path_path_already_exists_error(name_one: str, prefix_one: Path):
     """Test to ensure that we do not rename if the path already exists"""
-    with tempfile.TemporaryDirectory() as tempdir:
-        out, err, exit_code = run(
-            f"conda rename -n {TEST_ENV_NAME_1} {tempdir}", disallow_stderr=False
-        )
-        assert (
-            f"The environment '{os.path.basename(os.path.normpath(tempdir))}' already exists. Override with --force"
-            in err
-        )
+    with pytest.raises(CondaEnvException, match="already exists"):
+        run_command(Commands.RENAME, name_one, str(prefix_one))
 
 
-def test_cannot_rename_base_env_by_name(env_one):
+def test_cannot_rename_base_env_by_name(name_rename: str):
     """Test to ensure that we cannot rename the base env invoked by name"""
-    out, err, exit_code = run(
-        f"conda rename -n base {TEST_ENV_NAME_RENAME}", disallow_stderr=False
-    )
-    assert "The 'base' environment cannot be renamed" in err
+    with pytest.raises(CondaEnvException, match="cannot be renamed"):
+        run_command(Commands.RENAME, "base", name_rename)
 
 
-def test_cannot_rename_base_env_by_path(env_one):
+def test_cannot_rename_base_env_by_path(name_rename: str):
     """Test to ensure that we cannot rename the base env invoked by path"""
-    out, err, exit_code = run(
-        f"conda rename -p {context.root_prefix} {TEST_ENV_NAME_RENAME}",
-        disallow_stderr=False,
-    )
-    assert "The 'base' environment cannot be renamed" in err
+    with pytest.raises(CondaEnvException, match="cannot be renamed"):
+        run_command(Commands.RENAME, context.root_prefix, name_rename)
 
 
-def test_cannot_rename_active_env_by_name(env_one):
+def test_cannot_rename_active_env_by_name(name_one: str, name_rename: str):
     """
     Makes sure that we cannot rename our active environment.
     """
-    _, data = list_envs()
-    result = data.get("envs", [])
-
-    prefix_list = [res for res in result if res.endswith(TEST_ENV_NAME_1)]
-
-    assert len(prefix_list) > 0
-
-    prefix = prefix_list[0]
-
-    with set_active_prefix(prefix):
-        out, err, exit_code = run(
-            f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME}",
-            disallow_stderr=False,
-        )
-        assert "Cannot rename the active environment" in err
+    prefix = locate_prefix_by_name(name_one)
+    with set_active_prefix(prefix), pytest.raises(
+        CondaEnvException, match="cannot be renamed"
+    ):
+        run_command(Commands.RENAME, name_one, name_rename)
 
 
-def test_rename_with_force(env_one, env_two):
-    """
-    Runs a test where we specify the --force flag to remove an existing directory.
-    Without this flag, it would return with an error message.
-    """
-    # Do a force rename
-    run(
-        f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_2} --force",
-        disallow_stderr=False,
-    )
+def test_rename_with_force(name_one: str, name_two: str):
+    """Test renaming to an existing name with --force."""
+    run_command(Commands.RENAME, name_one, name_two, "--force")
 
-    (_, _, exit_code), _ = list_envs()
-
-    assert locate_prefix_by_name(TEST_ENV_NAME_2)
+    assert locate_prefix_by_name(name_two)
     with pytest.raises(EnvironmentNameNotFound):
-        locate_prefix_by_name(TEST_ENV_NAME_1)
-    assert exit_code is None
-
-    # Clean up
-    run(f"conda rename -n {TEST_ENV_NAME_2} {TEST_ENV_NAME_1}", disallow_stderr=False)
+        locate_prefix_by_name(name_one)
 
 
-def test_rename_with_force_with_errors(env_one, env_two):
+def test_rename_with_force_with_errors(
+    mocker: MockerFixture,
+    name_one: str,
+    name_two: str,
+):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
     Additionally, in this test, we mock an exception to recreate a failure condition.
     """
-    error_message = "Error Message"
+    clone_mock = mocker.patch(
+        "conda.cli.main_rename.install.clone",
+        side_effect=CondaError("some error"),
+    )
 
-    # Do a force rename
-    with mock.patch("conda.cli.main_rename.install.clone") as clone_mock:
-        clone_mock.side_effect = [CondaError(error_message)]
-        _, err, exit_code = run(
-            f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_2} --force",
-            disallow_stderr=False,
-        )
-        assert error_message in err
-        assert exit_code == 1
+    with pytest.raises(CondaError, match="some error"):
+        run_command(Commands.RENAME, name_one, name_two, "--force")
 
-    # Make sure both environments still exist
-    assert locate_prefix_by_name(TEST_ENV_NAME_2)
-    assert locate_prefix_by_name(TEST_ENV_NAME_1)
-    (_, _, exit_code), _ = list_envs()
-    assert exit_code is None
+    # both environments still exist
+    assert locate_prefix_by_name(name_one)
+    assert locate_prefix_by_name(name_two)
 
 
-def test_rename_with_force_with_errors_prefix(env_prefix_one):
+def test_rename_with_force_with_errors_prefix(
+    mocker: MockerFixture,
+    prefix_one: Path,
+    prefix_two: Path,
+):
     """
     Runs a test using --force flag while mocking an exception.
     Specifically targets environments created using the -p flag.
     """
-    error_message = "Error Message"
+    clone_mock = mocker.patch(
+        "conda.cli.main_rename.install.clone",
+        side_effect=CondaError("some error"),
+    )
 
-    # Do a force rename
-    with mock.patch(
-        "conda.cli.main_rename.install.clone"
-    ) as clone_mock, tempfile.TemporaryDirectory() as tmpdir:
-        clone_mock.side_effect = [CondaError(error_message)]
-        out, err, exit_code = run(
-            f"conda rename -p {env_prefix_one} {tmpdir} --force", disallow_stderr=False
-        )
-        assert error_message in err
+    with pytest.raises(CondaError, match="some error"):
+        run_command(Commands.RENAME, str(prefix_one), str(prefix_two), "--force")
 
-        # Make sure both directories still exist
-        assert os.path.isdir(tmpdir)
-        assert os.path.isdir(env_prefix_one)
+    # both directories still exist
+    assert prefix_one.is_dir()
+    assert prefix_two.is_dir()
 
 
-def test_rename_with_dry_run(env_one):
+def test_rename_with_dry_run(name_one: str, name_rename: str):
     """
     Runs a test where we specify the --dry-run flag to remove an existing directory.
     Without this flag, it would actually execute all the actions.
     """
-    (rename_out, rename_err, rename_exit_code) = run(
-        f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME} --dry-run",
-        disallow_stderr=False,
-    )
+    out, _, _ = run_command(Commands.RENAME, name_one, name_rename, "--dry-run")
 
-    (out, err, exit_code), data = list_envs()
-    data.get("envs", [])
-
-    assert locate_prefix_by_name(TEST_ENV_NAME_1)
+    # environments remain unchanged
+    assert locate_prefix_by_name(name_one)
     with pytest.raises(EnvironmentNameNotFound):
-        locate_prefix_by_name(TEST_ENV_NAME_RENAME)
-    assert exit_code is None
+        locate_prefix_by_name(name_rename)
 
-    rename_stdout = str(rename_out)
-    assert "Dry run action: clone" in rename_stdout
-    assert "Dry run action: rm_rf" in rename_stdout
-    assert exit_code is None
+    assert "Dry run action: clone" in out
+    assert "Dry run action: rm_rf" in out
 
 
-def test_rename_with_force_and_dry_run(env_one, env_prefix_one):
+def test_rename_with_force_and_dry_run(name_one: str, name_rename: str):
     """
     Runs a test where we specify the --force and --dry-run flags to forcefully rename
     an existing directory. We need to ensure that --dry-run is effective and that no
     changes occur.
     """
-    (rename_out, rename_err, rename_exit_code) = run(
-        f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME} --force --dry-run",
-        disallow_stderr=False,
+    out, _, _ = run_command(
+        Commands.RENAME, name_one, name_rename, "--force", "--dry-run"
     )
 
-    (out, err, exit_code), data = list_envs()
-    data.get("envs", [])
-
-    assert locate_prefix_by_name(TEST_ENV_NAME_1)
+    # environments remain unchanged
+    assert locate_prefix_by_name(name_one)
     with pytest.raises(EnvironmentNameNotFound):
-        locate_prefix_by_name(TEST_ENV_NAME_RENAME)
-    assert exit_code is None
+        locate_prefix_by_name(name_rename)
 
-    rename_stdout = str(rename_out)
     assert (
-        f"Dry run action: rename_context {os.path.join(context.envs_dirs[0], TEST_ENV_NAME_RENAME)} >"
-        in rename_stdout
+        f"Dry run action: rename_context {Path(context.envs_dirs[0], name_rename)} >"
+        in out
     )
-    assert "Dry run action: clone" in rename_stdout
-    assert "Dry run action: rm_rf" in rename_stdout
-    assert rename_exit_code is None
+    assert "Dry run action: clone" in out
+    assert "Dry run action: rm_rf" in out

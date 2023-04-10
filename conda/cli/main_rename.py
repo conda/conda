@@ -25,7 +25,7 @@ def validate_src(name: str | None, prefix: str | None) -> str:
     prefix = name or prefix
 
     if common.is_active_prefix(prefix):
-        raise CondaEnvException("Cannot rename the active environment")
+        raise CondaEnvException("The active environment cannot be renamed")
 
     return locate_prefix_by_name(prefix)
 
