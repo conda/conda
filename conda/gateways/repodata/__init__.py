@@ -31,8 +31,8 @@ from conda.exceptions import (
     UnavailableInvalidChannel,
 )
 from conda.gateways.connection import (
-    ConnectionError,
     ChunkedEncodingError,
+    ConnectionError,
     HTTPError,
     InsecureRequestWarning,
     InvalidSchema,
@@ -118,7 +118,10 @@ class CondaRepoInterface(RepoInterface):
         url = join_url(self._url, filename)
 
         with conda_http_errors(self._url, filename):
-            timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+            timeout = (
+                context.remote_connect_timeout_secs,
+                context.remote_read_timeout_secs,
+            )
             response: Response = session.get(
                 url, headers=headers, proxies=session.proxies, timeout=timeout
             )
@@ -138,7 +141,9 @@ class CondaRepoInterface(RepoInterface):
         saved_fields = {"_url": self._url}
         _add_http_value_to_dict(response, "Etag", saved_fields, "_etag")
         _add_http_value_to_dict(response, "Last-Modified", saved_fields, "_mod")
-        _add_http_value_to_dict(response, "Cache-Control", saved_fields, "_cache_control")
+        _add_http_value_to_dict(
+            response, "Cache-Control", saved_fields, "_cache_control"
+        )
 
         state.clear()
         state.update(saved_fields)
@@ -296,14 +301,18 @@ If your current network has https://www.anaconda.com blocked, please file
 a support request with your network engineering team.
 
 %s
-""" % maybe_unquote(repr(url))
+""" % maybe_unquote(
+                    repr(url)
+                )
 
             else:
                 help_message = """\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 %s
-""" % maybe_unquote(repr(url))
+""" % maybe_unquote(
+                    repr(url)
+                )
 
         raise CondaHTTPError(
             help_message,
@@ -369,8 +378,12 @@ class RepodataState(UserDict):
         """
         serialized = dict(self)
         json_stat = self.cache_path_json.stat()
-        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
-        return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
+        serialized.update(
+            {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+        )
+        return pathlib.Path(self.cache_path_state).write_text(
+            json.dumps(serialized, indent=True)
+        )
 
     @property
     def mod(self) -> str:
@@ -429,7 +442,9 @@ class RepodataState(UserDict):
             value = bool(obj["value"])
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
-            log.warn("error parsing `has_` object from `<cache key>.state.json`", exc_info=e)
+            log.warn(
+                "error parsing `has_` object from `<cache key>.state.json`", exc_info=e
+            )
             self.pop(key)
 
         return False, datetime.datetime.now(tz=datetime.timezone.utc)
@@ -492,10 +507,11 @@ class RepodataCache:
         cache_path_base = pathlib.Path(base)
         self.cache_dir = cache_path_base.parent
         self.name = cache_path_base.name
-        self.repodata_fn = (
-            repodata_fn  # XXX can we skip repodata_fn or include the full url for debugging
+        # XXX can we skip repodata_fn or include the full url for debugging
+        self.repodata_fn = repodata_fn
+        self.state = RepodataState(
+            self.cache_path_json, self.cache_path_state, repodata_fn
         )
-        self.state = RepodataState(self.cache_path_json, self.cache_path_state, repodata_fn)
 
     @property
     def cache_path_json(self):

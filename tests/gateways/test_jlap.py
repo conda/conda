@@ -52,7 +52,8 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     )
 
     patched = mocker.patch(
-        "conda.gateways.repodata.jlap.fetch.download_and_hash", wraps=fetch.download_and_hash
+        "conda.gateways.repodata.jlap.fetch.download_and_hash",
+        wraps=fetch.download_and_hash,
     )
 
     state = {}
@@ -431,7 +432,11 @@ def test_jlap_errors(
 
 @pytest.mark.parametrize("use_jlap", [True, False])
 def test_jlap_cache_clock(
-    package_server: socket, tmp_path: Path, package_repository_base: Path, mocker, use_jlap: bool
+    package_server: socket,
+    tmp_path: Path,
+    package_repository_base: Path,
+    mocker,
+    use_jlap: bool,
 ):
     """
     Test that we add another "local_repodata_ttl" (an alternative to
@@ -508,7 +513,9 @@ def test_jlap_cache_clock(
         assert cache.load_state()["refresh_ns"] == later2
 
         # check that non-expried cache avoids updating refresh_ns.
-        mocker.patch("time.time_ns", return_value=now + ((3 * local_repodata_ttl + 4) * int(1e9)))
+        mocker.patch(
+            "time.time_ns", return_value=now + ((3 * local_repodata_ttl + 4) * int(1e9))
+        )
 
         sd.load()
         assert cache.load_state()["refresh_ns"] == later2
@@ -536,7 +543,9 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
 
         raise fetch.HTTPError(response=Response())
 
-    mocker.patch("conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error)
+    mocker.patch(
+        "conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error
+    )
 
     with pytest.raises(CondaHTTPError, match="HTTP 405"):
         repo.repodata({})
@@ -624,9 +633,13 @@ def test_jlap_get_place():
     """
     (probably soon to be removed) helper function to get cache filenames.
     """
-    place = fetch.get_place("https://repo.anaconda.com/main/linux-64/current_repodata.json").name
+    place = fetch.get_place(
+        "https://repo.anaconda.com/main/linux-64/current_repodata.json"
+    ).name
     assert ".c" in place
-    place2 = fetch.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
+    place2 = fetch.get_place(
+        "https://repo.anaconda.com/main/linux-64/repodata.json"
+    ).name
     assert ".c" not in place2
 
 

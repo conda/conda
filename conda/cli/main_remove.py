@@ -1,29 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import logging
-from os.path import isfile, join
 import sys
+from os.path import isfile, join
 
-from .common import check_non_admin, specs_from_args
-from .install import handle_txn
 from ..base.context import context
 from ..core.envs_manager import unregister_env
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
-from ..exceptions import CondaEnvironmentError, CondaValueError, DirectoryNotACondaEnvironmentError
-from ..gateways.disk.delete import rm_rf, path_is_clean
+from ..exceptions import (
+    CondaEnvironmentError,
+    CondaValueError,
+    DirectoryNotACondaEnvironmentError,
+    PackagesNotFoundError,
+)
+from ..gateways.disk.delete import path_is_clean, rm_rf
 from ..models.match_spec import MatchSpec
-from ..exceptions import PackagesNotFoundError
+from .common import check_non_admin, specs_from_args
+from .install import handle_txn
 
 log = logging.getLogger(__name__)
 
 
 def execute(args, parser):
-
     if not (args.all or args.package_names):
-        raise CondaValueError('no package names supplied,\n'
-                              '       try "conda remove -h" for more details')
+        raise CondaValueError(
+            "no package names supplied,\n"
+            '       try "conda remove -h" for more details'
+        )
 
     prefix = context.target_prefix
     check_non_admin()
@@ -50,13 +54,15 @@ def execute(args, parser):
 
     if args.all:
         if prefix == context.root_prefix:
-            raise CondaEnvironmentError('cannot remove root environment,\n'
-                                        '       add -n NAME or -p PREFIX option')
-        if not isfile(join(prefix, 'conda-meta', 'history')):
+            raise CondaEnvironmentError(
+                "cannot remove root environment,\n"
+                "       add -n NAME or -p PREFIX option"
+            )
+        if not isfile(join(prefix, "conda-meta", "history")):
             raise DirectoryNotACondaEnvironmentError(prefix)
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
 
-        if 'package_names' in args:
+        if "package_names" in args:
             stp = PrefixSetup(
                 target_prefix=prefix,
                 unlink_precs=tuple(PrefixData(prefix).iter_records()),
@@ -69,7 +75,9 @@ def execute(args, parser):
             try:
                 handle_txn(txn, prefix, args, False, True)
             except PackagesNotFoundError:
-                print("No packages found in %s. Continuing environment removal" % prefix)
+                print(
+                    "No packages found in %s. Continuing environment removal" % prefix
+                )
         if not context.dry_run:
             rm_rf(prefix, clean_empty_parents=True)
             unregister_env(prefix)

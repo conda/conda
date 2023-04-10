@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from os.path import dirname, join
-
 
 # remote=True is only used in two places, in tests.conda_env.test_create
 
