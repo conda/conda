@@ -25,8 +25,10 @@ class DeprecationHandler:
 
         :param version: The version to compare against when checking deprecation statuses.
         """
-        if not isinstance(version, Version):
+        try:
             self._version = parse(version)
+        except TypeError:
+            self._version = parse("0.0.0.dev0+placeholder")
 
     def __call__(
         self,
