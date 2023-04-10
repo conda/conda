@@ -1,9 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from contextlib import contextmanager
 from os import unlink
+
 from ..auxlib.compat import Utf8NamedTemporaryFile
+
 
 @contextmanager
 def temporary_content_in_file(content, suffix=""):

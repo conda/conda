@@ -2,17 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from functools import partial
 import os
+from functools import partial
 
-from .common import confirm_yn
-from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..base.constants import DRY_RUN_PREFIX
+from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..cli import common, install
 from ..common.path import expand, paths_equal
 from ..exceptions import CondaEnvException
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import rename_context
+from .common import confirm_yn
 
 
 def validate_src(name: str | None, prefix: str | None) -> str:
@@ -53,11 +53,19 @@ def execute(args, _):
     Executes the command for renaming an existing environment
     """
     source = validate_src(args.name, args.prefix)
-    destination = validate_destination(args.destination, yes=args.yes, dry_run=args.dry_run)
+    destination = validate_destination(
+        args.destination, yes=args.yes, dry_run=args.dry_run
+    )
 
     def clone_and_remove():
         actions: tuple[partial, ...] = (
-            partial(install.clone, source, destination, quiet=context.quiet, json=context.json),
+            partial(
+                install.clone,
+                source,
+                destination,
+                quiet=context.quiet,
+                json=context.json,
+            ),
             partial(rm_rf, source),
         )
 

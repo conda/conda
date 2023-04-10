@@ -21,7 +21,10 @@ python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error
 
 :: Download minio server needed for S3 tests and place it in our conda environment so is in PATH
-powershell.exe -Command "If (-Not (Test-Path 'minio.exe')) { Invoke-WebRequest -Uri 'https://dl.minio.io/server/minio/release/windows-amd64/minio.exe' -OutFile 'minio.exe' | Out-Null }" || goto :error
+:: You can pin to an older release by setting MINIO_RELEASE to 'archive/XXXX'
+
+if "%MINIO_RELEASE%x" == "x" set "MINIO_RELEASE=minio.exe"
+powershell.exe -Command "If (-Not (Test-Path 'minio.exe')) { Invoke-WebRequest -Uri 'https://dl.min.io/server/minio/release/windows-amd64/%MINIO_RELEASE%' -OutFile 'minio.exe' | Out-Null }" || goto :error
 copy minio.exe %CONDA_PREFIX%\minio.exe || goto :error
 
 goto :EOF
