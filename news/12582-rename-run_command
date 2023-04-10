@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `conda rename` support for `conda.testing.integration.run_command`. (#12582)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
