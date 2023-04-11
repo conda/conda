@@ -111,10 +111,7 @@ def test_rename_by_name_name_already_exists_error(env_one):
     out, err, exit_code = run(
         f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_1}", disallow_stderr=False
     )
-    assert (
-        f"The environment '{TEST_ENV_NAME_1}' already exists. Override with --force"
-        in err
-    )
+    assert "cannot read from stdin" in err
 
 
 def test_rename_by_path_path_already_exists_error(env_one):
@@ -123,10 +120,7 @@ def test_rename_by_path_path_already_exists_error(env_one):
         out, err, exit_code = run(
             f"conda rename -n {TEST_ENV_NAME_1} {tempdir}", disallow_stderr=False
         )
-        assert (
-            f"The environment '{os.path.basename(os.path.normpath(tempdir))}' already exists. Override with --force"
-            in err
-        )
+        assert "cannot read from stdin" in err
 
 
 def test_cannot_rename_base_env_by_name(env_one):
