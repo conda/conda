@@ -13,3 +13,4 @@ Configuration
    pip-interoperability
    disable-ssl-verification
    non-standard-certs
+   mirroring
