@@ -58,22 +58,12 @@ def get_prefix(args: argparse.Namespace) -> str:
     return context.active_prefix or ""
 
 
-def display_health_checks(prefix: str, verbose: bool = False) -> None:
-    """
-    Display health checks.
-    """
-    from . import health_checks
-
-    if verbose:
-        health_checks.display_health_checks(prefix, verbose=True)
-    else:
-        health_checks.display_health_checks(prefix, verbose=False)
-
-
 def execute(argv: list[str]) -> None:
     """
     Run conda doctor subcommand.
     """
+    from .health_checks import display_health_checks
+    
     args = get_parsed_args(argv)
     prefix = get_prefix(args)
     display_health_checks(prefix, verbose=args.verbose)
