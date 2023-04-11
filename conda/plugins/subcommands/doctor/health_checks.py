@@ -26,20 +26,12 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     """
     packages = {}
     prefix = Path(prefix)
-    conda_meta = prefix.joinpath("conda-meta")
-    for file in conda_meta.iterdir():
-        if file.name.endswith(".json"):
-            name = file.stem
-            packages[name] = []
-            data = json.loads(file.read_text())
-            for file_name in data.get("files", ()):
-                # Add warnings if json file has missing "files"
-                if not (prefix / file_name).exists():
-                    packages[name].append(file_name)
-
-    packages_with_missing_files = {k: v for k, v in packages.items() if v}
-
-    return packages_with_missing_files
+    for file in (prefix / "conda-meta").glob("*.json"):
+        for file_name in json.loads(file.read_text()).get("files", []):
+            # Add warnings if json file has missing "files"
+            if not (prefix / file_name).exists():
+                packages.setdefault(file.stem, []).append(file_name)
+    return packages
 
 
 def display_health_checks(prefix: str, verbose: bool) -> None:
