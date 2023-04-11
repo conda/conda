@@ -356,12 +356,16 @@ class RepodataState(UserDict):
     Load/save `.state.json` that accompanies cached `repodata.json`
     """
 
+    # Accept old keys for new serialization
     _aliased = {
         "_mod": LAST_MODIFIED_KEY,
         "_etag": ETAG_KEY,
         "_cache_control": CACHE_CONTROL_KEY,
         "_url": URL_KEY,
     }
+
+    # Enforce string type on these keys
+    _strings = {"mod", "etag", "cache_control", "url"}
 
     def __init__(
         self,
@@ -428,7 +432,7 @@ class RepodataState(UserDict):
         """
         Last-Modified header or ""
         """
-        return self.get(LAST_MODIFIED_KEY, "")
+        return self.get(LAST_MODIFIED_KEY) or ""
 
     @mod.setter
     def mod(self, value):
@@ -439,7 +443,7 @@ class RepodataState(UserDict):
         """
         Etag header or ""
         """
-        return self.get(ETAG_KEY, "")
+        return self.get(ETAG_KEY) or ""
 
     @etag.setter
     def etag(self, value):
@@ -450,11 +454,11 @@ class RepodataState(UserDict):
         """
         Cache-Control header or ""
         """
-        return self.get("cache_control", "")
+        return self.get(CACHE_CONTROL_KEY) or ""
 
     @cache_control.setter
     def cache_control(self, value):
-        self["cache_control"] = value or ""
+        self[CACHE_CONTROL_KEY] = value or ""
 
     def has_format(self, format: str) -> tuple[bool, datetime.datetime | None]:
         # "has_zst": {
@@ -518,7 +522,10 @@ class RepodataState(UserDict):
 
     def __setitem__(self, key: str, item: Any) -> None:
         if key in self._aliased:
-            key = self._aliased[key]
+            key = key[1:]  # strip underscore
+        if key in self._strings and not isinstance(item, str):
+            warnings.warn('Replaced non-str RepodataState[{key}] with ""')
+            item = ""
         return super().__setitem__(key, item)
 
     def __missing__(self, key: str):
@@ -1000,7 +1007,7 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     return f"{md5.hexdigest()[:8]}.json"
 
 
-def get_cache_control_max_age(cache_control_value):
+def get_cache_control_max_age(cache_control_value: str):
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
 
