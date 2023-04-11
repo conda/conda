@@ -38,7 +38,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     conda_meta = prefix.joinpath("conda-meta")
     for file in conda_meta.iterdir():
         if file.name.endswith(".json"):
-            name = str(file.name)[:-5]
+            name = file.stem
             packages[name] = []
             with file.open() as f:
                 data = json.load(f)
