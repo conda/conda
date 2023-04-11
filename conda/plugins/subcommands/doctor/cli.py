@@ -65,9 +65,9 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
     from . import health_checks
 
     if verbose:
-        health_checks.display_detailed_health_checks(prefix)
+        health_checks.display_health_checks(prefix, verbose=True)
     else:
-        health_checks.display_health_checks(prefix)
+        health_checks.display_health_checks(prefix, verbose=False)
 
 
 def execute(argv: list[str]) -> None:
