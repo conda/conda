@@ -15,11 +15,9 @@ def display_report_heading(prefix: str) -> None:
     """
     Displays our report heading
     """
-    environment = Path(prefix)
-    environment_name = environment.name
     print("-" * 20)
     print(REPORT_TITLE)
-    print(f"Environment Name: {environment_name}\n")
+    print(f"Environment Name: {Path(prefix).name}\n")
 
 
 def get_number_of_missing_files(prefix: str) -> dict[str, int]:
