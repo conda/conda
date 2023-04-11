@@ -58,29 +58,25 @@ def prefix_rename() -> Generator[Path, None, None]:
 
         yield prefix
 
-        run_command(Commands.REMOVE, str(prefix), "--all")
-
 
 @pytest.fixture
 def prefix_one(prefix_rename: Path) -> Generator[Path, None, None]:
     """A setup fixture, creates an empty testing environment and removes it at the end if present."""
-    with tempfile.TemporaryDirectory() as prefix:
-        run_command(Commands.CREATE, prefix)
+    with tempfile.TemporaryDirectory() as root:
+        prefix = Path(root, uuid.uuid4().hex)
+        run_command(Commands.CREATE, str(prefix))
 
-        yield Path(prefix)
-
-        run_command(Commands.REMOVE, prefix, "--all")
+        yield prefix
 
 
 @pytest.fixture
 def prefix_two() -> Generator[Path, None, None]:
     """A setup fixture, creates an empty testing environment and removes it at the end if present."""
-    with tempfile.TemporaryDirectory() as prefix:
-        run_command(Commands.CREATE, prefix)
+    with tempfile.TemporaryDirectory() as root:
+        prefix = Path(root, uuid.uuid4().hex)
+        run_command(Commands.CREATE, str(prefix))
 
-        yield Path(prefix)
-
-        run_command(Commands.REMOVE, prefix, "--all")
+        yield prefix
 
 
 def test_rename_by_name_success(name_one: str, name_rename: str):
