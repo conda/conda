@@ -40,8 +40,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
         if file.name.endswith(".json"):
             name = file.stem
             packages[name] = []
-            with file.open() as f:
-                data = json.load(f)
+            data = json.loads(file.read_text())
             for file_name in data.get("files", ()):
                 # Add warnings if json file has missing "files"
                 if not (prefix / file_name).exists():
