@@ -13,7 +13,8 @@ from ... import CondaSubcommand, hookimpl
 
 def get_parsed_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        "conda doctor", description="Display a health report for your environment."
+        "conda doctor",
+        description="Display a health report for your environment.",
     )
     parser.add_argument(
         "-v",
