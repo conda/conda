@@ -20,15 +20,6 @@ def display_report_heading(prefix: str) -> None:
     print(f"Environment Name: {Path(prefix).name}\n")
 
 
-def get_number_of_missing_files(prefix: str) -> dict[str, int]:
-    """
-    Returns a dictionary with packages and the number of missing files in them
-    """
-    packages_with_missing_files = find_packages_with_missing_files(prefix)
-
-    return {k: len(v) for k, v in packages_with_missing_files.items()}
-
-
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
     """
     Finds packages listed in conda-meta which have missing files
