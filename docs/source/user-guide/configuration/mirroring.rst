@@ -54,7 +54,7 @@ This takes precedence over ``channel_alias``. For example:
     custom_channels:
         conda-forge: https://my-mirror.com/conda-forge
 
-With this configuration, conda-forge will be looked up at ``https://my-mirror.com/conda-forge``. 
+With this configuration, conda-forge will be looked up at ``https://my-mirror.com/conda-forge``.
 All other community channels will be looked up at ``https://conda.anaconda.org``.
 
 
