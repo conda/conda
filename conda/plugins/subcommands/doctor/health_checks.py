@@ -44,8 +44,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
                 data = json.load(f)
             for file_name in data.get("files", ()):
                 # Add warnings if json file has missing "files"
-                existence = prefix.joinpath(file_name).exists()
-                if not existence:
+                if not (prefix / file_name).exists():
                     packages[name].append(file_name)
 
     packages_with_missing_files = {k: v for k, v in packages.items() if v}
