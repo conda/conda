@@ -59,23 +59,22 @@ environments are space efficient, and take seconds to create.
 
 The default environment, which `conda` itself is installed into, is called `base`.
 To create another environment, use the `conda create` command.
-For instance, to create an environment with Python 3.11.0 and the latest version of Rust, you would run:
+For instance, to create an environment with PyTorch, you would run:
 
 ```bash
-$ conda create --name python+rust python=3.11.0 rust
+$ conda create --name ml-project pytorch
 ```
 
-This creates an environment called `python+rust` with Python 3.11.0,
-the latest version of Rust, and their dependencies.
+This creates an environment called `ml-project` with the latest version of PyTorch, and its dependencies.
 
 We can now activate this environment:
 
 ```bash
-$ conda activate python+rust
+$ conda activate ml-project
 ```
 
-This puts the `bin` directory of the `python+rust` environment in the front of the
-`PATH`, and sets it as the default environment for all subsequent conda commands.
+This puts the `bin` directory of the `ml-project` environment in the front of the `PATH`,
+and sets it as the default environment for all subsequent conda commands.
 
 To go back to the base environment, use
 
