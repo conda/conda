@@ -1579,7 +1579,7 @@ def configure_parser_rename(sub_parsers) -> None:
             "23.9",
             "24.3",
             _StoreTrueAction,
-            addendum="Use --yes instead.",
+            addendum="Use `--yes` instead.",
         ),
         default=False,
     )

@@ -141,7 +141,14 @@ class DeprecationHandler:
                 category, message = self._generate_message(
                     deprecate_in,
                     remove_in,
-                    f"`{inner_self.option_strings[0]}`",
+                    (
+                        # option_string are ordered shortest to longest,
+                        # use the longest as it's the most descriptive
+                        f"`{inner_self.option_strings[-1]}`"
+                        if inner_self.option_strings
+                        # if not a flag/switch, use the destination itself
+                        else f"`{inner_self.dest}`"
+                    ),
                     addendum=addendum,
                 )
 
@@ -155,7 +162,7 @@ class DeprecationHandler:
             def __call__(inner_self, parser, namespace, values, option_string=None):
                 # alert user that it's time to remove something
                 warnings.warn(
-                    inner_self.help, inner_self.category, stacklevel=2 + stack
+                    inner_self.help, inner_self.category, stacklevel=7 + stack
                 )
 
                 super().__call__(parser, namespace, values, option_string)
