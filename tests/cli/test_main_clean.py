@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 from datetime import datetime
-from json import loads as json_loads
 from os import PathLike, walk
 from os.path import basename, exists, isdir, join
 from shutil import copy
@@ -82,7 +82,7 @@ def test_clean_force_pkgs_dirs(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--force-pkgs-dirs", "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # pkgs_dir is removed
             assert not exists(pkgs_dir)
@@ -107,7 +107,7 @@ def test_clean_and_packages(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--packages", "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
             assert_any_pkg(pkg, _get_pkgs(pkgs_dir))
@@ -116,7 +116,7 @@ def test_clean_and_packages(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--packages", "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # pkg is removed
             assert_not_pkg(pkg, _get_pkgs(pkgs_dir))
@@ -141,7 +141,7 @@ def test_clean_tarballs(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--tarballs", "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # tarball is removed
             assert_not_pkg(pkg, _get_tars(pkgs_dir))
@@ -165,7 +165,7 @@ def test_clean_index_cache(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--index-cache", "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # index cache is cleared
             assert not _get_index_cache()
@@ -205,7 +205,7 @@ def test_clean_tempfiles(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--tempfiles", pkgs_dir, "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # tempfiles removed
             assert not _get_tempfiles(pkgs_dir)
@@ -242,7 +242,7 @@ def test_clean_logfiles(clear_cache):
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--logfiles", "--yes", "--json"
             )
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # logfiles removed
             assert not _get_logfiles(pkgs_dir)
@@ -274,7 +274,7 @@ def test_clean_all(clear_cache, verbose: bool):
             assert cache
 
             stdout, _, _ = run_command(Commands.CLEAN, "", "--all", *args)
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
             # tarball is removed
@@ -286,7 +286,7 @@ def test_clean_all(clear_cache, verbose: bool):
 
             run_command(Commands.REMOVE, prefix, pkg, *args)
             stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", *args)
-            json_loads(stdout)  # assert valid json
+            json.loads(stdout)  # assert valid json
 
             # pkg is removed
             # tarball is still removed
@@ -303,6 +303,36 @@ def test_clean_all(clear_cache, verbose: bool):
         assert_not_pkg(pkg, pkgs)
         assert_not_pkg(pkg, tars)
         assert not cache
+
+
+# conda clean --all --verbose
+@pytest.mark.parametrize("as_json", [True, False])
+def test_clean_all_mock_lstat(clear_cache, mocker: MockerFixture, as_json: bool):
+    pkg = "bzip2"
+    args = ("--yes", "--verbose")
+    if as_json:
+        args = (*args, "--json")
+
+    with make_temp_package_cache() as pkgs_dir, make_temp_env(pkg) as prefix:
+        # pkg, tarball, & index cache exists
+        pkgs, tars, cache = _get_all(pkgs_dir)
+        assert_any_pkg(pkg, pkgs)
+        assert_any_pkg(pkg, tars)
+        assert cache
+
+        mocker.patch("os.lstat", side_effect=OSError)
+
+        run_command(Commands.REMOVE, prefix, pkg, *args)
+        stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", *args)
+        assert "WARNING:" in stdout
+        if as_json:
+            json.loads(stdout)  # assert valid json
+
+        # pkg, tarball, & index cache still exists
+        pkgs, tars, index_cache = _get_all(pkgs_dir)
+        assert_any_pkg(pkg, pkgs)
+        assert_any_pkg(pkg, tars)
+        assert cache
 
 
 # _get_size unittest, valid file

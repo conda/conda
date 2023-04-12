@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import sys
 from logging import getLogger
-from os import lstat, walk
 from os.path import isdir, join
 from typing import Any, Iterable
 
@@ -22,7 +22,7 @@ _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSI
 def _get_size(*parts: str, warnings: list[str] | None) -> int:
     path = join(*parts)
     try:
-        stat = lstat(path)
+        stat = os.lstat(path)
     except OSError as e:
         if warnings is None:
             raise
@@ -69,7 +69,7 @@ def find_tarballs() -> dict[str, Any]:
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # tarballs are files in pkgs_dir
-        _, _, tars = next(walk(pkgs_dir))
+        _, _, tars = next(os.walk(pkgs_dir))
         for tar in tars:
             # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
             if not tar.endswith(_EXTS):
@@ -96,7 +96,7 @@ def find_pkgs() -> dict[str, Any]:
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # pkgs are directories in pkgs_dir
-        _, pkgs, _ = next(walk(pkgs_dir))
+        _, pkgs, _ = next(os.walk(pkgs_dir))
         for pkg in pkgs:
             # pkgs also have an info directory
             if not isdir(join(pkgs_dir, pkg, "info")):
@@ -106,7 +106,7 @@ def find_pkgs() -> dict[str, Any]:
             try:
                 size = sum(
                     _get_size(root, file, warnings=warnings)
-                    for root, _, files in walk(join(pkgs_dir, pkg))
+                    for root, _, files in os.walk(join(pkgs_dir, pkg))
                     for file in files
                 )
             except NotImplementedError:
@@ -193,7 +193,7 @@ def find_tempfiles(paths: Iterable[str]) -> list[str]:
     tempfiles = []
     for path in sorted(set(paths or [sys.prefix])):
         # tempfiles are files in path
-        for root, _, files in walk(path):
+        for root, _, files in os.walk(path):
             for file in files:
                 # tempfiles also end in .c~ or .trash
                 if not file.endswith(CONDA_TEMP_EXTENSIONS):
@@ -213,7 +213,7 @@ def find_logfiles() -> list[str]:
             continue
 
         # logfiles are files in .logs
-        _, _, logs = next(walk(path), [None, None, []])
+        _, _, logs = next(os.walk(path), [None, None, []])
         files.extend([join(path, log) for log in logs])
 
     return files
