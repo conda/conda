@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Change the README example from IPython Notebook and NumPy to Python and Rust. (#12579)
+* Change the README example from IPython Notebook and NumPy to PyTorch. (#12579)
 
 ### Other
 
