@@ -237,7 +237,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     # detect whether a name or a prefix was provided
     name = None
-    if not os.path.isabs(prefix):
+    if prefix and not os.path.isabs(prefix):
         name = prefix
         prefix = join(context.active_prefix, prefix)
 
