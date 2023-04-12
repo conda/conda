@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `conda.deprecations.action` helper to deprecate `argparse.Action`s. (#12493)
+* Add `conda.deprecations.DeprecationHandler.action` helper to deprecate `argparse.Action`s. (#12493)
 
 ### Bug fixes
 
