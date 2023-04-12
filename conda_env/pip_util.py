@@ -13,6 +13,7 @@ import sys
 from logging import getLogger
 
 from conda.base.context import context
+from conda.deprecations import deprecated
 from conda.exceptions import CondaEnvException
 from conda.exports import on_win
 from conda.gateways.subprocess import any_subprocess
@@ -51,6 +52,7 @@ def get_pip_installed_packages(stdout):
         return None
 
 
+@deprecated("23.9", "24.3")
 def get_pip_version(prefix):
     stdout, stderr = pip_subprocess(["-V"], prefix)
     pip_version = re.search(r"pip\ (\d+\.\d+\.\d+)", stdout)
@@ -61,6 +63,7 @@ def get_pip_version(prefix):
     return pip_version
 
 
+@deprecated("23.9", "24.3")
 class PipPackage(dict):
     def __str__(self):
         if "path" in self:
@@ -70,6 +73,7 @@ class PipPackage(dict):
         return "{}-{}-<pip>".format(self["name"], self["version"])
 
 
+@deprecated("23.9", "24.3")
 def installed(prefix, output=True):
     pip_version = get_pip_version(prefix)
     pip_major_version = int(pip_version.split(".", 1)[0])
@@ -158,11 +162,13 @@ def installed(prefix, output=True):
 _canonicalize_regex = re.compile(r"[-_.]+")
 
 
+@deprecated("23.9", "24.3")
 def _canonicalize_name(name):
     # This is taken from PEP 503.
     return _canonicalize_regex.sub("-", name).lower()
 
 
+@deprecated("23.9", "24.3")
 def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     # Defer to json for backwards compatibility
     if isinstance(json, bool):
