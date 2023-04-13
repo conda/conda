@@ -345,9 +345,7 @@ def execute(args, parser):
     if (
         args.all or all(not getattr(args, opt) for opt in options)
     ) and not context.json:
-        stdout_logger = getLogger("conda.stdoutlog")
-        stdout_logger.info(get_main_info_str(info_dict))
-        stdout_logger.info("\n")
+        print(get_main_info_str(info_dict) + "\n")
 
     if args.envs:
         from ..core.envs_manager import list_all_known_prefixes
