@@ -196,7 +196,6 @@ class Commands:
     SEARCH = "search"
     UPDATE = "update"
     RUN = "run"
-    DOCTOR = "doctor"
 
 
 @contextmanager
@@ -249,7 +248,6 @@ def run_command(command, prefix, *arguments, **kwargs):
         Commands.REMOVE,
         Commands.UPDATE,
         Commands.RUN,
-        Commands.DOCTOR,
     ):
         arguments.insert(0, "-p")
         arguments.insert(1, prefix)
