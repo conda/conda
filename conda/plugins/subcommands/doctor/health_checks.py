@@ -44,9 +44,8 @@ def display_health_checks(prefix: str, verbose: bool) -> None:
         print("Missing Files\n")
         for file, files in missing_files.items():
             if verbose:
-                files_as_str = "\n".join(files)
-                print(f"{file}:\n{files_as_str}")
-                print("\n")
+                delimiter = "\n  "
+                print(f"{file}:{delimiter}{delimiter.join(files)}\n")
             else:
                 print(f"{file}: {len(files)}")
 
