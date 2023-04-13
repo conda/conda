@@ -12,14 +12,22 @@
 # Ideally we'd have two modes, 'removed' and 'fixed'. I have seen
 # condabin come from an entirely different installation than
 # CONDA_PREFIX too in some instances and that really needs fixing.
+from __future__ import annotations
 
 import os
 import sys
+import uuid
 import warnings
+from contextlib import contextmanager
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
+from typing import Callable, Iterator
 
+import pytest
+
+from conda.base.context import context, reset_context
+from conda.cli.main import init_loggers
 from conda.common.compat import on_win
 
 from ..deprecations import deprecated
@@ -156,3 +164,74 @@ def conda_check_versions_aligned():
         )
         with open(version_file, "w") as fh:
             fh.write(version_from_git)
+
+
+@pytest.fixture
+def run(capsys: CaptureFixture) -> Callable:
+    def run(*argv: str, no_capture: bool = False) -> tuple[str, str, int]:
+        """Mimic what is done in `conda.cli.main.main`"""
+        # drop the conda argument if provided
+        if argv[0] == "conda":
+            argv = argv[1:]
+
+        # extra checks to handle legacy subcommands
+        if argv[0] == "env":
+            from conda_env.cli.main import create_parser as generate_parser
+            from conda_env.cli.main import do_call
+
+            argv = argv[1:]
+        else:
+            from conda.cli.conda_argparse import do_call, generate_parser
+
+        # ensure arguments are string
+        argv = tuple(map(str, argv))
+
+        # parse arguments
+        parser = generate_parser()
+        args = parser.parse_args(argv)
+
+        # initialize context and loggers
+        context.__init__(argparse_args=args)
+        init_loggers(context)
+
+        # run command
+        result = do_call(args, parser)
+        out, err = capsys.readouterr()
+
+        # restore to prior state
+        reset_context()
+
+        return out, err, result
+
+    return run
+
+
+@pytest.fixture
+def path_factory(tmp_path: Path) -> Callable:
+    def path_factory(
+        name: str | None = None,
+        prefix: str | None = None,
+        suffix: str | None = None,
+    ) -> Path:
+        prefix = prefix or ""
+        name = name or uuid.uuid4().hex
+        suffix = suffix or ""
+        return tmp_path / (prefix + name + suffix)
+
+    return path_factory
+
+
+@pytest.fixture
+def tmp_env(path_factory: Callable, run: Callable) -> ContextManager:
+    @contextmanager
+    def tmp_env(
+        *packages: str,
+        prefix: str | os.PathLike | None = None,
+    ) -> Iterator[Path]:
+        prefix = Path(prefix or path_factory())
+
+        reset_context([prefix / "condarc"])
+        run("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        yield prefix
+
+    return tmp_env

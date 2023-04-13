@@ -124,6 +124,7 @@ def assert_in(a, b, output=""):
     )
 
 
+@deprecated("23.9", "24.3", "Use `conda.testing.run` instead.")
 def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())

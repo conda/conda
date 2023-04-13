@@ -39,6 +39,7 @@ from conda.common.io import (
 from conda.common.url import escape_channel_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -210,6 +211,7 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.run` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
