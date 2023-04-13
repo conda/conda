@@ -167,8 +167,8 @@ def conda_check_versions_aligned():
 
 
 @pytest.fixture
-def run(capsys: CaptureFixture) -> Callable:
-    def run(*argv: str, no_capture: bool = False) -> tuple[str, str, int]:
+def conda_cli(capsys: CaptureFixture) -> Callable:
+    def conda_cli(*argv: str, no_capture: bool = False) -> tuple[str, str, int]:
         """Mimic what is done in `conda.cli.main.main`"""
         # drop the conda argument if provided
         if argv[0] == "conda":
@@ -203,7 +203,7 @@ def run(capsys: CaptureFixture) -> Callable:
 
         return out, err, result
 
-    return run
+    return conda_cli
 
 
 @pytest.fixture
@@ -222,7 +222,7 @@ def path_factory(tmp_path: Path) -> Callable:
 
 
 @pytest.fixture
-def tmp_env(path_factory: Callable, run: Callable) -> ContextManager:
+def tmp_env(path_factory: Callable, conda_cli: Callable) -> ContextManager:
     @contextmanager
     def tmp_env(
         *packages: str,
@@ -231,7 +231,7 @@ def tmp_env(path_factory: Callable, run: Callable) -> ContextManager:
         prefix = Path(prefix or path_factory())
 
         reset_context([prefix / "condarc"])
-        run("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
         yield prefix
 
     return tmp_env
