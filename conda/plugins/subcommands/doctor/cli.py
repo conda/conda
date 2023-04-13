@@ -39,8 +39,10 @@ def get_prefix(args: argparse.Namespace) -> str:
     if args.prefix:
         return validate_prefix(args.prefix)
 
-    # context.active_prefix can return None; always return str
-    return context.active_prefix or ""
+    if context.active_prefix:
+        return context.active_prefix
+
+    raise CondaEnvException("No environment specified. Either activate an environment or specify the environment via `--name` or `--prefix`.")
 
 
 def execute(argv: list[str]) -> None:
