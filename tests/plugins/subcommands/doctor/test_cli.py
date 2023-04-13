@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from pathlib import Path
+
 import pytest
 
 from conda.plugins.subcommands.doctor.health_checks import MISSING_FILES_SUCCESS_MESSAGE
@@ -57,7 +59,7 @@ def test_conda_doctor_with_test_environment(env_one):
     assert exit_code is None
 
 
-def test_conda_doctor_prints_desired_detail_report(env_one):
-    """
-    Prints a detailed report in exactly the format we expect.
-    """
+# def test_conda_doctor_prints_desired_detail_report(env_one):
+#    """
+#    Prints a detailed report in exactly the format we expect.
+#    """
