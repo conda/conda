@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 from ....base.context import context, locate_prefix_by_name
+from ....cli.common import validate_prefix
 from ....cli.conda_argparse import add_parser_prefix
-from ....exceptions import CondaError
 from ... import CondaSubcommand, hookimpl
 
 
@@ -26,20 +25,6 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
     args = parser.parse_args(argv)
 
     return args
-
-
-def validate_prefix(prefix: str) -> str:
-    """
-    Make sure that the prefix is an existing folder
-
-    :raises CondaError: When the prefix does not point to existing folder
-    """
-    prefix_path = Path(prefix)
-
-    if not prefix_path.is_dir():
-        raise CondaError("Provided prefix does not exist.")
-
-    return prefix
 
 
 def get_prefix(args: argparse.Namespace) -> str:

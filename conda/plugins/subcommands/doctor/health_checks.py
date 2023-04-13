@@ -46,6 +46,7 @@ def display_health_checks(prefix: str, verbose: bool) -> None:
             if verbose:
                 files_as_str = "\n".join(files)
                 print(f"{file}:\n{files_as_str}")
+                print("\n")
             else:
                 print(f"{file}: {len(files)}")
 
