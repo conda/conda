@@ -28,26 +28,25 @@ def get_packages(installed, regex):
         yield prefix_rec
 
 
-def list_packages(prefix, regex=None, format="human", show_channel_urls=None):
+def list_packages(
+    prefix, regex=None, format="human", reverse=False, show_channel_urls=None
+):
     res = 0
-    result = []
-
-    if format == "human":
-        result.append("# packages in environment at %s:" % prefix)
-        result.append("#")
-        result.append("# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"))
 
     installed = sorted(
         PrefixData(prefix, pip_interop_enabled=True).iter_records(),
         key=lambda x: x.name,
     )
 
+    packages = []
     for prec in get_packages(installed, regex) if regex else installed:
         if format == "canonical":
-            result.append(prec.dist_fields_dump() if context.json else prec.dist_str())
+            packages.append(
+                prec.dist_fields_dump() if context.json else prec.dist_str()
+            )
             continue
         if format == "export":
-            result.append("=".join((prec.name, prec.version, prec.build)))
+            packages.append("=".join((prec.name, prec.version, prec.build)))
             continue
 
         features = set(prec.get("features") or ())
@@ -61,7 +60,20 @@ def list_packages(prefix, regex=None, format="human", show_channel_urls=None):
             and schannel != DEFAULTS_CHANNEL_NAME
         ):
             disp += "  %s" % schannel
-        result.append(disp)
+
+        packages.append(disp)
+
+    if reverse:
+        packages = reversed(packages)
+
+    result = []
+    if format == "human":
+        result = [
+            "# packages in environment at %s:" % prefix,
+            "#",
+            "# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"),
+        ]
+    result.extend(packages)
 
     return res, result
 
@@ -70,6 +82,7 @@ def print_packages(
     prefix,
     regex=None,
     format="human",
+    reverse=False,
     piplist=False,
     json=False,
     show_channel_urls=None,
@@ -84,7 +97,11 @@ def print_packages(
             print_export_header(context.subdir)
 
     exitcode, output = list_packages(
-        prefix, regex, format=format, show_channel_urls=show_channel_urls
+        prefix,
+        regex,
+        format=format,
+        reverse=reverse,
+        show_channel_urls=show_channel_urls,
     )
     if context.json:
         stdout_json(output)
@@ -145,15 +162,16 @@ def execute(args, parser):
         format = "export"
     else:
         format = "human"
+
     if context.json:
         format = "canonical"
 
-    exitcode = print_packages(
+    return print_packages(
         prefix,
         regex,
         format,
+        reverse=args.reverse,
         piplist=args.pip,
         json=context.json,
         show_channel_urls=context.show_channel_urls,
     )
-    return exitcode

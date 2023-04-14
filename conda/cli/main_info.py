@@ -131,11 +131,6 @@ def get_info_dict(system=False):
         requests_version = "Error %r" % e
 
     try:
-        from conda_env import __version__ as conda_env_version
-    except Exception:  # pragma: no cover
-        conda_env_version = "not installed"
-
-    try:
         import conda_build
     except ImportError:  # pragma: no cover
         conda_build_version = "not installed"
@@ -164,7 +159,7 @@ def get_info_dict(system=False):
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
-        conda_env_version=conda_env_version,
+        conda_env_version=conda_version,
         conda_build_version=conda_build_version,
         root_prefix=context.root_prefix,
         conda_prefix=context.conda_prefix,
