@@ -82,7 +82,7 @@ def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
         assert not code
 
 
-def test_list(conda_cli: CondaCLIFixture):
+def test_list(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("ca-certificates") as prefix:
         out, err, code = conda_cli("list", "--prefix", prefix)
         assert out
