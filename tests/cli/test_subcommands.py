@@ -8,10 +8,11 @@ from typing import Callable, ContextManager
 import pytest
 
 from conda.common.compat import on_win
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
 @pytest.fixture
-def environment_yml(path_factory: Callable) -> Path:
+def environment_yml(path_factory: PathFactoryFixture) -> Path:
     path = path_factory(name="environment.yml")
     path.write_text(
         "name: scratch\n"
@@ -23,21 +24,23 @@ def environment_yml(path_factory: Callable) -> Path:
     return path
 
 
-def test_clean(conda_cli: Callable):
+def test_clean(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("clean", "--all", "--yes")
     assert out
     assert not err
     assert not code
 
 
-def test_create(conda_cli: Callable, path_factory: Callable):
+def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture):
     out, err, code = conda_cli("create", "--prefix", path_factory(), "--yes")
     assert out
     assert not err
     assert not code
 
 
-def test_compare(conda_cli: Callable, tmp_env: ContextManager, environment_yml: Path):
+def test_compare(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, environment_yml: Path
+):
     with tmp_env() as prefix:
         out, err, code = conda_cli("compare", "--prefix", prefix, environment_yml)
         assert out
@@ -45,28 +48,28 @@ def test_compare(conda_cli: Callable, tmp_env: ContextManager, environment_yml: 
         assert code
 
 
-def test_config(conda_cli: Callable):
+def test_config(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("config", "--show-sources")
     assert out
     assert not err
     assert not code
 
 
-def test_info(conda_cli: Callable):
+def test_info(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("info")
     assert out
     assert not err
     assert not code
 
 
-def test_init(conda_cli: Callable):
+def test_init(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("init", "--dry-run")
     assert out
     assert not err
     assert not code
 
 
-def test_install(conda_cli: Callable, tmp_env: ContextManager):
+def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         out, err, code = conda_cli(
             "install",
@@ -79,21 +82,21 @@ def test_install(conda_cli: Callable, tmp_env: ContextManager):
         assert not code
 
 
-def test_list(conda_cli: Callable):
+def test_list(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("list")
     assert out
     assert not err
     assert not code
 
 
-def test_notices(conda_cli: Callable):
+def test_notices(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("notices")
     assert out
     assert not err
     assert not code
 
 
-def test_package(conda_cli: Callable, tmp_env: ContextManager):
+def test_package(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         out, err, code = conda_cli("package", "--prefix", prefix)
         assert out
@@ -102,7 +105,7 @@ def test_package(conda_cli: Callable, tmp_env: ContextManager):
 
 
 @pytest.mark.parametrize("subcommand", ["remove", "uninstall"])
-def test_remove(subcommand: str, conda_cli: Callable, tmp_env: ContextManager):
+def test_remove(subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
         assert out
@@ -110,7 +113,9 @@ def test_remove(subcommand: str, conda_cli: Callable, tmp_env: ContextManager):
         assert not code
 
 
-def test_rename(conda_cli: Callable, tmp_env: ContextManager, path_factory: Callable):
+def test_rename(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, path_factory: PathFactoryFixture
+):
     with tmp_env() as prefix:
         out, err, code = conda_cli("rename", "--prefix", prefix, path_factory())
         assert out
@@ -118,7 +123,7 @@ def test_rename(conda_cli: Callable, tmp_env: ContextManager, path_factory: Call
         assert not code
 
 
-def test_run(conda_cli: Callable, tmp_env: ContextManager):
+def test_run(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("m2-patch" if on_win else "patch") as prefix:
         out, err, code = conda_cli("run", "--prefix", prefix, "patch", "--help")
         assert out
@@ -126,7 +131,7 @@ def test_run(conda_cli: Callable, tmp_env: ContextManager):
         assert not code
 
 
-def test_search(conda_cli: Callable):
+def test_search(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("search", "python")
     assert out
     assert not err
@@ -134,7 +139,7 @@ def test_search(conda_cli: Callable):
 
 
 @pytest.mark.parametrize("subcommand", ["update", "upgrade"])
-def test_update(subcommand: str, conda_cli: Callable, tmp_env: ContextManager):
+def test_update(subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
         assert out
@@ -142,18 +147,18 @@ def test_update(subcommand: str, conda_cli: Callable, tmp_env: ContextManager):
         assert not code
 
 
-def test_env_list(conda_cli: Callable):
+def test_env_list(conda_cli: CondaCLIFixture):
     assert conda_cli("env", "list") == conda_cli("info", "--envs")
 
 
-def test_env_export(conda_cli: Callable):
+def test_env_export(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("env", "export")
     assert out
     assert not err
     assert not code
 
 
-def test_env_remove(conda_cli: Callable, tmp_env: ContextManager):
+def test_env_remove(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         out, err, code = conda_cli("env", "remove", "--prefix", prefix, "--yes")
         assert out
@@ -161,7 +166,9 @@ def test_env_remove(conda_cli: Callable, tmp_env: ContextManager):
         assert not code
 
 
-def test_env_create(conda_cli: Callable, path_factory: Callable, environment_yml: Path):
+def test_env_create(
+    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, environment_yml: Path
+):
     out, err, code = conda_cli(
         "env",
         "create",
@@ -174,8 +181,8 @@ def test_env_create(conda_cli: Callable, path_factory: Callable, environment_yml
 
 
 def test_env_update(
-    conda_cli: Callable,
-    tmp_env: ContextManager,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
     environment_yml: Path,
 ):
     with tmp_env("ca-certificates<2023") as prefix:
@@ -190,7 +197,7 @@ def test_env_update(
         assert not code
 
 
-def test_env_config_vars(conda_cli: Callable, tmp_env: ContextManager):
+def test_env_config_vars(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         out, err, code = conda_cli(
             "env",

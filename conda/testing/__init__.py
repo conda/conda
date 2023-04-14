@@ -19,10 +19,11 @@ import sys
 import uuid
 import warnings
 from contextlib import contextmanager
+from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
-from typing import Callable, Iterator
+from typing import Iterator
 
 import pytest
 
@@ -166,9 +167,11 @@ def conda_check_versions_aligned():
             fh.write(version_from_git)
 
 
-@pytest.fixture
-def conda_cli(capsys: CaptureFixture) -> Callable:
-    def conda_cli(*argv: str, no_capture: bool = False) -> tuple[str, str, int]:
+@dataclass
+class CondaCLIFixture:
+    capsys: CaptureFixture
+
+    def __call__(self, *argv: str, no_capture: bool = False) -> tuple[str, str, int]:
         """Mimic what is done in `conda.cli.main.main`"""
         # drop the conda argument if provided
         if argv[0] == "conda":
@@ -196,19 +199,25 @@ def conda_cli(capsys: CaptureFixture) -> Callable:
 
         # run command
         result = do_call(args, parser)
-        out, err = capsys.readouterr()
+        out, err = self.capsys.readouterr()
 
         # restore to prior state
         reset_context()
 
         return out, err, result
 
-    return conda_cli
-
 
 @pytest.fixture
-def path_factory(tmp_path: Path) -> Callable:
-    def path_factory(
+def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
+    yield CondaCLIFixture(capsys)
+
+
+@dataclass
+class PathFactoryFixture:
+    tmp_path: Path
+
+    def __call__(
+        self,
         name: str | None = None,
         prefix: str | None = None,
         suffix: str | None = None,
@@ -216,22 +225,34 @@ def path_factory(tmp_path: Path) -> Callable:
         prefix = prefix or ""
         name = name or uuid.uuid4().hex
         suffix = suffix or ""
-        return tmp_path / (prefix + name + suffix)
-
-    return path_factory
+        return self.tmp_path / (prefix + name + suffix)
 
 
 @pytest.fixture
-def tmp_env(path_factory: Callable, conda_cli: Callable) -> ContextManager:
+def path_factory(tmp_path: Path) -> PathFactoryFixture:
+    yield PathFactoryFixture(tmp_path)
+
+
+@dataclass
+class TmpEnvFixture:
+    path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture
+
     @contextmanager
-    def tmp_env(
+    def __call__(
+        self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
     ) -> Iterator[Path]:
-        prefix = Path(prefix or path_factory())
+        prefix = Path(prefix or self.path_factory())
 
         reset_context([prefix / "condarc"])
-        conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
         yield prefix
 
-    return tmp_env
+
+@pytest.fixture
+def tmp_env(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+) -> TmpEnvFixture:
+    yield TmpEnvFixture(path_factory, conda_cli)
