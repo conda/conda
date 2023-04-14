@@ -139,23 +139,27 @@ def test_stale(tmp_path):
     assert not cache.state.mod
     assert not cache.state.etag
 
-    # check type problems
-    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
-    for type in json_types:
-        cache.state["cache_control"] = type
-        cache.stale()
-
     # if we don't match stat then load_state will clear the test "mod" value
     json_stat = cache.cache_path_json.stat()
 
-    # change wrongly-typed mod to empty string
-    cache.cache_path_state.write_text(
-        json.dumps(
-            {"mod": None, "mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+    # check type problems
+    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
+    for example in json_types:
+        cache.state["cache_control"] = example
+        cache.stale()
+
+        # change wrongly-typed mod to empty string
+        cache.cache_path_state.write_text(
+            json.dumps(
+                {
+                    "mod": example,
+                    "mtime_ns": json_stat.st_mtime_ns,
+                    "size": json_stat.st_size,
+                }
+            )
         )
-    )
-    state = cache.load_state()
-    assert state.mod == ""
+        state = cache.load_state()
+        assert state.mod == "" or isinstance(example, str)
 
     # preserve correct mod
     cache.cache_path_state.write_text(
