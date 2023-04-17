@@ -240,10 +240,13 @@ class ArgumentParser(ArgumentParserBase):
         subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
         which is a ``conda.plugins.CondaSubcommand`` object.
         """
-        plugin_subcommand = None
+        # args default to the system args
+        if args is None:
+            args = sys.argv[1:]
 
-        if len(sys.argv) > 1:
-            name = sys.argv[1]
+        plugin_subcommand = None
+        if args:
+            name = args[0]
             for subcommand in self._subcommands:
                 if subcommand.name == name:
                     if name.lower() in BUILTIN_COMMANDS:
