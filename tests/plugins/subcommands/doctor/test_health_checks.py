@@ -1,102 +1,72 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
+import uuid
 from pathlib import Path
+from typing import Iterable
 
 import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars
-from conda.plugins.subcommands.doctor import health_checks
-
-BIN_TEST_EXE = "bin/test-exe"
-LIB_TEST_PACKAGE = "lib/test-package.py"
-TEST_PACKAGE_JSON = "test-package.json"
-
-PACKAGE_JSON = {"files": [BIN_TEST_EXE, LIB_TEST_PACKAGE]}
-
-PACKAGE_JSON_WITH_MISSING_FILES = {
-    "files": [BIN_TEST_EXE, LIB_TEST_PACKAGE, "missing.py"]
-}
+from conda.plugins.subcommands.doctor.health_checks import (
+    display_health_checks,
+    find_packages_with_missing_files,
+)
+from conda.testing.integration import make_temp_env
 
 
 @pytest.fixture
-def conda_mock_dir(tmpdir):
+def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
     """Fixture that returns a testing environment with no missing files"""
-    tmpdir.mkdir("bin")
-    tmpdir.mkdir("lib")
-    conda_meta_dir = tmpdir.mkdir("conda-meta")
+    package = uuid.uuid4().hex
 
-    with Path(conda_meta_dir).joinpath(TEST_PACKAGE_JSON).open("w") as fp:
-        json.dump(PACKAGE_JSON, fp)
+    (tmp_path / "bin").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "lib").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
-    Path(tmpdir).joinpath(BIN_TEST_EXE).touch()
-    Path(tmpdir).joinpath(LIB_TEST_PACKAGE).touch()
+    bin_doctor = f"bin/{package}"
+    (tmp_path / bin_doctor).touch()
 
-    return tmpdir
+    lib_doctor = f"lib/{package}.py"
+    (tmp_path / lib_doctor).touch()
+
+    (tmp_path / "conda-meta" / f"{package}.json").write_text(
+        json.dumps({"files": [bin_doctor, lib_doctor]})
+    )
+
+    yield tmp_path, bin_doctor, lib_doctor, package
 
 
 @pytest.fixture
-def conda_mock_dir_missing_files(conda_mock_dir):
+def env_broken(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
     """Fixture that returns a testing environment with missing files"""
-    Path(conda_mock_dir).joinpath(BIN_TEST_EXE).unlink()
+    prefix, bin_doctor, _, _ = env_ok
+    (prefix / bin_doctor).unlink()
+    return env_ok
 
-    return conda_mock_dir
 
-
-def test_find_packages_with_no_missing_files(conda_mock_dir):  # XXX
+def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
     """Test that runs for the case with no missing files"""
-    result = health_checks.find_packages_with_missing_files(conda_mock_dir)
-    assert result == {}
+    prefix, _, _, _ = env_ok
+    assert find_packages_with_missing_files(prefix) == {}
 
 
-def test_find_packages_with_missing_files(conda_mock_dir_missing_files):
-    result = health_checks.find_packages_with_missing_files(
-        conda_mock_dir_missing_files
-    )
-    TEST_PACKAGE_JSON = "test-package"
-    assert result == {TEST_PACKAGE_JSON: [BIN_TEST_EXE]}
+def test_missing_files(env_broken: tuple[Path, str, str, str]):
+    prefix, bin_doctor, _, package = env_broken
+    assert find_packages_with_missing_files(prefix) == {package: [bin_doctor]}
 
 
-def test_get_names_of_missing_files(conda_mock_dir_missing_files):
-    result = health_checks.find_packages_with_missing_files(
-        conda_mock_dir_missing_files
-    )
-    TEST_PACKAGE_JSON = "test-package"
-    assert result == {TEST_PACKAGE_JSON: [BIN_TEST_EXE]}
-
-
-def test_get_names_of_missing_files_when_no_missing_files(conda_mock_dir):
-    result = health_checks.find_packages_with_missing_files(conda_mock_dir)
-    TEST_PACKAGE_JSON = "test-package"
-    assert result == {}
-
-
-def test_display_health_checks(conda_mock_dir):
-    """
-    Run display_health_checks without and with missing files.
-    """
+@pytest.mark.parametrize("verbose", [True, False])
+def test_display_health_checks(env_ok: tuple[Path, str, str, str], verbose: bool):
+    """Run display_health_checks without and with missing files."""
+    prefix, bin_doctor, lib_doctor, package = env_ok
     with env_vars(
-        {
-            "CONDA_PREFIX": conda_mock_dir,
-        },
+        {"CONDA_PREFIX": prefix},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        health_checks.display_health_checks(conda_mock_dir, verbose=False)
-        Path(conda_mock_dir, BIN_TEST_EXE).unlink()
-        health_checks.display_health_checks(conda_mock_dir, verbose=False)
-
-
-def test_display_detailed_health_checks(conda_mock_dir):
-    """
-    Run display_detailed_health_checks without and with missing files.
-    """
-    with env_vars(
-        {
-            "CONDA_PREFIX": conda_mock_dir,
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        health_checks.display_health_checks(conda_mock_dir, verbose=True)
-        Path(conda_mock_dir, BIN_TEST_EXE).unlink()
-        health_checks.display_health_checks(conda_mock_dir, verbose=True)
+        display_health_checks(prefix, verbose=verbose)
+        (prefix / bin_doctor).unlink()
+        display_health_checks(prefix, verbose=verbose)
