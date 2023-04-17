@@ -1036,9 +1036,7 @@ dependencies:
             assert not package_is_installed(prefix, "itsdangerous")
 
     def test_create_only_deps_flag(self):
-        with make_temp_env(
-            "python=2", "flask", "--only-deps", no_capture=True
-        ) as prefix:
+        with make_temp_env("python", "flask", "--only-deps", no_capture=True) as prefix:
             assert not package_is_installed(prefix, "flask")
             assert package_is_installed(prefix, "python")
             if not on_win:
