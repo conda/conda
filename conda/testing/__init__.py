@@ -26,6 +26,7 @@ from subprocess import check_output
 from typing import Iterator
 
 import pytest
+from pytest import CaptureFixture
 
 from conda.base.context import context, reset_context
 from conda.cli.main import init_loggers
