@@ -769,22 +769,9 @@ class RepodataFetch:
 
         :return: (repodata contents, state including cache headers)
         """
-        parsed, state = self.whatever_subdir_data_used_to_do()
+        parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
             return json.loads(parsed), state
-        else:
-            return parsed, state
-
-    def fetch_latest_str(self) -> tuple[str, RepodataState]:
-        """
-        Retrieve unparsed latest or latest-cached repodata as a dict; update
-        cache.
-
-        :return: (repodata contents, RepodataState)
-        """
-        parsed, state = self.whatever_subdir_data_used_to_do()
-        if isinstance(parsed, dict):
-            return json.dumps(parsed), state
         else:
             return parsed, state
 
@@ -794,7 +781,7 @@ class RepodataFetch:
 
         :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
         """
-        _, state = self.whatever_subdir_data_used_to_do()
+        _, state = self.fetch_latest()
         return self.cache_path_json, state
 
     @property
@@ -836,7 +823,12 @@ class RepodataFetch:
             cache_path_state=self.cache_path_state,
         )
 
-    def whatever_subdir_data_used_to_do(self) -> tuple[dict | str, RepodataState]:
+    def fetch_latest(self) -> tuple[dict | str, RepodataState]:
+        """
+        Return up-to-date repodata and cache information. Fetch repodata from
+        remote if cache has expired; return cached data if cache has not
+        expired; return stale cached data or dummy data if in offline mode.
+        """
         cache = self.repo_cache
         cache.load_state()
 
@@ -869,7 +861,7 @@ class RepodataFetch:
                     self.cache_path_json,
                 )
 
-                _internal_state = self.read_local_repodata()
+                _internal_state = self.read_cache()
                 return _internal_state
 
             stale = cache.stale()
@@ -883,7 +875,7 @@ class RepodataFetch:
                     self.cache_path_json,
                     timeout,
                 )
-                _internal_state = self.read_local_repodata()
+                _internal_state = self.read_cache()
                 return _internal_state
 
             log.debug(
@@ -916,7 +908,7 @@ class RepodataFetch:
             cache.refresh()
             # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
             # self._save_state(mod_etag_headers)
-            _internal_state = self.read_local_repodata()
+            _internal_state = self.read_cache()
             return _internal_state
         else:
             try:
@@ -954,7 +946,7 @@ class RepodataFetch:
 
             return raw_repodata, cache.state
 
-    def read_local_repodata(self) -> tuple[str, RepodataState]:
+    def read_cache(self) -> tuple[str, RepodataState]:
         """
         Read repodata from disk, without trying to fetch a fresh version.
         """

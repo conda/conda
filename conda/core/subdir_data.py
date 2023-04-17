@@ -346,7 +346,7 @@ class SubdirData(metaclass=SubdirDataType):
         if _pickled_state:
             return _pickled_state
 
-        raw_repodata_str, state = self.repo_fetch.read_local_repodata()
+        raw_repodata_str, state = self.repo_fetch.read_cache()
         _internal_state = self._process_raw_repodata_str(raw_repodata_str, state)
         # taken care of by _process_raw_repodata():
         assert self._internal_state is _internal_state

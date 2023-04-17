@@ -404,10 +404,8 @@ def test_repodata_fetch_formats(
 
     a, state = fetch.fetch_latest_parsed()
     b, state = fetch.fetch_latest_path()
-    c, state = fetch.fetch_latest_str()
 
     assert a == json.loads(b.read_text())
-    assert a == json.loads(c)
 
     assert isinstance(state, RepodataState)
 
@@ -425,7 +423,7 @@ def test_repodata_fetch_formats_2(
     channel_url = f"{base}/osx-64"
 
     class ReturnsDictInterface(RepodataFetch):
-        def whatever_subdir_data_used_to_do(self):
+        def fetch_latest(self):
             return {}, None
 
     # we always check for *and create* a writable cache dir before fetch
@@ -436,6 +434,3 @@ def test_repodata_fetch_formats_2(
     fetch = ReturnsDictInterface(
         cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
     )
-    c, _ = fetch.fetch_latest_str()
-    assert isinstance(c, str)
-    assert c == "{}"
