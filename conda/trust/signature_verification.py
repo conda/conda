@@ -14,17 +14,17 @@ from ..gateways.connection import HTTPError, InsecureRequestWarning
 from ..gateways.connection.session import CondaSession
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
-try:
-    from conda_content_trust.authentication import verify_delegation, verify_root
-    from conda_content_trust.common import (
-        SignatureError,
-        load_metadata_from_file,
-        write_metadata_to_file,
-    )
-    from conda_content_trust.signing import wrap_as_signable
-except ImportError:
-    # SignatureStatus.enabled handles this
-    pass
+#try:
+from conda_content_trust.authentication import verify_delegation, verify_root
+from conda_content_trust.common import (
+    SignatureError,
+    load_metadata_from_file,
+    write_metadata_to_file,
+)
+#    from conda_content_trust.signing import wrap_as_signable
+#except ImportError:
+#    # SignatureStatus.enabled handles this
+#    pass
 
 
 log = getLogger(__name__)
