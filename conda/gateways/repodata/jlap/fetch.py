@@ -31,9 +31,6 @@ DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
 
 JLAP_KEY = "jlap"
 HEADERS = "headers"
-# Better names?
-# NOMINAL_HASH = "blake2_256_nominal"
-# ON_DISK_HASH = "blake2_256"
 NOMINAL_HASH = "blake2_256_nominal"
 ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
@@ -82,7 +79,6 @@ def process_jlap_response(response: Response, pos=0, iv=b""):
     footer = json.loads(footer)
 
     new_state = {
-        "headers": {k.lower(): v for k, v in response.headers.items()},
         "iv": buffer[-3][-1],
         "pos": pos,
         "footer": footer,

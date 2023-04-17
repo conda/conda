@@ -61,7 +61,6 @@ class JlapRepoInterface(RepoInterface):
         session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
-        # jlap_url = f"{self._url}/{self._repodata_fn}"[: -len(".json")] + ".jlap"
 
         # XXX won't modify caller's state dict
         state_ = RepodataState(dict=state)
