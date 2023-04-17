@@ -7,6 +7,7 @@ import argparse
 from ....base.context import context, locate_prefix_by_name
 from ....cli.common import validate_prefix
 from ....cli.conda_argparse import add_parser_prefix
+from ....exceptions import CondaEnvException
 from ... import CondaSubcommand, hookimpl
 
 
