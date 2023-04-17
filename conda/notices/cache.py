@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 """
 Handles all caching logic including:
   - Retrieving from cache
@@ -16,10 +15,9 @@ from pathlib import Path
 from typing import Optional, Sequence, Set
 
 from .._vendor.appdirs import user_cache_dir
-from ..base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
+from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
 from ..utils import ensure_dir_exists
-
-from .types import ChannelNoticeResponse, ChannelNotice
+from .types import ChannelNotice, ChannelNoticeResponse
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +40,9 @@ def cached_response(func):
     return wrapper
 
 
-def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeResponse) -> bool:
+def is_notice_response_cache_expired(
+    channel_notice_response: ChannelNoticeResponse,
+) -> bool:
     """
     This checks the contents of the cache response to see if it is expired.
 
@@ -60,7 +60,8 @@ def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeRespo
         return expired_at < now
 
     return any(
-        is_channel_notice_expired(chn.expired_at) for chn in channel_notice_response.notices
+        is_channel_notice_expired(chn.expired_at)
+        for chn in channel_notice_response.notices
     )
 
 
@@ -107,7 +108,9 @@ def write_notice_response_to_cache(
     """
     Writes our notice data to our local cache location
     """
-    cache_key = ChannelNoticeResponse.get_cache_key(channel_notice_response.url, cache_dir)
+    cache_key = ChannelNoticeResponse.get_cache_key(
+        channel_notice_response.url, cache_dir
+    )
 
     with open(cache_key, "w") as fp:
         json.dump(channel_notice_response.json_data, fp)

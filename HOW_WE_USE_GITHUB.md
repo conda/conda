@@ -15,6 +15,8 @@
 [workflow-sync]: https://github.com/conda/infra/blob/main/.github/workflows/sync.yml
 [labels-global]: https://github.com/conda/infra/blob/main/.github/global.yml
 
+[signing-commits]: https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits
+
 <!-- relative URLs -->
 [workflow-issues]: /.github/workflows/issues.yml
 [workflow-project]: /.github/workflows/project.yml
@@ -30,6 +32,7 @@ This document seeks to outline how we as a community use GitHub Issues to track 
 <!-- only include high-level topics or particularly noteworthy sections here -->
 Topics:
   - [What is Issue Sorting?](#what-is-issue-sorting)
+  - [Commit signing](#commit-signing)
   - [Types of tickets](#types-of-tickets)
     - [Normal Ticket/Issue](#normal-ticketissue)
     - [Epics](#epics)
@@ -229,6 +232,13 @@ please post details to the [Nucleus forums](https://community.anaconda.cloud/).
 
 In order to not have to manually type or copy/paste the above repeatedly, please note that it's possible to add text for the most commonly-used responses via [GitHub's "Add Saved Reply" option][docs-saved-reply].
 
+
+### Commit signing
+
+For all conda maintainers, we require commit signing and strongly recommend it for all others wishing to contribute to conda
+related projects. More information about how to set this up within GitHub can be found here:
+
+- [Signing Commits][signing-commits]
 
 ### Types of Tickets
 

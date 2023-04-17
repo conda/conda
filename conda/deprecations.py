@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import warnings
 from functools import wraps
 from types import ModuleType
-import warnings
 
-from packaging.version import parse, Version
+from packaging.version import Version, parse
 
 from .__version__ import __version__
 
@@ -25,8 +25,10 @@ class DeprecationHandler:
 
         :param version: The version to compare against when checking deprecation statuses.
         """
-        if not isinstance(version, Version):
+        try:
             self._version = parse(version)
+        except TypeError:
+            self._version = parse("0.0.0.dev0+placeholder")
 
     def __call__(
         self,
@@ -95,7 +97,9 @@ class DeprecationHandler:
                 remove_in,
                 f"{func.__module__}.{func.__qualname__}({argument})",
                 # provide a default addendum if renaming and no addendum is provided
-                addendum=f"Use '{rename}' instead." if rename and not addendum else addendum,
+                addendum=f"Use '{rename}' instead."
+                if rename and not addendum
+                else addendum,
             )
 
             # alert developer that it's time to remove something
@@ -209,7 +213,9 @@ class DeprecationHandler:
         :param stack: Optional stacklevel increment.
         """
         # detect function name and generate message
-        category, message = self._generate_message(deprecate_in, remove_in, topic, addendum)
+        category, message = self._generate_message(
+            deprecate_in, remove_in, topic, addendum
+        )
 
         # alert developer that it's time to remove something
         if not category:

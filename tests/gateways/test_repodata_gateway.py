@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -23,7 +24,12 @@ from conda.exceptions import (
     ProxyError,
     UnavailableInvalidChannel,
 )
-from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
 from conda.gateways.repodata import (
     RepodataCache,
     RepodataIsEmpty,
@@ -82,7 +88,9 @@ def test_stale(tmp_path):
 
     cache.load()
     assert not cache.stale()
-    assert 29 < cache.timeout() < 30.1  # time difference between record and save timestamp
+    assert (
+        29 < cache.timeout() < 30.1
+    )  # time difference between record and save timestamp
 
     # backdate
     cache.state["refresh_ns"] = time.time_ns() - (60 * 10**9)  # type: ignore
@@ -121,6 +129,37 @@ def test_stale(tmp_path):
     assert not cache.state.mod
     assert not cache.state.etag
 
+    # check type problems
+    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
+    for type in json_types:
+        cache.state["cache_control"] = type
+        cache.stale()
+
+    # if we don't match stat then load_state will clear the test "mod" value
+    json_stat = cache.cache_path_json.stat()
+
+    # change wrongly-typed mod to empty string
+    cache.cache_path_state.write_text(
+        json.dumps(
+            {"mod": None, "mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+        )
+    )
+    state = cache.load_state()
+    assert state.mod == ""
+
+    # preserve correct mod
+    cache.cache_path_state.write_text(
+        json.dumps(
+            {
+                "mod": "some",
+                "mtime_ns": json_stat.st_mtime_ns,
+                "size": json_stat.st_size,
+            }
+        )
+    )
+    state = cache.load_state()
+    assert state.mod == "some"
+
 
 def test_coverage_repodata_state(tmp_path):
     # now these should be loaded through RepodataCache instead.
@@ -133,13 +172,20 @@ def test_coverage_repodata_state(tmp_path):
     assert dict(state.load()) == {}
 
 
-from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
 from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 
 def test_repodata_state_has_format():
     # wrong has_zst format
-    state = RepodataState("", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}})
+    state = RepodataState(
+        "", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}}
+    )
     value, dt = state.has_format("zst")
     assert value is False
     assert isinstance(dt, datetime.datetime)
