@@ -8,6 +8,7 @@ from pathlib import Path
 from conda.gateways.connection.session import CondaSession
 
 from .. import (
+    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     RepoInterface,
@@ -26,6 +27,7 @@ class JlapRepoInterface(RepoInterface):
         repodata_fn: str | None,
         cache_path_json: str | Path,
         cache_path_state: str | Path,
+        cache: RepodataCache,
         **kwargs,
     ) -> None:
         log.debug("Using CondaRepoJLAP")
@@ -33,6 +35,9 @@ class JlapRepoInterface(RepoInterface):
         # TODO is there a better way to share these paths
         self._cache_path_json = Path(cache_path_json)
         self._cache_path_state = Path(cache_path_state)
+
+        # replaces self._cache_path_json/state
+        self._cache = cache
 
         self._url = url
         self._repodata_fn = repodata_fn

@@ -821,6 +821,7 @@ class RepodataFetch:
             self.repodata_fn,
             cache_path_json=self.cache_path_json,
             cache_path_state=self.cache_path_state,
+            cache=self.repo_cache,
         )
 
     def fetch_latest(self) -> tuple[dict | str, RepodataState]:
