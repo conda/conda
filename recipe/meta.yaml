@@ -54,8 +54,12 @@ requirements:
 
 test:
   imports:
+    # high-level import
     - conda
     - conda_env
+    # new submodules (can be dropped after 1-2 releases)
+    - conda.gateways.repodata.jlap
+    - conda.plugins.subcommands.doctor
 
 about:
   home: https://conda.io
