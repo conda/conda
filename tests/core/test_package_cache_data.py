@@ -413,7 +413,6 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
         assert zlib_conda_fn in pkgs_dir_files
 
 
-
 def test_instantiating_package_cache_when_unpacked_conda_exist():
     """
     If .conda package exist in a writable package cache, but is unpacked,
@@ -452,7 +451,6 @@ def test_instantiating_package_cache_when_unpacked_conda_exist():
         assert pcrec.url == pkg_url
         pcrec_match = tuple(pcd.query(MatchSpec(pkg_url)))
         assert len(pcrec_match) == 1
-
 
 
 def test_cover_reverse():
