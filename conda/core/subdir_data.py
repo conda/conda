@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from __future__ import annotations
 
 import json
@@ -127,12 +126,16 @@ class SubdirData(metaclass=SubdirDataType):
         # This should only ever be needed during unit tests, when
         # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
         if exclude_file:
-            cls._cache_ = {k: v for k, v in cls._cache_.items() if not k[0].startswith("file://")}
+            cls._cache_ = {
+                k: v for k, v in cls._cache_.items() if not k[0].startswith("file://")
+            }
         else:
             cls._cache_.clear()
 
     @staticmethod
-    def query_all(package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN):
+    def query_all(
+        package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN
+    ):
         from .index import check_allowlist  # TODO: fix in-line import
 
         # ensure that this is not called by threaded code
@@ -156,17 +159,23 @@ class SubdirData(metaclass=SubdirDataType):
 
         def subdir_query(url):
             return tuple(
-                SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query(
+                    package_ref_or_match_spec
+                )
             )
 
         # TODO test timing with ProcessPoolExecutor
         Executor = (
             DummyExecutor
             if context.debug or context.repodata_threads == 1
-            else partial(ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads)
+            else partial(
+                ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads
+            )
         )
         with Executor() as executor:
-            result = tuple(chain.from_iterable(executor.map(subdir_query, channel_urls)))
+            result = tuple(
+                chain.from_iterable(executor.map(subdir_query, channel_urls))
+            )
         return result
 
     def query(self, package_ref_or_match_spec):
@@ -191,7 +200,9 @@ class SubdirData(metaclass=SubdirDataType):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface):
+    def __init__(
+        self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface
+    ):
         assert channel.subdir
         # metaclass __init__ asserts no package_filename
         if channel.package_filename:  # pragma: no cover
@@ -236,7 +247,8 @@ class SubdirData(metaclass=SubdirDataType):
             self._cache_dir = create_cache_dir()
         # self.repodata_fn may change
         return join(
-            self._cache_dir, splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0]
+            self._cache_dir,
+            splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0],
         )
 
     @property
@@ -245,7 +257,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_json(self):
-        return Path(self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json")
+        return Path(
+            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json"
+        )
 
     @property
     def cache_path_state(self):
@@ -253,7 +267,9 @@ class SubdirData(metaclass=SubdirDataType):
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return Path(
-            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+            self.cache_path_base
+            + ("1" if context.use_only_tar_bz2 else "")
+            + ".state.json"
         )
 
     @property
@@ -318,7 +334,9 @@ class SubdirData(metaclass=SubdirDataType):
         # it and fall back to this on error?
         if not cache.cache_path_json.exists():
             log.debug(
-                "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
+                "No local cache found for %s at %s",
+                self.url_w_repodata_fn,
+                self.cache_path_json,
             )
             if context.use_index_cache or (
                 context.offline and not self.url_w_subdir.startswith("file://")
@@ -331,7 +349,9 @@ class SubdirData(metaclass=SubdirDataType):
                 return {
                     "_package_records": (),
                     "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),  # Unused since early 2023
+                    "_track_features_index": defaultdict(
+                        list
+                    ),  # Unused since early 2023
                 }
 
         else:
@@ -346,7 +366,9 @@ class SubdirData(metaclass=SubdirDataType):
                 return _internal_state
 
             stale = cache.stale()
-            if (not stale or context.offline) and not self.url_w_subdir.startswith("file://"):
+            if (not stale or context.offline) and not self.url_w_subdir.startswith(
+                "file://"
+            ):
                 timeout = cache.timeout()
                 log.debug(
                     "Using cached repodata for %s at %s. Timeout in %d sec",
@@ -358,7 +380,9 @@ class SubdirData(metaclass=SubdirDataType):
                 return _internal_state
 
             log.debug(
-                "Local cache timed out for %s at %s", self.url_w_repodata_fn, self.cache_path_json
+                "Local cache timed out for %s at %s",
+                self.url_w_repodata_fn,
+                self.cache_path_json,
             )
 
         try:
@@ -417,7 +441,9 @@ class SubdirData(metaclass=SubdirDataType):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
+            _internal_state = self._process_raw_repodata_str(
+                raw_repodata_str, cache.state
+            )
             self._internal_state = _internal_state
             self._pickle_me()
             return _internal_state
@@ -425,7 +451,9 @@ class SubdirData(metaclass=SubdirDataType):
     def _pickle_me(self):
         try:
             log.debug(
-                "Saving pickled state for %s at %s", self.url_w_repodata_fn, self.cache_path_pickle
+                "Saving pickled state for %s at %s",
+                self.url_w_repodata_fn,
+                self.cache_path_pickle,
             )
             with open(self.cache_path_pickle, "wb") as fh:
                 pickle.dump(self._internal_state, fh, pickle.HIGHEST_PROTOCOL)
@@ -439,7 +467,11 @@ class SubdirData(metaclass=SubdirDataType):
             return _pickled_state
 
         # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
+        log.debug(
+            "Loading raw json for %s at %s",
+            self.url_w_repodata_fn,
+            self.cache_path_json,
+        )
 
         cache = self.repo_cache
 
@@ -458,7 +490,9 @@ class SubdirData(metaclass=SubdirDataType):
             )
             raise CondaError(message)
         else:
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
+            _internal_state = self._process_raw_repodata_str(
+                raw_repodata_str, cache.state
+            )
             # taken care of by _process_raw_repodata():
             assert self._internal_state is _internal_state
             self._pickle_me()
@@ -470,16 +504,23 @@ class SubdirData(metaclass=SubdirDataType):
         """
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
-        yield "_add_pip", pickled_state.get("_add_pip"), context.add_pip_as_python_dependency
+        yield "_add_pip", pickled_state.get(
+            "_add_pip"
+        ), context.add_pip_as_python_dependency
         yield "_mod", pickled_state.get("_mod"), mod
         yield "_etag", pickled_state.get("_etag"), etag
-        yield "_pickle_version", pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
+        yield "_pickle_version", pickled_state.get(
+            "_pickle_version"
+        ), REPODATA_PICKLE_VERSION
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
     def _read_pickled(self, state: RepodataState):
         if not isinstance(state, RepodataState):
             state = RepodataState(
-                self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state
+                self.cache_path_json,
+                self.cache_path_state,
+                self.repodata_fn,
+                dict=state,
             )
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
@@ -514,7 +555,9 @@ class SubdirData(metaclass=SubdirDataType):
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str, state: RepodataState | None = None):
+    def _process_raw_repodata_str(
+        self, raw_repodata_str, state: RepodataState | None = None
+    ):
         """
         state contains information that was previously in-band in raw_repodata_str.
         """
@@ -524,7 +567,10 @@ class SubdirData(metaclass=SubdirDataType):
     def _process_raw_repodata(self, repodata, state: RepodataState | None = None):
         if not isinstance(state, RepodataState):
             state = RepodataState(
-                self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state
+                self.cache_path_json,
+                self.cache_path_state,
+                self.repodata_fn,
+                dict=state,
             )
 
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
@@ -581,7 +627,9 @@ class SubdirData(metaclass=SubdirDataType):
 
         channel_url = self.url_w_credentials
         legacy_packages = repodata.get("packages", {})
-        conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
+        conda_packages = (
+            {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
+        )
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
         use_these_legacy_keys = set(legacy_packages.keys()) - {
@@ -593,7 +641,6 @@ class SubdirData(metaclass=SubdirDataType):
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-
                 # Verify metadata signature before anything else so run-time
                 # updates to the info dictionary performed below do not
                 # invalidate the signatures provided in metadata.json.
@@ -603,7 +650,9 @@ class SubdirData(metaclass=SubdirDataType):
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
                         info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
-                        info["legacy_bz2_size"] = legacy_packages[counterpart].get("size")
+                        info["legacy_bz2_size"] = legacy_packages[counterpart].get(
+                            "size"
+                        )
                 if (
                     add_pip
                     and info["name"] == "python"
@@ -613,7 +662,9 @@ class SubdirData(metaclass=SubdirDataType):
                 info.update(meta_in_common)
                 if info.get("record_version", 0) > 1:
                     log.debug(
-                        "Ignoring record_version %d from %s", info["record_version"], info["url"]
+                        "Ignoring record_version %d from %s",
+                        info["record_version"],
+                        info["url"],
                     )
                     continue
 
@@ -654,7 +705,7 @@ def read_mod_and_etag(path):
             raise
 
 
-def get_cache_control_max_age(cache_control_value):
+def get_cache_control_max_age(cache_control_value: str):
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
 

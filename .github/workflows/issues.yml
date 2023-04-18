@@ -28,7 +28,7 @@ jobs:
           labels: ${{ env.FEEDBACK_LBL }}
           github_token: ${{ secrets.PROJECT_TOKEN }}
       # add [pending::support], if still open
-      - uses: actions-ecosystem/action-add-labels@v1.1.0
+      - uses: actions-ecosystem/action-add-labels@v1.1.3
         if: github.event.issue.state == 'open'
         with:
           labels: ${{ env.SUPPORT_LBL }}

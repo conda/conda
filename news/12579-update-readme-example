@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Change the README example from IPython Notebook and NumPy to PyTorch. (#12579)
 
 ### Other
 
-* Add linux-s390x to multi-arch ci/dev container (#12498)
+* <news item>

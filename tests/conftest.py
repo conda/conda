@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from . import http_test_server
-from .fixtures_jlap import package_server, package_repository_base  # NOQA
+from .fixtures_jlap import package_repository_base, package_server  # NOQA
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here

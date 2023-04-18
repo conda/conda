@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add Python 3.11 support. (#12256)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add `jsonpatch` dependency to support `--experimental=jlap` feature.
+* <news item>
