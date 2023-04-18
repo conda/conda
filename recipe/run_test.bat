@@ -15,14 +15,13 @@ CALL conda info --all
 
 :: create, activate, and deactivate a conda environment
 CALL conda create --yes --prefix ".\built-conda-test-env" "m2-patch"
-IF %ERRORLEVEL% NEQ 0 EXIT /B 1
+IF NOT %ERRORLEVEL% == 0 EXIT /B 1
 
 CALL conda activate ".\built-conda-test-env"
-
 ECHO "CONDA_PREFIX=%CONDA_PREFIX%"
 
 IF NOT "%CONDA_PREFIX%" == "%CD%\built-conda-test-env" EXIT /B 1
 %CONDA_PREFIX%\Library\usr\bin\patch.exe --version
-IF NOT "%ERRORLEVEL%" NEQ 0 EXIT /B 1
+IF NOT %ERRORLEVEL% == 0 EXIT /B 1
 
 CALL conda deactivate

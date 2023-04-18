@@ -16,7 +16,6 @@ conda info --all
 conda create --yes --prefix "./built-conda-test-env" "patch" || exit 1
 
 conda activate "./built-conda-test-env"
-
 echo "CONDA_PREFIX=${CONDA_PREFIX}"
 
 [[ "${CONDA_PREFIX}" == "${PWD}/built-conda-test-env" ]] || exit 1
