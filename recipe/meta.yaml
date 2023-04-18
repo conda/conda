@@ -53,17 +53,6 @@ requirements:
     - conda-libmamba-solver >=22.12.0
 
 test:
-  source_files:
-    - tests
-    - setup.cfg
-  requires:
-    - pytest
-    - pexpect
-    - responses
-    - conda-build
-    - m2-filesystem  # [win]
-    - m2-bash        # [win]
-    - m2-base        # [win]
   imports:
     - conda
     - conda_env
