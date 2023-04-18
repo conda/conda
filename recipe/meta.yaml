@@ -95,20 +95,3 @@ about:
     package and distribute any software.
   doc_url: https://conda.io/projects/conda/en/latest/
   dev_url: https://github.com/conda/conda
-
-extra:
-  recipe-maintainers:
-    - jakirkham
-    - jjhelmus
-    - kalefranz
-    - mcg1969
-    - mingwandroid
-    - msarahan
-    - mwcraig
-    - ocefpaf
-    - patricksnape
-    - pelson
-    - scopatz
-    - chenghlee
-    - jezdez
-    - kenodegard
