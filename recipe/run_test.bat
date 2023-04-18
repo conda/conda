@@ -14,7 +14,7 @@ CALL %PREFIX%\condabin\conda_hook.bat
 CALL conda info --all
 
 :: create, activate, and deactivate a conda environment
-CALL conda create --yes --prefix ".\built-conda-test-env" "m2-patch=2.7.6"
+CALL conda create --yes --prefix ".\built-conda-test-env" "m2-patch"
 IF %ERRORLEVEL% NEQ 0 EXIT /B 1
 
 CALL conda activate ".\built-conda-test-env"
