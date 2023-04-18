@@ -8,6 +8,7 @@ source:
   git_url: ../
 
 build:
+  script: python -m pip install . -vv && python -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
@@ -20,25 +21,15 @@ build:
     - Scripts/deactivate           # [win]
 
 requirements:
-  build:
-    - m2-filesystem                # [win]
-    - m2-bash                      # [win]
-    - m2-base                      # [win]
-
   host:
     - python
-    - conda-package-handling >=1.3.0
-    - menuinst >=1.4.11,<2         # [win]
-    - packaging
     - pip
-    - ruamel.yaml >=0.11.14,<0.18
-    - setuptools >=31.0.1
-    - toolz >=0.8.1
-    - pluggy >=1.0.0
-    - tqdm >=4
-    - boltons >=23.0.0
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
+    # for `conda init` in build/script above
+    - ruamel.yaml >=0.11.14,<0.18
+    - tqdm >=4
+    - menuinst                     # [win]
   run:
     - python
     - conda-package-handling >=1.3.0
