@@ -60,6 +60,27 @@ test:
     # new submodules (can be dropped after 1-2 releases)
     - conda.gateways.repodata.jlap
     - conda.plugins.subcommands.doctor
+  commands:
+    # builtin subcommands
+    - conda --help
+    - conda clean --help
+    - conda compare --help
+    - conda config --help
+    - conda create --help
+    - conda info --help
+    - conda init --help
+    - conda install --help
+    - conda list --help
+    - conda notices --help
+    - conda package --help
+    - conda remove --help
+    - conda rename --help
+    - conda run --help
+    - conda search --help
+    - conda update --help
+    - conda upgrade --help
+    # plugin subcommands
+    - conda doctor --help
 
 about:
   home: https://conda.io
