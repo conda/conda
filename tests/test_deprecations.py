@@ -10,41 +10,46 @@ from conda.deprecations import DeprecatedError, DeprecationHandler
 
 @pytest.fixture(scope="module")
 def deprecated_v1() -> DeprecationHandler:
+    """Fixture mocking the conda.deprecations.deprecated object with `version=1.0`."""
     return DeprecationHandler("1.0")
 
 
 @pytest.fixture(scope="module")
 def deprecated_v2() -> DeprecationHandler:
+    """Fixture mocking the conda.deprecations.deprecated object with `version=2.0`."""
     return DeprecationHandler("2.0")
 
 
 @pytest.fixture(scope="module")
 def deprecated_v3() -> DeprecationHandler:
+    """Fixture mocking the conda.deprecations.deprecated object with `version=3.0`."""
     return DeprecationHandler("3.0")
 
 
 def test_function_pending(deprecated_v1: DeprecationHandler):
+    """Calling a pending deprecation function displays associated warning."""
+
     @deprecated_v1("2.0", "3.0")
     def foo():
         return True
 
-    # alerting user that a function will be unavailable
     with pytest.deprecated_call(match="pending deprecation"):
         assert foo()
 
 
 def test_function_deprecated(deprecated_v2: DeprecationHandler):
+    """Calling a deprecated function displays associated warning."""
+
     @deprecated_v2("2.0", "3.0")
     def foo():
         return True
 
-    # alerting user that a function will be unavailable
     with pytest.deprecated_call(match="deprecated"):
         assert foo()
 
 
 def test_function_remove(deprecated_v3: DeprecationHandler):
-    # alerting developer that a function needs to be removed
+    """A function existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
 
         @deprecated_v3("2.0", "3.0")
@@ -53,6 +58,8 @@ def test_function_remove(deprecated_v3: DeprecationHandler):
 
 
 def test_method_pending(deprecated_v1: DeprecationHandler):
+    """Calling a pending deprecation method displays associated warning."""
+
     class Bar:
         @deprecated_v1("2.0", "3.0")
         def foo(self):
@@ -63,6 +70,8 @@ def test_method_pending(deprecated_v1: DeprecationHandler):
 
 
 def test_method_deprecated(deprecated_v2: DeprecationHandler):
+    """Calling a deprecated method displays associated warning."""
+
     class Bar:
         @deprecated_v2("2.0", "3.0")
         def foo(self):
@@ -73,6 +82,7 @@ def test_method_deprecated(deprecated_v2: DeprecationHandler):
 
 
 def test_method_remove(deprecated_v3: DeprecationHandler):
+    """A method existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
 
         class Bar:
@@ -82,6 +92,8 @@ def test_method_remove(deprecated_v3: DeprecationHandler):
 
 
 def test_class_pending(deprecated_v1: DeprecationHandler):
+    """Calling a pending deprecation class displays associated warning."""
+
     @deprecated_v1("2.0", "3.0")
     class Foo:
         pass
@@ -91,6 +103,8 @@ def test_class_pending(deprecated_v1: DeprecationHandler):
 
 
 def test_class_deprecated(deprecated_v2: DeprecationHandler):
+    """Calling a deprecated class displays associated warning."""
+
     @deprecated_v2("2.0", "3.0")
     class Foo:
         pass
@@ -100,6 +114,7 @@ def test_class_deprecated(deprecated_v2: DeprecationHandler):
 
 
 def test_class_remove(deprecated_v3: DeprecationHandler):
+    """A class existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
 
         @deprecated_v3("2.0", "3.0")
@@ -108,6 +123,8 @@ def test_class_remove(deprecated_v3: DeprecationHandler):
 
 
 def test_arguments_pending(deprecated_v1: DeprecationHandler):
+    """Calling a pending deprecation argument displays associated warning."""
+
     @deprecated_v1.argument("2.0", "3.0", "three")
     def foo(one, two):
         return True
@@ -125,6 +142,8 @@ def test_arguments_pending(deprecated_v1: DeprecationHandler):
 
 
 def test_arguments_deprecated(deprecated_v2: DeprecationHandler):
+    """Calling a deprecated argument displays associated warning."""
+
     @deprecated_v2.argument("2.0", "3.0", "three")
     def foo(one, two):
         return True
@@ -142,7 +161,7 @@ def test_arguments_deprecated(deprecated_v2: DeprecationHandler):
 
 
 def test_arguments_remove(deprecated_v3: DeprecationHandler):
-    # alerting developer that a keyword argument needs to be removed
+    """An argument existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
 
         @deprecated_v3.argument("2.0", "3.0", "three")
@@ -151,10 +170,10 @@ def test_arguments_remove(deprecated_v3: DeprecationHandler):
 
 
 def test_action_pending(deprecated_v1: DeprecationHandler):
+    """Calling a pending deprecation argparse.Action displays associated warning."""
     parser = ArgumentParser()
     parser.add_argument(
-        "--foo",
-        action=deprecated_v1.action("2.0", "3.0", _StoreTrueAction),
+        "--foo", action=deprecated_v1.action("2.0", "3.0", _StoreTrueAction)
     )
 
     with pytest.deprecated_call(match="pending deprecation"):
@@ -162,10 +181,10 @@ def test_action_pending(deprecated_v1: DeprecationHandler):
 
 
 def test_action_deprecated(deprecated_v2: DeprecationHandler):
+    """Calling a deprecated argparse.Action displays associated warning."""
     parser = ArgumentParser()
     parser.add_argument(
-        "--foo",
-        action=deprecated_v2.action("2.0", "3.0", _StoreTrueAction),
+        "--foo", action=deprecated_v2.action("2.0", "3.0", _StoreTrueAction)
     )
 
     with pytest.deprecated_call(match="deprecated"):
@@ -173,71 +192,69 @@ def test_action_deprecated(deprecated_v2: DeprecationHandler):
 
 
 def test_action_remove(deprecated_v3: DeprecationHandler):
-    parser = ArgumentParser()
-
+    """An argparse.Action existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
-        parser.add_argument(
-            "--foo",
-            action=deprecated_v3.action("2.0", "3.0", _StoreTrueAction),
+        ArgumentParser().add_argument(
+            "--foo", action=deprecated_v3.action("2.0", "3.0", _StoreTrueAction)
         )
 
 
 def test_module_pending(deprecated_v1: DeprecationHandler):
-    # alerting user to pending deprecation
+    """Importing a pending deprecation module displays associated warning."""
     with pytest.deprecated_call(match="pending deprecation"):
         deprecated_v1.module("2.0", "3.0")
 
 
 def test_module_deprecated(deprecated_v2: DeprecationHandler):
-    # alerting user to pending deprecation
+    """Importing a deprecated module displays associated warning."""
     with pytest.deprecated_call(match="deprecated"):
         deprecated_v2.module("2.0", "3.0")
 
 
 def test_module_remove(deprecated_v3: DeprecationHandler):
-    # alerting developer that a module needs to be removed
+    """A module existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
         deprecated_v3.module("2.0", "3.0")
 
 
 def test_constant_pending(deprecated_v1: DeprecationHandler):
+    """Using a pending deprecation constant displays associated warning."""
     deprecated_v1.constant("2.0", "3.0", "SOME_CONSTANT", 42)
     module = sys.modules[__name__]
 
-    # alerting user to pending deprecation
     with pytest.deprecated_call(match="pending deprecation"):
         module.SOME_CONSTANT
 
 
 def test_constant_deprecated(deprecated_v2: DeprecationHandler):
+    """Using a deprecated constant displays associated warning."""
     deprecated_v2.constant("2.0", "3.0", "SOME_CONSTANT", 42)
     module = sys.modules[__name__]
 
-    # alerting user to pending deprecation
     with pytest.deprecated_call(match="deprecated"):
         module.SOME_CONSTANT
 
 
 def test_constant_remove(deprecated_v3: DeprecationHandler):
-    # alerting developer that a module needs to be removed
+    """A constant existing past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
         deprecated_v3.constant("2.0", "3.0", "SOME_CONSTANT", 42)
 
 
 def test_topic_pending(deprecated_v1: DeprecationHandler):
-    # alerting user to pending deprecation
+    """Reaching a pending deprecation topic displays associated warning."""
     with pytest.deprecated_call(match="pending deprecation"):
         deprecated_v1.topic("2.0", "3.0", topic="Some special topic")
 
 
 def test_topic_deprecated(deprecated_v2: DeprecationHandler):
-    # alerting user to pending deprecation
+    """Reaching a deprecated topic displays associated warning."""
     with pytest.deprecated_call(match="deprecated"):
         deprecated_v2.topic("2.0", "3.0", topic="Some special topic")
 
 
 def test_topic_remove(deprecated_v3: DeprecationHandler):
-    # alerting developer that a module needs to be removed
+    """A topic reached past its removal version raises an error."""
     with pytest.raises(DeprecatedError):
         deprecated_v3.topic("2.0", "3.0", topic="Some special topic")
 
