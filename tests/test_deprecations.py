@@ -150,6 +150,38 @@ def test_arguments_remove(deprecated_v3: DeprecationHandler):
             return True
 
 
+def test_action_pending(deprecated_v1: DeprecationHandler):
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--foo",
+        action=deprecated_v1.action("2.0", "3.0", _StoreTrueAction),
+    )
+
+    with pytest.deprecated_call(match="pending deprecation"):
+        parser.parse_args(["--foo"])
+
+
+def test_action_deprecated(deprecated_v2: DeprecationHandler):
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--foo",
+        action=deprecated_v2.action("2.0", "3.0", _StoreTrueAction),
+    )
+
+    with pytest.deprecated_call(match="deprecated"):
+        parser.parse_args(["--foo"])
+
+
+def test_action_remove(deprecated_v3: DeprecationHandler):
+    parser = ArgumentParser()
+
+    with pytest.raises(DeprecatedError):
+        parser.add_argument(
+            "--foo",
+            action=deprecated_v3.action("2.0", "3.0", _StoreTrueAction),
+        )
+
+
 def test_module_pending(deprecated_v1: DeprecationHandler):
     # alerting user to pending deprecation
     with pytest.deprecated_call(match="pending deprecation"):
