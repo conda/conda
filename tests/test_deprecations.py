@@ -23,7 +23,7 @@ def deprecated_v3() -> DeprecationHandler:
     return DeprecationHandler("3.0")
 
 
-def test_pending(deprecated_v1: DeprecationHandler):
+def test_function_pending(deprecated_v1: DeprecationHandler):
     @deprecated_v1("2.0", "3.0")
     def foo():
         return True
@@ -33,7 +33,7 @@ def test_pending(deprecated_v1: DeprecationHandler):
         assert foo()
 
 
-def test_deprecated(deprecated_v2: DeprecationHandler):
+def test_function_deprecated(deprecated_v2: DeprecationHandler):
     @deprecated_v2("2.0", "3.0")
     def foo():
         return True
@@ -43,13 +43,68 @@ def test_deprecated(deprecated_v2: DeprecationHandler):
         assert foo()
 
 
-def test_remove(deprecated_v3: DeprecationHandler):
+def test_function_remove(deprecated_v3: DeprecationHandler):
     # alerting developer that a function needs to be removed
     with pytest.raises(DeprecatedError):
 
         @deprecated_v3("2.0", "3.0")
         def foo():
             return True
+
+
+def test_method_pending(deprecated_v1: DeprecationHandler):
+    class Bar:
+        @deprecated_v1("2.0", "3.0")
+        def foo(self):
+            return True
+
+    with pytest.deprecated_call(match="pending deprecation"):
+        assert Bar().foo()
+
+
+def test_method_deprecated(deprecated_v2: DeprecationHandler):
+    class Bar:
+        @deprecated_v2("2.0", "3.0")
+        def foo(self):
+            return True
+
+    with pytest.deprecated_call(match="deprecated"):
+        assert Bar().foo()
+
+
+def test_method_remove(deprecated_v3: DeprecationHandler):
+    with pytest.raises(DeprecatedError):
+
+        class Bar:
+            @deprecated_v3("2.0", "3.0")
+            def foo(self):
+                return True
+
+
+def test_class_pending(deprecated_v1: DeprecationHandler):
+    @deprecated_v1("2.0", "3.0")
+    class Foo:
+        pass
+
+    with pytest.deprecated_call(match="pending deprecation"):
+        assert Foo()
+
+
+def test_class_deprecated(deprecated_v2: DeprecationHandler):
+    @deprecated_v2("2.0", "3.0")
+    class Foo:
+        pass
+
+    with pytest.deprecated_call(match="deprecated"):
+        assert Foo()
+
+
+def test_class_remove(deprecated_v3: DeprecationHandler):
+    with pytest.raises(DeprecatedError):
+
+        @deprecated_v3("2.0", "3.0")
+        class Foo:
+            pass
 
 
 def test_arguments_pending(deprecated_v1: DeprecationHandler):
