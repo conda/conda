@@ -63,3 +63,7 @@ disallow:
 # enable certain features to be tracked by default
 track_features:
   - mkl
+
+# set an environment to default to instead of base
+default_start_environment:
+  - my_favourite_env

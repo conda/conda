@@ -300,7 +300,7 @@ class _Activator:
                     + str(remainder_args)
                     + "\n"
                 )
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or "base"
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or context.raw_data["default_start_environment"] or "base"
 
         else:
             if remainder_args:

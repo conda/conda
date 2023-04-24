@@ -1207,6 +1207,9 @@ class ActivatorUnitTests(TestCase):
                     assert builder["activate_scripts"] == ()
                     assert builder["deactivate_scripts"] == ()
 
+    def test_default_to_default_start_environment(self):
+        activator = PosixActivator()
+        assert activator.env_name_or_prefix == context.raw_data["default_start_environment"]
 
 class ShellWrapperUnitTests(TestCase):
     def setUp(self):
