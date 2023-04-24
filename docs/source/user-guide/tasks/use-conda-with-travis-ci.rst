@@ -26,7 +26,7 @@ The .travis.yml file
 
 The following code sample shows how to modify the ``.travis.yml``
 file to use `Miniconda <https://conda.io/miniconda.html>`_ for a
-project that supports Python 3.7, 3.8, 3.9 and 3.10:
+project that supports Python 3.7, 3.8, 3.9, 3.10, and 3.11:
 
 .. code-block:: yaml
 
@@ -37,6 +37,7 @@ project that supports Python 3.7, 3.8, 3.9 and 3.10:
      - "3.8"
      - "3.9"
      - "3.10"
+     - "3.11"
    install:
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
