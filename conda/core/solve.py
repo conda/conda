@@ -362,7 +362,7 @@ class Solver:
             )
         elif self._repodata_fn != REPODATA_FN:
             fail_message = (
-                "unsuccessful attempt using repodata from %s, will retry with next repodata"
+                "unsuccessful attempt using repodata from %s, retrying with next repodata"
                 " source.\n" % self._repodata_fn
             )
         else:
