@@ -38,7 +38,7 @@ from conda.base.constants import (
     ROOT_ENV_NAME,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.cli.main import main_sourced
+from conda.cli.main import main_sourced, main_subshell
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import which
@@ -1208,8 +1208,10 @@ class ActivatorUnitTests(TestCase):
                     assert builder["deactivate_scripts"] == ()
 
     def test_default_to_default_start_environment(self):
+        exit_code = main_subshell("config", "--set", "default_start_environment", "test-env")
+
         activator = PosixActivator()
-        assert activator.env_name_or_prefix == context.raw_data["default_start_environment"]
+        assert exit_code == 0 and activator.env_name_or_prefix == "test-env"
 
 class ShellWrapperUnitTests(TestCase):
     def setUp(self):
@@ -3120,7 +3122,7 @@ def prefix():
         ),
     ],
 )
-def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_package):
+def test_activate_deactivate_modify_path(shell, prefix: str, activate_deactivate_package: Literal['activate_deactivate_package']):
     original_path = os.environ.get("PATH")
     run_command(Commands.INSTALL, prefix, activate_deactivate_package, "--use-local")
 
@@ -3219,7 +3221,7 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
+def test_stacking(create_stackable_envs: tuple[LiteralString, dict[str, Env]], auto_stack, stack, run, expected):
     which, envs = create_stackable_envs
     stack = filter(None, stack.split(","))
     expected = filter(None, expected.split(","))
