@@ -188,6 +188,9 @@ class Context(Configuration):
 
     pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
+    # allow a default environment if specified
+    default_start_environment = ParameterLoader(PrimitiveParameter("base", str))
+
     # multithreading in various places
     _default_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("default_threads",)
