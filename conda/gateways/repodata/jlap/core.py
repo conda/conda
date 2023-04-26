@@ -20,16 +20,14 @@ DEFAULT_IV = b"\0" * DIGEST_SIZE
 
 
 def keyed_hash(data: bytes, key: bytes):
-    """
-    Keyed hash.
-    """
+    """Keyed hash."""
     return blake2b(data, key=key, digest_size=DIGEST_SIZE)
 
 
 def line_and_pos(lines: Iterable[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
-    """
-    lines: iterator over input split by '\n', with '\n' removed.
-    pos: initial position
+    r"""
+    :param lines: iterator over input split by '\n', with '\n' removed.
+    :param pos: initial position
     """
     for line in lines:
         yield pos, line
@@ -39,7 +37,7 @@ def line_and_pos(lines: Iterable[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
 class JLAP(UserList):
     @classmethod
     def from_lines(cls, lines: Iterable[bytes], iv: bytes, pos=0, verify=True):
-        """
+        r"""
         :param lines: iterator over input split by b'\n', with b'\n' removed
         :param pos: initial position
         :param iv: initialization vector (first line of .jlap stream, hex

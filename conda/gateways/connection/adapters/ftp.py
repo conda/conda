@@ -289,8 +289,8 @@ def parse_multipart_files(request):
 
 
 def get_status_code_from_code_response(code):
-    """
-    The idea is to handle complicated code response (even multi lines).
+    r"""Handle complicated code response, even multi-lines.
+
     We get the status code in two ways:
     - extracting the code from the last valid line in the response
     - getting it from the 3 first digits in the code

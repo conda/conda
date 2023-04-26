@@ -42,7 +42,7 @@ def minio_s3_server(xprocess, tmp_path):
             return f"http://localhost:{self.port}/{self.name}"
 
         def populate_bucket(self, endpoint, bucket_name, channel_dir):
-            "prepare the s3 connection for our minio instance"
+            """Prepare the s3 connection for our minio instance"""
 
             # Make the minio bucket public first
             # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-example-bucket-policies.html#set-a-bucket-policy

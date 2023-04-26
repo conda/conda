@@ -67,9 +67,10 @@ class MatchSpecType(type):
 
 
 class MatchSpec(metaclass=MatchSpecType):
-    """
-    :class:`MatchSpec` is, fundamentally, a query language for conda packages.  Any of the fields
-    that comprise a :class:`PackageRecord` can be used to compose a :class:`MatchSpec`.
+    """The query language for conda packages.
+
+    Any of the fields that comprise a :class:`PackageRecord` can be used to compose a
+    :class:`MatchSpec`.
 
     :class:`MatchSpec` can be composed with keyword arguments, where keys are any of the
     attributes of :class:`PackageRecord`.  Values for keyword arguments are the exact values the
@@ -123,7 +124,6 @@ class MatchSpec(metaclass=MatchSpecType):
 
 
     Examples:
-
         >>> str(MatchSpec(name='foo', build='py2*', channel='conda-forge'))
         'conda-forge::foo[build=py2*]'
         >>> str(MatchSpec('foo 1.0 py27_0'))
@@ -145,7 +145,6 @@ class MatchSpec(metaclass=MatchSpecType):
       - build
     must be given as exact values.  In the future, the namespace field will be added to this list.
     Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'.
-
     """
 
     FIELD_NAMES = (

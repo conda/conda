@@ -157,7 +157,7 @@ class DeprecationHandler:
         addendum: str | None = None,
         stack: int = 0,
     ) -> None:
-        """Deprecation function for module constant (global).
+        """Deprecation function for module constant/global.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
         :param remove_in: Version in which code is expected to be removed.

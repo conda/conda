@@ -23,10 +23,7 @@ class CondaSpecs:
         """
         Register solvers in conda.
 
-        :return: An iterable of solvers entries.
-
         Example:
-
         .. code-block:: python
 
             import logging
@@ -51,6 +48,7 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
+        :return: An iterable of solvers entries.
         """
 
     @_hookspec
@@ -58,10 +56,7 @@ class CondaSpecs:
         """
         Register external subcommands in conda.
 
-        :return: An iterable of subcommand entries.
-
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -79,6 +74,7 @@ class CondaSpecs:
                     action=example_command,
                 )
 
+        :return: An iterable of subcommand entries.
         """
 
     @_hookspec
@@ -86,10 +82,7 @@ class CondaSpecs:
         """
         Register virtual packages in Conda.
 
-        :return: An iterable of virtual package entries.
-
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -103,4 +96,5 @@ class CondaSpecs:
                     build="x86_64",
                 )
 
+        :return: An iterable of virtual package entries.
         """

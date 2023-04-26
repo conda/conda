@@ -340,9 +340,9 @@ else:  # pragma: no cover
             return cast(data, POINTER(arr_typ)).contents.value
 
     def readlink(link):
-        """
+        """Return a string representing the path to which the symbolic link points.
+
         readlink(link) -> target
-        Return a string representing the path to which the symbolic link points.
         """
         handle = CreateFile(
             link,

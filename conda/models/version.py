@@ -12,12 +12,8 @@ from ..exceptions import InvalidVersionSpec
 log = getLogger(__name__)
 
 
-def normalized_version(version):
-    """
-    normalized_version() is needed by conda-env
-    It is currently being pulled from resolve instead, but
-    eventually it ought to come from here
-    """
+def normalized_version(version: str) -> VersionOrder:
+    """Parse a version string and return VersionOrder object."""
     return VersionOrder(version)
 
 
@@ -45,8 +41,8 @@ class SingleStrArgCachingType(type):
 
 
 class VersionOrder(metaclass=SingleStrArgCachingType):
-    """
-    This class implements an order relation between version strings.
+    """Implement an order relation between version strings.
+
     Version strings can contain the usual alphanumeric characters
     (A-Za-z0-9), separated into components by dots and underscores. Empty
     segments (i.e. two consecutive dots, a leading/trailing underscore)
@@ -56,7 +52,6 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
     scheme itself). Version comparison is case-insensitive.
 
     Conda supports six types of version strings:
-
     * Release versions contain only integers, e.g. '1.0', '2.3.5'.
     * Pre-release versions use additional letters such as 'a' or 'rc',
       for example '1.0a1', '1.2.beta3', '2.3.5rc3'.
@@ -76,14 +71,12 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
     To obtain a predictable version ordering, it is crucial to keep the
     version number scheme of a given package consistent over time.
     Specifically,
-
     * version strings should always have the same number of components
       (except for an optional tag suffix or local version string),
     * letters/strings indicating non-release versions should always
       occur at the same position.
 
     Before comparison, version strings are parsed as follows:
-
     * They are first split into epoch, version number, and local version
       number at '!' and '+' respectively. If there is no '!', the epoch is
       set to 0. If there is no '+', the local version is empty.
@@ -97,13 +90,11 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
     * The same is repeated for the local version part.
 
     Examples:
-
         1.2g.beta15.rc  =>  [[0], [1], [2, 'g'], [0, 'beta', 15], [0, 'rc']]
         1!2.15.1_ALPHA  =>  [[1], [2], [15], [1, '_alpha']]
 
     The resulting lists are compared lexicographically, where the following
     rules are applied to each pair of corresponding subcomponents:
-
     * integers are compared numerically
     * strings are compared lexicographically, case-insensitive
     * strings are smaller than integers, except
@@ -113,7 +104,6 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
       treated as integer 0 to ensure '1.1' == '1.1.0'.
 
     The resulting order is:
-
            0.4
          < 0.4.0
          < 0.4.1.rc
