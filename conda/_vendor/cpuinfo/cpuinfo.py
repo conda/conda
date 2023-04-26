@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2014-2021 Matthew Brennan Jones <matthew.brennan.jones@gmail.com>
-# Py-cpuinfo gets CPU info with pure Python 2 & 3
+# Copyright (c) 2014-2022 Matthew Brennan Jones <matthew.brennan.jones@gmail.com>
+# Py-cpuinfo gets CPU info with pure Python
 # It uses the MIT License
 # It is hosted at: https://github.com/workhorsy/py-cpuinfo
 #
@@ -25,7 +25,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CPUINFO_VERSION = (8, 0, 0)
+CPUINFO_VERSION = (9, 0, 0)
 CPUINFO_VERSION_STRING = '.'.join([str(n) for n in CPUINFO_VERSION])
 
 import os, sys
@@ -34,7 +34,6 @@ import multiprocessing
 import ctypes
 
 
-IS_PY2 = sys.version_info[0] == 2
 CAN_CALL_CPUID_IN_SUBPROCESS = True
 
 g_trace = None
@@ -47,11 +46,7 @@ class Trace(object):
 			return
 
 		from datetime import datetime
-
-		if IS_PY2:
-			from cStringIO import StringIO
-		else:
-			from io import StringIO
+		from io import StringIO
 
 		if is_stored_in_string:
 			self._output = StringIO()
@@ -309,7 +304,6 @@ class DataSource(object):
 def _program_paths(program_name):
 	paths = []
 	exts = filter(None, os.environ.get('PATHEXT', '').split(os.pathsep))
-	path = os.environ['PATH']
 	for p in os.environ['PATH'].split(os.pathsep):
 		p = os.path.join(p, program_name)
 		if os.access(p, os.X_OK):
@@ -322,8 +316,6 @@ def _program_paths(program_name):
 
 def _run_and_get_stdout(command, pipe_command=None):
 	from subprocess import Popen, PIPE
-
-	p1, p2, stdout_output, stderr_output = None, None, None, None
 
 	g_trace.command_header('Running command "' + ' '.join(command) + '" ...')
 
@@ -338,9 +330,8 @@ def _run_and_get_stdout(command, pipe_command=None):
 
 	# Get the stdout and stderr
 	stdout_output, stderr_output = p1.communicate()
-	if not IS_PY2:
-		stdout_output = stdout_output.decode(encoding='UTF-8')
-		stderr_output = stderr_output.decode(encoding='UTF-8')
+	stdout_output = stdout_output.decode(encoding='UTF-8')
+	stderr_output = stderr_output.decode(encoding='UTF-8')
 
 	# Send the result to the logger
 	g_trace.command_output('return code:', str(p1.returncode))
@@ -370,9 +361,10 @@ def _read_windows_registry_key(key_name, field_name):
 def _check_arch():
 	arch, bits = _parse_arch(DataSource.arch_string_raw)
 	if not arch in ['X86_32', 'X86_64', 'ARM_7', 'ARM_8',
-	               'PPC_64', 'S390X', 'MIPS_32', 'MIPS_64']:
+	               'PPC_64', 'S390X', 'MIPS_32', 'MIPS_64',
+				   "RISCV_32", "RISCV_64"]:
 		raise Exception("py-cpuinfo currently only works on X86 "
-		                "and some ARM/PPC/S390X/MIPS CPUs.")
+		                "and some ARM/PPC/S390X/MIPS/RISCV CPUs.")
 
 def _obj_to_b64(thing):
 	import pickle
@@ -392,13 +384,11 @@ def _b64_to_obj(thing):
 		a = base64.b64decode(thing)
 		b = pickle.loads(a)
 		return b
-	except:
+	except Exception:
 		return {}
 
 def _utf_to_str(input):
-	if IS_PY2 and isinstance(input, unicode):
-		return input.encode('utf-8')
-	elif isinstance(input, list):
+	if isinstance(input, list):
 		return [_utf_to_str(element) for element in input]
 	elif isinstance(input, dict):
 		return {_utf_to_str(key): _utf_to_str(value)
@@ -452,7 +442,7 @@ def _get_field(cant_be_number, raw_string, convert_to, default_value, *field_nam
 	if retval and convert_to:
 		try:
 			retval = convert_to(retval)
-		except:
+		except Exception:
 			retval = default_value
 
 	# Return the default if there is no return value
@@ -488,7 +478,7 @@ def _to_decimal_string(ticks):
 		ticks = float(ticks)
 		ticks = '{0}'.format(ticks)
 		return ticks
-	except:
+	except Exception:
 		return '0.0'
 
 def _hz_short_to_full(ticks, scale):
@@ -507,7 +497,7 @@ def _hz_short_to_full(ticks, scale):
 		left, right = hz.split('.')
 		left, right = int(left), int(right)
 		return (left, right)
-	except:
+	except Exception:
 		return (0, 0)
 
 def _hz_friendly_to_full(hz_string):
@@ -529,7 +519,7 @@ def _hz_friendly_to_full(hz_string):
 		hz, scale = _hz_short_to_full(hz, scale)
 
 		return (hz, scale)
-	except:
+	except Exception:
 		return (0, 0)
 
 def _hz_short_to_friendly(ticks, scale):
@@ -563,7 +553,7 @@ def _hz_short_to_friendly(ticks, scale):
 		result = '{0:.4f} {1}'.format(float(result), symbol)
 		result = result.rstrip('0')
 		return result
-	except:
+	except Exception:
 		return '0.0000 Hz'
 
 def _to_friendly_bytes(input):
@@ -589,19 +579,25 @@ def _to_friendly_bytes(input):
 def _friendly_bytes_to_int(friendly_bytes):
 	input = friendly_bytes.lower()
 
-	formats = {
-		'gb' : 1024 * 1024 * 1024,
-		'mb' : 1024 * 1024,
-		'kb' : 1024,
+	formats = [
+		{'gib' : 1024 * 1024 * 1024},
+		{'mib' : 1024 * 1024},
+		{'kib' : 1024},
 
-		'g' : 1024 * 1024 * 1024,
-		'm' : 1024 * 1024,
-		'k' : 1024,
-		'b' : 1,
-	}
+		{'gb' : 1024 * 1024 * 1024},
+		{'mb' : 1024 * 1024},
+		{'kb' : 1024},
+
+		{'g' : 1024 * 1024 * 1024},
+		{'m' : 1024 * 1024},
+		{'k' : 1024},
+		{'b' : 1},
+	]
 
 	try:
-		for pattern, multiplier in formats.items():
+		for entry in formats:
+			pattern = list(entry.keys())[0]
+			multiplier = list(entry.values())[0]
 			if input.endswith(pattern):
 				return int(input.split(pattern)[0].strip()) * multiplier
 
@@ -776,7 +772,6 @@ def _parse_dmesg_output(output):
 	except Exception as err:
 		g_trace.fail(err)
 		#raise
-		pass
 
 	return {}
 
@@ -827,6 +822,13 @@ def _parse_arch(arch_string_raw):
 	elif arch_string_raw == 'mips64':
 		arch = 'MIPS_64'
 		bits = 64
+	# RISCV
+	elif re.match(r'^riscv$|^riscv32$|^riscv32be$', arch_string_raw):
+		arch = 'RISCV_32'
+		bits = 32
+	elif re.match(r'^riscv64$|^riscv64be$', arch_string_raw):
+		arch = 'RISCV_64'
+		bits = 64
 
 	return (arch, bits)
 
@@ -872,18 +874,36 @@ def _is_selinux_enforcing(trace):
 
 	return (not can_selinux_exec_heap or not can_selinux_exec_memory)
 
-def _filter_dict_keys_with_empty_values(info):
-	# Filter out None, 0, "", (), {}, []
-	info = {k: v for k, v in info.items() if v}
+def _filter_dict_keys_with_empty_values(info, acceptable_values = {}):
+	filtered_info = {}
+	for key in info:
+		value = info[key]
 
-	# Filter out (0, 0)
-	info = {k: v for k, v in info.items() if v != (0, 0)}
+		# Keep if value is acceptable
+		if key in acceptable_values:
+			if acceptable_values[key] == value:
+				filtered_info[key] = value
+				continue
 
-	# Filter out strings that start with "0.0"
-	info = {k: v for k, v in info.items() if not (type(v) == str and v.startswith('0.0'))}
+		# Filter out None, 0, "", (), {}, []
+		if not value:
+			continue
 
-	return info
+		# Filter out (0, 0)
+		if value == (0, 0):
+			continue
 
+		# Filter out -1
+		if value == -1:
+			continue
+
+		# Filter out strings that start with "0.0"
+		if type(value) == str and value.startswith('0.0'):
+			continue
+
+		filtered_info[key] = value
+
+	return filtered_info
 
 class ASM(object):
 	def __init__(self, restype=None, argtypes=(), machine_code=[]):
@@ -975,7 +995,7 @@ class ASM(object):
 
 class CPUID(object):
 	def __init__(self, trace=None):
-		if trace == None:
+		if trace is None:
 			trace = Trace(False, False)
 
 		# Figure out if SE Linux is on and in enforcing mode
@@ -1506,10 +1526,7 @@ def _get_cpu_info_from_cpuid_actual():
 	It will safely call this function in another process.
 	'''
 
-	if IS_PY2:
-		from cStringIO import StringIO
-	else:
-		from io import StringIO
+	from io import StringIO
 
 	trace = Trace(True, True)
 	info = {}
@@ -1684,7 +1701,6 @@ def _get_cpu_info_from_cpuid():
 			return output['info']
 	except Exception as err:
 		g_trace.fail(err)
-		pass
 
 	# Return {} if everything failed
 	return {}
@@ -1710,11 +1726,11 @@ def _get_cpu_info_from_proc_cpuinfo():
 
 		# Various fields
 		vendor_id = _get_field(False, output, None, '', 'vendor_id', 'vendor id', 'vendor')
-		processor_brand = _get_field(True, output, None, None, 'model name','cpu', 'processor')
+		processor_brand = _get_field(True, output, None, None, 'model name', 'cpu', 'processor', 'uarch')
 		cache_size = _get_field(False, output, None, '', 'cache size')
-		stepping = _get_field(False, output, int, 0, 'stepping')
-		model = _get_field(False, output, int, 0, 'model')
-		family = _get_field(False, output, int, 0, 'cpu family')
+		stepping = _get_field(False, output, int, -1, 'stepping')
+		model = _get_field(False, output, int, -1, 'model')
+		family = _get_field(False, output, int, -1, 'cpu family')
 		hardware = _get_field(False, output, None, '', 'Hardware')
 
 		# Flags
@@ -1777,7 +1793,7 @@ def _get_cpu_info_from_proc_cpuinfo():
 			info['hz_actual_friendly'] = _hz_short_to_friendly(hz_actual, 6)
 			info['hz_actual'] = _hz_short_to_full(hz_actual, 6)
 
-		info = _filter_dict_keys_with_empty_values(info)
+		info = _filter_dict_keys_with_empty_values(info, {'stepping':0, 'model':0, 'family':0})
 		g_trace.success()
 		return info
 	except Exception as err:
@@ -1896,18 +1912,22 @@ def _get_cpu_info_from_lscpu():
 
 		l1_data_cache_size = _get_field(False, output, None, None, 'L1d cache')
 		if l1_data_cache_size:
+			l1_data_cache_size = l1_data_cache_size.split('(')[0].strip()
 			info['l1_data_cache_size'] = _friendly_bytes_to_int(l1_data_cache_size)
 
 		l1_instruction_cache_size = _get_field(False, output, None, None, 'L1i cache')
 		if l1_instruction_cache_size:
+			l1_instruction_cache_size = l1_instruction_cache_size.split('(')[0].strip()
 			info['l1_instruction_cache_size'] = _friendly_bytes_to_int(l1_instruction_cache_size)
 
 		l2_cache_size = _get_field(False, output, None, None, 'L2 cache', 'L2d cache')
 		if l2_cache_size:
+			l2_cache_size = l2_cache_size.split('(')[0].strip()
 			info['l2_cache_size'] = _friendly_bytes_to_int(l2_cache_size)
 
 		l3_cache_size = _get_field(False, output, None, None, 'L3 cache')
 		if l3_cache_size:
+			l3_cache_size = l3_cache_size.split('(')[0].strip()
 			info['l3_cache_size'] = _friendly_bytes_to_int(l3_cache_size)
 
 		# Flags
@@ -1917,7 +1937,7 @@ def _get_cpu_info_from_lscpu():
 			flags.sort()
 			info['flags'] = flags
 
-		info = _filter_dict_keys_with_empty_values(info)
+		info = _filter_dict_keys_with_empty_values(info, {'stepping':0, 'model':0, 'family':0})
 		g_trace.success()
 		return info
 	except Exception as err:
@@ -1946,7 +1966,7 @@ def _get_cpu_info_from_dmesg():
 
 	# If dmesg fails return {}
 	returncode, output = DataSource.dmesg_a()
-	if output == None or returncode != 0:
+	if output is None or returncode != 0:
 		g_trace.fail('Failed to run \"dmesg -a\". Skipping ...')
 		return {}
 
@@ -1973,7 +1993,7 @@ def _get_cpu_info_from_ibm_pa_features():
 
 		# If ibm,pa-features fails return {}
 		returncode, output = DataSource.ibm_pa_features()
-		if output == None or returncode != 0:
+		if output is None or returncode != 0:
 			g_trace.fail('Failed to glob /proc/device-tree/cpus/*/ibm,pa-features. Skipping ...')
 			return {}
 
@@ -2099,7 +2119,7 @@ def _get_cpu_info_from_cat_var_run_dmesg_boot():
 
 	# If dmesg.boot fails return {}
 	returncode, output = DataSource.cat_var_run_dmesg_boot()
-	if output == None or returncode != 0:
+	if output is None or returncode != 0:
 		g_trace.fail('Failed to run \"cat /var/run/dmesg.boot\". Skipping ...')
 		return {}
 
@@ -2124,7 +2144,7 @@ def _get_cpu_info_from_sysctl():
 
 		# If sysctl fails return {}
 		returncode, output = DataSource.sysctl_machdep_cpu_hw_cpufrequency()
-		if output == None or returncode != 0:
+		if output is None or returncode != 0:
 			g_trace.fail('Failed to run \"sysctl machdep.cpu hw.cpufrequency\". Skipping ...')
 			return {}
 
@@ -2198,7 +2218,7 @@ def _get_cpu_info_from_sysinfo_v1():
 
 		# If sysinfo fails return {}
 		returncode, output = DataSource.sysinfo_cpu()
-		if output == None or returncode != 0:
+		if output is None or returncode != 0:
 			g_trace.fail('Failed to run \"sysinfo -cpu\". Skipping ...')
 			return {}
 
@@ -2263,7 +2283,7 @@ def _get_cpu_info_from_sysinfo_v2():
 
 		# If sysinfo fails return {}
 		returncode, output = DataSource.sysinfo_cpu()
-		if output == None or returncode != 0:
+		if output is None or returncode != 0:
 			g_trace.fail('Failed to run \"sysinfo -cpu\". Skipping ...')
 			return {}
 
@@ -2343,7 +2363,7 @@ def _get_cpu_info_from_wmic():
 			return {}
 
 		returncode, output = DataSource.wmic_cpu()
-		if output == None or returncode != 0:
+		if output is None or returncode != 0:
 			g_trace.fail('Failed to run wmic. Skipping ...')
 			return {}
 
@@ -2534,13 +2554,13 @@ def _get_cpu_info_from_kstat():
 
 		# If isainfo fails return {}
 		returncode, flag_output = DataSource.isainfo_vb()
-		if flag_output == None or returncode != 0:
+		if flag_output is None or returncode != 0:
 			g_trace.fail('Failed to run \"isainfo -vb\". Skipping ...')
 			return {}
 
 		# If kstat fails return {}
 		returncode, kstat = DataSource.kstat_m_cpu_info()
-		if kstat == None or returncode != 0:
+		if kstat is None or returncode != 0:
 			g_trace.fail('Failed to run \"kstat -m cpu_info\". Skipping ...')
 			return {}
 
@@ -2724,8 +2744,7 @@ def get_cpu_info_json():
 		if p1.returncode != 0:
 			return "{}"
 
-		if not IS_PY2:
-			output = output.decode(encoding='UTF-8')
+		output = output.decode(encoding='UTF-8')
 
 	return output
 
@@ -2749,7 +2768,7 @@ def main():
 	import json
 
 	# Parse args
-	parser = ArgumentParser(description='Gets CPU info with pure Python 2 & 3')
+	parser = ArgumentParser(description='Gets CPU info with pure Python')
 	parser.add_argument('--json', action='store_true', help='Return the info in JSON format')
 	parser.add_argument('--version', action='store_true', help='Return the version of py-cpuinfo')
 	parser.add_argument('--trace', action='store_true', help='Traces code paths used to find CPU info to file')

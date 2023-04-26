@@ -1,19 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from logging import getLogger
 import os
-from os.path import join, isdir, lexists, isfile, exists
+import uuid
+from logging import getLogger
+from os.path import exists, isdir, isfile, join, lexists
 from tempfile import gettempdir
 from unittest import TestCase
-import uuid
 
 import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.link import link, islink, readlink, symlink
+from conda.gateways.disk.link import islink, link, readlink, symlink
 from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 
@@ -21,7 +20,6 @@ log = getLogger(__name__)
 
 
 class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
-
     def setUp(self):
         tempdirdir = gettempdir()
         dirname = str(uuid.uuid4())[:8]
@@ -34,8 +32,8 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         assert not lexists(self.test_dir)
 
     def test_hard_link(self):
-        path1_real_file = join(self.test_dir, 'path1_real_file')
-        path2_second_inode = join(self.test_dir, 'path2_second_inode')
+        path1_real_file = join(self.test_dir, "path1_real_file")
+        path2_second_inode = join(self.test_dir, "path2_second_inode")
         touch(path1_real_file)
         assert isfile(path1_real_file)
         assert not islink(path1_real_file)
@@ -56,15 +54,14 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         assert not lexists(path1_real_file)
 
     def test_soft_link(self):
-        path1_real_file = join(self.test_dir, 'path1_real_file')
-        path2_symlink = join(self.test_dir, 'path2_symlink')
+        path1_real_file = join(self.test_dir, "path1_real_file")
+        path2_symlink = join(self.test_dir, "path2_symlink")
         touch(path1_real_file)
         assert isfile(path1_real_file)
         assert not islink(path1_real_file)
 
         if not softlink_supported(path1_real_file, self.test_dir) and on_win:
             pytest.skip("softlink not supported")
-
 
         symlink(path1_real_file, path2_symlink)
         assert exists(path2_symlink)
@@ -75,7 +72,9 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         # Windows Python >3.7, readlink actually gives something that starts with \\?\
         # \\?\C:\users\appveyor\appdata\local\temp\1\c571cb0c\path1_real_file
 
-        assert os.lstat(path1_real_file).st_nlink == os.lstat(path2_symlink).st_nlink == 1
+        assert (
+            os.lstat(path1_real_file).st_nlink == os.lstat(path2_symlink).st_nlink == 1
+        )
 
         os.unlink(path1_real_file)
         assert not isfile(path1_real_file)

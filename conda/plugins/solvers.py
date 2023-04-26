@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from . import hookimpl, CondaSolver
 from ..base.constants import CLASSIC_SOLVER
+from . import CondaSolver, hookimpl
 
 
 @hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten

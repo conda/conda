@@ -57,27 +57,24 @@ In conda, an environment can be thought of as a completely separate installation
 Conda installs packages into environments efficiently using [hard links](https://en.wikipedia.org/wiki/Hard_link) by default when it is possible, so
 environments are space efficient, and take seconds to create.
 
-The default environment, which `conda` itself is installed into is called
-`base`. To create another environment, use the `conda create`
-command. For instance, to create an environment with the IPython notebook and
-NumPy 1.6, which is older than the version that comes with Anaconda by
-default, you would run:
+The default environment, which `conda` itself is installed into, is called `base`.
+To create another environment, use the `conda create` command.
+For instance, to create an environment with PyTorch, you would run:
 
 ```bash
-$ conda create -n numpy16 ipython-notebook numpy=1.6
+$ conda create --name ml-project pytorch
 ```
 
-This creates an environment called `numpy16` with the latest version of
-the IPython notebook, NumPy 1.6, and their dependencies.
+This creates an environment called `ml-project` with the latest version of PyTorch, and its dependencies.
 
-We can now activate this environment, use
+We can now activate this environment:
 
 ```bash
-$ conda activate numpy16
+$ conda activate ml-project
 ```
 
-This puts the bin directory of the `numpy16` environment in the front of the
-`PATH`, and sets it as the default environment for all subsequent conda commands.
+This puts the `bin` directory of the `ml-project` environment in the front of the `PATH`,
+and sets it as the default environment for all subsequent conda commands.
 
 To go back to the base environment, use
 

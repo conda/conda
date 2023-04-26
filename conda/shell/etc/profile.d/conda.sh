@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 __conda_exe() (
     "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
 )

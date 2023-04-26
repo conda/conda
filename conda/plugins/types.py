@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Callable, NamedTuple
+
 from ..core.solve import Solver
 
 

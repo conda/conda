@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 """
 Handles all caching logic including:
   - Retrieving from cache
@@ -16,10 +15,9 @@ from pathlib import Path
 from typing import Optional, Sequence, Set
 
 from .._vendor.appdirs import user_cache_dir
-from ..base.constants import APP_NAME, NOTICES_CACHE_SUBDIR, NOTICES_CACHE_FN
-from ..utils import ensure_dir_exists, safe_open
-
-from .types import ChannelNoticeResponse, ChannelNotice
+from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
+from ..utils import ensure_dir_exists
+from .types import ChannelNotice, ChannelNoticeResponse
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +40,9 @@ def cached_response(func):
     return wrapper
 
 
-def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeResponse) -> bool:
+def is_notice_response_cache_expired(
+    channel_notice_response: ChannelNoticeResponse,
+) -> bool:
     """
     This checks the contents of the cache response to see if it is expired.
 
@@ -60,7 +60,8 @@ def is_notice_response_cache_expired(channel_notice_response: ChannelNoticeRespo
         return expired_at < now
 
     return any(
-        is_channel_notice_expired(chn.expired_at) for chn in channel_notice_response.notices
+        is_channel_notice_expired(chn.expired_at)
+        for chn in channel_notice_response.notices
     )
 
 
@@ -78,7 +79,7 @@ def get_notices_cache_file() -> Path:
     cache_file = cache_dir.joinpath(NOTICES_CACHE_FN)
 
     if not cache_file.is_file():
-        with safe_open(cache_file, "w") as fp:
+        with open(cache_file, "w") as fp:
             fp.write("")
 
     return cache_file
@@ -93,7 +94,7 @@ def get_notice_response_from_cache(
     cache_key = ChannelNoticeResponse.get_cache_key(url, cache_dir)
 
     if os.path.isfile(cache_key):
-        with safe_open(cache_key, "r") as fp:
+        with open(cache_key) as fp:
             data = json.load(fp)
         chn_ntc_resp = ChannelNoticeResponse(url, name, data)
 
@@ -107,9 +108,11 @@ def write_notice_response_to_cache(
     """
     Writes our notice data to our local cache location
     """
-    cache_key = ChannelNoticeResponse.get_cache_key(channel_notice_response.url, cache_dir)
+    cache_key = ChannelNoticeResponse.get_cache_key(
+        channel_notice_response.url, cache_dir
+    )
 
-    with safe_open(cache_key, "w") as fp:
+    with open(cache_key, "w") as fp:
         json.dump(channel_notice_response.json_data, fp)
 
 
@@ -121,14 +124,14 @@ def mark_channel_notices_as_viewed(
     """
     notice_ids = {chn.id for chn in channel_notices}
 
-    with safe_open(cache_file, "r") as fp:
+    with open(cache_file) as fp:
         contents: str = fp.read()
 
     contents_unique = set(filter(None, set(contents.splitlines())))
     contents_new = contents_unique.union(notice_ids)
 
     # Save new version of cache file
-    with safe_open(cache_file, "w") as fp:
+    with open(cache_file, "w") as fp:
         fp.write("\n".join(contents_new))
 
 
@@ -140,7 +143,7 @@ def get_viewed_channel_notice_ids(
     """
     notice_ids = {chn.id for chn in channel_notices}
 
-    with safe_open(cache_file, "r") as fp:
+    with open(cache_file) as fp:
         contents: str = fp.read()
 
     contents_unique = set(filter(None, set(contents.splitlines())))

@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 # You could argue that the signatures being here is not necessary; indeed, we
 # are not necessarily going to be able to check them *properly* (based on some
 # prior expectations) as the user, since this is the beginning of trust
@@ -25,7 +24,9 @@ INITIAL_TRUST_ROOT = {
     "signed": {
         "delegations": {
             "key_mgr": {
-                "pubkeys": ["f24c813d23a9b26be665eee5c54680c35321061b337f862385ed6d783b0bedb0"],
+                "pubkeys": [
+                    "f24c813d23a9b26be665eee5c54680c35321061b337f862385ed6d783b0bedb0"
+                ],
                 "threshold": 1,
             },
             "root": {

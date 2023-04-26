@@ -9,7 +9,7 @@ import platform
 from contextlib import suppress
 
 from ...common.decorators import env_override
-from .. import hookimpl, CondaVirtualPackage
+from .. import CondaVirtualPackage, hookimpl
 
 
 @env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)

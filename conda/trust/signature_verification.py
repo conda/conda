@@ -1,13 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+import json
+import warnings
 from functools import lru_cache
 from glob import glob
-import json
 from logging import getLogger
 from os import makedirs
-from os.path import basename, isdir, join, exists
-import warnings
+from os.path import basename, exists, isdir, join
 
 from ..base.context import context
 from ..common.url import join_url
@@ -16,11 +15,11 @@ from ..gateways.connection.session import CondaSession
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 try:
-    from conda_content_trust.authentication import verify_root, verify_delegation
+    from conda_content_trust.authentication import verify_delegation, verify_root
     from conda_content_trust.common import (
+        SignatureError,
         load_metadata_from_file,
         write_metadata_to_file,
-        SignatureError,
     )
     from conda_content_trust.signing import wrap_as_signable
 except ImportError:
@@ -65,7 +64,9 @@ class _SignatureVerification:
 
         # ensure the trusted_root exists
         if self.trusted_root is None:
-            log.warn("could not find trusted_root data for metadata signature verification")
+            log.warn(
+                "could not find trusted_root data for metadata signature verification"
+            )
             return False
 
         # ensure the key_mgr exists
@@ -84,7 +85,9 @@ class _SignatureVerification:
         trusted = INITIAL_TRUST_ROOT
 
         # Load current trust root metadata from filesystem
-        for path in sorted(glob(join(context.av_data_dir, "[0-9]*.root.json")), reverse=True):
+        for path in sorted(
+            glob(join(context.av_data_dir, "[0-9]*.root.json")), reverse=True
+        ):
             try:
                 int(basename(path).split(".")[0])
             except ValueError:
@@ -96,7 +99,8 @@ class _SignatureVerification:
                 break
         else:
             log.debug(
-                f"No root metadata in {context.av_data_dir}. " "Using built-in root metadata."
+                f"No root metadata in {context.av_data_dir}. "
+                "Using built-in root metadata."
             )
 
         # Refresh trust root metadata
@@ -171,7 +175,9 @@ class _SignatureVerification:
     def session(self):
         return CondaSession()
 
-    def _fetch_channel_signing_data(self, signing_data_url, filename, etag=None, mod_stamp=None):
+    def _fetch_channel_signing_data(
+        self, signing_data_url, filename, etag=None, mod_stamp=None
+    ):
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -197,7 +203,10 @@ class _SignatureVerification:
                 headers=headers,
                 proxies=self.session.proxies,
                 auth=lambda r: r,
-                timeout=(context.remote_connect_timeout_secs, context.remote_read_timeout_secs),
+                timeout=(
+                    context.remote_connect_timeout_secs,
+                    context.remote_read_timeout_secs,
+                ),
             )
 
             resp.raise_for_status()
@@ -214,7 +223,9 @@ class _SignatureVerification:
             return resp.json()
         except json.decoder.JSONDecodeError as err:  # noqa
             # TODO: additional loading and error handling improvements?
-            raise ValueError(f"Invalid JSON returned from {signing_data_url}/{filename}")
+            raise ValueError(
+                f"Invalid JSON returned from {signing_data_url}/{filename}"
+            )
 
     def __call__(self, info, fn, signatures):
         if not self.enabled or fn not in signatures:

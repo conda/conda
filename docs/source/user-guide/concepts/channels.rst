@@ -18,11 +18,11 @@ from remote channels, which are URLs to directories
 containing conda packages.
 The ``conda`` command searches a set of channels. By default,
 packages are automatically downloaded and updated from
-the ``default`` channel https://repo.anaconda.com/pkgs/ which may require a
-paid license, as described in the `repository terms of service`_
-a commercial license. The ``conda-forge`` channel is free for all to use.
-You can modify what remote channels are automatically searched.
-You might want to do this to maintain a private or internal channel.
+the `default channel`_, which may require a
+paid license, as described in the `repository terms of service`_.
+The ``conda-forge`` channel is free for all to use.
+You can modify which remote channels are automatically searched;
+this feature is beneficial when maintaining a private or internal channel.
 For details, see how to :ref:`modify your channel lists <config-channels>`.
 
 We use conda-forge as an example channel.
@@ -107,3 +107,5 @@ per standard RSS practice.
           <title>linux-64:add:jupyterlab-1.0.4-py37_0.tar.bz2</title>
           <pubDate>26 Jul 2019 19:26:36 UTC</pubDate>
         </item>
+
+.. _`default channel`: https://repo.anaconda.com/pkgs/

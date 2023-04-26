@@ -4,6 +4,7 @@ Authors are sorted alphabetically.
 * ARF1
 * Aaron Meurer
 * Abheek Mathur
+* Adrian Freund
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
@@ -17,6 +18,7 @@ Authors are sorted alphabetically.
 * Almar Klein
 * Amelio Vazquez-Reina
 * Amir Mohammadi
+* Andrea Ghensi
 * Andreas Girgensohn
 * Andrew Achkar
 * Andrew Arendt
@@ -96,6 +98,7 @@ Authors are sorted alphabetically.
 * Daniel Hook
 * Daniel Wehner
 * Daniel Zeng
+* Dario Curreri
 * Darren Dale
 * Dave
 * Dave Hirschfeld
@@ -121,6 +124,7 @@ Authors are sorted alphabetically.
 * Ernst Reissner
 * Eugene Van den Bulke
 * Faustin Carter
+* FelisNivalis
 * Flavio Martins
 * Florenz A. P. Hollebrandse
 * Floris Bruynooghe
@@ -130,6 +134,7 @@ Authors are sorted alphabetically.
 * Gabriel Reis
 * Geir Ove Myhr
 * George Hartzell
+* Gil Forsyth
 * Giles Cope
 * Gonzalo Peña-Castellanos
 * Greg Brener
@@ -144,6 +149,7 @@ Authors are sorted alphabetically.
 * Iain Gillis
 * Ian Stokes-Rees
 * Igor Igamberdiev
+* Ikko Eltociear Ashimine
 * Ilan Cosman
 * Ilan Schnell
 * Ilango Rajagopal
@@ -177,6 +183,7 @@ Authors are sorted alphabetically.
 * Joe Jevnik
 * Joel Hull
 * Joel Kim
+* Joel Tony
 * Johan Carlin
 * John Ayad
 * John Flavin
@@ -193,6 +200,7 @@ Authors are sorted alphabetically.
 * Kai Tietz
 * Kale Franz
 * Kamil Kwiek
+* Kannan Jayachandran
 * Kara de la Marck
 * Katherine Kinnaman
 * Ken Odegard
@@ -323,6 +331,7 @@ Authors are sorted alphabetically.
 * Samson Yeung
 * Samuel Debionne
 * Samuel Walters-Nevet
+* Sanskrati
 * Santi Villalba
 * Santiago Castro
 * Sarah Bird
@@ -342,6 +351,7 @@ Authors are sorted alphabetically.
 * Skipper Seabold
 * Sophia Castellarin
 * Spencer Mathews
+* Srivas Venkatesh
 * Stan Seibert
 * Stanis Shkel
 * Stefaan Lippens
@@ -349,6 +359,7 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Robinson
 * Steve Palmroth
 * Steven Engler
 * Stijn Verstraeten
@@ -386,6 +397,8 @@ Authors are sorted alphabetically.
 * Willy Chen
 * Winston Sebastian Pais
 * Wolfgang Ulmer
+* Xuehai Pan
+* Xylar Asay-Davis
 * Yaroslav Dmytryk
 * Yuval Reches
 * Yuvi Panda

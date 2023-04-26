@@ -21,18 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: has_local
-        uses: andstor/file-existence-action@v1.0.1
+        uses: andstor/file-existence-action@v2.0.0
         with:
           files: ${{ env.LOCAL }}
       - name: Global Only
-        uses: EndBug/label-sync@v2.3.0
+        uses: EndBug/label-sync@v2.3.2
         if: steps.has_local.outputs.files_exists == 'false'
         with:
           config-file: ${{ env.GLOBAL }}
           delete-other-labels: true
           dry-run: ${{ github.event.inputs.dryrun }}
       - name: Global & Local
-        uses: EndBug/label-sync@v2.3.0
+        uses: EndBug/label-sync@v2.3.2
         if: steps.has_local.outputs.files_exists == 'true'
         with:
           config-file: |

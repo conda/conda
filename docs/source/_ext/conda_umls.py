@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import fileinput
 import os
-import requests
 import shutil
 import sys
+
+import requests
 from pylint.pyreverse.main import Run
 
 here = os.path.dirname(__file__)
@@ -61,7 +61,7 @@ def post_process(files, output_path):
                 sys.stdout.write(line)
 
 
-def generate_pumls(app, config):
+def generate_pumls(app=None, config=None):
     """
     Generates PlantUML files for the given packages and writes
     the files to the components directory in the documentation source.
@@ -90,14 +90,10 @@ def generate_pumls(app, config):
             "--all-associated",
             "--all-ancestors",
         ]
-        try:
-            # Run pyreverse to create the files first
-            Run(args)
-        except SystemExit:
-            pass
-        finally:
-            # Then post-process the generated files to fix some things.
-            post_process(files, output_path)
+        # Run pyreverse to create the files first
+        Run(args)
+        # Then post-process the generated files to fix some things.
+        post_process(files, output_path)
         sys.stdout.write("Done generating PlantUML files.\n")
 
 
@@ -128,6 +124,7 @@ def setup(app):
     if "AUTOBUILD" not in os.environ:
         app.add_config_value("plantuml_jarfile_path", None, rebuild="")
         app.connect("config-inited", download_plantuml)
+    if "READTHEDOCS" not in os.environ:
         app.connect("config-inited", generate_pumls)
 
     return {
@@ -135,3 +132,7 @@ def setup(app):
         "parallel_read_safe": False,
         "parallel_write_safe": False,
     }
+
+
+if __name__ == "__main__":
+    generate_pumls()

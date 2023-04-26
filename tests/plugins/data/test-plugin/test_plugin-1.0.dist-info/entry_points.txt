@@ -1,0 +1,2 @@
+[conda]
+conda-test-plugin=test_plugin.plugin

@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from .base.constants import DepsModifier as _DepsModifier, UpdateModifier as _UpdateModifier
+from .base.constants import DepsModifier as _DepsModifier
+from .base.constants import UpdateModifier as _UpdateModifier
 from .base.context import context
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
@@ -29,7 +29,9 @@ class Solver:
 
     """
 
-    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()):
+    def __init__(
+        self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()
+    ):
         """
         **Beta**
 
@@ -48,10 +50,18 @@ class Solver:
 
         """
         solver_backend = context.plugin_manager.get_cached_solver_backend()
-        self._internal = solver_backend(prefix, channels, subdirs, specs_to_add, specs_to_remove)
+        self._internal = solver_backend(
+            prefix, channels, subdirs, specs_to_add, specs_to_remove
+        )
 
-    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL):
+    def solve_final_state(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+    ):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -84,11 +94,19 @@ class Solver:
                 the solved state of the environment.
 
         """
-        return self._internal.solve_final_state(update_modifier, deps_modifier, prune,
-                                                ignore_pinned, force_remove)
+        return self._internal.solve_final_state(
+            update_modifier, deps_modifier, prune, ignore_pinned, force_remove
+        )
 
-    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
+    def solve_for_diff(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=False,
+    ):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -118,11 +136,24 @@ class Solver:
                 dependency order from roots to leaves.
 
         """
-        return self._internal.solve_for_diff(update_modifier, deps_modifier, prune, ignore_pinned,
-                                             force_remove, force_reinstall)
+        return self._internal.solve_for_diff(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+        )
 
-    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
+    def solve_for_transaction(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=False,
+    ):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -145,8 +176,14 @@ class Solver:
             UnlinkLinkTransaction:
 
         """
-        return self._internal.solve_for_transaction(update_modifier, deps_modifier, prune,
-                                                    ignore_pinned, force_remove, force_reinstall)
+        return self._internal.solve_for_transaction(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+        )
 
 
 class SubdirData:
@@ -210,7 +247,9 @@ class SubdirData:
             Tuple[PackageRecord]
 
         """
-        return tuple(_SubdirData.query_all(package_ref_or_match_spec, channels, subdirs))
+        return tuple(
+            _SubdirData.query_all(package_ref_or_match_spec, channels, subdirs)
+        )
 
     def iter_records(self):
         """

@@ -1,33 +1,39 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from os.path import exists, join
-from conda.auxlib.compat import Utf8NamedTemporaryFile
 from unittest import TestCase
 
-from conda.gateways.disk.delete import rm_rf
 import pytest
 
-from conda.testing.integration import Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix, \
-    package_is_installed, run_command
+from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.gateways.disk.delete import rm_rf
+from conda.testing.integration import (
+    PYTHON_BINARY,
+    Commands,
+    make_temp_env,
+    make_temp_prefix,
+    package_is_installed,
+    run_command,
+)
 
 
 @pytest.mark.integration
 class ExportIntegrationTests(TestCase):
-
     def test_basic(self):
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'python=3')
+            assert package_is_installed(prefix, "python=3")
 
             output, error, _ = run_command(Commands.LIST, prefix, "-e")
 
-            with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+            with Utf8NamedTemporaryFile(
+                mode="w", suffix="txt", delete=False
+            ) as env_txt:
                 env_txt.write(output)
                 env_txt.flush()
                 env_txt.close()
                 prefix2 = make_temp_prefix()
-                run_command(Commands.CREATE, prefix2 , "--file", env_txt.name)
+                run_command(Commands.CREATE, prefix2, "--file", env_txt.name)
 
                 assert package_is_installed(prefix2, "python")
 
@@ -37,12 +43,12 @@ class ExportIntegrationTests(TestCase):
     @pytest.mark.skipif(True, reason="Bring back `conda list --export` #3445")
     def test_multi_channel_export(self):
         """
-            When try to import from txt
-            every package should come from same channel
+        When try to import from txt
+        every package should come from same channel
         """
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'python=3')
+            assert package_is_installed(prefix, "python=3")
 
             run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
             assert package_is_installed(prefix, "six")
@@ -51,11 +57,13 @@ class ExportIntegrationTests(TestCase):
             self.assertIn("conda-forge", output)
 
             try:
-                with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+                with Utf8NamedTemporaryFile(
+                    mode="w", suffix="txt", delete=False
+                ) as env_txt:
                     env_txt.write(output)
                     env_txt.close()
                     prefix2 = make_temp_prefix()
-                    run_command(Commands.CREATE, prefix2 , "--file", env_txt.name)
+                    run_command(Commands.CREATE, prefix2, "--file", env_txt.name)
 
                     assert package_is_installed(prefix2, "python")
                 output2, error, _ = run_command(Commands.LIST, prefix2, "-e")
@@ -65,12 +73,12 @@ class ExportIntegrationTests(TestCase):
 
     def test_multi_channel_explicit(self):
         """
-            When try to import from txt
-            every package should come from same channel
+        When try to import from txt
+        every package should come from same channel
         """
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, 'python=3')
+            assert package_is_installed(prefix, "python=3")
 
             run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
             assert package_is_installed(prefix, "conda-forge::six")
@@ -82,7 +90,9 @@ class ExportIntegrationTests(TestCase):
             urls1 = {url for url in output.split() if url.startswith("http")}
 
             try:
-                with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+                with Utf8NamedTemporaryFile(
+                    mode="w", suffix="txt", delete=False
+                ) as env_txt:
                     env_txt.write(output)
                     env_txt.close()
                     prefix2 = make_temp_prefix()

@@ -1,4 +1,0 @@
-### Bug fixes
-
-* Fixes the behavior of the `--no-user` flag in `conda init` so that a user's
-  `.bashrc`, etc. remains unaltered, as expected. (#11949)

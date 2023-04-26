@@ -79,7 +79,7 @@ To see how this process works for this project, read "[The Issue Sorting Process
 [anaconda-issues]: https://github.com/ContinuumIO/anaconda-issues/issues
 [anaconda-support]: https://anaconda.cloud/support-center
 [anaconda-bug-report]: https://anaconda.org/contact/report
-[sorting]: https://github.com/conda/infra/blob/main/ISSUE_SORTING.md
+[sorting]: https://github.com/conda/infra/blob/main/HOW_WE_USE_GITHUB.md
 [development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html
 
 ## Conda capitalization standards

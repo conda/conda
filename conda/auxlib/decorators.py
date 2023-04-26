@@ -1,13 +1,14 @@
 from collections.abc import Hashable
 from types import GeneratorType
-import warnings
 
 from functools import wraps
+from ..deprecations import deprecated
 
 
 # TODO: spend time filling out functionality and make these more robust
 
 
+@deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
 def memoize(func):
     """
     Decorator to cause a function to cache it's results for each combination of
@@ -46,13 +47,6 @@ def memoize(func):
     Traceback (most recent call last):
     TypeError: Can't memoize a generator or non-hashable object!
     """
-    warnings.warn(
-        "The `conda.auxlib.decorators.memoize` decorator is pending deprecation and will be "
-        "removed in a future release. Please use `functools.lru_cache` instead.",
-        PendingDeprecationWarning,
-        stacklevel=2,
-    )
-
     func._result_cache = {}  # pylint: disable-msg=W0212
 
     @wraps(func)

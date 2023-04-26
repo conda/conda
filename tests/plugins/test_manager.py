@@ -6,11 +6,10 @@ import sys
 
 import pytest
 
+from conda import plugins
 from conda.core import solve
 from conda.exceptions import PluginError
-from conda import plugins
 from conda.plugins import virtual_packages
-
 
 log = logging.getLogger(__name__)
 
@@ -75,23 +74,23 @@ def test_get_hook_results(plugin_manager):
 
 
 def test_load_plugins_error(plugin_manager, mocker):
-    with mocker.patch.object(
+    mocker.patch.object(
         plugin_manager, "register", side_effect=ValueError("load_plugins error")
-    ):
-        with pytest.raises(PluginError) as exc:
-            plugin_manager.load_plugins(VerboseSolverPlugin)
-        assert plugin_manager.get_plugins() == set()
-        assert exc.value.return_code == 1
-        assert "load_plugins error" in str(exc.value)
+    )
+    with pytest.raises(PluginError) as exc:
+        plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.get_plugins() == set()
+    assert exc.value.return_code == 1
+    assert "load_plugins error" in str(exc.value)
 
 
-def test_load_setuptools_entrypoints_error(plugin_manager, mocker):
-    with mocker.patch(
-        "pluggy._manager.importlib_metadata.distributions",
-        side_effect=ValueError("load_setuptools_entrypoints error"),
-    ):
-        with pytest.raises(PluginError) as exc:
-            plugin_manager.load_setuptools_entrypoints("conda")
-        assert plugin_manager.get_plugins() == set()
-        assert exc.value.return_code == 1
-        assert "load_setuptools_entrypoints error" in str(exc.value)
+def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
+    # the fake package under data/test-plugin is added to the PYTHONPATH
+    # via the pytest config
+    mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
+    plugin_manager.load_entrypoints("conda")
+    assert plugin_manager.get_plugins() == set()
+    assert mocked_warning.call_count == 1
+    assert mocked_warning.call_args.args[0] == (
+        "Could not load conda plugin `conda-test-plugin`:\n\nNo module named 'package_that_does_not_exist'"
+    )

@@ -31,18 +31,20 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-from .conda_argparse import generate_parser
-
 import sys
+
+from .conda_argparse import generate_parser
 
 
 def init_loggers(context=None):
     from logging import CRITICAL, getLogger
+
     from ..gateways.logging import initialize_logging, set_verbosity
+
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
-        for logger in ('conda.stdout.verbose', 'conda.stdoutlog', 'conda.stderrlog'):
+        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
             getLogger(logger).setLevel(CRITICAL + 1)
 
     if context:
@@ -58,6 +60,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = p.parse_args(args)
 
     from ..base.context import context
+
     context.__init__(argparse_args=args)
     init_loggers(context)
 
@@ -66,10 +69,11 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         post_parse_hook(args, p)
 
     from .conda_argparse import do_call
+
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
-    elif hasattr(exit_code, 'rc'):
+    elif hasattr(exit_code, "rc"):
         return exit_code.rc
 
 
@@ -88,6 +92,7 @@ def main_sourced(shell, *args, **kwargs):
         activator_cls = _build_activator_cls(shell)
     except KeyError:
         from ..exceptions import CondaError
+
         raise CondaError("%s is not a supported shell." % shell)
 
     activator = activator_cls(args)

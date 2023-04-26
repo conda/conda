@@ -1,11 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
 import unittest
 from logging import Handler, getLogger
 from os.path import exists, join
-from shutil import rmtree
 from unittest import TestCase
 from uuid import uuid4
 
@@ -50,7 +47,8 @@ def package_is_installed(prefix, spec, pip=None):
     prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=pip).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
-            "Multiple packages installed.%s" % (dashlist(prec.dist_str() for prec in prefix_recs))
+            "Multiple packages installed.%s"
+            % (dashlist(prec.dist_str() for prec in prefix_recs))
         )
     is_installed = bool(len(prefix_recs))
     if is_installed and pip is True:
@@ -88,14 +86,18 @@ class IntegrationTests(TestCase):
     def test_create_update(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var(
-                "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+                "CONDA_ENVS_DIRS",
+                envs_dir,
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
                 python_path = join(prefix, PYTHON_BINARY)
 
                 run_command(
-                    Commands.CREATE, env_name, support_file("example/environment_pinned.yml")
+                    Commands.CREATE,
+                    env_name,
+                    support_file("example/environment_pinned.yml"),
                 )
                 assert exists(python_path)
                 assert package_is_installed(prefix, "flask=2.0.2")
@@ -127,14 +129,18 @@ class IntegrationTests(TestCase):
     def test_create_host_port(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var(
-                "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+                "CONDA_ENVS_DIRS",
+                envs_dir,
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
                 python_path = join(prefix, PYTHON_BINARY)
 
                 run_command(
-                    Commands.CREATE, env_name, support_file("example/environment_host_port.yml")
+                    Commands.CREATE,
+                    env_name,
+                    support_file("example/environment_host_port.yml"),
                 )
                 assert exists(python_path)
                 assert package_is_installed(prefix, "flask=2.0.3")
@@ -168,7 +174,9 @@ class IntegrationTests(TestCase):
                 assert exists(python_path)
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "argh", pip=True)
-                assert package_is_installed(prefix, "module-to-install-in-editable-mode", pip=True)
+                assert package_is_installed(
+                    prefix, "module-to-install-in-editable-mode", pip=True
+                )
                 try:
                     assert package_is_installed(prefix, "six", pip=True)
                 except AssertionError:
@@ -179,7 +187,9 @@ class IntegrationTests(TestCase):
     def test_create_empty_env(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var(
-                "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+                "CONDA_ENVS_DIRS",
+                envs_dir,
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
@@ -194,16 +204,28 @@ class IntegrationTests(TestCase):
     def test_create_env_default_packages(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var(
-                "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+                "CONDA_ENVS_DIRS",
+                envs_dir,
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 # set packages
                 run_conda_command(
-                    CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "pip"
+                    CondaCommands.CONFIG,
+                    envs_dir,
+                    "--add",
+                    "create_default_packages",
+                    "pip",
                 )
                 run_conda_command(
-                    CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "flask"
+                    CondaCommands.CONFIG,
+                    envs_dir,
+                    "--add",
+                    "create_default_packages",
+                    "flask",
                 )
-                stdout, stderr, _ = run_conda_command(CondaCommands.CONFIG, envs_dir, "--show")
+                stdout, stderr, _ = run_conda_command(
+                    CondaCommands.CONFIG, envs_dir, "--show"
+                )
                 yml_obj = yaml_round_trip_load(stdout)
                 assert yml_obj["create_default_packages"] == ["flask", "pip"]
 
@@ -213,7 +235,9 @@ class IntegrationTests(TestCase):
 
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
-                run_command(Commands.CREATE, env_name, support_file("env_with_dependencies.yml"))
+                run_command(
+                    Commands.CREATE, env_name, support_file("env_with_dependencies.yml")
+                )
                 assert exists(prefix)
                 assert package_is_installed(prefix, "python=2")
                 assert package_is_installed(prefix, "pytz")
@@ -227,16 +251,28 @@ class IntegrationTests(TestCase):
     def test_create_env_no_default_packages(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var(
-                "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+                "CONDA_ENVS_DIRS",
+                envs_dir,
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 # set packages
                 run_conda_command(
-                    CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "pip"
+                    CondaCommands.CONFIG,
+                    envs_dir,
+                    "--add",
+                    "create_default_packages",
+                    "pip",
                 )
                 run_conda_command(
-                    CondaCommands.CONFIG, envs_dir, "--add", "create_default_packages", "flask"
+                    CondaCommands.CONFIG,
+                    envs_dir,
+                    "--add",
+                    "create_default_packages",
+                    "flask",
                 )
-                stdout, stderr, _ = run_conda_command(CondaCommands.CONFIG, envs_dir, "--show")
+                stdout, stderr, _ = run_conda_command(
+                    CondaCommands.CONFIG, envs_dir, "--show"
+                )
                 yml_obj = yaml_round_trip_load(stdout)
                 assert yml_obj["create_default_packages"] == ["flask", "pip"]
 
@@ -261,7 +297,9 @@ class IntegrationTests(TestCase):
 # removed from class to be able to accept pytest fixture
 def test_create_update_remote_env_file(support_file_server_port):
     with make_temp_envs_dir() as envs_dir:
-        with env_var("CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var(
+            "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
             env_name = str(uuid4())[:8]
             prefix = join(envs_dir, env_name)
             python_path = join(prefix, PYTHON_BINARY)
@@ -270,7 +308,9 @@ def test_create_update_remote_env_file(support_file_server_port):
                 Commands.CREATE,
                 env_name,
                 support_file(
-                    "example/environment_pinned.yml", remote=True, port=support_file_server_port
+                    "example/environment_pinned.yml",
+                    remote=True,
+                    port=support_file_server_port,
                 ),
             )
             assert exists(python_path)

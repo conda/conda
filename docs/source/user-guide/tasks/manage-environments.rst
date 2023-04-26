@@ -852,12 +852,13 @@ EXAMPLE: A more complex environment file:
 .. note::
    **Using wildcards**
 
-   Note the use of the wildcard * when defining the patch version
-   number. Defining the version number by fixing the major and minor
-   version numbers while allowing the patch version number to vary
-   allows us to use our environment file to update our environment
-   to get any bug fixes whilst still maintaining consistency of
-   software environment.
+   Note the use of the wildcard ``*`` when defining a few of the
+   versions in the complex environment file. Keeping the major and
+   minor versions fixed while allowing the patch to be any number
+   allows you to use your environment file to get any bug fixes
+   while still maintaining consistency in your environment. For
+   more information on package installation values,
+   see :doc:`../concepts/pkg-search`.
 
    **Specifying channels outside of "channels"**
 
