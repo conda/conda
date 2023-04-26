@@ -103,9 +103,7 @@ class SubdirDataType(type):
 
 
 class PackageRecordList(UserList):
-    """
-    Lazily convert dicts to PackageRecord.
-    """
+    """Lazily convert dicts to PackageRecord."""
 
     def __getitem__(self, i):
         if isinstance(i, slice):
@@ -221,9 +219,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def _repo(self) -> RepoInterface:
-        """
-        Changes as we mutate self.repodata_fn.
-        """
+        """Changes as we mutate self.repodata_fn."""
         return self.RepoInterface(
             self.url_w_credentials,
             self.repodata_fn,
@@ -263,9 +259,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_state(self):
-        """
-        Out-of-band etag and other state needed by the RepoInterface.
-        """
+        """Out-of-band etag and other state needed by the RepoInterface."""
         return Path(
             self.cache_path_base
             + ("1" if context.use_only_tar_bz2 else "")
@@ -499,9 +493,7 @@ class SubdirData(metaclass=SubdirDataType):
             return _internal_state
 
     def _pickle_valid_checks(self, pickled_state, mod, etag):
-        """
-        Throw away the pickle if these don't all match.
-        """
+        """Throw away the pickle if these don't all match."""
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
         yield "_add_pip", pickled_state.get(

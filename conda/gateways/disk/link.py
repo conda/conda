@@ -229,9 +229,7 @@ else:  # pragma: no cover
         return string.format_map(context)
 
     def is_symlink(path):
-        """
-        Assuming path is a reparse point, determine if it's a symlink.
-        """
+        """Assuming path is a reparse point, determine if it's a symlink."""
         path = _patch_path(path)
         try:
             return _is_symlink(next(find_files(path)))

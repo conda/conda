@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
-Small jlap reader.
-"""
+"""Small jlap reader."""
 
 from __future__ import annotations
 
@@ -116,29 +114,21 @@ class JLAP(UserList):
         return self
 
     def write(self, path: Path):
-        """
-        Write buffer to path.
-        """
+        """Write buffer to path."""
         with Path(path).open("w", encoding="utf-8", newline="\n") as p:
             return p.write("\n".join(b[1] for b in self))
 
     @property
     def body(self):
-        """
-        All lines except the first, and last two.
-        """
+        """All lines except the first, and last two."""
         return self[1:-2]
 
     @property
     def penultimate(self):
-        """
-        Next-to-last line. Should contain the footer.
-        """
+        """Next-to-last line. Should contain the footer."""
         return self[-2]
 
     @property
     def last(self):
-        """
-        Last line. Should contain the trailing checksum.
-        """
+        """Last line. Should contain the trailing checksum."""
         return self[-1]

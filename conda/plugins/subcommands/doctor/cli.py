@@ -50,9 +50,7 @@ def get_prefix(args: argparse.Namespace) -> str:
 
 
 def execute(argv: list[str]) -> None:
-    """
-    Run conda doctor subcommand.
-    """
+    """Run conda doctor subcommand."""
     from .health_checks import display_health_checks
 
     args = get_parsed_args(argv)

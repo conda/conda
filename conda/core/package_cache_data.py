@@ -68,9 +68,7 @@ EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 
 
 class PackageCacheType(type):
-    """
-    This metaclass does basic caching of PackageCache instance objects.
-    """
+    """This metaclass does basic caching of PackageCache instance objects."""
 
     def __call__(cls, pkgs_dir):
         if isinstance(pkgs_dir, PackageCacheData):
@@ -886,9 +884,7 @@ class ProgressiveFetchExtract:
 
 
 def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
-    """
-    This function gets called from `ProgressiveFetchExtract.execute`
-    """
+    """This function gets called from `ProgressiveFetchExtract.execute`."""
     # pass None if already cached (simplifies code)
     if not cache_action:
         return prec
@@ -908,9 +904,7 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
 
 
 def do_extract_action(prec, extract_action, progress_bar):
-    """
-    This function gets called after do_cache_action completes.
-    """
+    """This function gets called after do_cache_action completes."""
     # pass None if already extracted (simplifies code)
     if not extract_action:
         return prec

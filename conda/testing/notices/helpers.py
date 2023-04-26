@@ -86,9 +86,7 @@ def offset_cache_file_mtime(mtime_offset) -> None:
 
 
 class DummyArgs:
-    """
-    Dummy object that sets all kwargs as object properties
-    """
+    """Dummy object that sets all kwargs as object properties."""
 
     def __init__(self, **kwargs):
         self.no_ansi_colors = True

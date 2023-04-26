@@ -891,13 +891,7 @@ class Context(Configuration):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
-                raise OperationNotAllowed(
-                    dals(
-                        """
-                Overriding channels has been disabled.
-                """
-                    )
-                )
+                raise OperationNotAllowed("Overriding channels has been disabled.")
             elif not (
                 self._argparse_args
                 and "channel" in self._argparse_args
@@ -1080,9 +1074,7 @@ class Context(Configuration):
         stack=+1,
     )
     def cuda_version(self) -> Optional[str]:
-        """
-        Retrieves the current cuda version.
-        """
+        """Retrieves the current cuda version."""
         from conda.plugins.virtual_packages import cuda
 
         return cuda.cuda_version()

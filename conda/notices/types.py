@@ -9,9 +9,7 @@ from ..base.constants import NoticeLevel
 
 
 class ChannelNotice(NamedTuple):
-    """
-    Represents an individual channel notice
-    """
+    """Represents an individual channel notice."""
 
     id: Optional[str]
     channel_name: Optional[str]
@@ -78,9 +76,7 @@ class ChannelNoticeResponse(NamedTuple):
 
     @staticmethod
     def _parse_iso_timestamp(iso_timestamp: Optional[str]) -> Optional[datetime]:
-        """
-        We try to parse this as a valid ISO timestamp and fail over to a default value of none.
-        """
+        """Parse ISO timestamp and fail over to a default value of none."""
         if iso_timestamp is None:
             return None
         try:
@@ -90,9 +86,7 @@ class ChannelNoticeResponse(NamedTuple):
 
     @classmethod
     def get_cache_key(cls, url: str, cache_dir: Path) -> Path:
-        """
-        Returns the place where this channel response will be stored as cache by hashing the url.
-        """
+        """Returns where this channel response will be cached by hashing the URL."""
         bytes_filename = url.encode()
         sha256_hash = hashlib.sha256(bytes_filename)
         cache_filename = f"{sha256_hash.hexdigest()}.json"

@@ -209,9 +209,7 @@ def test_quote_for_shell(args, expected):
 
 
 def test_ensure_dir(tmpdir):
-    """
-    Ensures that this decorator creates a directory
-    """
+    """Ensures that this decorator creates a directory."""
     new_dir = "test_dir"
 
     @utils.ensure_dir_exists
@@ -224,9 +222,7 @@ def test_ensure_dir(tmpdir):
 
 
 def test_ensure_dir_errors():
-    """
-    Test to ensure correct error handling
-    """
+    """Test to ensure correct error handling."""
     new_dir = "test_dir"
     exc_message = "Test!"
 
@@ -245,9 +241,7 @@ def test_ensure_dir_errors():
 
 
 def test_safe_open(tmpdir):
-    """
-    Ensures this context manager open and closes files appropriately
-    """
+    """Ensures this context manager open and closes files appropriately."""
     new_file = Path(tmpdir).joinpath("test.file")
     content = "test"
 
@@ -262,9 +256,7 @@ def test_safe_open(tmpdir):
 
 
 def test_safe_open_errors():
-    """
-    Test to ensure correct error handling
-    """
+    """Test to ensure correct error handling."""
     exc_message = "Test!"
 
     with patch("conda.utils.open") as mock_open:
