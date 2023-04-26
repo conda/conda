@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import collections
 import itertools
-from typing import Generator
+from typing import Any, Generator, Sequence
 
 
 def groupby_to_dict(keyfunc, sequence):

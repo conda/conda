@@ -5,6 +5,7 @@ from __future__ import annotations
 import warnings
 from functools import wraps
 from types import ModuleType
+from typing import Any, Callable
 
 from packaging.version import Version, parse
 

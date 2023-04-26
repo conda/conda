@@ -1,9 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import NamedTuple, Optional, Sequence
+from typing import NamedTuple, Sequence
 
 from ..base.constants import NoticeLevel
 
@@ -11,13 +13,13 @@ from ..base.constants import NoticeLevel
 class ChannelNotice(NamedTuple):
     """Represents an individual channel notice."""
 
-    id: Optional[str]
-    channel_name: Optional[str]
-    message: Optional[str]
+    id: str | None
+    channel_name: str | None
+    message: str | None
     level: NoticeLevel
-    created_at: Optional[datetime]
-    expired_at: Optional[datetime]
-    interval: Optional[int]
+    created_at: datetime | None
+    expired_at: datetime | None
+    interval: int | None
 
 
 class ChannelNoticeResultSet(NamedTuple):
@@ -39,7 +41,7 @@ class ChannelNoticeResultSet(NamedTuple):
 class ChannelNoticeResponse(NamedTuple):
     url: str
     name: str
-    json_data: Optional[dict]
+    json_data: dict | None
 
     @property
     def notices(self) -> Sequence[ChannelNotice]:
@@ -63,7 +65,7 @@ class ChannelNoticeResponse(NamedTuple):
         return ()
 
     @staticmethod
-    def _parse_notice_level(level: Optional[str]) -> NoticeLevel:
+    def _parse_notice_level(level: str | None) -> NoticeLevel:
         """
         We use this to validate notice levels and provide reasonable defaults
         if any are invalid.
@@ -75,7 +77,7 @@ class ChannelNoticeResponse(NamedTuple):
             return NoticeLevel(NoticeLevel.INFO)
 
     @staticmethod
-    def _parse_iso_timestamp(iso_timestamp: Optional[str]) -> Optional[datetime]:
+    def _parse_iso_timestamp(iso_timestamp: str | None) -> datetime | None:
         """Parse ISO timestamp and fail over to a default value of none."""
         if iso_timestamp is None:
             return None

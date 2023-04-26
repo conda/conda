@@ -704,7 +704,7 @@ class ProgressiveFetchExtract:
     def __init__(self, link_prefs):
         """
         Args:
-            link_prefs (Tuple[PackageRecord]):
+            link_prefs (tuple[PackageRecord]):
                 A sequence of :class:`PackageRecord`s to ensure available in a known
                 package cache, typically for a follow-on :class:`UnlinkLinkTransaction`.
                 Here, "available" means the package tarball is both downloaded and extracted

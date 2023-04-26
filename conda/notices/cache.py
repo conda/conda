@@ -6,13 +6,15 @@ Handles all caching logic including:
   - Saving to cache
   - Determining whether not certain items have expired and need to be refreshed
 """
+from __future__ import annotations
+
 import json
 import logging
 import os
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
-from typing import Optional, Sequence, Set
+from typing import Sequence
 
 from .._vendor.appdirs import user_cache_dir
 from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
@@ -51,7 +53,7 @@ def is_notice_response_cache_expired(
     """
     now = datetime.now(timezone.utc)
 
-    def is_channel_notice_expired(expired_at: Optional[datetime]) -> bool:
+    def is_channel_notice_expired(expired_at: datetime | None) -> bool:
         """If there is no "expired_at" field present assume it is expired."""
         if expired_at is None:
             return True
@@ -85,7 +87,7 @@ def get_notices_cache_file() -> Path:
 
 def get_notice_response_from_cache(
     url: str, name: str, cache_dir: Path
-) -> Optional[ChannelNoticeResponse]:
+) -> ChannelNoticeResponse | None:
     """Retrieves a notice response object from cache if it exists."""
     cache_key = ChannelNoticeResponse.get_cache_key(url, cache_dir)
 
@@ -129,7 +131,7 @@ def mark_channel_notices_as_viewed(
 
 def get_viewed_channel_notice_ids(
     cache_file: Path, channel_notices: Sequence[ChannelNotice]
-) -> Set[str]:
+) -> set[str]:
     """Return the ids of the channel notices which have already been seen."""
     notice_ids = {chn.id for chn in channel_notices}
 

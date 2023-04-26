@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
 import platform
 import struct
@@ -11,7 +13,6 @@ from itertools import chain
 from logging import getLogger
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
-from typing import Optional
 
 try:
     from boltons.setutils import IndexedSet
@@ -576,19 +577,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, "unknown")
 
     @property
-    def default_threads(self) -> Optional[int]:
+    def default_threads(self) -> int | None:
         return self._default_threads or None
 
     @property
-    def repodata_threads(self) -> Optional[int]:
+    def repodata_threads(self) -> int | None:
         return self._repodata_threads or self.default_threads
 
     @property
-    def fetch_threads(self) -> Optional[int]:
+    def fetch_threads(self) -> int | None:
         return self._fetch_threads or self.default_threads
 
     @property
-    def verify_threads(self) -> Optional[int]:
+    def verify_threads(self) -> int | None:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -1073,7 +1074,7 @@ class Context(Configuration):
         addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
         stack=+1,
     )
-    def cuda_version(self) -> Optional[str]:
+    def cuda_version(self) -> str | None:
         """Retrieves the current cuda version."""
         from conda.plugins.virtual_packages import cuda
 

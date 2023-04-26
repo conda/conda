@@ -184,7 +184,7 @@ class SolverTests:
     """Tests for :py:class:`conda.core.solve.Solver` implementations."""
 
     @property
-    def solver_class(self) -> Type[Solver]:
+    def solver_class(self) -> type[Solver]:
         """Class under test."""
         raise NotImplementedError
 

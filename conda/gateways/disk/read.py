@@ -13,6 +13,7 @@ from itertools import chain
 from logging import getLogger
 from os.path import isdir, isfile, join  # noqa
 from pathlib import Path
+from typing import Literal
 
 from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode

@@ -673,7 +673,7 @@ class PrimitiveLoadedParameter(LoadedParameter):
     ):
         """
         Args:
-            element_type (type or Tuple[type]): Type-validation of parameter's value.
+            element_type (type or tuple[type]): Type-validation of parameter's value.
             value (primitive value): primitive python value.
         """
         self._type = element_type
@@ -1040,7 +1040,7 @@ class PrimitiveParameter(Parameter):
         """
         Args:
             default (primitive value): default value if the Parameter is not found.
-            element_type (type or Tuple[type]): Type-validation of parameter's value. If None,
+            element_type (type or tuple[type]): Type-validation of parameter's value. If None,
                 type(default) is used.
         """
         self._type = type(default) if element_type is None else element_type
