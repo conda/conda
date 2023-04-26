@@ -1459,10 +1459,16 @@ class UnlinkLinkTransaction:
         return change_report
 
 
-def run_script(prefix, prec, action="post-link", env_prefix=None, activate=False):
+def run_script(
+    prefix: str,
+    prec,
+    action: str = "post-link",
+    env_prefix: str = None,
+    activate: bool = False,
+) -> bool:
     """
-    call the post-link (or pre-unlink) script, and return True on success,
-    False on failure
+    Call the post-link (or pre-unlink) script, returning True on success,
+    False on failure.
     """
     path = join(
         prefix,

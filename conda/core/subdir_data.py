@@ -556,11 +556,11 @@ class SubdirData(metaclass=SubdirDataType):
         return _pickled_state
 
     def _process_raw_repodata_str(
-        self, raw_repodata_str, state: RepodataState | None = None
+        self,
+        raw_repodata_str,
+        state: RepodataState | None = None,
     ):
-        """
-        state contains information that was previously in-band in raw_repodata_str.
-        """
+        """State contains information that was previously in-band in raw_repodata_str."""
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 

@@ -227,9 +227,7 @@ def touch_nonadmin(prefix):
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
-    """
-    clone existing prefix1 into new prefix2
-    """
+    """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
 
     # Discard conda, conda-env and any package that depends on them

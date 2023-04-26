@@ -633,7 +633,7 @@ class Resolve:
 
     @memoizemethod
     def _broader(self, ms, specs_by_name):
-        """prevent introduction of matchspecs that broaden our selection of choices"""
+        """Prevent introduction of matchspecs that broaden our selection of choices."""
         if not specs_by_name:
             return False
         return ms.strictness < specs_by_name[0].strictness

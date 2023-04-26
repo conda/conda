@@ -11,9 +11,9 @@ from typing import Generator
 
 
 def groupby_to_dict(keyfunc, sequence):
-    """
-    toolz-style groupby, returns a dictionary of { key: [group] } instead of
-    iterators.
+    """A `toolz`-style groupby implementation.
+
+    Returns a dictionary of { key: [group] } instead of iterators.
     """
     result = collections.defaultdict(list)
     for key, group in itertools.groupby(sequence, keyfunc):
@@ -22,8 +22,9 @@ def groupby_to_dict(keyfunc, sequence):
 
 
 def unique(sequence: Sequence[Any]) -> Generator[Any, None, None]:
-    """
-    toolz inspired unique, returns a generator of unique elements in the sequence
+    """A `toolz` inspired `unique` implementation.
+
+    Returns a generator of unique elements in the sequence
     """
     seen: set[Any] = set()
     yield from (

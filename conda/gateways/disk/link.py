@@ -218,11 +218,12 @@ else:  # pragma: no cover
         return "\\\\?\\" + path
 
     def local_format(string):
-        """
-        format the string using variables in the caller's local namespace.
-        >>> a = 3
-        >>> local_format("{a:5}")
-        '    3'
+        """Format the string using variables in the caller's local namespace.
+
+        .. code-block:: pycon
+            >>> a = 3
+            >>> local_format("{a:5}")
+            '    3'
         """
         context = inspect.currentframe().f_back.f_locals
         return string.format_map(context)
