@@ -421,6 +421,7 @@ Advanced configuration
 * :ref:`specify-env-directories`
 * :ref:`specify-pkg-directories`
 * :ref:`use-only-tar-bz2`
+* :ref:`set-default-env`
 
 .. _disallow-soft-linking:
 
@@ -690,6 +691,24 @@ EXAMPLE:
 
    This is forced to ``True`` if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
+
+.. _set-default-env:
+Specify a default environment to activate on launch
+---------------------------------------------------
+It is now possible to set a default conda environment at launch, so when you open 
+an Anaconda Prompt, or enter ``conda activate`` at the command line, it will activate 
+your preferred environment rather than ``base``. This is done by setting the 
+``default_start_environment`` variable.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  default_start_environment: my-favourite-env
+
+.. note::
+  If ``default_start_environment`` is not set (or is set and subsequently removed), conda 
+  will continue to activate base by default.
 
 Conda-build configuration
 =========================
