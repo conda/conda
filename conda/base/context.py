@@ -768,7 +768,6 @@ class Context(Configuration):
         The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
         """
-
         if context.dev:
             return {
                 "CONDA_EXE": sys.executable,
@@ -1954,7 +1953,6 @@ def determine_target_prefix(ctx, args=None):
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
     """
-
     argparse_args = args or ctx._argparse_args
     try:
         prefix_name = argparse_args.name

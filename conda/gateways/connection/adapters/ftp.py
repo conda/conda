@@ -135,7 +135,6 @@ class FTPAdapter(BaseAdapter):
 
     def stor(self, path, request):
         """Executes the FTP STOR command on the given path."""
-
         # First, get the file handle. We assume (bravely)
         # that there is only one file to be sent to a given URL. We also
         # assume that the filename is sent as part of the URL, not as part of

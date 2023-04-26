@@ -47,7 +47,6 @@ class TokenURLFilter(Filter):
         At the same time we replace tokens in the arguments which was
         not happening until now.
         """
-
         record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
             new_args = tuple(
@@ -109,7 +108,6 @@ class StdStreamHandler(StreamHandler):
         has an 'encoding' attribute, it is used to determine how to do the
         output to the stream.
         """
-
         try:
             unicode
             _unicode = True

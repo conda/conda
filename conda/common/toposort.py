@@ -13,7 +13,6 @@ def _toposort(data):
     dependences, each subsequent set consists of items that depend upon
     items in the preceding sets.
     """
-
     # Special case empty input.
     if len(data) == 0:
         return
@@ -67,7 +66,6 @@ def _safe_toposort(data):
     dependencies, each subsequent set consists of items that depend upon
     items in the preceding sets.
     """
-
     # Special case empty input.
     if len(data) == 0:
         return

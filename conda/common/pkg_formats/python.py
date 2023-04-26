@@ -797,7 +797,6 @@ class PythonDistributionMetadata:
         -----
         - [1] https://packaging.python.org/specifications/version-specifiers/
         """
-
         return self._get_multiple_data(["obsoletes_dist", "obsoletes"])
 
     def get_classifiers(self):
