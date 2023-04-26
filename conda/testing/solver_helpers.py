@@ -223,7 +223,8 @@ class SolverTests:
 
     def assert_unsatisfiable(self, exc_info, entries):
         """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
-        instance as a the specified set of unsatisfiable specifications."""
+        instance as a the specified set of unsatisfiable specifications.
+        """
         assert issubclass(exc_info.type, UnsatisfiableError)
         if exc_info.type is UnsatisfiableError:
             assert (

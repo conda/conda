@@ -11,7 +11,8 @@ def _toposort(data):
     and whose values are a set of dependent items. Output is a list of
     sets in topological order. The first set consists of items with no
     dependences, each subsequent set consists of items that depend upon
-    items in the preceding sets."""
+    items in the preceding sets.
+    """
 
     # Special case empty input.
     if len(data) == 0:
@@ -64,7 +65,8 @@ def _safe_toposort(data):
     and whose values are a set of dependent items. Output is a list of
     sets in topological order. The first set consists of items with no
     dependencies, each subsequent set consists of items that depend upon
-    items in the preceding sets."""
+    items in the preceding sets.
+    """
 
     # Special case empty input.
     if len(data) == 0:

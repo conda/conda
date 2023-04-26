@@ -750,15 +750,13 @@ class Context(Configuration):
 
     @property
     def av_data_dir(self):
-        """Directory where critical data for artifact verification (e.g.,
-        various public keys) can be found."""
+        """Where critical artifact verification data (e.g., various public keys) can be found."""
         # TODO (AV): Find ways to make this user configurable?
         return join(self.conda_prefix, "etc", "conda")
 
     @property
     def signing_metadata_url_base(self):
-        """Base URL where artifact verification signing metadata (*.root.json,
-        key_mgr.json) can be obtained."""
+        """Base URL for artifact verification signing metadata (*.root.json, key_mgr.json)."""
         if self._signing_metadata_url_base:
             return self._signing_metadata_url_base
         else:

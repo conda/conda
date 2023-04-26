@@ -93,7 +93,8 @@ def exactness_and_number_of_deps(resolve_obj, ms):
     """Sorting key to emphasize packages that have more strict
     requirements. More strict means the reduced index can be reduced
     more, so we want to consider these more constrained deps earlier in
-    reducing the index."""
+    reducing the index.
+    """
     if ms.strictness == 3:
         prec = resolve_obj.find_matches(ms)
         value = 3
