@@ -38,7 +38,7 @@ from conda.base.constants import (
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, env_name
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.main import main_sourced, main_subshell
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
