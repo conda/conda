@@ -14,6 +14,7 @@ from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+from typing import Literal, LiteralString
 
 import pytest
 
@@ -37,7 +38,7 @@ from conda.base.constants import (
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, env_name
 from conda.cli.main import main_sourced, main_subshell
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
@@ -53,6 +54,8 @@ from conda.testing.integration import (
     make_temp_env,
     run_command,
 )
+
+from conda_env import env
 
 log = getLogger(__name__)
 
@@ -1207,11 +1210,31 @@ class ActivatorUnitTests(TestCase):
                     assert builder["activate_scripts"] == ()
                     assert builder["deactivate_scripts"] == ()
 
-    def test_default_to_default_start_environment(self):
-        exit_code = main_subshell("config", "--set", "default_start_environment", "test-env")
+    def test_set_default_start_env(self):
+        # create an env called test-env, and then set it to the default
+        exit_code_1 = main_subshell("create", "-y", "-n", "test-env")
+        exit_code_2 = main_subshell("config", "--set", "default_start_environment", "test-env")
 
-        activator = PosixActivator()
-        assert exit_code == 0 and activator.env_name_or_prefix == "test-env"
+        # activate an unspecified env
+        activator = PosixActivator(["activate"])
+        activator.execute()
+
+        # if the we've managed to activate test-env without naming it, the test passes
+        assert activator.env_name_or_prefix == "test-env"
+
+        # isolate the test by clearing out the env and resetting the context
+        activator.deactivate()
+        exit_code_3 = main_subshell("remove", "-n", "test-env", "--all", "-y")
+        exit_code_4 = main_subshell("config", "--remove-key", "default_start_environment")
+        context.__init__()
+
+    def test_default_start_env_base_if_not_set(self):
+        # activate an unspecified env
+        activator = PosixActivator(["activate"])
+        activator.execute()
+
+        # if the we've managed to activate the base environment, the test passes
+        assert activator.env_name_or_prefix == "base"
 
 class ShellWrapperUnitTests(TestCase):
     def setUp(self):
@@ -3221,7 +3244,7 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs: tuple[LiteralString, dict[str, Env]], auto_stack, stack, run, expected):
+def test_stacking(create_stackable_envs: tuple[LiteralString, dict[str, env.Environment]], auto_stack, stack, run, expected):
     which, envs = create_stackable_envs
     stack = filter(None, stack.split(","))
     expected = filter(None, expected.split(","))

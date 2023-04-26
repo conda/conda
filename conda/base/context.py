@@ -188,7 +188,7 @@ class Context(Configuration):
 
     pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
-    # allow a default environment if specified
+    # allow a default environment - this will be base unless otherwise specified in .condarc
     default_start_environment = ParameterLoader(PrimitiveParameter("base", str))
 
     # multithreading in various places
