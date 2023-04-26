@@ -866,7 +866,7 @@ list <config-channels>` in the ``.condarc`` file. However,
 changing ``environment.yml`` affects only one of your conda
 environments while changing ``.condarc`` affects them all.
 
-Starting from conda 23.3.0 release, multiple entries of ``pip:`` can be used
+Starting from conda 24.5.0 release, multiple entries of ``pip:`` can be used
 for better organization of the pip packages. An example of an environment file
 with multiple ``pip`` entries:
 
