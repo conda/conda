@@ -240,10 +240,13 @@ class ArgumentParser(ArgumentParserBase):
         subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
         which is a ``conda.plugins.CondaSubcommand`` object.
         """
-        plugin_subcommand = None
+        # args default to the system args
+        if args is None:
+            args = sys.argv[1:]
 
-        if len(sys.argv) > 1:
-            name = sys.argv[1]
+        plugin_subcommand = None
+        if args:
+            name = args[0]
             for subcommand in self._subcommands:
                 if subcommand.name == name:
                     if name.lower() in BUILTIN_COMMANDS:
@@ -925,7 +928,7 @@ def configure_parser_install(sub_parsers):
 
     Install a specific version of 'python' into an environment, myenv::
 
-        conda install -p path/to/myenv python=3.10
+        conda install -p path/to/myenv python=3.11
 
     """
     )
@@ -991,6 +994,10 @@ def configure_parser_list(sub_parsers):
 
         conda list
 
+    List all packages in reverse order::
+
+        conda list --reverse
+
     List all packages installed into the environment 'myenv'::
 
         conda list -n myenv
@@ -1021,6 +1028,12 @@ def configure_parser_list(sub_parsers):
     add_parser_prefix(p)
     add_parser_json(p)
     add_parser_show_channel_urls(p)
+    p.add_argument(
+        "--reverse",
+        action="store_true",
+        default=False,
+        help="List installed packages in reverse order.",
+    )
     p.add_argument(
         "-c",
         "--canonical",
