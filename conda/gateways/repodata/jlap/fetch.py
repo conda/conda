@@ -158,11 +158,6 @@ def find_patches(patches, have, want):
         if have == want:
             break
         if patch["to"] == want:
-            log.info(
-                "Collect %s \N{LEFTWARDS ARROW} %s",
-                format_hash(want),
-                format_hash(patch["from"]),
-            )
             apply.append(patch)
             want = patch["from"]
 
