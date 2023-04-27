@@ -39,7 +39,9 @@ def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture):
 
 
 def test_compare(
-    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, environment_yml: Path
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    environment_yml: Path,
 ):
     with tmp_env() as prefix:
         out, err, code = conda_cli("compare", "--prefix", prefix, environment_yml)
@@ -115,7 +117,9 @@ def test_remove(subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixt
 
 
 def test_rename(
-    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
 ):
     with tmp_env() as prefix:
         out, err, code = conda_cli("rename", "--prefix", prefix, path_factory())
@@ -168,7 +172,9 @@ def test_env_remove(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
 
 
 def test_env_create(
-    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, environment_yml: Path
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    environment_yml: Path,
 ):
     out, err, code = conda_cli(
         "env",

@@ -227,9 +227,10 @@ class PathFactoryFixture:
         prefix: str | None = None,
         suffix: str | None = None,
     ) -> Path:
-        """Unique path factory.
+        """Unique, non-existent path factory.
 
-        Extends pytest's `tmp_path` fixture with a new unique path.
+        Extends pytest's `tmp_path` fixture with a new unique, non-existent path for usage in cases
+        where we need a temporary path that doesn't exist yet.
 
         :param name: Path name to append to `tmp_path`
         :param prefix: Prefix to prepend to unique name generated
@@ -270,6 +271,8 @@ class TmpEnvFixture:
         reset_context([prefix / "condarc"])
         self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
         yield prefix
+
+        # no need to remove prefix since it is in a temporary directory
 
 
 @pytest.fixture

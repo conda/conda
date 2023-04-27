@@ -15,7 +15,7 @@ running `conda create`. A test like this would look like the following:
 
 ```{code-block} python
 :linenos:
-:name: test-conda-create
+:name: test-conda-create-1
 :caption: Integration test for `conda create`
 import json
 from pathlib import Path
@@ -56,19 +56,19 @@ current running process. This is much more efficient and quicker than running CL
 via subprocesses.
 
 In the test itself, we first create a new environment by effectively running `conda create`
-(see [lines 8-13](#test-conda-create)). This function returns the
+(see [lines 8-13](#test-conda-create-1)). This function returns the
 standard out, standard error, and the exit code of the command. This allows us to
 perform our inspections in order to determine whether the command ran successfully.
 
 The second part of the test again uses the `conda_cli` fixture to call `conda env list`
-(see [lines 15-20](#test-conda-create)). This time, we pass the `--json`
+(see [lines 15-20](#test-conda-create-1)). This time, we pass the `--json`
 flag, which allows capturing JSON that we can better parse and more easily inspect. We
 then assert whether the environment we just created is actually in the list of
 environments available.
 
 Finally, we destroy the environment we just created and ensure the standard error and the
 exit code are what we expect them to be
-(see [lines 22-27](#test-conda-create)).
+(see [lines 22-27](#test-conda-create-1)).
 
 :::{warning}
 It is preferred to use temporary directories (e.g., `tmp_path`) whenever possible for
@@ -150,7 +150,7 @@ fixture:
 
 ```{code-block} python
 :linenos:
-:name: test-conda-create
+:name: test-conda-create-2
 :caption: Integration test for `conda create`
 import json
 from pathlib import Path
