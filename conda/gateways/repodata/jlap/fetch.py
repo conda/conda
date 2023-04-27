@@ -20,14 +20,19 @@ from requests import HTTPError
 
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
+from conda.gateways.repodata import (
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    RepodataCache,
+    RepodataState,
+)
 
 from .core import JLAP
 
 log = logging.getLogger(__name__)
 
 
-DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
+DIGEST_SIZE = 32  # 256 bits
 
 JLAP_KEY = "jlap"
 HEADERS = "headers"
@@ -43,12 +48,6 @@ def hash():
     Ordinary hash.
     """
     return blake2b(digest_size=DIGEST_SIZE)
-
-
-def get_place(url, extra=""):
-    if "current_repodata" in url:
-        extra = f".c{extra}"
-    return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
 
 
 class Jlap304NotModified(Exception):
@@ -249,15 +248,13 @@ def download_and_hash(
 def request_url_jlap_state(
     url,
     state: RepodataState,
-    get_place=get_place,
     full_download=False,
     *,
     session: Session,
+    cache: RepodataCache,
 ) -> dict | None:
     jlap_state = state.get(JLAP_KEY, {})
-    headers = jlap_state.get(HEADERS, {})
-
-    json_path = get_place(url)
+    json_path = cache.cache_path_json
 
     buffer = JLAP()  # type checks
 
@@ -279,7 +276,7 @@ def request_url_jlap_state(
                     response = download_and_hash(
                         hasher,
                         withext(url, ".json.zst"),
-                        json_path,
+                        json_path,  # XXX give temporary path for new file
                         session=session,
                         state=state,
                         is_zst=True,
@@ -324,12 +321,17 @@ def request_url_jlap_state(
 
         need_jlap = True
         try:
+            iv_hex = jlap_state.get("iv", "")
+            pos = jlap_state.get("pos", 0)
+            etag = jlap_state.get(ETAG_KEY, None)
+            jlap_url = withext(url, ".jlap")
+            log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
             # wrong to read state outside of function, and totally rebuild inside
             buffer, jlap_state = fetch_jlap(
-                withext(url, ".jlap"),
-                pos=jlap_state.get("pos", 0),
-                etag=headers.get("etag", None),
-                iv=bytes.fromhex(jlap_state.get("iv", "")),
+                jlap_url,
+                pos=pos,
+                etag=etag,
+                iv=bytes.fromhex(iv_hex),
                 session=session,
                 ignore_etag=False,
             )
@@ -345,7 +347,7 @@ def request_url_jlap_state(
             if e.response.status_code == 404:
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
-                    url, state, get_place=get_place, full_download=True, session=session
+                    url, state, full_download=True, session=session, cache=cache
                 )
             log.exception("Requests error")
 
@@ -418,5 +420,5 @@ def request_url_jlap_state(
             assert not full_download, "Recursion error"  # pragma: no cover
 
             return request_url_jlap_state(
-                url, state, get_place=get_place, full_download=True, session=session
+                url, state, full_download=True, session=session, cache=cache
             )

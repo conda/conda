@@ -8,6 +8,10 @@ from pathlib import Path
 from conda.gateways.connection.session import CondaSession
 
 from .. import (
+    CACHE_CONTROL_KEY,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    URL_KEY,
     RepodataCache,
     RepodataOnDisk,
     RepodataState,
@@ -70,15 +74,10 @@ class JlapRepoInterface(RepoInterface):
         # XXX won't modify caller's state dict
         state_ = RepodataState(dict=state)
 
-        def get_place(url, extra=""):
-            if url == repodata_url and extra == "":
-                return self._cache_path_json
-            raise NotImplementedError("Unexpected URL", url)
-
         try:
             with conda_http_errors(self._url, self._repodata_fn):
                 repodata_json_or_none = fetch.request_url_jlap_state(
-                    repodata_url, state_, get_place=get_place, session=session
+                    repodata_url, state_, session=session, cache=self._cache
                 )
         except fetch.Jlap304NotModified:
             raise Response304ContentUnchanged()
@@ -86,14 +85,14 @@ class JlapRepoInterface(RepoInterface):
         # XXX update caller's state dict-or-RepodataState
         state.update(state_)
 
-        state["_url"] = self._url
+        state[URL_KEY] = self._url
         headers = state.get("jlap", {}).get(
             "headers"
         )  # XXX overwrite headers in jlapper.request_url_jlap_state
         if headers:
-            state["_etag"] = headers.get("etag")
-            state["_mod"] = headers.get("last-modified")
-            state["_cache_control"] = headers.get("cache-control")
+            state[ETAG_KEY] = headers.get("etag")
+            state[LAST_MODIFIED_KEY] = headers.get("last-modified")
+            state[CACHE_CONTROL_KEY] = headers.get("cache-control")
 
         if repodata_json_or_none is None:  # common
             # Indicate that subdir_data mustn't rewrite cache_path_json
