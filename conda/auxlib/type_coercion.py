@@ -188,7 +188,7 @@ def typify(value, type_hint=None):
 
     Args:
         value (Any): Usually a string, not a sequence
-        type_hint (type or Tuple[type]):
+        type_hint (type or tuple[type]):
 
     Examples:
         >>> typify('32')

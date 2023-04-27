@@ -163,7 +163,7 @@ def env_unmodified(callback=None):
 
 @contextmanager
 def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
-    """Capture outputs of sys.stdout and sys.stderr.
+    r"""Capture outputs of sys.stdout and sys.stderr.
 
     If stdout is STRING, capture sys.stdout as a string,
     if stdout is None, do not capture sys.stdout, leaving it untouched,
@@ -171,6 +171,14 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
     Behave correspondingly for stderr with the exception that if stderr is STDOUT,
     redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
+
+    .. code-block:: pycon
+        >>> from conda.common.io import captured
+        >>> with captured() as c:
+        ...     print("hello world!")
+        ...
+        >>> c.stdout
+        'hello world!\n'
 
     Args:
         stdout: capture target for sys.stdout, one of STRING, None, or file-like object
@@ -181,22 +189,9 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
             corresponding file-like function argument.
     """
 
-    # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
-    # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
-    # """
-    # Context manager to capture the printed output of the code in the with block
-    #
-    # Bind the context manager to a variable using `as` and the result will be
-    # in the stdout property.
-    #
-    # >>> from conda.common.io import captured
-    # >>> with captured() as c:
-    # ...     print('hello world!')
-    # ...
-    # >>> c.stdout
-    # 'hello world!\n'
-    # """
     def write_wrapper(self, to_write):
+        # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
+        # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
         # This may have to deal with a *lot* of text.
         if hasattr(self, "mode") and "b" in self.mode:
             wanted = bytes

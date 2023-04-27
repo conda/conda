@@ -546,7 +546,5 @@ def test_cover_extract_bad_package(tmp_path):
 
 
 def test_conda_build_alias():
-    """
-    conda-build wants to use an old import.
-    """
+    """conda-build wants to use an old import."""
     assert conda.core.package_cache.ProgressiveFetchExtract

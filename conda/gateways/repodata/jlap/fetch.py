@@ -39,9 +39,7 @@ ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 
 def hash():
-    """
-    Ordinary hash.
-    """
+    """Ordinary hash."""
     return blake2b(digest_size=DIGEST_SIZE)
 
 
@@ -98,9 +96,7 @@ def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True, session=None):
 def request_jlap(
     url, pos=0, etag=None, ignore_etag=True, session: Session | None = None
 ):
-    """
-    Return the part of the remote .jlap file we are interested in.
-    """
+    """Return the part of the remote .jlap file we are interested in."""
     headers = {}
     if pos:
         headers["range"] = f"bytes={pos}-"
@@ -147,9 +143,7 @@ def request_jlap(
 
 
 def format_hash(hash):
-    """
-    Abbreviate hash for formatting.
-    """
+    """Abbreviate hash for formatting."""
     return hash[:16] + "\N{HORIZONTAL ELLIPSIS}"
 
 
@@ -197,9 +191,7 @@ def timeme(message):
 
 
 def build_headers(json_path: pathlib.Path, state: RepodataState):
-    """
-    Caching headers for a path and state.
-    """
+    """Caching headers for a path and state."""
     headers = {}
     # simplify if we require state to be empty when json_path is missing.
     if json_path.exists():
@@ -225,9 +217,7 @@ class HashWriter(io.RawIOBase):
 def download_and_hash(
     hasher, url, json_path, session: Session, state: RepodataState | None, is_zst=False
 ):
-    """
-    Download url if it doesn't exist, passing bytes through hasher.update()
-    """
+    """Download url if it doesn't exist, passing bytes through hasher.update()."""
     state = state or RepodataState()
     headers = build_headers(json_path, state)
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
