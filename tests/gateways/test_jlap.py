@@ -27,6 +27,7 @@ from conda.gateways.repodata import (
     LAST_MODIFIED_KEY,
     URL_KEY,
     CondaRepoInterface,
+    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     Response304ContentUnchanged,
@@ -49,10 +50,13 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
 
+    cache = RepodataCache(base=tmp_path / "jlap_fetch", repodata_fn="repodata.json")
+
     url = f"{base}/osx-64"
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
         cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
@@ -546,9 +550,13 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
     base = f"http://{host}:{port}/test"
 
     url = f"{base}/osx-64"
+    cache = RepodataCache(
+        base=tmp_path / "jlap_zst_not_404", repodata_fn="repodata.json"
+    )
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
         cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )

@@ -818,7 +818,7 @@ class RepodataFetch:
         """
         return self.repo_interface_cls(
             self.url_w_credentials,
-            self.repodata_fn,
+            repodata_fn=self.repodata_fn,
             cache_path_json=self.cache_path_json,
             cache_path_state=self.cache_path_state,
             cache=self.repo_cache,

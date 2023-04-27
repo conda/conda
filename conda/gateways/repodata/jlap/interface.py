@@ -29,6 +29,7 @@ class JlapRepoInterface(RepoInterface):
         self,
         url: str,
         repodata_fn: str | None,
+        *,
         cache_path_json: str | Path,
         cache_path_state: str | Path,
         cache: RepodataCache,
