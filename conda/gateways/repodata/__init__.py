@@ -111,9 +111,7 @@ def get_repo_interface() -> type[RepoInterface]:
 
 
 class CondaRepoInterface(RepoInterface):
-    """
-    Provides an interface for retrieving repodata data from channels
-    """
+    """Provides an interface for retrieving repodata data from channels."""
 
     #: Channel URL
     _url: str
@@ -185,9 +183,7 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
 
 @contextmanager
 def conda_http_errors(url, repodata_fn):
-    """
-    Use in a with: statement to translate requests exceptions to conda ones.
-    """
+    """Use in a with: statement to translate requests exceptions to conda ones."""
     try:
         yield
     except RequestsProxyError:
@@ -352,9 +348,7 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 
 class RepodataState(UserDict):
-    """
-    Load/save `.state.json` that accompanies cached `repodata.json`
-    """
+    """Load/save `.state.json` that accompanies cached `repodata.json`."""
 
     # Accept old keys for new serialization
     _aliased = {
@@ -415,9 +409,7 @@ class RepodataState(UserDict):
 
     @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def save(self):
-        """
-        Must be called after writing cache_path_json, as its mtime is included in .state.json
-        """
+        """Must be called after writing cache_path_json, since mtime is included in .state.json."""
         serialized = dict(self)
         json_stat = self.cache_path_json.stat()
         serialized.update(
@@ -502,16 +494,12 @@ class RepodataState(UserDict):
         }
 
     def clear_has_format(self, format: str):
-        """
-        Remove 'has_{format}' instead of setting to False
-        """
+        """Remove 'has_{format}' instead of setting to False."""
         key = f"has_{format}"
         self.pop(key, None)
 
     def should_check_format(self, format: str) -> bool:
-        """
-        Return True if named format should be attempted.
-        """
+        """Return True if named format should be attempted."""
         has, when = self.has_format(format)
         return (
             has is True
@@ -567,9 +555,7 @@ class RepodataCache:
 
     @property
     def cache_path_state(self):
-        """
-        Out-of-band etag and other state needed by the RepoInterface.
-        """
+        """Out-of-band etag and other state needed by the RepoInterface."""
         return pathlib.Path(
             self.cache_dir,
             self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX,
@@ -641,9 +627,7 @@ class RepodataCache:
         return self.state
 
     def save(self, data: str):
-        """
-        Write data to <repodata>.json cache path, synchronize state.
-        """
+        """Write data to <repodata>.json cache path, synchronize state."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(4).hex()}.tmp"
 
         try:
@@ -683,9 +667,7 @@ class RepodataCache:
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
-        """
-        Update access time in .state.json to indicate a HTTP 304 Not Modified response.
-        """
+        """Update access time in .state.json to indicate a HTTP 304 Not Modified response."""
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
@@ -951,7 +933,6 @@ class RepodataFetch:
         """
         Read repodata from disk, without trying to fetch a fresh version.
         """
-
         # pickled data is bad or doesn't exist; load cached json
         log.debug(
             "Loading raw json for %s at %s",

@@ -18,9 +18,7 @@ from ..misc import untracked
 
 
 def remove(prefix, files):
-    """
-    Remove files for a given prefix.
-    """
+    """Remove files for a given prefix."""
     dst_dirs = set()
     for f in files:
         dst = join(prefix, f)
@@ -128,10 +126,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
 
 
 def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
-    """
-    create a conda package with `files` (in `prefix` and `info` metadata)
-    at `tar_path`, and return a list of warning strings
-    """
+    """Create a conda package and return a list of warnings."""
     files = sorted(files)
     warnings = []
     has_prefix = []
@@ -193,9 +188,10 @@ def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=Non
 
 
 def which_package(path):
-    """
-    given the path (of a (presumably) conda installed file) iterate over
-    the conda packages the file came from.  Usually the iteration yields
+    """Return the package containing the path.
+
+    Provided the path of a (presumably) conda installed file, iterate over
+    the conda packages the file came from. Usually the iteration yields
     only one package.
     """
     path = abspath(path)
@@ -211,9 +207,10 @@ def which_package(path):
 
 
 def which_prefix(path):
-    """
-    given the path (to a (presumably) conda installed file) return the
-    environment prefix in which the file in located
+    """Return the prefix for the provided path.
+
+    Provided the path of a (presumably) conda installed file, return the
+    environment prefix in which the file in located.
     """
     prefix = abspath(path)
     while True:
