@@ -15,7 +15,6 @@ from conda.plugins.subcommands.doctor.health_checks import (
     display_health_checks,
     find_packages_with_missing_files,
 )
-from conda.testing.integration import make_temp_env
 
 
 @pytest.fixture

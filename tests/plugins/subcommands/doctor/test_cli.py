@@ -2,10 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from argparse import Namespace
 from pathlib import Path
-from typing import Iterable
-
-import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
@@ -23,7 +19,7 @@ from conda.testing.integration import make_temp_env
 def test_conda_doctor_happy_path():
     """Make sure that we are able to call the ``conda doctor`` command"""
 
-    out, err, code = run(f"conda doctor")
+    out, err, code = run("conda doctor")
 
     assert not err  # no error message
     assert not code  # successful exit code
@@ -32,7 +28,7 @@ def test_conda_doctor_happy_path():
 def test_conda_doctor_happy_path_verbose():
     """Make sure that we are able to run ``conda doctor`` command with the --verbose flag"""
 
-    out, err, code = run(f"conda doctor --verbose")
+    out, err, code = run("conda doctor --verbose")
 
     assert not err  # no error message
     assert not code  # successful exit code
@@ -41,7 +37,7 @@ def test_conda_doctor_happy_path_verbose():
 def test_conda_doctor_happy_path_show_help():
     """Make sure that we are able to run ``conda doctor`` command with the --help flag"""
 
-    out, err, code = run(f"conda doctor --help")
+    out, err, code = run("conda doctor --help")
 
     assert "Display a health report for your environment." in out
     assert not err  # no error message

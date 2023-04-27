@@ -168,15 +168,6 @@ def test_coverage_repodata_state(tmp_path):
     assert dict(state.load()) == {}
 
 
-from conda.gateways.connection import (
-    HTTPError,
-    InvalidSchema,
-    RequestsProxyError,
-    SSLError,
-)
-from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
-
-
 def test_repodata_state_has_format():
     # wrong has_zst format
     state = RepodataState(
@@ -185,7 +176,7 @@ def test_repodata_state_has_format():
     value, dt = state.has_format("zst")
     assert value is False
     assert isinstance(dt, datetime.datetime)
-    assert not "has_zst" in state
+    assert "has_zst" not in state
 
     # no has_zst information
     state = RepodataState("", "", "")

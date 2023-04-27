@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from os import PathLike, walk
+from os import walk
 from os.path import basename, exists, isdir, join
 from shutil import copy
 
