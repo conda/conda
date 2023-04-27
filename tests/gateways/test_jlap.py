@@ -362,6 +362,8 @@ def test_jlap_sought(
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
+        # avoid 304 to actually overwrite cached data
+        state.etag = ""
         assert fetch.JLAP_UNAVAILABLE not in state  # from previous portion of test
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
