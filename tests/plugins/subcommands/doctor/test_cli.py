@@ -3,6 +3,8 @@
 from argparse import Namespace
 from pathlib import Path
 
+from pytest import MonkeyPatch
+
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.exceptions import (
