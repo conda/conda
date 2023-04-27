@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Add flake8-docstrings to pre-commit. (#12620)
 
 ### Other
 
-* Add `jsonpatch` dependency to support `--experimental=jlap` feature.
+* Enable flake8 checks that are now handled by black. (#12620)

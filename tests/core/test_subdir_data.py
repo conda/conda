@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from logging import getLogger
 from os.path import join
 from time import sleep
@@ -24,7 +23,11 @@ from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvali
 from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
-from conda.gateways.repodata import CondaRepoInterface, RepodataCache, Response304ContentUnchanged
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepodataCache,
+    Response304ContentUnchanged,
+)
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -34,7 +37,9 @@ log = getLogger(__name__)
 
 # some test dependencies are unavailable on newer platforsm
 OVERRIDE_PLATFORM = (
-    "linux-64" if context.subdir not in ("win-64", "linux-64", "osx-64") else context.subdir
+    "linux-64"
+    if context.subdir not in ("win-64", "linux-64", "osx-64")
+    else context.subdir
 )
 
 
@@ -55,7 +60,9 @@ class GetRepodataIntegrationTests(TestCase):
             {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": platform},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with patch.object(conda.core.subdir_data, "read_mod_and_etag") as read_mod_and_etag:
+            with patch.object(
+                conda.core.subdir_data, "read_mod_and_etag"
+            ) as read_mod_and_etag:
                 read_mod_and_etag.return_value = {}
                 channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
 
@@ -75,13 +82,17 @@ class GetRepodataIntegrationTests(TestCase):
         # supplement_index_from_cache on CI?
 
         for unknown in (None, False, True):
-            with env_var("CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var(
+                "CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
+            ):
                 # note `fetch_repodata_remote_request` will no longer be called
                 # by conda code, and is only there for backwards compatibility.
                 with patch.object(
                     conda.core.subdir_data, "fetch_repodata_remote_request"
                 ) as remote_request:
-                    index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
+                    index2 = get_index(
+                        channel_urls=channel_urls, prepend=False, unknown=unknown
+                    )
                     assert all(index2.get(k) == rec for k, rec in index.items())
                     assert unknown is not False or len(index) == len(index2)
                     assert remote_request.call_count == 0
@@ -95,7 +106,9 @@ class GetRepodataIntegrationTests(TestCase):
                     conda.core.subdir_data, "fetch_repodata_remote_request"
                 ) as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
-                    index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
+                    index3 = get_index(
+                        channel_urls=channel_urls, prepend=False, unknown=unknown
+                    )
                     assert all(index3.get(k) == rec for k, rec in index.items())
                     assert unknown or len(index) == len(index3)
 
@@ -114,7 +127,8 @@ class GetRepodataIntegrationTests(TestCase):
 
         # test load from cache
         with env_vars(
-            {"CONDA_USE_INDEX_CACHE": "true"}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+            {"CONDA_USE_INDEX_CACHE": "true"},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             sd._load()
 
@@ -260,12 +274,16 @@ def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
 def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
-    with env_var("CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".tar.bz2")
     SubdirData.clear_cached_local_channel_data()
-    with env_var("CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
@@ -398,9 +416,7 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
 
 
 def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
-    """
-    SubdirData can accept a dict instead of a RepodataState, for compatibility.
-    """
+    """SubdirData can accept a dict instead of a RepodataState, for compatibility."""
     local_channel = Channel(join(CHANNEL_DIR, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore

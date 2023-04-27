@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import pytest
 import sys
 
-import conda.cli
+import pytest
 
-from conda.plugins.manager import CondaPluginManager
+import conda.cli
 from conda.plugins.hookspec import CondaSpecs
+from conda.plugins.manager import CondaPluginManager
 
 
 @pytest.fixture

@@ -37,9 +37,7 @@ def test_server_available(package_server: socket):
 
 
 def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
-    """
-    Check that JlapRepoInterface doesn't raise exceptions.
-    """
+    """Check that JlapRepoInterface doesn't raise exceptions."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
 
@@ -52,7 +50,8 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     )
 
     patched = mocker.patch(
-        "conda.gateways.repodata.jlap.fetch.download_and_hash", wraps=fetch.download_and_hash
+        "conda.gateways.repodata.jlap.fetch.download_and_hash",
+        wraps=fetch.download_and_hash,
     )
 
     state = {}
@@ -143,9 +142,7 @@ def test_repodata_state(
     package_server: socket,
     use_jlap: bool,
 ):
-    """
-    Test that .state.json file works correctly.
-    """
+    """Test that .state.json file works correctly."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -195,10 +192,7 @@ def test_repodata_state(
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
 def test_jlap_flag(use_jlap):
-    """
-    Test that CONDA_EXPERIMENTAL is a comma-delimited list.
-    """
-
+    """Test that CONDA_EXPERIMENTAL is a comma-delimited list."""
     with env_vars(
         {"CONDA_EXPERIMENTAL": use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
@@ -212,9 +206,7 @@ def test_jlap_sought(
     tmp_path: Path,
     package_repository_base: Path,
 ):
-    """
-    Test that we try to fetch the .jlap file.
-    """
+    """Test that we try to fetch the .jlap file."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -354,9 +346,7 @@ def test_jlap_sought(
 def test_jlap_errors(
     package_server: socket, tmp_path: Path, package_repository_base: Path, mocker
 ):
-    """
-    Test that we handle 304 Not Modified responses, other errors.
-    """
+    """Test that we handle 304 Not Modified responses, other errors."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -431,7 +421,11 @@ def test_jlap_errors(
 
 @pytest.mark.parametrize("use_jlap", [True, False])
 def test_jlap_cache_clock(
-    package_server: socket, tmp_path: Path, package_repository_base: Path, mocker, use_jlap: bool
+    package_server: socket,
+    tmp_path: Path,
+    package_repository_base: Path,
+    mocker,
+    use_jlap: bool,
 ):
     """
     Test that we add another "local_repodata_ttl" (an alternative to
@@ -508,7 +502,9 @@ def test_jlap_cache_clock(
         assert cache.load_state()["refresh_ns"] == later2
 
         # check that non-expried cache avoids updating refresh_ns.
-        mocker.patch("time.time_ns", return_value=now + ((3 * local_repodata_ttl + 4) * int(1e9)))
+        mocker.patch(
+            "time.time_ns", return_value=now + ((3 * local_repodata_ttl + 4) * int(1e9))
+        )
 
         sd.load()
         assert cache.load_state()["refresh_ns"] == later2
@@ -536,16 +532,16 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
 
         raise fetch.HTTPError(response=Response())
 
-    mocker.patch("conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error)
+    mocker.patch(
+        "conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error
+    )
 
     with pytest.raises(CondaHTTPError, match="HTTP 405"):
         repo.repodata({})
 
 
 def test_jlap_core(tmp_path: Path):
-    """
-    Code paths not excercised by other tests.
-    """
+    """Code paths not excercised by other tests."""
     with pytest.raises(ValueError):
         # incorrect trailing hash
         core.JLAP.from_lines(
@@ -582,9 +578,7 @@ def test_jlap_core(tmp_path: Path):
 
 
 def make_test_jlap(original: bytes, changes=1):
-    """
-    :original: as bytes, to avoid any newline confusion.
-    """
+    """:original: as bytes, to avoid any newline confusion."""
 
     def jlap_lines():
         yield core.DEFAULT_IV.hex().encode("utf-8")
@@ -621,19 +615,19 @@ def make_test_jlap(original: bytes, changes=1):
 
 
 def test_jlap_get_place():
-    """
-    (probably soon to be removed) helper function to get cache filenames.
-    """
-    place = fetch.get_place("https://repo.anaconda.com/main/linux-64/current_repodata.json").name
+    """(probably soon to be removed) helper function to get cache filenames."""
+    place = fetch.get_place(
+        "https://repo.anaconda.com/main/linux-64/current_repodata.json"
+    ).name
     assert ".c" in place
-    place2 = fetch.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
+    place2 = fetch.get_place(
+        "https://repo.anaconda.com/main/linux-64/repodata.json"
+    ).name
     assert ".c" not in place2
 
 
 def test_hashwriter():
-    """
-    Test that HashWriter closes its backing file in a context manager.
-    """
+    """Test that HashWriter closes its backing file in a context manager."""
     closed = False
 
     class backing:

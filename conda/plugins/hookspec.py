@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -15,19 +14,14 @@ hookimpl = pluggy.HookimplMarker(spec_name)
 
 
 class CondaSpecs:
-    """
-    The conda plugin hookspecs, to be used by developers.
-    """
+    """The conda plugin hookspecs, to be used by developers."""
 
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:
         """
         Register solvers in conda.
 
-        :return: An iterable of solvers entries.
-
         Example:
-
         .. code-block:: python
 
             import logging
@@ -52,6 +46,7 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
+        :return: An iterable of solvers entries.
         """
 
     @_hookspec
@@ -59,10 +54,7 @@ class CondaSpecs:
         """
         Register external subcommands in conda.
 
-        :return: An iterable of subcommand entries.
-
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -80,6 +72,7 @@ class CondaSpecs:
                     action=example_command,
                 )
 
+        :return: An iterable of subcommand entries.
         """
 
     @_hookspec
@@ -87,10 +80,7 @@ class CondaSpecs:
         """
         Register virtual packages in Conda.
 
-        :return: An iterable of virtual package entries.
-
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -104,4 +94,5 @@ class CondaSpecs:
                     build="x86_64",
                 )
 
+        :return: An iterable of virtual package entries.
         """

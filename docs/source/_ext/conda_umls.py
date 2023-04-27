@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import fileinput
 import os
-import requests
 import shutil
 import sys
+
+import requests
 from pylint.pyreverse.main import Run
 
 here = os.path.dirname(__file__)
@@ -48,9 +48,7 @@ replacements = (
 
 
 def post_process(files, output_path):
-    """
-    Replace all items from the replacements list above in the given files.
-    """
+    """Replace all items from the replacements list above in the given files."""
     for file in files:
         with fileinput.input(
             files=[os.path.join(output_path, file)], inplace=True
