@@ -38,18 +38,14 @@ def plugin(mocker, plugin_manager):
 
 
 def test_invoked(plugin, cli_main):
-    """
-    Ensure we are able to invoke our command after creating it
-    """
+    """Ensure we are able to invoke our command after creating it."""
     cli_main("custom", "some-arg", "some-other-arg")
 
     plugin.custom_command.assert_called_with(["some-arg", "some-other-arg"])
 
 
 def test_help(plugin, cli_main, capsys):
-    """
-    Ensures the command appears on the help page
-    """
+    """Ensures the command appears on the help page."""
     cli_main("--help")
 
     stdout, stderr = capsys.readouterr()
@@ -58,9 +54,7 @@ def test_help(plugin, cli_main, capsys):
 
 
 def test_duplicated(plugin_manager, cli_main, capsys):
-    """
-    Ensures we get an error when attempting to register commands with the same `name` property
-    """
+    """Ensures we get an error when attempting to register commands with the same `name` property."""
     plugin_manager.register(SubcommandPlugin())
     plugin_manager.register(SubcommandPlugin())
 

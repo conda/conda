@@ -68,9 +68,7 @@ def retrieve_notices(
 
 
 def display_notices(channel_notice_set: ChannelNoticeResultSet) -> None:
-    """
-    Prints the channel notices to std out
-    """
+    """Prints the channel notices to std out."""
     views.print_notices(channel_notice_set.channel_notices)
 
     # Updates cache database, marking displayed notices as "viewed"
@@ -163,9 +161,7 @@ def filter_notices(
     limit: int | None = None,
     exclude: set[str] | None = None,
 ) -> Sequence[ChannelNotice]:
-    """
-    Perform filtering actions for the provided sequence of ChannelNotice objects.
-    """
+    """Perform filtering actions for the provided sequence of ChannelNotice objects."""
     if exclude:
         channel_notices = tuple(
             channel_notice

@@ -39,9 +39,7 @@ from conda.gateways.repodata import (
 
 
 def test_save(tmp_path):
-    """
-    Check regular cache save, load operations.
-    """
+    """Check regular cache save, load operations."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "lockme", "repodata.json")
     cache.save(TEST_DATA)
@@ -73,9 +71,7 @@ def test_save(tmp_path):
 
 
 def test_stale(tmp_path):
-    """
-    RepodataCache should understand cache-control and modified time versus now.
-    """
+    """RepodataCache should understand cache-control and modified time versus now."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
     MOD = "Thu, 26 Jan 2023 19:34:01 GMT"

@@ -90,9 +90,7 @@ class TopoSortTests(unittest.TestCase):
 
 
 def test_degenerate():
-    """
-    Edge cases.
-    """
+    """Edge cases."""
     assert toposort({}) == []
     assert toposort({}, safe=False) == []
 

@@ -10,6 +10,7 @@ from functools import lru_cache, wraps
 from os import PathLike, environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
+from typing import Literal
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode

@@ -1,8 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Sequence, Tuple
+from typing import Sequence
 
 import requests
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_notice_responses(
-    url_and_names: Sequence[Tuple[str, str]],
+    url_and_names: Sequence[tuple[str, str]],
     silent: bool = False,
     max_workers: int = 10,
 ) -> Sequence[ChannelNoticeResponse]:
@@ -47,7 +49,7 @@ def get_notice_responses(
 
 
 @cached_response
-def get_channel_notice_response(url: str, name: str) -> Optional[ChannelNoticeResponse]:
+def get_channel_notice_response(url: str, name: str) -> ChannelNoticeResponse | None:
     """
     Return a channel response object. We use this to wrap the response with
     additional channel information to use. If the response was invalid we suppress/log

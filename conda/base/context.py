@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
 import platform
 import struct
@@ -11,7 +13,6 @@ from itertools import chain
 from logging import getLogger
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
-from typing import Optional
 
 try:
     from boltons.setutils import IndexedSet
@@ -579,19 +580,19 @@ class Context(Configuration):
         return _platform_map.get(sys.platform, "unknown")
 
     @property
-    def default_threads(self) -> Optional[int]:
+    def default_threads(self) -> int | None:
         return self._default_threads or None
 
     @property
-    def repodata_threads(self) -> Optional[int]:
+    def repodata_threads(self) -> int | None:
         return self._repodata_threads or self.default_threads
 
     @property
-    def fetch_threads(self) -> Optional[int]:
+    def fetch_threads(self) -> int | None:
         return self._fetch_threads or self.default_threads
 
     @property
-    def verify_threads(self) -> Optional[int]:
+    def verify_threads(self) -> int | None:
         if self._verify_threads:
             threads = self._verify_threads
         elif self.default_threads:
@@ -753,15 +754,13 @@ class Context(Configuration):
 
     @property
     def av_data_dir(self):
-        """Directory where critical data for artifact verification (e.g.,
-        various public keys) can be found."""
+        """Where critical artifact verification data (e.g., various public keys) can be found."""
         # TODO (AV): Find ways to make this user configurable?
         return join(self.conda_prefix, "etc", "conda")
 
     @property
     def signing_metadata_url_base(self):
-        """Base URL where artifact verification signing metadata (*.root.json,
-        key_mgr.json) can be obtained."""
+        """Base URL for artifact verification signing metadata (*.root.json, key_mgr.json)."""
         if self._signing_metadata_url_base:
             return self._signing_metadata_url_base
         else:
@@ -773,7 +772,6 @@ class Context(Configuration):
         The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
         """
-
         if context.dev:
             return {
                 "CONDA_EXE": sys.executable,
@@ -897,13 +895,7 @@ class Context(Configuration):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
-                raise OperationNotAllowed(
-                    dals(
-                        """
-                Overriding channels has been disabled.
-                """
-                    )
-                )
+                raise OperationNotAllowed("Overriding channels has been disabled.")
             elif not (
                 self._argparse_args
                 and "channel" in self._argparse_args
@@ -1085,10 +1077,8 @@ class Context(Configuration):
         addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
         stack=+1,
     )
-    def cuda_version(self) -> Optional[str]:
-        """
-        Retrieves the current cuda version.
-        """
+    def cuda_version(self) -> str | None:
+        """Retrieves the current cuda version."""
         from conda.plugins.virtual_packages import cuda
 
         return cuda.cuda_version()
@@ -1959,7 +1949,6 @@ def determine_target_prefix(ctx, args=None):
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
     """
-
     argparse_args = args or ctx._argparse_args
     try:
         prefix_name = argparse_args.name

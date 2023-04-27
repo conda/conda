@@ -366,9 +366,7 @@ if on_win:  # pragma: no cover
 
 
 def linked_data(prefix, ignore_channels=False):
-    """
-    Return a dictionary of the linked packages in prefix.
-    """
+    """Return a dictionary of the linked packages in prefix."""
     from .core.prefix_data import PrefixData
     from .models.dist import Dist
 
@@ -380,9 +378,7 @@ def linked_data(prefix, ignore_channels=False):
 
 
 def linked(prefix, ignore_channels=False):
-    """
-    Return the Dists of linked packages in prefix.
-    """
+    """Return the Dists of linked packages in prefix."""
     from .models.enums import PackageType
 
     conda_package_types = PackageType.conda_package_types()

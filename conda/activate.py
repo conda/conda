@@ -1270,10 +1270,12 @@ formatter_map = {
 
 
 def _build_activator_cls(shell):
-    """Construct the activator class dynamically from a base activator and any
-    number of formatters, appended using '+' to the name. For example,
-    `posix+json` (as in `conda shell.posix+json activate`) would use the
-    `PosixActivator` base class and add the `JSONFormatMixin`."""
+    """Dynamically construct the activator class.
+
+    Detect the base activator and any number of formatters (appended using '+' to the base name).
+    For example, `posix+json` (as in `conda shell.posix+json activate`) would use the
+    `PosixActivator` base class and add the `JSONFormatMixin`.
+    """
     shell_etc = shell.split("+")
     activator, formatters = shell_etc[0], shell_etc[1:]
     bases = [activator_map[activator]]

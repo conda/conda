@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
-Helpers for the tests
-"""
+"""Helpers for the tests."""
 
 import json
 import os
