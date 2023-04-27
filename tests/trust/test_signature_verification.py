@@ -25,7 +25,7 @@ def _get_test_initial_trust_root():
 
 
 class TestSigVer(TestCase):
-    def test_trusted_root_no_new_metadata():
+    def test_trusted_root_no_new_metadata(self):
         tmp_rootdir = TemporaryDirectory()
 
         with patch(
@@ -51,7 +51,7 @@ class TestSigVer(TestCase):
                 # Compare sig_ver's view on INITIAL_TRUST_ROOT to the contents of testdata/1.root.json
                 assert check_trusted_root == _get_test_initial_trust_root()
 
-    def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web():
+    def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(self):
         """
         Tests a case where we cannot reach new root metadata online but have a newer version
         locally (2.root.json).  As I understand it, we should use this new version if it is valid
@@ -93,7 +93,7 @@ class TestSigVer(TestCase):
 
                 assert check_trusted_root == test_2_root_data
 
-    def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web():
+    def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(self):
         """
         Unusual case:  We have an invalid 2.root.json on disk and no new metadata available online.  In this case,
         our deliberate choice is to accept whatever on disk.
@@ -139,7 +139,7 @@ class TestSigVer(TestCase):
                 sig_ver._fetch_channel_signing_data.call_count == 1
                 assert check_trusted_root == test_2_root_data
 
-    def test_2nd_root_metadata_from_web():
+    def test_2nd_root_metadata_from_web(self):
         """
         Test happy case where we get a new valid root metadata from the web
         """
@@ -172,7 +172,7 @@ class TestSigVer(TestCase):
 
                 assert check_trusted_root == test_2_root_data
 
-    def test_3rd_root_metadata_from_web():
+    def test_3rd_root_metadata_from_web(self):
         """
         Test happy case where we get a chaing of valid root metadata from the web
         """
@@ -212,7 +212,7 @@ class TestSigVer(TestCase):
 
                 assert check_trusted_root == test_3_root_data
 
-    def test_single_invalid_signature_3rd_root_metadata_from_web():
+    def test_single_invalid_signature_3rd_root_metadata_from_web(self):
         """
         Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
         """
@@ -254,7 +254,7 @@ class TestSigVer(TestCase):
 
     ######## Begin Keymgr Tests ########
 
-    def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk():
+    def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(self):
         """
         If we don't have a new key_mgr online, we use the one from disk
         """
@@ -290,7 +290,7 @@ class TestSigVer(TestCase):
                 check_key_mgr = sig_ver.key_mgr
                 assert check_key_mgr == test_key_mgr_data
 
-    def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk():
+    def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(self):
         """
         If we have no key_mgr online and no key_mgr on disk we don't have a key_mgr
         """
@@ -315,7 +315,7 @@ class TestSigVer(TestCase):
                 # We should have no key_mgr here
                 assert sig_ver.key_mgr == None
 
-    def test_trusted_root_new_key_mgr_online():
+    def test_trusted_root_new_key_mgr_online(self):
         """
         We have a new key_mgr online that can be verified against our trusted root.
         We should accept the new key_mgr
