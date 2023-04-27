@@ -125,9 +125,8 @@ line-length = 99
 select = ["E", "F"]
 # Ruff-supported but ignored in pycodestyle/flake8 configs from setup.cfg
 ignore = ["E731", "E722", "E402", "F821", "E501"]
+exclude = ["conda/_vendor", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
 
 [tool.ruff.pydocstyle]
 # Use PEP 257-style docstrings.
 convention = "pep257"
-
-exclude = ["conda/_vendor", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
