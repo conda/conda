@@ -934,22 +934,17 @@ class PosixActivator(_Activator):
         )
 
     def _hook_preamble(self) -> str:
-        result = ""
+        result = []
         for key, value in context.conda_exe_vars_dict.items():
             if value is None:
                 # Using `unset_var_tmpl` would cause issues for people running
                 # with shell flag -u set (error on unset).
-                # result += join(self.unset_var_tmpl % key) + '\n'
-                result += join(self.export_var_tmpl % (key, "")) + "\n"
+                result.append(self.export_var_tmpl % (key, ""))
+            elif "PATH" in key or "EXE" in key:
+                result.append(self.export_var_tmpl % (key, self.path_conversion(value)))
             else:
-                if key in ("PYTHONPATH", "CONDA_EXE"):
-                    result += (
-                        join(self.export_var_tmpl % (key, self.path_conversion(value)))
-                        + "\n"
-                    )
-                else:
-                    result += join(self.export_var_tmpl % (key, value)) + "\n"
-        return result
+                result.append(self.export_var_tmpl % (key, value))
+        return "\n".join(result) + "\n"
 
 
 class CshActivator(_Activator):
