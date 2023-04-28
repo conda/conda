@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 from os import path, unlink
+from pathlib import Path
 from shutil import copyfile
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -12,14 +13,11 @@ from conda.gateways.connection import HTTPError
 from conda.trust.constants import INITIAL_TRUST_ROOT
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
-
-def _test_data_dir():
-    test_dir = path.split(path.dirname(__file__))[0]
-    return path.join(test_dir, "trust/testdata/")
+_TESTDATA = Path(__file__).parent / "testdata"
 
 
 def _get_test_initial_trust_root():
-    test_1_root_json_location = path.join(_test_data_dir(), "1.root.json")
+    test_1_root_json_location = _TESTDATA / "1.root.json"
     with open(test_1_root_json_location) as f:
         return json.load(f)
 
@@ -69,7 +67,7 @@ class TestSigVer(TestCase):
                 sig_ver = _SignatureVerification()
 
                 # Find 2.root.json in our test data directory...
-                testdata_2_root = path.join(_test_data_dir(), "2.root.json")
+                testdata_2_root = _TESTDATA / "2.root.json"
 
                 # ... and copy it into our tmp trust root dir
                 test_2_root_dest = path.join(tmp_rootdir.name, "2.root.json")
@@ -111,7 +109,7 @@ class TestSigVer(TestCase):
                 sig_ver = _SignatureVerification()
 
                 # Find 2.root_invalid.json in our test data directory...
-                testdata_2_root = path.join(_test_data_dir(), "2.root_invalid.json")
+                testdata_2_root = _TESTDATA / "2.root_invalid.json"
 
                 # ... and copy it into our tmp trust root dir
                 test_2_root_dest = path.join(tmp_rootdir.name, "2.root.json")
@@ -153,7 +151,7 @@ class TestSigVer(TestCase):
                 new=_get_test_initial_trust_root(),
             ):
                 # Find 2.root.json in our test data directory...
-                testdata_2_root = path.join(_test_data_dir(), "2.root.json")
+                testdata_2_root = _TESTDATA / "2.root.json"
 
                 # Load 2.root.json's data so we can use it in our mock
                 with open(testdata_2_root) as f:
@@ -186,14 +184,14 @@ class TestSigVer(TestCase):
                 new=_get_test_initial_trust_root(),
             ):
                 # Find 2.root.json in our test data directory...
-                testdata_2_root = path.join(_test_data_dir(), "2.root.json")
+                testdata_2_root = _TESTDATA / "2.root.json"
 
                 # Load 2.root.json's data so we can use it in our mock
                 with open(testdata_2_root) as f:
                     test_2_root_data = json.load(f)
 
                 # Find 3.root.json in our test data directory...
-                testdata_3_root = path.join(_test_data_dir(), "3.root.json")
+                testdata_3_root = _TESTDATA / "3.root.json"
 
                 # Load 3.root.json's data so we can use it in our mock
                 with open(testdata_3_root) as f:
@@ -226,14 +224,14 @@ class TestSigVer(TestCase):
                 new=_get_test_initial_trust_root(),
             ):
                 # Find 2.root.json in our test data directory...
-                testdata_2_root = path.join(_test_data_dir(), "2.root.json")
+                testdata_2_root = _TESTDATA / "2.root.json"
 
                 # Load 2.root.json's data so we can use it in our mock
                 with open(testdata_2_root) as f:
                     test_2_root_data = json.load(f)
 
                 # Find 3.root.json in our test data directory...
-                testdata_3_root = path.join(_test_data_dir(), "3.root_invalid.json")
+                testdata_3_root = _TESTDATA / "3.root_invalid.json"
 
                 # Load 3.root.json's data so we can use it in our mock
                 with open(testdata_3_root) as f:
@@ -277,7 +275,7 @@ class TestSigVer(TestCase):
                 sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
 
                 # Find key_mgr.json in our test data directory...
-                test_key_mgr_path = path.join(_test_data_dir(), "key_mgr.json")
+                test_key_mgr_path = _TESTDATA / "key_mgr.json"
 
                 # ... and copy it into our tmp trust root dir
                 test_key_mgr_dest = path.join(tmp_rootdir.name, "key_mgr.json")
@@ -330,7 +328,7 @@ class TestSigVer(TestCase):
                 new=_get_test_initial_trust_root(),
             ):
                 # Find key_mgr.json in our test data directory...
-                test_key_mgr_path = path.join(_test_data_dir(), "key_mgr.json")
+                test_key_mgr_path = _TESTDATA / "key_mgr.json"
 
                 # Load key_mgr's data so we can use it in our mock
                 with open(test_key_mgr_path) as f:
@@ -370,9 +368,7 @@ class TestSigVer(TestCase):
             ):
                 ## Find and load invalid key_mgr data
                 # Find key_mgr_invalid.json in our test data directory...
-                test_key_mgr_invalid_path = path.join(
-                    _test_data_dir(), "key_mgr_invalid.json"
-                )
+                test_key_mgr_invalid_path = _TESTDATA / "key_mgr_invalid.json"
 
                 # Load key_mgr_invalid's data so we can use it in our mock
                 with open(test_key_mgr_invalid_path) as f:
@@ -380,7 +376,7 @@ class TestSigVer(TestCase):
 
                 ## Find and load valid key_mgr data
                 # Find key_mgr_invalid.json in our test data directory...
-                test_key_mgr_path = path.join(_test_data_dir(), "key_mgr.json")
+                test_key_mgr_path = _TESTDATA / "key_mgr.json"
 
                 # Load key_mgr's data so we can use it in our checks later
                 with open(test_key_mgr_path) as f:
