@@ -42,6 +42,19 @@ LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 ZSTD_UNAVAILABLE = "zstd_unavailable"
 
+# save these headers. at least etag, last-modified, cache-control plus a few
+# useful extras.
+STORE_HEADERS = {
+    "etag",
+    "last-modified",
+    "cache-control",
+    "content-range",
+    "content-length",
+    "date",
+    "content-type",
+    "content-encoding",
+}
+
 
 def hash():
     """Ordinary hash."""
@@ -76,6 +89,12 @@ def process_jlap_response(response: Response, pos=0, iv=b""):
     footer = json.loads(footer)
 
     new_state = {
+        # we need to save etag, last-modified, cache-control
+        "headers": {
+            k.lower(): v
+            for k, v in response.headers.items()
+            if k.lower() in STORE_HEADERS
+        },
         "iv": buffer[-3][-1],
         "pos": pos,
         "footer": footer,
