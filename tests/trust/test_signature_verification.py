@@ -90,8 +90,7 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     check_trusted_root = sig_ver.trusted_root
     sig_ver._fetch_channel_signing_data.assert_called()
 
-    with open(test_2_root_dest) as f:
-        test_2_root_data = json.load(f)
+    test_2_root_data = json.loads(test_2_root_dest.read_text())
 
     assert check_trusted_root == test_2_root_data
 
@@ -124,8 +123,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     test_2_root_dest = tmp_path / "2.root.json"
     copyfile(testdata_2_root, test_2_root_dest)
 
-    with open(test_2_root_dest) as f:
-        test_2_root_data = json.load(f)
+    test_2_root_data = json.loads(test_2_root_dest.read_text())
 
     data_mock = Mock()
     data_mock.side_effect = [test_2_root_data]
@@ -167,8 +165,7 @@ def test_2nd_root_metadata_from_web(
     testdata_2_root = _TESTDATA / "2.root.json"
 
     # Load 2.root.json's data so we can use it in our mock
-    with open(testdata_2_root) as f:
-        test_2_root_data = json.load(f)
+    test_2_root_data = json.loads(testdata_2_root.read_text())
 
     data_mock = Mock()
     data_mock.side_effect = [test_2_root_data]
@@ -206,15 +203,13 @@ def test_3rd_root_metadata_from_web(
     testdata_2_root = _TESTDATA / "2.root.json"
 
     # Load 2.root.json's data so we can use it in our mock
-    with open(testdata_2_root) as f:
-        test_2_root_data = json.load(f)
+    test_2_root_data = json.loads(testdata_2_root.read_text())
 
     # Find 3.root.json in our test data directory...
     testdata_3_root = _TESTDATA / "3.root.json"
 
     # Load 3.root.json's data so we can use it in our mock
-    with open(testdata_3_root) as f:
-        test_3_root_data = json.load(f)
+    test_3_root_data = json.loads(testdata_3_root.read_text())
 
     data_mock = Mock()
     data_mock.side_effect = [test_2_root_data, test_3_root_data]
@@ -252,15 +247,13 @@ def test_single_invalid_signature_3rd_root_metadata_from_web(
     testdata_2_root = _TESTDATA / "2.root.json"
 
     # Load 2.root.json's data so we can use it in our mock
-    with open(testdata_2_root) as f:
-        test_2_root_data = json.load(f)
+    test_2_root_data = json.loads(testdata_2_root.read_text())
 
     # Find 3.root.json in our test data directory...
     testdata_3_root = _TESTDATA / "3.root_invalid.json"
 
     # Load 3.root.json's data so we can use it in our mock
-    with open(testdata_3_root) as f:
-        test_3_root_data = json.load(f)
+    test_3_root_data = json.loads(testdata_3_root.read_text())
 
     data_mock = Mock()
     data_mock.side_effect = [test_2_root_data, test_3_root_data]
@@ -312,8 +305,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
     test_key_mgr_dest = tmp_path / "key_mgr.json"
     copyfile(test_key_mgr_path, test_key_mgr_dest)
 
-    with open(test_key_mgr_path) as f:
-        test_key_mgr_data = json.load(f)
+    test_key_mgr_data = json.loads(test_key_mgr_path.read_text())
 
     # Compare sig_ver's view on key_mgr to
     check_key_mgr = sig_ver.key_mgr
@@ -373,8 +365,7 @@ def test_trusted_root_new_key_mgr_online(
     test_key_mgr_path = _TESTDATA / "key_mgr.json"
 
     # Load key_mgr's data so we can use it in our mock
-    with open(test_key_mgr_path) as f:
-        test_key_mgr_data = json.load(f)
+    test_key_mgr_data = json.loads(test_key_mgr_path.read_text())
 
     # This HTTPError is for the first request.  Will make us use our local 1.root.json
     err = HTTPError()
@@ -419,16 +410,14 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     test_key_mgr_invalid_path = _TESTDATA / "key_mgr_invalid.json"
 
     # Load key_mgr_invalid's data so we can use it in our mock
-    with open(test_key_mgr_invalid_path) as f:
-        test_key_mgr_invalid_data = json.load(f)
+    test_key_mgr_invalid_data = json.loads(test_key_mgr_invalid_path.read_text())
 
     ## Find and load valid key_mgr data
     # Find key_mgr_invalid.json in our test data directory...
     test_key_mgr_path = _TESTDATA / "key_mgr.json"
 
     # Load key_mgr's data so we can use it in our checks later
-    with open(test_key_mgr_path) as f:
-        test_key_mgr_data = json.load(f)
+    test_key_mgr_data = json.loads(test_key_mgr_path.read_text())
 
     # Copy valid key_mgr data into our trust data directory
     test_key_mgr_dest = tmp_path / "key_mgr.json"
