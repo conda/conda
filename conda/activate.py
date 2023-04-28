@@ -7,7 +7,6 @@ import json
 import os
 import re
 import sys
-from errno import ENOENT
 from os.path import (
     abspath,
     basename,
@@ -18,6 +17,7 @@ from os.path import (
     isdir,
     join,
 )
+from pathlib import Path
 from textwrap import dedent
 from typing import Iterable
 
@@ -818,70 +818,39 @@ def ensure_fs_path_encoding(value):
         return value
 
 
-def native_path_to_unix(paths):  # pragma: unix no cover
-    # on windows, uses cygpath to convert windows native paths to posix paths
-    if not on_win:
-        return path_identity(paths)
+def native_path_to_unix(
+    paths: str | Iterable[str] | None,
+) -> str | tuple[str] | None:
     if paths is None:
         return None
-    from subprocess import PIPE, CalledProcessError, Popen
 
-    from conda.auxlib.compat import shlex_split_unicode
+    # on windows, uses cygpath to convert windows native paths to posix paths
+    from subprocess import run
+
+    from .common.path import which
 
     # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
     # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
     # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
     # different points in the Windows filesystem.  We do our path conversions with one and
     # expect the results to work with the other.  It does not.
-    from .common.path import which
 
     bash = which("bash")
-    command = os.path.join(dirname(bash), "cygpath") if bash else "cygpath"
-    command += " --path -f -"
+    cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
 
-    single_path = isinstance(paths, str)
-    joined = paths if single_path else ("%s" % os.pathsep).join(paths)
+    unix_path = run(
+        [
+            cygpath,
+            "--path",
+            paths if isinstance(paths, str) else os.pathsep.join(paths),
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
+    unix_path = unix_path.split(":") if unix_path else ()
 
-    if hasattr(joined, "encode"):
-        joined = joined.encode("utf-8")
-
-    try:
-        p = Popen(shlex_split_unicode(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    except OSError as e:
-        if e.errno != ENOENT:
-            raise
-
-        # This code path should (hopefully) never be hit be real conda installs. It's here
-        # as a backup for tests run under cmd.exe with cygpath not available.
-        def _translation(found_path):  # NOQA
-            found = (
-                found_path.group(1)
-                .replace("\\", "/")
-                .replace(":", "")
-                .replace("//", "/")
-            )
-            return "/" + found.rstrip("/")
-
-        joined = ensure_fs_path_encoding(joined)
-        stdout = (
-            re.sub(
-                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)", _translation, joined
-            )
-            .replace(";/", ":/")
-            .rstrip(";")
-        )
-    else:
-        stdout, stderr = p.communicate(input=joined)
-        rc = p.returncode
-        if rc != 0 or stderr:
-            message = f"\n  stdout: {stdout}\n  stderr: {stderr}\n  rc: {rc}\n"
-            print(message, file=sys.stderr)
-            raise CalledProcessError(rc, command, message)
-        if hasattr(stdout, "decode"):
-            stdout = stdout.decode("utf-8")
-        stdout = stdout.strip()
-    final = stdout and stdout.split(":") or ()
-    return final[0] if single_path else tuple(final)
+    return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
 
 
 def path_identity(paths):
@@ -897,7 +866,7 @@ class PosixActivator(_Activator):
     def __init__(self, arguments=None):
         self.pathsep_join = ":".join
         self.sep = "/"
-        self.path_conversion = native_path_to_unix
+        self.path_conversion = native_path_to_unix if on_win else path_identity
         self.script_extension = ".sh"
         self.tempfile_extension = (
             None  # write instructions to stdout rather than a temp file
@@ -950,7 +919,7 @@ class PosixActivator(_Activator):
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = native_path_to_unix
+    path_conversion = native_path_to_unix if on_win else path_identity
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1062,7 +1031,7 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = native_path_to_unix
+    path_conversion = native_path_to_unix if on_win else path_identity
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
