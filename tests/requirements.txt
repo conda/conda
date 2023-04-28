@@ -14,6 +14,7 @@ conda-forge::xdoctest
 conda-forge::flake8-docstrings
 conda-package-handling >=1.3.0
 conda-verify
+conda-content-trust
 coverage
 flake8
 flask >=2.2
