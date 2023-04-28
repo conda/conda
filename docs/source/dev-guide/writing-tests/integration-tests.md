@@ -55,20 +55,18 @@ First, we rely on a fixture (`conda_cli`) that allows us to run a command using 
 current running process. This is much more efficient and quicker than running CLI tests
 via subprocesses.
 
-In the test itself, we first create a new environment by effectively running `conda create`
-(see [lines 8-13](#test-conda-create-1)). This function returns the
-standard out, standard error, and the exit code of the command. This allows us to
-perform our inspections in order to determine whether the command ran successfully.
+In the test itself, we first create a new environment by effectively running
+`conda create`. This function returns the standard out, standard error, and the exit
+code of the command. This allows us to perform our inspections in order to determine
+whether the command ran successfully.
 
-The second part of the test again uses the `conda_cli` fixture to call `conda env list`
-(see [lines 15-20](#test-conda-create-1)). This time, we pass the `--json`
-flag, which allows capturing JSON that we can better parse and more easily inspect. We
-then assert whether the environment we just created is actually in the list of
-environments available.
+The second part of the test again uses the `conda_cli` fixture to call `conda env list`.
+This time, we pass the `--json` flag, which allows capturing JSON that we can better
+parse and more easily inspect. We then assert whether the environment we just created is
+actually in the list of environments available.
 
-Finally, we destroy the environment we just created and ensure the standard error and the
-exit code are what we expect them to be
-(see [lines 22-27](#test-conda-create-1)).
+Finally, we destroy the environment we just created and ensure the standard error and
+the exit code are what we expect them to be.
 
 :::{warning}
 It is preferred to use temporary directories (e.g., `tmp_path`) whenever possible for
