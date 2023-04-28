@@ -862,6 +862,17 @@ def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
     return tuple(os.path.normpath(path) for path in paths)
 
 
+def backslash_to_forwardslash(
+    paths: str | Iterable[str] | None,
+) -> str | tuple[str] | None:
+    if paths is None:
+        return None
+
+    if isinstance(paths, str):
+        return paths.replace("\\", "/")
+    return tuple([path.replace("\\", "/") for path in paths])
+
+
 class PosixActivator(_Activator):
     def __init__(self, arguments=None):
         self.pathsep_join = ":".join
@@ -972,18 +983,7 @@ class CshActivator(_Activator):
 class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
-
-    @staticmethod
-    def path_conversion(paths):
-        if not on_win:
-            return path_identity(paths)
-        elif isinstance(paths, str):
-            return paths.replace("\\", "/")
-        elif paths is None:
-            return None
-        else:
-            return tuple([path.replace("\\", "/") for path in paths])
-
+    path_conversion = backslash_to_forwardslash if on_win else path_identity
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
