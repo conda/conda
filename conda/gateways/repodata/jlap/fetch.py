@@ -132,15 +132,7 @@ def request_jlap(
     log.debug(
         "response headers: %s",
         pprint.pformat(
-            {
-                k: v
-                for k, v in response.headers.items()
-                if any(
-                    map(
-                        k.lower().__contains__, ("content", "last", "range", "encoding")
-                    )
-                )
-            }
+            {k: v for k, v in response.headers.items() if k.lower() in STORE_HEADERS}
         ),
     )
     log.debug("status: %d", response.status_code)
