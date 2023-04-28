@@ -17,13 +17,12 @@ from conda.trust.signature_verification import SignatureError, _SignatureVerific
 _TESTDATA = Path(__file__).parent / "testdata"
 
 
-def _get_test_initial_trust_root():
-    test_1_root_json_location = _TESTDATA / "1.root.json"
-    with open(test_1_root_json_location) as f:
-        return json.load(f)
+@pytest.fixture
+def initial_trust_root():
+    return json.loads((_TESTDATA / "1.root.json").read_text())
 
 
-def test_trusted_root_no_new_metadata():
+def test_trusted_root_no_new_metadata(initial_trust_root: str):
     tmp_rootdir = TemporaryDirectory()
 
     with patch(
@@ -32,7 +31,7 @@ def test_trusted_root_no_new_metadata():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             sig_ver = _SignatureVerification()
 
@@ -47,10 +46,12 @@ def test_trusted_root_no_new_metadata():
             sig_ver._fetch_channel_signing_data.assert_called()
 
             # Compare sig_ver's view on INITIAL_TRUST_ROOT to the contents of testdata/1.root.json
-            assert check_trusted_root == _get_test_initial_trust_root()
+            assert check_trusted_root == initial_trust_root
 
 
-def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web():
+def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
+    initial_trust_root: str,
+):
     """
     Tests a case where we cannot reach new root metadata online but have a newer version
     locally (2.root.json).  As I understand it, we should use this new version if it is valid
@@ -63,7 +64,7 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             sig_ver = _SignatureVerification()
 
@@ -93,7 +94,7 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web():
             assert check_trusted_root == test_2_root_data
 
 
-def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web():
+def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(initial_trust_root: str):
     """
     Unusual case:  We have an invalid 2.root.json on disk and no new metadata available online.  In this case,
     our deliberate choice is to accept whatever on disk.
@@ -106,7 +107,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             sig_ver = _SignatureVerification()
 
@@ -140,7 +141,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web():
             assert check_trusted_root == test_2_root_data
 
 
-def test_2nd_root_metadata_from_web():
+def test_2nd_root_metadata_from_web(initial_trust_root: str):
     """
     Test happy case where we get a new valid root metadata from the web
     """
@@ -151,7 +152,7 @@ def test_2nd_root_metadata_from_web():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             # Find 2.root.json in our test data directory...
             testdata_2_root = _TESTDATA / "2.root.json"
@@ -174,7 +175,7 @@ def test_2nd_root_metadata_from_web():
             assert check_trusted_root == test_2_root_data
 
 
-def test_3rd_root_metadata_from_web():
+def test_3rd_root_metadata_from_web(initial_trust_root: str):
     """
     Test happy case where we get a chaing of valid root metadata from the web
     """
@@ -185,7 +186,7 @@ def test_3rd_root_metadata_from_web():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             # Find 2.root.json in our test data directory...
             testdata_2_root = _TESTDATA / "2.root.json"
@@ -215,7 +216,7 @@ def test_3rd_root_metadata_from_web():
             assert check_trusted_root == test_3_root_data
 
 
-def test_single_invalid_signature_3rd_root_metadata_from_web():
+def test_single_invalid_signature_3rd_root_metadata_from_web(initial_trust_root: str):
     """
     Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
     """
@@ -226,7 +227,7 @@ def test_single_invalid_signature_3rd_root_metadata_from_web():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             # Find 2.root.json in our test data directory...
             testdata_2_root = _TESTDATA / "2.root.json"
@@ -259,7 +260,7 @@ def test_single_invalid_signature_3rd_root_metadata_from_web():
 ######## Begin Keymgr Tests ########
 
 
-def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk():
+def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(initial_trust_root: str):
     """
     If we don't have a new key_mgr online, we use the one from disk
     """
@@ -271,7 +272,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             sig_ver = _SignatureVerification()
 
@@ -296,7 +297,9 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk():
             assert check_key_mgr == test_key_mgr_data
 
 
-def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk():
+def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
+    initial_trust_root: str,
+):
     """
     If we have no key_mgr online and no key_mgr on disk we don't have a key_mgr
     """
@@ -308,7 +311,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             sig_ver = _SignatureVerification()
 
@@ -322,7 +325,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk():
             assert sig_ver.key_mgr == None
 
 
-def test_trusted_root_new_key_mgr_online():
+def test_trusted_root_new_key_mgr_online(initial_trust_root: str):
     """
     We have a new key_mgr online that can be verified against our trusted root.
     We should accept the new key_mgr
@@ -334,7 +337,7 @@ def test_trusted_root_new_key_mgr_online():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             # Find key_mgr.json in our test data directory...
             test_key_mgr_path = _TESTDATA / "key_mgr.json"
@@ -359,7 +362,7 @@ def test_trusted_root_new_key_mgr_online():
             assert check_key_mgr == test_key_mgr_data
 
 
-def test_trusted_root_invalid_key_mgr_online_valid_on_disk():
+def test_trusted_root_invalid_key_mgr_online_valid_on_disk(initial_trust_root: str):
     """
     We have a new key_mgr online that can be verified against our trusted root.
     We should accept the new key_mgr
@@ -374,7 +377,7 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk():
         av_data_dir_mock.return_value = tmp_rootdir.name
         with patch(
             "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-            new=_get_test_initial_trust_root(),
+            new=initial_trust_root,
         ):
             ## Find and load invalid key_mgr data
             # Find key_mgr_invalid.json in our test data directory...
