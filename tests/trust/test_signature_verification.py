@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
-from os import unlink
 from pathlib import Path
 from shutil import copyfile
 from types import SimpleNamespace
@@ -94,9 +93,6 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     with open(test_2_root_dest) as f:
         test_2_root_data = json.load(f)
 
-    # Clean up old 2.root.json
-    unlink(test_2_root_dest)
-
     assert check_trusted_root == test_2_root_data
 
 
@@ -144,8 +140,6 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
 
     # This thing is a property so this is effectively a call
     check_trusted_root = sig_ver.trusted_root
-    # Clean up old 2.root.json
-    unlink(test_2_root_dest)
 
     sig_ver._fetch_channel_signing_data.call_count == 1
     assert check_trusted_root == test_2_root_data
