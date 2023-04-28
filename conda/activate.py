@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import abc
 import json
 import os
 import re
@@ -34,7 +35,7 @@ from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
 
 
-class _Activator:
+class _Activator(metaclass=abc.ABCMeta):
     # Activate and deactivate have three tasks
     #   1. Set and unset environment variables
     #   2. Execute/source activate.d/deactivate.d scripts
@@ -57,23 +58,25 @@ class _Activator:
     # information to the __init__ method of this class.
 
     # The following instance variables must be defined by each implementation.
-    pathsep_join = None
-    sep = None
+    pathsep_join: str
+    sep: str
 
-    def path_conversion(self, paths: Iterable[str]):
-        # override in subclass
-        raise NotImplementedError()
+    @abc.abstractmethod
+    def path_conversion(
+        self,
+        paths: str | Iterable[str] | None,
+    ) -> str | tuple[str] | None:
+        raise NotImplementedError
 
-    script_extension = None
-    tempfile_extension = (
-        None  # None means write instructions to stdout rather than a temp file
-    )
+    script_extension: str
+    #: temporary file's extension, None writes to stdout instead
+    tempfile_extension: str | None
     command_join: str
 
-    unset_var_tmpl = None
-    export_var_tmpl = None
-    set_var_tmpl = None
-    run_script_tmpl = None
+    unset_var_tmpl: str
+    export_var_tmpl: str
+    set_var_tmpl: str
+    run_script_tmpl: str
 
     hook_source_path: str
 
@@ -210,11 +213,12 @@ class _Activator:
             )
         )
 
-    def _hook_preamble(self):
+    @abs.abstractmethod
+    def _hook_preamble(self) -> str | None:
         # must be implemented in subclass
-        raise NotImplementedError()
+        raise NotImplementedError
 
-    def _hook_postamble(self):
+    def _hook_postamble(self) -> str | None:
         return None
 
     def _parse_and_set_args(self, arguments):
@@ -929,7 +933,7 @@ class PosixActivator(_Activator):
             }
         )
 
-    def _hook_preamble(self):
+    def _hook_preamble(self) -> str:
         result = ""
         for key, value in context.conda_exe_vars_dict.items():
             if value is None:
@@ -949,26 +953,25 @@ class PosixActivator(_Activator):
 
 
 class CshActivator(_Activator):
-    def __init__(self, arguments=None):
-        self.pathsep_join = ":".join
-        self.sep = "/"
-        self.path_conversion = native_path_to_unix
-        self.script_extension = ".csh"
-        self.tempfile_extension = (
-            None  # write instructions to stdout rather than a temp file
-        )
-        self.command_join = ";\n"
+    pathsep_join = ":".join
+    sep = "/"
+    path_conversion = native_path_to_unix
+    script_extension = ".csh"
+    tempfile_extension = None  # output to stdout
+    command_join = ";\n"
 
-        self.unset_var_tmpl = "unsetenv %s"
-        self.export_var_tmpl = 'setenv %s "%s"'
-        self.set_var_tmpl = "set %s='%s'"
-        self.run_script_tmpl = 'source "%s"'
+    unset_var_tmpl = "unsetenv %s"
+    export_var_tmpl = 'setenv %s "%s"'
+    set_var_tmpl = "set %s='%s'"
+    run_script_tmpl = 'source "%s"'
 
-        self.hook_source_path = join(
-            CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh"
-        )
-
-        super().__init__(arguments)
+    hook_source_path = join(
+        CONDA_PACKAGE_ROOT,
+        "shell",
+        "etc",
+        "profile.d",
+        "conda.csh",
+    )
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = self.environ.get("prompt", "")
@@ -981,7 +984,7 @@ class CshActivator(_Activator):
             }
         )
 
-    def _hook_preamble(self):
+    def _hook_preamble(self) -> str:
         if on_win:
             return dedent(
                 f"""
@@ -1003,6 +1006,9 @@ class CshActivator(_Activator):
 
 
 class XonshActivator(_Activator):
+    pathsep_join = ";".join if on_win else ":".join
+    sep = "/"
+
     @staticmethod
     def path_conversion(paths):
         if not on_win:
@@ -1014,87 +1020,73 @@ class XonshActivator(_Activator):
         else:
             return tuple([path.replace("\\", "/") for path in paths])
 
-    def __init__(self, arguments=None):
-        self.pathsep_join = ";".join if on_win else ":".join
-        self.sep = "/"
-        self.tempfile_extension = None
-        self.command_join = "\n"
+    # 'scripts' really refer to de/activation scripts, not scripts in the language per se
+    # xonsh can piggy-back activation scripts from other languages depending on the platform
+    script_extension = ".bat" if on_win else ".sh"
+    tempfile_extension = None  # output to stdout
+    command_join = "\n"
 
-        self.unset_var_tmpl = "del $%s"
-        self.export_var_tmpl = "$%s = '%s'"
-        self.set_var_tmpl = (
-            "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
-        )
+    unset_var_tmpl = "del $%s"
+    export_var_tmpl = "$%s = '%s'"
+    # TODO: determine if different than export_var_tmpl
+    set_var_tmpl = "$%s = '%s'"
+    run_script_tmpl = (
+        'source-cmd --suppress-skip-message "%s"'
+        if on_win
+        else 'source-bash --suppress-skip-message "%s"'
+    )
 
-        # 'scripts' really refer to de/activation scripts, not scripts in the language per se
-        # xonsh can piggy-back activation scripts from other languages depending on the platform
-        import platform
+    hook_source_path = join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
-        if platform.system() == "Windows":
-            self.script_extension = ".bat"
-            self.run_script_tmpl = 'source-cmd --suppress-skip-message "%s"'
-        else:
-            self.script_extension = ".sh"
-            self.run_script_tmpl = 'source-bash --suppress-skip-message "%s"'
-
-        self.hook_source_path = join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
-
-        super().__init__(arguments)
-
-    def _hook_preamble(self):
+    def _hook_preamble(self) -> str:
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
 
 
 class CmdExeActivator(_Activator):
-    def __init__(self, arguments=None):
-        self.pathsep_join = ";".join
-        self.sep = "\\"
-        self.path_conversion = path_identity
-        self.script_extension = ".bat"
-        self.tempfile_extension = ".bat"
-        self.command_join = "\n"
+    pathsep_join = ";".join
+    sep = "\\"
+    path_conversion = path_identity
+    script_extension = ".bat"
+    tempfile_extension = ".bat"
+    command_join = "\n"
 
-        self.unset_var_tmpl = "@SET %s="
-        self.export_var_tmpl = '@SET "%s=%s"'
-        self.set_var_tmpl = (
-            '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
-        )
-        self.run_script_tmpl = '@CALL "%s"'
+    unset_var_tmpl = "@SET %s="
+    export_var_tmpl = '@SET "%s=%s"'
+    # TODO: determine if different than export_var_tmpl
+    set_var_tmpl = '@SET "%s=%s"'
+    run_script_tmpl = '@CALL "%s"'
 
-        self.hook_source_path = None
+    hook_source_path = None
+
+    def _hook_preamble(self) -> None:
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
         #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?
-
-        super().__init__(arguments)
-
-    # def _hook_preamble(self):
-    #     if on_win:
-    #         return '@chcp 65001'
+        pass
 
 
 class FishActivator(_Activator):
-    def __init__(self, arguments=None):
-        self.pathsep_join = '" "'.join
-        self.sep = "/"
-        self.path_conversion = native_path_to_unix
-        self.script_extension = ".fish"
-        self.tempfile_extension = (
-            None  # write instructions to stdout rather than a temp file
-        )
-        self.command_join = ";\n"
+    pathsep_join = '" "'.join
+    sep = "/"
+    path_conversion = native_path_to_unix
+    script_extension = ".fish"
+    tempfile_extension = None  # output to stdout
+    command_join = ";\n"
 
-        self.unset_var_tmpl = "set -e %s"
-        self.export_var_tmpl = 'set -gx %s "%s"'
-        self.set_var_tmpl = 'set -g %s "%s"'
-        self.run_script_tmpl = 'source "%s"'
+    unset_var_tmpl = "set -e %s"
+    export_var_tmpl = 'set -gx %s "%s"'
+    set_var_tmpl = 'set -g %s "%s"'
+    run_script_tmpl = 'source "%s"'
 
-        self.hook_source_path = join(
-            CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish"
-        )
+    hook_source_path = join(
+        CONDA_PACKAGE_ROOT,
+        "shell",
+        "etc",
+        "fish",
+        "conf.d",
+        "conda.fish",
+    )
 
-        super().__init__(arguments)
-
-    def _hook_preamble(self):
+    def _hook_preamble(self) -> str:
         if on_win:
             return dedent(
                 f"""
@@ -1116,28 +1108,26 @@ class FishActivator(_Activator):
 
 
 class PowerShellActivator(_Activator):
-    def __init__(self, arguments=None):
-        self.pathsep_join = ";".join if on_win else ":".join
-        self.sep = "\\" if on_win else "/"
-        self.path_conversion = path_identity
-        self.script_extension = ".ps1"
-        self.tempfile_extension = (
-            None  # write instructions to stdout rather than a temp file
-        )
-        self.command_join = "\n"
+    pathsep_join = ";".join if on_win else ":".join
+    sep = "\\" if on_win else "/"
+    path_conversion = path_identity
+    script_extension = ".ps1"
+    tempfile_extension = None  # output to stdout
+    command_join = "\n"
 
-        self.unset_var_tmpl = '$Env:%s = ""'
-        self.export_var_tmpl = '$Env:%s = "%s"'
-        self.set_var_tmpl = '$Env:%s = "%s"'
-        self.run_script_tmpl = '. "%s"'
+    unset_var_tmpl = '$Env:%s = ""'
+    export_var_tmpl = '$Env:%s = "%s"'
+    set_var_tmpl = '$Env:%s = "%s"'
+    run_script_tmpl = '. "%s"'
 
-        self.hook_source_path = join(
-            CONDA_PACKAGE_ROOT, "shell", "condabin", "conda-hook.ps1"
-        )
+    hook_source_path = join(
+        CONDA_PACKAGE_ROOT,
+        "shell",
+        "condabin",
+        "conda-hook.ps1",
+    )
 
-        super().__init__(arguments)
-
-    def _hook_preamble(self):
+    def _hook_preamble(self) -> str:
         if context.dev:
             return dedent(
                 f"""
@@ -1162,21 +1152,16 @@ class PowerShellActivator(_Activator):
                 """
             ).strip()
 
-    def _hook_postamble(self):
+    def _hook_postamble(self) -> str:
         return "Remove-Variable CondaModuleArgs"
 
 
 class JSONFormatMixin(_Activator):
     """Returns the necessary values for activation as JSON, so that tools can use them."""
 
-    def __init__(self, arguments=None):
-        self.pathsep_join = list
-        self.tempfile_extension = (
-            None  # write instructions to stdout rather than a temp file
-        )
-        self.command_join = list
-
-        super().__init__(arguments)
+    pathsep_join = list
+    tempfile_extension = None  # output to stdout
+    command_join = list
 
     def _hook_preamble(self):
         if context.dev:
