@@ -853,13 +853,13 @@ def native_path_to_unix(
     return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
 
 
-def path_identity(paths):
+def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
+    if paths is None:
+        return None
+
     if isinstance(paths, str):
         return os.path.normpath(paths)
-    elif paths is None:
-        return None
-    else:
-        return tuple(os.path.normpath(_) for _ in paths)
+    return tuple(os.path.normpath(path) for path in paths)
 
 
 class PosixActivator(_Activator):
