@@ -19,7 +19,7 @@ from os.path import (
 )
 from pathlib import Path
 from textwrap import dedent
-from typing import Iterable
+from typing import Callable, Iterable
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -60,14 +60,7 @@ class _Activator(metaclass=abc.ABCMeta):
     # The following instance variables must be defined by each implementation.
     pathsep_join: str
     sep: str
-
-    @abc.abstractmethod
-    def path_conversion(
-        self,
-        paths: str | Iterable[str] | None,
-    ) -> str | tuple[str] | None:
-        raise NotImplementedError
-
+    path_conversion: Callable[(str | Iterable[str] | None), str | tuple[str] | None]
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
