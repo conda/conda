@@ -102,10 +102,10 @@ class _Activator(metaclass=abc.ABCMeta):
             for name, value in context.conda_exe_vars_dict.items():
                 if value is None:
                     unset_vars.append(name.upper())
+                elif "/" in value or "\\" in value:
+                    export_vars[name.upper()] = self.path_conversion(value)
                 else:
-                    export_vars[name.upper()] = (
-                        self.path_conversion(value) if value else value
-                    )
+                    export_vars[name.upper()] = value
         else:
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)
@@ -911,7 +911,7 @@ class PosixActivator(_Activator):
                 # Using `unset_var_tmpl` would cause issues for people running
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
-            elif on_win and ("PATH" in key or "EXE" in key):
+            elif on_win and ("/" in value or "\\" in value):
                 result.append(f'''export {key}="$(cygpath '{value}')"''')
             else:
                 result.append(self.export_var_tmpl % (key, value))
