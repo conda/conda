@@ -873,26 +873,25 @@ def backslash_to_forwardslash(
 
 
 class PosixActivator(_Activator):
-    def __init__(self, arguments=None):
-        self.pathsep_join = ":".join
-        self.sep = "/"
-        self.path_conversion = native_path_to_unix if on_win else path_identity
-        self.script_extension = ".sh"
-        self.tempfile_extension = (
-            None  # write instructions to stdout rather than a temp file
-        )
-        self.command_join = "\n"
+    pathsep_join = ":".join
+    sep = "/"
+    path_conversion = native_path_to_unix if on_win else path_identity
+    script_extension = ".sh"
+    tempfile_extension = None  # output to stdout
+    command_join = "\n"
 
-        self.unset_var_tmpl = "unset %s"
-        self.export_var_tmpl = "export %s='%s'"
-        self.set_var_tmpl = "%s='%s'"
-        self.run_script_tmpl = '. "%s"'
+    unset_var_tmpl = "unset %s"
+    export_var_tmpl = "export %s='%s'"
+    set_var_tmpl = "%s='%s'"
+    run_script_tmpl = '. "%s"'
 
-        self.hook_source_path = join(
-            CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.sh"
-        )
-
-        super().__init__(arguments)
+    hook_source_path = join(
+        CONDA_PACKAGE_ROOT,
+        "shell",
+        "etc",
+        "profile.d",
+        "conda.sh",
+    )
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         ps1 = self.environ.get("PS1", "")
@@ -920,7 +919,7 @@ class PosixActivator(_Activator):
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
             elif "PATH" in key or "EXE" in key:
-                result.append(self.export_var_tmpl % (key, f"$(cygpath {value})"))
+                result.append(f'export {key}="$(cygpath {value})"')
             else:
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result)
