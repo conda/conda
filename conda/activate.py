@@ -1218,10 +1218,10 @@ def _build_activator_cls(shell):
     """
     shell_etc = shell.split("+")
     activator, formatters = shell_etc[0], shell_etc[1:]
-    bases = [activator_map[activator]]
 
+    bases = [activator_map[activator]]
     for f in formatters:
         bases.append(formatter_map[f])
 
-    cls = type("Activator", tuple(bases), {})
+    cls = type("Activator", tuple(reversed(bases)), {})
     return cls
