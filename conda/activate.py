@@ -213,7 +213,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
         )
 
-    @abs.abstractmethod
+    @abc.abstractmethod
     def _hook_preamble(self) -> str | None:
         # must be implemented in subclass
         raise NotImplementedError
