@@ -817,6 +817,9 @@ def native_path_to_unix(
     if paths is None:
         return None
 
+    if not on_win:
+        return path_identity(paths)
+
     # on windows, uses cygpath to convert windows native paths to posix paths
     from subprocess import run
 
@@ -868,7 +871,7 @@ def backslash_to_forwardslash(
 class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix if on_win else path_identity)
+    path_conversion = staticmethod(native_path_to_unix)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -915,13 +918,13 @@ class PosixActivator(_Activator):
                 result.append(f'''export {key}="$(cygpath '{value}')"''')
             else:
                 result.append(self.export_var_tmpl % (key, value))
-        return "\n".join(result)
+        return "\n".join(result) + "\n"
 
 
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix if on_win else path_identity)
+    path_conversion = staticmethod(native_path_to_unix)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1024,7 +1027,7 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix if on_win else path_identity)
+    path_conversion = staticmethod(native_path_to_unix)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
