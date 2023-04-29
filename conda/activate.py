@@ -868,7 +868,7 @@ def backslash_to_forwardslash(
 class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = native_path_to_unix if on_win else path_identity
+    path_conversion = staticmethod(native_path_to_unix if on_win else path_identity)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -921,7 +921,7 @@ class PosixActivator(_Activator):
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = native_path_to_unix if on_win else path_identity
+    path_conversion = staticmethod(native_path_to_unix if on_win else path_identity)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -974,7 +974,9 @@ class CshActivator(_Activator):
 class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
-    path_conversion = backslash_to_forwardslash if on_win else path_identity
+    path_conversion = staticmethod(
+        backslash_to_forwardslash if on_win else path_identity
+    )
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
@@ -1000,7 +1002,7 @@ class XonshActivator(_Activator):
 class CmdExeActivator(_Activator):
     pathsep_join = ";".join
     sep = "\\"
-    path_conversion = path_identity
+    path_conversion = staticmethod(path_identity)
     script_extension = ".bat"
     tempfile_extension = ".bat"
     command_join = "\n"
@@ -1022,7 +1024,7 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = native_path_to_unix if on_win else path_identity
+    path_conversion = staticmethod(native_path_to_unix if on_win else path_identity)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1065,7 +1067,7 @@ class FishActivator(_Activator):
 class PowerShellActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
-    path_conversion = path_identity
+    path_conversion = staticmethod(path_identity)
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
