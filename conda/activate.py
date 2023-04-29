@@ -912,7 +912,7 @@ class PosixActivator(_Activator):
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
             elif on_win and ("PATH" in key or "EXE" in key):
-                result.append(f'export {key}="$(cygpath {value})"')
+                result.append(f'''export {key}="$(cygpath '{value}')"''')
             else:
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result)
