@@ -834,7 +834,6 @@ def native_path_to_unix(
     # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
     # different points in the Windows filesystem.  We do our path conversions with one and
     # expect the results to work with the other.  It does not.
-
     bash = which("bash")
     cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
 
@@ -921,10 +920,10 @@ class PosixActivator(_Activator):
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
             elif "PATH" in key or "EXE" in key:
-                result.append(self.export_var_tmpl % (key, self.path_conversion(value)))
+                result.append(self.export_var_tmpl % (key, f"$(cygpath {value})"))
             else:
                 result.append(self.export_var_tmpl % (key, value))
-        return "\n".join(result) + "\n"
+        return "\n".join(result)
 
 
 class CshActivator(_Activator):
