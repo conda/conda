@@ -918,7 +918,7 @@ class PosixActivator(_Activator):
                 # Using `unset_var_tmpl` would cause issues for people running
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
-            elif "PATH" in key or "EXE" in key:
+            elif on_win and ("PATH" in key or "EXE" in key):
                 result.append(f'export {key}="$(cygpath {value})"')
             else:
                 result.append(self.export_var_tmpl % (key, value))
