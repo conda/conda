@@ -1,3 +1,4 @@
+---
 name: CLA
 
 on:
@@ -28,4 +29,4 @@ jobs:
           label: cla-signed
           # [required]
           # the GitHub Personal Access Token to comment and label with
-          token: "${{ secrets.CLA_ACTION_TOKEN }}"
+          token: ${{ secrets.CLA_ACTION_TOKEN }}
