@@ -340,9 +340,7 @@ class IntegrationTests(unittest.TestCase):
         )
 
     def test_conda_env_create_empty_file(self):
-        """
-        Test `conda env create --file=file_name.yml` where file_name.yml is empty
-        """
+        """Test `conda env create --file=file_name.yml` where file_name.yml is empty."""
         tmp_file = tempfile.NamedTemporaryFile(suffix=".yml", delete=False)
 
         with self.assertRaises(SpecNotFound):
@@ -353,9 +351,7 @@ class IntegrationTests(unittest.TestCase):
 
     @pytest.mark.integration
     def test_conda_env_create_http(self):
-        """
-        Test `conda env create --file=https://some-website.com/environment.yml`
-        """
+        """Test `conda env create --file=https://some-website.com/environment.yml`."""
         run_env_command(
             Commands.ENV_CREATE,
             None,
@@ -599,9 +595,7 @@ class NewIntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
 
     def test_env_export(self):
-        """
-        Test conda env export
-        """
+        """Test conda env export."""
 
         run_conda_command(Commands.CREATE, TEST_ENV_NAME_2, "flask")
         assert env_is_created(TEST_ENV_NAME_2)
@@ -636,9 +630,7 @@ class NewIntegrationTests(unittest.TestCase):
         assert not env_is_created(TEST_ENV_NAME_2)
 
     def test_env_export_with_variables(self):
-        """
-        Test conda env export
-        """
+        """Test conda env export."""
 
         run_conda_command(Commands.CREATE, TEST_ENV_NAME_2, "flask")
         assert env_is_created(TEST_ENV_NAME_2)
@@ -681,9 +673,7 @@ class NewIntegrationTests(unittest.TestCase):
         assert not env_is_created(TEST_ENV_NAME_2)
 
     def test_env_export_json(self):
-        """
-        Test conda env export
-        """
+        """Test conda env export."""
 
         run_conda_command(Commands.CREATE, TEST_ENV_NAME_2, "flask")
         assert env_is_created(TEST_ENV_NAME_2)
@@ -719,9 +709,7 @@ class NewIntegrationTests(unittest.TestCase):
         assert not env_is_created(TEST_ENV_NAME_2)
 
     def test_list(self):
-        """
-        Test conda list -e and conda create from txt
-        """
+        """Test conda list -e and conda create from txt."""
 
         run_conda_command(Commands.CREATE, TEST_ENV_NAME_2)
         self.assertTrue(env_is_created(TEST_ENV_NAME_2))
@@ -743,9 +731,7 @@ class NewIntegrationTests(unittest.TestCase):
         self.assertEqual(snowflake, snowflake2)
 
     def test_export_multi_channel(self):
-        """
-        Test conda env export
-        """
+        """Test conda env export."""
         from conda.core.prefix_data import PrefixData
 
         PrefixData._cache_.clear()

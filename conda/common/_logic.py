@@ -23,9 +23,7 @@ class _ClauseList:
         self.extend = self._clause_list.extend
 
     def get_clause_count(self):
-        """
-        Return number of stored clauses.
-        """
+        """Return number of stored clauses."""
         return len(self._clause_list)
 
     def save_state(self):
@@ -48,9 +46,7 @@ class _ClauseList:
         return self._clause_list
 
     def as_array(self):
-        """
-        Return clauses as a flat int array, each clause being terminated by 0.
-        """
+        """Return clauses as a flat int array, each clause being terminated by 0."""
         clause_array = array("i")
         for c in self._clause_list:
             clause_array.extend(c)
@@ -115,16 +111,12 @@ class _ClauseArray:
                 clause.append(v)
 
     def as_array(self):
-        """
-        Return clauses as a flat int array, each clause being terminated by 0.
-        """
+        """Return clauses as a flat int array, each clause being terminated by 0."""
         return self._clause_array
 
 
 class _SatSolver:
-    """
-    Simple wrapper to call a SAT solver given a _ClauseList/_ClauseArray instance.
-    """
+    """Simple wrapper to call a SAT solver given a _ClauseList/_ClauseArray instance."""
 
     def __init__(self, **run_kwargs):
         self._run_kwargs = run_kwargs or {}

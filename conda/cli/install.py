@@ -118,9 +118,7 @@ def get_revision(arg, json=False):
 
 
 def install(args, parser, command="install"):
-    """
-    conda install, conda update, and conda create
-    """
+    """Logic for `conda install`, `conda update`, and `conda create`."""
     context.validate_configuration()
     check_non_admin()
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,

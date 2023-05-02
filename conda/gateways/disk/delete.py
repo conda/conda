@@ -283,7 +283,8 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
 def path_is_clean(path):
     """Sometimes we can't completely remove a path because files are considered in use
     by python (hardlinking confusion).  For our tests, it is sufficient that either the
-    folder doesn't exist, or nothing but temporary file copies are left."""
+    folder doesn't exist, or nothing but temporary file copies are left.
+    """
     clean = not exists(path)
     if not clean:
         for root, dirs, fns in walk(path):

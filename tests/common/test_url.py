@@ -111,9 +111,7 @@ URLPARSE_TEST_DATA = [
 
 @pytest.mark.parametrize("test_url_str,exp_url_obj", URLPARSE_TEST_DATA)
 def test_urlparse(test_url_str, exp_url_obj):
-    """
-    Tests a variety of different use cases for `conda.common.url.urlparse`
-    """
+    """Tests a variety of different use cases for `conda.common.url.urlparse`."""
     answer = urlparse(test_url_str)
 
     for attr in exp_url_obj.__annotations__.keys():
@@ -147,9 +145,7 @@ URL_OBJ_UNPARSE_DATA = [
 
 @pytest.mark.parametrize("test_url_obj, expected_url", URL_OBJ_UNPARSE_DATA)
 def test_url_obj_unparse(test_url_obj, expected_url):
-    """
-    Tests the variety of object instantiations for the `conda.common.url.Url`
-    """
+    """Tests the variety of object instantiations for the `conda.common.url.Url`."""
     url_obj = Url(*test_url_obj)
 
     assert str(url_obj) == expected_url

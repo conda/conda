@@ -1,0 +1,29 @@
+{
+  "signatures": {
+    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
+      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025fac507c",
+      "signature": "87cea6d3bd3a5e239add17315130eaef29b760d96bb06ddf09edc9bf33b6d6115e915d83a429750169efe9cfcacca94db57c0e803b9695b9227f87a7aabc6603"
+    }
+  },
+  "signed": {
+    "delegations": {
+      "key_mgr": {
+        "pubkeys": [
+          "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+        ],
+        "threshold": 1
+      },
+      "root": {
+        "pubkeys": [
+          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
+        ],
+        "threshold": 1
+      }
+    },
+    "expiration": "2021-11-11T20:58:36Z",
+    "metadata_spec_version": "0.6.0",
+    "timestamp": "2020-11-11T20:58:36Z",
+    "type": "root",
+    "version": 1
+  }
+}

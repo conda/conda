@@ -6,6 +6,7 @@ import warnings
 from argparse import Action
 from functools import wraps
 from types import ModuleType
+from typing import Any, Callable
 
 from packaging.version import Version, parse
 
@@ -202,7 +203,7 @@ class DeprecationHandler:
         addendum: str | None = None,
         stack: int = 0,
     ) -> None:
-        """Deprecation function for module constant (global).
+        """Deprecation function for module constant/global.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
         :param remove_in: Version in which code is expected to be removed.
