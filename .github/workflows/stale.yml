@@ -1,3 +1,4 @@
+---
 name: Stale
 
 on:
@@ -6,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       dryrun:
-        description: "dryrun: Preview stale issues/prs without marking them (true|false)"
+        description: 'dryrun: Preview stale issues/prs without marking them (true|false)'
         required: true
         type: boolean
         default: true
@@ -38,7 +39,7 @@ jobs:
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
 
-      - uses: actions/stale@v7
+      - uses: actions/stale@v8
         id: stale
         with:
           # Only issues with these labels are checked whether they are stale
