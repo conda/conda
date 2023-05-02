@@ -15,13 +15,13 @@ By default, ``conda`` can serve packages from two main locations:
     - ``https://repo.anaconda.com/pkgs/msys2``
 - ``conda.anaconda.org``: this is where community channels like ``conda-forge`` or ``bioconda`` are looked up. This base location can be configured via ``channel_alias``.
 
-So, when it comes to mirroring these channels, you have two account for those two locations.
+So, when it comes to mirroring these channels, you have to account for those two locations.
 
 
 Mirror ``defaults``
 ===================
 
-Use ``default_channels`` to overwrite the default configuration. For example:
+Use ``default_channels`` to overwrite the :doc:`default configuration <configuration>`_. For example:
 
 .. code-block:: yaml
 
