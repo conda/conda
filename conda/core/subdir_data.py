@@ -210,7 +210,9 @@ class SubdirData(metaclass=SubdirDataType):
     @property
     def repo_fetch(self) -> RepodataFetch:
         """
-        Most modern "exactly what we need" interface.
+        Object to get repodata. Not cached since self.repodata_fn is mutable.
+
+        Replaces fetch_repodata_remote_request, self._repo, self.repo_cache.
         """
         return RepodataFetch(
             Path(self.cache_path_base),
