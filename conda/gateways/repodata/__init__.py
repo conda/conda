@@ -873,7 +873,7 @@ class RepodataFetch:
                 if hasattr(repo, "repodata_parsed"):
                     raw_repodata = repo.repodata_parsed(cache.state)  # type: ignore
                 else:
-                    raw_repodata = self._repo.repodata(cache.state)  # type: ignore
+                    raw_repodata = repo.repodata(cache.state)  # type: ignore
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
