@@ -19,7 +19,7 @@ Standard specification
     (Optional) Can either be a channel name or URL. Channel names may include letters, numbers, dashes, and underscores.
 
 **subdir**
-    (Optional) A subdirectory of a channel. Many subdirs are used for architectures, but this is not required. Must have a channel and backslash preceeding it. For example: ``main/noarch``
+    (Optional) A subdirectory of a channel. Many subdirs are used for architectures, but this is not required. Must have a channel and backslash preceding it. For example: ``main/noarch``
 
 **name**
     (Required) Package name. May include the ``*`` wildcard. For example, ``*py*`` returns all packages that have "py" in their names, such as "numpy", "pytorch", "python", etc.

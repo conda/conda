@@ -37,9 +37,7 @@ def shutdown():
 
 @app.route("/latency/<float:delay>")
 def latency(delay):
-    """
-    Set delay before each file response.
-    """
+    """Set delay before each file response."""
     global LATENCY
     LATENCY = delay
     return "OK"
@@ -76,9 +74,7 @@ def make_server_with_socket(socket: socket.socket, base_: Path = base):
 
 
 def run_on_random_port():
-    """
-    Run in a new process to minimize interference with test.
-    """
+    """Run in a new process to minimize interference with test."""
     return next(_package_server())
 
 
@@ -101,7 +97,9 @@ def prepare_socket() -> socket.socket:
 def _package_server(cleanup=True, base: Path | None = None):
     socket = prepare_socket()
     context = multiprocessing.get_context("spawn")
-    process = context.Process(target=make_server_with_socket, args=(socket, base), daemon=True)
+    process = context.Process(
+        target=make_server_with_socket, args=(socket, base), daemon=True
+    )
     process.start()
     yield socket
     process.kill()
@@ -127,6 +125,5 @@ def package_server(package_repository_base):
 
 
 if __name__ == "__main__":
-
     print(run_on_random_port())
     time.sleep(60)

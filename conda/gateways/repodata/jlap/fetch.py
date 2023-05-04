@@ -2,20 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Lappin' up the jlap
 from __future__ import annotations
-import io
 
+import io
 import json
 import logging
 import pathlib
 import pprint
 import re
 import time
-import zstandard
 from contextlib import contextmanager
 from hashlib import blake2b
 from typing import Iterator
 
 import jsonpatch
+import zstandard
 from requests import HTTPError
 
 from conda.base.context import context
@@ -39,9 +39,7 @@ ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 
 def hash():
-    """
-    Ordinary hash.
-    """
+    """Ordinary hash."""
     return blake2b(digest_size=DIGEST_SIZE)
 
 
@@ -89,14 +87,16 @@ def process_jlap_response(response: Response, pos=0, iv=b""):
 
 
 def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True, session=None):
-    response = request_jlap(url, pos=pos, etag=etag, ignore_etag=ignore_etag, session=session)
+    response = request_jlap(
+        url, pos=pos, etag=etag, ignore_etag=ignore_etag, session=session
+    )
     return process_jlap_response(response, pos=pos, iv=iv)
 
 
-def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | None = None):
-    """
-    Return the part of the remote .jlap file we are interested in.
-    """
+def request_jlap(
+    url, pos=0, etag=None, ignore_etag=True, session: Session | None = None
+):
+    """Return the part of the remote .jlap file we are interested in."""
     headers = {}
     if pos:
         headers["range"] = f"bytes={pos}-"
@@ -118,7 +118,11 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
             {
                 k: v
                 for k, v in response.headers.items()
-                if any(map(k.lower().__contains__, ("content", "last", "range", "encoding")))
+                if any(
+                    map(
+                        k.lower().__contains__, ("content", "last", "range", "encoding")
+                    )
+                )
             }
         ),
     )
@@ -139,9 +143,7 @@ def request_jlap(url, pos=0, etag=None, ignore_etag=True, session: Session | Non
 
 
 def format_hash(hash):
-    """
-    Abbreviate hash for formatting.
-    """
+    """Abbreviate hash for formatting."""
     return hash[:16] + "\N{HORIZONTAL ELLIPSIS}"
 
 
@@ -152,7 +154,9 @@ def find_patches(patches, have, want):
             break
         if patch["to"] == want:
             log.info(
-                "Collect %s \N{LEFTWARDS ARROW} %s", format_hash(want), format_hash(patch["from"])
+                "Collect %s \N{LEFTWARDS ARROW} %s",
+                format_hash(want),
+                format_hash(patch["from"]),
             )
             apply.append(patch)
             want = patch["from"]
@@ -187,9 +191,7 @@ def timeme(message):
 
 
 def build_headers(json_path: pathlib.Path, state: RepodataState):
-    """
-    Caching headers for a path and state.
-    """
+    """Caching headers for a path and state."""
     headers = {}
     # simplify if we require state to be empty when json_path is missing.
     if json_path.exists():
@@ -215,9 +217,7 @@ class HashWriter(io.RawIOBase):
 def download_and_hash(
     hasher, url, json_path, session: Session, state: RepodataState | None, is_zst=False
 ):
-    """
-    Download url if it doesn't exist, passing bytes through hasher.update()
-    """
+    """Download url if it doesn't exist, passing bytes through hasher.update()."""
     state = state or RepodataState()
     headers = build_headers(json_path, state)
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -243,9 +243,13 @@ def download_and_hash(
 
 
 def request_url_jlap_state(
-    url, state: RepodataState, get_place=get_place, full_download=False, *, session: Session
+    url,
+    state: RepodataState,
+    get_place=get_place,
+    full_download=False,
+    *,
+    session: Session,
 ):
-
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
 
@@ -260,7 +264,6 @@ def request_url_jlap_state(
     ):
         hasher = hash()
         with timeme(f"Download complete {url} "):
-
             # Don't deal with 304 Not Modified if hash unavailable e.g. if
             # cached without jlap
             if NOMINAL_HASH not in state:
@@ -287,7 +290,11 @@ def request_url_jlap_state(
                     state.set_has_format("zst", False)
                     state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
-                    hasher, withext(url, ".json"), json_path, session=session, state=state
+                    hasher,
+                    withext(url, ".json"),
+                    json_path,
+                    session=session,
+                    state=state,
                 )
 
             # will we use state['headers'] for caching against
@@ -344,7 +351,9 @@ def request_url_jlap_state(
             except (ValueError, IndexError) as e:
                 log.exception("Error parsing jlap", exc_info=e)
                 # a 'latest' hash that we can't achieve, triggering later error handling
-                buffer = JLAP([[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]])
+                buffer = JLAP(
+                    [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
+                )
                 state.set_has_format("jlap", False)
 
         state[JLAP_KEY] = jlap_state
@@ -363,7 +372,7 @@ def request_url_jlap_state(
             apply = find_patches(patches, have, want)
             log.info(
                 f"Apply {len(apply)} patches "
-                "{format_hash(have)} \N{RIGHTWARDS ARROW} {format_hash(want)}"
+                f"{format_hash(have)} \N{RIGHTWARDS ARROW} {format_hash(want)}"
             )
 
             if apply:
@@ -376,9 +385,10 @@ def request_url_jlap_state(
                 apply_patches(repodata_json, apply)
 
                 with timeme("Write changed "), json_path.open("wb") as repodata:
-
                     hasher = hash()
-                    HashWriter(repodata, hasher).write(json.dumps(repodata_json).encode("utf-8"))
+                    HashWriter(repodata, hasher).write(
+                        json.dumps(repodata_json).encode("utf-8")
+                    )
 
                     # actual hash of serialized json
                     state[ON_DISK_HASH] = hasher.hexdigest()

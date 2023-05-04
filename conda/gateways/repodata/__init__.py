@@ -31,6 +31,7 @@ from conda.exceptions import (
     UnavailableInvalidChannel,
 )
 from conda.gateways.connection import (
+    ChunkedEncodingError,
     ConnectionError,
     HTTPError,
     InsecureRequestWarning,
@@ -84,9 +85,7 @@ class Response304ContentUnchanged(Exception):
 
 
 class CondaRepoInterface(RepoInterface):
-    """
-    Provides an interface for retrieving repodata data from channels
-    """
+    """Provides an interface for retrieving repodata data from channels."""
 
     #: Channel URL
     _url: str
@@ -117,7 +116,10 @@ class CondaRepoInterface(RepoInterface):
         url = join_url(self._url, filename)
 
         with conda_http_errors(self._url, filename):
-            timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+            timeout = (
+                context.remote_connect_timeout_secs,
+                context.remote_read_timeout_secs,
+            )
             response: Response = session.get(
                 url, headers=headers, proxies=session.proxies, timeout=timeout
             )
@@ -137,7 +139,9 @@ class CondaRepoInterface(RepoInterface):
         saved_fields = {"_url": self._url}
         _add_http_value_to_dict(response, "Etag", saved_fields, "_etag")
         _add_http_value_to_dict(response, "Last-Modified", saved_fields, "_mod")
-        _add_http_value_to_dict(response, "Cache-Control", saved_fields, "_cache_control")
+        _add_http_value_to_dict(
+            response, "Cache-Control", saved_fields, "_cache_control"
+        )
 
         state.clear()
         state.update(saved_fields)
@@ -153,9 +157,7 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
 
 @contextmanager
 def conda_http_errors(url, repodata_fn):
-    """
-    Use in a with: statement to translate requests exceptions to conda ones.
-    """
+    """Use in a with: statement to translate requests exceptions to conda ones."""
     try:
         yield
     except RequestsProxyError:
@@ -195,7 +197,7 @@ Exception: {e}
 """
             )
 
-    except (ConnectionError, HTTPError) as e:
+    except (ConnectionError, HTTPError, ChunkedEncodingError) as e:
         status_code = getattr(e.response, "status_code", None)
         if status_code in (403, 404):
             if not url.endswith("/noarch"):
@@ -320,11 +322,10 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 
 class RepodataState(UserDict):
-    """
-    Load/save `.state.json` that accompanies cached `repodata.json`
-    """
+    """Load/save `.state.json` that accompanies cached `repodata.json`."""
 
-    _aliased = ("_mod", "_etag", "_cache_control", "_url")
+    _aliased = {"_mod", "_etag", "_cache_control", "_url"}
+    _strings = {"mod", "etag", "cache_control", "url"}
 
     def __init__(
         self,
@@ -367,20 +368,20 @@ class RepodataState(UserDict):
 
     @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def save(self):
-        """
-        Must be called after writing cache_path_json, as its mtime is included in .state.json
-        """
+        """Must be called after writing cache_path_json, since mtime is included in .state.json."""
         serialized = dict(self)
         json_stat = self.cache_path_json.stat()
-        serialized.update({"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size})
-        return pathlib.Path(self.cache_path_state).write_text(json.dumps(serialized, indent=True))
+        serialized.update(
+            {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+        )
+        return pathlib.Path(self.cache_path_state).write_text(
+            json.dumps(serialized, indent=True)
+        )
 
     @property
     def mod(self) -> str:
-        """
-        Last-Modified header or ""
-        """
-        return self.get("mod", "")
+        """Last-Modified header or ""."""
+        return self.get("mod") or ""
 
     @mod.setter
     def mod(self, value):
@@ -388,10 +389,8 @@ class RepodataState(UserDict):
 
     @property
     def etag(self) -> str:
-        """
-        Etag header or ""
-        """
-        return self.get("etag", "")
+        """Etag header or ""."""
+        return self.get("etag") or ""
 
     @etag.setter
     def etag(self, value):
@@ -399,10 +398,8 @@ class RepodataState(UserDict):
 
     @property
     def cache_control(self) -> str:
-        """
-        Cache-Control header or ""
-        """
-        return self.get("cache_control", "")
+        """Cache-Control header or ""."""
+        return self.get("cache_control") or ""
 
     @cache_control.setter
     def cache_control(self, value):
@@ -432,7 +429,9 @@ class RepodataState(UserDict):
             value = bool(obj["value"])
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
-            log.warn("error parsing `has_` object from `<cache key>.state.json`", exc_info=e)
+            log.warn(
+                "error parsing `has_` object from `<cache key>.state.json`", exc_info=e
+            )
             self.pop(key)
 
         return False, datetime.datetime.now(tz=datetime.timezone.utc)
@@ -448,16 +447,12 @@ class RepodataState(UserDict):
         }
 
     def clear_has_format(self, format: str):
-        """
-        Remove 'has_{format}' instead of setting to False
-        """
+        """Remove 'has_{format}' instead of setting to False."""
         key = f"has_{format}"
         self.pop(key, None)
 
     def should_check_format(self, format: str) -> bool:
-        """
-        Return True if named format should be attempted.
-        """
+        """Return True if named format should be attempted."""
         has, when = self.has_format(format)
         return (
             has is True
@@ -469,6 +464,9 @@ class RepodataState(UserDict):
     def __setitem__(self, key: str, item: Any) -> None:
         if key in self._aliased:
             key = key[1:]  # strip underscore
+        if key in self._strings and not isinstance(item, str):
+            warnings.warn('Replaced non-str RepodataState[{key}] with ""')
+            item = ""
         return super().__setitem__(key, item)
 
     def __missing__(self, key: str):
@@ -495,10 +493,11 @@ class RepodataCache:
         cache_path_base = pathlib.Path(base)
         self.cache_dir = cache_path_base.parent
         self.name = cache_path_base.name
-        self.repodata_fn = (
-            repodata_fn  # XXX can we skip repodata_fn or include the full url for debugging
+        # XXX can we skip repodata_fn or include the full url for debugging
+        self.repodata_fn = repodata_fn
+        self.state = RepodataState(
+            self.cache_path_json, self.cache_path_state, repodata_fn
         )
-        self.state = RepodataState(self.cache_path_json, self.cache_path_state, repodata_fn)
 
     @property
     def cache_path_json(self):
@@ -509,9 +508,7 @@ class RepodataCache:
 
     @property
     def cache_path_state(self):
-        """
-        Out-of-band etag and other state needed by the RepoInterface.
-        """
+        """Out-of-band etag and other state needed by the RepoInterface."""
         return pathlib.Path(
             self.cache_dir,
             self.name + ("1" if context.use_only_tar_bz2 else "") + ".state.json",
@@ -576,9 +573,7 @@ class RepodataCache:
         return self.state
 
     def save(self, data: str):
-        """
-        Write data to <repodata>.json cache path, synchronize state.
-        """
+        """Write data to <repodata>.json cache path, synchronize state."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(4).hex()}.tmp"
 
         try:
@@ -618,9 +613,7 @@ class RepodataCache:
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
-        """
-        Update access time in .state.json to indicate a HTTP 304 Not Modified response.
-        """
+        """Update access time in .state.json to indicate a HTTP 304 Not Modified response."""
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
@@ -689,6 +682,6 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     return f"{md5.hexdigest()[:8]}.json"
 
 
-def get_cache_control_max_age(cache_control_value):
+def get_cache_control_max_age(cache_control_value: str):
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
