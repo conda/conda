@@ -22,6 +22,8 @@ from subprocess import check_output
 
 from conda.common.compat import on_win
 
+from ..deprecations import deprecated
+
 
 def encode_for_env_var(value) -> str:
     """Environment names and values need to be string."""
@@ -109,6 +111,11 @@ def conda_move_to_front_of_PATH():
         os.environ["PATH"] = new_path
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="Unnecessary with transition to hatchling for build system.",
+)
 def conda_check_versions_aligned():
     # Next problem. If we use conda to provide our git or otherwise do not
     # have it on PATH and if we also have no .version file then conda is

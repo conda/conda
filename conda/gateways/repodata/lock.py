@@ -19,9 +19,7 @@ LOCK_SLEEP = 1
 
 @contextmanager
 def _lock_noop(fd):
-    """
-    When locking is not available.
-    """
+    """When locking is not available."""
     yield
 
 

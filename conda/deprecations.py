@@ -5,6 +5,7 @@ from __future__ import annotations
 import warnings
 from functools import wraps
 from types import ModuleType
+from typing import Any, Callable
 
 from packaging.version import Version, parse
 
@@ -25,8 +26,10 @@ class DeprecationHandler:
 
         :param version: The version to compare against when checking deprecation statuses.
         """
-        if not isinstance(version, Version):
+        try:
             self._version = parse(version)
+        except TypeError:
+            self._version = parse("0.0.0.dev0+placeholder")
 
     def __call__(
         self,
@@ -155,7 +158,7 @@ class DeprecationHandler:
         addendum: str | None = None,
         stack: int = 0,
     ) -> None:
-        """Deprecation function for module constant (global).
+        """Deprecation function for module constant/global.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
         :param remove_in: Version in which code is expected to be removed.
