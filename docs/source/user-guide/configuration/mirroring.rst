@@ -9,12 +9,12 @@ The default setup
 
 By default, ``conda`` can serve packages from two main locations:
 
-- ``repo.anaconda.com``: this is where ``defaults`` points to by default. 
+- ``repo.anaconda.com``: this is where ``defaults`` points to by default.
   This base location is hardcoded in the default value of ``default_channels``:
     - ``https://repo.anaconda.com/pkgs/main``
     - ``https://repo.anaconda.com/pkgs/r``
     - ``https://repo.anaconda.com/pkgs/msys2``
-- ``conda.anaconda.org``: this is where conda clients look up community channels like ``conda-forge`` or ``bioconda``. 
+- ``conda.anaconda.org``: this is where conda clients look up community channels like ``conda-forge`` or ``bioconda``.
   This base location can be configured via ``channel_alias``.
 
 So, when it comes to mirroring these channels, you have to account for those two locations.
