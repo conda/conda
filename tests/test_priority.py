@@ -76,9 +76,7 @@ class PriorityIntegrationTests(TestCase):
                 assert pycosat_tuple[3] == "conda-forge"
 
     def test_channel_priority_update(self):
-        """
-        This case will fail now
-        """
+        """This case will fail now."""
         with make_temp_env("python=3.8", "pycosat") as prefix:
             assert package_is_installed(prefix, "python")
 

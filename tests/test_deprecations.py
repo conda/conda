@@ -155,8 +155,6 @@ def test_topic_remove(deprecated_v3):
 
 
 def test_version_fallback():
-    """
-    Test that conda can run even if deprecations can't parse the version.
-    """
+    """Test that conda can run even if deprecations can't parse the version."""
     version = DeprecationHandler(None)._version  # type: ignore
     assert version.major == version.minor == version.micro == 0
