@@ -12,18 +12,14 @@ MISSING_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with missing f
 
 
 def display_report_heading(prefix: str) -> None:
-    """
-    Displays our report heading
-    """
+    """Displays our report heading."""
     print("-" * 20)
     print(REPORT_TITLE)
     print(f"Environment Name: {Path(prefix).name}\n")
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
-    """
-    Finds packages listed in conda-meta which have missing files
-    """
+    """Finds packages listed in conda-meta which have missing files."""
     packages_with_missing_files = {}
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
@@ -35,9 +31,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
 
 
 def display_health_checks(prefix: str, verbose: bool) -> None:
-    """
-    Prints health report
-    """
+    """Prints health report."""
     display_report_heading(prefix)
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:

@@ -264,9 +264,7 @@ def download_text(url):
 
 
 class TmpDownload:
-    """
-    Context manager to handle downloads to a tempfile
-    """
+    """Context manager to handle downloads to a tempfile."""
 
     def __init__(self, url, verbose=True):
         self.url = url
