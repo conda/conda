@@ -10,6 +10,8 @@ on:
     branches:
       - main
       - feature/**
+      - '[0-9].*.x'  # e.g., 4.14.x
+      - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
@@ -23,6 +25,10 @@ concurrency:
   # merges to main will not cancel.
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
+
+env:
+    # see https://github.com/conda/conda/pull/12524
+    MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -60,18 +66,16 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
           # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
-            python-version: '3.7'
+            python-version: '3.8'
           - default-channel: 'conda-forge'
-            python-version: '3.9'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
+            python-version: '3.11'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
@@ -109,11 +113,11 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: minio.exe
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
@@ -171,13 +175,11 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
           # exclude all but one Python version for conda-forge
-          - default-channel: 'conda-forge'
-            python-version: '3.7'
           - default-channel: 'conda-forge'
             python-version: '3.8'
           - default-channel: 'conda-forge'
@@ -235,7 +237,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.10']
+        python-version: ['3.11']
         platform: ['arm64', 'ppc64le']
     env:
       OS: linux-${{ matrix.platform }}
@@ -255,11 +257,8 @@ jobs:
           docker run
           --rm -v ${PWD}:/opt/conda-src
           --platform linux/${{ matrix.platform }}
-          -e TEST_SPLITS
-          -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          bash -c "source /opt/conda/etc/profile.d/conda.sh; \
-                   pytest --cov=conda -k test_DepsModifier_contract"
+          /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
         if: always()
@@ -283,35 +282,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-            test-type: 'unit'
-            test-group: '1'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-            test-type: 'unit'
-            test-group: '2'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-            test-type: 'unit'
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.9']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+        # fewer test splits for quicker unit tests, keep 3 splits for integration
+        test-splits: [2, 3]
+        exclude:
+          - test-type: unit
             test-group: '3'
-          - default-channel: 'defaults'
-            python-version: '3.9'
-            test-type: 'integration'
-            test-group: '1'
-          - default-channel: 'defaults'
-            python-version: '3.9'
-            test-type: 'integration'
-            test-group: '2'
-          - default-channel: 'defaults'
-            python-version: '3.9'
-            test-type: 'integration'
-            test-group: '3'
+          - test-type: unit
+            test-splits: 3
+          - test-type: integration
+            test-splits: 2
+          # odd choice kept for parity with previous commit
+          - test-type: integration
+            default-channel: 'conda-forge'
+          - test-type: unit
+            default-channel: 'defaults'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
@@ -333,11 +325,11 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           path: minio
           key:
-            ${{ runner.os }}-minio-${{ env.CACHE_NUMBER }}
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
 
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults
@@ -434,13 +426,14 @@ jobs:
     # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
-    # - we are on the main (or feature) branch
+    # - we are on the main, feature, or release branch
     if: >-
       success()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'
         || startsWith(github.ref_name, 'feature/')
+        || endsWith(github.ref_name, '.x')
       )
     strategy:
       matrix:

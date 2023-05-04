@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
 from logging import getLogger
 from os.path import join
 from time import sleep
@@ -10,13 +8,12 @@ from unittest.mock import patch
 
 import pytest
 
+from conda import CondaError
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
 from conda.core.subdir_data import (
-    CondaRepoInterface,
-    Response304ContentUnchanged,
     SubdirData,
     cache_fn_url,
     fetch_repodata_remote_request,
@@ -26,6 +23,11 @@ from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvali
 from conda.exports import url_path
 from conda.gateways.connection import SSLError
 from conda.gateways.connection.session import CondaSession
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepodataCache,
+    Response304ContentUnchanged,
+)
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -35,7 +37,9 @@ log = getLogger(__name__)
 
 # some test dependencies are unavailable on newer platforsm
 OVERRIDE_PLATFORM = (
-    "linux-64" if context.subdir not in ("win-64", "linux-64", "osx-64") else context.subdir
+    "linux-64"
+    if context.subdir not in ("win-64", "linux-64", "osx-64")
+    else context.subdir
 )
 
 
@@ -56,7 +60,9 @@ class GetRepodataIntegrationTests(TestCase):
             {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": platform},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with patch.object(conda.core.subdir_data, "read_mod_and_etag") as read_mod_and_etag:
+            with patch.object(
+                conda.core.subdir_data, "read_mod_and_etag"
+            ) as read_mod_and_etag:
                 read_mod_and_etag.return_value = {}
                 channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
 
@@ -76,13 +82,17 @@ class GetRepodataIntegrationTests(TestCase):
         # supplement_index_from_cache on CI?
 
         for unknown in (None, False, True):
-            with env_var("CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var(
+                "CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
+            ):
                 # note `fetch_repodata_remote_request` will no longer be called
                 # by conda code, and is only there for backwards compatibility.
                 with patch.object(
                     conda.core.subdir_data, "fetch_repodata_remote_request"
                 ) as remote_request:
-                    index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
+                    index2 = get_index(
+                        channel_urls=channel_urls, prepend=False, unknown=unknown
+                    )
                     assert all(index2.get(k) == rec for k, rec in index.items())
                     assert unknown is not False or len(index) == len(index2)
                     assert remote_request.call_count == 0
@@ -96,7 +106,9 @@ class GetRepodataIntegrationTests(TestCase):
                     conda.core.subdir_data, "fetch_repodata_remote_request"
                 ) as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
-                    index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
+                    index3 = get_index(
+                        channel_urls=channel_urls, prepend=False, unknown=unknown
+                    )
                     assert all(index3.get(k) == rec for k, rec in index.items())
                     assert unknown or len(index) == len(index3)
 
@@ -112,6 +124,13 @@ class GetRepodataIntegrationTests(TestCase):
             assert len(sd.query_all("zlib", channels=[local_channel])) > 0
             assert len(sd.query_all("zlib")) == 0
         assert len(sd.query_all("zlib")) > 1
+
+        # test load from cache
+        with env_vars(
+            {"CONDA_USE_INDEX_CACHE": "true"},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            sd._load()
 
 
 class StaticFunctionTests(TestCase):
@@ -255,12 +274,16 @@ def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
 def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
-    with env_var("CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".tar.bz2")
     SubdirData.clear_cached_local_channel_data()
-    with env_var("CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
@@ -274,8 +297,9 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         def __exit__(self, *exc):
             Channel._cache_.clear()
 
+    # disable SSL_VERIFY to cover 'turn off warnings' line
     with ChannelCacheClear(), make_temp_env(), env_vars(
-        {"CONDA_PLATFORM": platform},
+        {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         channel = Channel(url_path(join(CHANNEL_DIR, platform)))
@@ -287,19 +311,17 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
         sd.reload()
-
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
         # newly deprecated, run them anyway
         sd._save_state(sd._load_state())
 
 
-@pytest.mark.skip("causes test_prefix_graph_1 to fail")
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     channel = Channel(url_path(join(CHANNEL_DIR, platform)))
 
     # clear, to see our testing class
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
     class SubdirDataRepodataTooNew(SubdirData):
         def _load(self):
@@ -308,7 +330,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     with pytest.raises(CondaUpgradeError):
         SubdirDataRepodataTooNew(channel).load()
 
-    SubdirData._cache_.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
@@ -363,3 +385,38 @@ def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
 
     # test search by PackageRecord
     assert any(sd.query(next(sd.query("zlib"))))  # type: ignore
+
+
+def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
+    """
+    SubdirData has a ValueError exception handler, that is hard to invoke
+    currently.
+    """
+    local_channel = Channel(join(CHANNEL_DIR, platform))
+
+    bad_cache = tmp_path / "not_json.json"
+    bad_cache.write_text("{}")
+
+    class BadRepodataCache(RepodataCache):
+        cache_path_state = bad_cache
+
+    class BadCacheSubdirData(SubdirData):
+        @property
+        def repo_cache(self):
+            return BadRepodataCache(self.cache_path_base, self.repodata_fn)
+
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+    sd = BadCacheSubdirData(channel=local_channel)
+
+    with pytest.raises(CondaError):
+        state = sd._load_state()
+        # tortured way to get to old ValueError handler
+        bad_cache.write_text("NOT JSON")
+        sd._read_local_repodata(state)
+
+
+def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
+    """SubdirData can accept a dict instead of a RepodataState, for compatibility."""
+    local_channel = Channel(join(CHANNEL_DIR, platform))
+    sd = SubdirData(channel=local_channel)
+    sd._read_pickled({})  # type: ignore

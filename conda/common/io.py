@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import json
 import logging
 import os
@@ -63,7 +62,9 @@ if boolify(os.environ.get("CONDA_TIMED_LOGGING")):
         "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
     )
 else:
-    _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+    _FORMATTER = Formatter(
+        "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
+    )
 
 
 def dashlist(iterable, indent=2):
@@ -118,7 +119,6 @@ class CaptureTarget(Enum):
 
 @contextmanager
 def env_vars(var_map=None, callback=None, stack_callback=None):
-
     if var_map is None:
         var_map = {}
 
@@ -163,7 +163,7 @@ def env_unmodified(callback=None):
 
 @contextmanager
 def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
-    """Capture outputs of sys.stdout and sys.stderr.
+    r"""Capture outputs of sys.stdout and sys.stderr.
 
     If stdout is STRING, capture sys.stdout as a string,
     if stdout is None, do not capture sys.stdout, leaving it untouched,
@@ -171,6 +171,14 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
     Behave correspondingly for stderr with the exception that if stderr is STDOUT,
     redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
+
+    .. code-block:: pycon
+        >>> from conda.common.io import captured
+        >>> with captured() as c:
+        ...     print("hello world!")
+        ...
+        >>> c.stdout
+        'hello world!\n'
 
     Args:
         stdout: capture target for sys.stdout, one of STRING, None, or file-like object
@@ -180,22 +188,10 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         CapturedText: has attributes stdout, stderr which are either strings, None or the
             corresponding file-like function argument.
     """
-    # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
-    # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
-    # """
-    # Context manager to capture the printed output of the code in the with block
-    #
-    # Bind the context manager to a variable using `as` and the result will be
-    # in the stdout property.
-    #
-    # >>> from conda.common.io import captured
-    # >>> with captured() as c:
-    # ...     print('hello world!')
-    # ...
-    # >>> c.stdout
-    # 'hello world!\n'
-    # """
+
     def write_wrapper(self, to_write):
+        # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
+        # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
         # This may have to deal with a *lot* of text.
         if hasattr(self, "mode") and "b" in self.mode:
             wanted = bytes
@@ -299,7 +295,12 @@ def disable_logger(logger_name):
 @contextmanager
 def stderr_log_level(level, logger_name=None):
     logr = getLogger(logger_name)
-    _hndlrs, _lvl, _dsbld, _prpgt = logr.handlers, logr.level, logr.disabled, logr.propagate
+    _hndlrs, _lvl, _dsbld, _prpgt = (
+        logr.handlers,
+        logr.level,
+        logr.disabled,
+        logr.propagate,
+    )
     handler = StreamHandler(sys.stderr)
     handler.name = "stderr"
     handler.setLevel(level)
@@ -317,7 +318,9 @@ def stderr_log_level(level, logger_name=None):
             logr.propagate = _prpgt
 
 
-def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatter=None):
+def attach_stderr_handler(
+    level=WARN, logger_name=None, propagate=False, formatter=None
+):
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
@@ -393,7 +396,9 @@ class Spinner:
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.show_spin = (
+            enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        )
         self.fail_message = fail_message
 
     def start(self):
@@ -448,7 +453,9 @@ class ProgressBar:
             cls._lock = RLock()
         return cls._lock
 
-    def __init__(self, description, enabled=True, json=False, position=None, leave=True):
+    def __init__(
+        self, description, enabled=True, json=False, position=None, leave=True
+    ):
         """
         Args:
             description (str):
@@ -513,7 +520,8 @@ class ProgressBar:
         if self.enabled and self.json:
             with self.get_lock():
                 sys.stdout.write(
-                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0' % self.description
+                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                    % self.description
                 )
                 sys.stdout.flush()
         elif self.enabled:
@@ -596,7 +604,9 @@ as_completed = as_completed
 
 def get_instrumentation_record_file():
     default_record_file = join("~", ".conda", "instrumentation-record.csv")
-    return expand(os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file))
+    return expand(
+        os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file)
+    )
 
 
 class time_recorder(ContextDecorator):  # pragma: no cover

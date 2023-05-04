@@ -1,3 +1,4 @@
+---
 name: CLA
 
 on:
@@ -5,27 +6,31 @@ on:
     types:
       - created
   pull_request_target:
-    types:
-      - reopened
-      - opened
-      - synchronize
 
 jobs:
   check:
     if: >-
       !github.event.repository.fork
       && (
-        github.event.comment.body == '@conda-bot check'
+        github.event.issue.pull_request
+        && github.event.comment.body == '@conda-bot check'
         || github.event_name == 'pull_request_target'
       )
     runs-on: ubuntu-latest
     steps:
       - name: Check CLA
-        uses: conda/actions/check-cla@v22.9.0
+        uses: conda/actions/check-cla@v23.5.1
         with:
           # [required]
-          # label to add when actor has signed the CLA
-          label: cla-signed
+          # A token with ability to comment, label, and modify the commit status
+          # (`pull_request: write` and `statuses: write` for fine-grained PAT; `repo` for classic PAT)
+          # (default: secrets.GITHUB_TOKEN)
+          token: ${{ secrets.CLA_ACTION_TOKEN }}
           # [required]
-          # the GitHub Personal Access Token to comment and label with
-          token: "${{ secrets.CLA_ACTION_TOKEN }}"
+          # Label to apply to contributor's PR once CLA is singed
+          label: cla-signed
+
+          # [required]
+          # Token for opening singee PR in the provided `cla_repo`
+          # (`pull_request: write` for fine-grained PAT; `repo` and `workflow` for classic PAT)
+          cla_token: ${{ secrets.CLA_FORK_TOKEN }}
