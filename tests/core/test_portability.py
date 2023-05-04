@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import os
 import re
 from logging import getLogger
@@ -14,7 +10,12 @@ import pytest
 from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PLACEHOLDER
 from conda.common.compat import on_win
-from conda.core.portability import SHEBANG_REGEX, replace_long_shebang, update_prefix, MAX_SHEBANG_LENGTH
+from conda.core.portability import (
+    MAX_SHEBANG_LENGTH,
+    SHEBANG_REGEX,
+    replace_long_shebang,
+    update_prefix,
+)
 from conda.models.enums import FileMode
 
 log = getLogger(__name__)
@@ -56,7 +57,9 @@ class ReplaceShebangTests(TestCase):
         # simple shebang no replacement
         # NOTE: we don't do anything if the binary contains spaces! not our problem :)
         shebang = b"#!/simple/shebang/escaped\\ space --and --flags -x"
-        data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
+        data = b"\n".join(
+            (shebang, self.content_line, self.content_line, self.content_line)
+        )
         new_data = replace_long_shebang(FileMode.text, data)
         assert data == new_data
 
@@ -65,7 +68,9 @@ class ReplaceShebangTests(TestCase):
         #   executable name is 'python'
         shebang = b"#!/" + b"shebang/" * 100 + b"python" + b" --and --flags -x"
         assert len(shebang) > MAX_SHEBANG_LENGTH
-        data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
+        data = b"\n".join(
+            (shebang, self.content_line, self.content_line, self.content_line)
+        )
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env python --and --flags -x"
         assert len(new_shebang) < MAX_SHEBANG_LENGTH
@@ -79,7 +84,9 @@ class ReplaceShebangTests(TestCase):
         #   executable name is 'escaped space'
         shebang = b"#!/" + b"shebang/" * 100 + b"escaped\\ space" + b" --and --flags -x"
         assert len(shebang) > MAX_SHEBANG_LENGTH
-        data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
+        data = b"\n".join(
+            (shebang, self.content_line, self.content_line, self.content_line)
+        )
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env escaped\\ space --and --flags -x"
         assert len(new_shebang) < MAX_SHEBANG_LENGTH
@@ -93,7 +100,9 @@ class ReplaceShebangTests(TestCase):
         #   executable name is 'python'
         shebang = b"#!/she\\ bang/python --and --flags -x"
         assert len(shebang) < MAX_SHEBANG_LENGTH
-        data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
+        data = b"\n".join(
+            (shebang, self.content_line, self.content_line, self.content_line)
+        )
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env python --and --flags -x"
         assert len(new_shebang) < MAX_SHEBANG_LENGTH
@@ -107,7 +116,9 @@ class ReplaceShebangTests(TestCase):
         #   executable name is 'escaped space'
         shebang = b"#!/she\\ bang/escaped\\ space --and --flags -x"
         assert len(shebang) < MAX_SHEBANG_LENGTH
-        data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
+        data = b"\n".join(
+            (shebang, self.content_line, self.content_line, self.content_line)
+        )
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env escaped\\ space --and --flags -x"
         assert len(new_shebang) < MAX_SHEBANG_LENGTH
@@ -120,7 +131,9 @@ class ReplaceShebangTests(TestCase):
         # long shebang with escaped spaces in prefix
         shebang = b"#!/" + b"she\\ bang/" * 100 + b"python --and --flags -x"
         assert len(shebang) > MAX_SHEBANG_LENGTH
-        data = b"\n".join((shebang, self.content_line, self.content_line, self.content_line))
+        data = b"\n".join(
+            (shebang, self.content_line, self.content_line, self.content_line)
+        )
         new_data = replace_long_shebang(FileMode.text, data)
         new_shebang = b"#!/usr/bin/env python --and --flags -x"
         assert len(new_shebang) < MAX_SHEBANG_LENGTH

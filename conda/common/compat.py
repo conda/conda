@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
@@ -6,12 +5,8 @@
 # If a piece of code is "general" and used in multiple modules, it goes here.
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-from itertools import chain
-from operator import methodcaller
 import sys
-from tempfile import mkdtemp
 
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
@@ -46,7 +41,7 @@ def encode_arguments(arguments):
 
 
 from collections.abc import Iterable
-from io import StringIO
+
 
 def isiterable(obj):
     return not isinstance(obj, str) and isinstance(obj, Iterable)
@@ -56,35 +51,49 @@ def isiterable(obj):
 # other
 # #############################
 
-from collections import OrderedDict as odict  # NOQA
-
+from collections import OrderedDict as odict  # noqa: F401
 from io import open as io_open  # NOQA
 
 
-def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True):
-    if 'b' in mode:
-        return io_open(file, str(mode), buffering=buffering,
-                       errors=errors, newline=newline, closefd=closefd)
+def open(
+    file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
+):
+    if "b" in mode:
+        return io_open(
+            file,
+            str(mode),
+            buffering=buffering,
+            errors=errors,
+            newline=newline,
+            closefd=closefd,
+        )
     else:
-        return io_open(file, str(mode), buffering=buffering,
-                       encoding=encoding or 'utf-8', errors=errors, newline=newline,
-                       closefd=closefd)
+        return io_open(
+            file,
+            str(mode),
+            buffering=buffering,
+            encoding=encoding or "utf-8",
+            errors=errors,
+            newline=newline,
+            closefd=closefd,
+        )
 
 
 def six_with_metaclass(meta, *bases):
     """Create a base class with a metaclass."""
+
     # This requires a bit of explanation: the basic idea is to make a dummy
     # metaclass for one level of class instantiation that replaces itself with
     # the actual metaclass.
     class metaclass(type):
-
         def __new__(cls, name, this_bases, d):
             return meta(name, bases, d)
 
         @classmethod
         def __prepare__(cls, name, this_bases):
             return meta.__prepare__(name, bases)
-    return type.__new__(metaclass, str('temporary_class'), (), {})
+
+    return type.__new__(metaclass, "temporary_class", (), {})
 
 
 NoneType = type(None)
@@ -93,16 +102,16 @@ primitive_types = (str, int, float, complex, bool, NoneType)
 
 def ensure_binary(value):
     try:
-        return value.encode('utf-8')
+        return value.encode("utf-8")
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
         return value
 
 
-def ensure_text_type(value):
+def ensure_text_type(value) -> str:
     try:
-        return value.decode('utf-8')
+        return value.decode("utf-8")
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'decode'
         # In this case assume already text_type and do nothing
@@ -115,8 +124,8 @@ def ensure_text_type(value):
                 from requests.packages.chardet import detect
             except ImportError:  # pragma: no cover
                 from pip._vendor.requests.packages.chardet import detect
-        encoding = detect(value).get('encoding') or 'utf-8'
-        return value.decode(encoding, errors='replace')
+        encoding = detect(value).get("encoding") or "utf-8"
+        return value.decode(encoding, errors="replace")
     except UnicodeEncodeError:  # pragma: no cover
         # it's already str, so ignore?
         # not sure, surfaced with tests/models/test_match_spec.py test_tarball_match_specs
@@ -126,7 +135,7 @@ def ensure_text_type(value):
 
 def ensure_unicode(value):
     try:
-        return value.decode('unicode_escape')
+        return value.decode("unicode_escape")
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'decode'
         # In this case assume already unicode and do nothing
@@ -144,7 +153,7 @@ def ensure_fs_path_encoding(value):
 
 def ensure_utf8_encoding(value):
     try:
-        return value.encode('utf-8')
+        return value.encode("utf-8")
     except AttributeError:
         return value
     except UnicodeEncodeError:

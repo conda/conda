@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import warnings
+
 import py
 import pytest
 
-from conda.gateways.disk.create import TemporaryDirectory
-from conda.core.subdir_data import SubdirData
 from conda.auxlib.ish import dals
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
 from conda.common.configuration import YamlRawParameter
-from conda.common.compat import odict
 from conda.common.serialize import yaml_round_trip_load
+from conda.core.subdir_data import SubdirData
+from conda.gateways.disk.create import TemporaryDirectory
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +25,7 @@ def suppress_resource_warning():
     warnings.filterwarnings("ignore", category=ResourceWarning)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def tmpdir(tmpdir, request):
     tmpdir = TemporaryDirectory(dir=str(tmpdir))
     request.addfinalizer(tmpdir.cleanup)
@@ -52,9 +51,11 @@ def disable_channel_notices():
         """
     )
     reset_context(())
-    rd = odict(
-        testdata=YamlRawParameter.make_raw_parameters("testdata", yaml_round_trip_load(yaml_str))
-    )
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters(
+            "testdata", yaml_round_trip_load(yaml_str)
+        )
+    }
     context._set_raw_data(rd)
 
     yield
@@ -64,9 +65,7 @@ def disable_channel_notices():
 
 @pytest.fixture(scope="function")
 def reset_conda_context():
-    """
-    Resets the context object after each test function is run.
-    """
+    """Resets the context object after each test function is run."""
     yield
 
     reset_context()

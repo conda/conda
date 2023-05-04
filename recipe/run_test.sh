@@ -1,33 +1,24 @@
 #!/usr/bin/env bash
-set -x
 
-export TEST_MINOR_VER=9
-
+# clear conda stuff from parent process
 unset CONDA_SHLVL
 unset _CE_CONDA
 unset _CE_M
 unset CONDA_EXE
 
-# Used to rewrite the entry point script so it points to the correct python interpreter
-conda init --all
-
-# Used to interactively load shell functions
+# load shell interface
 eval "$(python -m conda shell.bash hook)"
 
-conda activate base
+# display conda details
+conda info --all
 
-export PYTHON_MAJOR_VERSION=$(python -c "import sys; print(sys.version_info[0])")
-export TEST_PLATFORM=$(python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
-export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+# create, activate, and deactivate a conda environment
+conda create --yes --prefix "./built-conda-test-env" "patch" || exit 1
 
-env | sort
+conda activate "./built-conda-test-env"
+echo "CONDA_PREFIX=${CONDA_PREFIX}"
 
-conda info
+[[ "${CONDA_PREFIX}" == "${PWD}/built-conda-test-env" ]] || exit 1
+${CONDA_PREFIX}/bin/patch --version || exit 1
 
-# Our tests finish by creating, activating and then deactivating a conda environment
-conda create -y -p ./built-conda-test-env python=3.${TEST_MINOR_VER}
-conda activate ./built-conda-test-env
-echo $CONDA_PREFIX
-[ "$CONDA_PREFIX" = "$PWD/built-conda-test-env" ] || exit 1
-[ $(python -c "import sys; print(sys.version_info[1])") = ${TEST_MINOR_VER} ] || exit 1
 conda deactivate
