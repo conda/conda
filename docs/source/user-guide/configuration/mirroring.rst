@@ -9,11 +9,13 @@ The default setup
 
 By default, ``conda`` can serve packages from two main locations:
 
-- ``repo.anaconda.com``: this is where ``defaults`` points to by default. This base location is hardcoded in the default value of ``default_channels``:
+- ``repo.anaconda.com``: this is where ``defaults`` points to by default.
+  This base location is hardcoded in the default value of ``default_channels``:
     - ``https://repo.anaconda.com/pkgs/main``
     - ``https://repo.anaconda.com/pkgs/r``
     - ``https://repo.anaconda.com/pkgs/msys2``
-- ``conda.anaconda.org``: this is where conda clients look up community channels like ``conda-forge`` or ``bioconda``. This base location can be configured via ``channel_alias``.
+- ``conda.anaconda.org``: this is where conda clients look up community channels like ``conda-forge`` or ``bioconda``.
+  This base location can be configured via ``channel_alias``.
 
 So, when it comes to mirroring these channels, you have to account for those two locations.
 
@@ -21,7 +23,7 @@ So, when it comes to mirroring these channels, you have to account for those two
 Mirror ``defaults``
 ===================
 
-Use ``default_channels`` to overwrite the :doc:`default configuration <configuration>`_. For example:
+Use ``default_channels`` to overwrite the :doc:`default configuration </configuration>`. For example:
 
 .. code-block:: yaml
 
@@ -58,6 +60,6 @@ With this configuration, conda-forge will be looked up at ``https://my-mirror.co
 All other community channels will be looked up at ``https://conda.anaconda.org``.
 
 
-.. info::
+.. note::
 
-    Feel free to explore all the available options in :doc:`configuration`.
+    Feel free to explore all the available options in :doc:`/configuration`.
