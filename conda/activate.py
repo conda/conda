@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+from collections.abc import Callable, Iterable
 from os.path import (
     abspath,
     basename,
@@ -19,7 +20,6 @@ from os.path import (
 )
 from pathlib import Path
 from textwrap import dedent
-from collections.abc import Callable, Iterable
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
