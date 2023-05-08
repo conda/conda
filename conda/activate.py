@@ -19,7 +19,7 @@ from os.path import (
 )
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
