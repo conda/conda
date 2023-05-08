@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -38,9 +39,7 @@ from conda.gateways.repodata import (
 
 
 def test_save(tmp_path):
-    """
-    Check regular cache save, load operations.
-    """
+    """Check regular cache save, load operations."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "lockme", "repodata.json")
     cache.save(TEST_DATA)
@@ -72,9 +71,7 @@ def test_save(tmp_path):
 
 
 def test_stale(tmp_path):
-    """
-    RepodataCache should understand cache-control and modified time versus now.
-    """
+    """RepodataCache should understand cache-control and modified time versus now."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
     MOD = "Thu, 26 Jan 2023 19:34:01 GMT"
@@ -127,6 +124,37 @@ def test_stale(tmp_path):
     cache.load_state()
     assert not cache.state.mod
     assert not cache.state.etag
+
+    # check type problems
+    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
+    for type in json_types:
+        cache.state["cache_control"] = type
+        cache.stale()
+
+    # if we don't match stat then load_state will clear the test "mod" value
+    json_stat = cache.cache_path_json.stat()
+
+    # change wrongly-typed mod to empty string
+    cache.cache_path_state.write_text(
+        json.dumps(
+            {"mod": None, "mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+        )
+    )
+    state = cache.load_state()
+    assert state.mod == ""
+
+    # preserve correct mod
+    cache.cache_path_state.write_text(
+        json.dumps(
+            {
+                "mod": "some",
+                "mtime_ns": json_stat.st_mtime_ns,
+                "size": json_stat.st_size,
+            }
+        )
+    )
+    state = cache.load_state()
+    assert state.mod == "some"
 
 
 def test_coverage_repodata_state(tmp_path):

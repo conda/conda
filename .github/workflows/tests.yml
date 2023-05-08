@@ -10,6 +10,8 @@ on:
     branches:
       - main
       - feature/**
+      - '[0-9].*.x'  # e.g., 4.14.x
+      - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
@@ -64,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
@@ -73,7 +75,7 @@ jobs:
           - default-channel: 'conda-forge'
             python-version: '3.8'
           - default-channel: 'conda-forge'
-            python-version: '3.10'
+            python-version: '3.11'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
@@ -173,7 +175,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -235,7 +237,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.10']
+        python-version: ['3.11']
         platform: ['arm64', 'ppc64le']
     env:
       OS: linux-${{ matrix.platform }}
@@ -424,13 +426,14 @@ jobs:
     # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
-    # - we are on the main (or feature) branch
+    # - we are on the main, feature, or release branch
     if: >-
       success()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'
         || startsWith(github.ref_name, 'feature/')
+        || endsWith(github.ref_name, '.x')
       )
     strategy:
       matrix:
