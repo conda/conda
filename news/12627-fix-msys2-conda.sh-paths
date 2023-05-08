@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Refactor the way that the "Activator" classes are defined in conda/activate.py. (#12627)
 
 ### Bug fixes
 
