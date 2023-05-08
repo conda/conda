@@ -24,7 +24,7 @@ jobs:
       - name: Create broken Environment
         run: |
           source $CONDA/etc/profile.d/conda.sh
-          conda create -p ./broken -c conda-canary conda
+          conda create -p ./broken -c conda-canary/label/dev conda
         shell: bash
 
       - name: Test
