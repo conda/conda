@@ -1,0 +1,33 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  test:
+    runs-on: windows-2019
+    steps:
+      - name: Create fixed Environment
+        run: |
+          source $CONDA/etc/profile.d/conda.sh
+          conda create -p ./fixed -c conda-canary/label/conda-conda-pr-12627 conda
+        shell: bash
+
+      - name: Test
+        run: |
+          source ./fixed/etc/profile.d/conda.sh
+          conda list
+        shell: bash
+
+      - name: Create broken Environment
+        run: |
+          conda create -p ./broken -c conda-canary conda
+        shell: bash
+
+      - name: Test
+        run: |
+          source ./broken/etc/profile.d/conda.sh
+          conda list
+        shell: bash
