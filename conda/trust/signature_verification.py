@@ -41,7 +41,7 @@ class _SignatureVerification:
 
         # signing url must be defined
         if not context.signing_metadata_url_base:
-            log.info(
+            log.warn(
                 "metadata signature verification requested, "
                 "but no metadata URL base has not been specified."
             )
