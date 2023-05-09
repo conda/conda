@@ -851,10 +851,10 @@ def native_path_to_unix(
 def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
     if paths is None:
         return None
-
-    if isinstance(paths, str):
+    elif isinstance(paths, str):
         return os.path.normpath(paths)
-    return tuple(os.path.normpath(path) for path in paths)
+    else:
+        return tuple(os.path.normpath(path) for path in paths)
 
 
 def backslash_to_forwardslash(
@@ -863,9 +863,10 @@ def backslash_to_forwardslash(
     if paths is None:
         return None
 
-    if isinstance(paths, str):
+    elif isinstance(paths, str):
         return paths.replace("\\", "/")
-    return tuple([path.replace("\\", "/") for path in paths])
+    else:
+        return tuple([path.replace("\\", "/") for path in paths])
 
 
 class PosixActivator(_Activator):
