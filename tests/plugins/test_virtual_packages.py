@@ -119,14 +119,13 @@ def test_subdir_override():
             virtual = [p for p in packages if p.channel.name == "@"]
             assert any(p.name == expected for p in virtual)
             assert not any(
-                (p.name in platform_virtual_packages and p.name != expected) for p in virtual
+                (p.name in platform_virtual_packages and p.name != expected)
+                for p in virtual
             )
 
 
 def test_glibc_override():
-    """
-    Conda should not produce a libc virtual package when CONDA_OVERRIDE_GLIBC=""
-    """
+    """Conda should not produce a libc virtual package when CONDA_OVERRIDE_GLIBC=""."""
     for version in "", "1.0":
         with env_vars(
             {"CONDA_SUBDIR": "linux-64", "CONDA_OVERRIDE_GLIBC": version},

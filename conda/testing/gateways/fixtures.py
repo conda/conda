@@ -1,13 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import json
 import os
 import socket
 from pathlib import Path
 
-import pytest
 import boto3
+import pytest
 from botocore.client import Config
 from xprocess import ProcessStarter
 
@@ -43,8 +42,7 @@ def minio_s3_server(xprocess, tmp_path):
             return f"http://localhost:{self.port}/{self.name}"
 
         def populate_bucket(self, endpoint, bucket_name, channel_dir):
-            "prepare the s3 connection for our minio instance"
-
+            """Prepare the s3 connection for our minio instance"""
             # Make the minio bucket public first
             # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-example-bucket-policies.html#set-a-bucket-policy
             session = boto3.session.Session()
@@ -106,7 +104,9 @@ def minio_s3_server(xprocess, tmp_path):
             try:
                 s.connect((address, port))
             except Exception as e:
-                print("something's wrong with %s:%d. Exception is %s" % (address, port, e))
+                print(
+                    "something's wrong with %s:%d. Exception is %s" % (address, port, e)
+                )
                 error = True
             finally:
                 s.close()

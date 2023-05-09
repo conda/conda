@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Warn about misconfiguration when signature verification is enabled (#12639)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add `jsonpatch` dependency to support `--experimental=jlap` feature.
+* <news item>

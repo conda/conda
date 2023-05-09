@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Fix and re-enable binstar tests. Replace custom property caching with `functools.cached_property`. (#12495)
+* Add Python 3.11 support. (#12256)
 
 ### Bug fixes
 

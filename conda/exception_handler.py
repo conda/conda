@@ -7,12 +7,10 @@ from logging import getLogger
 
 from .common.compat import ensure_text_type, on_win
 
-
 log = getLogger(__name__)
 
 
 class ExceptionHandler:
-
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -32,21 +30,30 @@ class ExceptionHandler:
     @property
     def http_timeout(self):
         from .base.context import context
+
         return context.remote_connect_timeout_secs, context.remote_read_timeout_secs
 
     @property
     def user_agent(self):
         from .base.context import context
+
         return context.user_agent
 
     @property
     def error_upload_url(self):
         from .base.context import context
+
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
         from errno import ENOSPC
-        from .exceptions import CondaError, CondaMemoryError, NoSpaceLeftError, _format_exc
+
+        from .exceptions import (
+            CondaError,
+            CondaMemoryError,
+            NoSpaceLeftError,
+            _format_exc,
+        )
 
         if isinstance(exc_val, CondaError):
             if exc_val.reportable:
@@ -54,8 +61,10 @@ class ExceptionHandler:
             else:
                 return self.handle_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, EnvironmentError):
-            if getattr(exc_val, 'errno', None) == ENOSPC:
-                return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
+            if getattr(exc_val, "errno", None) == ENOSPC:
+                return self.handle_application_exception(
+                    NoSpaceLeftError(exc_val), exc_tb
+                )
         if isinstance(exc_val, MemoryError):
             return self.handle_application_exception(CondaMemoryError(exc_val), exc_tb)
         if isinstance(exc_val, KeyboardInterrupt):
@@ -71,18 +80,20 @@ class ExceptionHandler:
 
     def _print_conda_exception(self, exc_val, exc_tb):
         from .exceptions import print_conda_exception
+
         print_conda_exception(exc_val, exc_tb)
 
     def handle_unexpected_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
         self._upload(error_report)
-        rc = getattr(exc_val, 'return_code', None)
+        rc = getattr(exc_val, "return_code", None)
         return rc if rc is not None else 1
 
     def handle_reportable_application_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
         from .base.context import context
+
         if context.json:
             error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
@@ -90,36 +101,37 @@ class ExceptionHandler:
         return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
-        from .exceptions import _format_exc, CondaError
+        from .exceptions import CondaError, _format_exc
 
-        command = ' '.join(ensure_text_type(s) for s in sys.argv)
+        command = " ".join(ensure_text_type(s) for s in sys.argv)
         info_dict = {}
-        if ' info' not in command:
+        if " info" not in command:
             # get info_dict, but if we get an exception here too, record it without trampling
             # the original exception
             try:
                 from .cli.main_info import get_info_dict
+
                 info_dict = get_info_dict()
             except Exception as info_e:
                 info_traceback = _format_exc()
                 info_dict = {
-                    'error': repr(info_e),
-                    'exception_name': info_e.__class__.__name__,
-                    'exception_type': str(exc_val.__class__),
-                    'traceback': info_traceback,
+                    "error": repr(info_e),
+                    "exception_name": info_e.__class__.__name__,
+                    "exception_type": str(exc_val.__class__),
+                    "traceback": info_traceback,
                 }
 
         error_report = {
-            'error': repr(exc_val),
-            'exception_name': exc_val.__class__.__name__,
-            'exception_type': str(exc_val.__class__),
-            'command': command,
-            'traceback': _format_exc(exc_val, exc_tb),
-            'conda_info': info_dict,
+            "error": repr(exc_val),
+            "exception_name": exc_val.__class__.__name__,
+            "exception_type": str(exc_val.__class__),
+            "command": command,
+            "traceback": _format_exc(exc_val, exc_tb),
+            "conda_info": info_dict,
         }
 
         if isinstance(exc_val, CondaError):
-            error_report['conda_error_components'] = exc_val.dump_map()
+            error_report["conda_error_components"] = exc_val.dump_map()
 
         return error_report
 
@@ -128,67 +140,83 @@ class ExceptionHandler:
 
         if context.json:
             from .cli.common import stdout_json
+
             stdout_json(error_report)
         else:
             message_builder = []
-            message_builder.append('')
-            message_builder.append('# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<')
-            message_builder.append('')
-            message_builder.extend('    ' + line
-                                   for line in error_report['traceback'].splitlines())
-            message_builder.append('')
-            message_builder.append('`$ %s`' % error_report['command'])
-            message_builder.append('')
-            if error_report['conda_info']:
+            message_builder.append("")
+            message_builder.append(
+                "# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<"
+            )
+            message_builder.append("")
+            message_builder.extend(
+                "    " + line for line in error_report["traceback"].splitlines()
+            )
+            message_builder.append("")
+            message_builder.append("`$ %s`" % error_report["command"])
+            message_builder.append("")
+            if error_report["conda_info"]:
                 from .cli.main_info import get_env_vars_str, get_main_info_str
+
                 try:
                     # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
-                    message_builder.append(get_env_vars_str(error_report['conda_info']))
-                    message_builder.append(get_main_info_str(error_report['conda_info']))
+                    message_builder.append(get_env_vars_str(error_report["conda_info"]))
+                    message_builder.append(
+                        get_main_info_str(error_report["conda_info"])
+                    )
                 except Exception as e:
                     log.warn("%r", e, exc_info=True)
-                    message_builder.append('conda info could not be constructed.')
-                    message_builder.append('%r' % e)
-            message_builder.append('')
+                    message_builder.append("conda info could not be constructed.")
+                    message_builder.append("%r" % e)
+            message_builder.append("")
             message_builder.append(
                 "An unexpected error has occurred. Conda has prepared the above report."
             )
-            message_builder.append('')
+            message_builder.append("")
             self.write_out(*message_builder)
 
     def print_expected_error_report(self, error_report):
         from .base.context import context
+
         if context.json:
             from .cli.common import stdout_json
+
             stdout_json(error_report)
         else:
             message_builder = []
-            message_builder.append('')
-            message_builder.append('# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<')
-            message_builder.append('')
-            message_builder.append('`$ %s`' % error_report['command'])
-            message_builder.append('')
-            if error_report['conda_info']:
+            message_builder.append("")
+            message_builder.append(
+                "# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<"
+            )
+            message_builder.append("")
+            message_builder.append("`$ %s`" % error_report["command"])
+            message_builder.append("")
+            if error_report["conda_info"]:
                 from .cli.main_info import get_env_vars_str, get_main_info_str
+
                 try:
                     # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
-                    message_builder.append(get_env_vars_str(error_report['conda_info']))
-                    message_builder.append(get_main_info_str(error_report['conda_info']))
+                    message_builder.append(get_env_vars_str(error_report["conda_info"]))
+                    message_builder.append(
+                        get_main_info_str(error_report["conda_info"])
+                    )
                 except Exception as e:
                     log.warn("%r", e, exc_info=True)
-                    message_builder.append('conda info could not be constructed.')
-                    message_builder.append('%r' % e)
-            message_builder.append('')
-            message_builder.append('V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V')
-            message_builder.append('')
+                    message_builder.append("conda info could not be constructed.")
+                    message_builder.append("%r" % e)
+            message_builder.append("")
+            message_builder.append(
+                "V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V"
+            )
+            message_builder.append("")
 
-            message_builder.extend(error_report['error'].splitlines())
-            message_builder.append('')
+            message_builder.extend(error_report["error"].splitlines())
+            message_builder.append("")
 
             message_builder.append(
                 "A reportable application error has occurred. Conda has prepared the above report."
             )
-            message_builder.append('')
+            message_builder.append("")
             self.write_out(*message_builder)
 
     # FUTURE: Python 3.8+, replace with functools.cached_property
@@ -256,16 +284,19 @@ class ExceptionHandler:
     def _execute_upload(self, error_report):
         import getpass
         import json
+
         from .auxlib.entity import EntityEncoder
 
         headers = {
-            'User-Agent': self.user_agent,
+            "User-Agent": self.user_agent,
         }
         _timeout = self.http_timeout
         username = getpass.getuser()
-        error_report['is_ascii'] = True if all(ord(c) < 128 for c in username) else False
-        error_report['has_spaces'] = True if " " in str(username) else False
-        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+        error_report["is_ascii"] = (
+            True if all(ord(c) < 128 for c in username) else False
+        )
+        error_report["has_spaces"] = True if " " in str(username) else False
+        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + "\n"
         data = data.replace(str(username), "USERNAME_REMOVED")
         response = None
         try:
@@ -273,15 +304,24 @@ class ExceptionHandler:
             # That is, when following a 301 or 302, it turns a POST into a GET.
             # And no way to disable.  WTF
             import requests
+
             redirect_counter = 0
             url = self.error_upload_url
-            response = requests.post(url, headers=headers, timeout=_timeout, data=data,
-                                     allow_redirects=False)
+            response = requests.post(
+                url, headers=headers, timeout=_timeout, data=data, allow_redirects=False
+            )
             response.raise_for_status()
-            while response.status_code in (301, 302) and response.headers.get('Location'):
-                url = response.headers['Location']
-                response = requests.post(url, headers=headers, timeout=_timeout, data=data,
-                                         allow_redirects=False)
+            while response.status_code in (301, 302) and response.headers.get(
+                "Location"
+            ):
+                url = response.headers["Location"]
+                response = requests.post(
+                    url,
+                    headers=headers,
+                    timeout=_timeout,
+                    data=data,
+                    allow_redirects=False,
+                )
                 response.raise_for_status()
                 redirect_counter += 1
                 if redirect_counter > 15:
@@ -290,7 +330,7 @@ class ExceptionHandler:
                     raise CondaError("Redirect limit exceeded")
             log.debug("upload response status: %s", response and response.status_code)
         except Exception as e:  # pragma: no cover
-            log.info('%r', e)
+            log.info("%r", e)
         try:
             if response and response.ok:
                 self.write_out("Upload successful.")

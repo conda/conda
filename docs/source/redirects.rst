@@ -11,15 +11,24 @@ Redirects
    :hidden:
 
    admin
+   api/index
    changelog
    channels
    config
+   configuration
    custom-channels
    download
    env-commands
    faq
    general-commands
    get-started
+   help/conda-pip-virtualenv-translator
+   help/silent
+   install/central
+   install/full
+   install/quick
+   install/sample-condarc
+   install/tab-completion
    installation
    intro
    mro
@@ -28,13 +37,7 @@ Redirects
    test-drive
    travis
    troubleshooting
-   help/conda-pip-virtualenv-translator
-   help/silent
-   install/central
-   install/full
-   install/quick
-   install/sample-condarc
-   install/tab-completion
+   user-guide/tasks/use-conda-with-travis-ci
    user-guide/tasks/use-mro-with-conda
    user-guide/tasks/use-r-with-conda
    using/cheatsheet
@@ -43,5 +46,3 @@ Redirects
    using/pkgs
    using/test-drive
    using/using
-   configuration
-   api/index

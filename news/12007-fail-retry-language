@@ -16,4 +16,4 @@
 
 ### Other
 
-* Expose a `MINIO_RELEASE` environment variable to provide a way to pin `minio` versions in CI setup scripts. (#12525)
+* Update retry language in flexible solve and repodata logs to be less ominous

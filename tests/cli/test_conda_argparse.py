@@ -1,11 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
+import re
 from logging import getLogger
 
 import pytest
-import re
 
 from conda.cli.conda_argparse import generate_parser
 from conda.cli.python_api import Commands, run_command

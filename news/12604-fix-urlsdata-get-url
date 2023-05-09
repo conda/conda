@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Restore default argument for `SubdirData` method used by `conda-index`. (#12513)
+* `conda.core.package_cache_data.UrlsData.get_url` no longer fails when `package_path` has `.conda` extension (#12516 via #12604)
 
 ### Deprecations
 

@@ -1,3 +1,4 @@
+---
 name: Lock
 
 on:
@@ -26,9 +27,9 @@ jobs:
           # Do not lock issues with these labels, value must be a comma separated list of labels or ''
           exclude-any-issue-labels: ''
           # Labels to add before locking an issue, value must be a comma separated list of labels or ''
-          add-issue-labels: 'locked'
+          add-issue-labels: locked
           # Reason for locking an issue, value must be one of resolved, off-topic, too heated, spam or ''
-          issue-lock-reason: 'resolved'
+          issue-lock-reason: resolved
 
           # Number of days of inactivity before a closed pull request is locked
           pr-inactive-days: 365
@@ -37,9 +38,9 @@ jobs:
           # Do not lock pull requests with these labels, value must be a comma separated list of labels or ''
           exclude-any-pr-labels: ''
           # Labels to add before locking a pull request, value must be a comma separated list of labels or ''
-          add-pr-labels: 'locked'
+          add-pr-labels: locked
           # Reason for locking a pull request, value must be one of resolved, off-topic, too heated, spam or ''
-          pr-lock-reason: 'resolved'
+          pr-lock-reason: resolved
 
           # Limit locking to only issues or pull requests, value must be one of issues, prs or ''
           process-only: ''
