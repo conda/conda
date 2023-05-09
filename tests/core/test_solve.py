@@ -13,8 +13,12 @@ from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, _get_solver_class, UpdateModifier
-from conda.exceptions import ResolvePackageNotFound, SpecsConfigurationConflictError, UnsatisfiableError
+from conda.core.solve import DepsModifier, UpdateModifier, _get_solver_class
+from conda.exceptions import (
+    ResolvePackageNotFound,
+    SpecsConfigurationConflictError,
+    UnsatisfiableError,
+)
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PrefixRecord
@@ -3227,7 +3231,7 @@ def test_globstr_matchspec_non_compatible(tmpdir):
 
     # This one fails with ValueError (glob str match_spec checks)
     # because we can anticipate the globs are not compatible. Note it
-    # fails during the Solver INSTANTIATION; i.e. in get_solver(...)
+    # fails during the Solver INSTANTIATION; i.e. in get_solver(...)
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np16*"))
     with pytest.raises(ValueError):
         with get_solver(tmpdir, specs) as solver:
@@ -3235,7 +3239,7 @@ def test_globstr_matchspec_non_compatible(tmpdir):
 
     # This one fails later, because we cannot anticipate whether a package
     # with both np17 and np16 exists just by looking at the glob strings
-    # We do know the index doesn't contain any though, so ResolvePackageNotFound
+    # We do know the index doesn't contain any though, so ResolvePackageNotFound
     # which is only raised when the solve starts. Note how the pytest.raises
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
@@ -3243,7 +3247,7 @@ def test_globstr_matchspec_non_compatible(tmpdir):
         with pytest.raises(ResolvePackageNotFound):
             solver.solve_final_state()
 
-    # Same here; the index has no accelerate pkg with BOTH np15 and py33
+    # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
         with pytest.raises(ResolvePackageNotFound):

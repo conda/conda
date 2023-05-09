@@ -1253,7 +1253,7 @@ class MatchSpecMergeTests(TestCase):
         assert not unmergeable
         assert merged.match(red)
         # resulting build is the regex intersection
-        assert merged.get("build") == '^(?=.*red.*)(?:red_.*)$'
+        assert merged.get("build") == "^(?=.*red.*)(?:red_.*)$"
 
         build_tail_2 = MatchSpec("my_pkg=1.17.*=*_2")
         build_tail_3 = MatchSpec("my_pkg=1.17.*=*_3")
