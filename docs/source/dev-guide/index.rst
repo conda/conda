@@ -5,12 +5,12 @@ Developer guide
 .. toctree::
    :maxdepth: 2
 
+   architecture
    contributing
    development-environment
-   writing-tests/index.rst
+   deep-dives/index
+   writing-tests/index
+   deprecations
    releasing
-   ../architecture
-   deep-dive-install
-   deep-dive-activation
-   deep-dive-context
-   deep-dive-solvers
+   plugins/index
+   specs/index

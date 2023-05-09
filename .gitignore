@@ -4,7 +4,7 @@
 build/
 dist/
 docs/_build
-docs/source/umls/*.puml
+docs/source/umls/dev-guide/*.puml
 .cache/
 .idea/
 ve/
@@ -13,7 +13,6 @@ MANIFEST
 coverage.xml
 .tox/
 junit.xml
-.version
 tmpfile.rc
 .DS_Store
 .coverage*

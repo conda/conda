@@ -842,7 +842,7 @@ EXAMPLE: A more complex environment file:
    dependencies:
      - python=3.9
      - bokeh=2.4.2
-     - numpy=1.21.*
+     - conda-forge::numpy=1.21.*
      - nodejs=16.13.*
      - flask
      - pip
@@ -850,12 +850,25 @@ EXAMPLE: A more complex environment file:
        - Flask-Testing
 
 .. note::
-   Note the use of the wildcard * when defining the patch version
-   number. Defining the version number by fixing the major and minor
-   version numbers while allowing the patch version number to vary
-   allows us to use our environment file to update our environment
-   to get any bug fixes whilst still maintaining consistency of
-   software environment.
+   **Using wildcards**
+
+   Note the use of the wildcard ``*`` when defining a few of the
+   versions in the complex environment file. Keeping the major and
+   minor versions fixed while allowing the patch to be any number
+   allows you to use your environment file to get any bug fixes
+   while still maintaining consistency in your environment. For
+   more information on package installation values,
+   see :doc:`../concepts/pkg-search`.
+
+   **Specifying channels outside of "channels"**
+
+   You may occasionally want to specify which channel conda will
+   use to install a specific package. To accomplish this, use the
+   `channel::package` syntax in `dependencies:`, as demonstrated
+   above with `conda-forge::numpy` (version numbers optional). The
+   specified channel does not need to be present in the `channels:`
+   list, which is useful if you want some—but not *all*—packages
+   installed from a community channel such as `conda-forge`.
 
 You can exclude the default channels by adding ``nodefaults``
 to the channels list.

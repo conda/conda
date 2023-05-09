@@ -1,0 +1,3 @@
+### Enhancements
+
+* Added `conda list --reverse` to return a reversed list of installed packages. (#11954)
