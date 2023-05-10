@@ -107,7 +107,14 @@ def test_download_and_hash(
     destination = tmp_path / "repodata.json"
     url2 = base + "/osx-64/repodata.json"
     hasher2 = fetch.hash()
-    response = fetch.download_and_hash(hasher2, url2, destination, session, state)
+    response = fetch.download_and_hash(
+        hasher2,
+        url2,
+        destination,
+        session,
+        state,
+        dest_path=destination,
+    )
     print(response)
     print(state)
     t = destination.read_text()
@@ -432,6 +439,12 @@ def test_jlap_errors(
         # gets the failure, falls back to non-jlap path, writes to disk
         with pytest.raises(RepodataOnDisk):
             sd._repo.repodata(state)  # type: ignore
+
+        # above call newly saves cache state, write a clean one again.
+        # clear any jlap failures
+        state.pop("has_jlap", None)
+        state.pop("jlap", None)
+        cache.cache_path_state.write_text(json.dumps(dict(state)))
 
         # force 304 not modified on the .jlap file (test server doesn't return 304
         # not modified on range requests)

@@ -219,9 +219,21 @@ class HashWriter(io.RawIOBase):
 
 
 def download_and_hash(
-    hasher, url, json_path, session: Session, state: RepodataState | None, is_zst=False
+    hasher,
+    url,
+    json_path,
+    session: Session,
+    state: RepodataState | None,
+    is_zst=False,
+    dest_path: pathlib.Path | None = None,
 ):
-    """Download url if it doesn't exist, passing bytes through hasher.update()."""
+    """Download url if it doesn't exist, passing bytes through hasher.update().
+
+    json_path: Path of old cached data (ignore etag if not exists).
+    dest_path: Path to write new data.
+    """
+    if dest_path is None:
+        dest_path = json_path
     state = state or RepodataState()
     headers = build_headers(json_path, state)
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -234,10 +246,10 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
+                HashWriter(dest_path.open("wb"), hasher), closefd=True  # type: ignore
             )
         else:
-            writer = HashWriter(json_path.open("wb"), hasher)
+            writer = HashWriter(dest_path.open("wb"), hasher)
         with writer as repodata:
             for block in response.iter_content(chunk_size=1 << 14):
                 repodata.write(block)
@@ -253,6 +265,7 @@ def request_url_jlap_state(
     *,
     session: Session,
     cache: RepodataCache,
+    temp_path: pathlib.Path,
 ) -> dict | None:
     jlap_state = state.get(JLAP_KEY, {})
     json_path = cache.cache_path_json
@@ -277,7 +290,8 @@ def request_url_jlap_state(
                     response = download_and_hash(
                         hasher,
                         withext(url, ".json.zst"),
-                        json_path,  # XXX give temporary path for new file
+                        json_path,  # makes conditional request if exists
+                        dest_path=temp_path,  # writes to
                         session=session,
                         state=state,
                         is_zst=True,
@@ -295,6 +309,7 @@ def request_url_jlap_state(
                     hasher,
                     withext(url, ".json"),
                     json_path,
+                    dest_path=temp_path,
                     session=session,
                     state=state,
                 )
@@ -348,7 +363,12 @@ def request_url_jlap_state(
             if e.response.status_code == 404:
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
-                    url, state, full_download=True, session=session, cache=cache
+                    url,
+                    state,
+                    full_download=True,
+                    session=session,
+                    cache=cache,
+                    temp_path=temp_path,
                 )
             log.exception("Requests error")
 
@@ -383,15 +403,21 @@ def request_url_jlap_state(
             )
 
             if apply:
-                with timeme("Load "), json_path.open() as repodata:
+                with timeme("Load "):
                     # we haven't loaded repodata yet; it could fail to parse, or
                     # have the wrong hash.
-                    repodata_json = json.load(repodata)  # check have_hash here
                     # if this fails, then we also need to fetch again from 0
+                    repodata_json = json.loads(cache.load())
+                    # XXX cache.state must equal what we started with, otherwise
+                    # bail with 'repodata on disk' (indicating another process
+                    # downloaded repodata.json in parallel with us)
+                    if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
+                        log.warn("repodata cache changed during jlap fetch.")
+                        return None
 
                 apply_patches(repodata_json, apply)
 
-                with timeme("Write changed "), json_path.open("wb") as repodata:
+                with timeme("Write changed "), temp_path.open("wb") as repodata:
                     hasher = hash()
                     HashWriter(repodata, hasher).write(
                         json.dumps(repodata_json).encode("utf-8")
@@ -421,5 +447,10 @@ def request_url_jlap_state(
             assert not full_download, "Recursion error"  # pragma: no cover
 
             return request_url_jlap_state(
-                url, state, full_download=True, session=session, cache=cache
+                url,
+                state,
+                full_download=True,
+                session=session,
+                cache=cache,
+                temp_path=temp_path,
             )

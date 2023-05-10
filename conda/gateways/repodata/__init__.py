@@ -628,7 +628,7 @@ class RepodataCache:
 
     def save(self, data: str):
         """Write data to <repodata>.json cache path, synchronize state."""
-        temp_path = self.cache_dir / f"{self.name}.{os.urandom(4).hex()}.tmp"
+        temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
 
         try:
             with temp_path.open("x") as temp:  # exclusive mode, error if exists
