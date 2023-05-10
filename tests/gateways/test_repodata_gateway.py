@@ -370,7 +370,7 @@ def test_repodata_fetch_formats(
     package_repository_base: Path,
 ):
     """
-    Test that repodata fetch can return parsed, str, or Path.
+    Test that repodata fetch can return parsed or Path.
     """
     assert temp_package_cache.exists()
 
