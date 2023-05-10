@@ -574,9 +574,7 @@ def get_blank_actions(prefix):  # pragma: no cover
 
 @time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
-    """
-    Deprecated: This should `conda.instructions.execute_instructions` instead
-    """
+    """Deprecated: This should `conda.instructions.execute_instructions` instead."""
     plan = _update_old_plan(old_plan)
     execute_instructions(plan, index, verbose)
 

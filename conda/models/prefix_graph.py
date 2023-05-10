@@ -34,8 +34,8 @@ class PrefixGraph:
     def __init__(self, records, specs=()):
         records = tuple(records)
         specs = set(specs)
-        self.graph = graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
-        self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
+        self.graph = graph = {}  # dict[PrefixRecord, set[PrefixRecord]]
+        self.spec_matches = spec_matches = {}  # dict[PrefixRecord, set[MatchSpec]]
         for node in records:
             parent_match_specs = tuple(MatchSpec(d) for d in node.depends)
             parent_nodes = {
@@ -56,7 +56,7 @@ class PrefixGraph:
             spec (MatchSpec):
 
         Returns:
-            Tuple[PrefixRecord]: The removed nodes.
+            tuple[PrefixRecord]: The removed nodes.
 
         """
         node_matches = {node for node in self.graph if spec.match(node)}
@@ -82,7 +82,7 @@ class PrefixGraph:
         A specialized method used to determine only dependencies of requested specs.
 
         Returns:
-            Tuple[PrefixRecord]: The removed nodes.
+            tuple[PrefixRecord]: The removed nodes.
 
         """
         graph = self.graph
@@ -111,7 +111,7 @@ class PrefixGraph:
         """Prune back all packages until all child nodes are anchored by a spec.
 
         Returns:
-            Tuple[PrefixRecord]: The pruned nodes.
+            tuple[PrefixRecord]: The pruned nodes.
 
         """
         graph = self.graph

@@ -103,9 +103,7 @@ class SubdirDataType(type):
 
 
 class PackageRecordList(UserList):
-    """
-    Lazily convert dicts to PackageRecord.
-    """
+    """Lazily convert dicts to PackageRecord."""
 
     def __getitem__(self, i):
         if isinstance(i, slice):
@@ -221,9 +219,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def _repo(self) -> RepoInterface:
-        """
-        Changes as we mutate self.repodata_fn.
-        """
+        """Changes as we mutate self.repodata_fn."""
         return self.RepoInterface(
             self.url_w_credentials,
             self.repodata_fn,
@@ -263,9 +259,7 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_state(self):
-        """
-        Out-of-band etag and other state needed by the RepoInterface.
-        """
+        """Out-of-band etag and other state needed by the RepoInterface."""
         return Path(
             self.cache_path_base
             + ("1" if context.use_only_tar_bz2 else "")
@@ -499,9 +493,7 @@ class SubdirData(metaclass=SubdirDataType):
             return _internal_state
 
     def _pickle_valid_checks(self, pickled_state, mod, etag):
-        """
-        Throw away the pickle if these don't all match.
-        """
+        """Throw away the pickle if these don't all match."""
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
         yield "_add_pip", pickled_state.get(
@@ -556,11 +548,11 @@ class SubdirData(metaclass=SubdirDataType):
         return _pickled_state
 
     def _process_raw_repodata_str(
-        self, raw_repodata_str, state: RepodataState | None = None
+        self,
+        raw_repodata_str,
+        state: RepodataState | None = None,
     ):
-        """
-        state contains information that was previously in-band in raw_repodata_str.
-        """
+        """State contains information that was previously in-band in raw_repodata_str."""
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
@@ -680,7 +672,7 @@ class SubdirData(metaclass=SubdirDataType):
         return _internal_state
 
 
-@deprecated("23.1", "23.5", addendum="Cache headers are now stored in a separate file.")
+@deprecated("23.9", "24.3", addendum="Cache headers are now stored in a separate file.")
 def read_mod_and_etag(path):
     # this function should no longer be used by conda but is kept for API
     # stability. Was used to read inlined cache information from json; now

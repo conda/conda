@@ -413,6 +413,46 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
         assert zlib_conda_fn in pkgs_dir_files
 
 
+def test_instantiating_package_cache_when_unpacked_conda_exist():
+    """
+    If .conda package exist in a writable package cache, but is unpacked,
+    the .conda package should be unpacked in place.
+    """
+    with make_temp_package_cache() as pkgs_dir:
+        # copy .conda to package cache
+        pkg_url = f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}"
+        cache_action = CacheUrlAction(
+            pkg_url,
+            pkgs_dir,
+            zlib_conda_fn,
+        )
+        cache_action.verify()
+        cache_action.execute()
+        cache_action.cleanup()
+
+        PackageCacheData._cache_.clear()
+        pcd = PackageCacheData(pkgs_dir)
+        pcrecs = tuple(pcd.iter_records())
+        assert len(pcrecs) == 1
+        pcrec = pcrecs[0]
+
+        # ensure the package was actually extracted by presence of repodata_record.json
+        with open(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")) as fh:
+            repodata_record = json.load(fh)
+
+        assert pcrec.fn == zlib_conda_fn == repodata_record["fn"]
+        assert pcrec.md5 == repodata_record["md5"]
+
+        pkgs_dir_files = listdir(pkgs_dir)
+        assert zlib_base_fn in pkgs_dir_files
+        assert zlib_conda_fn in pkgs_dir_files
+
+        # PackageRecord should have valid url otherwise query won't find a match when MatchSpec is an explicit url
+        assert pcrec.url == pkg_url
+        pcrec_match = tuple(pcd.query(MatchSpec(pkg_url)))
+        assert len(pcrec_match) == 1
+
+
 def test_cover_reverse():
     class f:
         def result(self):
@@ -506,7 +546,5 @@ def test_cover_extract_bad_package(tmp_path):
 
 
 def test_conda_build_alias():
-    """
-    conda-build wants to use an old import.
-    """
+    """conda-build wants to use an old import."""
     assert conda.core.package_cache.ProgressiveFetchExtract
