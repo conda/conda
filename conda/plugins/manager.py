@@ -12,7 +12,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import solvers, subcommands, virtual_packages
+from . import shells, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
 log = logging.getLogger(__name__)
@@ -172,6 +172,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
+        *shells.plugins
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

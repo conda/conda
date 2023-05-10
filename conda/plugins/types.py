@@ -48,3 +48,19 @@ class CondaSolver(NamedTuple):
 
     name: str
     backend: type[Solver]
+
+class CondaShellPlugins(NamedTuple):
+    """
+    A conda shell plugin.
+
+    :param name: Shell plugin name (e.g., ``conda my-shell-plugin-name``).
+    :param summary: Shell plugin summary, will be shown in ``conda --help``.
+    :param action: Callable that will be run when the shell plugin is invoked.
+    """
+
+    name: str
+    summary: str
+    action: Callable[
+        [list[str]],  # arguments
+        int | None,  # return code
+    ]
