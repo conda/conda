@@ -159,7 +159,7 @@ def test_repodata_state(
     package_server: socket,
     use_jlap: bool,
 ):
-    """Test that .state.json file works correctly."""
+    """Test that cache metadata file works correctly."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"

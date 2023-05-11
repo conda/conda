@@ -132,6 +132,7 @@ class GetRepodataIntegrationTests(TestCase):
             {"CONDA_USE_INDEX_CACHE": "true"},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
+            sd.clear_cached_local_channel_data()
             sd._load()
 
 

@@ -348,7 +348,7 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 
 class RepodataState(UserDict):
-    """Load/save `.state.json` that accompanies cached `repodata.json`."""
+    """Load/save info file that accompanies cached `repodata.json`."""
 
     # Accept old keys for new serialization
     _aliased = {
@@ -409,7 +409,7 @@ class RepodataState(UserDict):
 
     @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def save(self):
-        """Must be called after writing cache_path_json, since mtime is included in .state.json."""
+        """Must be called after writing cache_path_json, since mtime is in another file."""
         serialized = dict(self)
         json_stat = self.cache_path_json.stat()
         serialized.update(
@@ -477,7 +477,8 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warn(
-                "error parsing `has_` object from `<cache key>.state.json`", exc_info=e
+                "error parsing `has_` object from `<cache key>a separate file`",
+                exc_info=e,
             )
             self.pop(key)
 
@@ -526,7 +527,7 @@ class RepodataState(UserDict):
 
 class RepodataCache:
     """
-    Handle caching for a single repodata.json + repodata.state.json
+    Handle caching for a single repodata.json + repodataa separate file
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
@@ -564,8 +565,8 @@ class RepodataCache:
     def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
 
-        # lock .state.json
-        # read .state.json
+        # lock a separate file
+        # read a separate file
         # read repodata.json
         # check stat, if wrong clear cache information
 
@@ -602,7 +603,7 @@ class RepodataCache:
 
         return json_data
 
-        # check repodata.json stat(); mtime_ns must equal .state.json, or it is stale
+        # check repodata.json stat(); mtime_ns must equal a separate file, or it is stale
         # read repodata.json
         # check repodata.json stat() again: st_size, st_mtime_ns must be equal
 
@@ -610,7 +611,7 @@ class RepodataCache:
 
         # repodata.json is not okay - maybe use it, but don't allow cache updates
 
-        # unlock .state.json
+        # unlock a separate file
 
         # also, add refresh_ns instead of touching repodata.json file
 
@@ -667,7 +668,7 @@ class RepodataCache:
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
-        """Update access time in .state.json to indicate a HTTP 304 Not Modified response."""
+        """Update access time in a separate file to indicate a HTTP 304 Not Modified response."""
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
@@ -889,7 +890,7 @@ class RepodataFetch:
                 self.url_w_repodata_fn,
             )
             cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
+            # touch(self.cache_path_json) # not anymore, or the a separate file is invalid
             # self._save_state(mod_etag_headers)
             _internal_state = self.read_cache()
             return _internal_state

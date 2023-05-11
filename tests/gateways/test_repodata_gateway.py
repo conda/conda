@@ -62,7 +62,7 @@ def test_save(tmp_path):
 
     time.sleep(0.1)  # may be necessary on Windows for time.time_ns() to advance
 
-    # update last-checked-timestamp in .state.json
+    # update last-checked-timestamp in metadata file
     cache.refresh()
 
     # repodata.json's mtime should be equal
@@ -73,7 +73,7 @@ def test_save(tmp_path):
 
     assert state2 != state
 
-    # force reload repodata, .state.json from disk
+    # force reload repodata, metadata file from disk
     cache.load()
     state3 = dict(cache.state)
 
