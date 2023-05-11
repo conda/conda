@@ -672,7 +672,7 @@ class SubdirData(metaclass=SubdirDataType):
         return _internal_state
 
 
-@deprecated("23.1", "23.5", addendum="Cache headers are now stored in a separate file.")
+@deprecated("23.1", "23.9", addendum="Cache headers are now stored in a separate file.")
 def read_mod_and_etag(path):
     # this function should no longer be used by conda but is kept for API
     # stability. Was used to read inlined cache information from json; now
