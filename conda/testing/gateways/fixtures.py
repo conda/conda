@@ -11,7 +11,6 @@ import pytest
 from botocore.client import Config
 from xprocess import ProcessStarter
 
-
 MINIO_EXE = which("minio")
 
 
