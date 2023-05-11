@@ -317,7 +317,8 @@ class SubdirData(metaclass=SubdirDataType):
         unavailable.
         """
         try:
-            repodata, state = self.repo_fetch.fetch_latest_parsed()
+            fetcher = self.repo_fetch
+            repodata, state = fetcher.fetch_latest_parsed()
             return self._process_raw_repodata(repodata, state)
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
@@ -535,7 +536,7 @@ class SubdirData(metaclass=SubdirDataType):
 def read_mod_and_etag(path):
     # this function should no longer be used by conda but is kept for API
     # stability. Was used to read inlined cache information from json; now
-    # stored in *.state.json
+    # stored in separate file.
     with open(path, "rb") as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
