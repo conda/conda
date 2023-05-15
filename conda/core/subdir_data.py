@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.gateways.repodata import (
+    CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
     RepodataIsEmpty,
@@ -33,6 +34,7 @@ from conda.gateways.repodata import (
     RepoInterface,
     Response304ContentUnchanged,
     cache_fn_url,
+    get_repo_interface,
 )
 
 from .. import CondaError
@@ -59,21 +61,6 @@ log = getLogger(__name__)
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
-
-
-def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
-        try:
-            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
-
-            return JlapRepoInterface
-        except ImportError as e:  # pragma: no cover
-            warnings.warn(
-                "Could not load the configured jlap repo interface. "
-                f"Is the required jsonpatch package installed?  {e}"
-            )
-
-    return CondaRepoInterface
 
 
 class SubdirDataType(type):
@@ -263,7 +250,7 @@ class SubdirData(metaclass=SubdirDataType):
         return Path(
             self.cache_path_base
             + ("1" if context.use_only_tar_bz2 else "")
-            + ".state.json"
+            + CACHE_STATE_SUFFIX
         )
 
     @property
@@ -403,8 +390,6 @@ class SubdirData(metaclass=SubdirDataType):
                 self.url_w_repodata_fn,
             )
             cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
-            # self._save_state(mod_etag_headers)
             _internal_state = self._read_local_repodata(cache.state)
             return _internal_state
         else:
@@ -676,7 +661,7 @@ class SubdirData(metaclass=SubdirDataType):
 def read_mod_and_etag(path):
     # this function should no longer be used by conda but is kept for API
     # stability. Was used to read inlined cache information from json; now
-    # stored in *.state.json
+    # stored in *{CACHE_STATE_SUFFIX}
     with open(path, "rb") as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
