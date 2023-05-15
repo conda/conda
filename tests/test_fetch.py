@@ -18,6 +18,7 @@ from conda.gateways.connection.download import TmpDownload
 
 @pytest.mark.integration
 class TestConnectionWithShortTimeouts(TestCase):
+    # change to trigger test run
     def test_download_connectionerror(self):
         with env_var(
             "CONDA_REMOTE_CONNECT_TIMEOUT_SECS",
