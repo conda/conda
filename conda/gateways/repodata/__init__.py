@@ -477,7 +477,7 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warn(
-                "error parsing `has_` object from `<cache key>a separate file`",
+                f"error parsing `has_` object from `<cache key>.{CACHE_STATE_SUFFIX}`",
                 exc_info=e,
             )
             self.pop(key)
@@ -527,7 +527,7 @@ class RepodataState(UserDict):
 
 class RepodataCache:
     """
-    Handle caching for a single repodata.json + repodataa separate file
+    Handle caching for a single repodata.json + repodata.info.json
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
