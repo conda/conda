@@ -583,8 +583,8 @@ def make_feature_record(feature_name):
 
 
 @deprecated(
-    "23.1",
-    "24.1",
+    "23.9",
+    "24.3",
     addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
     "is pending deprecation and will be removed in the future. "
     "Please use `conda.core.subdir_data.SubdirData` instead.",
