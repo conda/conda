@@ -165,7 +165,7 @@ def posix_plugin_with_shell(*args, **kwargs):
 @hookimpl
 def conda_shell_plugins():
     yield CondaShellPlugins(
-        name="posix_plugin_with_shell",
+        name="posix_exec_plugin_with_shell",
         summary="Plugin for POSIX shells that calls the conda processes used for activate, deactivate, and reactivate",
         action=posix_plugin_with_shell
     )

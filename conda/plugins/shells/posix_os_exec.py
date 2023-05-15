@@ -123,7 +123,7 @@ def ard(*args, **kwargs):
 @hookimpl
 def conda_shell_plugins():
     yield CondaShellPlugins(
-        name="ard",
+        name="posix_exec_plugin",
         summary="Plugin for POSIX shells that calls the conda processes used for activate, deactivate, and reactivate",
         action=ard
     )
