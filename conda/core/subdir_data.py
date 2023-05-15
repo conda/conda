@@ -18,6 +18,11 @@ from time import time
 
 from genericpath import getmtime, isfile
 
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:  # pragma: no cover
+    from .._vendor.boltons.setutils import IndexedSet
+
 from conda.gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
@@ -31,7 +36,6 @@ from conda.gateways.repodata import (
     get_repo_interface,
 )
 
-from .._vendor.boltons.setutils import IndexedSet
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
