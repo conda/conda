@@ -54,7 +54,7 @@ def ard(*args, **kwargs):
     env_args = (command, env) if env else (command,)
     activator = PosixActivator(env_args)
 
-    # call the methods leading up to activate
+    # call the methods leading up to the command-specific builds
     activator._parse_and_set_args(env_args)
 
     # at the moment, if activate is called without an environment, reactivation is being run
@@ -93,7 +93,7 @@ def ard(*args, **kwargs):
     for key, value in sorted(export_vars.items()):
         env_map[str(key)]=str(value)
 
-    # we lose the ability to run the deactivate scripts as part of the same 
+    # we lose the ability to run the deactivate scripts as part of the initial environment
     deactivate_list = [activator.run_script_tmpl % script for script in deactivate_scripts]
     # TODO: run the deactivate scripts as sub-processes (attempt this)
 
