@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
+
 from conda import plugins
 from conda.plugins.types import CondaOnException, CondaPostRun, CondaPreRun
 
@@ -31,7 +32,9 @@ class PostRunPlugin:
     @plugins.hookimpl
     def conda_post_run(self):
         yield CondaPostRun(
-            name="custom_post_run", action=self.generic_post_run_plugin, run_for="install"
+            name="custom_post_run",
+            action=self.generic_post_run_plugin,
+            run_for="install",
         )
 
 
