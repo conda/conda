@@ -112,7 +112,6 @@ class CondaSpecs:
         :return: An iterable of pre-run commands.
 
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -132,7 +131,6 @@ class CondaSpecs:
                     action=custom_plugin_pre_commands_action,
                     run_for={"install", "create"},
                 )
-
         """
 
     @_hookspec
@@ -143,7 +141,6 @@ class CondaSpecs:
         :return: An iterable of post-run commands.
 
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -163,7 +160,6 @@ class CondaSpecs:
                     action=custom_plugin_post_commands_action,
                     run_for={"install", "create"},
                 )
-
         """
 
     @_hookspec
@@ -174,7 +170,6 @@ class CondaSpecs:
         :return: An iterable of on-exception commands.
 
         Example:
-
         .. code-block:: python
 
             from conda import plugins
@@ -192,5 +187,4 @@ class CondaSpecs:
                 yield CondaOnException(
                     name=f"{PLUGIN_NAME}_on_exception", action=custom_plugin_on_exception_action
                 )
-
         """
