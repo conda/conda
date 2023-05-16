@@ -420,7 +420,7 @@ class SubdirData(metaclass=SubdirDataType):
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata: dict, state: RepodataState | None):
+    def _process_raw_repodata(self, repodata: dict, state: RepodataState | None = None):
         if not isinstance(state, RepodataState):
             state = RepodataState(
                 self.cache_path_json,
