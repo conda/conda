@@ -211,7 +211,7 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
-@deprecated("23.9", "24.3", addendum="Use `conda.testing.run` instead.")
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
