@@ -16,8 +16,8 @@ from conda.exceptions import (
 )
 from conda.plugins.subcommands.doctor.cli import get_prefix
 from conda.plugins.subcommands.doctor.health_checks import MISSING_FILES_SUCCESS_MESSAGE
+from conda.testing import TmpEnvFixture
 from conda.testing.helpers import run_inprocess_conda_command as run
-from conda.testing.integration import make_temp_env
 
 
 def test_conda_doctor_happy_path():
@@ -48,10 +48,10 @@ def test_conda_doctor_happy_path_show_help():
     assert not code  # successful exit code
 
 
-def test_conda_doctor_with_test_environment():
+def test_conda_doctor_with_test_environment(tmp_env: TmpEnvFixture):
     """Make sure that we are able to call ``conda doctor`` command for a specific environment"""
 
-    with make_temp_env() as prefix:
+    with tmp_env() as prefix:
         out, err, code = run(f"conda doctor --prefix '{prefix}'")
 
         assert MISSING_FILES_SUCCESS_MESSAGE in out
@@ -68,8 +68,8 @@ def test_get_prefix_bad_name():
         get_prefix(Namespace(name="invalid", prefix=None))
 
 
-def test_get_prefix_prefix():
-    with make_temp_env() as prefix:
+def test_get_prefix_prefix(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
         assert get_prefix(Namespace(name=None, prefix=prefix)) == prefix
 
 
@@ -78,8 +78,8 @@ def test_get_prefix_bad_prefix(tmp_path: Path):
         assert get_prefix(Namespace(name=None, prefix=tmp_path))
 
 
-def test_get_prefix_active():
-    with make_temp_env() as prefix, env_vars(
+def test_get_prefix_active(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix, env_vars(
         {"CONDA_PREFIX": prefix},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):

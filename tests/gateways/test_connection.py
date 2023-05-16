@@ -15,8 +15,9 @@ from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
+from conda.testing import TmpEnvFixture
 from conda.testing.gateways.fixtures import MINIO_EXE
-from conda.testing.integration import env_var, make_temp_env
+from conda.testing.integration import env_var
 
 log = getLogger(__name__)
 
@@ -71,7 +72,7 @@ class CondaSessionTests(TestCase):
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
 @pytest.mark.integration
-def test_s3_server(minio_s3_server):
+def test_s3_server(minio_s3_server, tmp_env: TmpEnvFixture):
     import boto3
     from botocore.client import Config
 
@@ -99,7 +100,7 @@ def test_s3_server(minio_s3_server):
         ):
             # the .conda files in this repo are somehow corrupted
             with env_var("CONDA_USE_ONLY_TAR_BZ2", "True"):
-                with make_temp_env(
+                with tmp_env(
                     "--override-channels",
                     f"--channel=s3://{bucket_name}",
                     "--download-only",
@@ -108,5 +109,5 @@ def test_s3_server(minio_s3_server):
                     use_exception_handler=False,
                     no_capture=True,
                 ):
-                    # we just want to run make_temp_env and cleanup after
+                    # we just want to run tmp_env and cleanup after
                     pass

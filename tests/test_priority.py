@@ -8,10 +8,10 @@ import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
+from conda.testing import TmpEnvFixture
 from conda.testing.integration import (
     Commands,
     get_conda_list_tuple,
-    make_temp_env,
     package_is_installed,
     run_command,
 )
@@ -19,15 +19,15 @@ from conda.testing.integration import (
 
 @pytest.mark.integration
 class PriorityIntegrationTests(TestCase):
-    def test_channel_order_channel_priority_true(self):
-        # This is broken, make_temp_env will reset the context. We get away with it, but really
+    def test_channel_order_channel_priority_true(self, tmp_env: TmpEnvFixture):
+        # This is broken, tmp_env will reset the context. We get away with it, but really
         # we need a function that does both these at the same time.
         with env_var(
             "CONDA_PINNED_PACKAGES",
             "python=3.8",
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with make_temp_env("pycosat=0.6.3") as prefix:
+            with tmp_env("pycosat=0.6.3") as prefix:
                 assert package_is_installed(prefix, "python=3.8")
                 assert package_is_installed(prefix, "pycosat")
 
@@ -75,9 +75,9 @@ class PriorityIntegrationTests(TestCase):
                 pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
                 assert pycosat_tuple[3] == "conda-forge"
 
-    def test_channel_priority_update(self):
+    def test_channel_priority_update(self, tmp_env: TmpEnvFixture):
         """This case will fail now."""
-        with make_temp_env("python=3.8", "pycosat") as prefix:
+        with tmp_env("python=3.8", "pycosat") as prefix:
             assert package_is_installed(prefix, "python")
 
             # clear channels config first to not assume default is defaults

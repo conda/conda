@@ -13,13 +13,9 @@ import pytest
 from conda.base.constants import on_win
 from conda.base.context import context
 from conda.gateways.disk.delete import rm_rf
+from conda.testing import TmpEnvFixture
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
-from conda.testing.integration import (
-    Commands,
-    make_temp_env,
-    make_temp_prefix,
-    run_command,
-)
+from conda.testing.integration import Commands, run_command
 
 
 @pytest.mark.usefixtures("tmpdir")
@@ -196,8 +192,8 @@ class TestJson(unittest.TestCase):
         )
 
     @pytest.mark.integration
-    def test_search_2(self):
-        with make_temp_env() as prefix:
+    def test_search_2(self, tmp_env: TmpEnvFixture):
+        with tmp_env() as prefix:
             stdout, stderr, _ = run_command(
                 Commands.SEARCH,
                 prefix,
@@ -238,8 +234,8 @@ class TestJson(unittest.TestCase):
             )
 
     @pytest.mark.integration
-    def test_search_3(self):
-        with make_temp_env() as prefix:
+    def test_search_3(self, tmp_env: TmpEnvFixture):
+        with tmp_env() as prefix:
             stdout, stderr, _ = run_command(
                 Commands.SEARCH,
                 prefix,
@@ -287,9 +283,8 @@ def test_search_envs():
         assert "conda" in stdout
 
 
-def test_run_returns_int():
-    prefix = make_temp_prefix(name="test")
-    with make_temp_env(prefix=prefix):
+def test_run_returns_int(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
         stdout, stderr, result = run_inprocess_conda_command(
             f"conda run -p {prefix} echo hi"
         )
@@ -297,9 +292,8 @@ def test_run_returns_int():
         assert isinstance(result, int)
 
 
-def test_run_returns_zero_errorlevel():
-    prefix = make_temp_prefix(name="test")
-    with make_temp_env(prefix=prefix):
+def test_run_returns_zero_errorlevel(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
         stdout, stderr, result = run_inprocess_conda_command(
             f"conda run -p {prefix} exit 0"
         )
@@ -307,9 +301,8 @@ def test_run_returns_zero_errorlevel():
         assert result == 0
 
 
-def test_run_returns_nonzero_errorlevel():
-    prefix = make_temp_prefix(name="test")
-    with make_temp_env(prefix=prefix) as prefix:
+def test_run_returns_nonzero_errorlevel(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
         stdout, stderr, result = run_inprocess_conda_command(
             f'conda run -p "{prefix}" exit 5'
         )
@@ -317,9 +310,8 @@ def test_run_returns_nonzero_errorlevel():
         assert result == 5
 
 
-def test_run_uncaptured(capfd):
-    prefix = make_temp_prefix(name="test")
-    with make_temp_env(prefix=prefix):
+def test_run_uncaptured(capfd, tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
         random_text = uuid.uuid4().hex
         stdout, stderr, result = run_inprocess_conda_command(
             f"conda run -p {prefix} --no-capture-output echo {random_text}"
@@ -335,9 +327,8 @@ def test_run_uncaptured(capfd):
 
 
 @pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
-def test_run_readonly_env(request):
-    prefix = make_temp_prefix(name="test")
-    with make_temp_env(prefix=prefix) as prefix:
+def test_run_readonly_env(request, tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
         # Remove write permissions
         current = stat.S_IMODE(os.lstat(prefix).st_mode)
         os.chmod(prefix, current & ~stat.S_IWRITE)

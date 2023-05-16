@@ -7,10 +7,10 @@ import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.gateways.disk.delete import rm_rf
+from conda.testing import TmpEnvFixture
 from conda.testing.integration import (
     PYTHON_BINARY,
     Commands,
-    make_temp_env,
     make_temp_prefix,
     package_is_installed,
     run_command,
@@ -19,8 +19,8 @@ from conda.testing.integration import (
 
 @pytest.mark.integration
 class ExportIntegrationTests(TestCase):
-    def test_basic(self):
-        with make_temp_env("python=3.5") as prefix:
+    def test_basic(self, tmp_env: TmpEnvFixture):
+        with tmp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "python=3")
 
@@ -41,12 +41,12 @@ class ExportIntegrationTests(TestCase):
             self.assertEqual(output, output2)
 
     @pytest.mark.skipif(True, reason="Bring back `conda list --export` #3445")
-    def test_multi_channel_export(self):
+    def test_multi_channel_export(self, tmp_env: TmpEnvFixture):
         """
         When try to import from txt
         every package should come from same channel
         """
-        with make_temp_env("python=3.5") as prefix:
+        with tmp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "python=3")
 
@@ -71,12 +71,12 @@ class ExportIntegrationTests(TestCase):
             finally:
                 rm_rf(env_txt.name)
 
-    def test_multi_channel_explicit(self):
+    def test_multi_channel_explicit(self, tmp_env: TmpEnvFixture):
         """
         When try to import from txt
         every package should come from same channel
         """
-        with make_temp_env("python=3.5") as prefix:
+        with tmp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "python=3")
 
