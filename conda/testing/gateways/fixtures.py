@@ -4,15 +4,14 @@ import json
 import os
 import socket
 from pathlib import Path
+from shutil import which
 
 import boto3
 import pytest
 from botocore.client import Config
 from xprocess import ProcessStarter
 
-from ...cli.find_commands import find_executable
-
-MINIO_EXE = find_executable("minio")
+MINIO_EXE = which("minio")
 
 
 def minio_s3_server(xprocess, tmp_path):

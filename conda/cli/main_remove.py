@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import logging
-import sys
 from os.path import isfile, join
 
 from ..base.context import context
@@ -55,12 +54,11 @@ def execute(args, parser):
     if args.all:
         if prefix == context.root_prefix:
             raise CondaEnvironmentError(
-                "cannot remove root environment,\n"
-                "       add -n NAME or -p PREFIX option"
+                "cannot remove root environment, add -n NAME or -p PREFIX option"
             )
         if not isfile(join(prefix, "conda-meta", "history")):
             raise DirectoryNotACondaEnvironmentError(prefix)
-        print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
+        print(f"\nRemove all packages in environment {prefix}:\n")
 
         if "package_names" in args:
             stp = PrefixSetup(
@@ -75,9 +73,7 @@ def execute(args, parser):
             try:
                 handle_txn(txn, prefix, args, False, True)
             except PackagesNotFoundError:
-                print(
-                    "No packages found in %s. Continuing environment removal" % prefix
-                )
+                print(f"No packages found in {prefix}. Continuing environment removal")
         if not context.dry_run:
             rm_rf(prefix, clean_empty_parents=True)
             unregister_env(prefix)
