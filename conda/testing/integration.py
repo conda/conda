@@ -25,8 +25,8 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser, init_loggers
+from conda.cli.conda_argparse import do_call, generate_parser
+from conda.cli.main import init_loggers
 from conda.common.compat import encode_arguments, on_win
 from conda.common.io import (
     argv,
