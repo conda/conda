@@ -268,6 +268,7 @@ def request_url_jlap_state(
     temp_path: pathlib.Path,
 ) -> dict | None:
     jlap_state = state.get(JLAP_KEY, {})
+    headers = jlap_state.get(HEADERS, {})
     json_path = cache.cache_path_json
 
     buffer = JLAP()  # type checks
@@ -339,7 +340,7 @@ def request_url_jlap_state(
         try:
             iv_hex = jlap_state.get("iv", "")
             pos = jlap_state.get("pos", 0)
-            etag = jlap_state.get(ETAG_KEY, None)
+            etag = headers.get(ETAG_KEY, None)
             jlap_url = withext(url, ".jlap")
             log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
             # wrong to read state outside of function, and totally rebuild inside

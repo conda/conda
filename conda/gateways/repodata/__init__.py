@@ -477,7 +477,7 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warn(
-                f"error parsing `has_` object from `<cache key>.{CACHE_STATE_SUFFIX}`",
+                f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
                 exc_info=e,
             )
             self.pop(key)
@@ -565,8 +565,8 @@ class RepodataCache:
     def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
 
-        # lock a separate file
-        # read a separate file
+        # lock {CACHE_STATE_SUFFIX} file
+        # read {CACHE_STATES_SUFFIX} file
         # read repodata.json
         # check stat, if wrong clear cache information
 
@@ -603,7 +603,8 @@ class RepodataCache:
 
         return json_data
 
-        # check repodata.json stat(); mtime_ns must equal a separate file, or it is stale
+        # check repodata.json stat(); mtime_ns must equal value in
+        # {CACHE_STATE_SUFFIX} file, or it is stale.
         # read repodata.json
         # check repodata.json stat() again: st_size, st_mtime_ns must be equal
 
@@ -611,7 +612,7 @@ class RepodataCache:
 
         # repodata.json is not okay - maybe use it, but don't allow cache updates
 
-        # unlock a separate file
+        # unlock {CACHE_STATE_SUFFIX} file
 
         # also, add refresh_ns instead of touching repodata.json file
 
@@ -668,7 +669,9 @@ class RepodataCache:
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
-        """Update access time in a separate file to indicate a HTTP 304 Not Modified response."""
+        """
+        Update access time in cache info file to indicate a HTTP 304 Not Modified response.
+        """
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates
             state_file.seek(0)
