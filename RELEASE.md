@@ -1,20 +1,24 @@
 <!-- These docs are updated and synced from https://github.com/conda/infra -->
 
-## Release Process
-
-> **Note:**
-> Throughout this document are references to the version number as `YY.M.0`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
-
-[epic template]: ../../issues/new?assignees=&labels=epic&template=epic.yml
+<!-- links -->
+[epic template]: {{ repo.url }}/issues/new?assignees=&labels=epic&template=epic.yml
+[infrastructure]: https://github.com/conda/infrastructure
 [rever docs]: https://regro.github.io/rever-docs
-[compare]: ../../compare
-[new release]: ../../releases/new
+[compare]: {{ repo.url }}/compare
+[new release]: {{ repo.url }}/releases/new
 [release docs]: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
 
-### 1. Open the Release Issue.
+# Release Process
 
-> **Note:**
-> The [epic template][epic template] is perfect for this, just remember to remove the https://github.com/conda/infra/labels/epic label.
+> **Note**
+> Throughout this document are references to the version number as `YY.M.0`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
+
+## 1. Open the Release Issue. (do this ~1 week prior to release)
+
+> **Note**
+> The [epic template][epic template] is perfect for this, just remember to remove the {{ repo.url }}/labels/epic label.
+
+Use the issue template below to create the release issue. After creating the release issue, pin it for easy access.
 
 <details>
 <summary><code>GitHub Issue Template</code></summary>
@@ -22,41 +26,58 @@
 ```markdown
 ### Summary
 
-Placeholder for `conda YY.M.0` release.
+Placeholder for `{{ repo.name }} YY.M.0` release.
+
+| Pilot | <pilot> |
+|---|---|
+| Co-pilot | <copilot> |
 
 ### Tasks
 
-[milestone]: https://github.com/conda/conda/milestone/56
-[releases]: https://github.com/conda/conda/releases
-[main]: https://github.com/AnacondaRecipes/conda-feedstock
-[conda-forge]: https://github.com/conda-forge/conda-feedstock
+[milestone]: {{ repo.url }}/milestone/<milestone>
+[process]: {{ repo.url }}/blob/main/RELEASE.md
+[releases]: {{ repo.url }}/releases
+[main]: https://github.com/AnacondaRecipes/{{ repo.name }}-feedstock
+[conda-forge]: https://github.com/conda-forge/{{ repo.name }}-feedstock
+[ReadTheDocs]: https://readthedocs.com/projects/continuumio-{{ repo.name }}/
+[announcement]: https://github.com/conda/communications
 
+#### The week before release week
+
+- [ ] Create release branch (named `YY.M.x`)
+- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/YY.M.x`)
 - [ ] [Complete outstanding PRs][milestone]
-- [ ] Create release PR
-    - See release process https://github.com/conda/infra/issues/541
-- [ ] [Publish Release][releases]
-- [ ] Create/update `YY.M.x` branch
+- [ ] Test release candidates
+    <!-- indicate here who has signed off on testing -->
+
+#### Release week
+
+- [ ] Create release PR (see [release process][process])
+- [ ] [Publish release][releases]
+- [ ] Activate the `YY.M.x` branch on [ReadTheDocs][ReadTheDocs]
 - [ ] Feedstocks
-    - [ ] Bump version [Anaconda's main][main]
-    - [ ] Bump version [conda-forge][conda-forge]
-    - Link any other feedstock PRs that are necessary
+    - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
+    - [ ] Bump version & update dependencies/tests in [conda-forge feedstock][conda-forge]
+    <!-- link any other feedstock PRs here -->
 - [ ] Hand off to the Anaconda packaging team
 - [ ] Announce release
-    - [ ] Slack
+    - [ ] Create release [announcement draft][announcement]
+    - [ ] Discourse
     - [ ] Twitter
+    - [ ] Matrix
 ```
 
 </details>
 
 
-### 2. Ensure `rever.xsh` and `news/TEMPLATE` are up to date.
+## 2. Ensure `rever.xsh` and `news/TEMPLATE` are up to date.
 
-These are synced from https://github.com/conda/infra.
+These are synced from [`conda/infrastructure`][infrastructure].
 
 <details>
-<summary><h3>3. Run Rever.</h3></summary>
+<summary><h3>3. Run Rever. (ideally done on the Monday of release week)</h3></summary>
 
-Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from builtin race conditions (i.e. to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
+Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from builtin race conditions (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
 
 1. Install [`rever`][rever docs] and activate the environment:
 
@@ -69,11 +90,18 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Clone and `cd` into the repository if you haven't done so already:
 
     ```bash
-    (rever) $ git clone git@github.com:conda/conda.git
+    (rever) $ git clone git@github.com:{{ repo.user }}/{{ repo.name }}.git
     (rever) $ cd conda
     ```
 
-2. Create a release branch:
+2. Fetch the latest changes from the remote and checkout the release branch created a week ago:
+
+    ```bash
+    (rever) $ git fetch upstream
+    (rever) $ git checkout YY.M.x
+    ```
+
+2. Create a versioned branch, this is where rever will make its changes:
 
     ```bash
     (rever) $ git checkout -b release-YY.M.0
@@ -81,7 +109,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 2. Run `rever --activities authors`:
 
-    > **Note:**
+    > **Note**
     > Include `--force` when re-running any rever commands for the same `<VERSION>`, otherwise, rever will skip the activity and no changes will be made (i.e., rever remembers if an activity has been run for a given version).
 
     ```bash
@@ -162,13 +190,13 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 4. Review news snippets (ensure they are all using the correct Markdown format, **not** reStructuredText) and add additional snippets for undocumented PRs/changes as necessary.
 
-    > **Note:**
+    > **Note**
     > We've found it useful to name news snippets with the following format: `<PR #>-<DESCRIPTIVE SLUG>`.
     >
     > We've also found that we like to include the PR #s inline with the text itself, e.g.:
     >
     > ```markdown
-    > ### Enhancements
+    > ## Enhancements
     >
     > * Add `win-arm64` as a known platform (subdir). (#11778)
     > ```
@@ -195,7 +223,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 5. Run `rever --activities changelog`:
 
-    > **Note:**
+    > **Note**
     > This has previously been a notoriously fickle step (likely due to incorrect regex patterns in the `rever.xsh` config file and missing `github` keys in `.authors.yml`) so beware of potential hiccups. If this fails, it's highly likely to be an innocent issue.
 
     ```bash
@@ -260,19 +288,19 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 93fdf029fd4cf235872c12cab12a1f7e8f95a755 Added first contributions
         ```
 
-8. Push this release branch:
+8. Push this versioned branch.
 
     ```bash
     (rever) $ git push -u upstream release-YY.M.0
     ```
 
-9. Open the Release PR.
+9. Open the Release PR targing the `YY.M.x` branch.
 
     <details>
     <summary>GitHub PR Template</summary>
 
     ```markdown
-    ### Description
+    ## Description
 
     ✂️ snip snip ✂️ the making of a new release.
 
@@ -285,36 +313,36 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 11. [Create][new release] the release and **SAVE AS A DRAFT** with the following values:
 
-    > **Note:**
+    > **Note**
     > Only publish the release after the Release PR is merged, until then always **save as draft**.
 
     | Field | Value |
     |---|---|
     | Choose a tag | `YY.M.0` |
-    | Target | `main` |
+    | Target | `YY.M.x` |
     | Body | copy/paste blurb from `CHANGELOG.md` |
 
 </details>
 
-### 4. Wait for review and approval of Release PR.
+## 4. Wait for review and approval of Release PR.
 
-### 5. Merge Release PR and Publish Release.
+## 5. Merge Release PR and Publish Release.
 
-### 6. Create a new branch (`YY.M.x`) corresponding with the release.
+## 6. Merge/cherry pick the release branch over to the `main` branch.
 
-### 7. Open PRs to bump main and conda-forge feedstocks to use `YY.M.0`.
+## 7. Open PRs to bump main and conda-forge feedstocks to use `YY.M.0`.
 
-### 8. Hand off to Anaconda's packaging team.
+## 8. Hand off to Anaconda's packaging team.
 
 <details>
 <summary>Internal process</summary>
 
-1. Open packaging request in #package_requests, include links to the Release PR and feedstock PRs.
+1. Open packaging request in #package_requests Slack channel, include links to the Release PR and feedstock PRs.
 
 2. Message packaging team/PM to let them know that a release has occurred and that you are the release manager.
 
 </details>
 
-### 9. Continue championing and shepherding.
+## 9. Continue championing and shepherding.
 
 Remember to continue updating the Release Issue with the latest details as tasks are completed.

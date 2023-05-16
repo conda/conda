@@ -86,7 +86,7 @@ All of those sources of information produce a number a of `MatchSpec` objects, w
 combined and modified in very specific ways depending on the command line flags and their origin
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate and will be covered in the next sections. A more technical
-description is also available in {doc}`/dev-guide/techspec-solver-state`.
+description is also available in {doc}`/dev-guide/specs/solver-state`.
 
 ```{figure} /img/solver-deep-dive-1.png
 :name: solver-local-variables
@@ -285,7 +285,7 @@ This is currently implemented in the `conda.core.solve.Solver` class. Its main g
 populate the `specs_map` dictionary, which maps package names (`str`) to `MatchSpec` objects.
 This happens at the beginning of the `.solve_final_state()` method. The full details of the
 `specs_map` population are covered in the
-{doc}`solver state technical specification </dev-guide/techspec-solver-state>`, but here's a little
+{doc}`solver state technical specification </dev-guide/specs/solver-state>`, but here's a little
 map of what submethods are involved:
 
 1. Initialization of the `SolverStateContainer`: Often abbreviated as `ssc`, it's a helper

@@ -27,7 +27,7 @@ from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 
 if not on_win:
-    from ...common.path import which
+    from shutil import which
 
 
 log = getLogger(__name__)
