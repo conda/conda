@@ -31,8 +31,8 @@ DIGEST_SIZE = 32  # 256 bits
 
 JLAP_KEY = "jlap"
 HEADERS = "headers"
-NOMINAL_HASH = "nominal_hash"
-ON_DISK_HASH = "actual_hash"
+NOMINAL_HASH = "blake2_256_nominal"
+ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 ZSTD_UNAVAILABLE = "zstd_unavailable"
