@@ -199,6 +199,7 @@ class Commands:
     RUN = "run"
 
 
+@deprecated("23.9", "24.3", addendum="Use `monkeypatch.chdir` instead.")
 @contextmanager
 def temp_chdir(target_dir):
     curdir = os.getcwd()
