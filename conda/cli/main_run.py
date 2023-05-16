@@ -55,4 +55,4 @@ def execute(args, parser):
         log = getLogger(__name__)
         log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining main_run script {script}")
 
-    return response
+    return response.rc

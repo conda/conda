@@ -39,6 +39,7 @@ from conda.common.io import (
 from conda.common.url import escape_channel_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -210,6 +211,7 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.run` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
@@ -278,21 +280,13 @@ def run_command(command, prefix, *arguments, **kwargs):
         TEST_LOG_LEVEL, "requests"
     ):
         arguments = encode_arguments(arguments)
-        is_run = arguments[0] == "run"
-        if is_run:
-            cap_args = (None, None)
         with argv(["python_api"] + arguments), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
                 result = do_call(args, p)
-        if is_run:
-            stdout = result.stdout
-            stderr = result.stderr
-            result = result.rc
-        else:
-            stdout = c.stdout
-            stderr = c.stderr
+        stdout = c.stdout
+        stderr = c.stderr
         print(stdout, file=sys.stdout)
         print(stderr, file=sys.stderr)
 
