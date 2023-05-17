@@ -10,8 +10,8 @@ from logging import getLogger
 from os.path import join
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
-from typing import Optional
 
+import requests
 from requests.exceptions import JSONDecodeError
 
 from conda.common.iterators import groupby_to_dict as groupby
