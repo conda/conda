@@ -447,6 +447,11 @@ def _package_is_installed(prefix, spec):
     return bool(len(prefix_recs))
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="Use `conda.core.prefix_data.PrefixData().get()` instead.",
+)
 def get_conda_list_tuple(prefix, package_name):
     stdout, stderr, _ = run_command(Commands.LIST, prefix)
     stdout_lines = stdout.split("\n")
