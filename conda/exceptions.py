@@ -7,7 +7,6 @@ import os
 import sys
 from datetime import timedelta
 from requests.exceptions import JSONDecodeError
-from simplejson.
 from logging import getLogger
 from os.path import join
 from textwrap import dedent
@@ -496,7 +495,9 @@ class ChannelNotAllowed(ChannelError):
 class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
-    def __init__(self, channel, status_code, response: Optional[requests.models.Response]=None):
+    def __init__(
+        self, channel, status_code, response: Optional[requests.models.Response] = None
+    ):
         # parse channel
         channel = Channel(channel)
         channel_name = channel.name
