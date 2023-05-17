@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
 from os.path import join
+from pathlib import Path
 from time import sleep
 from unittest import TestCase
 from unittest.mock import patch
@@ -26,6 +27,7 @@ from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
+    RepodataFetch,
     Response304ContentUnchanged,
 )
 from conda.models.channel import Channel
@@ -130,6 +132,7 @@ class GetRepodataIntegrationTests(TestCase):
             {"CONDA_USE_INDEX_CACHE": "true"},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
+            sd.clear_cached_local_channel_data()
             sd._load()
 
 
@@ -400,10 +403,20 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
     class BadRepodataCache(RepodataCache):
         cache_path_state = bad_cache
 
+    class BadRepodataFetch(RepodataFetch):
+        @property
+        def repo_cache(self) -> RepodataCache:
+            return BadRepodataCache(self.cache_path_base, self.repodata_fn)
+
     class BadCacheSubdirData(SubdirData):
         @property
-        def repo_cache(self):
-            return BadRepodataCache(self.cache_path_base, self.repodata_fn)
+        def repo_fetch(self):
+            return BadRepodataFetch(
+                Path(self.cache_path_base),
+                self.channel,
+                self.repodata_fn,
+                repo_interface_cls=CondaRepoInterface,
+            )
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
     sd = BadCacheSubdirData(channel=local_channel)

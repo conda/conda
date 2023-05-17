@@ -20,7 +20,12 @@ from requests import HTTPError
 
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
+from conda.gateways.repodata import (
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    RepodataCache,
+    RepodataState,
+)
 
 from .core import JLAP
 
@@ -54,12 +59,6 @@ STORE_HEADERS = {
 def hash():
     """Ordinary hash."""
     return blake2b(digest_size=DIGEST_SIZE)
-
-
-def get_place(url, extra=""):
-    if "current_repodata" in url:
-        extra = f".c{extra}"
-    return pathlib.Path("-".join(url.split("/")[-3:-1])).with_suffix(f"{extra}.json")
 
 
 class Jlap304NotModified(Exception):
@@ -262,15 +261,15 @@ def download_and_hash(
 def request_url_jlap_state(
     url,
     state: RepodataState,
-    get_place=get_place,
     full_download=False,
     *,
     session: Session,
-):
+    cache: RepodataCache,
+    temp_path: pathlib.Path,
+) -> dict | None:
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
-
-    json_path = get_place(url)
+    json_path = cache.cache_path_json
 
     buffer = JLAP()  # type checks
 
@@ -292,7 +291,8 @@ def request_url_jlap_state(
                     response = download_and_hash(
                         hasher,
                         withext(url, ".json.zst"),
-                        json_path,
+                        json_path,  # makes conditional request if exists
+                        dest_path=temp_path,  # writes to
                         session=session,
                         state=state,
                         is_zst=True,
@@ -310,6 +310,7 @@ def request_url_jlap_state(
                     hasher,
                     withext(url, ".json"),
                     json_path,
+                    dest_path=temp_path,
                     session=session,
                     state=state,
                 )
@@ -363,7 +364,12 @@ def request_url_jlap_state(
             if e.response.status_code == 404:
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
-                    url, state, get_place=get_place, full_download=True, session=session
+                    url,
+                    state,
+                    full_download=True,
+                    session=session,
+                    cache=cache,
+                    temp_path=temp_path,
                 )
             log.exception("Requests error")
 
@@ -398,15 +404,21 @@ def request_url_jlap_state(
             )
 
             if apply:
-                with timeme("Load "), json_path.open() as repodata:
+                with timeme("Load "):
                     # we haven't loaded repodata yet; it could fail to parse, or
                     # have the wrong hash.
-                    repodata_json = json.load(repodata)  # check have_hash here
                     # if this fails, then we also need to fetch again from 0
+                    repodata_json = json.loads(cache.load())
+                    # XXX cache.state must equal what we started with, otherwise
+                    # bail with 'repodata on disk' (indicating another process
+                    # downloaded repodata.json in parallel with us)
+                    if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
+                        log.warn("repodata cache changed during jlap fetch.")
+                        return None
 
                 apply_patches(repodata_json, apply)
 
-                with timeme("Write changed "), json_path.open("wb") as repodata:
+                with timeme("Write changed "), temp_path.open("wb") as repodata:
                     hasher = hash()
                     HashWriter(repodata, hasher).write(
                         json.dumps(repodata_json).encode("utf-8")
@@ -418,6 +430,8 @@ def request_url_jlap_state(
                     # hash of equivalent upstream json
                     state[NOMINAL_HASH] = want
 
+                    # avoid duplicate parsing
+                    return repodata_json
             else:
                 assert state[NOMINAL_HASH] == want
 
@@ -434,5 +448,10 @@ def request_url_jlap_state(
             assert not full_download, "Recursion error"  # pragma: no cover
 
             return request_url_jlap_state(
-                url, state, get_place=get_place, full_download=True, session=session
+                url,
+                state,
+                full_download=True,
+                session=session,
+                cache=cache,
+                temp_path=temp_path,
             )
