@@ -199,6 +199,7 @@ class Commands:
     RUN = "run"
 
 
+@deprecated("23.9", "24.3", addendum="Use `monkeypatch.chdir` instead.")
 @contextmanager
 def temp_chdir(target_dir):
     curdir = os.getcwd()
@@ -211,7 +212,7 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
-@deprecated("23.9", "24.3", addendum="Use `conda.testing.run` instead.")
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
@@ -447,6 +448,11 @@ def _package_is_installed(prefix, spec):
     return bool(len(prefix_recs))
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="Use `conda.core.prefix_data.PrefixData().get()` instead.",
+)
 def get_conda_list_tuple(prefix, package_name):
     stdout, stderr, _ = run_command(Commands.LIST, prefix)
     stdout_lines = stdout.split("\n")

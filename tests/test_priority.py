@@ -8,9 +8,9 @@ import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
+from conda.core.prefix_data import PrefixData
 from conda.testing.integration import (
     Commands,
-    get_conda_list_tuple,
     make_temp_env,
     package_is_installed,
     run_command,
@@ -69,11 +69,10 @@ class PriorityIntegrationTests(TestCase):
                 )
 
                 # python sys.version should show conda-forge python
-                python_tuple = get_conda_list_tuple(prefix, "python")
-                assert python_tuple[3] == "conda-forge"
+                assert PrefixData(prefix).get("python").channel.name == "conda-forge"
+
                 # conda list should show pycosat coming from conda-forge
-                pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
-                assert pycosat_tuple[3] == "conda-forge"
+                assert PrefixData(prefix).get("pycosat").channel.name == "conda-forge"
 
     def test_channel_priority_update(self):
         """This case will fail now."""
@@ -108,5 +107,4 @@ class PriorityIntegrationTests(TestCase):
             assert "conda-forge" in superceded_split[1]
 
             # python sys.version should show conda-forge python
-            python_tuple = get_conda_list_tuple(prefix, "python")
-            assert python_tuple[3] == "conda-forge"
+            assert PrefixData(prefix).get("python").channel.name == "conda-forge"
