@@ -6,13 +6,13 @@ import json
 import os
 import sys
 from datetime import timedelta
-from requests.exceptions import JSONDecodeError
 from logging import getLogger
 from os.path import join
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
 from typing import Optional
 
+from requests.exceptions import JSONDecodeError
 from conda.common.iterators import groupby_to_dict as groupby
 
 from . import CondaError, CondaExitZero, CondaMultiError
