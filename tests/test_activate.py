@@ -15,7 +15,7 @@ from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-from typing import Literal, LiteralString
+from typing import Literal
 
 import pytest
 
@@ -3244,7 +3244,7 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs: tuple[LiteralString, dict[str, env.Environment]], auto_stack, stack, run, expected):
+def test_stacking(create_stackable_envs: tuple[str, dict[str, env.Environment]], auto_stack, stack, run, expected):
     which, envs = create_stackable_envs
     stack = filter(None, stack.split(","))
     expected = filter(None, expected.split(","))
