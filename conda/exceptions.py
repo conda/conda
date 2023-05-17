@@ -13,6 +13,7 @@ from traceback import format_exception, format_exception_only
 from typing import Optional
 
 from requests.exceptions import JSONDecodeError
+
 from conda.common.iterators import groupby_to_dict as groupby
 
 from . import CondaError, CondaExitZero, CondaMultiError
@@ -496,7 +497,7 @@ class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
     def __init__(
-        self, channel, status_code, response: Optional[requests.models.Response] = None
+        self, channel, status_code, response: requests.models.Response | None = None
     ):
         # parse channel
         channel = Channel(channel)
