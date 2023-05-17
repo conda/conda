@@ -13,7 +13,6 @@ from re import escape
 from shutil import which
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
-from typing import Literal, LiteralString
 from unittest import TestCase
 from uuid import uuid4
 from typing import Literal
