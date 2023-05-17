@@ -2083,7 +2083,7 @@
   github: beeankha
   alternate_emails:
   - beeankha@gmail.com
-  num_commits: 18
+  num_commits: 21
   first_commit: 2022-05-12 13:39:02
 - name: Kian-Meng Ang
   email: kianmeng.ang@gmail.com
@@ -2304,7 +2304,7 @@
   first_commit: 2023-04-26 01:03:11
 - name: Johnny Núñez Cano
   aliases:
-    - Johnny
+  - Johnny
   email: johnnync13@gmail.com
   github: johnnynunez
   num_commits: 1
