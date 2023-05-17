@@ -702,7 +702,7 @@ EXAMPLE:
 
 .. code-block:: yaml
 
-  default_start_environment: my-favourite-env
+  auto_activate_environment: my-favourite-env
 
 .. note::
   If ``default_start_environment`` is not set (or is set and subsequently removed), conda
