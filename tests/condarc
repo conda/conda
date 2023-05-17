@@ -65,5 +65,5 @@ track_features:
   - mkl
 
 # set an environment to default to instead of base
-default_start_environment:
+auto_activate_environment:
   - my_favourite_env
