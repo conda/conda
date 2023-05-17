@@ -695,7 +695,7 @@ EXAMPLE:
 .. _set-default-env:
 Specify a default environment to activate on launch
 ---------------------------------------------------
-Conda 23.5.0 introduced the ability to set a default environment on shell start-up. This is done
+Conda 23.5.0 introduced the ability to auto-activate a non-base environment on shell start-up. This is done
 by setting the ``auto_activate_environment`` variable.
 
 EXAMPLE:
