@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.testing.encode_for_env_var` as pending deprecation. (#12677)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
