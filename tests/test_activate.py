@@ -13,6 +13,7 @@ from re import escape
 from shutil import which
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
+from typing import Literal, LiteralString
 from unittest import TestCase
 from uuid import uuid4
 from typing import Literal
@@ -54,7 +55,6 @@ from conda.testing.integration import (
     make_temp_env,
     run_command,
 )
-
 from conda_env import env
 
 log = getLogger(__name__)
@@ -1213,7 +1213,9 @@ class ActivatorUnitTests(TestCase):
     def test_set_default_start_env(self):
         # create an env called test-env, and then set it to the default
         exit_code_1 = main_subshell("create", "-y", "-n", "test-env")
-        exit_code_2 = main_subshell("config", "--set", "default_start_environment", "test-env")
+        exit_code_2 = main_subshell(
+            "config", "--set", "default_start_environment", "test-env"
+        )
 
         # activate an unspecified env
         activator = PosixActivator(["activate"])
@@ -1225,7 +1227,9 @@ class ActivatorUnitTests(TestCase):
         # isolate the test by clearing out the env and resetting the context
         activator.deactivate()
         exit_code_3 = main_subshell("remove", "-n", "test-env", "--all", "-y")
-        exit_code_4 = main_subshell("config", "--remove-key", "default_start_environment")
+        exit_code_4 = main_subshell(
+            "config", "--remove-key", "default_start_environment"
+        )
         context.__init__()
 
     def test_default_start_env_base_if_not_set(self):
@@ -1235,6 +1239,7 @@ class ActivatorUnitTests(TestCase):
 
         # if the we've managed to activate the base environment, the test passes
         assert activator.env_name_or_prefix == "base"
+
 
 class ShellWrapperUnitTests(TestCase):
     def setUp(self):
@@ -3145,7 +3150,11 @@ def prefix():
         ),
     ],
 )
-def test_activate_deactivate_modify_path(shell, prefix: str, activate_deactivate_package: Literal['activate_deactivate_package']):
+def test_activate_deactivate_modify_path(
+    shell,
+    prefix: str,
+    activate_deactivate_package: Literal["activate_deactivate_package"],
+):
     original_path = os.environ.get("PATH")
     run_command(Commands.INSTALL, prefix, activate_deactivate_package, "--use-local")
 
