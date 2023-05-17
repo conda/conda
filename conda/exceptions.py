@@ -6,11 +6,13 @@ import json
 import os
 import sys
 from datetime import timedelta
-from json.decoder import JSONDecodeError
+from requests.exceptions import JSONDecodeError
+from simplejson.
 from logging import getLogger
 from os.path import join
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
+from typing import Optional
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -494,7 +496,7 @@ class ChannelNotAllowed(ChannelError):
 class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
-    def __init__(self, channel, status_code, response=None):
+    def __init__(self, channel, status_code, response: Optional[requests.models.Response]=None):
         # parse channel
         channel = Channel(channel)
         channel_name = channel.name
