@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Warn about misconfiguration when signature verification is enabled (#12639)
+* Warn about misconfiguration when signature verification is enabled. (#12639)
 
 ### Bug fixes
 

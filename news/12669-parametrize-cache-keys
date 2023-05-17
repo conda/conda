@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Rename index cache metadata file `.state.json` to `.info.json` to track draft
-  CEP (#12669)
+* Rename index cache metadata file `.state.json` to `.info.json` to track draft CEP. (#12669)
 
 ### Docs
 

@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Add flake8-docstrings to pre-commit. (#12620)
+* Add `flake8-docstrings` to `pre-commit`. (#12620)
 
 ### Other
 
-* Enable flake8 checks that are now handled by black. (#12620)
+* Enable `flake8` checks that are now handled by `black`. (#12620)

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Avoid `TypeError` when non-string types are written to the index cache metadata. (#12562)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add functional tests around Conda's content trust code. (#11805)

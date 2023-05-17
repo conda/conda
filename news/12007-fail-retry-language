@@ -16,4 +16,4 @@
 
 ### Other
 
-* Update retry language in flexible solve and repodata logs to be less ominous
+* Update retry language in flexible solve and repodata logs to be less ominous. (#12007)

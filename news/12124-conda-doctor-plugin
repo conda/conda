@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Add `conda doctor` subcommand plugin. (#474)
 
 ### Bug fixes
 
-* Avoid `TypeError` when non-string types are written to the index cache metadata. (#12562)
+* <news item>
 
 ### Deprecations
 
