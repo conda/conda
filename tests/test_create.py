@@ -255,13 +255,13 @@ class IntegrationTests(BaseTestCase):
             error_message = str(exc.value)
             message1 = dals(
                 """
-            The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
-            has an incorrect size.
-              reported size: 32 bytes
-              actual size: 16 bytes
-            """
+                The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
+                has an incorrect size.
+                  reported size: 32 bytes
+                  actual size: 16 bytes
+                """
             )
-            message2 = dals("has a sha256 mismatch.")
+            message2 = "has a sha256 mismatch."
             assert message1 in error_message
             assert message2 in error_message
 
@@ -518,12 +518,11 @@ class IntegrationTests(BaseTestCase):
             list_output = run_command(Commands.LIST, prefix)
             stdout = list_output[0]
             stderr = list_output[1]
-            expected_output = (
-                """# packages in environment at %s:
-#
-# Name                    Version                   Build  Channel
-"""
-                % prefix
+            expected_output = dals(
+                f"""# packages in environment at {prefix}:
+                #
+                # Name                    Version                   Build  Channel
+                """
             )
             self.assertEqual(stdout, expected_output)
             self.assertEqual(stderr, "")
@@ -683,12 +682,16 @@ class IntegrationTests(BaseTestCase):
             touch(env_file)
             with open(env_file, "w") as f:
                 f.write(
-                    """name: dummy
-channels:
-  - defaults
-dependencies:
-  - bzip2=1.0.8
-  - flask>=1.0.1,<=1.0.4"""
+                    dals(
+                        """
+                        name: dummy
+                        channels:
+                          - defaults
+                        dependencies:
+                          - bzip2=1.0.8
+                          - flask>=1.0.1,<=1.0.4
+                        """
+                    )
                 )
             output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
             assert "Success" in output
@@ -700,12 +703,16 @@ dependencies:
             touch(env_file)
             with open(env_file, "w") as f:
                 f.write(
-                    """name: dummy
-channels:
-  - defaults
-dependencies:
-  - yaml
-  - flask=1.0.3"""
+                    dals(
+                        """
+                        name: dummy
+                        channels:
+                          - defaults
+                        dependencies:
+                          - yaml
+                          - flask=1.0.3
+                        """
+                    )
                 )
             output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
             assert "yaml not found" in output
@@ -2894,9 +2901,9 @@ dependencies:
                 exc_string.strip()
                 == dals(
                     """
-            PackagesNotFoundError: The following packages are missing from the target environment:
-              - numpi
-            """
+                    PackagesNotFoundError: The following packages are missing from the target environment:
+                      - numpi
+                    """
                 ).strip()
             )
             assert package_is_installed(prefix, "numpy")
