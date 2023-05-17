@@ -705,7 +705,7 @@ EXAMPLE:
   auto_activate_environment: my-favourite-env
 
 .. note::
-  If ``default_start_environment`` is not set (or is set and subsequently removed), conda
+  If ``auto_activate_environment`` is not set (or is set and subsequently removed), conda
   will continue to activate base by default.
 
 Conda-build configuration

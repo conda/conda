@@ -1210,11 +1210,11 @@ class ActivatorUnitTests(TestCase):
                     assert builder["activate_scripts"] == ()
                     assert builder["deactivate_scripts"] == ()
 
-    def test_set_default_start_env(self):
+    def test_set_auto_activate_env(self):
         # create an env called test-env, and then set it to the default
         exit_code_1 = main_subshell("create", "-y", "-n", "test-env")
         exit_code_2 = main_subshell(
-            "config", "--set", "default_start_environment", "test-env"
+            "config", "--set", "auto_activate_environment", "test-env"
         )
 
         # activate an unspecified env
@@ -1228,11 +1228,11 @@ class ActivatorUnitTests(TestCase):
         activator.deactivate()
         exit_code_3 = main_subshell("remove", "-n", "test-env", "--all", "-y")
         exit_code_4 = main_subshell(
-            "config", "--remove-key", "default_start_environment"
+            "config", "--remove-key", "auto_activate_environment"
         )
         context.__init__()
 
-    def test_default_start_env_base_if_not_set(self):
+    def test_auto_activate_env_base_if_not_set(self):
         # activate an unspecified env
         activator = PosixActivator(["activate"])
         activator.execute()

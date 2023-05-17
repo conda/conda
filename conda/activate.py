@@ -302,7 +302,7 @@ class _Activator(metaclass=abc.ABCMeta):
             self.env_name_or_prefix = (
                 remainder_args
                 and remainder_args[0]
-                or context.default_start_environment
+                or context.auto_activate_environment
             )
 
         else:
