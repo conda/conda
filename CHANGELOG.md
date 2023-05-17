@@ -6,7 +6,7 @@
 
 * Add `conda doctor` subcommand plugin. (#474)
 * Add Python 3.11 support. (#12256)
-* Added `conda list --reverse` to return a reversed list of installed packages. (#11954)
+* Add `conda list --reverse` to return a reversed list of installed packages. (#11954)
 * Switch from `setup.py` to `pyproject.toml` and use [Hatchling](https://pypi.org/project/hatchling/) for our build system. (#12509)
 * Optimize which Python modules get imported during `conda activate` calls to make it faster. (#12550)
 * Add `conda_cli` fixture to replace `conda.testing.helpers.run_inprocess_conda_command` and `conda.testing.integration.run_command`. (#12592)
