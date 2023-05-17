@@ -103,7 +103,7 @@ Sorting engineers are a conda governance [sub-team][sub-team]; they are a group 
 
 ### How do items show up for sorting?
 
-New issues that are opened in any of the repositories in the [conda GitHub organization][conda-org] will show up in the "Sorting" tab of the [Planning project][project-planning]. There are two [GitHub Actions][docs-actions] workflows utilized for this purpose; [`.github/workflows/issues.yml`][workflow-issues] and [`.github/workflows/projet.yml`][workflow-project].
+New issues that are opened in any of the repositories in the [conda GitHub organization][conda-org] will show up in the "Sorting" tab of the [Planning project][project-planning]. There are two [GitHub Actions][docs-actions] workflows utilized for this purpose; [`.github/workflows/issues.yml`][workflow-issues] and [`.github/workflows/project.yml`][workflow-project].
 
 The GitHub Actions in the [`conda/infrastructure`][infrastructure] repository are viewed as canonical; the [`.github/workflows/sync.yml` workflow][workflow-sync] sends out any modifications to other `conda` repositories from there.
 
@@ -126,8 +126,8 @@ For more information on the sorting process, see [Issue Sorting Procedures](#iss
 
 Items move out of the ["Sorting" tab][project-sorting] once the investigatory phase described in [What is done about the issues in the "Sorting" tab?](#what-is-done-about-the-issues-in-the-sorting-tab) has concluded and the sorting engineer has enough information to make a decision about the appropriate resolution schedule for the issue. The additional tabs in the project board that the issues can be moved to include the following:
 
-- **"Support"** - Any issue in the ["Support" tab of the Planning board][project-support] is a request for support and is not a feature request or a bug report. Add the https://github.com/conda/infrastructure/labels/type%3A%3Asupport label to move an issue to this tab.
-- **"Backlog"** - The issue has revealed a bug or feature request. We have collected enough details to understand the problem/request and to reproduce it on our own. These issues have been moved into the [Backlog tab of the Planning board][project-backlog] at the end of the sorting rotation during Refinement. Add the https://github.com/conda/infrastructure/labels/backlog label to move an issue to this tab.
+- **"Support"** - Any issue in the ["Support" tab of the Planning board][project-support] is a request for support and is not a feature request or a bug report. Add the [`type::support`](https://github.com/conda/infrastructure/labels/type%3A%3Asupport) label to move an issue to this tab.
+- **"Backlog"** - The issue has revealed a bug or feature request. We have collected enough details to understand the problem/request and to reproduce it on our own. These issues have been moved into the [Backlog tab of the Planning board][project-backlog] at the end of the sorting rotation during Refinement. Add the [`backlog`](https://github.com/conda/infrastructure/labels/backlog) label to move an issue to this tab.
 - **"Closed"** - The issue was closed due to being a duplicate, being redirected to a different project, was a user error, a question that has been resolved, etc.
 
 ### Where do work issues go after being sorted?
@@ -143,12 +143,12 @@ Issues are "backlogged" when they have been sorted but not yet earmarked for an 
 Global automation procedures synced out from the [`conda/infrastructure`][infrastructure] repo include:
 
 - [Marking of issues and pull requests as stale][workflow-stale], resulting in:
-  - issues marked as https://github.com/conda/infrastructure/labels/type%3A%3Asupport being labeled stale after 21 days of inactivity and being closed after 7 further days of inactivity (that is, closed after 30 inactive days total)
-  - all other inactive issues (not labeled as https://github.com/conda/infrastructure/labels/type%3A%3Asupport) being labeled stale after 365 days of inactivity and being closed after 30 further days of inactivity (that is, closed after an approximate total of 1 year and 1 month of inactivity)
+  - issues marked as [`type::support`](https://github.com/conda/infrastructure/labels/type%3A%3Asupport) being labeled stale after 21 days of inactivity and being closed after 7 further days of inactivity (that is, closed after 30 inactive days total)
+  - all other inactive issues (not labeled as [`type::support`](https://github.com/conda/infrastructure/labels/type%3A%3Asupport) being labeled stale after 365 days of inactivity and being closed after 30 further days of inactivity (that is, closed after an approximate total of 1 year and 1 month of inactivity)
   - all inactive pull requests being labeled stale after 365 days of inactivity and being closed after 30 further days of inactivity (that is, closed after an approximate total of 1 year and 1 month of inactivity)
 - [Locking of closed issues and pull requests with no further activity][workflow-lock] after 365 days
 - [Adding new issues and pull requests to the respective project boards][workflow-project]
-- [Indicating an issue is ready for the sorting engineer's attention by toggling https://github.com/conda/infrastructure/labels/pending%3A%3Afeedback with https://github.com/conda/infrastructure/labels/pending%3A%3Asupport after a contributor leaves a comment][workflow-issues]
+- [Indicating an issue is ready for the sorting engineer's attention][workflow-issues] by toggling [`pending::feedback`](https://github.com/conda/infrastructure/labels/pending%3A%3Afeedback) with [`pending::support`](https://github.com/conda/infrastructure/labels/pending%3A%3Asupport) after a contributor leaves a comment
 - [Verifying that contributors have signed the CLA][workflow-cla] before allowing pull requests to be merged; if the contributor hasn't signed the CLA previously, merging is be blocked until a manual review can be done
 - [Syncing out templates, labels, workflows, and documentation][workflow-sync] from [`conda/infrastructure`][infrastructure] to the other repositories
 
@@ -166,9 +166,9 @@ Labeling is a very important means for sorting engineers to keep track of the cu
 
 Each label has an associated description that clarifies how the label should be used. Hover on the label to see its description. Label colors are used to distinguish labels by category.
 
-Generally speaking, labels with the same category are considered mutually exclusive, but in some cases labels sharing the same category can occur concurrently, as they indicate qualifiers as opposed to types. For example, we may have the following types, https://github.com/conda/infrastructure/labels/type%3A%3Abug, https://github.com/conda/infrastructure/labels/type%3A%3Afeature, and https://github.com/conda/infrastructure/labels/type%3A%3Adocumentation, where for any one issue there would be _at most_ **one** of these to be defined (_i.e._ an issue should not be a bug _and_ a feature request at the same time). Alternatively, with issues involving specific operating systems (_i.e._, https://github.com/conda/infrastructure/labels/os%3A%3Alinux, https://github.com/conda/infrastructure/labels/os%3A%3Amacos, and https://github.com/conda/infrastructure/labels/os%3A%3Awindows), an issue could be labeled with one or more, depending on the system(s) the issue occurs on.
+Generally speaking, labels with the same category are considered mutually exclusive, but in some cases labels sharing the same category can occur concurrently, as they indicate qualifiers as opposed to types. For example, we may have the following types, [`type::bug`](https://github.com/conda/infrastructure/labels/type%3A%3Abug), [`type::feature`](https://github.com/conda/infrastructure/labels/type%3A%3Afeature), and [`type::documentation`](https://github.com/conda/infrastructure/labels/type%3A%3Adocumentation), where for any one issue there would be _at most_ **one** of these to be defined (_i.e._ an issue should not be a bug _and_ a feature request at the same time). Alternatively, with issues involving specific operating systems (_i.e._, [`os::linux`](https://github.com/conda/infrastructure/labels/os%3A%3Alinux), [`os::macos`](https://github.com/conda/infrastructure/labels/os%3A%3Amacos), and [`os::windows`](https://github.com/conda/infrastructure/labels/os%3A%3Awindows)), an issue could be labeled with one or more, depending on the system(s) the issue occurs on.
 
-Please note that there are also automation policies in place that are affected by labeling. For example, if an issue is labeled as https://github.com/conda/infrastructure/labels/type%3A%3Asupport, that issue will be marked https://github.com/conda/infrastructure/labels/stale after 21 days of inactivity and auto-closed after seven more days without activity (30 inactive days total), which is earlier than issues without this label. See [What automation procedures are currently in place?](#what-automation-procedures-are-currently-in-place) for more details.
+Please note that there are also automation policies in place that are affected by labeling. For example, if an issue is labeled as [`type::support`](https://github.com/conda/infrastructure/labels/type%3A%3Asupport), that issue will be marked [`stale`](https://github.com/conda/infrastructure/labels/stale) after 21 days of inactivity and auto-closed after seven more days without activity (30 inactive days total), which is earlier than issues without this label. See [What automation procedures are currently in place?](#what-automation-procedures-are-currently-in-place) for more details.
 
 ### What labels are required for each issue?
 
@@ -178,7 +178,7 @@ The `type` labels are exclusive of each other: each sorted issue should have exa
 
 The `source` labels are exclusive of each other: each sorted issue should have exactly one `source` label. These labels give information on the sub-group to which the issue's author belongs (_e.g._, a partner, a frequent contributor, the wider community, etc.). Through these labels, maintainers gain insight into how well we're meeting the needs of various groups.
 
-The `severity` labels are exclusive of each other and, while required for the https://github.com/conda/infrastructure/labels/type%3A%bug label, they can also be applied to other types to indicate demand or need. These labels help us to prioritize our work. Severity is not the only factor for work prioritization, but it is an important consideration.
+The `severity` labels are exclusive of each other and, while required for the [`type::bug`](https://github.com/conda/infrastructure/labels/type%3A%bug) label, they can also be applied to other types to indicate demand or need. These labels help us to prioritize our work. Severity is not the only factor for work prioritization, but it is an important consideration.
 
 Please review the descriptions of the `type`, `source`, and `severity` labels on the [labels page][labels-page] prior to use.
 

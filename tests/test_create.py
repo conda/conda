@@ -1359,7 +1359,7 @@ dependencies:
             use_restricted_unicode=False, name=str(uuid4())[:7]
         ) as prefix:
             output, error, rc = run_command(Commands.RUN, prefix, "echo", "hello")
-            assert output == "hello" + os.linesep
+            assert output == f"hello{os.linesep}\n"
             assert not error
             assert rc == 0
             output, error, rc = run_command(Commands.RUN, prefix, "exit", "5")

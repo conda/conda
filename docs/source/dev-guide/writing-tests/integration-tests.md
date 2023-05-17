@@ -6,118 +6,182 @@ file system and/or perform network calls. In the following sections, we cover
 several examples of exactly how these tests look. When writing your own integration tests,
 these should serve as a good starting point.
 
-## Running CLI level tests
+## `conda_cli` Fixture: Running CLI level tests
 
-CLI level tests are the highest level integration tests you can write. This means that the code in
-the test is executed as if you were running it from the command line. For example,
+CLI level tests are the highest level integration tests you can write. This means that the
+code in the test is executed as if you were running it from the command line. For example,
 you may want to write a test to confirm that an environment is created after successfully
 running `conda create`. A test like this would look like the following:
 
-```python
-import os.path
+```{code-block} python
+:linenos:
+:name: test-conda-create-1
+:caption: Integration test for `conda create`
 import json
+from pathlib import Path
 
-from conda.testing.helpers import run_inprocess_conda_command as run
-
-TEST_ENV_NAME_1 = "test-env-1"
+from conda.testing.integration import CondaCLIFixture
 
 
-def test_creates_new_environment():
-    out, err, exit_code = run(f"conda create -n {TEST_ENV_NAME_1} -y")
+def test_conda_create(conda_cli: CondaCLIFixture, tmp_path: Path):
+    # setup, create environment
+    out, err, code = conda_cli("create", "--prefix", tmp_path, "--yes")
 
-    assert "conda activate test" in out  # ensure activation message is present
-    assert err == ""  # no error messages
-    assert exit_code == 0  # successful exit code
+    assert f"conda activate {tmp_path}" in out
+    assert not err  # no errors
+    assert not code  # success!
 
-    # Perform a separate verification that everything works using the "conda env list" command
-    out, err, exit_code = run("conda env list --json")
-    json_out = json.loads(out)
-    env_names = {os.path.basename(path) for path in json_out.get("envs", tuple())}
+    # verify everything worked using the `conda env list` command
+    out, err, code = conda_cli("env", "list", "--json")
 
-    assert TEST_ENV_NAME_1 in env_names
+    assert any(
+        tmp_path.samefile(path)
+        for path in json.loads(out).get("envs", [])
+    )
+    assert not err  # no errors
+    assert not code  # success!
 
-    out, err, exit_code = run(f"conda remove --all -n {TEST_ENV_NAME_1}")
+    # cleanup, remove environment
+    out, err, code = conda_cli("remove", "--all", "--prefix", tmp_path)
 
-    assert err == ""
-    assert exit_code == 0
+    assert out
+    assert not err  # no errors
+    assert not code  # success!
 ```
 
 Let's break down exactly what is going on in the code snippet above:
 
-First, we import a function called `run_inprocess_conda_command` (aliased to `run` here) that allows
-us to run a command using the current running process. This ends up being much more efficient and quicker than
-running this test as a subprocess.
+First, we rely on a fixture (`conda_cli`) that allows us to run a command using the
+current running process. This is much more efficient and quicker than running CLI tests
+via subprocesses.
 
-In the test itself, we first use our `run` function to create a new environment. This function
-returns the standard out, standard error, and the exit code of the command. This allows us to
-perform our inspections in order to determine whether the command successfully ran.
+In the test itself, we first create a new environment by effectively running
+`conda create`. This function returns the standard out, standard error, and the exit
+code of the command. This allows us to perform our inspections in order to determine
+whether the command ran successfully.
 
-The second part of the test again uses the `run` command to call `conda env list`. This time,
-we pass the `--json` flag, which allows capturing JSON that we can better parse and more easily
-inspect. We then assert whether the environment we just created is actually in the list of all
-environments currently available.
+The second part of the test again uses the `conda_cli` fixture to call `conda env list`.
+This time, we pass the `--json` flag, which allows capturing JSON that we can better
+parse and more easily inspect. We then assert whether the environment we just created is
+actually in the list of environments available.
 
-Finally, we destroy the environment we just created and ensure the standard error and the exit
-code are what we expect them to be. It is important to remember to remove anything you create,
-as it will be present when other tests are run.
+Finally, we destroy the environment we just created and ensure the standard error and
+the exit code are what we expect them to be.
+
+:::{warning}
+It is preferred to use temporary directories (e.g., `tmp_path`) whenever possible for
+automatic cleanup after tests are run. Otherwise, remember to remove anything created
+during the test since it will be present when other tests are run and may result in
+unexpected race conditions.
+:::
+
+## `tmp_env` Fixture: Creating a temporary environment
+
+The `tmp_env` fixture is a convenient way to create a temporary environment for use in
+tests:
+
+```{code-block} python
+:linenos:
+:name: test-conda-environment-with-numpy
+:caption: Integration test for creating an environment with `numpy`
+from conda.testing.integration import CondaCLIFixture, TmpEnvFixture
+
+
+def test_environment_with_numpy(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("numpy") as prefix:
+        out, err, code = conda_cli("list", "--prefix", prefix)
+
+        assert out
+        assert not err  # no error
+        assert not code  # success!
+```
+
+## `path_factory` Fixture: Creating a unique (non-existing) path
+
+The `path_factory` fixture extends pytest's tmp_path fixture to provide unique, unused
+paths. This makes it easier to generate new paths in tests:
+
+```{code-block} python
+:linenos:
+:name: test-conda-rename
+:caption: Integration test for renaming an environment
+from conda.testing.integration import (
+    CondaCLIFixture,
+    PathFactoryFixture,
+    TmpEnvFixture,
+)
+
+
+def test_conda_rename(
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+):
+    # each call to `path_factory` returns a unique path
+    assert path_factory() != path_factory()
+
+    # each call to `path_factory` returns a path that is a child of `tmp_path`
+    assert path_factory().parent == path_factory().parent == tmp_path
+
+    with tmp_env() as prefix:
+        out, err, code = conda_cli("rename", "--prefix", prefix, path_factory())
+
+        assert out
+        assert not err  # no error
+        assert not code  # success!
+```
 
 ## Tests with fixtures
 
-Sometimes in integration tests, you may want to re-use the same type of environment more than once.
-Copying and pasting this setup and teardown code into each individual test can make these tests more
-difficult to read and harder to maintain.
+Sometimes in integration tests, you may want to re-use the same type of environment more
+than once. Copying and pasting this setup and teardown code into each individual test
+can make these tests more difficult to read and harder to maintain.
 
-To overcome this, `conda` tests make extensive use of `pytest` fixtures. Below is an example of the
-previously-shown test, except that we now make the focus of the test the `conda env list` command and move
-the creation and removal of the environment into a fixture:
+To overcome this, `conda` tests make extensive use of `pytest` fixtures. Below is an
+example of the previously-shown test, except that we now make the focus of the test the
+`conda env list` command and move the creation and removal of the environment into a
+fixture:
 
-```python
-# Writing a test for `conda env list`
-
-import os.path
+```{code-block} python
+:linenos:
+:name: test-conda-create-2
+:caption: Integration test for `conda create`
 import json
+from pathlib import Path
 
-import pytest
-
-from conda.testing.helpers import run_inprocess_conda_command as run
-
-TEST_ENV_NAME_1 = "test-env-1"
+from conda.testing.integration import CondaCLIFixture
 
 
-@pytest.fixture()
-def env_one():
-    out, err, exit_code = run(f"conda create -n {TEST_ENV_NAME_1} -y")
-
-    assert exit_code == 0
-
-    yield
-
-    out, err, exit_code = run(f"conda remove --all -n {TEST_ENV_NAME_1}")
-
-    assert exit_code == 0
+@pytest.fixture
+def env_one(tmp_env: TmpEnvFixture) -> Path:
+    with tmp_env() as prefix:
+        yield prefix
 
 
-def test_env_list_finds_existing_environment(env_one):
-    # Because we're using fixtures, we can immediately run the `conda env list` command
-    # and our test assertions
-    out, err, exit_code = run("conda env list --json")
-    json_out = json.loads(out)
-    env_names = {os.path.basename(path) for path in json_out.get("envs", tuple())}
+def test_conda_create(env_one: Path, conda_cli: CondaCLIFixture):
+    # verify everything worked using the `conda env list` command
+    out, err, code = conda_cli("env", "list", "--json")
 
-    assert TEST_ENV_NAME_1 in env_names
-    assert err == ""
-    assert exit_code == 0
+    assert any(
+        env_one.samefile(path)
+        for path in json.loads(out).get("envs", [])
+    )
+    assert not err  # no errors
+    assert not code  # success!
 ```
 
-In the fixture named `env_one`, we first create a new environment in exactly the same way as we
-did in our previous test. We make an assertion to ensure that it ran correctly and
-yield to mark the end of the setup. In the teardown section after the `yield` statement,
-we run the `conda remove` command and also make an assertion to determine it ran correctly.
+In the fixture named `env_one`, we create a new environment using the `tmp_env` fixture.
+We yield to mark the end of the setup. Since the `tmp_env` fixture extends `tmp_path` no
+additional teardown is needed.
 
-This fixture will be run using the default scope in `pytest`, which is `function`. This means
-that the setup and teardown will be run before and after each test. If you need to share
-an environment or other pieces of data between tests, just remember to set the fixture
-scope appropriately. [Read here][pytest-scope]
-for more information on `pytest` fixture scopes.
+This fixture will be run using the default scope in `pytest`, which is `function`. This
+means that the setup and teardown will occur before and after each test that requests this
+fixture. If you need to share an environment or other pieces of data between tests, just
+remember to set the fixture scope appropriately. [Read here][pytest-scope] for more
+information on `pytest` fixture scopes.
 
 [pytest-scope]: https://docs.pytest.org/en/stable/how-to/fixtures.html#scope-sharing-fixtures-across-classes-modules-packages-or-session
