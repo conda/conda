@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Use requests.exceptions.JSONDecodeError for ensuring compatibility with different json implementations used by requests. This fixes a bug that caused only the first of multiple given source URLs to be tried.
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
