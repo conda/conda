@@ -58,23 +58,23 @@
 ### Contributors
 
 * @beeankha
-* @chbrandt
+* @chbrandt made their first contribution in https://github.com/conda/conda/pull/12419
 * @chenghlee
 * @conda-bot
 * @dholth
-* @THEdavehogue
-* @HeavenEvolved
+* @THEdavehogue made their first contribution in https://github.com/conda/conda/pull/12612
+* @HeavenEvolved made their first contribution in https://github.com/conda/conda/pull/12496
 * @eltociear
 * @jaimergp
 * @jezdez
-* @johnnynunez
+* @johnnynunez made their first contribution in https://github.com/conda/conda/pull/12256
 * @kenodegard
 * @ForgottenProgramme
 * @pkmooreanaconda
-* @tl-hbk
-* @vic-ma
+* @tl-hbk made their first contribution in https://github.com/conda/conda/pull/12604
+* @vic-ma made their first contribution in https://github.com/conda/conda/pull/12579
 * @pre-commit-ci[bot]
-* @sausagenoods
+* @sausagenoods made their first contribution in https://github.com/conda/conda/pull/12631
 
 
 
