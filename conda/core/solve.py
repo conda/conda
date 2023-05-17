@@ -90,9 +90,9 @@ class Solver:
                 A prioritized list of channels to use for the solution.
             subdirs (Sequence[str]):
                 A prioritized list of subdirs to use for the solution.
-            specs_to_add (Set[:class:`MatchSpec`]):
+            specs_to_add (set[:class:`MatchSpec`]):
                 The set of package specs to add to the prefix.
-            specs_to_remove (Set[:class:`MatchSpec`]):
+            specs_to_remove (set[:class:`MatchSpec`]):
                 The set of package specs to remove from the prefix.
 
         """
@@ -204,7 +204,7 @@ class Solver:
                 See :meth:`solve_final_state`.
 
         Returns:
-            Tuple[PackageRef], Tuple[PackageRef]:
+            tuple[PackageRef], tuple[PackageRef]:
                 A two-tuple of PackageRef sequences.  The first is the group of packages to
                 remove from the environment, in sorted dependency order from leaves to roots.
                 The second is the group of packages to add to the environment, in sorted
@@ -275,7 +275,7 @@ class Solver:
                 whether to call find_conflicts (slow) in ssc.r.solve
 
         Returns:
-            Tuple[PackageRef]:
+            tuple[PackageRef]:
                 In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
@@ -358,12 +358,13 @@ class Solver:
 
         if should_retry_solve and update_modifier == UpdateModifier.FREEZE_INSTALLED:
             fail_message = (
-                "failed with initial frozen solve. Retrying with flexible solve.\n"
+                "unsuccessful initial attempt using frozen solve. Retrying"
+                " with flexible solve.\n"
             )
         elif self._repodata_fn != REPODATA_FN:
             fail_message = (
-                "failed with repodata from %s, will retry with next repodata"
-                " source.\n" % self._repodata_fn
+                "unsuccessful attempt using repodata from %s, retrying"
+                " with next repodata source.\n" % self._repodata_fn
             )
         else:
             fail_message = "failed\n"
@@ -1569,8 +1570,8 @@ def diff_for_unlink_link_precs(
 # def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
 #                             always_copy=False, pinned=True, update_deps=True,
 #                             prune=False, channel_priority_map=None, is_update=False):
-#     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
-#     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
+#     # type: (str, dict[Dist, Record], list[str], bool, list[str] | None, bool, bool, bool,
+#     #        bool, bool, bool, dict[str, Sequence[str, int]]) -> list[dict[weird]]
 #
 #     # split out specs into potentially multiple preferred envs if:
 #     #  1. the user default env (root_prefix) is the prefix being considered here

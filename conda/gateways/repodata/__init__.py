@@ -49,9 +49,15 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata.json.zst or repodata.jlap were unavailable, check again after this
-# amonut of time.
+# if repodata.json.zst or repodata.jlap were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
+
+# repodata.info/state.json keys to keep up with the CEP
+LAST_MODIFIED_KEY = "mod"
+ETAG_KEY = "etag"
+CACHE_CONTROL_KEY = "cache_control"
+URL_KEY = "url"
+CACHE_STATE_SUFFIX = ".info.json"
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -84,10 +90,23 @@ class Response304ContentUnchanged(Exception):
     pass
 
 
+def get_repo_interface() -> type[RepoInterface]:
+    if "jlap" in context.experimental:
+        try:
+            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
+
+            return JlapRepoInterface
+        except ImportError as e:  # pragma: no cover
+            warnings.warn(
+                "Could not load the configured jlap repo interface. "
+                f"Is the required jsonpatch package installed?  {e}"
+            )
+
+    return CondaRepoInterface
+
+
 class CondaRepoInterface(RepoInterface):
-    """
-    Provides an interface for retrieving repodata data from channels
-    """
+    """Provides an interface for retrieving repodata data from channels."""
 
     #: Channel URL
     _url: str
@@ -159,9 +178,7 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
 
 @contextmanager
 def conda_http_errors(url, repodata_fn):
-    """
-    Use in a with: statement to translate requests exceptions to conda ones.
-    """
+    """Use in a with: statement to translate requests exceptions to conda ones."""
     try:
         yield
     except RequestsProxyError:
@@ -326,11 +343,17 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 
 class RepodataState(UserDict):
-    """
-    Load/save `.state.json` that accompanies cached `repodata.json`
-    """
+    """Load/save info file that accompanies cached `repodata.json`."""
 
-    _aliased = {"_mod", "_etag", "_cache_control", "_url"}
+    # Accept old keys for new serialization
+    _aliased = {
+        "_mod": LAST_MODIFIED_KEY,
+        "_etag": ETAG_KEY,
+        "_cache_control": CACHE_CONTROL_KEY,
+        "_url": URL_KEY,
+    }
+
+    # Enforce string type on these keys
     _strings = {"mod", "etag", "cache_control", "url"}
 
     def __init__(
@@ -365,7 +388,14 @@ class RepodataState(UserDict):
                 and state.get("size") == json_stat.st_size
             ):
                 # clear mod, etag, cache_control to encourage re-download
-                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+                state.update(
+                    {
+                        ETAG_KEY: "",
+                        LAST_MODIFIED_KEY: "",
+                        CACHE_CONTROL_KEY: "",
+                        "size": 0,
+                    }
+                )
             self.update(state)  # allow all fields
         except (json.JSONDecodeError, OSError):
             log.debug("Could not load state", exc_info=True)
@@ -374,9 +404,7 @@ class RepodataState(UserDict):
 
     @deprecated("23.3", "23.9", addendum="use RepodataCache")
     def save(self):
-        """
-        Must be called after writing cache_path_json, as its mtime is included in .state.json
-        """
+        """Must be called after writing cache_path_json, since mtime is in another file."""
         serialized = dict(self)
         json_stat = self.cache_path_json.stat()
         serialized.update(
@@ -391,33 +419,33 @@ class RepodataState(UserDict):
         """
         Last-Modified header or ""
         """
-        return self.get("mod") or ""
+        return self.get(LAST_MODIFIED_KEY) or ""
 
     @mod.setter
     def mod(self, value):
-        self["mod"] = value or ""
+        self[LAST_MODIFIED_KEY] = value or ""
 
     @property
     def etag(self) -> str:
         """
         Etag header or ""
         """
-        return self.get("etag") or ""
+        return self.get(ETAG_KEY) or ""
 
     @etag.setter
     def etag(self, value):
-        self["etag"] = value or ""
+        self[ETAG_KEY] = value or ""
 
     @property
     def cache_control(self) -> str:
         """
         Cache-Control header or ""
         """
-        return self.get("cache_control") or ""
+        return self.get(CACHE_CONTROL_KEY) or ""
 
     @cache_control.setter
     def cache_control(self, value):
-        self["cache_control"] = value or ""
+        self[CACHE_CONTROL_KEY] = value or ""
 
     def has_format(self, format: str) -> tuple[bool, datetime.datetime | None]:
         # "has_zst": {
@@ -444,7 +472,8 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warn(
-                "error parsing `has_` object from `<cache key>.state.json`", exc_info=e
+                f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
+                exc_info=e,
             )
             self.pop(key)
 
@@ -461,16 +490,12 @@ class RepodataState(UserDict):
         }
 
     def clear_has_format(self, format: str):
-        """
-        Remove 'has_{format}' instead of setting to False
-        """
+        """Remove 'has_{format}' instead of setting to False."""
         key = f"has_{format}"
         self.pop(key, None)
 
     def should_check_format(self, format: str) -> bool:
-        """
-        Return True if named format should be attempted.
-        """
+        """Return True if named format should be attempted."""
         has, when = self.has_format(format)
         return (
             has is True
@@ -489,7 +514,7 @@ class RepodataState(UserDict):
 
     def __missing__(self, key: str):
         if key in self._aliased:
-            key = key[1:]  # strip underscore
+            key = self._aliased[key]
         else:
             raise KeyError(key)
         return super().__getitem__(key)
@@ -497,7 +522,7 @@ class RepodataState(UserDict):
 
 class RepodataCache:
     """
-    Handle caching for a single repodata.json + repodata.state.json
+    Handle caching for a single repodata.json + repodata{CACHE_STATE_SUFFIX}
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
@@ -526,19 +551,17 @@ class RepodataCache:
 
     @property
     def cache_path_state(self):
-        """
-        Out-of-band etag and other state needed by the RepoInterface.
-        """
+        """Out-of-band etag and other state needed by the RepoInterface."""
         return pathlib.Path(
             self.cache_dir,
-            self.name + ("1" if context.use_only_tar_bz2 else "") + ".state.json",
+            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX,
         )
 
     def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
 
-        # lock .state.json
-        # read .state.json
+        # lock {CACHE_STATE_SUFFIX} file
+        # read {CACHE_STATES_SUFFIX} file
         # read repodata.json
         # check stat, if wrong clear cache information
 
@@ -560,7 +583,14 @@ class RepodataCache:
                 and state.get("size") == json_stat.st_size
             ):
                 # clear mod, etag, cache_control to encourage re-download
-                state.update({"etag": "", "mod": "", "cache_control": "", "size": 0})
+                state.update(
+                    {
+                        ETAG_KEY: "",
+                        LAST_MODIFIED_KEY: "",
+                        CACHE_CONTROL_KEY: "",
+                        "size": 0,
+                    }
+                )
             self.state.clear()
             self.state.update(
                 state
@@ -568,7 +598,8 @@ class RepodataCache:
 
         return json_data
 
-        # check repodata.json stat(); mtime_ns must equal .state.json, or it is stale
+        # check repodata.json stat(); mtime_ns must equal value in
+        # {CACHE_STATE_SUFFIX} file, or it is stale.
         # read repodata.json
         # check repodata.json stat() again: st_size, st_mtime_ns must be equal
 
@@ -576,7 +607,7 @@ class RepodataCache:
 
         # repodata.json is not okay - maybe use it, but don't allow cache updates
 
-        # unlock .state.json
+        # unlock {CACHE_STATE_SUFFIX} file
 
         # also, add refresh_ns instead of touching repodata.json file
 
@@ -593,10 +624,8 @@ class RepodataCache:
         return self.state
 
     def save(self, data: str):
-        """
-        Write data to <repodata>.json cache path, synchronize state.
-        """
-        temp_path = self.cache_dir / f"{self.name}.{os.urandom(4).hex()}.tmp"
+        """Write data to <repodata>.json cache path, synchronize state."""
+        temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
 
         try:
             with temp_path.open("x") as temp:  # exclusive mode, error if exists
@@ -636,7 +665,7 @@ class RepodataCache:
 
     def refresh(self, refresh_ns=0):
         """
-        Update access time in .state.json to indicate a HTTP 304 Not Modified response.
+        Update access time in cache info file to indicate a HTTP 304 Not Modified response.
         """
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
             # "a+" avoids trunctating file before we have the lock and creates

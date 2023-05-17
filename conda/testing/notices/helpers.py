@@ -22,9 +22,9 @@ DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to user
 
 def get_test_notices(
     messages: Sequence[str],
-    level: Optional[str] = "info",
-    created_at: Optional[datetime.datetime] = None,
-    expired_at: Optional[datetime.datetime] = None,
+    level: str | None = "info",
+    created_at: datetime.datetime | None = None,
+    expired_at: datetime.datetime | None = None,
 ) -> dict:
     created_at = created_at or datetime.datetime.now(datetime.timezone.utc)
     expired_at = expired_at or created_at + datetime.timedelta(days=7)
@@ -86,9 +86,7 @@ def offset_cache_file_mtime(mtime_offset) -> None:
 
 
 class DummyArgs:
-    """
-    Dummy object that sets all kwargs as object properties
-    """
+    """Dummy object that sets all kwargs as object properties."""
 
     def __init__(self, **kwargs):
         self.no_ansi_colors = True
@@ -100,7 +98,7 @@ class DummyArgs:
 def notices_decorator_assert_message_in_stdout(
     captured,
     messages: Sequence[str],
-    dummy_mesg: Optional[str] = None,
+    dummy_mesg: str | None = None,
     not_in: bool = False,
 ):
     """

@@ -768,7 +768,8 @@ class CompileMultiPycAction(MultiPathAction):
 class AggregateCompileMultiPycAction(CompileMultiPycAction):
     """Bunch up all of our compile actions, so that they all get carried out at once.
     This avoids clobbering and is faster when we have several individual packages requiring
-    compilation"""
+    compilation.
+    """
 
     def __init__(self, *individuals, **kw):
         transaction_context = individuals[0].transaction_context

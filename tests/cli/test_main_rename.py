@@ -147,9 +147,7 @@ def test_cannot_rename_base_env_by_path(env_one):
 
 
 def test_cannot_rename_active_env_by_name(env_one):
-    """
-    Makes sure that we cannot rename our active environment.
-    """
+    """Makes sure that we cannot rename our active environment."""
     _, data = list_envs()
     result = data.get("envs", [])
 

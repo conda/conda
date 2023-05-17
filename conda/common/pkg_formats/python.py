@@ -65,9 +65,7 @@ class MetadataWarning(Warning):
 # Dist classes
 # -----------------------------------------------------------------------------
 class PythonDistribution:
-    """
-    Base object describing a python distribution based on path to anchor file.
-    """
+    """Base object describing a python distribution based on path to anchor file."""
 
     MANIFEST_FILES = ()  # Only one is used, but many names available
     REQUIRES_FILES = ()  # Only one is used, but many names available
@@ -143,9 +141,7 @@ class PythonDistribution:
 
     @staticmethod
     def _parse_requires_file_data(data, global_section="__global__"):
-        """
-        https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
-        """
+        # https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         requires = {}
         lines = [line.strip() for line in data.split("\n") if line]
 
@@ -187,9 +183,7 @@ class PythonDistribution:
 
     @staticmethod
     def _parse_entries_file_data(data):
-        """
-        https://setuptools.readthedocs.io/en/latest/formats.html#entry-points-txt-entry-point-plugin-metadata
-        """
+        # https://setuptools.readthedocs.io/en/latest/formats.html#entry-points-txt-entry-point-plugin-metadata
         # FIXME: Use pkg_resources which provides API for this?
         entries_data = {}
         config = ConfigParser()
@@ -205,9 +199,7 @@ class PythonDistribution:
         return entries_data
 
     def _load_requires_provides_file(self):
-        """
-        https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
-        """
+        # https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         # FIXME: Use pkg_resources which provides API for this?
         requires, extras = None, None
         for fname in self.REQUIRES_FILES:
@@ -604,9 +596,7 @@ class PythonDistributionMetadata:
 
     @classmethod
     def _read_metadata(cls, fpath):
-        """
-        Read the original format which is stored as RFC-822 headers.
-        """
+        """Read the original format which is stored as RFC-822 headers."""
         data = {}
         if fpath and isfile(fpath):
             parser = HeaderParser()
@@ -797,7 +787,6 @@ class PythonDistributionMetadata:
         -----
         - [1] https://packaging.python.org/specifications/version-specifiers/
         """
-
         return self._get_multiple_data(["obsoletes_dist", "obsoletes"])
 
     def get_classifiers(self):
@@ -939,9 +928,7 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
 
 
 def get_dist_file_from_egg_link(egg_link_file, prefix_path):
-    """
-    Return the egg info file path following an egg link.
-    """
+    """Return the egg info file path following an egg link."""
     egg_info_full_path = None
 
     egg_link_path = join(prefix_path, win_path_ok(egg_link_file))
@@ -1104,9 +1091,7 @@ def _is_literal(o):
 
 
 class Evaluator:
-    """
-    This class is used to evaluate marker expressions.
-    """
+    """This class is used to evaluate marker expressions."""
 
     operations = {
         "==": lambda x, y: x == y,

@@ -42,7 +42,7 @@ repos:
         files: \.py$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.4.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -69,3 +69,5 @@ repos:
     hooks:
       # lint Python codes
       - id: flake8
+        args: [--docstring-convention=pep257]
+        additional_dependencies: [flake8-docstrings]

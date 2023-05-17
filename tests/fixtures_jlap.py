@@ -37,9 +37,7 @@ def shutdown():
 
 @app.route("/latency/<float:delay>")
 def latency(delay):
-    """
-    Set delay before each file response.
-    """
+    """Set delay before each file response."""
     global LATENCY
     LATENCY = delay
     return "OK"
@@ -76,9 +74,7 @@ def make_server_with_socket(socket: socket.socket, base_: Path = base):
 
 
 def run_on_random_port():
-    """
-    Run in a new process to minimize interference with test.
-    """
+    """Run in a new process to minimize interference with test."""
     return next(_package_server())
 
 

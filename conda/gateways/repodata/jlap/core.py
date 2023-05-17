@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
-Small jlap reader.
-"""
+"""Small jlap reader."""
 
 from __future__ import annotations
 
@@ -20,16 +18,14 @@ DEFAULT_IV = b"\0" * DIGEST_SIZE
 
 
 def keyed_hash(data: bytes, key: bytes):
-    """
-    Keyed hash.
-    """
+    """Keyed hash."""
     return blake2b(data, key=key, digest_size=DIGEST_SIZE)
 
 
 def line_and_pos(lines: Iterable[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
-    """
-    lines: iterator over input split by '\n', with '\n' removed.
-    pos: initial position
+    r"""
+    :param lines: iterator over input split by '\n', with '\n' removed.
+    :param pos: initial position
     """
     for line in lines:
         yield pos, line
@@ -39,7 +35,7 @@ def line_and_pos(lines: Iterable[bytes], pos=0) -> Iterator[tuple[int, bytes]]:
 class JLAP(UserList):
     @classmethod
     def from_lines(cls, lines: Iterable[bytes], iv: bytes, pos=0, verify=True):
-        """
+        r"""
         :param lines: iterator over input split by b'\n', with b'\n' removed
         :param pos: initial position
         :param iv: initialization vector (first line of .jlap stream, hex
@@ -118,29 +114,21 @@ class JLAP(UserList):
         return self
 
     def write(self, path: Path):
-        """
-        Write buffer to path.
-        """
+        """Write buffer to path."""
         with Path(path).open("w", encoding="utf-8", newline="\n") as p:
             return p.write("\n".join(b[1] for b in self))
 
     @property
     def body(self):
-        """
-        All lines except the first, and last two.
-        """
+        """All lines except the first, and last two."""
         return self[1:-2]
 
     @property
     def penultimate(self):
-        """
-        Next-to-last line. Should contain the footer.
-        """
+        """Next-to-last line. Should contain the footer."""
         return self[-2]
 
     @property
     def last(self):
-        """
-        Last line. Should contain the trailing checksum.
-        """
+        """Last line. Should contain the trailing checksum."""
         return self[-1]

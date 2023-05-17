@@ -12,10 +12,7 @@ log = getLogger(__name__)
 
 @lru_cache(maxsize=None)
 def linux_get_libc_version():
-    """
-    If on linux, returns (libc_family, version), otherwise (None, None).
-    """
-
+    """If on linux, returns (libc_family, version), otherwise (None, None)."""
     if not sys.platform.startswith("linux"):
         return None, None
 

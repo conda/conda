@@ -656,8 +656,8 @@ class ConfigurationTests(TestCase):
         # regression test for conda/conda#3467
         string = dals(
             """
-        proxy_servers: bad values
-        """
+            proxy_servers: bad values
+            """
         )
         data = {
             "s1": YamlRawParameter.make_raw_parameters(

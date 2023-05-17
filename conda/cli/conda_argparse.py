@@ -354,17 +354,13 @@ class DeprecatedAction(_StoreAction):
 
 
 def configure_parser_clean(sub_parsers):
-    descr = dedent(
+    descr = "Remove unused packages and caches."
+    example = dals(
         """
-    Remove unused packages and caches.
-    """
-    )
-    example = dedent(
-        """
-    Examples::
+        Examples::
 
-        conda clean --tarballs
-    """
+            conda clean --tarballs
+        """
     )
     p = sub_parsers.add_parser(
         "clean",

@@ -151,8 +151,7 @@ class Clauses:
         return self._eval(self._clauses.Xor, (f, g), (), polarity, name)
 
     def ITE(self, c, t, f, polarity=None, name=None):
-        """
-        if c then t else f
+        """If c Then t Else f.
 
         In this function, if any of c, t, or f are True and False the resulting
         expression is resolved.

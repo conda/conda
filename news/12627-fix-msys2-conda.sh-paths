@@ -1,0 +1,19 @@
+### Enhancements
+
+* Refactor the way that the "Activator" classes are defined in conda/activate.py. (#12627)
+
+### Bug fixes
+
+* Stop pre-converting paths to unix style on Windows in `conda.sh`, so that they are prefix replaceable upon installation, which got broken by #12509. It also relies on `cygpath` at runtime, which all msys2/cygwin bash versions on windows should have available. (#12627)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

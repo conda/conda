@@ -8,9 +8,7 @@ from conda.lock import DirectoryLock, FileLock, LockError
 
 
 def test_filelock_passes(tmpdir):
-    """
-    Normal test on file lock
-    """
+    """Normal test on file lock."""
     package_name = "conda_file1"
     tmpfile = join(tmpdir.strpath, package_name)
     with FileLock(tmpfile) as lock:
@@ -44,9 +42,7 @@ def test_filelock_locks(tmpdir):
 
 
 def test_folder_locks(tmpdir):
-    """
-    Test on Directory lock
-    """
+    """Test on Directory lock."""
     package_name = "dir_1"
     tmpfile = join(tmpdir.strpath, package_name)
     with DirectoryLock(tmpfile) as lock1:

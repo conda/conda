@@ -62,7 +62,6 @@ class FileLock:
     """
 
     def __init__(self, path_to_lock, retries=10):
-        """ """
         self.path_to_lock = abspath(path_to_lock)
         self.retries = retries
         self.lock_file_path = f"{self.path_to_lock}.pid{{0}}.{LOCK_EXTENSION}"

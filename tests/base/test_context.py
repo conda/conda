@@ -139,8 +139,8 @@ class ContextCustomRcTests(TestCase):
     def test_signing_metadata_url_base_empty_default_channels(self):
         string = dals(
             """
-        default_channels: []
-        """
+            default_channels: []
+            """
         )
         reset_context()
         rd = {
@@ -155,8 +155,8 @@ class ContextCustomRcTests(TestCase):
     def test_client_ssl_cert(self):
         string = dals(
             """
-        client_ssl_cert_key: /some/key/path
-        """
+            client_ssl_cert_key: /some/key/path
+            """
         )
         reset_context()
         rd = {
@@ -421,21 +421,17 @@ class ContextCustomRcTests(TestCase):
             assert context.execute_threads == 3
 
     def test_channels_defaults(self):
-        """
-        Test when no channels provided in cli
-        """
+        """Test when no channels provided in cli."""
         reset_context(())
         assert context.channels == ("defaults",)
 
     def test_channels_defaults_condarc(self):
-        """
-        Test when no channels provided in cli, but some in condarc
-        """
+        """Test when no channels provided in cli, but some in condarc."""
         reset_context(())
         string = dals(
             """
-        channels: ['defaults', 'conda-forge']
-        """
+            channels: ['defaults', 'conda-forge']
+            """
         )
         rd = {
             "testdata": YamlRawParameter.make_raw_parameters(
@@ -461,8 +457,8 @@ class ContextCustomRcTests(TestCase):
         reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
         string = dals(
             """
-        channels: ['defaults', 'conda-forge']
-        """
+            channels: ['defaults', 'conda-forge']
+            """
         )
         rd = {
             "testdata": YamlRawParameter.make_raw_parameters(
@@ -482,8 +478,8 @@ class ContextCustomRcTests(TestCase):
         reset_context((), argparse_args=AttrDict(channel=["other"]))
         string = dals(
             """
-        channels: ['conda-forge']
-        """
+            channels: ['conda-forge']
+            """
         )
         rd = {
             "testdata": YamlRawParameter.make_raw_parameters(
@@ -505,8 +501,8 @@ class ContextCustomRcTests(TestCase):
         reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
         string = dals(
             """
-        channels: ['conda-forge']
-        """
+            channels: ['conda-forge']
+            """
         )
         rd = {
             "testdata": YamlRawParameter.make_raw_parameters(
@@ -517,9 +513,7 @@ class ContextCustomRcTests(TestCase):
         assert context.channels == ("conda-forge",)
 
     def test_expandvars(self):
-        """
-        Environment variables should be expanded in settings that have expandvars=True.
-        """
+        """Environment variables should be expanded in settings that have expandvars=True."""
 
         def _get_expandvars_context(attr, config_expr, env_value):
             with mock.patch.dict(os.environ, {"TEST_VAR": env_value}):
@@ -579,9 +573,7 @@ class ContextCustomRcTests(TestCase):
         assert any("foo" in d for d in pkgs_dirs)
 
     def test_channel_settings(self):
-        """
-        Makes sure that "channel_settings" appears as we expect it to on the context object
-        """
+        """Ensure "channel_settings" appears as we expect it to on the context object."""
         assert context.channel_settings == (
             {"channel": "darwin", "param_one": "value_one", "param_two": "value_two"},
             {

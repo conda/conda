@@ -43,9 +43,9 @@ class Solver:
                 A prioritized list of channels to use for the solution.
             subdirs (Sequence[str]):
                 A prioritized list of subdirs to use for the solution.
-            specs_to_add (Set[:class:`MatchSpec`]):
+            specs_to_add (set[:class:`MatchSpec`]):
                 The set of package specs to add to the prefix.
-            specs_to_remove (Set[:class:`MatchSpec`]):
+            specs_to_remove (set[:class:`MatchSpec`]):
                 The set of package specs to remove from the prefix.
 
         """
@@ -89,7 +89,7 @@ class Solver:
                 Forces removal of a package without removing packages that depend on it.
 
         Returns:
-            Tuple[PackageRef]:
+            tuple[PackageRef]:
                 In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
@@ -129,7 +129,7 @@ class Solver:
                 depending on the spec exactness.
 
         Returns:
-            Tuple[PackageRef], Tuple[PackageRef]:
+            tuple[PackageRef], tuple[PackageRef]:
                 A two-tuple of PackageRef sequences.  The first is the group of packages to
                 remove from the environment, in sorted dependency order from leaves to roots.
                 The second is the group of packages to add to the environment, in sorted
@@ -221,7 +221,7 @@ class SubdirData:
                 query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
 
         Returns:
-            Tuple[PackageRecord]
+            tuple[PackageRecord]
 
         """
         return tuple(self._internal.query(package_ref_or_match_spec))
@@ -244,7 +244,7 @@ class SubdirData:
                 If None, will fall back to context.subdirs.
 
         Returns:
-            Tuple[PackageRecord]
+            tuple[PackageRecord]
 
         """
         return tuple(
@@ -323,7 +323,7 @@ class PackageCacheData:
                 query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
 
         Returns:
-            Tuple[PackageCacheRecord]
+            tuple[PackageCacheRecord]
 
         """
         return tuple(self._internal.query(package_ref_or_match_spec))
@@ -343,7 +343,7 @@ class PackageCacheData:
                 If None, will fall back to context.pkgs_dirs.
 
         Returns:
-            Tuple[PackageCacheRecord]
+            tuple[PackageCacheRecord]
 
         """
         return tuple(_PackageCacheData.query_all(package_ref_or_match_spec, pkgs_dirs))
@@ -451,7 +451,7 @@ class PrefixData:
                 query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
 
         Returns:
-            Tuple[PrefixRecord]
+            tuple[PrefixRecord]
 
         """
         return tuple(self._internal.query(package_ref_or_match_spec))

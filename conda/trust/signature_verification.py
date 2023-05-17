@@ -8,12 +8,6 @@ from logging import getLogger
 from os import makedirs
 from os.path import basename, exists, isdir, join
 
-from ..base.context import context
-from ..common.url import join_url
-from ..gateways.connection import HTTPError, InsecureRequestWarning
-from ..gateways.connection.session import CondaSession
-from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
-
 try:
     from conda_content_trust.authentication import verify_delegation, verify_root
     from conda_content_trust.common import (
@@ -26,6 +20,12 @@ except ImportError:
     # SignatureStatus.enabled handles this
     pass
 
+
+from ..base.context import context
+from ..common.url import join_url
+from ..gateways.connection import HTTPError, InsecureRequestWarning
+from ..gateways.connection.session import CondaSession
+from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 log = getLogger(__name__)
 
@@ -41,7 +41,7 @@ class _SignatureVerification:
 
         # signing url must be defined
         if not context.signing_metadata_url_base:
-            log.info(
+            log.warn(
                 "metadata signature verification requested, "
                 "but no metadata URL base has not been specified."
             )

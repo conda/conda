@@ -815,9 +815,7 @@ def run_plan_elevated(plan):
     subprocess reads the content of the file, modifies the content of the file with updated
     execution status, and then closes the file.  This process then reads the content of that file
     for the individual operation execution results, and then deletes the file.
-
     """
-
     if any(step["result"] == Result.NEEDS_SUDO for step in plan):
         if on_win:
             from ..common._os.windows import run_as_admin

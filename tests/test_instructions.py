@@ -90,9 +90,7 @@ class TestExecutePlan(unittest.TestCase):
 
 
 def test_prefix_cmd():
-    """
-    Unused, but run it anyway.
-    """
+    """Unused, but run it anyway."""
     state = {}
     instructions.PREFIX_CMD(state, "prefix")
     assert state["prefix"] == "prefix"

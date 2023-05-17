@@ -218,19 +218,18 @@ else:  # pragma: no cover
         return "\\\\?\\" + path
 
     def local_format(string):
-        """
-        format the string using variables in the caller's local namespace.
-        >>> a = 3
-        >>> local_format("{a:5}")
-        '    3'
+        """Format the string using variables in the caller's local namespace.
+
+        .. code-block:: pycon
+            >>> a = 3
+            >>> local_format("{a:5}")
+            '    3'
         """
         context = inspect.currentframe().f_back.f_locals
         return string.format_map(context)
 
     def is_symlink(path):
-        """
-        Assuming path is a reparse point, determine if it's a symlink.
-        """
+        """Assuming path is a reparse point, determine if it's a symlink."""
         path = _patch_path(path)
         try:
             return _is_symlink(next(find_files(path)))
@@ -340,9 +339,9 @@ else:  # pragma: no cover
             return cast(data, POINTER(arr_typ)).contents.value
 
     def readlink(link):
-        """
+        """Return a string representing the path to which the symbolic link points.
+
         readlink(link) -> target
-        Return a string representing the path to which the symbolic link points.
         """
         handle = CreateFile(
             link,

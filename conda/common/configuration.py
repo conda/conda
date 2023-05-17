@@ -414,9 +414,7 @@ class YamlRawParameter(RawParameter):
 
 
 class DefaultValueRawParameter(RawParameter):
-    """
-    Wraps a default value as a RawParameter, for usage in ParameterLoader.
-    """
+    """Wraps a default value as a RawParameter, for usage in ParameterLoader."""
 
     def __init__(self, source, key, raw_value):
         super().__init__(source, key, raw_value)
@@ -675,7 +673,7 @@ class PrimitiveLoadedParameter(LoadedParameter):
     ):
         """
         Args:
-            element_type (type or Tuple[type]): Type-validation of parameter's value.
+            element_type (type or tuple[type]): Type-validation of parameter's value.
             value (primitive value): primitive python value.
         """
         self._type = element_type
@@ -704,9 +702,7 @@ class PrimitiveLoadedParameter(LoadedParameter):
 
 
 class MapLoadedParameter(LoadedParameter):
-    """
-    LoadedParameter type that holds a map (i.e. dict) of LoadedParameters.
-    """
+    """LoadedParameter type that holds a map (i.e. dict) of LoadedParameters."""
 
     _type = frozendict
 
@@ -781,9 +777,7 @@ class MapLoadedParameter(LoadedParameter):
 
 
 class SequenceLoadedParameter(LoadedParameter):
-    """
-    LoadedParameter type that holds a sequence (i.e. list) of LoadedParameters.
-    """
+    """LoadedParameter type that holds a sequence (i.e. list) of LoadedParameters."""
 
     _type = tuple
 
@@ -880,9 +874,7 @@ class SequenceLoadedParameter(LoadedParameter):
 
 
 class ObjectLoadedParameter(LoadedParameter):
-    """
-    LoadedParameter type that holds a mapping (i.e. object) of LoadedParameters.
-    """
+    """LoadedParameter type that holds a mapping (i.e. object) of LoadedParameters."""
 
     _type = object
 
@@ -956,11 +948,7 @@ class ObjectLoadedParameter(LoadedParameter):
 
 
 class ConfigurationObject:
-    """
-    Dummy class to mark whether a Python object has config parameters within.
-    """
-
-    pass
+    """Dummy class to mark whether a Python object has config parameters within."""
 
 
 class Parameter(metaclass=ABCMeta):
@@ -986,9 +974,7 @@ class Parameter(metaclass=ABCMeta):
 
     @property
     def default(self):
-        """
-        Returns a DefaultValueRawParameter that wraps the actual default value.
-        """
+        """Returns a DefaultValueRawParameter that wraps the actual default value."""
         wrapped_default = DefaultValueRawParameter("default", "default", self._default)
         return self.load("default", wrapped_default)
 
@@ -1054,7 +1040,7 @@ class PrimitiveParameter(Parameter):
         """
         Args:
             default (primitive value): default value if the Parameter is not found.
-            element_type (type or Tuple[type]): Type-validation of parameter's value. If None,
+            element_type (type or tuple[type]): Type-validation of parameter's value. If None,
                 type(default) is used.
         """
         self._type = type(default) if element_type is None else element_type
@@ -1073,9 +1059,7 @@ class PrimitiveParameter(Parameter):
 
 
 class MapParameter(Parameter):
-    """
-    Parameter type for a Configuration class that holds a map (i.e. dict) of Parameters.
-    """
+    """Parameter type for a Configuration class that holds a map (i.e. dict) of Parameters."""
 
     _type = frozendict
 
@@ -1128,9 +1112,7 @@ class MapParameter(Parameter):
 
 
 class SequenceParameter(Parameter):
-    """
-    Parameter type for a Configuration class that holds a sequence (i.e. list) of Parameters.
-    """
+    """Parameter type for a Configuration class that holds a sequence (i.e. list) of Parameters."""
 
     _type = tuple
 
@@ -1186,9 +1168,7 @@ class SequenceParameter(Parameter):
 
 
 class ObjectParameter(Parameter):
-    """
-    Parameter type for a Configuration class that holds an object with Parameter fields.
-    """
+    """Parameter type for a Configuration class that holds an object with Parameter fields."""
 
     _type = object
 

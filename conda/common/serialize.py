@@ -53,7 +53,7 @@ def yaml_safe_load(string):
 
 
 def yaml_round_trip_dump(object, stream=None):
-    """dump object to string or stream"""
+    """Dump object to string or stream."""
     ostream = stream or StringIO()
     _yaml_round_trip().dump(object, ostream)
     if not stream:
@@ -61,7 +61,7 @@ def yaml_round_trip_dump(object, stream=None):
 
 
 def yaml_safe_dump(object, stream=None):
-    """dump object to string or stream"""
+    """Dump object to string or stream."""
     ostream = stream or StringIO()
     _yaml_safe().dump(object, ostream)
     if not stream:

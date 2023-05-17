@@ -20,28 +20,39 @@ from requests import HTTPError
 
 from conda.base.context import context
 from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import RepodataState
+from conda.gateways.repodata import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 
 from .core import JLAP
 
 log = logging.getLogger(__name__)
 
 
-DIGEST_SIZE = 32  # 160 bits a minimum 'for security' length?
+DIGEST_SIZE = 32  # 256 bits
 
 JLAP_KEY = "jlap"
 HEADERS = "headers"
-NOMINAL_HASH = "nominal_hash"
-ON_DISK_HASH = "actual_hash"
+NOMINAL_HASH = "blake2_256_nominal"
+ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
 JLAP_UNAVAILABLE = "jlap_unavailable"
 ZSTD_UNAVAILABLE = "zstd_unavailable"
 
+# save these headers. at least etag, last-modified, cache-control plus a few
+# useful extras.
+STORE_HEADERS = {
+    "etag",
+    "last-modified",
+    "cache-control",
+    "content-range",
+    "content-length",
+    "date",
+    "content-type",
+    "content-encoding",
+}
+
 
 def hash():
-    """
-    Ordinary hash.
-    """
+    """Ordinary hash."""
     return blake2b(digest_size=DIGEST_SIZE)
 
 
@@ -79,7 +90,12 @@ def process_jlap_response(response: Response, pos=0, iv=b""):
     footer = json.loads(footer)
 
     new_state = {
-        "headers": {k.lower(): v for k, v in response.headers.items()},
+        # we need to save etag, last-modified, cache-control
+        "headers": {
+            k.lower(): v
+            for k, v in response.headers.items()
+            if k.lower() in STORE_HEADERS
+        },
         "iv": buffer[-3][-1],
         "pos": pos,
         "footer": footer,
@@ -98,9 +114,7 @@ def fetch_jlap(url, pos=0, etag=None, iv=b"", ignore_etag=True, session=None):
 def request_jlap(
     url, pos=0, etag=None, ignore_etag=True, session: Session | None = None
 ):
-    """
-    Return the part of the remote .jlap file we are interested in.
-    """
+    """Return the part of the remote .jlap file we are interested in."""
     headers = {}
     if pos:
         headers["range"] = f"bytes={pos}-"
@@ -119,15 +133,7 @@ def request_jlap(
     log.debug(
         "response headers: %s",
         pprint.pformat(
-            {
-                k: v
-                for k, v in response.headers.items()
-                if any(
-                    map(
-                        k.lower().__contains__, ("content", "last", "range", "encoding")
-                    )
-                )
-            }
+            {k: v for k, v in response.headers.items() if k.lower() in STORE_HEADERS}
         ),
     )
     log.debug("status: %d", response.status_code)
@@ -147,9 +153,7 @@ def request_jlap(
 
 
 def format_hash(hash):
-    """
-    Abbreviate hash for formatting.
-    """
+    """Abbreviate hash for formatting."""
     return hash[:16] + "\N{HORIZONTAL ELLIPSIS}"
 
 
@@ -159,11 +163,6 @@ def find_patches(patches, have, want):
         if have == want:
             break
         if patch["to"] == want:
-            log.info(
-                "Collect %s \N{LEFTWARDS ARROW} %s",
-                format_hash(want),
-                format_hash(patch["from"]),
-            )
             apply.append(patch)
             want = patch["from"]
 
@@ -197,9 +196,7 @@ def timeme(message):
 
 
 def build_headers(json_path: pathlib.Path, state: RepodataState):
-    """
-    Caching headers for a path and state.
-    """
+    """Caching headers for a path and state."""
     headers = {}
     # simplify if we require state to be empty when json_path is missing.
     if json_path.exists():
@@ -223,11 +220,21 @@ class HashWriter(io.RawIOBase):
 
 
 def download_and_hash(
-    hasher, url, json_path, session: Session, state: RepodataState | None, is_zst=False
+    hasher,
+    url,
+    json_path,
+    session: Session,
+    state: RepodataState | None,
+    is_zst=False,
+    dest_path: pathlib.Path | None = None,
 ):
+    """Download url if it doesn't exist, passing bytes through hasher.update().
+
+    json_path: Path of old cached data (ignore etag if not exists).
+    dest_path: Path to write new data.
     """
-    Download url if it doesn't exist, passing bytes through hasher.update()
-    """
+    if dest_path is None:
+        dest_path = json_path
     state = state or RepodataState()
     headers = build_headers(json_path, state)
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -240,10 +247,10 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(json_path.open("wb"), hasher), closefd=True  # type: ignore
+                HashWriter(dest_path.open("wb"), hasher), closefd=True  # type: ignore
             )
         else:
-            writer = HashWriter(json_path.open("wb"), hasher)
+            writer = HashWriter(dest_path.open("wb"), hasher)
         with writer as repodata:
             for block in response.iter_content(chunk_size=1 << 14):
                 repodata.write(block)
@@ -277,8 +284,8 @@ def request_url_jlap_state(
             # Don't deal with 304 Not Modified if hash unavailable e.g. if
             # cached without jlap
             if NOMINAL_HASH not in state:
-                state.pop("etag", None)
-                state.pop("mod", None)
+                state.pop(ETAG_KEY, None)
+                state.pop(LAST_MODIFIED_KEY, None)
 
             try:
                 if state.should_check_format("zst"):
@@ -330,12 +337,17 @@ def request_url_jlap_state(
 
         need_jlap = True
         try:
+            iv_hex = jlap_state.get("iv", "")
+            pos = jlap_state.get("pos", 0)
+            etag = headers.get(ETAG_KEY, None)
+            jlap_url = withext(url, ".jlap")
+            log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
             # wrong to read state outside of function, and totally rebuild inside
             buffer, jlap_state = fetch_jlap(
-                withext(url, ".jlap"),
-                pos=jlap_state.get("pos", 0),
-                etag=headers.get("etag", None),
-                iv=bytes.fromhex(jlap_state.get("iv", "")),
+                jlap_url,
+                pos=pos,
+                etag=etag,
+                iv=bytes.fromhex(iv_hex),
                 session=session,
                 ignore_etag=False,
             )

@@ -152,9 +152,7 @@ def rel_path(prefix, path, windows_forward_slashes=True):
 
 
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
-    """
-    Return the set of all files in a given prefix directory.
-    """
+    """Return the set of all files in a given prefix directory."""
     res = set()
     prefix = abspath(prefix)
     ignore = {
@@ -198,9 +196,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
 
 
 def untracked(prefix, exclude_self_build=False):
-    """
-    Return (the set) of all untracked files for a given prefix.
-    """
+    """Return (the set) of all untracked files for a given prefix."""
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {
         path
@@ -216,9 +212,7 @@ def untracked(prefix, exclude_self_build=False):
 
 
 def touch_nonadmin(prefix):
-    """
-    Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
-    """
+    """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
     if on_win and exists(join(context.root_prefix, ".nonadmin")):
         if not isdir(prefix):
             os.makedirs(prefix)
@@ -227,9 +221,7 @@ def touch_nonadmin(prefix):
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
-    """
-    clone existing prefix1 into new prefix2
-    """
+    """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
 
     # Discard conda, conda-env and any package that depends on them

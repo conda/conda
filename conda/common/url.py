@@ -489,9 +489,11 @@ def maybe_unquote(url):
 
 
 def remove_auth(url: str) -> str:
-    """
-    >>> remove_auth('https://user:password@anaconda.com')
-    'https://anaconda.com'
+    """Remove embedded authentication from URL.
+
+    .. code-block:: pycon
+        >>> remove_auth("https://user:password@anaconda.com")
+        'https://anaconda.com'
     """
     url = urlparse(url)
     url_no_auth = url.replace(username="", password="")

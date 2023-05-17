@@ -1,8 +1,6 @@
 ### Enhancements
 
-* Ability to set a default conda environment at launch, so when you open an Anaconda Prompt, or enter `conda activate` at the command line, it will activate your preferred environment rather than `base`. 
-* The command to set the default conda environment is `conda config --set default_start_environment my-favourite-env`.
-* If you don't set a default start environment, `conda activate` will continue to activate `base`.
+* Ability to set a default conda environment at launch by introducing a new configuration variable (see documentation for more details)
 
 ### Bug fixes
 
@@ -14,7 +12,7 @@
 
 ### Docs
 
-* Updated `docs/source/user-guide/configuration/use-condarc.rst` to reflect this change.
+* Updated `docs/user-guide/configuration/use-condarc.rst` to describe the usage of a new configuration variable `default_start_environment`
 
 ### Other
 

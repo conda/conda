@@ -65,9 +65,7 @@ def disable_channel_notices():
 
 @pytest.fixture(scope="function")
 def reset_conda_context():
-    """
-    Resets the context object after each test function is run.
-    """
+    """Resets the context object after each test function is run."""
     yield
 
     reset_context()

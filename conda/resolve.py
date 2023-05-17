@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import copy
 import itertools
 from collections import defaultdict, deque
@@ -93,7 +95,8 @@ def exactness_and_number_of_deps(resolve_obj, ms):
     """Sorting key to emphasize packages that have more strict
     requirements. More strict means the reduced index can be reduced
     more, so we want to consider these more constrained deps earlier in
-    reducing the index."""
+    reducing the index.
+    """
     if ms.strictness == 3:
         prec = resolve_obj.find_matches(ms)
         value = 3
@@ -129,10 +132,10 @@ class Resolve:
                 for feature_name in prec.track_features:
                     trackers[feature_name].append(prec)
 
-        self.groups = groups  # Dict[package_name, List[PackageRecord]]
-        self.trackers = trackers  # Dict[track_feature, Set[PackageRecord]]
-        self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
-        self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
+        self.groups = groups  # dict[package_name, list[PackageRecord]]
+        self.trackers = trackers  # dict[track_feature, set[PackageRecord]]
+        self._cached_find_matches = {}  # dict[MatchSpec, set[PackageRecord]]
+        self.ms_depends_ = {}  # dict[PackageRecord, list[MatchSpec]]
         self._reduced_index_cache = {}
         self._pool_cache = {}
         self._strict_channel_cache = {}
@@ -633,7 +636,7 @@ class Resolve:
 
     @memoizemethod
     def _broader(self, ms, specs_by_name):
-        """prevent introduction of matchspecs that broaden our selection of choices"""
+        """Prevent introduction of matchspecs that broaden our selection of choices."""
         if not specs_by_name:
             return False
         return ms.strictness < specs_by_name[0].strictness
@@ -896,8 +899,7 @@ class Resolve:
     def match_any(self, mss, prec):
         return any(ms.match(prec) for ms in mss)
 
-    def find_matches(self, spec):
-        # type: (MatchSpec) -> Set[PackageRecord]
+    def find_matches(self, spec: MatchSpec) -> tuple[PackageRecord]:
         res = self._cached_find_matches.get(spec, None)
         if res is not None:
             return res
@@ -917,8 +919,7 @@ class Resolve:
         self._cached_find_matches[spec] = res
         return res
 
-    def ms_depends(self, prec):
-        # type: (PackageRecord) -> List[MatchSpec]
+    def ms_depends(self, prec: PackageRecord) -> list[MatchSpec]:
         deps = self.ms_depends_.get(prec)
         if deps is None:
             deps = [MatchSpec(d) for d in prec.combined_depends]
@@ -1085,7 +1086,7 @@ class Resolve:
         }
 
     def generate_feature_metric(self, C):
-        eq = {}  # a C.minimize() objective: Dict[varname, coeff]
+        eq = {}  # a C.minimize() objective: dict[varname, coeff]
         # Given a pair (prec, feature), assign a "1" score IF:
         # - The prec is installed
         # - The prec does NOT require the feature
@@ -1121,14 +1122,14 @@ class Resolve:
 
     def generate_version_metrics(self, C, specs, include0=False):
         # each of these are weights saying how well packages match the specs
-        #    format for each: a C.minimize() objective: Dict[varname, coeff]
+        #    format for each: a C.minimize() objective: dict[varname, coeff]
         eqc = {}  # channel
         eqv = {}  # version
         eqb = {}  # build number
         eqa = {}  # arch/noarch
         eqt = {}  # timestamp
 
-        sdict = {}  # Dict[package_name, PackageRecord]
+        sdict = {}  # dict[package_name, PackageRecord]
 
         for s in specs:
             s = MatchSpec(s)  # needed for testing
@@ -1186,11 +1187,13 @@ class Resolve:
 
         return eqc, eqv, eqb, eqa, eqt
 
-    def dependency_sort(self, must_have):
-        # type: (Dict[package_name, PackageRecord]) -> List[PackageRecord]
+    def dependency_sort(
+        self,
+        must_have: dict[str, PackageRecord],
+    ) -> list[PackageRecord]:
         assert isinstance(must_have, dict)
 
-        digraph = {}  # Dict[package_name, Set[dependent_package_names]]
+        digraph = {}  # dict[str, set[dependent_package_names]]
         for package_name, prec in must_have.items():
             if prec in self.index:
                 digraph[package_name] = {ms.name for ms in self.ms_depends(prec)}
@@ -1226,7 +1229,7 @@ class Resolve:
         log.debug("Checking if the current environment is consistent")
         if not installed:
             return None, []
-        sat_name_map = {}  # Dict[sat_name, PackageRecord]
+        sat_name_map = {}  # dict[sat_name, PackageRecord]
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
@@ -1275,7 +1278,7 @@ class Resolve:
         log.debug("Checking if the current environment is consistent")
         if not installed:
             return None, []
-        sat_name_map = {}  # Dict[sat_name, PackageRecord]
+        sat_name_map = {}  # dict[sat_name, PackageRecord]
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
@@ -1413,15 +1416,13 @@ class Resolve:
     @time_recorder(module_name=__name__)
     def solve(
         self,
-        specs,
-        returnall=False,
+        specs: list,
+        returnall: bool = False,
         _remove=False,
         specs_to_add=None,
         history_specs=None,
         should_retry_solve=False,
-    ):
-        # type: (List[str], bool) -> List[PackageRecord]
-
+    ) -> list[PackageRecord]:
         if specs and not isinstance(specs[0], MatchSpec):
             specs = tuple(MatchSpec(_) for _ in specs)
 

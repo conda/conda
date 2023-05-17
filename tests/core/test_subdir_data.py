@@ -416,9 +416,7 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
 
 
 def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
-    """
-    SubdirData can accept a dict instead of a RepodataState, for compatibility.
-    """
+    """SubdirData can accept a dict instead of a RepodataState, for compatibility."""
     local_channel = Channel(join(CHANNEL_DIR, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore

@@ -215,9 +215,7 @@ def test_cache_names_appear_as_expected(
     notices_cache_dir,
     notices_mock_http_session_get,
 ):
-    """
-    This is a test to make sure the cache filenames appear as we expect them to.
-    """
+    """This is a test to make sure the cache filenames appear as we expect them to."""
     with mock.patch(
         "conda.notices.core.get_channel_name_and_urls"
     ) as get_channel_name_and_urls:
@@ -300,9 +298,7 @@ def test_notices_appear_once_when_running_decorated_commands(
 
 
 def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
-    """
-    As a user, I want notices to be correctly retrieved from channels with s3 URLs.
-    """
+    """As a user, I want notices to be correctly retrieved from channels with s3 URLs."""
     s3_channel = "s3://conda-org"
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)

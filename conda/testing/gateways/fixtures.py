@@ -4,15 +4,14 @@ import json
 import os
 import socket
 from pathlib import Path
+from shutil import which
 
 import boto3
 import pytest
 from botocore.client import Config
 from xprocess import ProcessStarter
 
-from ...cli.find_commands import find_executable
-
-MINIO_EXE = find_executable("minio")
+MINIO_EXE = which("minio")
 
 
 def minio_s3_server(xprocess, tmp_path):
@@ -42,8 +41,7 @@ def minio_s3_server(xprocess, tmp_path):
             return f"http://localhost:{self.port}/{self.name}"
 
         def populate_bucket(self, endpoint, bucket_name, channel_dir):
-            "prepare the s3 connection for our minio instance"
-
+            """Prepare the s3 connection for our minio instance"""
             # Make the minio bucket public first
             # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-example-bucket-policies.html#set-a-bucket-policy
             session = boto3.session.Session()

@@ -48,9 +48,7 @@ replacements = (
 
 
 def post_process(files, output_path):
-    """
-    Replace all items from the replacements list above in the given files.
-    """
+    """Replace all items from the replacements list above in the given files."""
     for file in files:
         with fileinput.input(
             files=[os.path.join(output_path, file)], inplace=True

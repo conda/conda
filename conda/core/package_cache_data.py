@@ -68,9 +68,7 @@ EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 
 
 class PackageCacheType(type):
-    """
-    This metaclass does basic caching of PackageCache instance objects.
-    """
+    """This metaclass does basic caching of PackageCache instance objects."""
 
     def __call__(cls, pkgs_dir):
         if isinstance(pkgs_dir, PackageCacheData):
@@ -546,7 +544,7 @@ class UrlsData:
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_PACKAGE_EXTENSION_V1):
+        if not package_path.endswith(CONDA_PACKAGE_EXTENSIONS):
             package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
@@ -706,7 +704,7 @@ class ProgressiveFetchExtract:
     def __init__(self, link_prefs):
         """
         Args:
-            link_prefs (Tuple[PackageRecord]):
+            link_prefs (tuple[PackageRecord]):
                 A sequence of :class:`PackageRecord`s to ensure available in a known
                 package cache, typically for a follow-on :class:`UnlinkLinkTransaction`.
                 Here, "available" means the package tarball is both downloaded and extracted
@@ -886,9 +884,7 @@ class ProgressiveFetchExtract:
 
 
 def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
-    """
-    This function gets called from `ProgressiveFetchExtract.execute`
-    """
+    """This function gets called from `ProgressiveFetchExtract.execute`."""
     # pass None if already cached (simplifies code)
     if not cache_action:
         return prec
@@ -908,9 +904,7 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
 
 
 def do_extract_action(prec, extract_action, progress_bar):
-    """
-    This function gets called after do_cache_action completes.
-    """
+    """This function gets called after do_cache_action completes."""
     # pass None if already extracted (simplifies code)
     if not extract_action:
         return prec

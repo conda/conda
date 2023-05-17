@@ -135,7 +135,6 @@ class FTPAdapter(BaseAdapter):
 
     def stor(self, path, request):
         """Executes the FTP STOR command on the given path."""
-
         # First, get the file handle. We assume (bravely)
         # that there is only one file to be sent to a given URL. We also
         # assume that the filename is sent as part of the URL, not as part of
@@ -179,7 +178,8 @@ class FTPAdapter(BaseAdapter):
         """Given a PreparedRequest object, reverse the process of adding HTTP
         Basic auth to obtain the username and password. Allows the FTP adapter
         to piggyback on the basic auth notation without changing the control
-        flow."""
+        flow.
+        """
         auth_header = request.headers.get("Authorization")
 
         if auth_header:
@@ -207,7 +207,8 @@ class FTPAdapter(BaseAdapter):
     def get_host_and_path_from_url(self, request):
         """Given a PreparedRequest object, split the URL in such a manner as to
         determine the host and the path. This is a separate method to wrap some
-        of urlparse's craziness."""
+        of urlparse's craziness.
+        """
         url = request.url
         parsed = urlparse(url)
         path = parsed.path
@@ -225,7 +226,8 @@ class FTPAdapter(BaseAdapter):
 def data_callback_factory(variable):
     """Returns a callback suitable for use by the FTP library. This callback
     will repeatedly save data into the variable provided to this function. This
-    variable should be a file-like structure."""
+    variable should be a file-like structure.
+    """
 
     def callback(data):
         variable.write(data)
@@ -245,7 +247,8 @@ def build_binary_response(request, data, code):
 
 def build_response(request, data, code, encoding):
     """Builds a response object from the data returned by ftplib, using the
-    specified encoding."""
+    specified encoding.
+    """
     response = Response()
 
     response.encoding = encoding
@@ -266,7 +269,8 @@ def build_response(request, data, code, encoding):
 
 def parse_multipart_files(request):
     """Given a prepared request, return a file-like object containing the
-    original data. This is pretty hacky."""
+    original data. This is pretty hacky.
+    """
     # Start by grabbing the pdict.
     _, pdict = cgi.parse_header(request.headers["Content-Type"])
 
@@ -289,8 +293,8 @@ def parse_multipart_files(request):
 
 
 def get_status_code_from_code_response(code):
-    """
-    The idea is to handle complicated code response (even multi lines).
+    r"""Handle complicated code response, even multi-lines.
+
     We get the status code in two ways:
     - extracting the code from the last valid line in the response
     - getting it from the 3 first digits in the code

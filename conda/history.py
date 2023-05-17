@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import codecs
 import logging
 import os
@@ -97,10 +99,8 @@ class History:
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
 
-    def update(self):
-        """
-        update the history file (creating a new one if necessary)
-        """
+    def update(self) -> None:
+        """Update the history file (creating a new one if necessary)."""
         try:
             try:
                 last = set(self.get_state())
@@ -116,10 +116,10 @@ class History:
             else:
                 raise
 
-    def parse(self):
-        """
-        parse the history file and return a list of
-        tuples(datetime strings, set of distributions/diffs, comments)
+    def parse(self) -> list[tuple[str, set[str], list[str]]]:
+        """Parse the history file.
+
+        Return a list of tuples(datetime strings, set of distributions/diffs, comments).
         """
         res = []
         if not isfile(self.path):
@@ -207,9 +207,9 @@ class History:
         return item
 
     def get_user_requests(self):
-        """
-        return a list of user requested items.  Each item is a dict with the
-        following keys:
+        """Return a list of user requested items.
+
+        Each item is a dict with the following keys:
         'date': the date and time running the command
         'cmd': a list of argv of the actual command which was run
         'action': install/remove/update
@@ -304,9 +304,7 @@ class History:
         return {name: spec for name, spec in spec_map.items() if name in prefix_recs}
 
     def construct_states(self):
-        """
-        return a list of tuples(datetime strings, set of distributions)
-        """
+        """Return a list of tuples(datetime strings, set of distributions)."""
         res = []
         cur = set()
         for dt, cont, unused_com in self.parse():
@@ -324,12 +322,12 @@ class History:
         return res
 
     def get_state(self, rev=-1):
-        """
-        return the state, i.e. the set of distributions, for a given revision,
-        defaults to latest (which is the same as the current state when
-        the log file is up-to-date)
+        """Return the state, i.e. the set of distributions, for a given revision.
 
-        Returns a list of dist_strs
+        Defaults to latest (which is the same as the current state when
+        the log file is up-to-date).
+
+        Returns a list of dist_strs.
         """
         states = self.construct_states()
         if not states:

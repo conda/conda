@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
 import re
 import tempfile
@@ -9,7 +11,6 @@ from logging import getLogger
 from os.path import basename, dirname, exists, isdir, join, split
 from shutil import move
 from subprocess import PIPE, Popen
-from typing import Optional
 
 from ...base.constants import DRY_RUN_PREFIX
 from ...base.context import context
@@ -102,9 +103,7 @@ def rename(source_path, destination_path, force=False):
 
 
 @contextmanager
-def rename_context(
-    source: str, destination: Optional[str] = None, dry_run: bool = False
-):
+def rename_context(source: str, destination: str | None = None, dry_run: bool = False):
     """
     Used for removing a directory when there are dependent actions (i.e. you need to ensure
     other actions succeed before removing it).

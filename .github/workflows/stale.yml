@@ -1,3 +1,4 @@
+---
 name: Stale
 
 on:
@@ -6,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       dryrun:
-        description: "dryrun: Preview stale issues/prs without marking them (true|false)"
+        description: 'dryrun: Preview stale issues/prs without marking them (true|false)'
         required: true
         type: boolean
         default: true
@@ -30,15 +31,15 @@ jobs:
             days-before-issue-close: 30
           # [type::support] issues have a more aggressive stale/close timeline
           - only-issue-labels: type::support
-            days-before-issue-stale: 21
-            days-before-issue-close: 7
+            days-before-issue-stale: 90
+            days-before-issue-close: 21
     steps:
-      - uses: conda/actions/read-yaml@v22.9.0
+      - uses: conda/actions/read-yaml@v23.4.0
         id: read_yaml
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
 
-      - uses: actions/stale@v7
+      - uses: actions/stale@v8
         id: stale
         with:
           # Only issues with these labels are checked whether they are stale

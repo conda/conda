@@ -46,9 +46,7 @@ def validate_destination(dest: str, force: bool = False) -> str:
 
 
 def execute(args, _):
-    """
-    Executes the command for renaming an existing environment
-    """
+    """Executes the command for renaming an existing environment."""
     source = validate_src(args.name, args.prefix)
     destination = validate_destination(args.destination, force=args.force)
 

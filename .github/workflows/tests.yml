@@ -10,6 +10,8 @@ on:
     branches:
       - main
       - feature/**
+      - '[0-9].*.x'  # e.g., 4.14.x
+      - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
   # NOTE: github.event context is pull_request payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
@@ -424,13 +426,14 @@ jobs:
     # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
-    # - we are on the main (or feature) branch
+    # - we are on the main, feature, or release branch
     if: >-
       success()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'
         || startsWith(github.ref_name, 'feature/')
+        || endsWith(github.ref_name, '.x')
       )
     strategy:
       matrix:

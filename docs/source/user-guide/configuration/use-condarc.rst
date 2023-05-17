@@ -695,10 +695,8 @@ EXAMPLE:
 .. _set-default-env:
 Specify a default environment to activate on launch
 ---------------------------------------------------
-It is now possible to set a default conda environment at launch, so when you open 
-an Anaconda Prompt, or enter ``conda activate`` at the command line, it will activate 
-your preferred environment rather than ``base``. This is done by setting the 
-``default_start_environment`` variable.
+Conda 23.5.0 introduced the ability to set a default environment on shell start-up. This is done
+by setting the ``default_start_environment`` variable.
 
 EXAMPLE:
 

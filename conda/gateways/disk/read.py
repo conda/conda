@@ -13,6 +13,7 @@ from itertools import chain
 from logging import getLogger
 from os.path import isdir, isfile, join  # noqa
 from pathlib import Path
+from typing import Literal
 
 from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
@@ -228,14 +229,13 @@ def read_paths_json(extracted_package_directory):
 
 
 def read_has_prefix(path):
-    """
-    reads `has_prefix` file and return dict mapping filepaths to tuples(placeholder, FileMode)
+    """Reads `has_prefix` file and return dict mapping filepaths to tuples(placeholder, FileMode).
 
-    A line in `has_prefix` contains one of
+    A line in `has_prefix` contains one of:
       * filepath
       * placeholder mode filepath
 
-    mode values are one of
+    Mode values are one of:
       * text
       * binary
     """

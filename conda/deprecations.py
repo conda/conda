@@ -5,10 +5,11 @@ from __future__ import annotations
 import warnings
 from functools import wraps
 from types import ModuleType
+from typing import Any, Callable
 
 from packaging.version import Version, parse
 
-from .__version__ import __version__
+from . import __version__
 
 
 class DeprecatedError(RuntimeError):
@@ -157,7 +158,7 @@ class DeprecationHandler:
         addendum: str | None = None,
         stack: int = 0,
     ) -> None:
-        """Deprecation function for module constant (global).
+        """Deprecation function for module constant/global.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
         :param remove_in: Version in which code is expected to be removed.
