@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Ability to set a default conda environment at launch by introducing a new configuration variable (see documentation for more details)
+* Ability to auto-activate a non-base conda environment at launch via the `auto_activate_environment` setting. (#12608 via #12618)
 
 ### Bug fixes
 
