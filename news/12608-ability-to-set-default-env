@@ -1,8 +1,6 @@
 ### Enhancements
 
 * Ability to set a default conda environment at launch by introducing a new configuration variable (see documentation for more details)
-* The command to set the default conda environment is `conda config --set default_start_environment my-favourite-env`.
-* If you don't set a default start environment, `conda activate` will continue to activate `base`.
 
 ### Bug fixes
 
