@@ -1,5 +1,83 @@
 [//]: # (current developments)
 
+## 23.5.0 (2023-05-17)
+
+### Enhancements
+
+* Add `conda doctor` subcommand plugin. (#474)
+* Add Python 3.11 support. (#12256)
+* Added `conda list --reverse` to return a reversed list of installed packages. (#11954)
+* Switch from `setup.py` to `pyproject.toml` and use [Hatchling](https://pypi.org/project/hatchling/) for our build system. (#12509)
+* Optimize which Python modules get imported during `conda activate` calls to make it faster. (#12550)
+* Add `conda_cli` fixture to replace `conda.testing.helpers.run_inprocess_conda_command` and `conda.testing.integration.run_command`. (#12592)
+* Add `tmp_env` fixture to replace `conda.testing.integration.make_temp_env`. (#12592)
+* Add `path_factory` fixture to replace custom prefix logic like `conda.testing.integration._get_temp_prefix` and `conda.testing.integration.make_temp_prefix`. (#12592)
+* Refactor the way that the `Activator` classes are defined in `conda/activate.py`. (#12627)
+* Warn about misconfiguration when signature verification is enabled. (#12639)
+
+### Bug fixes
+
+* `conda clean` no longer fails if we failed to get the file stats. (#12536)
+* Provide fallback version if `conda.deprecations.DeprecationHandler` receives a bad version. (#12541)
+* Ensure the default value for `defaults` includes `msys2` when `context.subdir` is `win-*` on non-Windows platforms. (#12555)
+* Avoid `TypeError` when non-string types are written to the index cache metadata. (#12562)
+* `conda.core.package_cache_data.UrlsData.get_url` no longer fails when `package_path` has `.conda` extension. (#12516)
+* Stop pre-converting paths to Unix style on Windows in `conda.sh`, so that they are prefix replaceable upon installation, which got broken by #12509. It also relies on `cygpath` at runtime, which all `msys2`/`cygwin` bash versions on Windows should have available. (#12627)
+
+### Deprecations
+
+* Mark `conda_env.pip_util.get_pip_version` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util.PipPackage` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util.installed` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util._canonicalize_name` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util.add_pip_installed` as pending deprecation. (#12492)
+* Mark `conda_env.env.load_from_directory` as pending deprecation. (#12492)
+* Mark `python -m conda_env.cli.main` as pending deprecation. Use `conda env` instead. (#12492)
+* Mark `python -m conda_env` as pending deprecation. Use `conda env` instead. (#12492)
+* Mark `conda.auxlib.packaging` for deprecation in 24.3.0. (#12509)
+* Rename index cache metadata file `.state.json` to `.info.json` to track draft CEP. (#12669)
+* Mark `conda.testing.integration.get_conda_list_tuple` as pending deprecation. Use `conda.core.prefix_data.PrefixData().get()` instead. (#12676)
+* Mark `conda.testing.encode_for_env_var` as pending deprecation. (#12677)
+* Mark `conda.testing.integration.temp_chdir` as pending deprecation. Use `monkeypatch.chdir` instead. (#12678)
+
+### Docs
+
+* Change the README example from IPython Notebook and NumPy to PyTorch. (#12579)
+* Discuss options available to properly configure mirrored channels. (#12583, #12641)
+* Add `flake8-docstrings` to `pre-commit`. (#12620)
+
+### Other
+
+* Update retry language in flexible solve and repodata logs to be less ominous. (#12007)
+* Improve repodata / subdir_data programming interface (#12521). Index cache metadata has changed to `.info.json` to better align with the [draft CEP](https://github.com/conda-incubator/ceps/pull/48). Improve cache locking when using `jlap`. Improve `jlap` logging. (#12572)
+* Format with `black` and replaced `pre-commit`'s `darker` hook with `black`. (#12554)
+* Format with `isort` and add `pre-commit` `isort` hook. (#12554)
+* Add functional tests around Conda's content trust code. (#11805)
+* Enable `flake8` checks that are now handled by `black`. (#12620)
+
+### Contributors
+
+* @beeankha
+* @chbrandt
+* @chenghlee
+* @conda-bot
+* @dholth
+* @THEdavehogue
+* @HeavenEvolved
+* @eltociear
+* @jaimergp
+* @jezdez
+* @johnnynunez
+* @kenodegard
+* @ForgottenProgramme
+* @pkmooreanaconda
+* @tl-hbk
+* @vic-ma
+* @pre-commit-ci[bot]
+* @sausagenoods
+
+
+
 ## 23.3.1 (2023-03-28)
 
 ### Enhancements
