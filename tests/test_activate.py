@@ -1218,7 +1218,7 @@ class ActivatorUnitTests(TestCase):
         )
 
         # activate an unspecified env
-        activator = PosixActivator(["activate"])
+        activator = (PowerShellActivator(["activate", "--no-stack"]) if on_win else PosixActivator(["activate", "--no-stack"]))
         activator.execute()
 
         # if the we've managed to activate test-env without naming it, the test passes
@@ -1234,11 +1234,15 @@ class ActivatorUnitTests(TestCase):
 
     def test_auto_activate_env_base_if_not_set(self):
         # activate an unspecified env
-        activator = PosixActivator(["activate"])
+        activator = (PowerShellActivator(["activate", "--no-stack"]) if on_win else PosixActivator(["activate", "--no-stack"]))
         activator.execute()
 
         # if the we've managed to activate the base environment, the test passes
         assert activator.env_name_or_prefix == "base"
+
+        # isolate the test by clearing out the env and resetting the context
+        activator.deactivate()
+        context.__init__()
 
 
 class ShellWrapperUnitTests(TestCase):
