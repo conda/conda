@@ -14,7 +14,7 @@
 
 ### Docs
 
-* Updated `docs/user-guide/configuration/use-condarc.rst` to reflect this change.
+* Updated `docs/user-guide/configuration/use-condarc.rst` to describe the usage of a new configuration variable `default_start_environment`
 
 ### Other
 
