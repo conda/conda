@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Updated `docs/user-guide/configuration/use-condarc.rst` to describe the usage of a new configuration variable `default_start_environment`
+* Updated `docs/user-guide/configuration/use-condarc.rst` to describe the usage of a new configuration variable `auto_activate_environment`. (#12608 via #12618)
 
 ### Other
 
