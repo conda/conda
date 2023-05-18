@@ -156,9 +156,19 @@ def test_parse_on_empty_env(tmp_history: History, mocker: MockerFixture):
 def test_user_requests(index: int, spec: dict):
     # load history from tests/conda-meta/history
     user_requests = History(Path(__file__).parent).get_user_requests()
-
     assert len(user_requests) == 6
-    assert user_requests[index] == spec
+
+    # ensure the same number of keys are defined
+    user_request = user_requests[index]
+    assert set(user_request) == set(spec)
+
+    for key, value in spec.items():
+        if key in ("action", "cmd", "date"):
+            # ordered keys
+            assert user_request[key] == value
+        elif key in ("specs", "update_specs", "link_dists", "unlink_dists"):
+            # unordered keys
+            assert set(user_request[key]) == set(value)
 
 
 @pytest.mark.parametrize(
