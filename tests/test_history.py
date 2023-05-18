@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from os.path import dirname
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,7 @@ def tmp_history(tmp_path: Path) -> History:
 @pytest.fixture
 def user_requests() -> list[dict]:
     # see tests/conda-meta/history
-    return History(dirname(__file__)).get_user_requests()
+    return History(Path(__file__).parent).get_user_requests()
 
 
 def test_works_as_context_manager(tmp_history: History):
