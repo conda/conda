@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from os.path import dirname
 from pathlib import Path
 
@@ -9,59 +11,59 @@ from pytest_mock import MockerFixture
 from conda.history import History
 
 
-def test_works_as_context_manager():
-    h = History("/path/to/prefix")
-    assert getattr(h, "__enter__")
-    assert getattr(h, "__exit__")
+@pytest.fixture
+def tmp_history(tmp_path: Path) -> History:
+    return History(tmp_path)
 
 
-def test_calls_update_on_exit(mocker: MockerFixture, tmp_path: Path):
-    h = History(str(tmp_path))
-    update = mocker.spy(h, "update")
+def test_works_as_context_manager(tmp_history: History):
+    assert getattr(tmp_history, "__enter__")
+    assert getattr(tmp_history, "__exit__")
 
-    with h:
+
+def test_calls_update_on_exit(tmp_history: History, mocker: MockerFixture):
+    update = mocker.spy(tmp_history, "update")
+
+    with tmp_history:
         assert update.call_count == 0
     assert update.call_count == 1
 
 
 def test_returns_history_object_as_context_object(
+    tmp_history: History,
     mocker: MockerFixture,
-    tmp_path: Path,
 ):
-    h = History(str(tmp_path))
-
-    with h as h2:
-        assert h == h2
+    with tmp_history as history:
+        assert tmp_history == history
 
 
-def test_empty_history_check_on_empty_env(mocker: MockerFixture, tmp_path: Path):
+def test_empty_history_check_on_empty_env(tmp_history: History, mocker: MockerFixture):
     mock_file_is_empty = mocker.spy(History, "file_is_empty")
-    with History(str(tmp_path)) as h:
+    with tmp_history:
         assert mock_file_is_empty.call_count == 0
-        assert h.file_is_empty()
+        assert tmp_history.file_is_empty()
     assert mock_file_is_empty.call_count == 1
-    assert not h.file_is_empty()
+    assert not tmp_history.file_is_empty()
 
 
-def test_parse_on_empty_env(mocker: MockerFixture, tmp_path: Path):
+def test_parse_on_empty_env(tmp_history: History, mocker: MockerFixture):
     mock_parse = mocker.spy(History, "parse")
-    with History(str(tmp_path)) as h:
+    with tmp_history:
         assert mock_parse.call_count == 0
-        assert len(h.parse()) == 0
-    assert len(h.parse()) == 1
+        assert len(tmp_history.parse()) == 0
+    assert len(tmp_history.parse()) == 1
 
 
 @pytest.fixture
-def user_requests():
-    h = History(dirname(__file__))
-    return h.get_user_requests()
+def user_requests() -> list[dict]:
+    return History(dirname(__file__)).get_user_requests()
 
 
-def test_len(user_requests):
+def test_len(user_requests: list[dict]):
     assert len(user_requests) == 6
 
 
-def test_0(user_requests):
+def test_0(user_requests: list[dict]):
     assert user_requests[0] == {
         "cmd": ["conda", "update", "conda"],
         "date": "2016-02-16 13:31:33",
@@ -70,7 +72,7 @@ def test_0(user_requests):
     }
 
 
-def test_last(user_requests):
+def test_last(user_requests: list[dict]):
     assert user_requests[-1] == {
         "action": "install",
         "cmd": ["conda", "install", "pyflakes"],
