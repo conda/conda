@@ -22,11 +22,11 @@ def test_works_as_context_manager(tmp_history: History):
 
 
 def test_calls_update_on_exit(tmp_history: History, mocker: MockerFixture):
-    update = mocker.spy(tmp_history, "update")
+    mock_update = mocker.spy(tmp_history, "update")
 
     with tmp_history:
-        assert update.call_count == 0
-    assert update.call_count == 1
+        assert mock_update.call_count == 0
+    assert mock_update.call_count == 1
 
 
 def test_returns_history_object_as_context_object(
@@ -63,25 +63,108 @@ def test_len(user_requests: list[dict]):
     assert len(user_requests) == 6
 
 
-def test_0(user_requests: list[dict]):
-    assert user_requests[0] == {
-        "cmd": ["conda", "update", "conda"],
-        "date": "2016-02-16 13:31:33",
-        "unlink_dists": (),
-        "link_dists": (),
-    }
-
-
-def test_last(user_requests: list[dict]):
-    assert user_requests[-1] == {
-        "action": "install",
-        "cmd": ["conda", "install", "pyflakes"],
-        "date": "2016-02-18 22:53:20",
-        "specs": ["pyflakes", "conda", "python 2.7*"],
-        "update_specs": ["pyflakes", "conda", "python 2.7*"],
-        "unlink_dists": (),
-        "link_dists": ["+pyflakes-1.0.0-py27_0"],
-    }
+@pytest.mark.parametrize(
+    "index,spec",
+    [
+        pytest.param(
+            0,
+            {
+                "cmd": ["conda", "update", "conda"],
+                "date": "2016-02-16 13:31:33",
+                "unlink_dists": (),
+                "link_dists": (),
+            },
+            id="0",
+        ),
+        pytest.param(
+            1,
+            {
+                "action": "update",
+                "cmd": ["conda", "update", "conda"],
+                "date": "2016-02-16 13:31:41",
+                "link_dists": [
+                    "+sqlite-3.9.2-0",
+                    "+openssl-1.0.2f-0",
+                    "+setuptools-19.6.2-py27_0",
+                    "+conda-3.19.1-py27_0",
+                    "+pip-8.0.2-py27_0",
+                    "+requests-2.9.1-py27_0",
+                    "+wheel-0.29.0-py27_0",
+                ],
+                "specs": ["conda", "conda", "python 2.7*"],
+                "unlink_dists": [
+                    "-wheel-0.26.0-py27_1",
+                    "-sqlite-3.8.4.1-1",
+                    "-conda-3.19.0-py27_0",
+                    "-requests-2.9.0-py27_0",
+                    "-openssl-1.0.2d-0",
+                    "-pip-7.1.2-py27_0",
+                    "-setuptools-18.8.1-py27_0",
+                ],
+                "update_specs": ["conda", "conda", "python 2.7*"],
+            },
+            id="1",
+        ),
+        pytest.param(
+            2,
+            {
+                "action": "install",
+                "cmd": ["conda", "install", "cas-mirror"],
+                "date": "2016-02-16 13:34:30",
+                "link_dists": [
+                    "+cas-mirror-1.4.0-py27_x0",
+                    "+lighttpd-1.4.36-0",
+                    "+cheetah-2.4.4-py27_0",
+                ],
+                "specs": ["cas-mirror", "conda", "python 2.7*"],
+                "unlink_dists": (),
+                "update_specs": ["cas-mirror", "conda", "python 2.7*"],
+            },
+            id="2",
+        ),
+        pytest.param(
+            3,
+            {
+                "action": "update",
+                "cmd": ["conda", "update", "cas-mirror"],
+                "date": "2016-02-16 14:17:47",
+                "link_dists": ["+cas-mirror-1.4.1-py27_x0"],
+                "specs": ["cas-mirror", "conda", "python 2.7*"],
+                "unlink_dists": ["-cas-mirror-1.4.0-py27_x0"],
+                "update_specs": ["cas-mirror", "conda", "python 2.7*"],
+            },
+            id="3",
+        ),
+        pytest.param(
+            4,
+            {
+                "action": "install",
+                "cmd": ["conda", "install", "grin"],
+                "date": "2016-02-16 17:19:39",
+                "link_dists": ["+grin-1.2.1-py27_1"],
+                "specs": ["grin", "conda", "python 2.7*"],
+                "unlink_dists": (),
+                "update_specs": ["grin", "conda", "python 2.7*"],
+            },
+            id="4",
+        ),
+        pytest.param(
+            5,
+            {
+                "action": "install",
+                "cmd": ["conda", "install", "pyflakes"],
+                "date": "2016-02-18 22:53:20",
+                "specs": ["pyflakes", "conda", "python 2.7*"],
+                "update_specs": ["pyflakes", "conda", "python 2.7*"],
+                "unlink_dists": (),
+                "link_dists": ["+pyflakes-1.0.0-py27_0"],
+            },
+            id="5",
+        ),
+    ],
+)
+def test_user_requests(user_requests: list[dict], index: int, spec: dict):
+    assert user_requests[index] == spec
 
 
 @pytest.mark.parametrize(
