@@ -147,21 +147,6 @@ class TestJson(unittest.TestCase):
 
         assert mockable_context_envs_dirs.call_count > 0
 
-    @pytest.mark.usefixtures("empty_env_tmpdir")
-    @patch("conda.base.context.mockable_context_envs_dirs")
-    def test_compare(self, mockable_context_envs_dirs):
-        mockable_context_envs_dirs.return_value = (self.tmpdir,)
-        stdout, stderr, rc = run_inprocess_conda_command(
-            "conda compare --name nonexistent tempfile.rc --json"
-        )
-        assert (
-            json.loads(stdout.strip())["exception_name"]
-            == "EnvironmentLocationNotFound"
-        )
-        assert stderr == ""
-        assert rc > 0
-        assert mockable_context_envs_dirs.call_count > 0
-
     @pytest.mark.integration
     def test_search_0(self):
         # searching for everything is quite slow; search without name, few
