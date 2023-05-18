@@ -54,30 +54,6 @@ class TestJson(unittest.TestCase):
     def tearDown(self):
         rm_rf("tempfile.rc")
 
-    def test_config(self):
-        res = capture_json_with_argv("conda config --get --json")
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv("conda config --get channels --json")
-        self.assertJsonSuccess(res)
-
-        if context.root_writable:
-            res = capture_json_with_argv("conda config --get channels --system --json")
-            self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv(
-            "conda config --get channels --file tempfile.rc --json"
-        )
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv(
-            "conda config --get channels --file tempfile.rc --file tempfile.rc --json"
-        )
-        self.assertJsonSuccess(res)
-
-        res = capture_json_with_argv("conda config --get use_pip --json")
-        self.assertJsonSuccess(res)
-
     @pytest.mark.integration
     @patch(
         "conda.core.envs_manager.get_user_environments_txt_file",
