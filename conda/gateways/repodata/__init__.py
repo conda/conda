@@ -19,14 +19,14 @@ from os.path import dirname
 from pathlib import Path
 from typing import Any
 
-from conda import CondaError
-from conda.auxlib.logz import stringify
-from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
-from conda.base.context import context
-from conda.common.url import join_url, maybe_unquote
-from conda.core.package_cache_data import PackageCacheData
-from conda.deprecations import deprecated
-from conda.exceptions import (
+from ... import CondaError
+from ...auxlib.logz import stringify
+from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.context import context
+from ...common.url import join_url, maybe_unquote
+from ...core.package_cache_data import PackageCacheData
+from ...deprecations import deprecated
+from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
@@ -34,7 +34,8 @@ from conda.exceptions import (
     ProxyError,
     UnavailableInvalidChannel,
 )
-from conda.gateways.connection import (
+from ...models.channel import Channel
+from ..connection import (
     ChunkedEncodingError,
     ConnectionError,
     HTTPError,
@@ -44,10 +45,8 @@ from conda.gateways.connection import (
     Response,
     SSLError,
 )
-from conda.gateways.connection.session import CondaSession
-from conda.gateways.disk import mkdir_p_sudo_safe
-from conda.models.channel import Channel
-
+from ..connection.session import CondaSession
+from ..disk import mkdir_p_sudo_safe
 from .lock import lock
 
 log = logging.getLogger(__name__)
@@ -98,7 +97,7 @@ class Response304ContentUnchanged(Exception):
 def get_repo_interface() -> type[RepoInterface]:
     if "jlap" in context.experimental:
         try:
-            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
+            from .jlap.interface import JlapRepoInterface
 
             return JlapRepoInterface
         except ImportError as e:  # pragma: no cover
@@ -513,7 +512,7 @@ class RepodataState(UserDict):
         if key in self._aliased:
             key = key[1:]  # strip underscore
         if key in self._strings and not isinstance(item, str):
-            warnings.warn('Replaced non-str RepodataState[{key}] with ""')
+            warnings.warn(f'Replaced non-str RepodataState[{key}] with ""')
             item = ""
         return super().__setitem__(key, item)
 
