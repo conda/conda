@@ -15,12 +15,6 @@ def tmp_history(tmp_path: Path) -> History:
     return History(tmp_path)
 
 
-@pytest.fixture
-def user_requests() -> list[dict]:
-    # see tests/conda-meta/history
-    return History(Path(__file__).parent).get_user_requests()
-
-
 def test_works_as_context_manager(tmp_history: History):
     assert getattr(tmp_history, "__enter__")
     assert getattr(tmp_history, "__exit__")
@@ -57,10 +51,6 @@ def test_parse_on_empty_env(tmp_history: History, mocker: MockerFixture):
         assert mock_parse.call_count == 0
         assert len(tmp_history.parse()) == 0
     assert len(tmp_history.parse()) == 1
-
-
-def test_len(user_requests: list[dict]):
-    assert len(user_requests) == 6
 
 
 @pytest.mark.parametrize(
@@ -163,7 +153,11 @@ def test_len(user_requests: list[dict]):
         ),
     ],
 )
-def test_user_requests(user_requests: list[dict], index: int, spec: dict):
+def test_user_requests(index: int, spec: dict):
+    # load history from tests/conda-meta/history
+    user_requests = History(Path(__file__).parent).get_user_requests()
+
+    assert len(user_requests) == 6
     assert user_requests[index] == spec
 
 
