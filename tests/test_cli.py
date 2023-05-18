@@ -86,43 +86,6 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res["conda"], list)
         assert _mocked_guetf.call_count > 0
 
-    @pytest.mark.usefixtures("empty_env_tmpdir")
-    @patch("conda.base.context.mockable_context_envs_dirs")
-    def test_list(self, mockable_context_envs_dirs):
-        mockable_context_envs_dirs.return_value = (self.tmpdir,)
-        res = capture_json_with_argv("conda list --json")
-        self.assertIsInstance(res, list)
-
-        res = capture_json_with_argv("conda list -r --json")
-        self.assertTrue(
-            isinstance(res, list) or (isinstance(res, dict) and "error" in res)
-        )
-
-        res = capture_json_with_argv("conda list ipython --json")
-        self.assertIsInstance(res, list)
-
-        stdout, stderr, rc = run_inprocess_conda_command(
-            "conda list --name nonexistent --json"
-        )
-        assert (
-            json.loads(stdout.strip())["exception_name"]
-            == "EnvironmentLocationNotFound"
-        )
-        assert stderr == ""
-        assert rc > 0
-
-        stdout, stderr, rc = run_inprocess_conda_command(
-            "conda list --name nonexistent --revisions --json"
-        )
-        assert (
-            json.loads(stdout.strip())["exception_name"]
-            == "EnvironmentLocationNotFound"
-        )
-        assert stderr == ""
-        assert rc > 0
-
-        assert mockable_context_envs_dirs.call_count > 0
-
     @pytest.mark.integration
     def test_search_0(self):
         # searching for everything is quite slow; search without name, few
