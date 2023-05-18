@@ -48,7 +48,7 @@
 
 ### Other
 
-* Update retry language in flexible solve and `repodata` logs to be less ominous. (#12007)
+* Update retry language in flexible solve and `repodata` logs to be less ominous. (#12612)
 * Improve `repodata` / `subdir_data` programming interface (#12521). Index cache metadata has changed to `.info.json` to better align with the [draft CEP](https://github.com/conda-incubator/ceps/pull/48). Improve cache locking when using `jlap`. Improve `jlap` logging. (#12572)
 * Format with `black` and replaced `pre-commit`'s `darker` hook with `black`. (#12554)
 * Format with `isort` and add `pre-commit` `isort` hook. (#12554)
