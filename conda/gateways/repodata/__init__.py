@@ -512,7 +512,7 @@ class RepodataState(UserDict):
         if key in self._aliased:
             key = key[1:]  # strip underscore
         if key in self._strings and not isinstance(item, str):
-            warnings.warn(f'Replaced non-str RepodataState[{key}] with ""')
+            log.warn(f'Replaced non-str RepodataState[{key}] with ""')
             item = ""
         return super().__setitem__(key, item)
 
