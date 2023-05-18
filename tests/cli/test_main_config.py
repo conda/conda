@@ -5,6 +5,7 @@ from typing import Iterable
 
 import pytest
 
+from conda.base.context import context
 from conda.testing import CondaCLIFixture
 
 
@@ -12,13 +13,25 @@ from conda.testing import CondaCLIFixture
     "args",
     [
         pytest.param(("--get",), id="get, user"),
-        pytest.param(("--get", "--system"), id="get, system"),
+        pytest.param(
+            ("--get", "--system"),
+            id="get, system",
+            mark=pytest.mark.skip(not context.root_writable),
+        ),
         pytest.param(("--get", "--file", "missing"), id="get, provided"),
         pytest.param(("--get", "channels"), id="key, user"),
-        pytest.param(("--get", "channels", "--system"), id="key, system"),
+        pytest.param(
+            ("--get", "channels", "--system"),
+            id="key, system",
+            mark=pytest.mark.skip(not context.root_writable),
+        ),
         pytest.param(("--get", "channels", "--file", "missing"), id="key, provided"),
         pytest.param(("--get", "use_pip"), id="unknown, user"),
-        pytest.param(("--get", "use_pip", "--system"), id="unknown, system"),
+        pytest.param(
+            ("--get", "use_pip", "--system"),
+            id="unknown, system",
+            mark=pytest.mark.skip(not context.root_writable),
+        ),
         pytest.param(("--get", "use_pip", "--file", "missing"), id="unknown, provided"),
     ],
 )
