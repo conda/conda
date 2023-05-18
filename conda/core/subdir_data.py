@@ -232,9 +232,10 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_base(self):
-        if not hasattr(self, "_cache_dir"):
+        if not hasattr(self, "_cache_dir") or self._cache_dir_key != context.pkgs_dirs:
             # searches for writable directory; memoize per-instance.
             self._cache_dir = create_cache_dir()
+            self._cache_dir_key = context.pkgs_dirs
         # self.repodata_fn may change
         return join(
             self._cache_dir,
