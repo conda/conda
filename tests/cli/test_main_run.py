@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conda.common.compat import on_win
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 
