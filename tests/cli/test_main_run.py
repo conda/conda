@@ -56,6 +56,7 @@ def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert not err
 
 
+@pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
 def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
         # Remove write permissions
