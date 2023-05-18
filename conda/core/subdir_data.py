@@ -232,15 +232,17 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_base(self):
-        if not hasattr(self, "_cache_dir") or self._cache_dir_key != context.pkgs_dirs:
-            # searches for writable directory; memoize per-instance.
-            self._cache_dir = create_cache_dir()
-            self._cache_dir_key = context.pkgs_dirs
-        # self.repodata_fn may change
         return join(
-            self._cache_dir,
+            create_cache_dir(),
             splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0],
         )
+
+        # Is this memoization causing bugs?
+        # if not hasattr(self, "_cache_dir") or self._cache_dir_key != context.pkgs_dirs:
+        #     # searches for writable directory; memoize per-instance.
+        #     self._cache_dir = create_cache_dir()
+        #     self._cache_dir_key = context.pkgs_dirs
+        # # self.repodata_fn may change
 
     @property
     def url_w_repodata_fn(self):
