@@ -1,16 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import unittest
 from os.path import dirname
 from pathlib import Path
-from pprint import pprint
 
 import pytest
 from pytest_mock import MockerFixture
 
 from conda.history import History
-from conda.testing.cases import BaseTestCase
-from conda.testing.integration import make_temp_prefix
 
 
 def test_works_as_context_manager():
