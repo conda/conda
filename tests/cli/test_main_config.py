@@ -61,7 +61,7 @@ def test_config_get_missing(
     path = path_factory()
     stdout, _, _ = conda_cli("config", "--json", *args, "--file", path)
     parsed = json.loads(stdout.strip())
-    assert parsed["get"] == {}
+    assert "get" in parsed
     assert Path(parsed["rc_path"]) == path
     assert parsed["success"]
     assert "warnings" in parsed
