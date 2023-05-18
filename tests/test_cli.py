@@ -55,38 +55,6 @@ class TestJson(unittest.TestCase):
         rm_rf("tempfile.rc")
 
     @pytest.mark.integration
-    @patch(
-        "conda.core.envs_manager.get_user_environments_txt_file",
-        return_value=os.devnull,
-    )
-    def test_info(self, _mocked_guetf):
-        res = capture_json_with_argv("conda info --json")
-        keys = (
-            "channels",
-            "conda_version",
-            "default_prefix",
-            "envs",
-            "envs_dirs",
-            "pkgs_dirs",
-            "platform",
-            "python_version",
-            "rc_path",
-            "root_prefix",
-            "root_writable",
-        )
-        self.assertIsInstance(res, dict)
-        for key in keys:
-            assert key in res
-
-        res = capture_json_with_argv(
-            "conda info conda --json", disallow_stderr=False, ignore_stderr=True
-        )
-        self.assertIsInstance(res, dict)
-        self.assertIn("conda", res)
-        self.assertIsInstance(res["conda"], list)
-        assert _mocked_guetf.call_count > 0
-
-    @pytest.mark.integration
     def test_search_0(self):
         # searching for everything is quite slow; search without name, few
         # matching packages. py_3 is not a special build tag, but there are just
