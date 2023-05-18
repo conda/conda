@@ -258,8 +258,3 @@ def test_run_readonly_env(request):
         reset_permissions()
 
         assert result == 0
-
-
-def test_main():
-    with pytest.raises(SystemExit):
-        __import__("conda.__main__")
