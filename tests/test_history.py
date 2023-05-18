@@ -113,7 +113,7 @@ def test_last(user_requests):
                 "specs": ["param >=1.5.1,<2.0"],
                 "update_specs": ["param >=1.5.1,<2.0"],
             },
-            id="pre 4.4",
+            id="pre 4.4, install one spec",
         ),
         pytest.param(
             "# install specs: param >=1.5.1,<2.0,0packagename >=1.0.0,<2.0",
@@ -122,7 +122,7 @@ def test_last(user_requests):
                 "specs": ["param >=1.5.1,<2.0", "0packagename >=1.0.0,<2.0"],
                 "update_specs": ["param >=1.5.1,<2.0", "0packagename >=1.0.0,<2.0"],
             },
-            id="pre 4.4",
+            id="pre 4.4, install two specs",
         ),
         pytest.param(
             "# install specs: python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0,numpy >=1.11.0,<2.0,pandas >=0.19.2,<1.0,psycopg2 >=2.6.1,<3.0,pyyaml >=3.12,<4.0,scipy >=0.17.0,<1.0",
@@ -149,27 +149,36 @@ def test_last(user_requests):
                     "scipy >=0.17.0,<1.0",
                 ],
             },
-            id="pre 4.4",
+            id="pre 4.4, install many specs",
         ),
         pytest.param(
-            "# install specs: _license >=1.0.0,<2.0",
+            "# update specs: _license >=1.0.0,<2.0",
             {
-                "action": "install",
+                "action": "update",
                 "specs": ["_license >=1.0.0,<2.0"],
                 "update_specs": ["_license >=1.0.0,<2.0"],
             },
-            id="pre 4.4",
+            id="pre 4.4, update one spec",
         ),
         pytest.param(
-            "# install specs: pandas,_license >=1.0.0,<2.0",
+            "# update specs: pandas,_license >=1.0.0,<2.0",
             {
-                "action": "install",
+                "action": "update",
                 "specs": ["pandas", "_license >=1.0.0,<2.0"],
                 "update_specs": ["pandas", "_license >=1.0.0,<2.0"],
             },
-            id="pre 4.4",
+            id="pre 4.4, update two specs",
         ),
         # post 4.4
+        pytest.param(
+            """# install specs: ["param[version='>=1.5.1,<2.0']"]""",
+            {
+                "action": "install",
+                "specs": ["param[version='>=1.5.1,<2.0']"],
+                "update_specs": ["param[version='>=1.5.1,<2.0']"],
+            },
+            id="post 4.4, install spec",
+        ),
         pytest.param(
             """# update specs: ["param[version='>=1.5.1,<2.0']"]""",
             {
@@ -177,7 +186,7 @@ def test_last(user_requests):
                 "specs": ["param[version='>=1.5.1,<2.0']"],
                 "update_specs": ["param[version='>=1.5.1,<2.0']"],
             },
-            id="post 4.4",
+            id="post 4.4, update spec",
         ),
     ],
 )
