@@ -14,7 +14,6 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentNameNotFound,
 )
-from conda.plugins.subcommands.doctor.cli import get_prefix
 from conda.plugins.subcommands.doctor.health_checks import MISSING_FILES_SUCCESS_MESSAGE
 from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.testing.integration import make_temp_env
@@ -57,36 +56,3 @@ def test_conda_doctor_with_test_environment():
         assert MISSING_FILES_SUCCESS_MESSAGE in out
         assert not err  # no error message
         assert not code  # successful exit code
-
-
-def test_get_prefix_name():
-    assert get_prefix(Namespace(name="base", prefix=None)) == context.root_prefix
-
-
-def test_get_prefix_bad_name():
-    with pytest.raises(EnvironmentNameNotFound):
-        get_prefix(Namespace(name="invalid", prefix=None))
-
-
-def test_get_prefix_prefix():
-    with make_temp_env() as prefix:
-        assert get_prefix(Namespace(name=None, prefix=prefix)) == prefix
-
-
-def test_get_prefix_bad_prefix(tmp_path: Path):
-    with pytest.raises(DirectoryNotACondaEnvironmentError):
-        assert get_prefix(Namespace(name=None, prefix=tmp_path))
-
-
-def test_get_prefix_active():
-    with make_temp_env() as prefix, env_vars(
-        {"CONDA_PREFIX": prefix},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert get_prefix(Namespace(name=None, prefix=None)) == prefix
-
-
-def test_get_prefix_not_active(monkeypatch: MonkeyPatch):
-    monkeypatch.delenv("CONDA_PREFIX")
-    with pytest.raises(CondaEnvException):
-        get_prefix(Namespace(name=None, prefix=None))
