@@ -452,10 +452,18 @@ class Context(Configuration):
             # none of `--name`, `--prefix`, or context.root_prefix are available yet
             pass
         else:
-            if getattr(argparse_args, "prefix", None):
-                prefix = argparse_args.prefix
-            elif getattr(argparse_args, "name", None):
-                prefix = determine_target_prefix(context, argparse_args)
+            if (getattr(argparse_args, "func", None) or "").rsplit(".", 1)[-1] in (
+                "create",
+                "install",
+                "update",
+                "remove",
+                "uninstall",
+                "upgrade",
+            ):
+                if getattr(argparse_args, "prefix", None):
+                    prefix = argparse_args.prefix
+                elif getattr(argparse_args, "name", None):
+                    prefix = determine_target_prefix(context, argparse_args)
             os.environ["CONDA_PREFIX"] = prefix
 
         super().__init__(

@@ -9,11 +9,11 @@ import tempfile
 from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from conda.base.context import context, locate_prefix_by_name
 from conda.exceptions import CondaError, EnvironmentNameNotFound
 from conda.testing.helpers import run_inprocess_conda_command as run
-from conda.testing.helpers import set_active_prefix
 
 TEST_ENV_NAME_1 = "env-1"
 TEST_ENV_NAME_2 = "env-2"
@@ -146,7 +146,7 @@ def test_cannot_rename_base_env_by_path(env_one):
     assert "The 'base' environment cannot be renamed" in err
 
 
-def test_cannot_rename_active_env_by_name(env_one):
+def test_cannot_rename_active_env_by_name(env_one, mocker: MockerFixture):
     """Makes sure that we cannot rename our active environment."""
     _, data = list_envs()
     result = data.get("envs", [])
@@ -155,14 +155,17 @@ def test_cannot_rename_active_env_by_name(env_one):
 
     assert len(prefix_list) > 0
 
-    prefix = prefix_list[0]
+    mocker.patch(
+        "conda.base.context.Context.active_prefix",
+        new_callable=mocker.PropertyMock,
+        return_value=prefix_list[0],
+    )
 
-    with set_active_prefix(prefix):
-        out, err, exit_code = run(
-            f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME}",
-            disallow_stderr=False,
-        )
-        assert "Cannot rename the active environment" in err
+    out, err, exit_code = run(
+        f"conda rename -n {TEST_ENV_NAME_1} {TEST_ENV_NAME_RENAME}",
+        disallow_stderr=False,
+    )
+    assert "Cannot rename the active environment" in err
 
 
 def test_rename_with_force(env_one, env_two):
