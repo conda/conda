@@ -442,33 +442,26 @@ class Context(Configuration):
         if search_path is None:
             search_path = SEARCH_PATH
 
-        if argparse_args:
-            # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
-            # configuration can be properly loaded from those locations
-            func_name = ("func" in argparse_args and argparse_args.func or "").rsplit(
-                ".", 1
-            )[-1]
-            if func_name in (
-                "create",
-                "install",
-                "update",
-                "remove",
-                "uninstall",
-                "upgrade",
-            ):
-                if "prefix" in argparse_args and argparse_args.prefix:
-                    os.environ["CONDA_PREFIX"] = argparse_args.prefix
-                elif "name" in argparse_args and argparse_args.name:
-                    # Currently, usage of the '-n' flag is inefficient, with all configuration
-                    # files being loaded/re-loaded at least two times.
-                    target_prefix = determine_target_prefix(context, argparse_args)
-                    if target_prefix != context.root_prefix:
-                        os.environ["CONDA_PREFIX"] = determine_target_prefix(
-                            context, argparse_args
-                        )
+        # set CONDA_PREFIX based on `--name` and `--prefix` flags, so the configuration loads
+        # correctly from those locations, for testing/reset context purposes always
+        # restore/fallback to context.root_prefix if neither are defined
+        try:
+            prefix = context.root_prefix
+        except NameError:
+            # NameError: this is the very first initialization of context,
+            # none of `--name`, `--prefix`, or context.root_prefix are available yet
+            pass
+        else:
+            if getattr(argparse_args, "prefix", None):
+                prefix = argparse_args.prefix
+            elif getattr(argparse_args, "name", None):
+                prefix = determine_target_prefix(context, argparse_args)
+            os.environ["CONDA_PREFIX"] = prefix
 
         super().__init__(
-            search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args
+            search_path=search_path,
+            app_name=APP_NAME,
+            argparse_args=argparse_args,
         )
 
     def post_build_validation(self):
