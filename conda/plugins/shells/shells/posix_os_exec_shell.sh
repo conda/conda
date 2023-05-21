@@ -3,7 +3,9 @@
 
 #!/bin/sh
 
-# Evaluate all the arguments at once
+# Evaluate all arguments
 eval "$@"
 
-exit 0
+# run an interactive instance of the user's default shell to complete activation
+# new shell will inherit the environment variables of this process
+${SHELL}
