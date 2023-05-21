@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import CondaShellPlugins, CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -122,5 +122,4 @@ class CondaSpecs:
                     summary="example command",
                     action=example_command,
                 )
-
         """
