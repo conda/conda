@@ -4,11 +4,11 @@ import os
 import argparse
 
 
-from common.compat import ensure_text_type
-from base.context import context
-from cli.main import init_loggers
-from activate import PosixActivator
-from exceptions import ArgumentError
+from conda.common.compat import ensure_text_type
+from conda.base.context import context
+from conda.cli.main import init_loggers
+from conda.activate import PosixActivator
+from conda.exceptions import ArgumentError
 
 from .. import CondaShellPlugins, hookimpl
 
