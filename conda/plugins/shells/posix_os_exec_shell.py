@@ -71,8 +71,6 @@ def get_activate_builder(activator):
     Create dictionary containing the environment variables to be set, unset and
     exported, as well as the package activation and deactivation scripts to be run.
     """
-    print("Plugin: Build cmds_dict...")
-
     if activator.stack:
         builder_result = activator.build_stack(activator.env_name_or_prefix)
     else:
@@ -86,8 +84,6 @@ def activate(activator, cmds_dict):
     scripts from packages in old environment (to reset env variables) and
     activate scripts from packages installed in new environment.
     """
-    print("Plugin: In activate...")
-
     path = "./shells/posix_os_exec_shell.sh"
     arg_list = [path]
     env_map = os.environ
@@ -97,16 +93,11 @@ def activate(activator, cmds_dict):
     export_path = cmds_dict.get("export_path", {})  # seems to be empty for posix shells
     export_vars = cmds_dict.get("export_vars", {})
 
-    # print(f"{export_path=}")
-    # print(f"{export_vars=}")
-
     for key, value in sorted(export_path.items()):
         env_map[str(key)] = str(value)
 
     for key, value in sorted(export_vars.items()):
         env_map[str(key)] = str(value)
-
-    # print(env_map)
 
     deactivate_scripts = cmds_dict.get("deactivate_scripts", ())
 
@@ -127,31 +118,6 @@ def activate(activator, cmds_dict):
         arg_list.extend(activate_list)
 
     os.execve(path, arg_list, env_map)
-
-
-# def deactivate_scripts(activator, cmds_dict, env):
-#     '''
-#     run deactivate scripts from packages installed into the existing environment
-#     prior to activating new environment
-#     '''
-#     print("Plugin: In deactivate_scripts...")
-
-#     path = "./shells/posix_os_exec_shell.sh"
-#     arg_list = [path]
-#     activate_command = f"conda ppws activate_pt2 {env}"
-
-#     deactivate_scripts = cmds_dict.get("deactivate_scripts", ())
-#     deactivate_list = [
-#         (activator.run_script_tmpl % script) + activator.command_join
-#         for script in deactivate_scripts
-#     ]
-
-#     if deactivate_list:
-#         arg_list.extend(deactivate_list)
-
-#     arg_list.append(activate_command)
-
-#     os.execv(path, arg_list)
 
 
 def raise_invalid_command_error(actual_command=None):
@@ -218,14 +184,12 @@ def posix_plugin_with_shell(*args, **kwargs):
     # the reactivate process would be called during '_parse_and_set_args'
     # this can be dealt with later by editing the '_parse_and_set_args' method
     # or creating a new version for the plugin
+    # TODO: handle '_parse_and_set_args' functionality through argparse and through logic below
 
-    if command == "activate" and env:
+    if command == "activate":
         # using redefined activate process instead of _Activator.activate
         cmds_dict = get_activate_builder(activator)
         activate(activator, cmds_dict)
-    elif command == "activate" and not env:
-        # activate without an environment specified is actually reactivate
-        cmds_dict = activator.build_reactivate()
 
     # TODO: look into deactivation process and see what's going on here;
     # it's not working
