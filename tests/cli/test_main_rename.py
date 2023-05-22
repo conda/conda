@@ -155,6 +155,7 @@ def test_cannot_rename_active_env_by_name(env_one, mocker: MockerFixture):
 
     assert len(prefix_list) > 0
 
+    # mock active prefix
     mocker.patch(
         "conda.base.context.Context.active_prefix",
         new_callable=mocker.PropertyMock,

@@ -460,10 +460,7 @@ class Context(Configuration):
                 "uninstall",
                 "upgrade",
             ):
-                if getattr(argparse_args, "prefix", None):
-                    prefix = argparse_args.prefix
-                elif getattr(argparse_args, "name", None):
-                    prefix = determine_target_prefix(context, argparse_args)
+                prefix = determine_target_prefix(context, argparse_args)
             os.environ["CONDA_PREFIX"] = prefix
 
         super().__init__(

@@ -9,10 +9,16 @@ from os.path import join
 from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 import conda.instructions as inst
 from conda import CondaError
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, stack_context
+from conda.base.context import (
+    conda_tests_ctxt_mgmt_def_pol,
+    context,
+    reset_context,
+    stack_context,
+)
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
@@ -25,14 +31,12 @@ from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.plan import _update_old_plan as update_old_plan
 from conda.plan import add_defaults_to_specs, add_unlink, display_actions
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.helpers import captured, get_index_r_1
 
 from .gateways.disk.test_permissions import tempdir
 
-(
-    index,
-    r,
-) = get_index_r_1()
+index, r = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state
 
 
@@ -1463,57 +1467,72 @@ def generate_remove_action(prefix, unlink):
     return action
 
 
-def test_pinned_specs():
+def test_pinned_specs_CONDA_PINNED_PACKAGES():
     # Test pinned specs environment variable
-    specs_str_1 = ("numpy 1.11", "python >3")
-    specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
+    specs = ("numpy 1.11", "python >3")
     with env_var(
         "CONDA_PINNED_PACKAGES",
-        "&".join(specs_str_1),
+        "&".join(specs),
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         pinned_specs = get_pinned_specs("/none")
-        assert pinned_specs == specs_1
-        assert pinned_specs != specs_str_1
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
+
+def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
     # Test pinned specs conda environment file
-    specs_str_2 = ("scipy ==0.14.2", "openjdk >=8")
-    specs_2 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_2)
+    specs = ("scipy ==0.14.2", "openjdk >=8")
+    with tmp_env() as prefix:
+        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs) + "\n")
 
-    with tempdir() as td:
-        mkdir_p(join(td, "conda-meta"))
-        with open(join(td, "conda-meta", "pinned"), "w") as fh:
-            fh.write("\n".join(specs_str_2))
-            fh.write("\n")
-        pinned_specs = get_pinned_specs(td)
-        assert pinned_specs == specs_2
-        assert pinned_specs != specs_str_2
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
+
+def test_pinned_specs_condarc(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker
+):
+    # Test pinned specs conda environment file
+    specs = ("requests ==2.13",)
+    with tmp_env() as prefix:
+        # mock root prefix
+        mocker.patch(
+            "conda.base.context.Context.root_prefix",
+            new_callable=mocker.PropertyMock,
+            return_value=str(prefix),
+        )
+
+        conda_cli("config", "--env", "--add", "pinned_packages", *specs)
+
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_pinned_specs_all(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker):
     # Test pinned specs conda configuration and pinned specs conda environment file
-    with tempdir() as td:
-        mkdir_p(join(td, "conda-meta"))
-        pinned_filename = join(td, "conda-meta", "pinned")
-        with open(pinned_filename, "w") as fh:
-            fh.write("\n".join(specs_str_1))
-            fh.write("\n")
+    specs1 = ("numpy 1.11", "python >3")
+    specs2 = ("scipy ==0.14.2", "openjdk >=8")
+    specs3 = ("requests=2.13",)
+    specs = (*specs1, *specs3, *specs2)
+    with tmp_env() as prefix, env_var(
+        "CONDA_PINNED_PACKAGES",
+        "&".join(specs1),
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs2) + "\n")
 
-        with env_var("CONDA_PREFIX", td, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            run_command(
-                Commands.CONFIG, "--env", "--add", "pinned_packages", "requests=2.13"
-            )
-            condarc = join(td, ".condarc")
-            with env_var(
-                "CONDA_PINNED_PACKAGES",
-                "&".join(specs_str_2),
-                partial(stack_context, True, search_path=(condarc,)),
-            ):  # conda_tests_ctxt_mgmt_def_pol):
-                pinned_specs = get_pinned_specs(td)
-                expected = (
-                    specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
-                )
-                assert pinned_specs == expected
-                assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
+        # mock root prefix
+        mocker.patch(
+            "conda.base.context.Context.root_prefix",
+            new_callable=mocker.PropertyMock,
+            return_value=str(prefix),
+        )
 
+        conda_cli("config", "--env", "--add", "pinned_packages", *specs3)
 
-if __name__ == "__main__":
-    unittest.main()
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
