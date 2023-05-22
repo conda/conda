@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from . import posix_os_exec, posix_os_exec_shell, posix_activate
+from . import posix_activate, posix_os_exec, posix_os_exec_shell
 
 #: The list of virtual package plugins for easier registration with pluggy
 plugins = [posix_os_exec, posix_os_exec_shell, posix_activate]

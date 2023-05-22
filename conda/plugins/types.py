@@ -49,6 +49,7 @@ class CondaSolver(NamedTuple):
     name: str
     backend: type[Solver]
 
+
 class CondaShellPlugins(NamedTuple):
     """
     A conda shell plugin.
