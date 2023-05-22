@@ -105,7 +105,6 @@ class CondaSpecs:
         :return: An iterable of shell plugin entries.
 
         Example:
-
         .. code-block:: python
 
             from conda import plugins
