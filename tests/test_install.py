@@ -201,7 +201,7 @@ class FileTests(unittest.TestCase):
 
     def test_trash_outside_prefix(self):
         tmp_dir = tempfile.mkdtemp()
-        rel = relpath(tmp_dir, context.root_dir)
+        rel = relpath(tmp_dir, context.root_prefix)
         self.assertTrue(rel.startswith(".."))
         move_path_to_trash(tmp_dir)
         self.assertFalse(exists(tmp_dir))
