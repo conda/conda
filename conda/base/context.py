@@ -439,36 +439,10 @@ class Context(Configuration):
     )
 
     def __init__(self, search_path=None, argparse_args=None):
-        if search_path is None:
-            search_path = SEARCH_PATH
-
-        if argparse_args:
-            # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
-            # configuration can be properly loaded from those locations
-            func_name = ("func" in argparse_args and argparse_args.func or "").rsplit(
-                ".", 1
-            )[-1]
-            if func_name in (
-                "create",
-                "install",
-                "update",
-                "remove",
-                "uninstall",
-                "upgrade",
-            ):
-                if "prefix" in argparse_args and argparse_args.prefix:
-                    os.environ["CONDA_PREFIX"] = argparse_args.prefix
-                elif "name" in argparse_args and argparse_args.name:
-                    # Currently, usage of the '-n' flag is inefficient, with all configuration
-                    # files being loaded/re-loaded at least two times.
-                    target_prefix = determine_target_prefix(context, argparse_args)
-                    if target_prefix != context.root_prefix:
-                        os.environ["CONDA_PREFIX"] = determine_target_prefix(
-                            context, argparse_args
-                        )
-
         super().__init__(
-            search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args
+            search_path=search_path or SEARCH_PATH,
+            app_name=APP_NAME,
+            argparse_args=argparse_args,
         )
 
     def post_build_validation(self):

@@ -17,14 +17,16 @@ from __future__ import annotations
 import copy
 import sys
 from abc import ABCMeta, abstractmethod
+from argparse import Namespace
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
 from itertools import chain
 from logging import getLogger
 from os import environ, scandir, stat
-from os.path import basename, expandvars
+from os.path import abspath, basename, expanduser, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
+from string import Template
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -43,7 +45,6 @@ from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_struct
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .path import expand
 from .serialize import yaml_round_trip_load
 
 try:
@@ -466,7 +467,7 @@ class DefaultValueRawParameter(RawParameter):
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
-def load_file_configs(search_path):
+def load_file_configs(search_path, **kwargs):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_loader(fullpath):
@@ -496,7 +497,10 @@ def load_file_configs(search_path):
         except OSError:
             return None
 
-    expanded_paths = tuple(expand(path) for path in search_path)
+    def _expand(path):
+        return abspath(expanduser(Template(path).safe_substitute(environ, **kwargs)))
+
+    expanded_paths = tuple(_expand(path) for path in search_path)
     stat_paths = (_get_st_mode(path) for path in expanded_paths)
     load_paths = (
         _loader[st_mode](path)
@@ -1356,62 +1360,54 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
-        self._set_search_path(search_path)
-        self._set_env_vars(app_name)
-        self._set_argparse_args(argparse_args)
-
-    def _set_search_path(self, search_path):
-        self._search_path = IndexedSet(search_path)
-        self._set_raw_data(load_file_configs(search_path))
-        self._reset_cache()
-        return self
-
-    def _set_env_vars(self, app_name=None):
-        self._app_name = app_name
-        if not app_name:
-            return self
-        self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(
-            app_name
-        )
-        self._reset_cache()
-        return self
-
-    def _set_argparse_args(self, argparse_args):
         # the argparse_args we store internally in this class as self._argparse_args
         #   will be a mapping type, not a non-`dict` object like argparse_args is natively
-        if hasattr(argparse_args, "__dict__"):
-            # the argparse_args from argparse will be an object with a __dict__ attribute
-            #   and not a mapping type like this method will turn it into
-            self._argparse_args = AttrDict(
-                (k, v) for k, v, in vars(argparse_args).items() if v is not NULL
-            )
-        elif not argparse_args:
-            # argparse_args can be initialized as `None`
-            self._argparse_args = AttrDict()
-        else:
-            # we're calling this method with argparse_args that are a mapping type, likely
-            #   already having been processed by this method before
-            self._argparse_args = AttrDict(
-                (k, v) for k, v, in argparse_args.items() if v is not NULL
-            )
+        if not argparse_args:
+            argparse_args = {}
+        elif isinstance(argparse_args, Namespace):
+            argparse_args = vars(argparse_args)
+        self._argparse_args = AttrDict(
+            {key: value for key, value in argparse_args.items() if value is not NULL}
+        )
+
+        self._set_search_path(search_path)
+        self._set_env_vars(app_name)
 
         source = ArgParseRawParameter.source
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(
             self._argparse_args
         )
-        self._reset_cache()
-        return self
 
-    def _set_raw_data(self, raw_data):
+        self._reset_cache()
+
+    def _set_search_path(self, search_path) -> None:
+        self._search_path = IndexedSet(search_path)
+
+        data = load_file_configs(search_path, CONDA_PREFIX=self.target_prefix)
+        self.raw_data.update(data)
+
+        self._reset_cache()
+
+    def _set_env_vars(self, app_name=None) -> None:
+        self._app_name = app_name
+
+        source = EnvRawParameter.source
+        if app_name:
+            self.raw_data[source] = EnvRawParameter.make_raw_parameters(app_name)
+        elif source in self.raw_data:
+            del self.raw_data[source]
+
+        self._reset_cache()
+
+    def _set_raw_data(self, raw_data) -> None:
         self.raw_data.update(raw_data)
-        self._reset_cache()
-        return self
 
-    def _reset_cache(self):
+        self._reset_cache()
+
+    def _reset_cache(self) -> None:
         self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
-        return self
 
     def register_reset_callaback(self, callback):
         self._reset_callbacks.add(callback)

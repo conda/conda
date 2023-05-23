@@ -15,7 +15,7 @@ from argparse import (
     _StoreAction,
 )
 from logging import getLogger
-from os.path import abspath, expanduser, join
+from pathlib import Path
 from subprocess import Popen
 from textwrap import dedent
 
@@ -28,17 +28,15 @@ from ..base.constants import (
     DepsModifier,
     UpdateModifier,
 )
-from ..base.context import context
+from ..base.context import context, sys_rc_path, user_rc_path
+from ..common.compat import on_win
 from ..common.constants import NULL
 from ..deprecations import deprecated
 
 log = getLogger(__name__)
 
-# duplicated code in the interest of import efficiency
-on_win = bool(sys.platform == "win32")
-user_rc_path = abspath(expanduser("~/.condarc"))
-escaped_user_rc_path = user_rc_path.replace("%", "%%")
-escaped_sys_rc_path = abspath(join(sys.prefix, ".condarc")).replace("%", "%%")
+deprecated.constant("24.3", "24.9", "escaped_user_rc_path", user_rc_path)
+deprecated.constant("24.3", "24.9", "escaped_sys_rc_path", sys_rc_path)
 
 #: List of a built-in commands; these cannot be overriden by plugin subcommands
 BUILTIN_COMMANDS = {
@@ -495,17 +493,13 @@ def configure_parser_info(sub_parsers):
 
 
 def configure_parser_config(sub_parsers):
-    descr = (
-        dedent(
-            """
-    Modify configuration values in .condarc.  This is modeled after the git
-    config command.  Writes to the user .condarc file (%s) by default. Use the
-    --show-sources flag to display all identified configuration locations on
-    your computer.
-
-    """
-        )
-        % escaped_user_rc_path
+    descr = dals(
+        f"""
+        Modify configuration values in .condarc.  This is modeled after the git
+        config command.  Writes to the user .condarc file ({Path(user_rc_path)}) by default.
+        Use the --show-sources flag to display all identified configuration locations on
+        your computer.
+        """
     )
 
     # Note, the extra whitespace in the list keys is on purpose. It's so the
@@ -568,24 +562,23 @@ def configure_parser_config(sub_parsers):
     # TODO: use argparse.FileType
     config_file_location_group = p.add_argument_group(
         "Config File Location Selection",
-        "Without one of these flags, the user config file at '%s' is used."
-        % escaped_user_rc_path,
+        f"Without one of these flags, the user .condarc file ({Path(user_rc_path)}) is used.",
     )
     location = config_file_location_group.add_mutually_exclusive_group()
     location.add_argument(
         "--system",
         action="store_true",
-        help="Write to the system .condarc file at '%s'." % escaped_sys_rc_path,
+        help=f"Write to the system .condarc file ({Path(sys_rc_path)}).",
     )
+    active_condarc = "-"
+    if context.active_prefix:
+        active_condarc = Path(context.active_prefix, ".condarc")
     location.add_argument(
         "--env",
         action="store_true",
-        help="Write to the active conda environment .condarc file (%s). "
-        "If no environment is active, write to the user config file (%s)."
-        ""
-        % (
-            os.getenv("CONDA_PREFIX", "<no active environment>").replace("%", "%%"),
-            escaped_user_rc_path,
+        help=(
+            f"Write to the active conda environment .condarc file ({active_condarc}). "
+            f"If no environment is active, write to the user config file ({Path(user_rc_path)})."
         ),
     )
     location.add_argument("--file", action="store", help="Write to the given file.")

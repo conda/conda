@@ -151,7 +151,7 @@ def run_env_command(command, prefix, *arguments, use_prefix_flag: bool = False):
         arguments[1:1] = [flag, prefix]
     p = create_parser()
     args = p.parse_args(arguments)
-    context._set_argparse_args(args)
+    context.__init__(argparse_args=args)
 
     with captured() as c:
         do_call_conda_env(args, p)
@@ -183,7 +183,7 @@ def run_conda_command(command, prefix, *arguments):
 
     commands = shlex_split_unicode(command_line)
     args = p.parse_args(commands)
-    context._set_argparse_args(args)
+    context.__init__(argparse_args=args)
     with captured() as c:
         do_call(args, p)
 

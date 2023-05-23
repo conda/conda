@@ -269,7 +269,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     # .. but that does not support no_capture and probably more stuff.
 
     args = p.parse_args(arguments)
-    context._set_argparse_args(args)
+    context.__init__(argparse_args=args)
     init_loggers(context)
     cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
