@@ -1235,9 +1235,12 @@ class MatchSpecMergeTests(TestCase):
             with pytest.raises(ValueError):
                 MatchSpec.merge(specs)
 
-    def test_hash_merge_wo_name(self,):
+    def test_hash_merge_wo_name(self):
         for hash_type in ("md5", "sha256"):
-            specs = (MatchSpec(f"*[{hash_type}=deadbeef]"), MatchSpec(f"*[{hash_type}=FFBADD11]"))
+            specs = (
+                MatchSpec(f"*[{hash_type}=deadbeef]"),
+                MatchSpec(f"*[{hash_type}=FFBADD11]"),
+            )
             merged = MatchSpec.merge(specs)
             assert len(merged) == 2
             str_specs = (f"*[{hash_type}=deadbeef]", f"*[{hash_type}=FFBADD11]")
