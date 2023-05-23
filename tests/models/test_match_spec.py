@@ -1216,32 +1216,34 @@ class MatchSpecMergeTests(TestCase):
         with pytest.raises(ValueError):
             MatchSpec.merge(specs)
 
-    def test_md5_merge_with_name(self):
-        specs = (
-            MatchSpec("python[md5=deadbeef]"),
-            MatchSpec("python=1.2.3"),
-            MatchSpec("conda-forge::python[md5=deadbeef]"),
-        )
-        merged = MatchSpec.merge(specs)
-        assert len(merged) == 1
-        assert str(merged[0]) == "conda-forge::python=1.2.3[md5=deadbeef]"
+    def test_hash_merge_with_name(self):
+        for hash_type in ("md5", "sha256"):
+            specs = (
+                MatchSpec(f"python[{hash_type}=deadbeef]"),
+                MatchSpec("python=1.2.3"),
+                MatchSpec(f"conda-forge::python[{hash_type}=deadbeef]"),
+            )
+            merged = MatchSpec.merge(specs)
+            assert len(merged) == 1
+            assert str(merged[0]) == f"conda-forge::python=1.2.3[{hash_type}=deadbeef]"
 
-        specs = (
-            MatchSpec("python[md5=FFBADD11]"),
-            MatchSpec("python=1.2.3"),
-            MatchSpec("python[md5=ffbadd11]"),
-        )
-        with pytest.raises(ValueError):
-            MatchSpec.merge(specs)
+            specs = (
+                MatchSpec(f"python[{hash_type}=FFBADD11]"),
+                MatchSpec("python=1.2.3"),
+                MatchSpec(f"python[{hash_type}=ffbadd11]"),
+            )
+            with pytest.raises(ValueError):
+                MatchSpec.merge(specs)
 
-    def test_md5_merge_wo_name(self):
-        specs = (MatchSpec("*[md5=deadbeef]"), MatchSpec("*[md5=FFBADD11]"))
-        merged = MatchSpec.merge(specs)
-        assert len(merged) == 2
-        str_specs = ("*[md5=deadbeef]", "*[md5=FFBADD11]")
-        assert str(merged[0]) in str_specs
-        assert str(merged[1]) in str_specs
-        assert str(merged[0]) != str(merged[1])
+    def test_hash_merge_wo_name(self,):
+        for hash_type in ("md5", "sha256"):
+            specs = (MatchSpec(f"*[{hash_type}=deadbeef]"), MatchSpec(f"*[{hash_type}=FFBADD11]"))
+            merged = MatchSpec.merge(specs)
+            assert len(merged) == 2
+            str_specs = (f"*[{hash_type}=deadbeef]", f"*[{hash_type}=FFBADD11]")
+            assert str(merged[0]) in str_specs
+            assert str(merged[1]) in str_specs
+            assert str(merged[0]) != str(merged[1])
 
     def test_catch_invalid_regexes(self):
         # Crashing case via fuzzing found via fuzzing. Reported here: https://github.com/conda/conda/issues/11999
