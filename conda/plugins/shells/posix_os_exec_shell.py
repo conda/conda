@@ -86,12 +86,18 @@ def activate(activator, cmds_dict):
     """
     path = "./shells/posix_os_exec_shell.sh"
     arg_list = [path]
-    env_map = os.environ
+    env_map = os.environ.copy()
 
-    # for PosixActivator process, no unset vars and only var that is set is prompt
-    # this function ignores unset vars and set vars for now
+    unset_vars = cmds_dict["unset_vars"]
+    set_vars = cmds_dict["set_vars"]
     export_path = cmds_dict.get("export_path", {})  # seems to be empty for posix shells
     export_vars = cmds_dict.get("export_vars", {})
+
+    for key in sorted(unset_vars):
+        env_map.pop(str(key), None)
+
+    for key, value in sorted(set_vars.items()):
+        env_map[str(key)] = str(value)
 
     for key, value in sorted(export_path.items()):
         env_map[str(key)] = str(value)
@@ -179,7 +185,7 @@ def posix_plugin_with_shell(*args, **kwargs):
     # call the methods leading up to the command-specific builds
     activator._parse_and_set_args(env_args)
 
-    # at the moment, if activate is called without an environment,
+    # at the moment, if activate is called the same environment,
     # reactivation is being run through conda's normal process because
     # the reactivate process would be called during '_parse_and_set_args'
     # this can be dealt with later by editing the '_parse_and_set_args' method
@@ -189,17 +195,14 @@ def posix_plugin_with_shell(*args, **kwargs):
     if command == "activate":
         # using redefined activate process instead of _Activator.activate
         cmds_dict = get_activate_builder(activator)
-        activate(activator, cmds_dict)
 
-    # TODO: look into deactivation process and see what's going on here;
-    # it's not working
-    # can we just exit the sub-shell? If so, how do we do that?
-    # should I remodel deactivation as a direct activation of the prior environment?
     if command == "deactivate":
         cmds_dict = activator.build_deactivate()
 
     if command == "reactivate":
         cmds_dict = activator.build_reactivate()
+
+    return activate(activator, cmds_dict)
 
 
 @hookimpl
