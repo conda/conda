@@ -14,9 +14,10 @@ from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 from .binstar import BinstarSpec
 from .requirements import RequirementsSpec
+from .toml_file import TomlSpec
 from .yaml_file import YamlFileSpec
 
-FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec], Type[TomlSpec]]
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
@@ -26,7 +27,9 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
     # Check extensions
-    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions).union(
+        TomlSpec.extensions
+    )
     _, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
@@ -40,6 +43,8 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
             return YamlFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
+        elif ext in TomlSpec.extensions:
+            return TomlSpec
     else:
         raise EnvironmentFileNotFound(filename=filename)
 
