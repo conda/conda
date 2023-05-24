@@ -15,6 +15,11 @@ from .. import CondaShellPlugins, hookimpl
 
 
 class PosixPluginActivator(_Activator):
+    """
+    Define syntax that is specific to Posix shells.
+    Also contains logic that takes into account Posix shell use on Windows.
+    """
+
     pathsep_join = ":".join
     sep = "/"
     path_conversion = staticmethod(native_path_to_unix)

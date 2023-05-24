@@ -14,6 +14,11 @@ from conda.plugins import CondaShellPlugins, hookimpl
 
 
 class PosixPluginActivator(_Activator):
+    """
+    Define syntax that is specific to Posix shells.
+    Also contains logic that takes into account Posix shell use on Windows.
+    """
+
     pathsep_join = ":".join
     sep = "/"
     path_conversion = staticmethod(native_path_to_unix)
@@ -66,7 +71,11 @@ class PosixPluginActivator(_Activator):
         return "\n".join(result) + "\n"
 
 
-def activate(activator):
+def get_activate_builder(activator):
+    """
+    Create dictionary containing the environment variables to be set, unset and
+    exported, as well as the package activation and deactivation scripts to be run.
+    """
     if activator.stack:
         builder_result = activator.build_stack(activator.env_name_or_prefix)
     else:
@@ -75,20 +84,33 @@ def activate(activator):
 
 
 def raise_invalid_command_error(actual_command=None):
+    """
+    Raise an error message on the CLI if a command other than 'activate',
+    'deactivate' or 'reactivate' is given.
+    """
     message = "'activate', 'deactivate', or 'reactivate'" "command must be given"
     if actual_command:
         message += ". Instead got '%s'." % actual_command
     raise ArgumentError(message)
 
 
-def ard(*args, **kwargs):
+def posix_plugin_no_shell(*args, **kwargs):
+    """
+    Parse CLI arguments to determine desired command.
+    Run process associated with command or produce appropriate error message.
+
+    This plugin is intended for use only with POSIX shells; only the PosixActivator
+    child class is called.
+    """
     # argparse handles cleanup but I need to check if the UTF-8 issue might still persist
     # no need to check for missing command - handled by argparse
     # env_args = tuple(ensure_text_type(s) for s in env_args)
     parser = argparse.ArgumentParser(
         description="Process conda activate, deactivate, and reactivate"
     )
-    parser.add_argument("ardhc", type=str, nargs=1, help="this package's entry point")
+    parser.add_argument(
+        "posix_plugin_no_shell", type=str, nargs=1, help="this package's entry point"
+    )
     parser.add_argument(
         "command",
         metavar="c",
@@ -127,7 +149,7 @@ def ard(*args, **kwargs):
 
     if command == "activate" and env:
         # using redefined activate function instead of _Activator.activate
-        cmds_dict = activate(activator)
+        cmds_dict = get_activate_builder(activator)
     elif command == "activate" and not env:
         cmds_dict = activator.build_reactivate()
 
@@ -145,7 +167,6 @@ def ard(*args, **kwargs):
     # deactivate_scripts = cmds_dict.get("deactivate_scripts", ())
     activate_scripts = cmds_dict.get("activate_scripts", ())
 
-    print("activating! or deactivating!")
     env_map = os.environ
 
     # ignoring setting and unsetting variables for now
@@ -192,5 +213,5 @@ def conda_shell_plugins():
     yield CondaShellPlugins(
         name="posix_exec_plugin",
         summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
-        action=ard,
+        action=posix_plugin_no_shell,
     )

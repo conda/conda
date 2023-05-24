@@ -14,6 +14,11 @@ from conda.plugins import CondaShellPlugins, hookimpl
 
 
 class PosixPluginActivator(_Activator):
+    """
+    Define syntax that is specific to Posix shells.
+    Also contains logic that takes into account Posix shell use on Windows.
+    """
+
     pathsep_join = ":".join
     sep = "/"
     path_conversion = staticmethod(native_path_to_unix)
@@ -127,6 +132,10 @@ def activate(activator, cmds_dict):
 
 
 def raise_invalid_command_error(actual_command=None):
+    """
+    Raise an error message on the CLI if a command other than 'activate',
+    'deactivate' or 'reactivate' is given.
+    """
     message = "'activate', 'deactivate', or 'reactivate'" "command must be given"
     if actual_command:
         message += ". Instead got '%s'." % actual_command
@@ -141,15 +150,15 @@ def posix_plugin_with_shell(*args, **kwargs):
     This plugin is intended for use only with POSIX shells; only the PosixActivator
     child class is called.
     """
-    print("Plugin: In ppws...")
-
     # argparse handles cleanup but I need to check if the UTF-8 issue might still persist
     # no need to check for missing command - handled by argparse
     # env_args = tuple(ensure_text_type(s) for s in env_args)
     parser = argparse.ArgumentParser(
         description="Process conda activate, deactivate, and reactivate"
     )
-    parser.add_argument("ppws", type=str, nargs=1, help="this package's entry point")
+    parser.add_argument(
+        "posix_plugin_with_shell", type=str, nargs=1, help="this package's entry point"
+    )
     parser.add_argument(
         "command",
         metavar="c",
@@ -170,7 +179,6 @@ def posix_plugin_with_shell(*args, **kwargs):
 
     command = args.command[0]
     env = args.env
-    print(f"{env=}")
 
     context.__init__()
     init_loggers(context)
