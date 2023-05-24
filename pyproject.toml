@@ -55,7 +55,6 @@ conda = "conda.cli.main_pip:main"
 source = "vcs"
 
 [tool.hatch.version.raw-options]
-version_scheme = "calver-by-date"
 local_scheme = "dirty-tag"
 
 [tool.hatch.build]
