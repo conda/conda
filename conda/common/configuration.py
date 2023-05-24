@@ -467,7 +467,7 @@ class DefaultValueRawParameter(RawParameter):
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
-def load_file_configs(search_path, **kwargs):
+def load_file_configs(search_path, target_prefix):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_loader(fullpath):
@@ -498,7 +498,9 @@ def load_file_configs(search_path, **kwargs):
             return None
 
     def _expand(path):
-        return abspath(expanduser(Template(path).safe_substitute(environ, **kwargs)))
+        # mock os.path.expandvars but with a custom $CONDA_PREFIX value
+        path = Template(str(path)).safe_substitute(environ, CONDA_PREFIX=target_prefix)
+        return abspath(expanduser(path))
 
     expanded_paths = tuple(_expand(path) for path in search_path)
     stat_paths = (_get_st_mode(path) for path in expanded_paths)
@@ -1383,7 +1385,7 @@ class Configuration(metaclass=ConfigurationType):
     def _set_search_path(self, search_path) -> None:
         self._search_path = IndexedSet(search_path)
 
-        data = load_file_configs(search_path, CONDA_PREFIX=self.target_prefix)
+        data = load_file_configs(search_path, target_prefix=self.target_prefix)
         self.raw_data.update(data)
 
         self._reset_cache()
