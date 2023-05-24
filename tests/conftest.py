@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from conda.testing import conda_cli, path_factory, tmp_env
+
 from . import http_test_server
 from .fixtures_jlap import package_repository_base, package_server  # NOQA
 

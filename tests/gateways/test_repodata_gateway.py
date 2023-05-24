@@ -12,9 +12,11 @@ import math
 import sys
 import time
 from pathlib import Path
+from socket import socket
 
 import pytest
 
+from conda.base.constants import REPODATA_FN
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.exceptions import (
@@ -31,11 +33,19 @@ from conda.gateways.connection import (
     SSLError,
 )
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
+    CACHE_STATE_SUFFIX,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    CondaRepoInterface,
     RepodataCache,
+    RepodataFetch,
     RepodataIsEmpty,
     RepodataState,
     conda_http_errors,
 )
+from conda.gateways.repodata.jlap.interface import JlapRepoInterface
+from conda.models.channel import Channel
 
 
 def test_save(tmp_path):
@@ -52,7 +62,7 @@ def test_save(tmp_path):
 
     time.sleep(0.1)  # may be necessary on Windows for time.time_ns() to advance
 
-    # update last-checked-timestamp in .state.json
+    # update last-checked-timestamp in metadata file
     cache.refresh()
 
     # repodata.json's mtime should be equal
@@ -63,7 +73,7 @@ def test_save(tmp_path):
 
     assert state2 != state
 
-    # force reload repodata, .state.json from disk
+    # force reload repodata, metadata file from disk
     cache.load()
     state3 = dict(cache.state)
 
@@ -74,12 +84,12 @@ def test_stale(tmp_path):
     """RepodataCache should understand cache-control and modified time versus now."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
-    MOD = "Thu, 26 Jan 2023 19:34:01 GMT"
-    cache.state.mod = MOD
-    CACHE_CONTROL = "public, max-age=30"
-    cache.state.cache_control = CACHE_CONTROL
-    ETAG = '"etag"'
-    cache.state.etag = ETAG
+    last_modified = "Thu, 26 Jan 2023 19:34:01 GMT"
+    cache.state.mod = last_modified
+    cache_control = "public, max-age=30"
+    cache.state.cache_control = cache_control
+    etag = '"unambiguous-etag"'
+    cache.state.etag = etag
     cache.save(TEST_DATA)
 
     cache.load()
@@ -109,15 +119,15 @@ def test_stale(tmp_path):
         context.local_repodata_ttl = original_ttl
 
     # since state's mtime_ns matches repodata.json stat(), these will be preserved
-    assert cache.state.mod == MOD
-    assert cache.state.cache_control == CACHE_CONTROL
-    assert cache.state.etag == ETAG
+    assert cache.state.mod == last_modified
+    assert cache.state.cache_control == cache_control
+    assert cache.state.etag == etag
 
     # XXX rewrite state without replacing repodata.json, assert still stale...
 
     # mismatched mtime empties cache headers
     state = dict(cache.state)
-    assert state["etag"]
+    assert state[ETAG_KEY]
     assert cache.state.etag
     state["mtime_ns"] = 0
     cache.cache_path_state.write_text(json.dumps(state))
@@ -125,23 +135,27 @@ def test_stale(tmp_path):
     assert not cache.state.mod
     assert not cache.state.etag
 
-    # check type problems
-    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
-    for type in json_types:
-        cache.state["cache_control"] = type
-        cache.stale()
-
     # if we don't match stat then load_state will clear the test "mod" value
     json_stat = cache.cache_path_json.stat()
 
-    # change wrongly-typed mod to empty string
-    cache.cache_path_state.write_text(
-        json.dumps(
-            {"mod": None, "mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
+    # check type problems
+    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
+    for example in json_types:
+        cache.state["cache_control"] = example
+        cache.stale()
+
+        # change wrongly-typed mod to empty string
+        cache.cache_path_state.write_text(
+            json.dumps(
+                {
+                    "mod": example,
+                    "mtime_ns": json_stat.st_mtime_ns,
+                    "size": json_stat.st_size,
+                }
+            )
         )
-    )
-    state = cache.load_state()
-    assert state.mod == ""
+        state = cache.load_state()
+        assert state.mod == "" or isinstance(example, str)
 
     # preserve correct mod
     cache.cache_path_state.write_text(
@@ -162,7 +176,9 @@ def test_coverage_repodata_state(tmp_path):
 
     # assert invalid state is equal to no state
     state = RepodataState(
-        tmp_path / "garbage.json", tmp_path / "garbage.state.json", "repodata.json"
+        tmp_path / "garbage.json",
+        tmp_path / f"garbage{CACHE_STATE_SUFFIX}",
+        "repodata.json",
     )
     state.cache_path_state.write_text("not json")
     assert dict(state.load()) == {}
@@ -306,7 +322,7 @@ def test_cache_json(tmp_path: Path):
     cached json.
     """
     cache_json = tmp_path / "cached.json"
-    cache_state = tmp_path / "cached.state.json"
+    cache_state = tmp_path / f"cached{CACHE_STATE_SUFFIX}"
 
     cache_json.write_text("{}")
 
@@ -319,14 +335,14 @@ def test_cache_json(tmp_path: Path):
     state = RepodataState(cache_json, cache_state, "repodata.json")
     state.mod = mod  # this is the last-modified header not mtime_ns
     state.cache_control = "cache control"
-    state.etag = "etag"
+    state.etag = '"unambiguous-etag"'
     state.save()
 
     on_disk_format = json.loads(cache_state.read_text())
     print("disk format", on_disk_format)
-    assert on_disk_format["mod"] == mod
-    assert on_disk_format["cache_control"]
-    assert on_disk_format["etag"]
+    assert on_disk_format[LAST_MODIFIED_KEY] == mod
+    assert on_disk_format[CACHE_CONTROL_KEY]
+    assert on_disk_format[ETAG_KEY]
     assert isinstance(on_disk_format["size"], int)
     assert isinstance(on_disk_format["mtime_ns"], int)
 
@@ -335,11 +351,56 @@ def test_cache_json(tmp_path: Path):
     assert state2.cache_control
     assert state2.etag
 
-    assert state2["mod"] == state2.mod
-    assert state2["etag"] == state2.etag
-    assert state2["cache_control"] == state2.cache_control
+    assert state2[LAST_MODIFIED_KEY] == state2.mod
+    assert state2[ETAG_KEY] == state2.etag
+    assert state2[CACHE_CONTROL_KEY] == state2.cache_control
 
     cache_json.write_text("{ }")  # now invalid due to size
 
     state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state_invalid.get("mod") == ""
+    assert state_invalid.get(LAST_MODIFIED_KEY) == ""
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_fetch_formats(
+    package_server: socket,
+    use_jlap: bool,
+    tmp_path: Path,
+    temp_package_cache: Path,
+    package_repository_base: Path,
+):
+    """
+    Test that repodata fetch can return parsed or Path.
+    """
+    assert temp_package_cache.exists()
+
+    # Remove leftover test data.
+    jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+    if jlap_path.exists():
+        jlap_path.unlink()
+
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    if use_jlap:
+        repo_cls = JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
+
+    # we always check for *and create* a writable cache dir before fetch
+    cache_path_base = tmp_path / "fetch_formats" / "xyzzy"
+    cache_path_base.parent.mkdir(exist_ok=True)
+
+    channel = Channel(channel_url)
+
+    fetch = RepodataFetch(
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
+    )
+
+    a, state = fetch.fetch_latest_parsed()
+    b, state = fetch.fetch_latest_path()
+
+    assert a == json.loads(b.read_text())
+
+    assert isinstance(state, RepodataState)

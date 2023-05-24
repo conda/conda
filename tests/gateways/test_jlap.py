@@ -21,10 +21,17 @@ from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
+    CACHE_STATE_SUFFIX,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    URL_KEY,
     CondaRepoInterface,
+    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     Response304ContentUnchanged,
+    get_repo_interface,
 )
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
@@ -41,12 +48,15 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
 
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+
     url = f"{base}/osx-64"
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     patched = mocker.patch(
@@ -97,7 +107,14 @@ def test_download_and_hash(
     destination = tmp_path / "repodata.json"
     url2 = base + "/osx-64/repodata.json"
     hasher2 = fetch.hash()
-    response = fetch.download_and_hash(hasher2, url2, destination, session, state)
+    response = fetch.download_and_hash(
+        hasher2,
+        url2,
+        destination,
+        session,
+        state,
+        dest_path=destination,
+    )
     print(response)
     print(state)
     t = destination.read_text()
@@ -142,7 +159,7 @@ def test_repodata_state(
     package_server: socket,
     use_jlap: bool,
 ):
-    """Test that .state.json file works correctly."""
+    """Test that cache metadata file works correctly."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -185,7 +202,14 @@ def test_repodata_state(
 
         # not all required depending on server response, but our test server
         # will include them
-        for field in ("mod", "etag", "cache_control", "size", "mtime_ns"):
+        for field in (
+            LAST_MODIFIED_KEY,
+            ETAG_KEY,
+            CACHE_CONTROL_KEY,
+            URL_KEY,
+            "size",
+            "mtime_ns",
+        ):
             assert field in state
             assert f"_{field}" not in state
 
@@ -199,6 +223,9 @@ def test_jlap_flag(use_jlap):
     ):
         expected = "jlap" in use_jlap.split(",")
         assert ("jlap" in context.experimental) is expected
+
+        expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
+        assert get_repo_interface() is expected_cls
 
 
 def test_jlap_sought(
@@ -333,6 +360,8 @@ def test_jlap_sought(
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
+        # avoid 304 to actually overwrite cached data
+        state.etag = ""
         assert fetch.JLAP_UNAVAILABLE not in state  # from previous portion of test
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
@@ -410,6 +439,12 @@ def test_jlap_errors(
         # gets the failure, falls back to non-jlap path, writes to disk
         with pytest.raises(RepodataOnDisk):
             sd._repo.repodata(state)  # type: ignore
+
+        # above call newly saves cache state, write a clean one again.
+        # clear any jlap failures
+        state.pop("has_jlap", None)
+        state.pop("jlap", None)
+        cache.cache_path_state.write_text(json.dumps(dict(state)))
 
         # force 304 not modified on the .jlap file (test server doesn't return 304
         # not modified on range requests)
@@ -519,11 +554,13 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
     base = f"http://{host}:{port}/test"
 
     url = f"{base}/osx-64"
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     def error(*args, **kwargs):
@@ -612,18 +649,6 @@ def make_test_jlap(original: bytes, changes=1):
     j = core.JLAP.from_lines(jlap_lines(), iv=core.DEFAULT_IV, verify=False)
 
     return j
-
-
-def test_jlap_get_place():
-    """(probably soon to be removed) helper function to get cache filenames."""
-    place = fetch.get_place(
-        "https://repo.anaconda.com/main/linux-64/current_repodata.json"
-    ).name
-    assert ".c" in place
-    place2 = fetch.get_place(
-        "https://repo.anaconda.com/main/linux-64/repodata.json"
-    ).name
-    assert ".c" not in place2
 
 
 def test_hashwriter():

@@ -493,8 +493,8 @@ class ExceptionTests(TestCase):
             AttrDict(raise_for_status=lambda: None),
         ),
     )
-    @patch("conda.exceptions.input", return_value="y")
-    @patch("conda.exceptions.os.isatty", return_value=True)
+    @patch("builtins.input", return_value="y")
+    @patch("os.isatty", return_value=True)
     def test_print_unexpected_error_message_upload_3(
         self, isatty_mock, input_mock, post_mock
     ):
@@ -565,7 +565,7 @@ class ExceptionTests(TestCase):
             assert "conda version" in c.stderr
 
     @patch("requests.post", return_value=None)
-    @patch("conda.exceptions.input", return_value="n")
+    @patch("builtins.input", return_value="n")
     def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
         with env_var(
             "CONDA_REPORT_ERRORS", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -581,8 +581,8 @@ class ExceptionTests(TestCase):
             assert "conda version" in c.stderr
 
     @patch("requests.post", return_value=None)
-    @patch("conda.exceptions.input", return_value="n")
-    @patch("conda.exceptions.os.isatty", return_value=True)
+    @patch("builtins.input", return_value="n")
+    @patch("os.isatty", return_value=True)
     def test_print_unexpected_error_message_opt_out_2(
         self, isatty_mock, input_mock, post_mock
     ):

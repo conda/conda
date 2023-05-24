@@ -10,7 +10,7 @@ from typing import Any, Callable
 
 from packaging.version import Version, parse
 
-from .__version__ import __version__
+from . import __version__
 
 
 class DeprecatedError(RuntimeError):
