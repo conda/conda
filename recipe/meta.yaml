@@ -3,12 +3,11 @@ package:
   version: {{ GIT_DESCRIBE_TAG }}+{{ GIT_BUILD_STR }}
 
 source:
-  # git_url is nice in that it won't capture devenv stuff.  However, it only
-  #    captures committed code, so pay attention.
+  # git_url only captures committed code
   git_url: ../
 
 build:
-  script: python -m pip install . -vv && python -m conda init --install
+  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
@@ -21,43 +20,46 @@ build:
     - Scripts/deactivate           # [win]
 
 requirements:
+  build:
+    - git  # for source/git_url above
   host:
     - python
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
+    - wheel
     # for `conda init` in build/script above
     - ruamel.yaml >=0.11.14,<0.18
     - tqdm >=4
-    - menuinst                     # [win]
+    - menuinst >=1.4.11,<2         # [win]
   run:
-    - python
+    - boltons >=23.0.0
     - conda-package-handling >=1.3.0
+    - jsonpatch >=1.32
     - menuinst >=1.4.11,<2         # [win]
     - packaging
+    - pluggy >=1.0.0
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
+    - python
     - requests >=2.18.4,<3
     - ruamel.yaml >=0.11.14,<0.18
     - setuptools >=31.0.1
     - toolz >=0.8.1
-    - pluggy >=1.0.0
     - tqdm >=4
-    - boltons >=23.0.0
-    - jsonpatch >=1.32
   run_constrained:
     - conda-build >=3.18.3
-    - conda-env >=2.6
     - conda-content-trust >=0.1.1
-    - cytoolz >=0.8.1
+    - conda-env >=2.6
     - conda-libmamba-solver >=22.12.0
+    - cytoolz >=0.8.1
 
 test:
   imports:
-    # high-level import
+    # high-level imports
     - conda
     - conda_env
-    # new submodules (can be dropped after 1-2 releases)
+    # new/updated submodules (can be dropped after 1-2 releases)
     - conda.gateways.repodata.jlap
     - conda.plugins.subcommands.doctor
   commands:
@@ -83,15 +85,9 @@ test:
     - conda doctor --help
 
 about:
-  home: https://conda.io
+  home: https://conda.org
   license: BSD-3-Clause
   license_file: LICENSE
-  summary: OS-agnostic, system-level binary package and environment manager.
-  description: >
-    Conda is an open source package management system and environment
-    management system for installing multiple versions of software packages
-    and their dependencies and switching easily between them. It works on
-    Linux, OS X and Windows, and was created for Python programs but can
-    package and distribute any software.
+  summary: Canary release of conda
   doc_url: https://conda.io/projects/conda/en/latest/
   dev_url: https://github.com/conda/conda
