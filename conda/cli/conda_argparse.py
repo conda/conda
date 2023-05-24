@@ -113,14 +113,9 @@ def do_call(args, parser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    # Load pre-commands available to run
-    pre_commands = context.plugin_manager.get_hook_results("pre_commands")
-
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(args, "plugin_subcommand", None):
-        for pre_command in pre_commands:
-            if args.plugin_subcommand.name in pre_command.run_for:
-                pre_command.action(args)
+        context.plugin_manager.run_pre_command_hooks(args.plugin_subcommand.name, args)
         return args.plugin_subcommand.action(sys.argv[2:])
 
     relative_mod, func_name = args.func.rsplit(".", 1)
@@ -131,10 +126,7 @@ def do_call(args, parser):
 
     command_name = relative_mod.replace(".main_", "")
 
-    for pre_command in pre_commands:
-        if command_name in pre_command.run_for:
-            pre_command.action(args)
-
+    context.plugin_manager.run_pre_command_hooks(command_name, args)
     return getattr(module, func_name)(args, parser)
 
 

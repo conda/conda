@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import functools
 import logging
+import traceback
+from argparse import Namespace
 from importlib.metadata import distributions
+from typing import cast
 
 import pluggy
 
@@ -12,7 +15,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import pre_commands, solvers, subcommands, virtual_packages
+from . import CondaPreCommand, pre_commands, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
 log = logging.getLogger(__name__)
@@ -93,7 +96,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(self, name: str) -> list:
         """
         Return results of the plugin hooks with the given name and
-        raise an error if there is an conflict.
+        raise an error if there is a conflict.
         """
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
@@ -147,7 +150,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for solver in self.get_hook_results("solvers")
         }
 
-        # Look up the solver mapping an fail loudly if it can't
+        # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
         backend = solvers_mapping.get(name, None)
         if backend is None:
@@ -158,6 +161,33 @@ class CondaPluginManager(pluggy.PluginManager):
             )
 
         return backend
+
+    def run_pre_command_hooks(self, command: str, args: Namespace) -> None:
+        """
+        Runs ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands`` hook.
+
+        This method takes special care to handle any exceptions raised during the running of these
+        hooks so that it doesn't interfere with the normal operation of the conda command.
+
+        :param command: name of the command that is currently being invoked
+        :param args: arguments of the running command
+        """
+        # Load pre-commands available to run
+        pre_command_hooks = self.get_hook_results("pre_commands")
+
+        for pre_command in pre_command_hooks:
+            pre_command = cast(CondaPreCommand, pre_command)
+            if command in pre_command.run_for:
+                try:
+                    pre_command.action(args)
+                except Exception as exc:
+                    error, *_ = traceback.format_exception_only(type(exc), exc)
+                    error = error.strip()
+
+                    log.error(
+                        f'Pre-command action for the plugin "{pre_command.name}" failed with: '
+                        f"{error}"
+                    )
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
