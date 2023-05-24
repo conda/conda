@@ -106,7 +106,6 @@ appdirs = []
 cpuinfo = []
 distro = []
 frozendict = []
-six = []
 
 [tool.vendoring.license.fallback-urls]
 boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE"  # BSD
@@ -116,4 +115,3 @@ appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
-six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT
