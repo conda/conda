@@ -59,7 +59,7 @@ test:
     # high-level imports
     - conda
     - conda_env
-    # new submodules (can be dropped after 1-2 releases)
+    # new/updated submodules (can be dropped after 1-2 releases)
     - conda.gateways.repodata.jlap
     - conda.plugins.subcommands.doctor
   commands:
