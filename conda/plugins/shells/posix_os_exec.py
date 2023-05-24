@@ -144,33 +144,33 @@ def posix_plugin_no_shell(*args, **kwargs):
     # call the methods leading up to the command-specific builds
     activator._parse_and_set_args(env_args)
 
-    # at the moment, if activate is called without an environment, reactivation is being run
+    # at the moment, if activate is called with the same environment, reactivation is being run
     # through conda's normal process because it would be called during '_parse_and_set_args'
 
     if command == "activate" and env:
-        # using redefined activate function instead of _Activator.activate
+        # using redefined activate process instead of _Activator.activate
         cmds_dict = get_activate_builder(activator)
     elif command == "activate" and not env:
         cmds_dict = activator.build_reactivate()
 
-    # TODO: look into deactivation process and see what's going on here; it's not working
     if command == "deactivate":
         cmds_dict = activator.build_deactivate()
 
     if command == "reactivate":
         cmds_dict = activator.build_reactivate()
 
-    # unset_vars = cmds_dict["unset_vars"]
-    # set_vars = cmds_dict["set_vars"]
+    unset_vars = cmds_dict["unset_vars"]
+    set_vars = cmds_dict["set_vars"]
     export_path = cmds_dict.get("export_path", {})
     export_vars = cmds_dict.get("export_vars", {})
-    # deactivate_scripts = cmds_dict.get("deactivate_scripts", ())
-    activate_scripts = cmds_dict.get("activate_scripts", ())
 
-    env_map = os.environ
+    env_map = os.environ.copy()
 
-    # ignoring setting and unsetting variables for now
-    # TODO: figure out how to set and unset vars :(
+    for key in sorted(unset_vars):
+        env_map.pop(str(key), None)
+
+    for key, value in sorted(set_vars.items()):
+        env_map[str(key)] = str(value)
 
     for key, value in sorted(export_path.items()):
         env_map[str(key)] = str(value)
@@ -178,32 +178,15 @@ def posix_plugin_no_shell(*args, **kwargs):
     for key, value in sorted(export_vars.items()):
         env_map[str(key)] = str(value)
 
-    # we lose the ability to run the deactivate scripts as part of the initial environment
-    # deactivate_list = [
-    #     activator.run_script_tmpl % script for script in deactivate_scripts
-    # ]
-    # TODO: run the deactivate scripts as sub-processes (attempt this)
-
-    activate_list = [activator.run_script_tmpl % script for script in activate_scripts]
-
     shell_path = env_map["SHELL"]
     exec_shell = f". {shell_path}"
 
     # creating the list of arguments to be executed by os.execve
     # minimum argument is to execute the shell
-    # order should be deactivate scripts followed by activation followed by activate scripts
+    # at present, no package activation / deactivation scripts being run
     arg_list = []
 
-    # deactivate scripts must be run BEFORE the new environment is activated!
-    # the below would take place in the new environment
-    # user would have to type in two commands for us to run os.exec twice
-    # if deactivate_list:
-    #     arg_list.extend(deactivate_list)
-
     arg_list.append(exec_shell)
-
-    if activate_list:
-        arg_list.extend(activate_list)
 
     os.execve(shell_path, arg_list, env_map)
 
