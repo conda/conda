@@ -7,7 +7,6 @@ import pytest
 from conda import plugins
 from conda.plugins.types import CondaPreCommand
 
-PLUGIN_NAME = "custom_pre_command"
 
 
 class PreCommandPlugin:
@@ -15,13 +14,13 @@ class PreCommandPlugin:
         self.invoked = False
         self.args = None
 
-    def pre_command_action(self) -> int:
+    def pre_command_action(self, command, args) -> int:
         pass
 
     @plugins.hookimpl
     def conda_pre_commands(self):
         yield CondaPreCommand(
-            name=PLUGIN_NAME,
+            name="custom-pre-command",
             action=self.pre_command_action,
             run_for={"install", "create", "info"},
         )

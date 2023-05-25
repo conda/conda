@@ -1,7 +1,7 @@
 ### Enhancements
 
-* Adds new "pre_command" hook which allows plugins to interrupt the normal start-up process of specific commands
+* Adds a new "pre_commands" hook which allows plugins to run code before specific conda commands.
 
 ### Docs
 
-* Documentation for how to use the new "pre_command" plugin hook
+* Documentation for how to use the new "pre_commands" plugin hook

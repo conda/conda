@@ -124,9 +124,9 @@ def do_call(args, parser):
 
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
-    command_name = relative_mod.replace(".main_", "")
+    command = relative_mod.replace(".main_", "")
 
-    context.plugin_manager.run_pre_command_hooks(command_name, args)
+    context.plugin_manager.run_pre_command_hooks(command, args)
     return getattr(module, func_name)(args, parser)
 
 

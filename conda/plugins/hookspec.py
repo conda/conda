@@ -110,18 +110,17 @@ class CondaSpecs:
 
            from conda import plugins
 
-           PLUGIN_NAME = "custom_plugin"
 
 
-           def custom_plugin_pre_commands_action(command_name, args):
+           def example_pre_command(command, args):
                print("pre-command action")
 
 
            @plugins.hookimpl
            def conda_pre_commands():
                yield CondaPreRun(
-                   name=f"{PLUGIN_NAME}_pre_commands",
-                   action=custom_plugin_pre_commands_action,
+                   name="example-pre-command",
+                   action=example_pre_command,
                    run_for={"install", "create"},
                )
         """

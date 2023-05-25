@@ -1,8 +1,8 @@
-========================
-Pre-command
-========================
+============
+Pre-commands
+============
 
-Conda command start-up can be extended with the ``conda_pre_commands`` plugin hook.
+Conda commands can be extended with the ``conda_pre_commands`` plugin hook.
 By specifying the set of commands you would like to use in the ``run_for`` configuration
 option, you can execute code via the ``action`` option before these commands are run.
 The functions are provided ``command`` and ``args`` arguments which represent the name
