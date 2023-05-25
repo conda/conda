@@ -119,7 +119,7 @@ class IntegrationTests(BaseTestCase):
         context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
         reason="Skip unsupported platforms",
     )
-    def test_install_python2_and_search(self, tmp_env: TmpEnvFixture):
+    def test_install_python2_and_search(self):
         with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             log.warning(f"Creating empty temporary environment txt file {env_txt}")
             environment_txt = env_txt.name
@@ -128,7 +128,7 @@ class IntegrationTests(BaseTestCase):
             "conda.core.envs_manager.get_user_environments_txt_file",
             return_value=environment_txt,
         ) as _:
-            with tmp_env("python=2") as prefix:
+            with self.tmp_env("python=2") as prefix:
                 with env_var(
                     "CONDA_ALLOW_NON_CHANNEL_URLS",
                     "true",
@@ -170,8 +170,8 @@ class IntegrationTests(BaseTestCase):
                     assert prefix in stdout
         os.unlink(environment_txt)
 
-    def test_run_preserves_arguments(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3") as prefix:
+    def test_run_preserves_arguments(self):
+        with self.tmp_env("python=3") as prefix:
             echo_args_py = os.path.join(prefix, "echo-args.py")
             with open(echo_args_py, "w") as echo_args:
                 echo_args.write("import sys\n")
@@ -187,8 +187,8 @@ class IntegrationTests(BaseTestCase):
                 if i < len(args):
                     assert args[i] == line.replace("\r", "")
 
-    def test_create_install_update_remove_smoketest(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.9") as prefix:
+    def test_create_install_update_remove_smoketest(self):
+        with self.tmp_env("python=3.9") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "python=3")
 
@@ -218,12 +218,9 @@ class IntegrationTests(BaseTestCase):
             assert not package_is_installed(prefix, "flask")
             assert package_is_installed(prefix, "python=3")
 
-    def test_install_broken_post_install_keeps_existing_folders(
-        self,
-        tmp_env: TmpEnvFixture,
-    ):
+    def test_install_broken_post_install_keeps_existing_folders(self):
         # regression test for https://github.com/conda/conda/issues/8258
-        with tmp_env("python=3.5") as prefix:
+        with self.tmp_env("python=3.5") as prefix:
             assert exists(join(prefix, BIN_DIRECTORY))
             assert package_is_installed(prefix, "python=3")
 
@@ -237,14 +234,14 @@ class IntegrationTests(BaseTestCase):
             )
             assert exists(join(prefix, BIN_DIRECTORY))
 
-    def test_safety_checks(self, tmp_env: TmpEnvFixture):
+    def test_safety_checks(self):
         # This test uses https://anaconda.org/conda-test/spiffy-test-app/0.5/download/noarch/spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2
         # which is a modification of https://anaconda.org/conda-test/spiffy-test-app/1.0/download/noarch/spiffy-test-app-1.0-pyh6afabb7_0.tar.bz2
         # as documented in info/README within that package.
         # I also had to fix the post-link script in the package by adding quotation marks to handle
         # spaces in path names.
 
-        with tmp_env() as prefix:
+        with self.tmp_env() as prefix:
             with open(join(prefix, "condarc"), "a") as fh:
                 fh.write("safety_checks: enabled\n")
                 fh.write("extra_safety_checks: true\n")
@@ -282,7 +279,7 @@ class IntegrationTests(BaseTestCase):
             assert message2 in stderr
             assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
-        with tmp_env() as prefix:
+        with self.tmp_env() as prefix:
             with open(join(prefix, "condarc"), "a") as fh:
                 fh.write("safety_checks: disabled\n")
             reload_config(prefix)
@@ -397,11 +394,8 @@ class IntegrationTests(BaseTestCase):
         finally:
             rmtree(prefix, ignore_errors=True)
 
-    def test_not_writable_env_raises_EnvironmentNotWritableError(
-        self,
-        tmp_env: TmpEnvFixture,
-    ):
-        with tmp_env() as prefix:
+    def test_not_writable_env_raises_EnvironmentNotWritableError(self):
+        with self.tmp_env() as prefix:
             make_read_only(join(prefix, PREFIX_MAGIC_FILE))
             stdout, stderr, _ = run_command(
                 Commands.INSTALL, prefix, "openssl", use_exception_handler=True
@@ -409,8 +403,8 @@ class IntegrationTests(BaseTestCase):
             assert "EnvironmentNotWritableError" in stderr
             assert prefix in stderr
 
-    def test_conda_update_package_not_installed(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_conda_update_package_not_installed(self):
+        with self.tmp_env() as prefix:
             with pytest.raises(PackageNotInstalledError):
                 run_command(Commands.UPDATE, prefix, "sqlite", "openssl")
 
@@ -420,9 +414,9 @@ class IntegrationTests(BaseTestCase):
                 "Invalid spec for 'conda update'"
             )
 
-    def test_noarch_python_package_with_entry_points(self, tmp_env: TmpEnvFixture):
+    def test_noarch_python_package_with_entry_points(self):
         # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
-        with tmp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
+        with self.tmp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
@@ -442,9 +436,9 @@ class IntegrationTests(BaseTestCase):
             assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
 
-    def test_noarch_python_package_without_entry_points(self, tmp_env: TmpEnvFixture):
+    def test_noarch_python_package_without_entry_points(self):
         # regression test for #4546
-        with tmp_env("-c", "conda-test", "itsdangerous") as prefix:
+        with self.tmp_env("-c", "conda-test", "itsdangerous") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/itsdangerous.py"
@@ -457,11 +451,8 @@ class IntegrationTests(BaseTestCase):
             assert not isfile(join(prefix, py_file))
             assert not isfile(join(prefix, pyc_file))
 
-    def test_noarch_python_package_reinstall_on_pyver_change(
-        self,
-        tmp_env: TmpEnvFixture,
-    ):
-        with tmp_env(
+    def test_noarch_python_package_reinstall_on_pyver_change(self):
+        with self.tmp_env(
             "-c",
             "conda-test",
             "itsdangerous=0.24",
@@ -490,22 +481,22 @@ class IntegrationTests(BaseTestCase):
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file_py2))
 
-    def test_noarch_generic_package(self, tmp_env: TmpEnvFixture):
-        with tmp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
+    def test_noarch_generic_package(self):
+        with self.tmp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
             assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
 
-    def test_override_channels(self, tmp_env: TmpEnvFixture):
+    def test_override_channels(self):
         with pytest.raises(OperationNotAllowed):
             with env_var(
                 "CONDA_OVERRIDE_CHANNELS_ENABLED",
                 "no",
                 stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
-                with tmp_env("--override-channels", "python") as prefix:
+                with self.tmp_env("--override-channels", "python") as prefix:
                     assert prefix
 
         with pytest.raises(ArgumentError):
-            with tmp_env("--override-channels", "python") as prefix:
+            with self.tmp_env("--override-channels", "python") as prefix:
                 assert prefix
 
         stdout, stderr, _ = run_command(
@@ -521,8 +512,8 @@ class IntegrationTests(BaseTestCase):
         assert len(json.loads(stdout)["flask"]) < 3
         assert json.loads(stdout)["flask"][0]["noarch"] == "python"
 
-    def test_create_empty_env(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_create_empty_env(self):
+        with self.tmp_env() as prefix:
             assert exists(join(prefix, "conda-meta/history"))
 
             list_output = run_command(Commands.LIST, prefix)
@@ -545,8 +536,8 @@ class IntegrationTests(BaseTestCase):
             self.assertIsInstance(stdout, str)
 
     @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
-    def test_strict_channel_priority(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_strict_channel_priority(self):
+        with self.tmp_env() as prefix:
             stdout, stderr, rc = run_command(
                 Commands.CREATE,
                 prefix,
@@ -605,14 +596,14 @@ class IntegrationTests(BaseTestCase):
             }
             assert {} == channel_name_groups
 
-    def test_list_with_pip_no_binary(self, tmp_env: TmpEnvFixture):
+    def test_list_with_pip_no_binary(self):
         from conda.exports import rm_rf as _rm_rf
 
         # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
         # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
         # We elect to test the more complex of the two options.
         py_ver = "3.10"
-        with tmp_env("python=" + py_ver, "pip") as prefix:
+        with self.tmp_env("python=" + py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
@@ -638,11 +629,11 @@ class IntegrationTests(BaseTestCase):
                 _rm_rf(join(prefix, get_python_site_packages_short_path(py_ver)))
                 assert prefix not in PrefixData._cache_
 
-    def test_list_with_pip_wheel(self, tmp_env: TmpEnvFixture):
+    def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
 
         py_ver = "3.10"
-        with tmp_env("python=" + py_ver, "pip") as prefix:
+        with self.tmp_env("python=" + py_ver, "pip") as prefix:
             evs = {"PYTHONUTF8": "1"}
             # This test does not activate the env.
             if on_win:
@@ -675,7 +666,7 @@ class IntegrationTests(BaseTestCase):
                 assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
-        with tmp_env() as prefix:
+        with self.tmp_env() as prefix:
             assert isdir(prefix)
             assert prefix in PrefixData._cache_
 
@@ -687,8 +678,8 @@ class IntegrationTests(BaseTestCase):
             assert not isdir(prefix)
             assert prefix not in PrefixData._cache_
 
-    def test_compare_success(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+    def test_compare_success(self):
+        with self.tmp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
             env_file = join(prefix, "env.yml")
             touch(env_file)
             with open(env_file, "w") as f:
@@ -704,8 +695,8 @@ dependencies:
             assert "Success" in output
             rmtree(prefix, ignore_errors=True)
 
-    def test_compare_fail(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+    def test_compare_fail(self):
+        with self.tmp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
             env_file = join(prefix, "env.yml")
             touch(env_file)
             with open(env_file, "w") as f:
@@ -725,7 +716,7 @@ dependencies:
             )
             rmtree(prefix, ignore_errors=True)
 
-    def test_install_tarball_from_local_channel(self, tmp_env: TmpEnvFixture):
+    def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
         # install from local channel
         """
@@ -744,7 +735,7 @@ dependencies:
         assert type(path) == type(path2)
         # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
         """
-        with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+        with self.tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
             run_command(
                 Commands.INSTALL, prefix, "-c", channel, "flask=2.1.3", "--json"
             )
@@ -773,11 +764,11 @@ dependencies:
             assert package_is_installed(prefix, "flask")
 
             # Regression test for #462
-            with tmp_env(tar_bld_path) as prefix2:
+            with self.tmp_env(tar_bld_path) as prefix2:
                 assert package_is_installed(prefix2, "flask")
 
-    def test_tarball_install(self, tmp_env: TmpEnvFixture):
-        with tmp_env("bzip2") as prefix:
+    def test_tarball_install(self):
+        with self.tmp_env("bzip2") as prefix:
             # We have a problem. If bzip2 is extracted already but the tarball is missing then this fails.
             bzip2_data = [
                 p for p in PrefixData(prefix).iter_records() if p["name"] == "bzip2"
@@ -819,8 +810,8 @@ dependencies:
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert package_is_installed(prefix, "bzip2")
 
-    def test_tarball_install_and_bad_metadata(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
+    def test_tarball_install_and_bad_metadata(self):
+        with self.tmp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
             assert package_is_installed(prefix, "flask==1.1.1")
             flask_data = [
                 p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
@@ -887,9 +878,9 @@ dependencies:
                 assert not package_is_installed(prefix, "xz")
 
     @pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
-    def test_update_with_pinned_packages(self, tmp_env: TmpEnvFixture):
+    def test_update_with_pinned_packages(self):
         # regression test for #6914
-        with tmp_env(
+        with self.tmp_env(
             "-c", "https://repo.anaconda.com/pkgs/free", "python=2.7.12"
         ) as prefix:
             assert package_is_installed(prefix, "readline=6.2")
@@ -902,16 +893,16 @@ dependencies:
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "python=2.7.12")
 
-    def test_pinned_override_with_explicit_spec(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.9") as prefix:
+    def test_pinned_override_with_explicit_spec(self):
+        with self.tmp_env("python=3.9") as prefix:
             run_command(
                 Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.9.16"
             )
             run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
             assert package_is_installed(prefix, "python=3.10")
 
-    def test_remove_all(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python") as prefix:
+    def test_remove_all(self):
+        with self.tmp_env("python") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "python")
 
@@ -930,14 +921,14 @@ dependencies:
         on_win, reason="windows usually doesn't support symlinks out-of-the box"
     )
     @patch("conda.core.link.hardlink_supported", side_effect=lambda x, y: False)
-    def test_allow_softlinks(self, hardlink_supported_mock, tmp_env: TmpEnvFixture):
+    def test_allow_softlinks(self, hardlink_supported_mock):
         hardlink_supported_mock._result_cache.clear()
         with env_var(
             "CONDA_ALLOW_SOFTLINKS",
             "true",
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with tmp_env("pip") as prefix:
+            with self.tmp_env("pip") as prefix:
                 assert islink(
                     join(
                         prefix,
@@ -951,8 +942,8 @@ dependencies:
         hardlink_supported_mock._result_cache.clear()
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-    def test_remove_features(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=2", "numpy=1.13", "nomkl") as prefix:
+    def test_remove_features(self):
+        with self.tmp_env("python=2", "numpy=1.13", "nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "numpy")
             assert package_is_installed(prefix, "nomkl")
@@ -971,15 +962,15 @@ dependencies:
         on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge"
     )
     @pytest.mark.flaky(reruns=2)
-    def test_dash_c_usage_replacing_python(self, tmp_env: TmpEnvFixture):
+    def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
-        with tmp_env("-c", "conda-forge", "python=3.10") as prefix:
+        with self.tmp_env("-c", "conda-forge", "python=3.10") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "conda-forge::python=3.10")
             run_command(Commands.INSTALL, prefix, "decorator")
             assert package_is_installed(prefix, "conda-forge::python=3.10")
 
-            with tmp_env("--clone", prefix) as clone_prefix:
+            with self.tmp_env("--clone", prefix) as clone_prefix:
                 assert package_is_installed(clone_prefix, "conda-forge::python=3.10")
                 assert package_is_installed(clone_prefix, "decorator")
 
@@ -994,12 +985,12 @@ dependencies:
                 json.dump(data, f)
             PrefixData._cache_ = {}
 
-            with tmp_env("-c", "conda-forge", "--clone", prefix) as clone_prefix:
+            with self.tmp_env("-c", "conda-forge", "--clone", prefix) as clone_prefix:
                 assert package_is_installed(clone_prefix, "python=3.10")
                 assert package_is_installed(clone_prefix, "decorator")
 
-    def test_install_prune_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3", "flask") as prefix:
+    def test_install_prune_flag(self):
+        with self.tmp_env("python=3", "flask") as prefix:
             assert package_is_installed(prefix, "flask")
             assert package_is_installed(prefix, "python=3")
             run_command(Commands.REMOVE, prefix, "flask")
@@ -1009,8 +1000,8 @@ dependencies:
             assert package_is_installed(prefix, "python=3")
 
     @pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
-    def test_remove_force_remove_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python") as prefix:
+    def test_remove_force_remove_flag(self):
+        with self.tmp_env("python") as prefix:
             assert package_is_installed(prefix, "readline")
             assert package_is_installed(prefix, "python")
 
@@ -1018,8 +1009,8 @@ dependencies:
             assert not package_is_installed(prefix, "readline")
             assert package_is_installed(prefix, "python")
 
-    def test_install_force_reinstall_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python") as prefix:
+    def test_install_force_reinstall_flag(self):
+        with self.tmp_env("python") as prefix:
             stdout, stderr, _ = run_command(
                 Commands.INSTALL,
                 prefix,
@@ -1036,15 +1027,15 @@ dependencies:
             assert unlink_actions[0] == link_actions[0]
             assert unlink_actions[0]["name"] == "python"
 
-    def test_create_no_deps_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=2", "flask", "--no-deps") as prefix:
+    def test_create_no_deps_flag(self):
+        with self.tmp_env("python=2", "flask", "--no-deps") as prefix:
             assert package_is_installed(prefix, "flask")
             assert package_is_installed(prefix, "python=2")
             assert not package_is_installed(prefix, "openssl")
             assert not package_is_installed(prefix, "itsdangerous")
 
-    def test_create_only_deps_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python", "flask", "--only-deps") as prefix:
+    def test_create_only_deps_flag(self):
+        with self.tmp_env("python", "flask", "--only-deps") as prefix:
             assert not package_is_installed(prefix, "flask")
             assert package_is_installed(prefix, "python")
             if not on_win:
@@ -1067,8 +1058,8 @@ dependencies:
             assert package_is_installed(prefix, "itsdangerous")
             assert not package_is_installed(prefix, "flask")
 
-    def test_install_update_deps_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+    def test_install_update_deps_flag(self):
+        with self.tmp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
             python = join(prefix, PYTHON_BINARY)
             result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.1")
@@ -1079,8 +1070,8 @@ dependencies:
             assert package_is_installed(prefix, "flask>2.0.1")
             assert package_is_installed(prefix, "jinja2>3.0.1")
 
-    def test_install_only_deps_flag(self, tmp_env: TmpEnvFixture):
-        with tmp_env("flask=2.0.2", "jinja2=3.0.2") as prefix:
+    def test_install_only_deps_flag(self):
+        with self.tmp_env("flask=2.0.2", "jinja2=3.0.2") as prefix:
             python = join(prefix, PYTHON_BINARY)
             result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.2")
@@ -1091,11 +1082,11 @@ dependencies:
             assert package_is_installed(prefix, "flask=2.0.2")
             assert package_is_installed(prefix, "jinja2=3.0.2")
 
-        with tmp_env("flask==2.0.2", "--only-deps") as prefix:
+        with self.tmp_env("flask==2.0.2", "--only-deps") as prefix:
             assert not package_is_installed(prefix, "flask")
 
-    def test_install_update_deps_only_deps_flags(self, tmp_env: TmpEnvFixture):
-        with tmp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+    def test_install_update_deps_only_deps_flags(self):
+        with self.tmp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
             python = join(prefix, PYTHON_BINARY)
             result_before = subprocess_call_with_clean_env([python, "--version"])
             assert package_is_installed(prefix, "flask=2.0.1")
@@ -1114,13 +1105,13 @@ dependencies:
             assert package_is_installed(prefix, "jinja2>3.0.1")
 
     @pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
-    def test_install_features(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=2", "numpy=1.13", "nomkl") as prefix:
+    def test_install_features(self):
+        with self.tmp_env("python=2", "numpy=1.13", "nomkl") as prefix:
             assert package_is_installed(prefix, "numpy")
             assert package_is_installed(prefix, "nomkl")
             assert not package_is_installed(prefix, "mkl")
 
-        with tmp_env("python=2", "numpy=1.13") as prefix:
+        with self.tmp_env("python=2", "numpy=1.13") as prefix:
             assert package_is_installed(prefix, "numpy")
             assert not package_is_installed(prefix, "nomkl")
             assert package_is_installed(prefix, "mkl")
@@ -1133,16 +1124,16 @@ dependencies:
             assert not package_is_installed(prefix, "mkl_random")
             # assert not package_is_installed(prefix, "mkl")  # pruned as an indirect dep
 
-    def test_clone_offline_simple(self, tmp_env: TmpEnvFixture):
-        with tmp_env("bzip2") as prefix:
+    def test_clone_offline_simple(self):
+        with self.tmp_env("bzip2") as prefix:
             assert package_is_installed(prefix, "bzip2")
 
-            with tmp_env("--clone", prefix, "--offline") as clone_prefix:
+            with self.tmp_env("--clone", prefix, "--offline") as clone_prefix:
                 assert context.offline
                 assert package_is_installed(clone_prefix, "bzip2")
 
-    def test_conda_config_describe(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_conda_config_describe(self):
+        with self.tmp_env() as prefix:
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe")
             assert not stderr
             skip_categories = ("CLI-only", "Hidden and Undocumented")
@@ -1230,8 +1221,8 @@ dependencies:
                 )
                 assert json_obj["cmd_line"] == {"json": True}
 
-    def test_conda_config_validate(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_conda_config_validate(self):
+        with self.tmp_env() as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "no")
             stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
             assert not stdout
@@ -1263,8 +1254,10 @@ dependencies:
         context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
         reason="Skip unsupported platforms",
     )
-    def test_rpy_search(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.5", "--override-channels", "-c", "defaults") as prefix:
+    def test_rpy_search(self):
+        with self.tmp_env(
+            "python=3.5", "--override-channels", "-c", "defaults"
+        ) as prefix:
             payload, _, _ = run_command(
                 Commands.CONFIG, prefix, "--get", "channels", "--json"
             )
@@ -1308,7 +1301,7 @@ dependencies:
             )
 
     @pytest.mark.parametrize("use_sys_python", [True, False])
-    def test_compile_pyc(self, tmp_env: TmpEnvFixture, use_sys_python: bool):
+    def test_compile_pyc(self, use_sys_python: bool):
         evs = {}
         with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
             packages = []
@@ -1319,7 +1312,7 @@ dependencies:
                 # runtime / DLL incompatibilities will be readily apparent.
                 py_ver = "3.10"
                 packages.append(f"python={py_ver}")
-            with tmp_env(*packages) as prefix:
+            with self.tmp_env(*packages) as prefix:
                 if use_sys_python:
                     python_binary = sys.executable
                 else:
@@ -1353,8 +1346,8 @@ dependencies:
                     test_pyc_path
                 ), f"Failed to generate expected .pyc file {test_pyc_path}"
 
-    def test_conda_run_1(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_conda_run_1(self):
+        with self.tmp_env() as prefix:
             output, error, rc = run_command(Commands.RUN, prefix, "echo", "hello")
             assert output == f"hello{os.linesep}\n"
             assert not error
@@ -1372,7 +1365,7 @@ dependencies:
         with pytest.raises(DirectoryNotACondaEnvironmentError):
             run_command(Commands.RUN, tmp_path, "echo", "hello")
 
-    def test_clone_offline_multichannel_with_untracked(self, tmp_env: TmpEnvFixture):
+    def test_clone_offline_multichannel_with_untracked(self):
         with env_vars(
             {
                 "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
@@ -1381,7 +1374,7 @@ dependencies:
         ):
             # The flask install will use this version of Python. That is then used to compile flask's pycs.
             flask_python = "3.8"  # oldest available for osx-arm64
-            with tmp_env("python=3.9") as prefix:
+            with self.tmp_env("python=3.9") as prefix:
                 payload, _, _ = run_command(
                     Commands.CONFIG, prefix, "--get", "channels", "--json"
                 )
@@ -1411,14 +1404,14 @@ dependencies:
                 )
 
                 touch(join(prefix, "test.file"))  # untracked file
-                with tmp_env("--clone", prefix, "--offline") as clone_prefix:
+                with self.tmp_env("--clone", prefix, "--offline") as clone_prefix:
                     assert context.offline
                     assert package_is_installed(clone_prefix, "python=" + flask_python)
                     assert package_is_installed(clone_prefix, "flask=0.11.1=py_0")
                     assert isfile(join(clone_prefix, "test.file"))  # untracked file
 
-    def test_package_pinning(self, tmp_env: TmpEnvFixture):
-        with tmp_env(
+    def test_package_pinning(self):
+        with self.tmp_env(
             "python=2.7", "itsdangerous=0.24", "pytz=2017.3", no_capture=True
         ) as prefix:
             assert package_is_installed(prefix, "itsdangerous=0.24")
@@ -1439,8 +1432,8 @@ dependencies:
             assert package_is_installed(prefix, "python=2.7")
             assert not package_is_installed(prefix, "itsdangerous=0.24")
 
-    def test_update_all_updates_pip_pkg(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.6", "pip", "pytz=2018") as prefix:
+    def test_update_all_updates_pip_pkg(self):
+        with self.tmp_env("python=3.6", "pip", "pytz=2018") as prefix:
             pip_ioo, pip_ioe, _ = run_command(
                 Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true"
             )
@@ -1476,8 +1469,8 @@ dependencies:
             assert package_is_installed(prefix, "itsdangerous>0.24")
             assert package_is_installed(prefix, "pytz>2018")
 
-    def test_package_optional_pinning(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_package_optional_pinning(self):
+        with self.tmp_env() as prefix:
             run_command(
                 Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.6.5"
             )
@@ -1486,8 +1479,8 @@ dependencies:
             run_command(Commands.INSTALL, prefix, "flask")
             assert package_is_installed(prefix, "python=3.6.5")
 
-    def test_update_deps_flag_absent(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=2", "itsdangerous=0.24") as prefix:
+    def test_update_deps_flag_absent(self):
+        with self.tmp_env("python=2", "itsdangerous=0.24") as prefix:
             assert package_is_installed(prefix, "python=2")
             assert package_is_installed(prefix, "itsdangerous=0.24")
             assert not package_is_installed(prefix, "flask")
@@ -1497,8 +1490,8 @@ dependencies:
             assert package_is_installed(prefix, "itsdangerous=0.24")
             assert package_is_installed(prefix, "flask")
 
-    def test_update_deps_flag_present(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=2", "itsdangerous=0.24") as prefix:
+    def test_update_deps_flag_present(self):
+        with self.tmp_env("python=2", "itsdangerous=0.24") as prefix:
             assert package_is_installed(prefix, "python=2")
             assert package_is_installed(prefix, "itsdangerous=0.24")
             assert not package_is_installed(prefix, "flask")
@@ -1511,9 +1504,9 @@ dependencies:
 
     @pytest.mark.skipif(True, reason="Add this test back someday.")
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    def test_shortcut_in_underscore_env_shows_message(self, tmp_env: TmpEnvFixture):
+    def test_shortcut_in_underscore_env_shows_message(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        with tmp_env(prefix=prefix):
+        with self.tmp_env(prefix=prefix):
             stdout, stderr, _ = run_command(
                 Commands.INSTALL, prefix, "console_shortcut"
             )
@@ -1523,11 +1516,11 @@ dependencies:
             )
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    def test_shortcut_not_attempted_with_no_shortcuts_arg(self, tmp_env: TmpEnvFixture):
+    def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         shortcut_dir = get_shortcut_dir()
         shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-        with tmp_env(prefix=prefix):
+        with self.tmp_env(prefix=prefix):
             stdout, stderr, _ = run_command(
                 Commands.INSTALL, prefix, "console_shortcut", "--no-shortcuts"
             )
@@ -1538,7 +1531,7 @@ dependencies:
             assert not isfile(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    def test_shortcut_creation_installs_shortcut(self, tmp_env: TmpEnvFixture):
+    def test_shortcut_creation_installs_shortcut(self):
         shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(
             shortcut_dir,
@@ -1548,7 +1541,7 @@ dependencies:
         prefix = make_temp_prefix(str(uuid4())[:7])
         shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
         try:
-            with tmp_env("console_shortcut", prefix=prefix):
+            with self.tmp_env("console_shortcut", prefix=prefix):
                 assert package_is_installed(prefix, "console_shortcut")
                 assert isfile(shortcut_file), (
                     "Shortcut not found in menu dir. "
@@ -1566,7 +1559,7 @@ dependencies:
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    def test_shortcut_absent_does_not_barf_on_uninstall(self, tmp_env: TmpEnvFixture):
+    def test_shortcut_absent_does_not_barf_on_uninstall(self):
         shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(
             shortcut_dir,
@@ -1579,7 +1572,7 @@ dependencies:
 
         try:
             # including --no-shortcuts should not get shortcuts installed
-            with tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
+            with self.tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
                 assert package_is_installed(prefix, "console_shortcut")
                 assert not isfile(shortcut_file)
 
@@ -1593,7 +1586,7 @@ dependencies:
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    def test_shortcut_absent_when_condarc_set(self, tmp_env: TmpEnvFixture):
+    def test_shortcut_absent_when_condarc_set(self):
         shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(
             shortcut_dir,
@@ -1612,7 +1605,7 @@ dependencies:
         assert json_obj["get"]["shortcuts"] is False
 
         try:
-            with tmp_env("console_shortcut", prefix=prefix):
+            with self.tmp_env("console_shortcut", prefix=prefix):
                 # including shortcuts: False from condarc should not get shortcuts installed
                 assert package_is_installed(prefix, "console_shortcut")
                 assert not isfile(shortcut_file)
@@ -1626,7 +1619,7 @@ dependencies:
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
-    def test_create_default_packages(self, tmp_env: TmpEnvFixture):
+    def test_create_default_packages(self):
         # Regression test for #3453
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1646,7 +1639,7 @@ dependencies:
             assert not package_is_installed(prefix, "pytz")
             assert not package_is_installed(prefix, "flask")
 
-            with tmp_env("python=2", "pytz", prefix=prefix):
+            with self.tmp_env("python=2", "pytz", prefix=prefix):
                 assert package_is_installed(prefix, "python=2")
                 assert package_is_installed(prefix, "pytz")
                 assert package_is_installed(prefix, "flask")
@@ -1654,7 +1647,7 @@ dependencies:
         finally:
             rmtree(prefix, ignore_errors=True)
 
-    def test_create_default_packages_no_default_packages(self, tmp_env: TmpEnvFixture):
+    def test_create_default_packages_no_default_packages(self):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
@@ -1673,7 +1666,9 @@ dependencies:
             assert not package_is_installed(prefix, "pytz")
             assert not package_is_installed(prefix, "flask")
 
-            with tmp_env("python=2", "pytz", "--no-default-packages", prefix=prefix):
+            with self.tmp_env(
+                "python=2", "pytz", "--no-default-packages", prefix=prefix
+            ):
                 assert package_is_installed(prefix, "python=2")
                 assert package_is_installed(prefix, "pytz")
                 assert not package_is_installed(prefix, "flask")
@@ -1720,14 +1715,14 @@ dependencies:
         assert "python" in names
         assert "flask" in names
 
-    def test_create_dry_run_yes_safety(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_create_dry_run_yes_safety(self):
+        with self.tmp_env() as prefix:
             with pytest.raises(CondaValueError):
                 run_command(Commands.CREATE, prefix, "--dry-run", "--yes")
             assert exists(prefix)
 
-    def test_packages_not_found(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_packages_not_found(self):
+        with self.tmp_env() as prefix:
             with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.INSTALL, prefix, "not-a-real-package")
             assert "not-a-real-package" in str(exc.value)
@@ -1740,10 +1735,8 @@ dependencies:
             )
             assert "not-a-real-package" in error
 
-    def test_conda_pip_interop_dependency_satisfied_by_pip(
-        self, tmp_env: TmpEnvFixture
-    ):
-        with tmp_env("python=3.10", "pip") as prefix:
+    def test_conda_pip_interop_dependency_satisfied_by_pip(self):
+        with self.tmp_env("python=3.10", "pip") as prefix:
             run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             run_command(
                 Commands.RUN,
@@ -1794,7 +1787,7 @@ dependencies:
     @pytest.mark.skipif(
         context.subdir == "win-32", reason="metadata is wrong; give python2.7"
     )
-    def test_conda_pip_interop_pip_clobbers_conda(self, tmp_env: TmpEnvFixture):
+    def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
         # 2. pip install -U six
         # 3. conda list shows new six and deletes old conda record
@@ -1803,7 +1796,7 @@ dependencies:
         #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
         #     context.load_verify_locations(ca_certs, ca_cert_dir)
         #   TypeError: cafile should be a valid filesystem path
-        with tmp_env(
+        with self.tmp_env(
             "-c",
             "https://repo.anaconda.com/pkgs/free",
             "six=1.9",
@@ -2012,7 +2005,7 @@ dependencies:
         context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
         reason="Skip unsupported platforms",
     )
-    def test_conda_pip_interop_conda_editable_package(self, tmp_env: TmpEnvFixture):
+    def test_conda_pip_interop_conda_editable_package(self):
         with env_vars(
             {
                 "CONDA_REPORT_ERRORS": "false",
@@ -2021,7 +2014,7 @@ dependencies:
             },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with tmp_env(
+            with self.tmp_env(
                 "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
             ) as prefix:
                 workdir = prefix
@@ -2149,12 +2142,10 @@ dependencies:
                 assert unlink_dists[0]["name"] == "urllib3"
                 assert unlink_dists[0]["channel"] == "pypi"
 
-    def test_conda_pip_interop_compatible_release_operator(
-        self, tmp_env: TmpEnvFixture
-    ):
+    def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
         # important to start the env with six 1.9.  That version forces an upgrade later in the test
-        with tmp_env(
+        with self.tmp_env(
             "-c",
             "https://repo.anaconda.com/pkgs/free",
             "pip=10",
@@ -2217,13 +2208,13 @@ dependencies:
                     "--dry-run",
                 )
 
-    def test_install_freezes_env_by_default(self, tmp_env: TmpEnvFixture):
+    def test_install_freezes_env_by_default(self):
         """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
         up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
         """
 
         # create an initial env
-        with tmp_env(
+        with self.tmp_env(
             "python=2", use_restricted_unicode=on_win, no_capture=True
         ) as prefix:
             assert package_is_installed(prefix, "python=2.7.*")
@@ -2246,8 +2237,8 @@ dependencies:
                         assert pkg["version"] == pkg_after["version"]
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-    def test_search_gawk_not_win_filter(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_search_gawk_not_win_filter(self):
+        with self.tmp_env() as prefix:
             stdout, stderr, _ = run_command(
                 Commands.SEARCH,
                 prefix,
@@ -2267,8 +2258,8 @@ dependencies:
             assert len(json_obj.keys()) == 1
 
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
-    def test_search_gawk_on_win(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_search_gawk_on_win(self):
+        with self.tmp_env() as prefix:
             stdout, _, _ = run_command(
                 Commands.SEARCH, prefix, "*gawk", "--json", use_exception_handler=True
             )
@@ -2279,8 +2270,8 @@ dependencies:
             assert len(json_obj.keys()) == 1
 
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
-    def test_search_gawk_on_win_filter(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_search_gawk_on_win_filter(self):
+        with self.tmp_env() as prefix:
             stdout, _, _ = run_command(
                 Commands.SEARCH,
                 prefix,
@@ -2408,14 +2399,14 @@ dependencies:
         finally:
             rmtree(prefix, ignore_errors=True)
 
-    def test_use_index_cache(self, tmp_env: TmpEnvFixture):
+    def test_use_index_cache(self):
         from conda.core.subdir_data import SubdirData
         from conda.gateways.connection.session import CondaSession
 
         SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        with tmp_env(prefix=prefix):
+        with self.tmp_env(prefix=prefix):
             # First, clear the index cache to make sure we start with an empty cache.
             index_cache_dir = create_cache_dir()
             run_command(Commands.CLEAN, "", "--index-cache", "--yes")
@@ -2459,13 +2450,13 @@ dependencies:
                     Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache"
                 )
 
-    def test_offline_with_empty_index_cache(self, tmp_env: TmpEnvFixture):
+    def test_offline_with_empty_index_cache(self):
         from conda.core.subdir_data import SubdirData
 
         SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
         try:
-            with tmp_env() as prefix:
+            with self.tmp_env() as prefix:
                 pkgs_dir = join(prefix, "pkgs")
                 with env_var(
                     "CONDA_PKGS_DIRS",
@@ -2537,7 +2528,7 @@ dependencies:
         finally:
             SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
-    def test_create_from_extracted(self, tmp_env: TmpEnvFixture):
+    def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
             assert context.pkgs_dirs == (pkgs_dir,)
 
@@ -2548,7 +2539,7 @@ dependencies:
                     for f in os.listdir(pkgs_dir)
                 )
 
-            with tmp_env() as prefix:
+            with self.tmp_env() as prefix:
                 # First, make sure the openssl package is present in the cache,
                 # downloading it if needed
                 assert not pkgs_dir_has_tarball("openssl-")
@@ -2559,7 +2550,7 @@ dependencies:
                 run_command(Commands.CLEAN, prefix, "--tarballs", "--yes")
                 assert not pkgs_dir_has_tarball("openssl-")
 
-            with tmp_env() as prefix:
+            with self.tmp_env() as prefix:
                 # Finally, install openssl, enforcing the use of the extracted package.
                 # We expect that the tarball does not appear again because we simply
                 # linked the package from the extracted directory. If the tarball
@@ -2600,8 +2591,8 @@ dependencies:
             rm_rf(prefix, clean_empty_parents=True)
 
     @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
-    def test_disallowed_packages(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_disallowed_packages(self):
+        with self.tmp_env() as prefix:
             with env_var(
                 "CONDA_DISALLOWED_PACKAGES",
                 "sqlite&flask",
@@ -2613,14 +2604,14 @@ dependencies:
             assert isinstance(exc_val, DisallowedPackageError)
             assert exc_val.dump_map()["package_ref"]["name"] == "sqlite"
 
-    def test_dont_remove_conda_1(self, tmp_env: TmpEnvFixture):
+    def test_dont_remove_conda_1(self):
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
         with env_vars(
             {"CONDA_ROOT_PREFIX": prefix, "CONDA_PKGS_DIRS": ",".join(pkgs_dirs)},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with tmp_env(prefix=prefix):
+            with self.tmp_env(prefix=prefix):
                 _, _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
                 assert package_is_installed(prefix, "conda")
                 assert package_is_installed(prefix, "pycosat")
@@ -2641,11 +2632,11 @@ dependencies:
                 assert package_is_installed(prefix, "pycosat")
                 assert package_is_installed(prefix, "conda-build")
 
-    def test_dont_remove_conda_2(self, tmp_env: TmpEnvFixture):
+    def test_dont_remove_conda_2(self):
         # regression test for #6904
         pkgs_dirs = context.pkgs_dirs
         prefix = make_temp_prefix()
-        with tmp_env(prefix=prefix):
+        with self.tmp_env(prefix=prefix):
             with env_vars(
                 {"CONDA_ROOT_PREFIX": prefix, "CONDA_PKGS_DIRS": ",".join(pkgs_dirs)},
                 stack_callback=conda_tests_ctxt_mgmt_def_pol,
@@ -2668,8 +2659,8 @@ dependencies:
                 assert package_is_installed(prefix, "conda")
                 assert package_is_installed(prefix, "pycosat")
 
-    def test_force_remove(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_force_remove(self):
+        with self.tmp_env() as prefix:
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "libarchive")
             assert package_is_installed(prefix, "libarchive")
             assert package_is_installed(prefix, "xz")
@@ -2686,27 +2677,27 @@ dependencies:
         rm_rf(prefix, clean_empty_parents=True)
         run_command(Commands.REMOVE, prefix, "--all")
 
-    def test_download_only_flag(self, tmp_env: TmpEnvFixture):
+    def test_download_only_flag(self):
         from conda.core.link import UnlinkLinkTransaction
 
         with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
-            with tmp_env("openssl", "--download-only", use_exception_handler=True):
+            with self.tmp_env("openssl", "--download-only", use_exception_handler=True):
                 assert mock_method.call_count == 0
-            with tmp_env("openssl", use_exception_handler=True):
+            with self.tmp_env("openssl", use_exception_handler=True):
                 assert mock_method.call_count == 1
 
-    def test_transactional_rollback_simple(self, tmp_env: TmpEnvFixture):
+    def test_transactional_rollback_simple(self):
         from conda.core.path_actions import CreatePrefixRecordAction
 
         with patch.object(CreatePrefixRecordAction, "execute") as mock_method:
-            with tmp_env() as prefix:
+            with self.tmp_env() as prefix:
                 mock_method.side_effect = KeyError("Bang bang!!")
                 with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, "openssl")
                 assert not package_is_installed(prefix, "openssl")
 
-    def test_transactional_rollback_upgrade_downgrade(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.8") as prefix:
+    def test_transactional_rollback_upgrade_downgrade(self):
+        with self.tmp_env("python=3.8") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "python=3")
 
@@ -2731,8 +2722,8 @@ dependencies:
         finally:
             rm_rf(prefix)
 
-    def test_multiline_run_command(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_multiline_run_command(self):
+        with self.tmp_env() as prefix:
             env_which_etc, errs_etc, _ = run_command(
                 Commands.RUN,
                 prefix,
@@ -2750,7 +2741,7 @@ dependencies:
         assert not errs_etc
 
     @pytest.mark.skip("Test is flaky")
-    def test_conda_downgrade(self, tmp_env: TmpEnvFixture):
+    def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
         # version of conda and other packages in that environment.
         # Make sure we can flip back and forth.
@@ -2763,7 +2754,7 @@ dependencies:
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             py_ver = "3"
-            with tmp_env(
+            with self.tmp_env(
                 "conda=4.6.14",
                 "python=" + py_ver,
                 "conda-package-handling",
@@ -2831,12 +2822,12 @@ dependencies:
                 assert conda_info["conda_version"] == "4.6.14"
 
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
-    def test_run_script_called(self, tmp_env: TmpEnvFixture):
+    def test_run_script_called(self):
         import conda.core.link
 
         with patch.object(conda.core.link, "subprocess_call") as rs:
             rs.return_value = Response(None, None, 0)
-            with tmp_env(
+            with self.tmp_env(
                 "-c",
                 "http://repo.anaconda.com/pkgs/free",
                 "openssl=1.0.2j",
@@ -2846,19 +2837,19 @@ dependencies:
                 assert rs.call_count == 1
 
     @pytest.mark.xfail(on_mac, reason="known broken; see #11127")
-    def test_post_link_run_in_env(self, tmp_env: TmpEnvFixture):
+    def test_post_link_run_in_env(self):
         test_pkg = "_conda_test_env_activated_when_post_link_executed"
         # a non-unicode name must be provided here as activate.d scripts
         # are not executed on windows, see https://github.com/conda/conda/issues/8241
-        with tmp_env(test_pkg, "-c", "conda-test") as prefix:
+        with self.tmp_env(test_pkg, "-c", "conda-test") as prefix:
             assert package_is_installed(prefix, test_pkg)
 
     def test_conda_info_python(self):
         output, _, _ = run_command(Commands.INFO, None, "python=3.5")
         assert "python 3.5.4" in output
 
-    def test_toolz_cytoolz_package_cache_regression(self, tmp_env: TmpEnvFixture):
-        with tmp_env("python=3.5") as prefix:
+    def test_toolz_cytoolz_package_cache_regression(self):
+        with self.tmp_env("python=3.5") as prefix:
             pkgs_dir = join(prefix, "pkgs")
             with env_var(
                 "CONDA_PKGS_DIRS",
@@ -2871,8 +2862,8 @@ dependencies:
                 )
                 assert package_is_installed(prefix, "toolz")
 
-    def test_remove_spellcheck(self, tmp_env: TmpEnvFixture):
-        with tmp_env("numpy=1.12") as prefix:
+    def test_remove_spellcheck(self):
+        with self.tmp_env("numpy=1.12") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, "numpy")
 
@@ -2891,7 +2882,7 @@ dependencies:
             )
             assert package_is_installed(prefix, "numpy")
 
-    def test_conda_list_json(self, tmp_env: TmpEnvFixture):
+    def test_conda_list_json(self):
         def pkg_info(s):
             # function from nb_conda/envmanager.py
             if isinstance(s, str):
@@ -2904,7 +2895,7 @@ dependencies:
                     "build": s.get("build_string") or s["build"],
                 }
 
-        with tmp_env("python=3") as prefix:
+        with self.tmp_env("python=3") as prefix:
             stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
             stdout_json = json.loads(stdout)
             packages = [pkg_info(package) for package in stdout_json]
@@ -2914,7 +2905,7 @@ dependencies:
     @pytest.mark.skipif(
         context.subdir == "win-32", reason="dependencies not available for win-32"
     )
-    def test_legacy_repodata(self, tmp_env: TmpEnvFixture):
+    def test_legacy_repodata(self):
         channel = join(dirname(abspath(__file__)), "data", "legacy_repodata")
         subdir = context.subdir
         if subdir not in ("win-64", "linux-64", "osx-64"):
@@ -2923,7 +2914,9 @@ dependencies:
         with env_var(
             "CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol
         ):
-            with tmp_env("python", "moto=1.3.7", "-c", channel, "--no-deps") as prefix:
+            with self.tmp_env(
+                "python", "moto=1.3.7", "-c", channel, "--no-deps"
+            ) as prefix:
                 assert exists(join(prefix, PYTHON_BINARY))
                 assert package_is_installed(prefix, "moto=1.3.7")
 
@@ -2955,8 +2948,8 @@ dependencies:
         context.subdir != "linux-64",
         reason="lazy; package constraint here only valid on linux-64",
     )
-    def test_neutering_of_historic_specs(self, tmp_env: TmpEnvFixture):
-        with tmp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
+    def test_neutering_of_historic_specs(self):
+        with self.tmp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
             stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
             with open(os.path.join(prefix, "conda-meta", "history")) as f:
                 d = f.read()
@@ -2969,13 +2962,13 @@ dependencies:
     @pytest.mark.skipif(
         not context.subdir.startswith("linux"), reason="__glibc only available on linux"
     )
-    def test_install_bound_virtual_package(self, tmp_env: TmpEnvFixture):
-        with tmp_env("__glibc>0"):
+    def test_install_bound_virtual_package(self):
+        with self.tmp_env("__glibc>0"):
             pass
 
     @pytest.mark.integration
-    def test_remove_empty_env(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_remove_empty_env(self):
+        with self.tmp_env() as prefix:
             run_command(Commands.CREATE, prefix)
             run_command(Commands.REMOVE, prefix, "--all")
 
