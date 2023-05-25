@@ -35,6 +35,7 @@ from conda.common.compat import on_win
 from ..deprecations import deprecated
 
 
+@deprecated("23.9", "24.3")
 def encode_for_env_var(value) -> str:
     """Environment names and values need to be string."""
     if isinstance(value, str):
@@ -111,14 +112,10 @@ def conda_move_to_front_of_PATH():
             else:
                 new_p.append(pe)
 
-        new_path = os.pathsep.join(new_p)
-        new_path = encode_for_env_var(new_path)
-        os.environ["PATH"] = new_path
+        os.environ["PATH"] = os.pathsep.join(new_p)
         activator = activator_cls()
         p = activator._add_prefix_to_path(os.environ["CONDA_PREFIX"])
-        new_path = os.pathsep.join(p)
-        new_path = encode_for_env_var(new_path)
-        os.environ["PATH"] = new_path
+        os.environ["PATH"] = os.pathsep.join(p)
 
 
 @deprecated(

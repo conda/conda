@@ -64,6 +64,7 @@ Authors are sorted alphabetically.
 * Brian W. Hart
 * Bruno Oliveira
 * Bryan Van de Ven
+* Carlos H Brandt
 * Casper da Costa-Luis
 * Chawye Hsu
 * Cheng H. Lee
@@ -102,6 +103,7 @@ Authors are sorted alphabetically.
 * Darren Dale
 * Dave
 * Dave Hirschfeld
+* Dave Hogue
 * Dave Masino
 * David Froger
 * David Kent
@@ -123,6 +125,7 @@ Authors are sorted alphabetically.
 * Erik Sundell
 * Ernst Reissner
 * Eugene Van den Bulke
+* Evo
 * Faustin Carter
 * FelisNivalis
 * Flavio Martins
@@ -188,6 +191,7 @@ Authors are sorted alphabetically.
 * John Ayad
 * John Flavin
 * John Kirkham
+* Johnny Núñez Cano
 * Jonas Haag
 * Jonathan J. Helmus
 * Josh Mayer
@@ -368,6 +372,7 @@ Authors are sorted alphabetically.
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
+* Thomas Lam
 * Thomas Wiecki
 * Théo Segonds
 * Tian Zhang
@@ -389,6 +394,7 @@ Authors are sorted alphabetically.
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
+* Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy
 * Wes Roach
@@ -421,3 +427,4 @@ Authors are sorted alphabetically.
 * ugurthemaster
 * wulmer
 * Øystein Idema Torget
+* İrem "Siren" Kuyucu

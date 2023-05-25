@@ -27,19 +27,19 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
+  "boltons >=23.0.0",
   "conda-package-handling >=1.3.0",
+  "jsonpatch >=1.32",
   "menuinst >=1.4.11,<2 ; platform_system=='Windows'",
   "packaging",
+  "pluggy >=1.0.0",
   "pycosat >=0.6.3",
   "pyopenssl >=16.2.0",
   "requests >=2.18.4,<3",
   "ruamel.yaml >=0.11.14,<0.18",
   "setuptools >=31.0.1",
   "toolz >=0.8.1",
-  "pluggy >=1.0.0",
   "tqdm >=4",
-  "boltons >=23.0.0",
-  "jsonpatch >=1.32",
 ]
 dynamic = ["version"]
 
@@ -55,7 +55,6 @@ conda = "conda.cli.main_pip:main"
 source = "vcs"
 
 [tool.hatch.version.raw-options]
-version_scheme = "calver-by-date"
 local_scheme = "dirty-tag"
 
 [tool.hatch.build]
@@ -107,7 +106,6 @@ appdirs = []
 cpuinfo = []
 distro = []
 frozendict = []
-six = []
 
 [tool.vendoring.license.fallback-urls]
 boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE"  # BSD
@@ -117,4 +115,3 @@ appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
-six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT

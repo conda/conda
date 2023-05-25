@@ -554,9 +554,11 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
     base = f"http://{host}:{port}/test"
 
     url = f"{base}/osx-64"
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
         cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
