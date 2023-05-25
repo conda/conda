@@ -95,7 +95,7 @@ def test_cannot_rename_base_env_by_name(env_rename: str):
 def test_cannot_rename_base_env_by_path(env_rename: str):
     """Test to ensure that we cannot rename the base env invoked by path"""
     with pytest.raises(TypeError, match="The 'base' environment cannot be renamed"):
-        conda_cli("rename", "-p", context.root_prefix, env_rename)
+        conda_cli("rename", "--prefix", context.root_prefix, env_rename)
 
 
 def test_cannot_rename_active_env_by_name(env_one: str, env_rename: str):
@@ -156,7 +156,7 @@ def test_rename_with_force_with_errors_prefix(mocker: MockerFixture, tmp_path: P
     )
     with tmp_env() as prefix:
         with pytest.raises(CondaError, match=error_message):
-            conda_cli("rename", "-p", prefix, tmp_path, "--force")
+            conda_cli("rename", "--prefix", prefix, tmp_path, "--force")
 
         # Make sure both directories still exist
         assert tmp_path.is_dir()
