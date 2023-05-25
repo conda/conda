@@ -9,11 +9,14 @@ import pytest
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.core.prefix_data import PrefixData
-from conda.testing.integration import Commands, package_is_installed, run_command
+from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.testing.integration import package_is_installed
 
 
 @pytest.mark.integration
-def test_channel_order_channel_priority_true(tmp_env: TmpEnvFixture):
+def test_channel_order_channel_priority_true(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     # This is broken, tmp_env will reset the context. We get away with it, but really
     # we need a function that does both these at the same time.
     with env_var(
@@ -25,17 +28,14 @@ def test_channel_order_channel_priority_true(tmp_env: TmpEnvFixture):
             assert package_is_installed(prefix, "python=3.8")
             assert package_is_installed(prefix, "pycosat")
 
-            payload, _, _ = run_command(
-                Commands.CONFIG, prefix, "--get", "channels", "--json"
-            )
+            payload, _, _ = conda_cli("config", "--get", "channels", "--json")
             default_channels = json_loads(payload)["get"].get("channels")
             if default_channels:
-                run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
+                conda_cli("config", "--remove-key", "channels")
 
             # add conda-forge channel
-            o, e, _ = run_command(
-                Commands.CONFIG,
-                prefix,
+            o, e, _ = conda_cli(
+                "config",
                 "--prepend",
                 "channels",
                 "conda-forge",
@@ -43,7 +43,7 @@ def test_channel_order_channel_priority_true(tmp_env: TmpEnvFixture):
             )
             assert context.channels == ("conda-forge", "defaults"), o + e
             # update --all
-            update_stdout, _, _ = run_command(Commands.UPDATE, prefix, "--all")
+            update_stdout, _, _ = conda_cli("update", "--prefix", prefix, "--all")
 
             # this assertion works with the pinned_packages config to make sure
             # conda update --all still respects the pinned python version
@@ -70,23 +70,20 @@ def test_channel_order_channel_priority_true(tmp_env: TmpEnvFixture):
 
 
 @pytest.mark.integration
-def test_channel_priority_update(tmp_env: TmpEnvFixture):
+def test_channel_priority_update(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     """This case will fail now."""
     with tmp_env("python=3.8", "pycosat") as prefix:
         assert package_is_installed(prefix, "python")
 
         # clear channels config first to not assume default is defaults
-        payload, _, _ = run_command(
-            Commands.CONFIG, prefix, "--get", "channels", "--json"
-        )
+        payload, _, _ = conda_cli("config", "--get", "channels", "--json")
         default_channels = json_loads(payload)["get"].get("channels")
         if default_channels:
-            run_command(Commands.CONFIG, prefix, "--remove-key", "channels")
+            conda_cli("config", "--remove-key", "channels")
 
         # add conda-forge channel
-        o, e, _ = run_command(
-            Commands.CONFIG,
-            prefix,
+        o, e, _ = conda_cli(
+            "config",
             "--prepend",
             "channels",
             "conda-forge",
@@ -95,7 +92,7 @@ def test_channel_priority_update(tmp_env: TmpEnvFixture):
         assert context.channels == ("conda-forge", "defaults"), o + e
 
         # update python
-        update_stdout, _, _ = run_command(Commands.UPDATE, prefix, "python")
+        update_stdout, _, _ = conda_cli("update", "--prefix", prefix, "python")
 
         # pycosat should be in the SUPERSEDED list
         superceded_split = update_stdout.split("UPDATED")
