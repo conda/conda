@@ -111,7 +111,6 @@ class CondaSpecs:
            from conda import plugins
 
 
-
            def example_pre_command(command, args):
                print("pre-command action")
 

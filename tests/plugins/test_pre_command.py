@@ -6,7 +6,6 @@ from conda import plugins
 from conda.plugins.types import CondaPreCommand
 
 
-
 class PreCommandPlugin:
     def __init__(self):
         self.invoked = False
