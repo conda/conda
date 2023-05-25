@@ -14,31 +14,12 @@ from conda.base.constants import on_win
 from conda.base.context import context
 from conda.gateways.disk.delete import rm_rf
 from conda.testing import TmpEnvFixture
+from conda.testing.cases import BaseTestCase
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.testing.integration import Commands, run_command
 
 
-@pytest.mark.usefixtures("tmpdir")
-class TestJson(unittest.TestCase):
-    @pytest.fixture(autouse=True)
-    def empty_env_tmpdir(self, tmpdir):
-        # TODO :: Figure out if the pkgcache and a way to look for alternatives until one is found and add
-        #         a warning about it.
-        """
-        # Slightly fancier, "works on my computer", using the last 3 dirs is probably a pytest-ism?
-        self.tmpdir = os.path.join('opt', 'conda.tmp', *(str(tmpdir).split(os.sep)[-3:]))
-        try:
-            try:
-                rm_rf(self.tmpdir)
-            except:
-                pass
-            os.makedirs(self.tmpdir)
-        except:
-            self.tmpdir = str(tmpdir)
-        """
-        self.tmpdir = str(tmpdir)
-        return self.tmpdir
-
+class TestJson(BaseTestCase):
     def assertJsonSuccess(self, res):
         self.assertIsInstance(res, dict)
         self.assertIn("success", res)
@@ -192,8 +173,8 @@ class TestJson(unittest.TestCase):
         )
 
     @pytest.mark.integration
-    def test_search_2(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_search_2(self):
+        with self.tmp_env() as prefix:
             stdout, stderr, _ = run_command(
                 Commands.SEARCH,
                 prefix,
@@ -234,8 +215,8 @@ class TestJson(unittest.TestCase):
             )
 
     @pytest.mark.integration
-    def test_search_3(self, tmp_env: TmpEnvFixture):
-        with tmp_env() as prefix:
+    def test_search_3(self):
+        with self.tmp_env() as prefix:
             stdout, stderr, _ = run_command(
                 Commands.SEARCH,
                 prefix,
