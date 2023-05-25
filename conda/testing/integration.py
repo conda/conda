@@ -297,7 +297,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     return stdout, stderr, result
 
 
-@deprecated("23.9", "24.3", addendum="Use `conda.testing.tmp_env` instead.")
+@deprecated("24.3", "24.9", addendum="Use `conda.testing.tmp_env` instead.")
 @contextmanager
 def make_temp_env(*packages, **kwargs):
     name = kwargs.pop("name", None)
