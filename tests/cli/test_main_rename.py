@@ -83,6 +83,8 @@ def test_rename_by_name_name_already_exists_error(
     ):
         conda_cli("rename", "--name", env_one, env_one)
 
+    assert locate_prefix_by_name(env_one)
+
 
 def test_rename_by_path_path_already_exists_error(
     conda_cli: CondaCLIFixture, env_one: str, tmp_path: Path
@@ -94,6 +96,9 @@ def test_rename_by_path_path_already_exists_error(
     ):
         conda_cli("rename", "--name", env_one, tmp_path)
 
+    assert locate_prefix_by_name(env_one)
+    assert tmp_path.exists()
+
 
 def test_cannot_rename_base_env_by_name(conda_cli: CondaCLIFixture, env_rename: str):
     """Test to ensure that we cannot rename the base env invoked by name"""
@@ -101,6 +106,10 @@ def test_cannot_rename_base_env_by_name(conda_cli: CondaCLIFixture, env_rename: 
         CondaEnvException, match="The 'base' environment cannot be renamed"
     ):
         conda_cli("rename", "--name", "base", env_rename)
+
+    assert locate_prefix_by_name("base")
+    with pytest.raises(EnvironmentNameNotFound):
+        locate_prefix_by_name(env_rename)
 
 
 def test_cannot_rename_base_env_by_path(conda_cli: CondaCLIFixture, env_rename: str):
@@ -110,23 +119,24 @@ def test_cannot_rename_base_env_by_path(conda_cli: CondaCLIFixture, env_rename: 
     ):
         conda_cli("rename", "--prefix", context.root_prefix, env_rename)
 
+    assert Path(context.root_prefix).exists()
+    with pytest.raises(EnvironmentNameNotFound):
+        locate_prefix_by_name(env_rename)
+
 
 def test_cannot_rename_active_env_by_name(
     conda_cli: CondaCLIFixture, env_one: str, env_rename: str
 ):
     """Makes sure that we cannot rename our active environment."""
-    result = list_all_known_prefixes()
-
-    prefix_list = [res for res in result if res.endswith(env_one)]
-
-    assert len(prefix_list) > 0
-
-    prefix = prefix_list[0]
-
+    prefix = locate_prefix_by_name(env_one)
     with set_active_prefix(prefix), pytest.raises(
         CondaEnvException, match="Cannot rename the active environment"
     ):
         conda_cli("rename", "--name", env_one, env_rename)
+
+    assert locate_prefix_by_name(env_one)
+    with pytest.raises(EnvironmentNameNotFound):
+        locate_prefix_by_name(env_rename)
 
 
 def test_rename_with_force(conda_cli: CondaCLIFixture, env_one: str, env_two: str):
