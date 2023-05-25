@@ -20,13 +20,8 @@ TEST_ENV_NAME_2 = "env-2"
 TEST_ENV_NAME_RENAME = "renamed-env"
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def env_one():
-    """
-    This fixture has been given a module scope to help decrease execution time.
-    When using the fixture, please rename the original environment back to what it
-    was (i.e. always make sure there is a TEST_ENV_NAME_1 present).
-    """
     # Setup
     conda_cli("create", "-n", TEST_ENV_NAME_1, "-y")
 
@@ -68,9 +63,6 @@ def test_rename_by_name_success(env_one):
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(TEST_ENV_NAME_1)
 
-    # Clean up
-    conda_cli("rename", "-n", TEST_ENV_NAME_RENAME, TEST_ENV_NAME_1)
-
 
 def test_rename_by_path_success(env_one):
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -78,9 +70,6 @@ def test_rename_by_path_success(env_one):
         conda_cli("rename", "-n", TEST_ENV_NAME_1, new_name)
 
         result = list_all_known_prefixes()
-
-        # Clean up
-        conda_cli("rename", "-p", new_name, TEST_ENV_NAME_1)
 
         path_appears_in_env_list = any(new_name == path for path in result)
         original_name_in_envs = any(path.endswith(TEST_ENV_NAME_1) for path in result)
@@ -150,9 +139,6 @@ def test_rename_with_force(env_one, env_two):
     assert locate_prefix_by_name(TEST_ENV_NAME_2)
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(TEST_ENV_NAME_1)
-
-    # Clean up
-    conda_cli("rename", "-n", TEST_ENV_NAME_2, TEST_ENV_NAME_1)
 
 
 def test_rename_with_force_with_errors(env_one, env_two):
