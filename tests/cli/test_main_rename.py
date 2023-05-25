@@ -6,6 +6,8 @@ import json
 import os.path
 import pathlib
 import tempfile
+import uuid
+from typing import Iterable
 from unittest import mock
 
 import pytest
@@ -15,7 +17,6 @@ from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import CondaError, EnvironmentNameNotFound
 from conda.testing.helpers import set_active_prefix
 
-TEST_ENV_NAME_2 = "env-2"
 TEST_ENV_NAME_RENAME = "renamed-env"
 
 
@@ -33,14 +34,15 @@ def env_one() -> Iterable[str]:
 
 
 @pytest.fixture
-def env_two():
+def env_two() -> Iterable[str]:
     # Setup
-    conda_cli("create", "-n", TEST_ENV_NAME_2, "-y")
+    name = uuid.uuid4().hex
+    conda_cli("create", "-n", name, "-y")
 
-    yield
+    yield name
 
     # Teardown
-    conda_cli("remove", "--all", "-y", "-n", TEST_ENV_NAME_2)
+    conda_cli("remove", "--all", "-y", "-n", name)
 
 
 @pytest.fixture
@@ -123,20 +125,20 @@ def test_cannot_rename_active_env_by_name(env_one: str):
         assert "Cannot rename the active environment" in err
 
 
-def test_rename_with_force(env_one: str, env_two):
+def test_rename_with_force(env_one: str, env_two: str):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
     Without this flag, it would return with an error message.
     """
     # Do a force rename
-    conda_cli("rename", "-n", env_one, TEST_ENV_NAME_2, "--force")
+    conda_cli("rename", "-n", env_one, env_two, "--force")
 
-    assert locate_prefix_by_name(TEST_ENV_NAME_2)
+    assert locate_prefix_by_name(env_two)
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(env_one)
 
 
-def test_rename_with_force_with_errors(env_one: str, env_two):
+def test_rename_with_force_with_errors(env_one: str, env_two: str):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
     Additionally, in this test, we mock an exception to recreate a failure condition.
@@ -146,14 +148,12 @@ def test_rename_with_force_with_errors(env_one: str, env_two):
     # Do a force rename
     with mock.patch("conda.cli.main_rename.install.clone") as clone_mock:
         clone_mock.side_effect = [CondaError(error_message)]
-        _, err, exit_code = conda_cli(
-            "rename", "-n", env_one, TEST_ENV_NAME_2, "--force"
-        )
+        _, err, exit_code = conda_cli("rename", "-n", env_one, env_two, "--force")
         assert error_message in err
         assert exit_code == 1
 
     # Make sure both environments still exist
-    assert locate_prefix_by_name(TEST_ENV_NAME_2)
+    assert locate_prefix_by_name(env_two)
     assert locate_prefix_by_name(env_one)
 
 
