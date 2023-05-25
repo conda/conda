@@ -113,7 +113,7 @@ API reference
    solvers
    subcommands
    virtual_packages
-   pre_command
+   pre_commands
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/

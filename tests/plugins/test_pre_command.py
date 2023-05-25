@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from unittest import mock
-
 import pytest
 
 from conda import plugins
@@ -54,7 +52,7 @@ def test_pre_command_not_invoked(pre_command_plugin, conda_cli):
     assert len(pre_command_plugin.pre_command_action.mock_calls) == 0
 
 
-def test_pre_command_action_raises_exception(pre_command_plugin, conda_cli, mocker):
+def test_pre_command_action_raises_exception(pre_command_plugin, conda_cli):
     """
     When the plugin action fails or raises an exception, we want to make sure
     that it bubbles up to the top and isn't caught anywhere. This will ensure that it

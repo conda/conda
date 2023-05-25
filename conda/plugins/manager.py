@@ -6,7 +6,6 @@ import functools
 import logging
 from argparse import Namespace
 from importlib.metadata import distributions
-from typing import cast
 
 import pluggy
 
@@ -14,7 +13,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import CondaPreCommand, solvers, subcommands, virtual_packages
+from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
 log = logging.getLogger(__name__)
@@ -165,9 +164,6 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Runs ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands`` hook.
 
-        This method takes special care to handle any exceptions raised during the running of these
-        hooks so that it doesn't interfere with the normal operation of the conda command.
-
         :param command: name of the command that is currently being invoked
         :param args: arguments of the running command
         """
@@ -175,7 +171,6 @@ class CondaPluginManager(pluggy.PluginManager):
         pre_command_hooks = self.get_hook_results("pre_commands")
 
         for pre_command in pre_command_hooks:
-            pre_command = cast(CondaPreCommand, pre_command)
             if command in pre_command.run_for:
                 pre_command.action(command, args)
 
