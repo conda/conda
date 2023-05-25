@@ -53,19 +53,6 @@ def env_two() -> Iterable[str]:
     conda_cli("remove", "--all", "-y", "-n", name)
 
 
-@pytest.fixture
-def env_prefix_one() -> Iterable[Path]:
-    """Used to get an environment created using -p flag"""
-    # Setup
-    tmpdir = tempfile.mkdtemp()
-    conda_cli("create", "-p", tmpdir, "-y")
-
-    yield tmpdir
-
-    # Teardown
-    conda_cli("remove", "--all", "-y", "-p", tmpdir)
-
-
 def test_rename_by_name_success(env_one: str, env_rename: str):
     conda_cli("rename", "-n", env_one, env_rename)
 
@@ -163,9 +150,7 @@ def test_rename_with_force_with_errors(
     assert locate_prefix_by_name(env_one)
 
 
-def test_rename_with_force_with_errors_prefix(
-    env_prefix_one, mocker: MockerFixture, tmp_path: Path
-):
+def test_rename_with_force_with_errors_prefix(mocker: MockerFixture, tmp_path: Path):
     """
     Runs a test using --force flag while mocking an exception.
     Specifically targets environments created using the -p flag.
@@ -174,12 +159,13 @@ def test_rename_with_force_with_errors_prefix(
     mocker.patch(
         "conda.cli.main_rename.install.clone", side_effect=CondaError(error_message)
     )
-    with pytest.raises(CondaError, match=error_message):
-        conda_cli("rename", "-p", env_prefix_one, tmpdir, "--force")
+    with tmp_env() as prefix:
+        with pytest.raises(CondaError, match=error_message):
+            conda_cli("rename", "-p", prefix, tmpdir, "--force")
 
-    # Make sure both directories still exist
-    assert os.path.isdir(tmpdir)
-    assert os.path.isdir(env_prefix_one)
+        # Make sure both directories still exist
+        assert os.path.isdir(tmpdir)
+        assert os.path.isdir(prefix)
 
 
 def test_rename_with_dry_run(env_one: str, env_rename: str):
@@ -200,7 +186,7 @@ def test_rename_with_dry_run(env_one: str, env_rename: str):
     assert "Dry run action: rm_rf" in rename_stdout
 
 
-def test_rename_with_force_and_dry_run(env_one: str, env_prefix_one, env_rename: str):
+def test_rename_with_force_and_dry_run(env_one: str, env_rename: str):
     """
     Runs a test where we specify the --force and --dry-run flags to forcefully rename
     an existing directory. We need to ensure that --dry-run is effective and that no
