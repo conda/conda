@@ -50,7 +50,7 @@ def test_pre_command_not_invoked(pre_command_plugin, conda_cli):
     """
     Makes sure that we successfully did not invoke our "pre-command" action.
     """
-    conda_cli("list")
+    conda_cli("config")
 
     assert len(pre_command_plugin.pre_command_action.mock_calls) == 0
 

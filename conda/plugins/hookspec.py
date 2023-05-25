@@ -112,7 +112,7 @@ class CondaSpecs:
             PLUGIN_NAME = "custom_plugin"
 
 
-            def custom_plugin_pre_commands_action():
+            def custom_plugin_pre_commands_action(command_name, args):
                 print("pre-command action")
 
 

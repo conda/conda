@@ -177,7 +177,7 @@ class CondaPluginManager(pluggy.PluginManager):
         for pre_command in pre_command_hooks:
             pre_command = cast(CondaPreCommand, pre_command)
             if command in pre_command.run_for:
-                pre_command.action(args)
+                pre_command.action(command, args)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
