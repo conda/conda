@@ -58,17 +58,13 @@ def test_pre_command_not_invoked(pre_command_plugin, conda_cli):
 def test_pre_command_action_raises_exception(pre_command_plugin, conda_cli, mocker):
     """
     When the plugin action fails or raises an exception, we want to make sure
-    that it doesn't interrupt the normal flow of the normal command. Instead,
-    we simply log an error and continue on.
+    that it bubbles up to the top and isn't caught anywhere. This will ensure that it
+    goes through our normal exception catching/reporting mechanism.
     """
-    mock_log = mocker.patch("conda.plugins.manager.log.error")
     exc_message = "Boom!"
     pre_command_plugin.pre_command_action.side_effect = [Exception(exc_message)]
 
-    conda_cli("info")
+    with pytest.raises(Exception, match=exc_message):
+        conda_cli("info")
 
     assert len(pre_command_plugin.pre_command_action.mock_calls) == 1
-    assert len(mock_log.mock_calls) == 1
-    assert mock_log.mock_calls[0].args == (
-        f'Pre-command action for the plugin "{PLUGIN_NAME}" failed with: Exception: {exc_message}',
-    )

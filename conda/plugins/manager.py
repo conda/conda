@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import traceback
 from argparse import Namespace
 from importlib.metadata import distributions
 from typing import cast
@@ -15,7 +14,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import CondaPreCommand, pre_commands, solvers, subcommands, virtual_packages
+from . import CondaPreCommand, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
 log = logging.getLogger(__name__)
@@ -178,16 +177,7 @@ class CondaPluginManager(pluggy.PluginManager):
         for pre_command in pre_command_hooks:
             pre_command = cast(CondaPreCommand, pre_command)
             if command in pre_command.run_for:
-                try:
-                    pre_command.action(args)
-                except Exception as exc:
-                    error, *_ = traceback.format_exception_only(type(exc), exc)
-                    error = error.strip()
-
-                    log.error(
-                        f'Pre-command action for the plugin "{pre_command.name}" failed with: '
-                        f"{error}"
-                    )
+                pre_command.action(args)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
@@ -199,10 +189,7 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers,
-        *virtual_packages.plugins,
-        *subcommands.plugins,
-        *pre_commands.plugins,
+        solvers, *virtual_packages.plugins, *subcommands.plugins
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

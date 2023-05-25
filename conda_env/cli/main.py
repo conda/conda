@@ -45,6 +45,10 @@ def do_call(args, parser):
     # func_name should always be 'execute'
     from importlib import import_module
 
+    # Run `pre_command` hooks
+    command_name = relative_mod.replace(".main_", "")
+    context.plugin_manager.run_pre_command_hooks(f"env_{command_name}", args)
+
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
     exit_code = getattr(module, func_name)(args, parser)
     return exit_code
