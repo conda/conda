@@ -21,14 +21,14 @@ class CondaSpecs:
         """
         Register solvers in conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             import logging
 
             from conda import plugins
             from conda.core import solve
-
 
             log = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ class CondaSpecs:
         """
         Register external subcommands in conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             from conda import plugins
@@ -80,7 +81,8 @@ class CondaSpecs:
         """
         Register virtual packages in Conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             from conda import plugins
@@ -102,25 +104,24 @@ class CondaSpecs:
         """
         Register pre-commands functions in conda.
 
-        :return: An iterable of pre-command .
+        **Example:**
 
-        Example:
         .. code-block:: python
-            from conda import plugins
+
+           from conda import plugins
+
+           PLUGIN_NAME = "custom_plugin"
 
 
-            PLUGIN_NAME = "custom_plugin"
+           def custom_plugin_pre_commands_action(command_name, args):
+               print("pre-command action")
 
 
-            def custom_plugin_pre_commands_action(command_name, args):
-                print("pre-command action")
-
-
-            @plugins.hookimpl
-            def conda_pre_commands():
-                yield CondaPreRun(
-                    name=f"{PLUGIN_NAME}_pre_commands",
-                    action=custom_plugin_pre_commands_action,
-                    run_for={"install", "create"},
-                )
+           @plugins.hookimpl
+           def conda_pre_commands():
+               yield CondaPreRun(
+                   name=f"{PLUGIN_NAME}_pre_commands",
+                   action=custom_plugin_pre_commands_action,
+                   run_for={"install", "create"},
+               )
         """
