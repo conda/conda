@@ -9,12 +9,7 @@ import pytest
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.core.prefix_data import PrefixData
-from conda.testing.integration import (
-    Commands,
-    package_is_installed,
-    run_command,
-    tmp_env,
-)
+from conda.testing.integration import Commands, package_is_installed, run_command
 
 
 @pytest.mark.integration
