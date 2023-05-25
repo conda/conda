@@ -8,9 +8,9 @@ import pathlib
 import tempfile
 import uuid
 from typing import Iterable
-from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from conda.base.context import context, locate_prefix_by_name
 from conda.core.envs_manager import list_all_known_prefixes
@@ -54,7 +54,7 @@ def env_two() -> Iterable[str]:
 
 
 @pytest.fixture
-def env_prefix_one():
+def env_prefix_one() -> Iterable[Path]:
     """Used to get an environment created using -p flag"""
     # Setup
     tmpdir = tempfile.mkdtemp()
@@ -144,45 +144,42 @@ def test_rename_with_force(env_one: str, env_two: str):
         locate_prefix_by_name(env_one)
 
 
-def test_rename_with_force_with_errors(env_one: str, env_two: str):
+def test_rename_with_force_with_errors(
+    env_one: str, env_two: str, mocker: MockerFixture
+):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
     Additionally, in this test, we mock an exception to recreate a failure condition.
     """
-    error_message = "Error Message"
-
-    # Do a force rename
-    with mock.patch("conda.cli.main_rename.install.clone") as clone_mock:
-        clone_mock.side_effect = [CondaError(error_message)]
-        _, err, exit_code = conda_cli("rename", "-n", env_one, env_two, "--force")
-        assert error_message in err
-        assert exit_code == 1
+    error_message = uuid.uuid4().hex
+    mocker.patch(
+        "conda.cli.main_rename.install.clone", side_effect=CondaError(error_message)
+    )
+    with pytest.raises(CondaError, match=error_message):
+        conda_cli("rename", "-n", env_one, env_two, "--force")
 
     # Make sure both environments still exist
     assert locate_prefix_by_name(env_two)
     assert locate_prefix_by_name(env_one)
 
 
-def test_rename_with_force_with_errors_prefix(env_prefix_one):
+def test_rename_with_force_with_errors_prefix(
+    env_prefix_one, mocker: MockerFixture, tmp_path: Path
+):
     """
     Runs a test using --force flag while mocking an exception.
     Specifically targets environments created using the -p flag.
     """
-    error_message = "Error Message"
+    error_message = uuid.uuid4().hex
+    mocker.patch(
+        "conda.cli.main_rename.install.clone", side_effect=CondaError(error_message)
+    )
+    with pytest.raises(CondaError, match=error_message):
+        conda_cli("rename", "-p", env_prefix_one, tmpdir, "--force")
 
-    # Do a force rename
-    with mock.patch(
-        "conda.cli.main_rename.install.clone"
-    ) as clone_mock, tempfile.TemporaryDirectory() as tmpdir:
-        clone_mock.side_effect = [CondaError(error_message)]
-        out, err, exit_code = conda_cli(
-            "rename", "-p", env_prefix_one, tmpdir, "--force"
-        )
-        assert error_message in err
-
-        # Make sure both directories still exist
-        assert os.path.isdir(tmpdir)
-        assert os.path.isdir(env_prefix_one)
+    # Make sure both directories still exist
+    assert os.path.isdir(tmpdir)
+    assert os.path.isdir(env_prefix_one)
 
 
 def test_rename_with_dry_run(env_one: str, env_rename: str):
