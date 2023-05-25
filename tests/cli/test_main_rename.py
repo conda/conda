@@ -24,31 +24,31 @@ def env_rename() -> Iterable[str]:
     yield name
 
     # Teardown
-    conda_cli("remove", "--all", "-y", "--name", name)
+    conda_cli("remove", "--all", "--yes", "--name", name)
 
 
 @pytest.fixture
 def env_one() -> Iterable[str]:
     # Setup
     name = uuid.uuid4().hex
-    conda_cli("create", "--name", name, "-y")
+    conda_cli("create", "--name", name, "--yes")
 
     yield name
 
     # Teardown
-    conda_cli("remove", "--all", "-y", "--name", name)
+    conda_cli("remove", "--all", "--yes", "--name", name)
 
 
 @pytest.fixture
 def env_two() -> Iterable[str]:
     # Setup
     name = uuid.uuid4().hex
-    conda_cli("create", "--name", name, "-y")
+    conda_cli("create", "--name", name, "--yes")
 
     yield name
 
     # Teardown
-    conda_cli("remove", "--all", "-y", "--name", name)
+    conda_cli("remove", "--all", "--yes", "--name", name)
 
 
 def test_rename_by_name_success(env_one: str, env_rename: str):
