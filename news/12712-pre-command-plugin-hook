@@ -1,0 +1,7 @@
+### Enhancements
+
+* Adds new "pre_command" hook which allows plugins to interrupt the normal start-up process of specific commands
+
+### Docs
+
+* Documentation for how to use the new "pre_command" plugin hook
