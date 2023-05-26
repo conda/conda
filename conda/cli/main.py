@@ -66,6 +66,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from .conda_argparse import generate_parser
 
     args = args or ["--help"]
+
     p = generate_parser()
     args = p.parse_args(args)
 
