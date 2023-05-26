@@ -253,7 +253,7 @@ def run_command(command, prefix, *arguments, **kwargs):
         Commands.RUN,
     ):
         arguments.insert(0, "-p")
-        arguments.insert(1, prefix)
+        arguments.insert(1, str(prefix))
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
@@ -294,7 +294,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     # Unfortunately there are other ways to change context, such as Commands.CREATE --offline.
     # You will probably end up playing whack-a-bug here adding more and more the tuple here.
     if command in (Commands.CONFIG,):
-        reset_context([os.path.join(prefix + os.sep, "condarc")], args)
+        reset_context([os.path.join(prefix, "condarc")], args)
     return stdout, stderr, result
 
 
@@ -439,6 +439,7 @@ def package_is_installed(prefix, spec):
 
 
 def _package_is_installed(prefix, spec):
+    PrefixData._cache_.clear()
     spec = MatchSpec(spec)
     prefix_recs = tuple(PrefixData(prefix).query(spec))
     if len(prefix_recs) > 1:

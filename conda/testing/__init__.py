@@ -198,9 +198,12 @@ class CondaCLIFixture:
         context.__init__(argparse_args=args)
         init_loggers(context)
 
-        # run command
-        code = do_call(args, parser)
-        out, err = self.capsys.readouterr()
+        try:
+            # run command
+            code = do_call(args, parser)
+        finally:
+            # always flush stdout and stderr
+            out, err = self.capsys.readouterr()
 
         # restore to prior state
         reset_context()

@@ -13,7 +13,6 @@ from conda.common.io import env_var, env_vars
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.helpers import set_active_prefix
-from conda.testing.integration import package_is_installed
 
 
 @pytest.mark.integration

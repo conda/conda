@@ -40,6 +40,7 @@ class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
     def __call__(cls, prefix_path, pip_interop_enabled=None):
+        prefix_path = str(prefix_path)
         if prefix_path in PrefixData._cache_:
             return PrefixData._cache_[prefix_path]
         elif isinstance(prefix_path, PrefixData):
