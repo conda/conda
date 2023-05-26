@@ -10,6 +10,7 @@ from conda import plugins
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
+from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
 
@@ -94,3 +95,15 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     assert mocked_warning.call_args.args[0] == (
         "Could not load conda plugin `conda-test-plugin`:\n\nNo module named 'package_that_does_not_exist'"
     )
+
+
+def test_disabled_plugins():
+    """
+    We use this test to make sure that the mechanism we use to disable plugins works.
+    """
+    verbose_plugin = VerboseSolverPlugin()
+    # pluggy uses this `id` as the "name" of the plugin during tests
+    plugin_manager = CondaPluginManager(disabled_plugins=(str(id(verbose_plugin)),))
+    plugin_manager.load_plugins(verbose_plugin)
+
+    assert plugin_manager.get_plugins() == set()

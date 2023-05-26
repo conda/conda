@@ -115,7 +115,12 @@ def do_call(args, parser):
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(args, "plugin_subcommand", None):
-        context.plugin_manager.run_pre_command_hooks(args.plugin_subcommand.name, args)
+        # Run the pre_command actions
+        actions = context.plugin_manager.get_pre_command_hook_actions(
+            args.plugin_subcommand.name, args
+        )
+        tuple(action() for action in actions)
+
         return args.plugin_subcommand.action(sys.argv[2:])
 
     relative_mod, func_name = args.func.rsplit(".", 1)
@@ -126,7 +131,10 @@ def do_call(args, parser):
 
     command = relative_mod.replace(".main_", "")
 
-    context.plugin_manager.run_pre_command_hooks(command, args)
+    # Run the pre_command actions
+    actions = context.plugin_manager.get_pre_command_hook_actions(command, args)
+    tuple(action() for action in actions)
+
     return getattr(module, func_name)(args, parser)
 
 

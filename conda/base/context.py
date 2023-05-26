@@ -300,15 +300,16 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    # #############################
-    # channels
-    # #############################
     allow_non_channel_urls = ParameterLoader(PrimitiveParameter(False))
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS, validation=channel_alias_validation),
         aliases=("channel_alias",),
         expandvars=True,
     )
+
+    ####################################################
+    #               Channel Configuration              #
+    ####################################################
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(
@@ -391,9 +392,9 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
-    # ######################################################
-    # ##               Solver Configuration               ##
-    # ######################################################
+    ####################################################
+    #               Solver Configuration               #
+    ####################################################
     deps_modifier = ParameterLoader(PrimitiveParameter(DepsModifier.NOT_SET))
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
@@ -402,6 +403,11 @@ class Context(Configuration):
         PrimitiveParameter(DEFAULT_SOLVER),
         aliases=("experimental_solver",),
     )
+
+    ####################################################
+    #               Plugin Configuration               #
+    ####################################################
+    disabled_plugins = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
     @property
     @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
@@ -1180,6 +1186,7 @@ class Context(Configuration):
                 "use_index_cache",
                 "use_local",
             ),
+            "Plugin Configuration": ("disabled_plugins",),
             "Hidden and Undocumented": (
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
@@ -1749,6 +1756,14 @@ class Context(Configuration):
             experimental=dals(
                 """
                 List of experimental features to enable.
+                """
+            ),
+            disabled_plugins=dals(
+                """
+                List of plugins that are explicitly disabled. To disable a plugin, use the
+                registered entry point name of the plugin. In most cases, this is the same
+                as the package name used to install the plugin. This is mostly used to
+                disable plugins whose errors are preventing the normal operation of conda.
                 """
             ),
         )
