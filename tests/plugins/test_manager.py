@@ -10,7 +10,6 @@ from conda import plugins
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
-from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
 
