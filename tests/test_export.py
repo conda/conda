@@ -23,7 +23,7 @@ def test_basic(tmp_env: TmpEnvFixture):
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "python=3")
 
-        output, error, _ = run_command(Commands.LIST, prefix, "-e")
+        output, error, _ = run_command(Commands.LIST, str(prefix), "-e")
 
         with Utf8NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
             env_txt.write(output)
@@ -49,10 +49,10 @@ def test_multi_channel_export(tmp_env: TmpEnvFixture):
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "python=3")
 
-        run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
+        run_command(Commands.INSTALL, str(prefix), "six", "-c", "conda-forge")
         assert package_is_installed(prefix, "six")
 
-        output, error, _ = run_command(Commands.LIST, prefix, "-e")
+        output, error, _ = run_command(Commands.LIST, str(prefix), "-e")
         assert "conda-forge" in output
 
         try:
@@ -81,10 +81,10 @@ def test_multi_channel_explicit(tmp_env: TmpEnvFixture):
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "python=3")
 
-        run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
+        run_command(Commands.INSTALL, str(prefix), "six", "-c", "conda-forge")
         assert package_is_installed(prefix, "conda-forge::six")
 
-        output, error, _ = run_command(Commands.LIST, prefix, "--explicit")
+        output, error, _ = run_command(Commands.LIST, str(prefix), "--explicit")
         assert not error
         assert "conda-forge" in output
 

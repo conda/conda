@@ -93,7 +93,7 @@ def test_explicit_missing_cache_entries(mocker, tmp_env: TmpEnvFixture):
             # be empty in certain cases (Noted in OSX with Python 3.9, when
             # Miniconda installs Python 3.10). Install a small package.
             warnings.warn("test_explicit_missing_cache_entries: No packages in cache.")
-            run_command(Commands.INSTALL, prefix, "heapdict")
+            run_command(Commands.INSTALL, str(prefix), "heapdict")
 
         # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
         # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.

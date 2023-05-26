@@ -108,7 +108,7 @@ def test_clean_and_packages(clear_cache, tmp_env: TmpEnvFixture):
             # pkg still exists since its in use by temp env
             assert_any_pkg(pkg, _get_pkgs(pkgs_dir))
 
-            run_command(Commands.REMOVE, prefix, pkg, "--yes", "--json")
+            run_command(Commands.REMOVE, str(prefix), pkg, "--yes", "--json")
             stdout, _, _ = run_command(
                 Commands.CLEAN, "", "--packages", "--yes", "--json"
             )

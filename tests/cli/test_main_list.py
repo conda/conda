@@ -10,7 +10,7 @@ from conda.testing.integration import Commands, run_command
 def test_list(tmp_env: TmpEnvFixture):
     pkg = "ca-certificates"  # has no dependencies
     with tmp_env(pkg) as prefix:
-        stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
+        stdout, _, _ = run_command(Commands.LIST, str(prefix), "--json")
         assert any(item["name"] == pkg for item in json.loads(stdout))
 
 
@@ -18,10 +18,10 @@ def test_list(tmp_env: TmpEnvFixture):
 def test_list_reverse(tmp_env: TmpEnvFixture):
     pkg = "curl"  # has dependencies
     with tmp_env(pkg) as prefix:
-        stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
+        stdout, _, _ = run_command(Commands.LIST, str(prefix), "--json")
         names = [item["name"] for item in json.loads(stdout)]
         assert names == sorted(names)
 
-        stdout, _, _ = run_command(Commands.LIST, prefix, "--reverse", "--json")
+        stdout, _, _ = run_command(Commands.LIST, str(prefix), "--reverse", "--json")
         names = [item["name"] for item in json.loads(stdout)]
         assert names == sorted(names, reverse=True)
