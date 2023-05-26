@@ -94,11 +94,11 @@ def capture_json_with_argv(
 
 
 @contextmanager
-def set_active_prefix(prefix: str) -> None:
+def set_active_prefix(prefix: os.PathLike) -> None:
     old_prefix = os.environ["CONDA_PREFIX"]
 
     try:
-        os.environ["CONDA_PREFIX"] = prefix
+        os.environ["CONDA_PREFIX"] = str(prefix)
         yield
     finally:
         os.environ["CONDA_PREFIX"] = old_prefix

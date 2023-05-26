@@ -5,99 +5,62 @@ from json import loads as json_loads
 from unittest import TestCase
 
 import pytest
+from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import env_var
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.common.io import env_var, env_vars
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.testing.helpers import set_active_prefix
 from conda.testing.integration import package_is_installed
 
 
 @pytest.mark.integration
-def test_channel_order_channel_priority_true(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+@pytest.mark.parametrize(
+    "pinned_package",
+    [
+        pytest.param(True, id="with pinned_package"),
+        pytest.param(False, id="without pinned_package"),
+    ],
+)
+def test_reorder_channel_priority(
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    conda_cli: CondaCLIFixture,
+    pinned_package: bool,
 ):
-    # This is broken, tmp_env will reset the context. We get away with it, but really
-    # we need a function that does both these at the same time.
-    with env_var(
-        "CONDA_PINNED_PACKAGES",
-        "python=3.8",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with tmp_env("pycosat=0.6.3") as prefix:
-            assert package_is_installed(prefix, "python=3.8")
-            assert package_is_installed(prefix, "pycosat")
+    # use "cheap" packages with no dependencies
+    package1 = "zlib"
+    package2 = "ca-certificates"
 
-            payload, _, _ = conda_cli("config", "--get", "channels", "--json")
-            default_channels = json_loads(payload)["get"].get("channels")
-            if default_channels:
-                conda_cli("config", "--remove-key", "channels")
+    # set pinned package
+    if pinned_package:
+        monkeypatch.setenv("CONDA_PINNED_PACKAGES", package1)
 
-            # add conda-forge channel
-            o, e, _ = conda_cli(
-                "config",
-                "--prepend",
-                "channels",
-                "conda-forge",
-                "--json",
-            )
-            assert context.channels == ("conda-forge", "defaults"), o + e
-            # update --all
-            update_stdout, _, _ = conda_cli("update", "--prefix", prefix, "--all")
+    # add defaults channel
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
+    assert context.channels == ("defaults",)
 
-            # this assertion works with the pinned_packages config to make sure
-            # conda update --all still respects the pinned python version
-            assert package_is_installed(prefix, "python=3.8")
-
-            # pycosat should be in the SUPERSEDED list
-            # after the 4.4 solver work, looks like it's in the DOWNGRADED list
-            # This language needs changed anyway here.
-            # For packages that CHANGE because they're being moved to a higher-priority channel
-            # the message should be
-            #
-            # The following packages will be UPDATED to a higher-priority channel:
-            #
-            installed_str, x = update_stdout.split("UPDATED")
-            assert re.search(
-                r"pkgs/main::pycosat-0.6.3-py38h[^\s]+ --> conda-forge::pycosat", x
-            )
-
-            # python sys.version should show conda-forge python
-            assert PrefixData(prefix).get("python").channel.name == "conda-forge"
-
-            # conda list should show pycosat coming from conda-forge
-            assert PrefixData(prefix).get("pycosat").channel.name == "conda-forge"
-
-
-@pytest.mark.integration
-def test_channel_priority_update(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    """This case will fail now."""
-    with tmp_env("python=3.8", "pycosat") as prefix:
-        assert package_is_installed(prefix, "python")
-
-        # clear channels config first to not assume default is defaults
-        payload, _, _ = conda_cli("config", "--get", "channels", "--json")
-        default_channels = json_loads(payload)["get"].get("channels")
-        if default_channels:
-            conda_cli("config", "--remove-key", "channels")
+    # create environment with package1 and package2
+    with tmp_env(package1, package2) as prefix, set_active_prefix(prefix):
+        # check both packages are installed from defaults
+        PrefixData._cache_.clear()
+        assert PrefixData(prefix).get(package1).channel.name == "pkgs/main"
+        assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
 
         # add conda-forge channel
-        o, e, _ = conda_cli(
-            "config",
-            "--prepend",
-            "channels",
-            "conda-forge",
-            "--json",
-        )
-        assert context.channels == ("conda-forge", "defaults"), o + e
+        monkeypatch.setenv("CONDA_CHANNELS", "conda-forge,defaults")
+        reset_context()
+        assert context.channels == ("conda-forge", "defaults")
 
-        # update python
-        update_stdout, _, _ = conda_cli("update", "--prefix", prefix, "python")
+        # update --all
+        conda_cli("update", "--prefix", prefix, "--all", "--yes")
 
-        # pycosat should be in the SUPERSEDED list
-        superceded_split = update_stdout.split("UPDATED")
-        assert len(superceded_split) == 2
-        assert "conda-forge" in superceded_split[1]
-
-        # python sys.version should show conda-forge python
-        assert PrefixData(prefix).get("python").channel.name == "conda-forge"
+        # check pinned package is unchanged but unpinned packages are updated from conda-forge
+        PrefixData._cache_.clear()
+        expected_channel = "pkgs/main" if pinned_package else "conda-forge"
+        assert PrefixData(prefix).get(package1).channel.name == expected_channel
+        assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
