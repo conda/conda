@@ -66,9 +66,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from ..base.context import context
     from .conda_argparse import generate_parser
 
-    # This needs to be called to give the argument parser access to context variables
-    context.__init__()
-
     args = args or ["--help"]
     p = generate_parser()
     args = p.parse_args(args)

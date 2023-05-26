@@ -404,11 +404,6 @@ class Context(Configuration):
         aliases=("experimental_solver",),
     )
 
-    ####################################################
-    #               Plugin Configuration               #
-    ####################################################
-    disabled_plugins = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
-
     @property
     @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
     def experimental_solver(self):
@@ -1186,7 +1181,6 @@ class Context(Configuration):
                 "use_index_cache",
                 "use_local",
             ),
-            "Plugin Configuration": ("disabled_plugins",),
             "Hidden and Undocumented": (
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
@@ -1756,14 +1750,6 @@ class Context(Configuration):
             experimental=dals(
                 """
                 List of experimental features to enable.
-                """
-            ),
-            disabled_plugins=dals(
-                """
-                List of plugins that are explicitly disabled. To disable a plugin, use the
-                registered entry point name of the plugin. In most cases, this is the same
-                as the package name used to install the plugin. This is mostly used to
-                disable plugins whose errors are preventing the normal operation of conda.
                 """
             ),
         )
