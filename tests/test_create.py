@@ -63,6 +63,7 @@ from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.subdir_data import SubdirData, create_cache_dir
 from conda.exceptions import (
     ArgumentError,
+    CondaExitZero,
     CondaMultiError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
@@ -2692,14 +2693,22 @@ def test_force_remove(clear_cache: None, tmp_env: TmpEnvFixture):
     run_command(Commands.REMOVE, prefix, "--all")
 
 
-def test_download_only_flag(clear_cache: None, tmp_env: TmpEnvFixture):
-    from conda.core.link import UnlinkLinkTransaction
+def test_download_only_flag(
+    clear_cache: None, tmp_env: TmpEnvFixture, mocker: MockerFixture
+):
+    execute = mocker.patch("conda.core.link.UnlinkLinkTransaction.execute")
 
-    with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
+    with pytest.raises(
+        CondaExitZero,
+        match="Package caches prepared. UnlinkLinkTransaction cancelled with --download-only option.",
+    ):
         with tmp_env("openssl", "--download-only"):
-            assert mock_method.call_count == 0
-        with tmp_env("openssl"):
-            assert mock_method.call_count == 1
+            pass
+    assert execute.call_count == 0
+
+    with tmp_env("openssl"):
+        pass
+    assert execute.call_count == 1
 
 
 def test_transactional_rollback_simple(clear_cache: None, tmp_env: TmpEnvFixture):
@@ -2855,7 +2864,7 @@ def test_post_link_run_in_env(clear_cache: None, tmp_env: TmpEnvFixture):
 
 def test_conda_info_python(clear_cache: None, conda_cli: CondaCLIFixture):
     stdout, stderr, err = conda_cli("info", "python=3.10.11")
-    assert "python 3.10.11" in output
+    assert "python 3.10.11" in stdout
     assert not stderr
     assert not err
 
