@@ -110,10 +110,10 @@ API reference
    :maxdepth: 1
 
    manager
+   pre_commands
    solvers
    subcommands
    virtual_packages
-   pre_commands
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/
