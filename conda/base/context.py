@@ -300,16 +300,15 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
+    ####################################################
+    #               Channel Configuration              #
+    ####################################################
     allow_non_channel_urls = ParameterLoader(PrimitiveParameter(False))
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS, validation=channel_alias_validation),
         aliases=("channel_alias",),
         expandvars=True,
     )
-
-    ####################################################
-    #               Channel Configuration              #
-    ####################################################
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(
