@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import functools
 import logging
-from argparse import Namespace
 from collections.abc import Callable, Iterable
 from importlib.metadata import distributions
 
@@ -161,23 +160,19 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def get_pre_command_hook_actions(
-        self, command: str, args: Namespace
-    ) -> Iterable[Callable]:
+    def yield_pre_command_hook_actions(self, command: str) -> Iterable[Callable]:
         """
-        Returns the ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands``
-        hook. We use ``functools.partial`` to preconfigure these functions with the arguments
-        they need.
+        Yields the ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands``
+        hook.
 
         :param command: name of the command that is currently being invoked
-        :param args: arguments of the running command
         """
         # Load pre-commands available to run
         pre_command_hooks = self.get_hook_results("pre_commands")
 
         for pre_command in pre_command_hooks:
             if command in pre_command.run_for:
-                yield functools.partial(pre_command.action, command, args)
+                yield pre_command.action
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
