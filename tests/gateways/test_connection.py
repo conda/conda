@@ -106,8 +106,6 @@ def test_s3_server(minio_s3_server, tmp_env: TmpEnvFixture):
                     "--download-only",
                     "--no-deps",  # this fake repo only includes the zlib tarball
                     "zlib",
-                    use_exception_handler=False,
-                    no_capture=True,
                 ):
                     # we just want to run tmp_env and cleanup after
                     pass
