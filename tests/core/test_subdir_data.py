@@ -292,7 +292,7 @@ def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
         assert precs[0].fn.endswith(".conda")
 
 
-def test_subdir_data_coverage(tmp_env: TmpEnvFixture, platform=OVERRIDE_PLATFORM):
+def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
     class ChannelCacheClear:
         def __enter__(self):
             return
@@ -301,7 +301,7 @@ def test_subdir_data_coverage(tmp_env: TmpEnvFixture, platform=OVERRIDE_PLATFORM
             Channel._cache_.clear()
 
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    with ChannelCacheClear(), tmp_env(), env_vars(
+    with ChannelCacheClear(), env_vars(
         {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
