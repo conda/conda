@@ -30,13 +30,7 @@ class CondaPluginManager(pluggy.PluginManager):
     #: method.
     get_cached_solver_backend = None
 
-    def __init__(
-        self,
-        project_name: str | None = None,
-        disabled_plugins: tuple | None = None,
-        *args,
-        **kwargs,
-    ) -> None:
+    def __init__(self, project_name: str | None = None, *args, **kwargs) -> None:
         # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
@@ -46,10 +40,6 @@ class CondaPluginManager(pluggy.PluginManager):
         self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(
             self.get_solver_backend
         )
-
-        if disabled_plugins is not None:
-            for plugin in disabled_plugins:
-                self.set_blocked(plugin)
 
     def load_plugins(self, *plugins) -> list[str]:
         """
@@ -196,7 +186,7 @@ def get_plugin_manager() -> CondaPluginManager:
     Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
     instance, with the built-in and the entrypoints provided plugins loaded.
     """
-    plugin_manager = CondaPluginManager(disabled_plugins=context.disabled_plugins)
+    plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
         solvers, *virtual_packages.plugins, *subcommands.plugins
