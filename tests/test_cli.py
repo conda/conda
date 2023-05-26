@@ -12,8 +12,9 @@ import pytest
 
 from conda.base.constants import on_win
 from conda.base.context import context
+from conda.core.prefix_data import PrefixData
 from conda.gateways.disk.delete import rm_rf
-from conda.testing import TmpEnvFixture
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.cases import BaseTestCase
 from conda.testing.helpers import capture_json_with_argv, run_inprocess_conda_command
 from conda.testing.integration import Commands, run_command
@@ -87,7 +88,6 @@ class TestJson(BaseTestCase):
         self.assertIsInstance(res["conda"], list)
         assert _mocked_guetf.call_count > 0
 
-    @pytest.mark.usefixtures("empty_env_tmpdir")
     @patch("conda.base.context.mockable_context_envs_dirs")
     def test_list(self, mockable_context_envs_dirs):
         mockable_context_envs_dirs.return_value = (self.tmpdir,)
@@ -124,7 +124,6 @@ class TestJson(BaseTestCase):
 
         assert mockable_context_envs_dirs.call_count > 0
 
-    @pytest.mark.usefixtures("empty_env_tmpdir")
     @patch("conda.base.context.mockable_context_envs_dirs")
     def test_compare(self, mockable_context_envs_dirs):
         mockable_context_envs_dirs.return_value = (self.tmpdir,)
@@ -256,12 +255,19 @@ class TestJson(BaseTestCase):
 
 
 @pytest.mark.integration
-def test_search_envs():
-    for extra in ("--info", "--json", ""):
-        stdout, _, _ = run_inprocess_conda_command(f"conda search --envs {extra} conda")
-        if "--json" not in extra:
-            assert "Searching environments" in stdout
-        assert "conda" in stdout
+def test_search_envs(conda_cli: CondaCLIFixture):
+    PrefixData._cache_.clear()
+
+    stdout, _, _ = conda_cli("search", "--envs", "conda", "--info")
+    assert "Searching environments" in stdout
+    assert "conda" in stdout
+
+    stdout, _, _ = conda_cli("search", "--envs", "conda", "--json")
+    assert "conda" in stdout
+
+    stdout, _, _ = conda_cli("search", "--envs", "conda")
+    assert "Searching environments" in stdout
+    assert "conda" in stdout
 
 
 def test_run_returns_int(tmp_env: TmpEnvFixture):
@@ -291,20 +297,29 @@ def test_run_returns_nonzero_errorlevel(tmp_env: TmpEnvFixture):
         assert result == 5
 
 
-def test_run_uncaptured(capfd, tmp_env: TmpEnvFixture):
+def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
-        random_text = uuid.uuid4().hex
-        stdout, stderr, result = run_inprocess_conda_command(
-            f"conda run -p {prefix} --no-capture-output echo {random_text}"
+        stdout, stderr, err = conda_cli(
+            "run",
+            *("--prefix", prefix),
+            "--no-capture-output",
+            *("echo", uuid.uuid4().hex),
         )
 
-        assert result == 0
-        # Output is not captured
-        assert stdout == ""
+        assert not stdout
+        assert not stderr
+        assert not err
 
-        # Check that the expected output is somewhere between the conda logs
-        captured = capfd.readouterr()
-        assert random_text in captured.out
+    with tmp_env() as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            *("--prefix", prefix),
+            *("echo", uuid.uuid4().hex),
+        )
+
+        assert stdout
+        assert not stderr
+        assert not err
 
 
 @pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
