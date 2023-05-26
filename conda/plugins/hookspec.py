@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import CondaShellPlugins, CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -95,4 +95,30 @@ class CondaSpecs:
                 )
 
         :return: An iterable of virtual package entries.
+        """
+
+    @_hookspec
+    def conda_shell_plugins(self) -> Iterable[CondaShellPlugins]:
+        """
+        Register external shell plugins in conda.
+
+        :return: An iterable of shell plugin entries.
+
+        Example:
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def example_command(args):
+                print("This is an example command!")
+
+
+            @plugins.hookimpl
+            def conda_shell_plugins():
+                yield plugins.CondaShellPlugins(
+                    name="example",
+                    summary="example command",
+                    action=example_command,
+                )
         """
