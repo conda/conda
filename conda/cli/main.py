@@ -63,14 +63,14 @@ def generate_parser(*args, **kwargs):
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
-    from ..base.context import context
     from .conda_argparse import generate_parser
 
     args = args or ["--help"]
     p = generate_parser()
     args = p.parse_args(args)
 
-    # We now load the context object once more with CLI arguments
+    from ..base.context import context
+
     context.__init__(argparse_args=args)
     init_loggers(context)
 
