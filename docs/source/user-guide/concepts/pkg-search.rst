@@ -42,7 +42,7 @@ example image. The search below will return the same list of packages as the sta
 
 This notation supports the following key-value pairs:
 
-.. program-output:: cd .. && python -c 'import os; import sys; src_dir = here = os.path.abspath(os.path.dirname("../setup.py")); sys.path.insert(0, src_dir); import conda.models.match_spec as M; print("-", "\n- ".join([f"{field:20} # validated via {M._implementors.get(field, M.ExactStrMatch).__name__}" for field in sorted(M.MatchSpec.FIELD_NAMES)]))'
+.. program-output:: python -c 'import conda.models.match_spec as M; print("-", "\n- ".join([f"{field:20} # validated via {M._implementors.get(field, M.ExactStrMatch).__name__}" for field in sorted(M.MatchSpec.FIELD_NAMES)]))'
    :shell:
 
 Key-value pair notation can be used at the same time as standard notation.
