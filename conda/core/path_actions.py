@@ -78,7 +78,7 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class PathAction(metaclass=ABCMeta):
+class _Action(metaclass=ABCMeta):
     _verified = False
 
     @abstractmethod
@@ -100,60 +100,29 @@ class PathAction(metaclass=ABCMeta):
     def cleanup(self):
         raise NotImplementedError()
 
+    @property
+    def verified(self):
+        return self._verified
+
+    def __repr__(self):
+        args = (
+            f"{key}={value!r}"
+            for key, value in vars(self).items()
+            if key not in REPR_IGNORE_KWARGS
+        )
+        return "{}({})".format(self.__class__.__name__, ", ".join(args))
+
+
+class PathAction(_Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_path(self):
         raise NotImplementedError()
 
-    @property
-    def verified(self):
-        return self._verified
 
-    def __repr__(self):
-        args = (
-            f"{key}={value!r}"
-            for key, value in vars(self).items()
-            if key not in REPR_IGNORE_KWARGS
-        )
-        return "{}({})".format(self.__class__.__name__, ", ".join(args))
-
-
-class MultiPathAction(metaclass=ABCMeta):
-    _verified = False
-
-    @abstractmethod
-    def verify(self):
-        # if verify fails, it should return an exception object rather than raise
-        #  at the end of a verification run, all errors will be raised as a CondaMultiError
-        # after successful verification, the verify method should set self._verified = True
-        raise NotImplementedError()
-
-    @abstractmethod
-    def execute(self):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def reverse(self):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def cleanup(self):
-        raise NotImplementedError()
-
+class MultiPathAction(_Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_paths(self):
         raise NotImplementedError()
-
-    @property
-    def verified(self):
-        return self._verified
-
-    def __repr__(self):
-        args = (
-            f"{key}={value!r}"
-            for key, value in vars(self).items()
-            if key not in REPR_IGNORE_KWARGS
-        )
-        return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
 class PrefixPathAction(PathAction, metaclass=ABCMeta):
