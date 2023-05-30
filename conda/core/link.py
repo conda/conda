@@ -1,16 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import itertools
 import os
 import sys
 import warnings
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from itertools import chain
 from logging import getLogger
 from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
+from typing import Iterable, NamedTuple
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -54,6 +57,8 @@ from ..gateways.disk.test import (
 )
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
+from ..models.package_info import PackageInfo
+from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
@@ -72,6 +77,7 @@ from .path_actions import (
     UnlinkPathAction,
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
+    _Action,
 )
 from .prefix_data import PrefixData, get_python_version_for_prefix
 
@@ -154,58 +160,44 @@ def match_specs_to_dists(packages_info_to_link, specs):
     return tuple(matched_specs)
 
 
-PrefixSetup = namedtuple(
-    "PrefixSetup",
-    (
-        "target_prefix",
-        "unlink_precs",
-        "link_precs",
-        "remove_specs",
-        "update_specs",
-        "neutered_specs",
-    ),
-)
+class PrefixSetup(NamedTuple):
+    target_prefix: str
+    unlink_precs: Iterable[PackageRecord]
+    link_precs: Iterable[PackageRecord]
+    remove_specs: Iterable[MatchSpec]
+    update_specs: Iterable[MatchSpec]
+    neutered_specs: Iterable[MatchSpec]
 
-PrefixActionGroup = namedtuple(
-    "PrefixActionGroup",
-    (
-        "remove_menu_action_groups",
-        "unlink_action_groups",
-        "unregister_action_groups",
-        "link_action_groups",
-        "register_action_groups",
-        "compile_action_groups",
-        "make_menu_action_groups",
-        "entry_point_action_groups",
-        "prefix_record_groups",
-    ),
-)
 
-# each PrefixGroup item is a sequence of ActionGroups
-ActionGroup = namedtuple(
-    "ActionGroup",
-    (
-        "type",
-        "pkg_data",
-        "actions",
-        "target_prefix",
-    ),
-)
+class ActionGroup(NamedTuple):
+    type: str
+    pkg_data: PackageInfo | None
+    actions: Iterable[_Action]
+    target_prefix: str
 
-ChangeReport = namedtuple(
-    "ChangeReport",
-    (
-        "prefix",
-        "specs_to_remove",
-        "specs_to_add",
-        "removed_precs",
-        "new_precs",
-        "updated_precs",
-        "downgraded_precs",
-        "superseded_precs",
-        "fetch_precs",
-    ),
-)
+
+class PrefixActionGroup(NamedTuple):
+    remove_menu_action_groups: Iterable[ActionGroup]
+    unlink_action_groups: Iterable[ActionGroup]
+    unregister_action_groups: Iterable[ActionGroup]
+    link_action_groups: Iterable[ActionGroup]
+    register_action_groups: Iterable[ActionGroup]
+    compile_action_groups: Iterable[ActionGroup]
+    make_menu_action_groups: Iterable[ActionGroup]
+    entry_point_action_groups: Iterable[ActionGroup]
+    prefix_record_groups: Iterable[ActionGroup]
+
+
+class ChangeReport(NamedTuple):
+    prefix: str
+    specs_to_remove: Iterable[MatchSpec]
+    specs_to_add: Iterable[MatchSpec]
+    removed_precs: Iterable[PackageRecord]
+    new_precs: Iterable[PackageRecord]
+    updated_precs: Iterable[PackageRecord]
+    downgraded_precs: Iterable[PackageRecord]
+    superseded_precs: Iterable[PackageRecord]
+    fetch_precs: Iterable[PackageRecord]
 
 
 class UnlinkLinkTransaction:
