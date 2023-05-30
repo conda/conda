@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Package installation implemented as a series of link/unlink transactions."""
 from __future__ import annotations
 
 import itertools

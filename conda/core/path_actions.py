@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Atomic actions that make up a package installation or removal transaction."""
 import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
