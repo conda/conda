@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common utilities for conda-env command line tools."""
 import os
 from os.path import abspath, expanduser, expandvars, isdir, join
 
