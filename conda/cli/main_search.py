@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda search`.
+
+Query channels for packages matching the provided package spec.
+"""
 from collections import defaultdict
 from datetime import datetime, timezone
 

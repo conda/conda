@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda create`.
+
+Creates new conda environments with the specified packages.
+"""
 from logging import getLogger
 from os.path import isdir
 
