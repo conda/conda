@@ -8,11 +8,9 @@ import os
 import platform
 from contextlib import suppress
 
-from ...common.decorators import env_override
 from .. import CondaVirtualPackage, hookimpl
 
 
-@env_override("CONDA_OVERRIDE_CUDA", convert_empty_to_none=True)
 def cuda_version():
     """
     Attempt to detect the version of CUDA present in the operating system.
@@ -26,6 +24,9 @@ def cuda_version():
 
     Returns: version string (e.g., '9.2') or None if CUDA is not found.
     """
+    if "CONDA_OVERRIDE_CUDA" in os.environ:
+        return os.environ["CONDA_OVERRIDE_CUDA"].strip() or None
+
     # Do not inherit file descriptors and handles from the parent process.
     # The `fork` start method should be considered unsafe as it can lead to
     # crashes of the subprocess. The `spawn` start method is preferred.
