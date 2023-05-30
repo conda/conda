@@ -10,6 +10,7 @@ from logging import getLogger
 from os.path import dirname, isdir, join
 from pathlib import Path
 from re import escape
+from shutil import which
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
 from unittest import TestCase
@@ -41,7 +42,6 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.main import main_sourced
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
-from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf

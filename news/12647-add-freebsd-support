@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add support for FreeBSD. (#12647)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Discuss options available to properly configure mirrored channels. (#12583, #12641)
+* <news item>
 
 ### Other
 

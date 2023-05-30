@@ -821,15 +821,15 @@ def native_path_to_unix(
         return path_identity(paths)
 
     # on windows, uses cygpath to convert windows native paths to posix paths
+    from shutil import which
     from subprocess import run
-
-    from .common.path import which
 
     # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
     # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
     # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
     # different points in the Windows filesystem.  We do our path conversions with one and
     # expect the results to work with the other.  It does not.
+
     bash = which("bash")
     cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
 

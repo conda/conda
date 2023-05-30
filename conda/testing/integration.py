@@ -25,8 +25,8 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser, init_loggers
+from conda.cli.conda_argparse import do_call, generate_parser
+from conda.cli.main import init_loggers
 from conda.common.compat import encode_arguments, on_win
 from conda.common.io import (
     argv,
@@ -39,6 +39,7 @@ from conda.common.io import (
 from conda.common.url import escape_channel_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -198,6 +199,7 @@ class Commands:
     RUN = "run"
 
 
+@deprecated("23.9", "24.3", addendum="Use `monkeypatch.chdir` instead.")
 @contextmanager
 def temp_chdir(target_dir):
     curdir = os.getcwd()
@@ -210,6 +212,7 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
@@ -278,21 +281,13 @@ def run_command(command, prefix, *arguments, **kwargs):
         TEST_LOG_LEVEL, "requests"
     ):
         arguments = encode_arguments(arguments)
-        is_run = arguments[0] == "run"
-        if is_run:
-            cap_args = (None, None)
         with argv(["python_api"] + arguments), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
                 result = do_call(args, p)
-        if is_run:
-            stdout = result.stdout
-            stderr = result.stderr
-            result = result.rc
-        else:
-            stdout = c.stdout
-            stderr = c.stderr
+        stdout = c.stdout
+        stderr = c.stderr
         print(stdout, file=sys.stdout)
         print(stderr, file=sys.stderr)
 
@@ -453,6 +448,11 @@ def _package_is_installed(prefix, spec):
     return bool(len(prefix_recs))
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="Use `conda.core.prefix_data.PrefixData().get()` instead.",
+)
 def get_conda_list_tuple(prefix, package_name):
     stdout, stderr, _ = run_command(Commands.LIST, prefix)
     stdout_lines = stdout.split("\n")

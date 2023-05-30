@@ -31,8 +31,8 @@ jobs:
             days-before-issue-close: 30
           # [type::support] issues have a more aggressive stale/close timeline
           - only-issue-labels: type::support
-            days-before-issue-stale: 21
-            days-before-issue-close: 7
+            days-before-issue-stale: 90
+            days-before-issue-close: 21
     steps:
       - uses: conda/actions/read-yaml@v23.4.0
         id: read_yaml

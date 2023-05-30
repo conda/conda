@@ -12,19 +12,30 @@
 # Ideally we'd have two modes, 'removed' and 'fixed'. I have seen
 # condabin come from an entirely different installation than
 # CONDA_PREFIX too in some instances and that really needs fixing.
+from __future__ import annotations
 
 import os
 import sys
+import uuid
 import warnings
+from contextlib import contextmanager
+from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
+from typing import Iterator
 
+import pytest
+from pytest import CaptureFixture
+
+from conda.base.context import context, reset_context
+from conda.cli.main import init_loggers
 from conda.common.compat import on_win
 
 from ..deprecations import deprecated
 
 
+@deprecated("23.9", "24.3")
 def encode_for_env_var(value) -> str:
     """Environment names and values need to be string."""
     if isinstance(value, str):
@@ -101,14 +112,10 @@ def conda_move_to_front_of_PATH():
             else:
                 new_p.append(pe)
 
-        new_path = os.pathsep.join(new_p)
-        new_path = encode_for_env_var(new_path)
-        os.environ["PATH"] = new_path
+        os.environ["PATH"] = os.pathsep.join(new_p)
         activator = activator_cls()
         p = activator._add_prefix_to_path(os.environ["CONDA_PREFIX"])
-        new_path = os.pathsep.join(p)
-        new_path = encode_for_env_var(new_path)
-        os.environ["PATH"] = new_path
+        os.environ["PATH"] = os.pathsep.join(p)
 
 
 @deprecated(
@@ -156,3 +163,119 @@ def conda_check_versions_aligned():
         )
         with open(version_file, "w") as fh:
             fh.write(version_from_git)
+
+
+@dataclass
+class CondaCLIFixture:
+    capsys: CaptureFixture
+
+    def __call__(self, *argv: str) -> tuple[str, str, int]:
+        """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
+
+        `conda ...` == `conda_cli(...)`
+
+        :param argv: Arguments to parse
+        :return: Command results
+        :rtype: tuple[stdout, stdout, exitcode]
+        """
+        # extra checks to handle legacy subcommands
+        if argv[0] == "env":
+            from conda_env.cli.main import create_parser as generate_parser
+            from conda_env.cli.main import do_call
+
+            argv = argv[1:]
+        else:
+            from conda.cli.conda_argparse import do_call, generate_parser
+
+        # ensure arguments are string
+        argv = tuple(map(str, argv))
+
+        # parse arguments
+        parser = generate_parser()
+        args = parser.parse_args(argv)
+
+        # initialize context and loggers
+        context.__init__(argparse_args=args)
+        init_loggers(context)
+
+        # run command
+        code = do_call(args, parser)
+        out, err = self.capsys.readouterr()
+
+        # restore to prior state
+        reset_context()
+
+        return out, err, code
+
+
+@pytest.fixture
+def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
+    """Fixture returning CondaCLIFixture instance."""
+    yield CondaCLIFixture(capsys)
+
+
+@dataclass
+class PathFactoryFixture:
+    tmp_path: Path
+
+    def __call__(
+        self,
+        name: str | None = None,
+        prefix: str | None = None,
+        suffix: str | None = None,
+    ) -> Path:
+        """Unique, non-existent path factory.
+
+        Extends pytest's `tmp_path` fixture with a new unique, non-existent path for usage in cases
+        where we need a temporary path that doesn't exist yet.
+
+        :param name: Path name to append to `tmp_path`
+        :param prefix: Prefix to prepend to unique name generated
+        :param suffix: Suffix to append to unique name generated
+        :return: A new unique path
+        """
+        prefix = prefix or ""
+        name = name or uuid.uuid4().hex
+        suffix = suffix or ""
+        return self.tmp_path / (prefix + name + suffix)
+
+
+@pytest.fixture
+def path_factory(tmp_path: Path) -> PathFactoryFixture:
+    """Fixture returning PathFactoryFixture instance."""
+    yield PathFactoryFixture(tmp_path)
+
+
+@dataclass
+class TmpEnvFixture:
+    path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture
+
+    @contextmanager
+    def __call__(
+        self,
+        *packages: str,
+        prefix: str | os.PathLike | None = None,
+    ) -> Iterator[Path]:
+        """Generate a conda environment with the provided packages.
+
+        :param packages: The packages to install into environment
+        :param prefix: The prefix at which to install the conda environment
+        :return: The conda environment's prefix
+        """
+        prefix = Path(prefix or self.path_factory())
+
+        reset_context([prefix / "condarc"])
+        self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        yield prefix
+
+        # no need to remove prefix since it is in a temporary directory
+
+
+@pytest.fixture
+def tmp_env(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+) -> TmpEnvFixture:
+    """Fixture returning TmpEnvFixture instance."""
+    yield TmpEnvFixture(path_factory, conda_cli)

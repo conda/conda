@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import re
 import subprocess
-from distutils.spawn import find_executable
 from functools import lru_cache, reduce
 from itertools import accumulate, chain
 from logging import getLogger
@@ -326,6 +325,10 @@ def win_path_to_unix(path, root_prefix=""):
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
     if not path:
         return ""
+
+    # rebind to shutil to avoid triggering the deprecation warning
+    from shutil import which
+
     bash = which("bash")
     if bash:
         cygpath = os.environ.get(
@@ -359,7 +362,10 @@ def win_path_to_unix(path, root_prefix=""):
 
 
 def which(executable):
-    return find_executable(executable)
+    """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
+    from shutil import which
+
+    return which(executable)
 
 
 def strip_pkg_extension(path: str):

@@ -17,6 +17,7 @@ from uuid import uuid4
 import pytest
 
 from conda.auxlib.compat import shlex_split_unicode
+from conda.deprecations import deprecated
 from conda_env.cli import main as conda_env_cli
 
 from .. import cli
@@ -122,6 +123,7 @@ def assert_in(a, b, output=""):
     )
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
