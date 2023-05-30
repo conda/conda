@@ -700,7 +700,7 @@ def configure_parser_create(sub_parsers):
     help = "Create a new conda environment from a list of specified packages. "
     descr = (
         help + "To use the newly-created environment, use 'conda activate "
-        "envname'. This command requires either the -n NAME or -p PREFIX"
+        "envname'. This command requires either the -n NAME or -p PREFIX "
         "option."
     )
 
