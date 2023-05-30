@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Define types for conda plugins to be using in conjunction with the hookspecs."""
 from __future__ import annotations
 
 from typing import Callable, NamedTuple
