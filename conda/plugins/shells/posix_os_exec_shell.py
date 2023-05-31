@@ -71,6 +71,60 @@ class PosixPluginActivator(_Activator):
         return "\n".join(result) + "\n"
 
 
+def get_parsed_args(argv: "list[str]") -> argparse.Namespace:
+    """
+    Parse CLI arguments to determine desired command.
+    Create namespace with 'command' and 'env' keys.
+    """
+    parser = argparse.ArgumentParser(
+        "conda posix_plugin_with_shell",
+        description="Process conda activate, deactivate, and reactivate",
+    )
+
+    parser.add_argument(
+        "command",
+        metavar="c",
+        type=str,
+        nargs=1,
+        help="the command to be run: 'act', 'deact' or 'react'",
+    )
+
+    parser.add_argument(
+        "env",
+        metavar="env",
+        default=None,
+        type=str,
+        nargs="?",
+        help="the name or prefix of the environment to be activated",
+    )
+
+    args = parser.parse_args(argv)
+
+    return args
+
+
+def get_command_args(args: argparse.Namespace) -> "tuple[str, str | None]":
+    """
+    Return the commands in the namespace as a tuple.
+    Produce appropriate error message if command is not
+    one that can be handled by the plugin.
+    """
+    command = args.command[0]
+
+    if command not in ("act", "deact", "react"):
+        raise_invalid_command_error(actual_command=command)
+    elif command == "act":
+        command = "activate"
+    elif command == "deact":
+        command = "deactivate"
+    else:
+        command = "reactivate"
+
+    env = args.env
+
+    return (command, env)
+
+
 def get_activate_builder(activator):
     """
     Create dictionary containing the environment variables to be set, unset and
@@ -89,7 +143,7 @@ def activate(activator, cmds_dict):
     scripts from packages in old environment (to reset env variables) and
     activate scripts from packages installed in new environment.
     """
-    path = "./shells/posix_os_exec_shell.sh"
+    path = "conda/plugins/shells/shell_scripts/posix_os_exec_shell.sh"
     arg_list = [path]
     env_map = os.environ.copy()
 
@@ -133,60 +187,28 @@ def activate(activator, cmds_dict):
 
 def raise_invalid_command_error(actual_command=None):
     """
-    Raise an error message on the CLI if a command other than 'activate',
-    'deactivate' or 'reactivate' is given.
+    Raise an error message on the CLI if a command other than 'act',
+    'deact' or 'react' is given.
     """
-    message = "'activate', 'deactivate', or 'reactivate'" "command must be given"
+    message = "'act', 'deact', or 'react'" "command must be given"
     if actual_command:
         message += ". Instead got '%s'." % actual_command
     raise ArgumentError(message)
 
 
-def posix_plugin_with_shell(*args, **kwargs):
+def posix_plugin_with_shell(argv: "list[str]") -> SystemExit:
     """
-    Parse CLI arguments to determine desired command.
-    Run process associated with command or produce appropriate error message.
+    Run process associated with parsed CLI command.
 
     This plugin is intended for use only with POSIX shells; only the PosixActivator
     child class is called.
     """
-    # argparse handles cleanup but I need to check if the UTF-8 issue might still persist
-    # no need to check for missing command - handled by argparse
-    # env_args = tuple(ensure_text_type(s) for s in env_args)
-    parser = argparse.ArgumentParser(
-        description="Process conda activate, deactivate, and reactivate"
-    )
-    parser.add_argument(
-        "posix_plugin_with_shell", type=str, nargs=1, help="this package's entry point"
-    )
-    parser.add_argument(
-        "command",
-        metavar="c",
-        type=str,
-        nargs=1,
-        help="the command to be run: 'activate', 'deactivate' or 'reactivate'",
-    )
-    parser.add_argument(
-        "env",
-        metavar="env",
-        default=None,
-        type=str,
-        nargs="?",
-        help="the name or prefix of the environment to be activated",
-    )
-
-    args = parser.parse_args()
-
-    command = args.command[0]
-    env = args.env
+    args = get_parsed_args(argv)
+    command, env = get_command_args(args)
+    env_args = (command, env) if env else (command,)
 
     context.__init__()
     init_loggers(context)
-
-    if command not in ("activate", "deactivate", "reactivate"):
-        raise_invalid_command_error(actual_command=command)
-
-    env_args = (command, env) if env else (command,)
 
     activator = PosixPluginActivator(env_args)
 
@@ -214,7 +236,7 @@ def posix_plugin_with_shell(*args, **kwargs):
 @hookimpl
 def conda_shell_plugins():
     yield CondaShellPlugins(
-        name="posix_exec_plugin_with_shell",
+        name="posix_plugin_with_shell",
         summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
         action=posix_plugin_with_shell,
     )
