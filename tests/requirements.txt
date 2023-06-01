@@ -31,7 +31,7 @@ pluggy >=1.0.0
 pre-commit
 pycosat >=0.6.3
 pyflakes
-pyopenssl >=16.2.0
+pyopenssl >=16.2.0,<23.2.0
 pytest
 pytest-cov
 pytest-mock
