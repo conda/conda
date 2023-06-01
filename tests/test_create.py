@@ -1491,11 +1491,11 @@ def test_update_all_updates_pip_pkg(clear_package_cache: None):
 
 def test_package_optional_pinning(clear_package_cache: None):
     with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.6.5")
+        run_command(Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.10")
         run_command(Commands.INSTALL, prefix, "openssl")
         assert not package_is_installed(prefix, "python")
         run_command(Commands.INSTALL, prefix, "flask")
-        assert package_is_installed(prefix, "python=3.6.5")
+        assert package_is_installed(prefix, "python=3.10")
 
 
 def test_update_deps_flag_absent(clear_package_cache: None):
