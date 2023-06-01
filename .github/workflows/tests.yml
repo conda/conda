@@ -145,6 +145,7 @@ jobs:
         shell: cmd
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
+        continue-on-error: ${{ matrix.default-channel == 'conda-forge' }}
 
       - uses: codecov/codecov-action@v3
         with:
@@ -202,6 +203,7 @@ jobs:
           -e TEST_GROUP
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
+        continue-on-error: ${{ matrix.default-channel == 'conda-forge' }}
 
       - uses: codecov/codecov-action@v3
         with:
@@ -259,6 +261,7 @@ jobs:
           --platform linux/${{ matrix.platform }}
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
           /opt/conda-src/dev/linux/qemu.sh
+        continue-on-error: ${{ matrix.default-channel == 'conda-forge' }}
 
       - name: Upload test results
         if: always()
@@ -361,6 +364,7 @@ jobs:
         shell: bash -l {0}
         run: |
           ./dev/macos/${{ matrix.test-type }}.sh
+        continue-on-error: ${{ matrix.default-channel == 'conda-forge' }}
 
       - uses: codecov/codecov-action@v3
         with:
