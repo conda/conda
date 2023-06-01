@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.models.leased_path_entry.LeasedPathEntry` as pending deprecation. (#12735)
+* Mark `conda.models.enums.LeasedPathType` as pending deprecation. (#12735)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
