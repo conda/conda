@@ -164,6 +164,7 @@ def from_yaml(yamlstr, **kwargs):
         for key, value in kwargs.items():
             data[key] = value
     _expand_channels(data)
+    _expand_envvars(data)
     return Environment(**data)
 
 
@@ -172,6 +173,14 @@ def _expand_channels(data):
     data["channels"] = [
         os.path.expandvars(channel) for channel in data.get("channels", [])
     ]
+
+
+def _expand_envvars(data):
+    """Expands enviroment variables for the variables found in the yaml data"""
+    variables = {}
+    for key, value in data.get("variables", {}).items():
+        variables[key] = os.path.expandvars(value)
+    data["variables"] = variables
 
 
 def from_file(filename):

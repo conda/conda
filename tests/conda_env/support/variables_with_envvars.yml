@@ -1,0 +1,12 @@
+
+name: nlp
+channels:
+  - https://localhost/t/token/stable
+  - https://localhost/t/key/stable
+  - conda-forge
+  - defaults
+dependencies:
+  - nltk
+variables:
+  FOO: asd
+  PARAMS: ${CONDA_PREFIX}/share/params
