@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from ....base.context import context, determine_target_prefix
+from ....base.context import context
 from ....cli.conda_argparse import add_parser_prefix
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
@@ -28,12 +28,11 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
 
 
 @deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.base.context.determine_target_prefix` instead.",
+    "24.3", "24.9", addendum="Use `conda.base.context.context.target_prefix` instead."
 )
 def get_prefix(args: argparse.Namespace) -> str:
-    return determine_target_prefix(context, args)
+    context.__init__(argparse_args=args)
+    return context.target_prefix
 
 
 def execute(argv: list[str]) -> None:
@@ -41,8 +40,8 @@ def execute(argv: list[str]) -> None:
     from .health_checks import display_health_checks
 
     args = get_parsed_args(argv)
-    prefix = determine_target_prefix(context, args)
-    display_health_checks(prefix, verbose=args.verbose)
+    context.__init__(argparse_args=args)
+    display_health_checks(context.target_prefix, verbose=args.verbose)
 
 
 @hookimpl

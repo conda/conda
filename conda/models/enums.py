@@ -7,6 +7,7 @@ from platform import machine
 from ..auxlib.decorators import classproperty
 from ..auxlib.ish import dals
 from ..auxlib.type_coercion import TypeCoercionError, boolify
+from ..deprecations import deprecated
 from ..exceptions import CondaUpgradeError
 
 
@@ -36,6 +37,7 @@ class Arch(Enum):
 
 
 class Platform(Enum):
+    freebsd = "freebsd"
     linux = "linux"
     win = "win32"
     openbsd = "openbsd5"
@@ -123,6 +125,10 @@ class LeasedPathType(Enum):
 
     def __json__(self):
         return self.name
+
+
+deprecated.constant("24.3", "24.9", "LeasedPathType", LeasedPathType)
+del LeasedPathType
 
 
 class PackageType(Enum):

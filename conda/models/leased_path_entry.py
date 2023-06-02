@@ -3,11 +3,13 @@
 from logging import getLogger
 
 from ..auxlib.entity import Entity, EnumField, StringField
+from ..deprecations import deprecated
 from .enums import LeasedPathType
 
 log = getLogger(__name__)
 
 
+@deprecated("24.3", "24.9")
 class LeasedPathEntry(Entity):
     """
     _path: short path for the leased path, using forward slashes

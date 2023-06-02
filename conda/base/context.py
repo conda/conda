@@ -78,6 +78,7 @@ except OSError as e:
 log = getLogger(__name__)
 
 _platform_map = {
+    "freebsd13": "freebsd",
     "linux2": "linux",
     "linux": "linux",
     "darwin": "osx",

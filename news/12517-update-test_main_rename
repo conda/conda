@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Warn about misconfiguration when signature verification is enabled (#12639)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Update `tests/cli/test_main_rename.py` to use latest fixtures. (#12517)
