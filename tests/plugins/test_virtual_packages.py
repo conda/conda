@@ -141,3 +141,22 @@ def test_glibc_override():
             virtual = [p for p in packages if p.channel.name == "@"]
             libc_exported = any("libc" in p.name for p in virtual)
             assert libc_exported == bool(version)
+
+
+def test_osx_override():
+    """Conda should not produce a osx virtual package when CONDA_OVERRIDE_OSX=""."""
+    for version in "", "1.0":
+        with env_vars(
+            {"CONDA_SUBDIR": "osx-64", "CONDA_OVERRIDE_OSX": version},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            packages = conda.core.index.get_reduced_index(
+                context.default_prefix,
+                context.default_channels,
+                context.subdirs,
+                (),
+                context.repodata_fns[0],
+            )
+            virtual = [p for p in packages if p.channel.name == "@"]
+            osx_exported = any("osx" in p.name for p in virtual)
+            assert osx_exported == bool(version)
