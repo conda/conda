@@ -12,7 +12,6 @@ from argparse import (
     _CountAction,
     _HelpAction,
     _StoreAction,
-    _StoreTrueAction,
 )
 from logging import getLogger
 from os.path import abspath, expanduser, join
@@ -1578,18 +1577,21 @@ def configure_parser_rename(sub_parsers) -> None:
     )
     # Add name and prefix args
     add_parser_prefix(p)
-    add_output_and_prompt_options(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
+    # TODO: deprecate --force in favor of --yes
     p.add_argument(
         "--force",
-        dest="yes",
-        action=deprecated.action(
-            "23.9",
-            "24.3",
-            _StoreTrueAction,
-            addendum="Use `--yes` instead.",
-        ),
+        help="Force rename of an environment.",
+        action="store_true",
+        default=False,
+    )
+    p.add_argument(
+        "-d",
+        "--dry-run",
+        help="Only display what would have been done by the current command, arguments, "
+        "and other flags.",
+        action="store_true",
         default=False,
     )
     p.set_defaults(func=".main_rename.execute")

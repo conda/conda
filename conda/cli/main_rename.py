@@ -12,7 +12,6 @@ from ..common.path import expand, paths_equal
 from ..exceptions import CondaEnvException
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import rename_context
-from .common import confirm_yn
 
 
 def validate_src(name: str | None, prefix: str | None) -> str:
@@ -31,19 +30,17 @@ def validate_src(name: str | None, prefix: str | None) -> str:
     return locate_prefix_by_name(prefix)
 
 
-def validate_destination(dest: str, yes: bool, dry_run: bool) -> str:
+def validate_destination(dest: str, force: bool = False) -> str:
     """Ensure that our destination does not exist"""
     if os.sep in dest:
         dest = expand(dest)
     else:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
 
-    if not (yes or dry_run) and os.path.exists(dest):
+    if not force and os.path.exists(dest):
         env_name = os.path.basename(os.path.normpath(dest))
-        confirm_yn(
-            f"WARNING: The environment {env_name!r} already exists. Remove existing environment",
-            default="no",
-            dry_run=False,
+        raise CondaEnvException(
+            f"The environment '{env_name}' already exists. Override with --force."
         )
     return dest
 
@@ -51,9 +48,7 @@ def validate_destination(dest: str, yes: bool, dry_run: bool) -> str:
 def execute(args, _):
     """Executes the command for renaming an existing environment."""
     source = validate_src(args.name, args.prefix)
-    destination = validate_destination(
-        args.destination, yes=args.yes, dry_run=args.dry_run
-    )
+    destination = validate_destination(args.destination, force=args.force)
 
     def clone_and_remove():
         actions: tuple[partial, ...] = (
@@ -70,11 +65,11 @@ def execute(args, _):
         # We now either run collected actions or print dry run statement
         for func in actions:
             if args.dry_run:
-                print(f"{DRY_RUN_PREFIX} {func.func.__name__} {', '.join(func.args)}")
+                print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
             else:
                 func()
 
-    if args.yes:
+    if args.force:
         with rename_context(destination, dry_run=args.dry_run):
             clone_and_remove()
     else:
