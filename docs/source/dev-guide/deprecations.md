@@ -4,7 +4,11 @@
 
 Conda abides by the Deprecation Schedule defined in [CEP-9][cep9]. To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions to facilitate the correct deprecation process.
 
-## Functions, Methods, and Properties
+## Functions, Methods, Properties, and Classes
+
+:::{warning}
+To deprecate Enums treat them like constants (see [Constants and Enums](#constants-and-enums)).
+:::
 
 The simplest use case is for deprecating any function, method, or property:
 
@@ -132,7 +136,7 @@ python foo.py --force
 foo.py:16: PendingDeprecationWarning: `--force` is pending deprecation and will be removed in 24.3. Use `--yes` instead.
 ```
 
-## Constant
+## Constants and Enums
 
 We also offer a way to deprecate global variables or constants:
 
@@ -150,11 +154,31 @@ deprecated.constant("23.9", "24.3", "ULTIMATE_CONSTANT", 42)
 <stdin>:1: PendingDeprecationWarning: foo.ULTIMATE_CONSTANT is pending deprecation and will be removed in 24.3.
 ```
 
+Enums work similarly:
+
+```{code-block} python
+:caption: Example file, `foo.py`.
+from enum import Enum
+from conda.deprecations import deprecated
+
+class Bar(Enum):
+    ULTIMATE_CONSTANT = 42
+
+deprecated.constant("23.9", "24.3", "Bar", Bar)
+del Bar
+```
+
+```{code-block} pycon
+:caption: Example invocation.
+>>> from foo import Bar
+<stdin>:1: PendingDeprecationWarning: foo.Bar is pending deprecation and will be removed in 24.3.
+```
+
 :::{note}
 Constants deprecation relies on the module's `__getattr__` introduced in [PEP-562](https://peps.python.org/pep-0562/).
 :::
 
-## Module
+## Modules
 
 Entire modules can be also be deprecated:
 
