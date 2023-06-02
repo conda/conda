@@ -83,11 +83,11 @@ class _Activator(metaclass=abc.ABCMeta):
         """
         :param export_metavars: whether to export `conda_exe_vars` meta variables.
         :param kwargs: environment variables to export.
-                        .. if you pass and set any other variable to None, then it
-                        emits it to the dict with a value of None.
+            .. if you pass and set any other variable to None, then it
+            emits it to the dict with a value of None.
 
         :return: A dict of env vars to export ordered the same way as kwargs.
-                And a list of env vars to unset.
+            And a list of env vars to unset.
         """
         unset_vars = []
         export_vars = {}
