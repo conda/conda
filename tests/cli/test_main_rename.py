@@ -125,12 +125,16 @@ def test_cannot_rename_base_env_by_path(conda_cli: CondaCLIFixture, env_rename: 
 
 
 def test_cannot_rename_active_env_by_name(
-    conda_cli: CondaCLIFixture, env_one: str, env_rename: str
+    conda_cli: CondaCLIFixture,
+    env_one: str,
+    env_rename: str,
+    mocker: MockerFixture,
 ):
     """Makes sure that we cannot rename our active environment."""
     prefix = locate_prefix_by_name(env_one)
-    with set_active_prefix(prefix), pytest.raises(
-        CondaEnvException, match="Cannot rename the active environment"
+    with (
+        mocker.patch("conda.base.context.Context.active_prefix", return_value=prefix),
+        pytest.raises(CondaEnvException, match="Cannot rename the active environment"),
     ):
         conda_cli("rename", "--name", env_one, env_rename)
 
