@@ -278,7 +278,7 @@ class TmpDownload:
         else:
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
-            download(self.url, dst)
+            download(self.url(with_credentials=True), dst)
             return dst
 
     def __exit__(self, exc_type, exc_value, traceback):
