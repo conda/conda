@@ -1377,6 +1377,7 @@ class Configuration(metaclass=ConfigurationType):
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
 
         self._reset_cache()
+        return self
 
     def _set_env_vars(self, app_name=None):
         self._app_name = app_name
@@ -1390,6 +1391,7 @@ class Configuration(metaclass=ConfigurationType):
             self.raw_data[source] = EnvRawParameter.make_raw_parameters(app_name)
 
         self._reset_cache()
+        return self
 
     def _set_argparse_args(self, argparse_args):
         # the argparse_args we store internally in this class as self._argparse_args
@@ -1418,10 +1420,12 @@ class Configuration(metaclass=ConfigurationType):
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(argparse_args)
 
         self._reset_cache()
+        return self
 
     def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
         self.raw_data.update(raw_data)
         self._reset_cache()
+        return self
 
     def _reset_cache(self):
         self._cache_ = {}
