@@ -136,7 +136,9 @@ def _run_pre_command_hooks(command: str, args) -> None:
     and then run them.
     """
     actions = context.plugin_manager.yield_pre_command_hook_actions(command)
-    tuple(action(command, args) for action in actions)
+
+    for action in actions:
+        action(command, args)
 
 
 def find_builtin_commands(parser):
