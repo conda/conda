@@ -21,6 +21,9 @@ class PosixPluginActivator(_Activator):
     """
     Define syntax that is specific to Posix shells.
     Also contains logic that takes into account Posix shell use on Windows.
+
+    This child class is inentionally a near-replica of the current PosixActivator class:
+    the only difference is the included _parse_and_set_args method.
     """
 
     pathsep_join = ":".join
@@ -74,14 +77,26 @@ class PosixPluginActivator(_Activator):
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result) + "\n"
 
-    def _parse_and_set_args(self, arguments):
+
+    # this will be in _Activate parent class logic once architecture is decided
+    def _parse_and_set_args(self, args: argparse.Namespace) -> None:
         """
-        Pass in the args object, which will be the parsed args namespace
-        TODO: make the simplified version of _parse_and_set_args here,
-            where I grab items from the namespace and follow the code logic in the if statements
-        TODO: Share on Monday as a code snippet / link to PR (if I don't finish it, that's fine)
+        Set self.command to the specified command (activate, deactivate, reactivate).
+        Set context.dev if a --dev flag exists.
+        For activate, set self.env_name_or_prefix and self.stack.
         """
-        return super()._parse_and_set_args(arguments)
+        self.command = args.command
+        context.dev = args.dev or context.dev
+
+        if self.command == "activate":
+            self.env_name_or_prefix = args.env or "base"
+
+            if args.stack is None:
+                self.stack = context.auto_stack and context.shlvl <= context.auto_stack
+            else:
+                self.stack = args.stack
+
+        return
 
 
 def get_parsed_args(argv: list[str]) -> argparse.Namespace:
@@ -101,53 +116,78 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
 
     activate = commands.add_parser(
         "activate",
-        help="activate the specified environment or base if no environment is specified",
+        help="Activate a conda environment",
     )
     activate.add_argument(
         "env",
-        metavar="env",
+        metavar="env_name_or_prefix",
         default=None,
         type=str,
         nargs="?",
-        help="the name or prefix of the environment to be activated",
+        help="""
+            The environment name or prefix to activate. If the prefix is a relative path,
+            it must start with './' (or '.\' on Windows). If no environment is specified,
+            the base environment will be activated.
+            """,
     )
-    # TODO: add --stack and --no-stack flags
+    stack = activate.add_mutually_exclusive_group()
+    stack.add_argument(
+        "--stack",
+        action="store_true",
+        help="""
+        Stack the environment being activated on top of the
+        previous active environment, rather replacing the
+        current active environment with a new one. Currently,
+        only the PATH environment variable is stacked. This
+        may be enabled implicitly by the 'auto_stack'
+        configuration variable.
+        """,
+    )
+    stack.add_argument(
+        "--no-stack",
+        dest="stack",
+        action="store_false",
+        help="Do not stack the environment. Overrides 'auto_stack' setting.",
+    )
+    activate.add_argument(
+        "--dev", action="store_true", default=False, help=argparse.SUPPRESS
+    )
 
-    commands.add_parser("deactivate", help="deactivate the current environment")
-    commands.add_parser(
+    deactivate = commands.add_parser(
+        "deactivate", help="Deactivate the current active conda environment"
+    )
+    deactivate.add_argument(
+        "--dev", action="store_true", default=False, help=argparse.SUPPRESS
+    )
+
+    reactivate = commands.add_parser(
         "reactivate",
-        help="reactivate the current environment, updating environment variables",
+        help="Reactivate the current conda environment, updating environment variables",
+    )
+    reactivate.add_argument(
+        "--dev", action="store_true", default=False, help=argparse.SUPPRESS
     )
 
     try:
         args = parser.parse_args(argv)
     except BaseException:
+        # avoid evaluation of help strings
         raise SystemExit(1)
 
     return args
 
 
-def get_command_args(args: argparse.Namespace) -> tuple[str, str | None]:
-    """
-    Return the commands in the namespace as a tuple.
-    """
-    command = args.command
-    env = getattr(args, "env", None)
-
-    command_args = (command, env) if env else (command,)
-
-    return command_args
-
-
 def handle_env(*args, **kwargs):
     """
-    Export existing activate/reactivate/deactivate logic to a plugin.
-    Would work in conjunction with a modified version of conda.sh that forwards
-    to the plugin, rather than to an internally-defined activate process.
-    A similar process to conda init would inject code into the user's shell profile
-    to set the associated shell script as conda's entry point.
+    Execute logic associated with parsed CLI command (activate, deactivate, reactivate).
+    Print relevant shell commands to stdout, for evaluation by shell forwarding function on return.
+    See modified forwarding function at conda/shell/etc/profile.d/conda.sh
+    In a final version, this method would either require automatic evaluation logic to be
+    run via the user's shell profile or the user would have to manually run the evaluation logic.
+
+    This plugin is intended for use only with POSIX shells.
     """
-    args = get_parsed_args(sys.argv[2:])
+    args = get_parsed_args(sys.argv[2:])  # drop executable/script and plugin name
 
     context.__init__()
     init_loggers(context)
@@ -160,7 +200,8 @@ def handle_env(*args, **kwargs):
 
 def handle_exceptions(*args, **kwargs):
     """
-    Return the appropriate error code if an exception occurs.
+    Upon return, exit the Python interpreter and return the appropriate
+    error code if an exception occurs.
     These are handled through main.py and __main__.py during the current
     activate/reactivate/deactivate process.
     """

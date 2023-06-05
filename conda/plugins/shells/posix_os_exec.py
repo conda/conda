@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import argparse
 import os
 import re
@@ -9,14 +11,16 @@ from conda.activate import _Activator, native_path_to_unix
 from conda.base.context import context
 from conda.cli.main import init_loggers
 from conda.common.compat import on_win
-from conda.exceptions import ArgumentError
-from conda.plugins import CondaShellPlugins, hookimpl
+from conda.plugins import CondaShellPlugins, CondaSubcommand, hookimpl
 
 
 class PosixPluginActivator(_Activator):
     """
     Define syntax that is specific to Posix shells.
     Also contains logic that takes into account Posix shell use on Windows.
+
+    This child class is inentionally a near-replica of the current PosixActivator class:
+    the only difference is the included _parse_and_set_args method.
     """
 
     pathsep_join = ":".join
@@ -39,6 +43,8 @@ class PosixPluginActivator(_Activator):
         "conda.sh",
     )
 
+    # this method remains, in line with the current child class requirements,
+    # but the prompt in the activated environment will reflect the user's default prompt settings
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         ps1 = self.environ.get("PS1", "")
         if "POWERLINE_COMMAND" in ps1:
@@ -70,6 +76,100 @@ class PosixPluginActivator(_Activator):
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result) + "\n"
 
+    # this will be in _Activate parent class logic once architecture is decided
+    def _parse_and_set_args(self, args: argparse.Namespace) -> None:
+        """
+        Set context.dev if a --dev flag exists.
+        For activate, set self.env_name_or_prefix and self.stack.
+        """
+        context.dev = args.dev or context.dev
+
+        if args.command == "activate":
+            self.env_name_or_prefix = args.env
+
+            if args.stack is None:
+                self.stack = context.auto_stack and context.shlvl <= context.auto_stack
+            else:
+                self.stack = args.stack
+
+        return
+
+
+def get_parsed_args(argv: list[str]) -> argparse.Namespace:
+    """
+    Parse CLI arguments to determine desired command.
+    Create namespace with 'command' key, optional 'dev' key and, for activate only,
+    optional 'env' and 'stack' keys.
+    """
+    parser = argparse.ArgumentParser(
+        "conda posix_plugin_with_shell",
+        description="Process conda activate, deactivate, and reactivate",
+    )
+
+    commands = parser.add_subparsers(
+        required=True,
+        dest="command",
+    )
+
+    activate = commands.add_parser(
+        "activate",
+        help="Activate a conda environment",
+    )
+    activate.add_argument(
+        "env",
+        metavar="env_name_or_prefix",
+        default=None,
+        type=str,
+        nargs="?",
+        help="""
+            The environment name or prefix to activate. If the prefix is a relative path,
+            it must start with './' (or '.\' on Windows). If no environment is specified,
+            the base environment will be activated.
+            """,
+    )
+    stack = activate.add_mutually_exclusive_group()
+    stack.add_argument(
+        "--stack",
+        default=None,
+        action="store_true",
+        help="""
+        Stack the environment being activated on top of the
+        previous active environment, rather replacing the
+        current active environment with a new one. Currently,
+        only the PATH environment variable is stacked. This
+        may be enabled implicitly by the 'auto_stack'
+        configuration variable.
+        """,
+    )
+    stack.add_argument(
+        "--no-stack",
+        default=None,
+        action="store_false",
+        help="Do not stack the environment. Overrides 'auto_stack' setting.",
+    )
+    activate.add_argument(
+        "--dev", action="store_true", default=False, help=argparse.SUPPRESS
+    )
+
+    deactivate = commands.add_parser(
+        "deactivate", help="Deactivate the current active conda environment"
+    )
+    deactivate.add_argument(
+        "--dev", action="store_true", default=False, help=argparse.SUPPRESS
+    )
+
+    reactivate = commands.add_parser(
+        "reactivate",
+        help="Reactivate the current conda environment, updating environment variables",
+    )
+    reactivate.add_argument(
+        "--dev", action="store_true", default=False, help=argparse.SUPPRESS
+    )
+
+    args = parser.parse_args(argv)
+
+    return args
+
 
 def get_activate_builder(activator):
     """
@@ -83,108 +183,69 @@ def get_activate_builder(activator):
     return builder_result
 
 
-def raise_invalid_command_error(actual_command=None):
+def activate(activator, cmds_dict):
     """
-    Raise an error message on the CLI if a command other than 'activate',
-    'deactivate' or 'reactivate' is given.
+    Activate specified conda environment as a new process.
     """
-    message = "'activate', 'deactivate', or 'reactivate'" "command must be given"
-    if actual_command:
-        message += ". Instead got '%s'." % actual_command
-    raise ArgumentError(message)
-
-
-def posix_plugin_no_shell(*args, **kwargs):
-    """
-    Parse CLI arguments to determine desired command.
-    Run process associated with command or produce appropriate error message.
-
-    This plugin is intended for use only with POSIX shells; only the PosixActivator
-    child class is called.
-    """
-    # argparse handles cleanup but I need to check if the UTF-8 issue might still persist
-    # no need to check for missing command - handled by argparse
-    # env_args = tuple(ensure_text_type(s) for s in env_args)
-    parser = argparse.ArgumentParser(
-        description="Process conda activate, deactivate, and reactivate"
-    )
-    parser.add_argument(
-        "posix_plugin_no_shell", type=str, nargs=1, help="this package's entry point"
-    )
-    parser.add_argument(
-        "command",
-        metavar="c",
-        type=str,
-        nargs=1,
-        help="the command to be run: 'activate', 'deactivate' or 'reactivate'",
-    )
-    parser.add_argument(
-        "env",
-        metavar="env",
-        default=None,
-        type=str,
-        nargs="?",
-        help="the name or prefix of the environment to be activated",
-    )
-
-    args = parser.parse_args()
-
-    command = args.command[0]
-    env = args.env
-
-    context.__init__()
-    init_loggers(context)
-
-    if command not in ("activate", "deactivate", "reactivate"):
-        raise_invalid_command_error(actual_command=command)
-
-    env_args = (command, env) if env else (command,)
-    activator = PosixPluginActivator(env_args)
-
-    # call the methods leading up to the command-specific builds
-    activator._parse_and_set_args(env_args)
-
-    # at the moment, if activate is called with the same environment, reactivation is being run
-    # through conda's normal process because it would be called during '_parse_and_set_args'
-
-    if command == "activate":
-        # using redefined activate process instead of _Activator.activate
-        cmds_dict = get_activate_builder(activator)
-    elif command == "deactivate":
-        cmds_dict = activator.build_deactivate()
-    elif command == "reactivate":
-        cmds_dict = activator.build_reactivate()
+    env_map = os.environ.copy()
 
     unset_vars = cmds_dict["unset_vars"]
     set_vars = cmds_dict["set_vars"]
-    export_path = cmds_dict.get("export_path", {})
+    export_path = cmds_dict.get("export_path", {})  # seems to be empty for posix shells
     export_vars = cmds_dict.get("export_vars", {})
 
-    env_map = os.environ.copy()
-
-    for key in sorted(unset_vars):
+    for key in unset_vars:
         env_map.pop(str(key), None)
 
-    for key, value in sorted(set_vars.items()):
+    for key, value in set_vars.items():
         env_map[str(key)] = str(value)
 
-    for key, value in sorted(export_path.items()):
+    for key, value in export_path.items():
         env_map[str(key)] = str(value)
 
-    for key, value in sorted(export_vars.items()):
+    for key, value in export_vars.items():
         env_map[str(key)] = str(value)
+
+    # at present, this method does not run package activation / deactivation scripts
+    # os.execle is being used as there is only one argument
 
     shell_path = env_map["SHELL"]
     exec_shell = f". {shell_path}"
 
-    # creating the list of arguments to be executed by os.execve
-    # minimum argument is to execute the shell
-    # at present, no package activation / deactivation scripts being run
-    arg_list = []
+    os.execle(shell_path, exec_shell, env_map)
 
-    arg_list.append(exec_shell)
 
-    os.execve(shell_path, arg_list, env_map)
+def posix_plugin_no_shell(argv: list[str]) -> SystemExit:
+    """
+    Run process associated with parsed CLI command (activate, deactivate, reactivate).
+    This plugin is intended for use only with POSIX shells.
+    """
+    args = get_parsed_args(argv)
+
+    context.__init__()
+    init_loggers(context)
+
+    activator = PosixPluginActivator(args)
+    activator._parse_and_set_args(args)
+
+    if args.command == "activate":
+        # using redefined activate process instead of _Activator.activate
+        cmds_dict = get_activate_builder(activator)
+    elif args.command == "deactivate":
+        cmds_dict = activator.build_deactivate()
+    elif args.command == "reactivate":
+        cmds_dict = activator.build_reactivate()
+
+    return activate(activator, cmds_dict)
+
+
+@hookimpl
+def conda_subcommands():
+    yield CondaSubcommand(
+        name="posix_exec_plugin",
+        summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
+        action=posix_plugin_no_shell,
+    )
 
 
 @hookimpl
