@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import CondaPreCommand, CondaSolver, CondaSubcommand, CondaVirtualPackage
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -21,14 +21,14 @@ class CondaSpecs:
         """
         Register solvers in conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             import logging
 
             from conda import plugins
             from conda.core import solve
-
 
             log = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ class CondaSpecs:
         """
         Register external subcommands in conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             from conda import plugins
@@ -80,7 +81,8 @@ class CondaSpecs:
         """
         Register virtual packages in Conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             from conda import plugins
@@ -95,4 +97,29 @@ class CondaSpecs:
                 )
 
         :return: An iterable of virtual package entries.
+        """
+
+    @_hookspec
+    def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
+        """
+        Register pre-commands functions in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           def example_pre_command(command, args):
+               print("pre-command action")
+
+
+           @plugins.hookimpl
+           def conda_pre_commands():
+               yield CondaPreCommand(
+                   name="example-pre-command",
+                   action=example_pre_command,
+                   run_for={"install", "create"},
+               )
         """

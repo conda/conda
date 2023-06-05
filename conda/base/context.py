@@ -301,9 +301,9 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    # #############################
-    # channels
-    # #############################
+    ####################################################
+    #               Channel Configuration              #
+    ####################################################
     allow_non_channel_urls = ParameterLoader(PrimitiveParameter(False))
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS, validation=channel_alias_validation),
@@ -392,9 +392,9 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
-    # ######################################################
-    # ##               Solver Configuration               ##
-    # ######################################################
+    ####################################################
+    #               Solver Configuration               #
+    ####################################################
     deps_modifier = ParameterLoader(PrimitiveParameter(DepsModifier.NOT_SET))
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
