@@ -439,35 +439,17 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
-    def __init__(self, search_path=None, argparse_args=None):
-        if search_path is None:
-            search_path = SEARCH_PATH
-
-        # set CONDA_PREFIX based on `--name` and `--prefix` flags, so the configuration loads
-        # correctly from those locations, for testing/reset context purposes always
-        # restore/fallback to context.root_prefix if neither are defined
-        try:
-            prefix = context.root_prefix
-        except NameError:
-            # NameError: this is the very first initialization of context,
-            # none of `--name`, `--prefix`, or context.root_prefix are available yet
-            pass
-        else:
-            if (getattr(argparse_args, "func", None) or "").rsplit(".", 1)[-1] in (
-                "create",
-                "install",
-                "update",
-                "remove",
-                "uninstall",
-                "upgrade",
-            ):
-                prefix = determine_target_prefix(context, argparse_args)
-            os.environ["CONDA_PREFIX"] = prefix
-
+    def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(
-            search_path=search_path,
+            search_path=(),
             app_name=APP_NAME,
             argparse_args=argparse_args,
+        )
+
+        self._set_search_path(
+            SEARCH_PATH if search_path is None else search_path,
+            # for proper search_path templating when --name/--prefix is used
+            CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
 
     def post_build_validation(self):
