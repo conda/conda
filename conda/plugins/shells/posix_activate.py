@@ -1,5 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+import argparse
 import re
 import sys
 from os.path import join
@@ -8,10 +11,10 @@ from conda import CONDA_PACKAGE_ROOT
 from conda.activate import _Activator, native_path_to_unix
 from conda.base.context import context
 from conda.cli.main import init_loggers
-from conda.common.compat import ensure_text_type, on_win
+from conda.common.compat import on_win
 from conda.exceptions import conda_exception_handler
 
-from .. import CondaShellPlugins, hookimpl
+from .. import CondaShellPlugins, CondaSubcommand, hookimpl
 
 
 class PosixPluginActivator(_Activator):
@@ -71,6 +74,70 @@ class PosixPluginActivator(_Activator):
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result) + "\n"
 
+    def _parse_and_set_args(self, arguments):
+        """
+        Pass in the args object, which will be the parsed args namespace
+        TODO: make the simplified version of _parse_and_set_args here,
+            where I grab items from the namespace and follow the code logic in the if statements
+        TODO: Share on Monday as a code snippet / link to PR (if I don't finish it, that's fine)
+        """
+        return super()._parse_and_set_args(arguments)
+
+
+def get_parsed_args(argv: list[str]) -> argparse.Namespace:
+    """
+    Parse CLI arguments to determine desired command.
+    Create namespace with 'command' and 'env' keys.
+    """
+    parser = argparse.ArgumentParser(
+        "posix_plugin_current_logic",
+        description="Process conda activate, deactivate, and reactivate",
+    )
+
+    commands = parser.add_subparsers(
+        required=True,
+        dest="command",
+    )
+
+    activate = commands.add_parser(
+        "activate",
+        help="activate the specified environment or base if no environment is specified",
+    )
+    activate.add_argument(
+        "env",
+        metavar="env",
+        default=None,
+        type=str,
+        nargs="?",
+        help="the name or prefix of the environment to be activated",
+    )
+    # TODO: add --stack and --no-stack flags
+
+    commands.add_parser("deactivate", help="deactivate the current environment")
+    commands.add_parser(
+        "reactivate",
+        help="reactivate the current environment, updating environment variables",
+    )
+
+    try:
+        args = parser.parse_args(argv)
+    except BaseException:
+        raise SystemExit(1)
+
+    return args
+
+
+def get_command_args(args: argparse.Namespace) -> tuple[str, str | None]:
+    """
+    Return the commands in the namespace as a tuple.
+    """
+    command = args.command
+    env = getattr(args, "env", None)
+
+    command_args = (command, env) if env else (command,)
+
+    return command_args
+
 
 def handle_env(*args, **kwargs):
     """
@@ -80,15 +147,12 @@ def handle_env(*args, **kwargs):
     A similar process to conda init would inject code into the user's shell profile
     to set the associated shell script as conda's entry point.
     """
-    # cleanup argv
-    # this can be updated to use argparse, in line with the os_exec approach
-    env_args = sys.argv[2:]  # drop executable/script and sub-command
-    env_args = tuple(ensure_text_type(s) for s in env_args)
+    args = get_parsed_args(sys.argv[2:])
 
     context.__init__()
     init_loggers(context)
 
-    activator = PosixPluginActivator(env_args)
+    activator = PosixPluginActivator(args)
     print(activator.execute(), end="")
 
     return 0
@@ -104,9 +168,18 @@ def handle_exceptions(*args, **kwargs):
 
 
 @hookimpl
+def conda_subcommands():
+    yield CondaSubcommand(
+        name="posix_plugin_current_logic",
+        summary="Plugin for POSIX shells: handles conda activate, deactivate, and reactivate",
+        action=handle_exceptions,
+    )
+
+
+@hookimpl
 def conda_shell_plugins():
     yield CondaShellPlugins(
         name="posix_plugin_current_logic",
         summary="Plugin for POSIX shells: handles conda activate, deactivate, and reactivate",
-        action=handle_exceptions,
+        activator=PosixPluginActivator,
     )

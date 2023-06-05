@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Callable, NamedTuple
 
+from conda.activate import _Activator
+
 from ..core.solve import Solver
 
 
@@ -54,14 +56,11 @@ class CondaShellPlugins(NamedTuple):
     """
     A conda shell plugin.
 
-    :param name: Shell plugin name (e.g., ``conda my-shell-plugin-name``).
+    :param name: Shell plugin name (e.g., ``posix-plugin``).
     :param summary: Shell plugin summary, will be shown in ``conda --help``.
-    :param action: Callable that will be run when the shell plugin is invoked.
+    :param activator: Name of the _Activator child class associated with the plugin
     """
 
     name: str
     summary: str
-    action: Callable[
-        [list[str]],  # arguments
-        int | None,  # return code
-    ]
+    activator: type[_Activator]
