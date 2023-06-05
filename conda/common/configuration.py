@@ -1352,8 +1352,8 @@ class Configuration(metaclass=ConfigurationType):
             elif path.is_dir():
                 yield from (
                     subpath
-                    for subpath in path.iterdir()
-                    if subpath.is_file() and subpath.stem in (".yml", ".yaml")
+                    for subpath in sorted(path.iterdir())
+                    if subpath.is_file() and subpath.suffix in (".yml", ".yaml")
                 )
 
     @classmethod

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from os import environ, mkdir
 from os.path import join
+from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
@@ -435,24 +436,26 @@ class ConfigurationTests(TestCase):
 
     def test_load_raw_configs(self):
         try:
-            tempdir = mkdtemp()
-            condarc = join(tempdir, ".condarc")
-            condarcd = join(tempdir, "condarc.d")
-            f1 = join(condarcd, "file1.yml")
-            f2 = join(condarcd, "file2.yml")
-            not_a_file = join(tempdir, "not_a_file")
+            tempdir = Path(mkdtemp()).resolve()
+            condarc = tempdir / ".condarc"
+            condarcd = tempdir / "condarc.d"
+            f1 = condarcd / "file1.yml"
+            f2 = condarcd / "file2.yml"
+            not_a_file = tempdir / "not_a_file"
 
-            mkdir(condarcd)
+            condarcd.mkdir(exist_ok=True, parents=True)
 
-            with open(f1, "wb") as fh:
-                fh.write(test_yaml_raw["file1"].encode("utf-8"))
-            with open(f2, "wb") as fh:
-                fh.write(test_yaml_raw["file2"].encode("utf-8"))
-            with open(condarc, "wb") as fh:
-                fh.write(test_yaml_raw["file3"].encode("utf-8"))
+            f1.write_text(test_yaml_raw["file1"])
+            f2.write_text(test_yaml_raw["file2"])
+            condarc.write_text(test_yaml_raw["file3"])
+
             search_path = [condarc, not_a_file, condarcd]
+
             raw_data = load_file_configs(search_path)
+            assert condarc in raw_data
             assert not_a_file not in raw_data
+            assert f1 in raw_data
+            assert f2 in raw_data
             assert raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
             assert raw_data[f1]["always_yes"].value(None) == "no"
             assert (
