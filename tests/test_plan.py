@@ -1492,14 +1492,16 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
 
 
 def test_pinned_specs_condarc(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
     # Test pinned specs conda environment file
     specs = ("requests ==2.13",)
     with tmp_env() as prefix:
-        # mock root prefix
+        # mock active prefix
         mocker.patch(
-            "conda.base.context.Context.root_prefix",
+            "conda.base.context.Context.active_prefix",
             new_callable=mocker.PropertyMock,
             return_value=str(prefix),
         )
@@ -1511,7 +1513,11 @@ def test_pinned_specs_condarc(
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
 
-def test_pinned_specs_all(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker):
+def test_pinned_specs_all(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
     # Test pinned specs conda configuration and pinned specs conda environment file
     specs1 = ("numpy 1.11", "python >3")
     specs2 = ("scipy ==0.14.2", "openjdk >=8")
@@ -1524,9 +1530,9 @@ def test_pinned_specs_all(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mo
     ):
         (prefix / "conda-meta" / "pinned").write_text("\n".join(specs2) + "\n")
 
-        # mock root prefix
+        # mock active prefix
         mocker.patch(
-            "conda.base.context.Context.root_prefix",
+            "conda.base.context.Context.active_prefix",
             new_callable=mocker.PropertyMock,
             return_value=str(prefix),
         )

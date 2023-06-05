@@ -1373,16 +1373,22 @@ class Configuration(metaclass=ConfigurationType):
 
     def _set_search_path(self, search_path: Iterable[Path | Template | str], **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
-        self._set_raw_data(self._load_search_path(self._search_path))
+
+        self._set_raw_data(dict(self._load_search_path(self._search_path)))
+
         self._reset_cache()
 
     def _set_env_vars(self, app_name=None):
         self._app_name = app_name
-        if not app_name:
-            return self
-        self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(
-            app_name
-        )
+
+        # remove existing source so "insert" order is correct
+        source = EnvRawParameter.source
+        if source in self.raw_data:
+            del self.raw_data[source]
+
+        if app_name:
+            self.raw_data[source] = EnvRawParameter.make_raw_parameters(app_name)
+
         self._reset_cache()
 
     def _set_argparse_args(self, argparse_args):
@@ -1391,23 +1397,26 @@ class Configuration(metaclass=ConfigurationType):
         if hasattr(argparse_args, "__dict__"):
             # the argparse_args from argparse will be an object with a __dict__ attribute
             #   and not a mapping type like this method will turn it into
-            self._argparse_args = AttrDict(
-                (k, v) for k, v, in vars(argparse_args).items() if v is not NULL
-            )
+            items = vars(argparse_args).items()
         elif not argparse_args:
             # argparse_args can be initialized as `None`
-            self._argparse_args = AttrDict()
+            items = ()
         else:
             # we're calling this method with argparse_args that are a mapping type, likely
             #   already having been processed by this method before
-            self._argparse_args = AttrDict(
-                (k, v) for k, v, in argparse_args.items() if v is not NULL
-            )
+            items = argparse_args.items()
 
-        source = ArgParseRawParameter.source
-        self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(
-            self._argparse_args
+        self._argparse_args = argparse_args = AttrDict(
+            {k: v for k, v, in items if v is not NULL}
         )
+
+        # remove existing source so "insert" order is correct
+        source = ArgParseRawParameter.source
+        if source in self.raw_data:
+            del self.raw_data[source]
+
+        self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(argparse_args)
+
         self._reset_cache()
 
     def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
