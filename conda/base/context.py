@@ -637,7 +637,12 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    def root_dir(self):
+    @deprecated(
+        "24.3",
+        "24.9",
+        addendum="Please use `conda.base.context.context.root_prefix` instead.",
+    )
+    def root_dir(self) -> os.PathLike:
         # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
         # because it is more consistent with other names
         return self.root_prefix
