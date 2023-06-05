@@ -22,13 +22,16 @@ from collections.abc import Mapping
 from enum import Enum, EnumMeta
 from itertools import chain
 from logging import getLogger
-from os import environ, scandir, stat
-from os.path import basename, expandvars
-from stat import S_IFDIR, S_IFMT, S_IFREG
+from os import environ
+from os.path import expandvars
+from pathlib import Path
+from string import Template
 from typing import TYPE_CHECKING
 
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import Sequence
+    from typing import Hashable, Iterable, Sequence
 
 try:
     from boltons.setutils import IndexedSet
@@ -43,7 +46,6 @@ from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_struct
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .path import expand
 from .serialize import yaml_round_trip_load
 
 try:
@@ -466,45 +468,12 @@ class DefaultValueRawParameter(RawParameter):
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
-def load_file_configs(search_path):
-    # returns an ordered map of filepath and dict of raw parameter objects
-
-    def _file_loader(fullpath):
-        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(
-            fullpath
-        ), fullpath
-        yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
-
-    def _dir_loader(fullpath):
-        for filepath in sorted(
-            p
-            for p in (entry.path for entry in scandir(fullpath))
-            if p[-4:] == ".yml" or p[-5:] == ".yaml"
-        ):
-            yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
-
-    # map a stat result to a file loader or a directory loader
-    _loader = {
-        S_IFREG: _file_loader,
-        S_IFDIR: _dir_loader,
-    }
-
-    def _get_st_mode(path):
-        # stat the path for file type, or None if path doesn't exist
-        try:
-            return S_IFMT(stat(path).st_mode)
-        except OSError:
-            return None
-
-    expanded_paths = tuple(expand(path) for path in search_path)
-    stat_paths = (_get_st_mode(path) for path in expanded_paths)
-    load_paths = (
-        _loader[st_mode](path)
-        for path, st_mode in zip(expanded_paths, stat_paths)
-        if st_mode is not None
-    )
-    raw_data = dict(kv for kv in chain.from_iterable(load_paths))
-    return raw_data
+@deprecated("24.3", "24.9")
+def load_file_configs(
+    search_path: Iterable[Path | Template | str], **kwargs
+) -> dict[Path, dict]:
+    expanded_paths = Configuration._expand_search_path(search_path, **kwargs)
+    return dict(Configuration._load_search_path(expanded_paths))
 
 
 class LoadedParameter(metaclass=ABCMeta):
@@ -1348,7 +1317,7 @@ class ConfigurationType(type):
 
 
 class Configuration(metaclass=ConfigurationType):
-    def __init__(self, search_path=(), app_name=None, argparse_args=None):
+    def __init__(self, search_path=(), app_name=None, argparse_args=None, **kwargs):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
@@ -1356,15 +1325,56 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
-        self._set_search_path(search_path)
+        self._set_search_path(search_path, **kwargs)
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
 
-    def _set_search_path(self, search_path):
-        self._search_path = IndexedSet(search_path)
-        self._set_raw_data(load_file_configs(search_path))
+    @staticmethod
+    def _expand_search_path(
+        search_path: Iterable[Path | Template | str],
+        **kwargs,
+    ) -> Iterable[Path]:
+        for search in search_path:
+            # use string.Template instead of os.path.expand so additional variables can be passed
+            # in without mutating os.environ
+            template = (
+                search if isinstance(search, (Path, Template)) else Template(search)
+            )
+            path = (
+                template
+                if isinstance(template, Path)
+                else Path(template.safe_substitute(environ, **kwargs))
+            )
+            path = path.expanduser().resolve()
+
+            if path.is_file() and path.name in (".condarc", "condarc"):
+                yield path
+            elif path.is_dir():
+                yield from (
+                    subpath
+                    for subpath in path.iterdir()
+                    if subpath.is_file() and subpath.stem in (".yml", ".yaml")
+                )
+
+    @classmethod
+    def _load_search_path(
+        cls,
+        search_path: Iterable[Path],
+    ) -> Iterable[tuple[Path, dict]]:
+        for path in search_path:
+            try:
+                yield path, YamlRawParameter.make_raw_parameters_from_file(path)
+            except ConfigurationLoadError as err:
+                log.warning(
+                    "Ignoring configuration file (%s) due to error:\n%s",
+                    path,
+                    err,
+                )
+
+    def _set_search_path(self, search_path: Iterable[Path | Template | str], **kwargs):
+        self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
+        self._set_raw_data(self._load_search_path(self._search_path))
         self._reset_cache()
-        return self
 
     def _set_env_vars(self, app_name=None):
         self._app_name = app_name
@@ -1374,7 +1384,6 @@ class Configuration(metaclass=ConfigurationType):
             app_name
         )
         self._reset_cache()
-        return self
 
     def _set_argparse_args(self, argparse_args):
         # the argparse_args we store internally in this class as self._argparse_args
@@ -1400,18 +1409,15 @@ class Configuration(metaclass=ConfigurationType):
             self._argparse_args
         )
         self._reset_cache()
-        return self
 
-    def _set_raw_data(self, raw_data):
+    def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
         self.raw_data.update(raw_data)
         self._reset_cache()
-        return self
 
     def _reset_cache(self):
         self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
-        return self
 
     def register_reset_callaback(self, callback):
         self._reset_callbacks.add(callback)
