@@ -1316,6 +1316,10 @@ class ConfigurationType(type):
         )
 
 
+CONDARC_FILENAMES = (".condarc", "condarc")
+YAML_EXTENSIONS = (".yml", ".yaml")
+
+
 class Configuration(metaclass=ConfigurationType):
     def __init__(self, search_path=(), app_name=None, argparse_args=None, **kwargs):
         # Currently, __init__ does a **full** disk reload of all files.
@@ -1347,13 +1351,15 @@ class Configuration(metaclass=ConfigurationType):
             )
             path = path.expanduser().resolve()
 
-            if path.is_file() and path.name in (".condarc", "condarc"):
+            if path.is_file() and (
+                path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS
+            ):
                 yield path
             elif path.is_dir():
                 yield from (
                     subpath
                     for subpath in sorted(path.iterdir())
-                    if subpath.is_file() and subpath.suffix in (".yml", ".yaml")
+                    if subpath.is_file() and subpath.suffix in YAML_EXTENSIONS
                 )
 
     @classmethod
