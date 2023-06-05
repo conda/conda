@@ -13,8 +13,7 @@ from conda.base.context import context
 from conda.cli.main import init_loggers
 from conda.common.compat import on_win
 from conda.exceptions import conda_exception_handler
-
-from .. import CondaShellPlugins, CondaSubcommand, hookimpl
+from conda.plugins import CondaShellPlugins, CondaSubcommand, hookimpl
 
 
 class PosixPluginActivator(_Activator):
@@ -76,7 +75,6 @@ class PosixPluginActivator(_Activator):
             else:
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result) + "\n"
-
 
     # this will be in _Activate parent class logic once architecture is decided
     def _parse_and_set_args(self, args: argparse.Namespace) -> None:
