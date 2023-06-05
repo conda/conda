@@ -148,7 +148,6 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
     activate.add_argument(
         "--dev", action="store_true", default=False, help=argparse.SUPPRESS
     )
-    # TODO: add --stack and --no-stack flags
 
     commands.add_parser("deactivate", help="deactivate the current environment")
     commands.add_parser(
