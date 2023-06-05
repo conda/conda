@@ -1,6 +1,6 @@
 ### Enhancements
 
-* allow the use of environment variables for variables defined in environment.yaml  (#12645)
+* Allow the use of environment `variables` for variables defined in environment.yml  (#12645)
 
 ### Bug fixes
 

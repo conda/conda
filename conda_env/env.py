@@ -164,7 +164,7 @@ def from_yaml(yamlstr, **kwargs):
         for key, value in kwargs.items():
             data[key] = value
     _expand_channels(data)
-    _expand_envvars(data)
+    _expand_variables(data)
     return Environment(**data)
 
 
@@ -175,7 +175,7 @@ def _expand_channels(data):
     ]
 
 
-def _expand_envvars(data):
+def _expand_variables(data):
     """Expands enviroment variables for the variables found in the yaml data"""
     variables = {}
     for key, value in data.get("variables", {}).items():
