@@ -486,9 +486,6 @@ class PrefixRecord(PackageRecord):
     # information with the package.  Open to rethinking that though.
     auth = StringField(required=False, nullable=True)
 
-    # # a new concept introduced in 4.4 for private env packages
-    # leased_paths = ListField(LeasedPathEntry, required=False)
-
     # @classmethod
     # def load(cls, conda_meta_json_path):
     #     return cls()
