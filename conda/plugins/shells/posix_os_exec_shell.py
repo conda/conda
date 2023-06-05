@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import argparse
 import os
 import re
@@ -9,8 +11,7 @@ from conda.activate import _Activator, native_path_to_unix
 from conda.base.context import context
 from conda.cli.main import init_loggers
 from conda.common.compat import on_win
-from conda.exceptions import ArgumentError
-from conda.plugins import CondaShellPlugins, hookimpl
+from conda.plugins import CondaShellPlugins, CondaSubcommand, hookimpl
 
 
 class PosixPluginActivator(_Activator):
@@ -71,7 +72,7 @@ class PosixPluginActivator(_Activator):
         return "\n".join(result) + "\n"
 
 
-def get_parsed_args(argv: "list[str]") -> argparse.Namespace:
+def get_parsed_args(argv: list[str]) -> argparse.Namespace:
     """
     Parse CLI arguments to determine desired command.
     Create namespace with 'command' and 'env' keys.
@@ -81,15 +82,16 @@ def get_parsed_args(argv: "list[str]") -> argparse.Namespace:
         description="Process conda activate, deactivate, and reactivate",
     )
 
-    parser.add_argument(
-        "command",
-        metavar="c",
-        type=str,
-        nargs=1,
-        help="the command to be run: 'act', 'deact' or 'react'",
+    commands = parser.add_subparsers(
+        required=True,
+        dest="command",
     )
 
-    parser.add_argument(
+    activate = commands.add_parser(
+        "activate",
+        help="activate the specified environment or base if no environment is specified",
+    )
+    activate.add_argument(
         "env",
         metavar="env",
         default=None,
@@ -97,32 +99,17 @@ def get_parsed_args(argv: "list[str]") -> argparse.Namespace:
         nargs="?",
         help="the name or prefix of the environment to be activated",
     )
+    # TODO: add --stack and --no-stack flags
+
+    commands.add_parser("deactivate", help="deactivate the current environment")
+    commands.add_parser(
+        "reactivate",
+        help="reactivate the current environment, updating environment variables",
+    )
 
     args = parser.parse_args(argv)
 
     return args
-
-
-def get_command_args(args: argparse.Namespace) -> "tuple[str, str | None]":
-    """
-    Return the commands in the namespace as a tuple.
-    Produce appropriate error message if command is not
-    one that can be handled by the plugin.
-    """
-    command = args.command[0]
-
-    if command not in ("act", "deact", "react"):
-        raise_invalid_command_error(actual_command=command)
-    elif command == "act":
-        command = "activate"
-    elif command == "deact":
-        command = "deactivate"
-    else:
-        command = "reactivate"
-
-    env = args.env
-
-    return (command, env)
 
 
 def get_activate_builder(activator):
@@ -152,16 +139,16 @@ def activate(activator, cmds_dict):
     export_path = cmds_dict.get("export_path", {})  # seems to be empty for posix shells
     export_vars = cmds_dict.get("export_vars", {})
 
-    for key in sorted(unset_vars):
+    for key in unset_vars:
         env_map.pop(str(key), None)
 
-    for key, value in sorted(set_vars.items()):
+    for key, value in set_vars.items():
         env_map[str(key)] = str(value)
 
-    for key, value in sorted(export_path.items()):
+    for key, value in export_path.items():
         env_map[str(key)] = str(value)
 
-    for key, value in sorted(export_vars.items()):
+    for key, value in export_vars.items():
         env_map[str(key)] = str(value)
 
     deactivate_scripts = cmds_dict.get("deactivate_scripts", ())
@@ -185,18 +172,7 @@ def activate(activator, cmds_dict):
     os.execve(path, arg_list, env_map)
 
 
-def raise_invalid_command_error(actual_command=None):
-    """
-    Raise an error message on the CLI if a command other than 'act',
-    'deact' or 'react' is given.
-    """
-    message = "'act', 'deact', or 'react'" "command must be given"
-    if actual_command:
-        message += ". Instead got '%s'." % actual_command
-    raise ArgumentError(message)
-
-
-def posix_plugin_with_shell(argv: "list[str]") -> SystemExit:
+def posix_plugin_with_shell(argv: list[str]) -> SystemExit:
     """
     Run process associated with parsed CLI command.
 
@@ -204,8 +180,8 @@ def posix_plugin_with_shell(argv: "list[str]") -> SystemExit:
     child class is called.
     """
     args = get_parsed_args(argv)
-    command, env = get_command_args(args)
-    env_args = (command, env) if env else (command,)
+    env = getattr(args, "env", None)
+    env_args = (args.command, env) if env else (args.command,)
 
     context.__init__()
     init_loggers(context)
@@ -220,17 +196,27 @@ def posix_plugin_with_shell(argv: "list[str]") -> SystemExit:
     # the reactivate process would be called during '_parse_and_set_args'
     # this can be dealt with later by editing the '_parse_and_set_args' method
     # or creating a new version for the plugin
-    # TODO: handle '_parse_and_set_args' functionality through argparse and through logic below
+    # after decision made on plugin architecture, I will probably update '_parse_and_set_args'
+    # to use argparse instead of custom argument parsing logic
 
-    if command == "activate":
+    if args.command == "activate":
         # using redefined activate process instead of _Activator.activate
         cmds_dict = get_activate_builder(activator)
-    elif command == "deactivate":
+    elif args.command == "deactivate":
         cmds_dict = activator.build_deactivate()
-    elif command == "reactivate":
+    elif args.command == "reactivate":
         cmds_dict = activator.build_reactivate()
 
     return activate(activator, cmds_dict)
+
+
+@hookimpl
+def conda_subcommands():
+    yield CondaSubcommand(
+        name="posix_plugin_with_shell",
+        summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
+        action=posix_plugin_with_shell,
+    )
 
 
 @hookimpl
@@ -238,5 +224,5 @@ def conda_shell_plugins():
     yield CondaShellPlugins(
         name="posix_plugin_with_shell",
         summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
-        action=posix_plugin_with_shell,
+        activator=PosixPluginActivator,
     )

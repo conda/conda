@@ -192,5 +192,5 @@ def conda_shell_plugins():
     yield CondaShellPlugins(
         name="posix_exec_plugin",
         summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
-        action=posix_plugin_no_shell,
+        activator=PosixPluginActivator,
     )
