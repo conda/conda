@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -8,31 +7,50 @@ If the tests splits are looking uneven or the test suite has
 siginificantly changed, update tests/durations/${OS}.json in the root of the
 repository and pytest-split may work better.
 
-`gh run list -b <interesting branch>`
-`mkdir tests-data; cd tests-data` # will be filled with many artifacts
-`gh run download <number of tests CI run>`
-`python tests/durations/combine.py`
-
-Then copy `combined.json`.
+```
+$ gh run list --branch <branch>
+$ gh run download --dir ./artifacts/ <databaseId>
+$ python ./tests/durations/combine.py ./artifacts/
+$ git add ./tests/durations/
+$ git commit -m "Update test durations"
+$ git push
+```
 """
-
 import json
+from itertools import chain
 from pathlib import Path
+from statistics import fmean
+from sys import argv
 
-count = 0
 combined = {}
-this_dir = Path(__file__).parent
 
-for path in this_dir.glob("*.json"):
+durations_dir = Path(__file__).parent
+artifacts_dir = Path(argv[-1]).expanduser().resolve()
+
+# aggregate all new durations
+for path in artifacts_dir.glob("**/*.json"):
+    os = path.stem
+    combined_os = combined.setdefault(os, {})
+
     data = json.loads(path.read_text())
-    for key in data:
-        if key in combined:
-            existing = combined[key]
-        else:
-            existing = data[key]
-        combined[key] = (existing + data[key]) / 2.0
-    count += 1
+    for key, value in data.items():
+        combined_os.setdefault(key, []).append(value)
 
-print(f"Read {count} .test_durations")
+# aggregate new and old durations while discarding durations that no longer exist
+for path in durations_dir.glob("**/*.json"):
+    os = path.stem
+    combined_os = combined.setdefault(os, {})
 
-(this_dir / "combined.json").write_text(json.dumps(combined, indent=4, sort_keys=True))
+    data = json.loads(path.read_text())
+    for key in set(combined_os).intersection(durations_dir.glob("**/*.json")):
+        combined_os.setdefault(key, []).append(data[key])
+
+# write out averaged durations
+for os, combined_os in combined.items():
+    (durations_dir / f"{os}.json").write_text(
+        json.dumps(
+            {key: fmean(values) for key, values in combined_os.items()},
+            indent=4,
+            sort_keys=True,
+        )
+    )

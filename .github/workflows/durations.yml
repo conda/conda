@@ -1,0 +1,53 @@
+name: Update Durations
+
+on:
+  # Every Sunday at 00:00 UTC
+  # https://crontab.guru/#0_0_*_*_0
+  schedule:
+    - cron: '0 0 * * 0'
+
+  workflow_dispatch:
+
+jobs:
+  update-durations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: download recent artifacts
+        run: >
+          gh run list
+            --branch main
+            --workflow tests
+            --limit 10
+            --json databaseId
+            --jq '.[].databaseId'
+          | xargs
+            -n 1
+          gh run download
+            --dir ./artifacts/
+            --pattern '*-all'
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - uses: actions/checkout@v3
+
+      - name: combine recent durations from artifacts
+        run: python tests/durations/combine.py ./artifacts/
+
+      - name: create updated durations PR
+        permissions:
+          contents: write
+          pull-requests: write
+        uses: peter-evans/create-pull-request@v5
+        with:
+          push-to-fork: conda-bot/conda
+          token: ${{ secretes.DURATIONS_TOKEN }}
+          branch: update-durations
+          delete-branch: true
+          commit-message: Update test durations
+          author: Conda Bot <18747875+conda-bot@users.noreply.github.com>
+          committer: Conda Bot <18747875+conda-bot@users.noreply.github.com>
+          title: Update test durations
+          body: |
+            Automatically aggregate recent test durations.
