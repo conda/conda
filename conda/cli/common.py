@@ -13,6 +13,7 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..deprecations import deprecated
+from ..exceptions import DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
 from ..models.match_spec import MatchSpec
 
 
@@ -270,12 +271,8 @@ def validate_prefix(prefix):
     """
     if isdir(prefix):
         if not isfile(join(prefix, "conda-meta", "history")):
-            from ..exceptions import DirectoryNotACondaEnvironmentError
-
             raise DirectoryNotACondaEnvironmentError(prefix)
     else:
-        from ..exceptions import EnvironmentLocationNotFound
-
         raise EnvironmentLocationNotFound(prefix)
 
     return prefix
