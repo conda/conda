@@ -160,6 +160,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
+    # TODO: Combine the following two methods into one
     def yield_pre_command_hook_actions(self, command: str) -> Iterable[Callable]:
         """
         Yields the ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands``
