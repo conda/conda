@@ -6,7 +6,13 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaPreCommand, CondaShellPlugins, CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaPreCommand,
+    CondaShellPlugins,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
