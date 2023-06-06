@@ -3,7 +3,7 @@
 import re
 import sys
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, normcase
+from os.path import basename, dirname, normcase
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -13,7 +13,6 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..deprecations import deprecated
-from ..exceptions import DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
 from ..models.match_spec import MatchSpec
 
 
@@ -261,18 +260,12 @@ def check_non_admin():
         )
 
 
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.base.context.validate_prefix` instead.",
+)
 def validate_prefix(prefix):
-    """Verifies the prefix is a valid conda environment.
+    from ..base.context import validate_prefix as _validate_prefix
 
-    :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
-    :raises DirectoryNotACondaEnvironmentError: Directory is not a conda environment.
-    :returns: Valid prefix.
-    :rtype: str
-    """
-    if isdir(prefix):
-        if not isfile(join(prefix, "conda-meta", "history")):
-            raise DirectoryNotACondaEnvironmentError(prefix)
-    else:
-        raise EnvironmentLocationNotFound(prefix)
-
-    return prefix
+    return _validate_prefix(prefix)

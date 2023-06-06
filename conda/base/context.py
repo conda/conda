@@ -1915,6 +1915,27 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
             return join(_first_writable_envs_dir(), prefix_name)
 
 
+def validate_prefix(prefix):
+    """Verifies the prefix is a valid conda environment.
+
+    :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
+    :raises DirectoryNotACondaEnvironmentError: Directory is not a conda environment.
+    :returns: Valid prefix.
+    :rtype: str
+    """
+    if isdir(prefix):
+        if not isfile(join(prefix, "conda-meta", "history")):
+            from ..exceptions import DirectoryNotACondaEnvironmentError
+
+            raise DirectoryNotACondaEnvironmentError(prefix)
+    else:
+        from ..exceptions import EnvironmentLocationNotFound
+
+        raise EnvironmentLocationNotFound(prefix)
+
+    return prefix
+
+
 def determine_target_prefix(ctx, args=None):
     """Get the prefix to operate in.  The prefix may not yet exist.
 
@@ -1948,7 +1969,7 @@ def determine_target_prefix(ctx, args=None):
     if prefix_name is None and prefix_path is None:
         return ctx.default_prefix
     elif prefix_path is not None:
-        return expand(prefix_path)
+        return validate_prefix(expand(prefix_path))
     else:
         return validate_prefix_name(prefix_name, ctx=ctx)
 
