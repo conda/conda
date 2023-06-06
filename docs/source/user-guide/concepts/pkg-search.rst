@@ -40,6 +40,11 @@ example image. The search below will return the same list of packages as the sta
 
    $ conda search "numpy[channel=conda-forge, subdir=linux-64, version=1.17.*, build=py38*]"
 
+This notation supports the following key-value pairs:
+
+.. program-output:: python -c 'import conda.models.match_spec as M; print("-", "\n- ".join([f"{field:20} # validated via {M._implementors.get(field, M.ExactStrMatch).__name__}" for field in sorted(M.MatchSpec.FIELD_NAMES)]))'
+   :shell:
+
 Key-value pair notation can be used at the same time as standard notation.
 
 .. code-block:: none

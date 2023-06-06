@@ -115,6 +115,7 @@ def do_call(args, parser):
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(args, "plugin_subcommand", None):
+        _run_pre_command_hooks(args.plugin_subcommand.name, args)
         return args.plugin_subcommand.action(sys.argv[2:])
 
     relative_mod, func_name = args.func.rsplit(".", 1)
@@ -123,7 +124,21 @@ def do_call(args, parser):
 
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
+    command = relative_mod.replace(".main_", "")
+    _run_pre_command_hooks(command, args)
+
     return getattr(module, func_name)(args, parser)
+
+
+def _run_pre_command_hooks(command: str, args) -> None:
+    """
+    Helper function used to gather applicable pre_command hook functions
+    and then run them.
+    """
+    actions = context.plugin_manager.yield_pre_command_hook_actions(command)
+
+    for action in actions:
+        action(command, args)
 
 
 def find_builtin_commands(parser):
