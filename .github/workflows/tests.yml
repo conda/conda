@@ -160,7 +160,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${OS}.json
+            tests\durations\${{ env.OS }}.json
             test-report.xml
           retention-days: 1
 
@@ -217,7 +217,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${OS}.json
+            tests/durations/${{ env.OS }}.json
             test-report.xml
           retention-days: 1
 
@@ -376,7 +376,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${OS}.json
+            tests/durations/${{ env.OS }}.json
             test-report.xml
           retention-days: 1
 
