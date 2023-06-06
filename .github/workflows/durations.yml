@@ -23,7 +23,7 @@ jobs:
           | xargs
             -n 1
           gh run download
-            --dir ./artifacts/
+            --dir ${{ runner.temp }}/artifacts/
             --pattern '*-all'
 
       - uses: actions/setup-python@v4
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: combine recent durations from artifacts
-        run: python tests/durations/combine.py ./artifacts/
+        run: python tests/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
         permissions:
