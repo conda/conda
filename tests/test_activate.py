@@ -3234,10 +3234,10 @@ def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
 
 def _getusersitepackages(userbase):
     if on_win:
-        ver_nodot = sys.winver.replace('.', '')
-        return f'{userbase}\\Python{ver_nodot}\\site-packages'
+        ver_nodot = sys.winver.replace(".", "")
+        return f"{userbase}\\Python{ver_nodot}\\site-packages"
     version = sys.version_info
-    return f'{userbase}/lib/python{version[0]}.{version[1]}/site-packages'
+    return f"{userbase}/lib/python{version[0]}.{version[1]}/site-packages"
 
 
 def test_activation_with_usercustomize():
