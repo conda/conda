@@ -174,6 +174,20 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in pre_command.run_for:
                 yield pre_command.action
 
+    def yield_post_command_hook_actions(self, command: str) -> Iterable[Callable]:
+        """
+        Yields the ``CondaPostCommand.action`` functions registered by the ``conda_post_commands``
+        hook.
+
+        :param command: name of the command that is currently being invoked
+        """
+        # Load post-commands available to run
+        post_command_hooks = self.get_hook_results("post_commands")
+
+        for post_command in post_command_hooks:
+            if command in post_command.run_for:
+                yield post_command.action
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:

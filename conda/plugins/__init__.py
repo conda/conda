@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from .hookspec import hookimpl  # noqa: F401
 from .types import (  # noqa: F401
+    CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
     CondaSubcommand,
