@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 OK_MARK = "✅"
@@ -37,13 +38,10 @@ def find_altered_packages(prefix: str | Path) -> list[str]:
     altered_packages = {}
 
     def generate_sha256_checksum(filepath) -> str:
-        try:
-            with open(filepath, "rb") as f:
-                bytes = f.read()
-                hash = hashlib.sha256(bytes).hexdigest()
-                return hash
-        except OSError:
-            pass
+        with open(filepath, "rb") as f:
+            bytes = f.read()
+            hash = hashlib.sha256(bytes).hexdigest()
+            return hash
 
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
@@ -59,11 +57,14 @@ def find_altered_packages(prefix: str | Path) -> list[str]:
             package_info.append(old_sha256)
 
             file_location = f"{prefix}/{_path}"
-            new_sha256 = generate_sha256_checksum(file_location)
-            package_info.append(new_sha256)
+            if os.path.isfile(file_location):
+                new_sha256 = generate_sha256_checksum(file_location)
+                package_info.append(new_sha256)
+            else:
+                continue
 
-            if package_info[1] != package_info[2]:
-                altered_packages.setdefault(file.stem, []).append(package_info[0])
+            if old_sha256 is not None and old_sha256 != new_sha256:
+                altered_packages.setdefault(file.stem, []).append(_path)
 
     return altered_packages
 
