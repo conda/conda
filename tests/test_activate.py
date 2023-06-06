@@ -13,9 +13,9 @@ from re import escape
 from shutil import which
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
+from typing import Literal
 from unittest import TestCase
 from uuid import uuid4
-from typing import Literal
 
 import pytest
 
@@ -1217,7 +1217,11 @@ class ActivatorUnitTests(TestCase):
         )
 
         # activate an unspecified env
-        activator = (PowerShellActivator(["activate", "--no-stack"]) if on_win else PosixActivator(["activate", "--no-stack"]))
+        activator = (
+            PowerShellActivator(["activate", "--no-stack"])
+            if on_win
+            else PosixActivator(["activate", "--no-stack"])
+        )
         activator.execute()
 
         # if the we've managed to activate test-env without naming it, the test passes
@@ -1233,7 +1237,11 @@ class ActivatorUnitTests(TestCase):
 
     def test_auto_activate_env_base_if_not_set(self):
         # activate an unspecified env
-        activator = (PowerShellActivator(["activate", "--no-stack"]) if on_win else PosixActivator(["activate", "--no-stack"]))
+        activator = (
+            PowerShellActivator(["activate", "--no-stack"])
+            if on_win
+            else PosixActivator(["activate", "--no-stack"])
+        )
         activator.execute()
 
         # if the we've managed to activate the base environment, the test passes
@@ -3256,7 +3264,13 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs: tuple[str, dict[str, env.Environment]], auto_stack, stack, run, expected):
+def test_stacking(
+    create_stackable_envs: tuple[str, dict[str, env.Environment]],
+    auto_stack,
+    stack,
+    run,
+    expected,
+):
     which, envs = create_stackable_envs
     stack = filter(None, stack.split(","))
     expected = filter(None, expected.split(","))
