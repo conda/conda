@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -9,6 +10,7 @@ OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
 DETAILED_REPORT_TITLE = "\nDETAILED ENVIRONMENT HEALTH REPORT\n"
 MISSING_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with missing files.\n"
+ALTERED_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with altered files\n"
 
 
 def display_report_heading(prefix: str) -> None:
@@ -30,6 +32,42 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     return packages_with_missing_files
 
 
+def find_altered_packages(prefix: str | Path) -> list[str]:
+    """Finds altered packages"""
+    altered_packages = {}
+
+    def generate_sha256_checksum(filepath) -> str:
+        try:
+            with open(filepath, "rb") as f:
+                bytes = f.read()
+                hash = hashlib.sha256(bytes).hexdigest()
+                return hash
+        except OSError:
+            pass
+
+    prefix = Path(prefix)
+    for file in (prefix / "conda-meta").glob("*.json"):
+        data = json.loads(file.read_text())
+        required_data = data["paths_data"]["paths"]
+
+        for path in required_data:
+            package_info = []
+            _path = path.get("_path")
+            old_sha256 = path.get("sha256_in_prefix")
+
+            package_info.append(_path)
+            package_info.append(old_sha256)
+
+            file_location = f"{prefix}/{_path}"
+            new_sha256 = generate_sha256_checksum(file_location)
+            package_info.append(new_sha256)
+
+            if package_info[1] != package_info[2]:
+                altered_packages.setdefault(file.stem, []).append(package_info[0])
+
+    return altered_packages
+
+
 def display_health_checks(prefix: str, verbose: bool) -> None:
     """Prints health report."""
     display_report_heading(prefix)
@@ -46,3 +84,17 @@ def display_health_checks(prefix: str, verbose: bool) -> None:
         print("\n")
     else:
         print(MISSING_FILES_SUCCESS_MESSAGE)
+
+    altered_packages = find_altered_packages(prefix)
+    if altered_packages:
+        print("Altered Files\n")
+        for file, files in altered_packages.items():
+            if verbose:
+                delimiter = "\n "
+                print(f"{file}:{delimiter}{delimiter.join(files)}\n")
+            else:
+                print(f"{file}: {len(files)}")
+
+        print("\n")
+    else:
+        print(ALTERED_FILES_SUCCESS_MESSAGE)
