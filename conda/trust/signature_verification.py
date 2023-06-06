@@ -17,8 +17,9 @@ try:
     )
     from conda_content_trust.signing import wrap_as_signable
 except ImportError:
-    # SignatureStatus.enabled handles this
-    pass
+    # _SignatureVerification.enabled handles the rest of this state
+    class SignatureError(Exception):
+        pass
 
 
 from ..base.context import context
