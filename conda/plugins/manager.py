@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Callable, Iterable
 from importlib.metadata import distributions
 
 import pluggy
@@ -93,7 +94,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(self, name: str) -> list:
         """
         Return results of the plugin hooks with the given name and
-        raise an error if there is an conflict.
+        raise an error if there is a conflict.
         """
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
@@ -147,7 +148,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for solver in self.get_hook_results("solvers")
         }
 
-        # Look up the solver mapping an fail loudly if it can't
+        # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
         backend = solvers_mapping.get(name, None)
         if backend is None:
@@ -159,6 +160,20 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
+    def yield_pre_command_hook_actions(self, command: str) -> Iterable[Callable]:
+        """
+        Yields the ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands``
+        hook.
+
+        :param command: name of the command that is currently being invoked
+        """
+        # Load pre-commands available to run
+        pre_command_hooks = self.get_hook_results("pre_commands")
+
+        for pre_command in pre_command_hooks:
+            if command in pre_command.run_for:
+                yield pre_command.action
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -169,9 +184,7 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers,
-        *virtual_packages.plugins,
-        *subcommands.plugins,
+        solvers, *virtual_packages.plugins, *subcommands.plugins
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

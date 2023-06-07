@@ -566,7 +566,7 @@ def env_is_created(env_name):
     from os.path import basename
 
     for prefix in list_all_known_prefixes():
-        name = ROOT_ENV_NAME if prefix == context.root_dir else basename(prefix)
+        name = ROOT_ENV_NAME if prefix == context.root_prefix else basename(prefix)
         if name == env_name:
             return True
 

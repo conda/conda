@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add support for FreeBSD. (#12647)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.testing.encode_for_env_var` as pending deprecation. (#12677)
+* <news item>
 
 ### Docs
 

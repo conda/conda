@@ -78,6 +78,7 @@ except OSError as e:
 log = getLogger(__name__)
 
 _platform_map = {
+    "freebsd13": "freebsd",
     "linux2": "linux",
     "linux": "linux",
     "darwin": "osx",
@@ -300,9 +301,9 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    # #############################
-    # channels
-    # #############################
+    ####################################################
+    #               Channel Configuration              #
+    ####################################################
     allow_non_channel_urls = ParameterLoader(PrimitiveParameter(False))
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS, validation=channel_alias_validation),
@@ -391,9 +392,9 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
-    # ######################################################
-    # ##               Solver Configuration               ##
-    # ######################################################
+    ####################################################
+    #               Solver Configuration               #
+    ####################################################
     deps_modifier = ParameterLoader(PrimitiveParameter(DepsModifier.NOT_SET))
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
@@ -636,7 +637,12 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    def root_dir(self):
+    @deprecated(
+        "24.3",
+        "24.9",
+        addendum="Please use `conda.base.context.context.root_prefix` instead.",
+    )
+    def root_dir(self) -> os.PathLike:
         # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
         # because it is more consistent with other names
         return self.root_prefix

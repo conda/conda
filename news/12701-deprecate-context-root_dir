@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.testing.integration.temp_chdir` as pending deprecation. Use `monkeypatch.chdir` instead. (#12678)
+* Mark `conda.base.context.context.root_dir` as pending deprecation. Use `conda.base.context.context.root_prefix` instead. (#12701)
 
 ### Docs
 

@@ -160,7 +160,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${OS}.json
+            tests\durations\${{ env.OS }}.json
             test-report.xml
           retention-days: 1
 
@@ -217,7 +217,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${OS}.json
+            tests/durations/${{ env.OS }}.json
             test-report.xml
           retention-days: 1
 
@@ -376,7 +376,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${OS}.json
+            tests/durations/${{ env.OS }}.json
             test-report.xml
           retention-days: 1
 
@@ -384,7 +384,7 @@ jobs:
   aggregate:
     # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-qemu, macos]
-    if: needs.changes.outputs.code == 'true' && always()
+    if: always() && needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     steps:
@@ -428,7 +428,7 @@ jobs:
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
     if: >-
-      success()
+      always()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""` (#12715)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Discuss options available to properly configure mirrored channels. (#12583, #12641)
+* <news item>
 
 ### Other
 
