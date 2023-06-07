@@ -11,6 +11,11 @@ on:
 jobs:
   update-durations:
     runs-on: ubuntu-latest
+    permissions:
+      # necessary to open PR
+      # https://github.com/peter-evans/create-pull-request#action-inputs
+      contents: write
+      pull-requests: write
     steps:
       - name: download recent artifacts
         run: >
@@ -36,18 +41,17 @@ jobs:
         run: python tests/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
-        permissions:
-          contents: write
-          pull-requests: write
         uses: peter-evans/create-pull-request@v5
         with:
-          push-to-fork: conda-bot/conda
-          token: ${{ secretes.DURATIONS_TOKEN }}
-          branch: update-durations
+          branch: conda-bot-update-durations
           delete-branch: true
           commit-message: Update test durations
           author: Conda Bot <18747875+conda-bot@users.noreply.github.com>
           committer: Conda Bot <18747875+conda-bot@users.noreply.github.com>
-          title: Update test durations
+          title: 🤖 Update test durations
           body: |
-            Automatically aggregate recent test durations.
+            Aggregate recent test durations for each test and update the durations file.
+
+            [durations.yml]: ${{ github.server_url }}/${{ github.repository }}/blob/main/.github/workflows/durations.yml
+
+            This PR was created automatically by the [`durations.yml`][durations.yml] workflow.
