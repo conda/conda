@@ -12,6 +12,7 @@ build:
     pre_install:
       - git update-index --assume-unchanged docs/requirements.txt docs/source/conf.py
     pre_build:
+      - python -m pip install --no-deps --no-cache-dir --editable .
       - python docs/source/_ext/conda_umls.py
   apt_packages:
     # Needed for the UML graph Sphinx extension
@@ -20,4 +21,4 @@ build:
 
 python:
   install:
-  - requirements: docs/requirements.txt
+    - requirements: docs/requirements.txt
