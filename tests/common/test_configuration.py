@@ -1,16 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from os import environ, mkdir
-from os.path import join
+from os.path import expandvars, join
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
+from uuid import uuid4
 
 import pytest
-from pytest import raises
+from pytest import MonkeyPatch, raises
 
 from conda.auxlib.ish import dals
+from conda.common.compat import on_win
 from conda.common.configuration import (
     Configuration,
     ConfigurationObject,
@@ -25,6 +27,7 @@ from conda.common.configuration import (
     SequenceParameter,
     ValidationError,
     YamlRawParameter,
+    custom_expandvars,
     load_file_configs,
     pretty_list,
     raise_errors,
@@ -769,3 +772,50 @@ def test_raise_errors():
 def test_parameter_flag():
     # run __str__ method of ParameterFlag enum
     assert str(ParameterFlag("final")) == "final"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        # valid substitutions
+        "prefix/$VARIABLE/suffix",
+        "prefix/${VARIABLE}/suffix",
+        pytest.param(
+            "prefix/%VARIABLE%/suffix",
+            marks=pytest.mark.skipif(
+                not on_win,
+                reason="%...% variable expansion is only on Windows",
+            ),
+        ),
+        # invalid substitutions
+        "prefix/$MISSING/suffix",
+        "prefix/${MISSING}/suffix",
+        "prefix/%MISSING%/suffix",
+        # escaped characters
+        pytest.param(
+            "prefix/$$/suffix",
+            marks=pytest.mark.skipif(
+                on_win,
+                reason="$$ is incorrectly handled on Windows",
+            ),
+        ),
+        pytest.param(
+            "prefix/%%/suffix",
+            marks=pytest.mark.skipif(
+                on_win,
+                reason="%% is incorrectly handled on Windows",
+            ),
+        ),
+        # ill-formed
+        "prefix/$/suffix",
+        "prefix/${}/suffix",
+        "prefix/%/suffix",
+        "prefix/$1/suffix",
+        "prefix/${1}/suffix",
+        "prefix/%1/suffix",
+        "prefix/%1%/suffix",
+    ],
+)
+def test_custom_expandvars(path: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("VARIABLE", value := uuid4().hex)
+    assert custom_expandvars(path, VARIABLE=value) == expandvars(path)
