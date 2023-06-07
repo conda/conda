@@ -144,7 +144,8 @@ class MatchSpec(metaclass=MatchSpecType):
       - version
       - build
     must be given as exact values.  In the future, the namespace field will be added to this list.
-    Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'.
+    Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'
+    or '*[sha256=f453db4ffe2271ec492a2913af4e61d4a6c118201f07de757df0eff769b65d2e]'.
     """
 
     FIELD_NAMES = (
@@ -158,6 +159,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "features",
         "url",
         "md5",
+        "sha256",
         "license",
         "license_family",
         "fn",
