@@ -44,7 +44,7 @@ requirements:
     - python
     - requests >=2.18.4,<3
     - ruamel.yaml >=0.11.14,<0.18
-    - setuptools >=31.0.1
+    - setuptools >=60.0.0
     - toolz >=0.8.1
     - tqdm >=4
   run_constrained:
