@@ -49,17 +49,11 @@ def find_altered_packages(prefix: str | Path) -> list[str]:
         required_data = data["paths_data"]["paths"]
 
         for path in required_data:
-            package_info = []
             _path = path.get("_path")
             old_sha256 = path.get("sha256_in_prefix")
-
-            package_info.append(_path)
-            package_info.append(old_sha256)
-
             file_location = f"{prefix}/{_path}"
             if os.path.isfile(file_location):
                 new_sha256 = generate_sha256_checksum(file_location)
-                package_info.append(new_sha256)
             else:
                 continue
 
