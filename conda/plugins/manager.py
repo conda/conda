@@ -184,7 +184,10 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers, *virtual_packages.plugins, *subcommands.plugins, *shells.plugins
+        solvers,
+        *virtual_packages.plugins,
+        *subcommands.plugins,
+        *shells.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

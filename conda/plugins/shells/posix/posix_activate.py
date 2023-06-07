@@ -168,8 +168,9 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
 
     try:
         args = parser.parse_args(argv)
-    except BaseException:
-        # avoid evaluation of help strings
+    except SystemExit:
+        # SystemExit: help blurb was printed, intercepting SystemExit(0) to avoid
+        # evaluation of help strings by shell interface
         raise SystemExit(1)
 
     return args

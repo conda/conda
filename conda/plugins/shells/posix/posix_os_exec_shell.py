@@ -149,12 +149,6 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
         "--dev", action="store_true", default=False, help=argparse.SUPPRESS
     )
 
-    commands.add_parser("deactivate", help="deactivate the current environment")
-    commands.add_parser(
-        "reactivate",
-        help="reactivate the current environment, updating environment variables",
-    )
-
     deactivate = commands.add_parser(
         "deactivate", help="Deactivate the current active conda environment"
     )
