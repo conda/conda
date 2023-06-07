@@ -11,6 +11,7 @@ build:
       - git fetch --unshallow
     pre_install:
       - git update-index --assume-unchanged docs/requirements.txt docs/source/conf.py
+      - python -m pip install --editable --no-deps --no-cache-dir .
     pre_build:
       - python docs/source/_ext/conda_umls.py
   apt_packages:
@@ -20,6 +21,4 @@ build:
 
 python:
   install:
-    - method: pip
-      path: .
     - requirements: docs/requirements.txt
