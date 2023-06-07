@@ -52,10 +52,9 @@ def find_altered_packages(prefix: str | Path) -> list[str]:
             _path = path.get("_path")
             old_sha256 = path.get("sha256_in_prefix")
             file_location = f"{prefix}/{_path}"
-            if os.path.isfile(file_location):
-                new_sha256 = generate_sha256_checksum(file_location)
-            else:
+            if not os.path.isfile(file_location):
                 continue
+            new_sha256 = generate_sha256_checksum(file_location)
 
             if old_sha256 is not None and old_sha256 != new_sha256:
                 altered_packages.setdefault(file.stem, []).append(_path)
