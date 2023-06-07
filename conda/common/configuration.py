@@ -1388,8 +1388,8 @@ class Configuration(metaclass=ConfigurationType):
         **kwargs,
     ) -> Iterable[Path]:
         for search in search_path:
-            # use custom_expandvars instead of os.path.expand so additional variables can be passed
-            # in without mutating os.environ
+            # use custom_expandvars instead of os.path.expandvars so additional variables can be
+            # passed in without mutating os.environ
             if isinstance(search, Path):
                 path = search
             else:

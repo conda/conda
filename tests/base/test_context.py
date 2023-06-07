@@ -357,8 +357,6 @@ class ContextCustomRcTests(TestCase):
                 reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
                 assert context.target_prefix == join(envs_dirs[0], "blarg")
 
-        # reset_context()
-
     def test_aggressive_update_packages(self):
         assert context.aggressive_update_packages == ()
         specs = ["certifi", "openssl>=1.1"]
