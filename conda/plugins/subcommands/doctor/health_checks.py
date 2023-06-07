@@ -7,6 +7,8 @@ import json
 import os
 from pathlib import Path
 
+from conda.exceptions import CondaError
+
 OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
 DETAILED_REPORT_TITLE = "\nDETAILED ENVIRONMENT HEALTH REPORT\n"
@@ -38,10 +40,16 @@ def find_altered_packages(prefix: str | Path) -> list[str]:
     altered_packages = {}
 
     def generate_sha256_checksum(filepath) -> str:
-        with open(filepath, "rb") as f:
-            bytes = f.read()
-            hash = hashlib.sha256(bytes).hexdigest()
-            return hash
+        try:
+            with open(filepath, "rb") as f:
+                bytes = f.read()
+                hash = hashlib.sha256(bytes).hexdigest()
+                return hash
+        except OSError as err:
+            raise CondaError(
+                f"Could not generate checksum for file {filepath}"
+                + f" because of the following error: {err}."
+            )
 
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
