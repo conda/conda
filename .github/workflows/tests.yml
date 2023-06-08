@@ -4,8 +4,7 @@
 name: Tests
 
 on:
-  # NOTE: github.event context is push payload:
-  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     branches:
       - main
@@ -13,8 +12,7 @@ on:
       - '[0-9].*.x'  # e.g., 4.14.x
       - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
-  # NOTE: github.event context is pull_request payload:
-  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
 
   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
