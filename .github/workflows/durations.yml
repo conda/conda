@@ -17,6 +17,8 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - uses: actions/checkout@v3
+
       - name: download recent artifacts
         run: >
           gh run list
@@ -36,8 +38,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
-      - uses: actions/checkout@v3
 
       - name: combine recent durations from artifacts
         run: python tests/durations/combine.py ${{ runner.temp }}/artifacts/
