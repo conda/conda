@@ -68,7 +68,6 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.11']
-        conda-subdir: ['win-64']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -77,7 +76,6 @@ jobs:
     env:
       OS: ${{ runner.os }}
       PYTHON: ${{ matrix.python-version }}
-      CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
@@ -139,7 +137,7 @@ jobs:
         run: |
           call .\dev\windows\setup.bat
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.conda-subdir }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: cmd
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
@@ -154,7 +152,7 @@ jobs:
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
             tests\durations\${{ runner.os }}.json
