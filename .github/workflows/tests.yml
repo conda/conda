@@ -54,7 +54,6 @@ jobs:
               - 'conda/**'
               - 'conda_env/**'
               - 'tests/**'
-              - '!tests/durations/**'
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
@@ -151,7 +150,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${{ runner.os }}.json
+            .\tools\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -209,7 +208,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ runner.os }}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -366,7 +365,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ runner.os }}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
