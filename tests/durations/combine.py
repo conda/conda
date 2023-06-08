@@ -53,4 +53,5 @@ for os, combined_os in combined.items():
             indent=4,
             sort_keys=True,
         )
+        + "\n"  # include trailing newline
     )
