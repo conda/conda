@@ -69,35 +69,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        conda-subdir: ['win-64']
+        python-version: ['3.8', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
-          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
             python-version: '3.8'
-          - default-channel: 'conda-forge'
-            python-version: '3.11'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
-      CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      # for cache
-      - if: ${{ runner.os == 'Windows' }}
-        name: Use GNU tar
-        shell: cmd
-        run: |
-          echo "Adding GNU tar to PATH"
-          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
 
       - name: Cache conda packages
         uses: actions/cache@v3
@@ -145,15 +133,14 @@ jobs:
         run: |
           call .\dev\windows\setup.bat
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.conda-subdir }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: cmd
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: always()
@@ -161,10 +148,10 @@ jobs:
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${{ env.OS }}.json
+            tests\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -178,16 +165,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.9', '3.10', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
-          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
             python-version: '3.8'
           - default-channel: 'conda-forge'
             python-version: '3.9'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -209,8 +198,7 @@ jobs:
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: always()
@@ -221,7 +209,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ env.OS }}.json
+            tests/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -244,7 +232,6 @@ jobs:
         python-version: ['3.11']
         platform: ['arm64', 'ppc64le']
     env:
-      OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v3
@@ -368,8 +355,7 @@ jobs:
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: always()
@@ -380,7 +366,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ env.OS }}.json
+            tests/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
