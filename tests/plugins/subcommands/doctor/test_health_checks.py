@@ -13,6 +13,7 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_vars
 from conda.plugins.subcommands.doctor.health_checks import (
     display_health_checks,
+    find_altered_packages,
     find_packages_with_missing_files,
 )
 from conda.testing.integration import make_temp_env
@@ -33,18 +34,47 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
     lib_doctor = f"lib/{package}.py"
     (tmp_path / lib_doctor).touch()
 
-    (tmp_path / "conda-meta" / f"{package}.json").write_text(
-        json.dumps({"files": [bin_doctor, lib_doctor]})
-    )
+    PACKAGE_JSON = {
+        "files": [
+            bin_doctor,
+            lib_doctor,
+        ],
+        "paths_data": {
+            "paths": [
+                {
+                    "_paths": bin_doctor,
+                    "sha256": "",
+                },
+                {
+                    "_paths": lib_doctor,
+                    "sha256": "",
+                },
+            ]
+        },
+    }
+
+    (tmp_path / "conda-meta" / f"{package}.json").write_text(json.dumps(PACKAGE_JSON))
 
     yield tmp_path, bin_doctor, lib_doctor, package
 
 
 @pytest.fixture
-def env_broken(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
+def env_missing_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
     """Fixture that returns a testing environment with missing files"""
     prefix, bin_doctor, _, _ = env_ok
     (prefix / bin_doctor).unlink()
+    return env_ok
+
+
+@pytest.fixture
+def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
+    """Fixture that returns a testing environment with altered files"""
+    prefix, _, lib_doctor, _ = env_ok
+
+    with open(prefix / lib_doctor, "w+") as f:
+        f.write("print('Hello, World!')")
+        f.close
+
     return env_ok
 
 
@@ -54,9 +84,20 @@ def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
     assert find_packages_with_missing_files(prefix) == {}
 
 
-def test_missing_files(env_broken: tuple[Path, str, str, str]):
-    prefix, bin_doctor, _, package = env_broken
+def test_missing_files(env_missing_files: tuple[Path, str, str, str]):
+    prefix, bin_doctor, _, package = env_missing_files
     assert find_packages_with_missing_files(prefix) == {package: [bin_doctor]}
+
+
+def test_no_altered_files(env_ok: tuple[Path, str, str, str]):
+    """Test that runs for the case with no altered files"""
+    prefix, _, _, _ = env_ok
+    assert find_altered_packages(prefix) == {}
+
+
+def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
+    prefix, _, lib_doctor, package = env_altered_files
+    assert find_altered_packages(prefix) == {package: [lib_doctor]}
 
 
 @pytest.mark.parametrize("verbose", [True, False])

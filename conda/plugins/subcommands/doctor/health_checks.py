@@ -35,7 +35,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     return packages_with_missing_files
 
 
-def find_altered_packages(prefix: str | Path) -> list[str]:
+def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     """Finds altered packages"""
     altered_packages = {}
 
