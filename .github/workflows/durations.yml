@@ -1,11 +1,12 @@
 name: Update Durations
 
 on:
-  # Every Sunday at 00:00 UTC
+  # every Sunday at 00:00 UTC
   # https://crontab.guru/#0_0_*_*_0
   schedule:
     - cron: '0 0 * * 0'
 
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
 
 jobs:
@@ -46,7 +47,9 @@ jobs:
       - name: create updated durations PR
         uses: peter-evans/create-pull-request@v5
         with:
-          branch: conda-bot-update-durations
+          push-to-fork: conda-bot/conda
+          token: ${{ secrets.DURATIONS_TOKEN }}
+          branch: update-durations
           delete-branch: true
           commit-message: Update test durations
           author: Conda Bot <18747875+conda-bot@users.noreply.github.com>
