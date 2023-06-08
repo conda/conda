@@ -31,7 +31,8 @@ jobs:
             -n 1 \
           gh run download \
             --dir ${{ runner.temp }}/artifacts/ \
-            --pattern '*-all'
+            --pattern '*-all' \
+          || true
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
