@@ -74,7 +74,7 @@ jobs:
           - default-channel: 'conda-forge'
             python-version: '3.8'
     env:
-      OS: ${{ runner.os }}
+      OS: Windows
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
@@ -174,7 +174,7 @@ jobs:
           - default-channel: 'conda-forge'
             python-version: '3.10'
     env:
-      OS: ${{ runner.os }}
+      OS: Linux
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
@@ -288,7 +288,7 @@ jobs:
           - test-type: unit
             default-channel: 'defaults'
     env:
-      OS: ${{ runner.os }}
+      OS: macOS
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
