@@ -83,14 +83,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # for cache
-      - if: ${{ runner.os == 'Windows' }}
-        name: Use GNU tar
-        shell: cmd
-        run: |
-          echo "Adding GNU tar to PATH"
-          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
-
       - name: Cache conda packages
         uses: actions/cache@v3
         env:
