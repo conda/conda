@@ -30,6 +30,8 @@ jobs:
           gh run download
             --dir ${{ runner.temp }}/artifacts/
             --pattern '*-all'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - uses: actions/setup-python@v4
         with:
