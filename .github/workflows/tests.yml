@@ -51,9 +51,10 @@ jobs:
               - 'conda/**'
               - 'conda_env/**'
               - 'tests/**'
+              - '!tests/durations/**'
               - '*.py'
               - 'recipe/**'
-              - '.github/workflows/tests.yml'
+          #     - '.github/workflows/tests.yml'
 
   # windows test suite
   windows:
