@@ -9,8 +9,8 @@ authors:
 repository-code: "https://github.com/conda/conda"
 url: "https://docs.conda.io/projects/conda/"
 abstract: >-
-  Conda is a cross-platform, language-agnostic binary package manager. It is the package manager 
-  used by Anaconda installations, but it may be used for other systems as well. Conda makes 
-  environments first-class citizens, making it easy to create independent environments even for 
+  Conda is a cross-platform, language-agnostic binary package manager. It is the package manager
+  used by Anaconda installations, but it may be used for other systems as well. Conda makes
+  environments first-class citizens, making it easy to create independent environments even for
   C libraries. Conda is written entirely in Python, and is BSD licensed open source.
 license: BSD 3 clause
