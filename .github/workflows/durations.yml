@@ -20,6 +20,7 @@ jobs:
       - name: download recent artifacts
         run: >
           gh run list
+            --repo ${{ github.repository }}
             --branch main
             --workflow tests
             --limit 10
@@ -28,6 +29,7 @@ jobs:
           | xargs
             -n 1
           gh run download
+            --repo ${{ github.repository }}
             --dir ${{ runner.temp }}/artifacts/
             --pattern '*-all'
         env:
