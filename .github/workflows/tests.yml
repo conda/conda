@@ -38,14 +38,16 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     permissions:
+      # necessary to detect changes
+      # https://github.com/dorny/paths-filter#supported-workflows
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v3
         # dorny/paths-filter needs git clone for push events
-        # https://github.com/marketplace/actions/paths-changes-filter#supported-workflows
-        if: github.event_name == 'push'
+        # https://github.com/dorny/paths-filter#supported-workflows
+        if: github.event_name != 'pull_request'
       - uses: dorny/paths-filter@v2.11.1
         id: filter
         with:
