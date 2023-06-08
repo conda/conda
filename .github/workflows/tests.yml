@@ -17,6 +17,9 @@ on:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
 
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
+  workflow_dispatch:
+
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
   # or commit SHA as a fallback. If a new build is triggered under that
@@ -43,7 +46,7 @@ jobs:
         # dorny/paths-filter needs git clone for push events
         # https://github.com/marketplace/actions/paths-changes-filter#supported-workflows
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50
+      - uses: dorny/paths-filter@v2.11.1
         id: filter
         with:
           filters: |
@@ -51,6 +54,7 @@ jobs:
               - 'conda/**'
               - 'conda_env/**'
               - 'tests/**'
+              - '!tests/durations/**'
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'

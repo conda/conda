@@ -17,25 +17,28 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - uses: actions/checkout@v3
+
       - name: download recent artifacts
-        run: >
-          gh run list
-            --branch main
-            --workflow tests
-            --limit 10
-            --json databaseId
-            --jq '.[].databaseId'
-          | xargs
-            -n 1
-          gh run download
-            --dir ${{ runner.temp }}/artifacts/
-            --pattern '*-all'
+        run: |
+          gh run list \
+            --branch main \
+            --workflow tests \
+            --limit 10 \
+            --json databaseId \
+            --jq '.[].databaseId' \
+          | xargs \
+            -n 1 \
+          gh run download \
+            --dir ${{ runner.temp }}/artifacts/ \
+            --pattern '*-all' \
+          || true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
-      - uses: actions/checkout@v3
 
       - name: combine recent durations from artifacts
         run: python tests/durations/combine.py ${{ runner.temp }}/artifacts/
