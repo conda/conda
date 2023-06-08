@@ -20,17 +20,17 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: download recent artifacts
-        run: >
-          gh run list
-            --branch main
-            --workflow tests
-            --limit 10
-            --json databaseId
-            --jq '.[].databaseId'
-          | xargs
-            -n 1
-          gh run download
-            --dir ${{ runner.temp }}/artifacts/
+        run: |
+          gh run list \
+            --branch main \
+            --workflow tests \
+            --limit 10 \
+            --json databaseId \
+            --jq '.[].databaseId' \
+          | xargs \
+            -n 1 \
+          gh run download \
+            --dir ${{ runner.temp }}/artifacts/ \
             --pattern '*-all'
         env:
           GITHUB_TOKEN: ${{ github.token }}
