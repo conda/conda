@@ -47,7 +47,9 @@ jobs:
       - name: create updated durations PR
         uses: peter-evans/create-pull-request@v5
         with:
-          branch: conda-bot-update-durations
+          push-to-fork: conda-bot/conda
+          token: ${{ secrets.DURATIONS_TOKEN }}
+          branch: update-durations
           delete-branch: true
           commit-message: Update test durations
           author: Conda Bot <18747875+conda-bot@users.noreply.github.com>
