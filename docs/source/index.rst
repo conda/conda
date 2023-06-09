@@ -33,8 +33,8 @@ In its default configuration, conda can install and manage the
 over 7,500 packages at repo.anaconda.com that are built, reviewed,
 and maintained by Anaconda\ |reg|.
 
-Conda can be combined with continuous integration systems such
-as Travis CI and AppVeyor to provide frequent, automated testing
+Conda can be combined with continuous integration systems, such
+as GitHub Actions, to provide frequent, automated testing
 of your code.
 
 The conda package and environment manager is included in all versions of
@@ -56,8 +56,9 @@ that approach may not be as up to date.
    user-guide/index
    configuration
    api/index
-   release-notes
    commands
    glossary
+   dev-guide/index
+   release-notes
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

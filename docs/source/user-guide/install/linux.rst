@@ -42,9 +42,15 @@ Installing on Linux
 Using with fish shell
 =========================
 
-To use conda with fish shell, run the following in your terminal: 
+To use conda with fish shell, run the following in your terminal:
 
-  ``conda init fish``
+ #. Add conda binary to $PATH, if not yet added::
+
+      fish_add_path <conda-install-location>/condabin
+
+ #. Configure fish-shell::
+
+      conda init fish
 
 Installing in silent mode
 =========================

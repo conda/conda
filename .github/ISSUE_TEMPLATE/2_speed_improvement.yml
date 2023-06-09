@@ -1,0 +1,100 @@
+name: Speed Improvement
+description: If you think Conda could be faster
+labels: ['type::feature', 'tag::performance']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping Conda! 🐍
+
+        Going through bugs and issues takes up a lot of time, so please be so kind and take a few minutes to fill out all the areas to the best of your ability.
+
+        There will always be more issues than there is time to do them, and so we will need to selectively close issues that don't provide enough information, so we can focus our time on helping people like you who fill out the issue form completely. Thank you for your collaboration!
+
+        There are also already a lot of open issues, so please take 2 minutes and search through existing ones to see if what you are experiencing already exists
+
+        Thanks for helping Conda be amazing. We are nothing without people like you helping build a better community 💐!
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      description: Please confirm and check all the following options.
+      options:
+        - label: I added a descriptive title
+          required: true
+        - label: I searched for other speed issues and didn't find a duplicate
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What oepration was taking a long time, and how long do you think it should have taken? Are there any other comparable tools you are basing this on?
+      placeholder: I was trying to export an environment to a file. I was expecting it to be done within 60 seconds. Using the "conda env export --file SOME_FILE" command
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug
+      description: |
+        Let's get some info by generating a conda_debug_output.txt and pasting the output
+
+        #### On unix (bash shell)
+        ```sh
+        CONDA_INSTRUMENTATION_ENABLED=1 <your conda command> -vv | tee conda_debug_output.txt
+        ```
+
+        #### On Windows (powershell)
+        ```sh
+        set CONDA_INSTRUMENTATION_ENABLED=1
+        <your conda command> -vv | tee conda_debug_output.txt
+        ```
+      render: shell
+      placeholder: Paste contents of conda_debug_output.txt here
+  - type: textarea
+    id: info
+    attributes:
+      label: Conda info
+      description: |
+        Let's get the info on your Conda setup. Run the following command from your command line and paste the output
+
+        ```bash
+        conda info
+        ```
+      render: shell
+      placeholder: Paste contents of "conda info" here
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Conda config
+      description: |
+        Let's see what your Conda config looks like. Run the following command from your command line and paste the output
+
+        ```bash
+        conda config --show-sources
+        ```
+      render: shell
+      placeholder: Paste contents of "conda config --show-sources" here
+    validations:
+      required: true
+  - type: textarea
+    id: list
+    attributes:
+      label: Conda list
+      description: |
+        These are the packages installed in your Conda environment and the Conda channels used. They tell us where you are pulling packages from. Make sure you are in the environment where \n you are seeing the issues. Run the following command from your command line and paste the output
+
+        ```bash
+        conda list --show-channel-urls
+        ```
+      render: shell
+      placeholder: Paste contents of "conda list --show-channel-urls" here
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any additional context information or screenshots you think are useful.

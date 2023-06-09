@@ -1,0 +1,46 @@
+---
+name: Lock
+
+on:
+  # NOTE: github.event is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
+  workflow_dispatch:
+
+  schedule:
+    - cron: 0 6 * * *
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  lock:
+    if: '!github.event.repository.fork'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/lock-threads@v4
+        with:
+          # Number of days of inactivity before a closed issue is locked
+          issue-inactive-days: 365
+          # Do not lock issues created before a given timestamp, value must follow ISO 8601
+          exclude-issue-created-before: ''
+          # Do not lock issues with these labels, value must be a comma separated list of labels or ''
+          exclude-any-issue-labels: ''
+          # Labels to add before locking an issue, value must be a comma separated list of labels or ''
+          add-issue-labels: locked
+          # Reason for locking an issue, value must be one of resolved, off-topic, too heated, spam or ''
+          issue-lock-reason: resolved
+
+          # Number of days of inactivity before a closed pull request is locked
+          pr-inactive-days: 365
+          # Do not lock pull requests created before a given timestamp, value must follow ISO 8601
+          exclude-pr-created-before: ''
+          # Do not lock pull requests with these labels, value must be a comma separated list of labels or ''
+          exclude-any-pr-labels: ''
+          # Labels to add before locking a pull request, value must be a comma separated list of labels or ''
+          add-pr-labels: locked
+          # Reason for locking a pull request, value must be one of resolved, off-topic, too heated, spam or ''
+          pr-lock-reason: resolved
+
+          # Limit locking to only issues or pull requests, value must be one of issues, prs or ''
+          process-only: ''

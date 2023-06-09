@@ -1,0 +1,36 @@
+---
+name: Automate Issues
+
+on:
+  # NOTE: github.event is issue_comment payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
+  issue_comment:
+    types: [created]
+
+env:
+  FEEDBACK_LBL: pending::feedback
+  SUPPORT_LBL: pending::support
+
+jobs:
+  # NOTE: will update label if anyone responds, not just the author/reporter
+  # TODO: create conda-issue-sorting team and modify this to toggle label based on
+  # whether a non-issue-sorting engineer commented
+  pending_support:
+    # if [pending::feedback] and anyone responds
+    if: >-
+      !github.event.repository.fork
+      && !github.event.issue.pull_request
+      && contains(github.event.issue.labels.*.name, 'pending::feedback')
+    runs-on: ubuntu-latest
+    steps:
+      # remove [pending::feedback]
+      - uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: ${{ env.FEEDBACK_LBL }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}
+      # add [pending::support], if still open
+      - uses: actions-ecosystem/action-add-labels@v1.1.3
+        if: github.event.issue.state == 'open'
+        with:
+          labels: ${{ env.SUPPORT_LBL }}
+          github_token: ${{ secrets.PROJECT_TOKEN }}

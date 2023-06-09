@@ -1,3 +1,7 @@
 name: test
 dependencies:
-  - flask==1.0.2
+  - flask==2.0.3
+variables:
+  FIXED: fixed
+  CHANGES: updated_value
+  NEW_VAR: new_var

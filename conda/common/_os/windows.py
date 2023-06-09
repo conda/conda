@@ -1,19 +1,30 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from enum import IntEnum
 from logging import getLogger
 
-from ..compat import ensure_binary, on_win, string_types
+from ..compat import ensure_binary, on_win
 
 log = getLogger(__name__)
 
 if on_win:
-    from ctypes import (POINTER, Structure, WinError, byref, c_ulong, c_char_p, c_int, c_ulonglong,
-                        c_void_p, c_wchar_p, pointer, sizeof, windll)
-    from ctypes.wintypes import HANDLE, BOOL, DWORD, HWND, HINSTANCE, HKEY
+    from ctypes import (
+        POINTER,
+        Structure,
+        WinError,
+        byref,
+        c_char_p,
+        c_int,
+        c_ulong,
+        c_ulonglong,
+        c_void_p,
+        c_wchar_p,
+        pointer,
+        sizeof,
+        windll,
+    )
+    from ctypes.wintypes import BOOL, DWORD, HANDLE, HINSTANCE, HKEY, HWND
+
     PHANDLE = POINTER(HANDLE)
     PDWORD = POINTER(DWORD)
     SEE_MASK_NOCLOSEPROCESS = 0x00000040
@@ -24,44 +35,44 @@ if on_win:
     WaitForSingleObject.restype = DWORD
 
     CloseHandle = windll.kernel32.CloseHandle
-    CloseHandle.argtypes = (HANDLE, )
+    CloseHandle.argtypes = (HANDLE,)
     CloseHandle.restype = BOOL
 
     class ShellExecuteInfo(Structure):
         """
-https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-shellexecuteexa
-https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shellexecuteinfoa
+        https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-shellexecuteexa
+        https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shellexecuteinfoa
         """
 
         _fields_ = [
-            ('cbSize', DWORD),
-            ('fMask', c_ulong),
-            ('hwnd', HWND),
-            ('lpVerb', c_char_p),
-            ('lpFile', c_char_p),
-            ('lpParameters', c_char_p),
-            ('lpDirectory', c_char_p),
-            ('nShow', c_int),
-            ('hInstApp', HINSTANCE),
-            ('lpIDList', c_void_p),
-            ('lpClass', c_char_p),
-            ('hKeyClass', HKEY),
-            ('dwHotKey', DWORD),
-            ('hIcon', HANDLE),
-            ('hProcess', HANDLE)
+            ("cbSize", DWORD),
+            ("fMask", c_ulong),
+            ("hwnd", HWND),
+            ("lpVerb", c_char_p),
+            ("lpFile", c_char_p),
+            ("lpParameters", c_char_p),
+            ("lpDirectory", c_char_p),
+            ("nShow", c_int),
+            ("hInstApp", HINSTANCE),
+            ("lpIDList", c_void_p),
+            ("lpClass", c_char_p),
+            ("hKeyClass", HKEY),
+            ("dwHotKey", DWORD),
+            ("hIcon", HANDLE),
+            ("hProcess", HANDLE),
         ]
 
         def __init__(self, **kwargs):
             Structure.__init__(self)
             self.cbSize = sizeof(self)
             for field_name, field_value in kwargs.items():
-                if isinstance(field_value, string_types):
+                if isinstance(field_value, str):
                     field_value = ensure_binary(field_value)
                 setattr(self, field_name, field_value)
 
     PShellExecuteInfo = POINTER(ShellExecuteInfo)
     ShellExecuteEx = windll.Shell32.ShellExecuteExA
-    ShellExecuteEx.argtypes = (PShellExecuteInfo, )
+    ShellExecuteEx.argtypes = (PShellExecuteInfo,)
     ShellExecuteEx.restype = BOOL
 
 
@@ -108,7 +119,7 @@ def get_free_space_on_windows(dir_name):
         )
         result = free_bytes.value
     except Exception as e:
-        log.info('%r', e)
+        log.info("%r", e)
     return result
 
 
@@ -118,7 +129,7 @@ def is_admin_on_windows():  # pragma: unix no cover
     try:
         result = windll.shell32.IsUserAnAdmin() != 0
     except Exception as e:  # pragma: no cover
-        log.info('%r', e)
+        log.info("%r", e)
         # result = 'unknown'
     return result
 
@@ -129,7 +140,7 @@ def _wait_and_close_handle(process_handle):
         WaitForSingleObject(process_handle, INFINITE)
         CloseHandle(process_handle)
     except Exception as e:
-        log.info('%r', e)
+        log.info("%r", e)
 
 
 def run_as_admin(args, wait=True):
@@ -152,14 +163,14 @@ def run_as_admin(args, wait=True):
     - https://github.com/JustAMan/pyWinClobber/blob/master/win32elevate.py
     """
     arg0 = args[0]
-    param_str = ' '.join(args[1:] if len(args) > 1 else ())
+    param_str = " ".join(args[1:] if len(args) > 1 else ())
     hprocess = None
     error_code = None
     try:
         execute_info = ShellExecuteInfo(
             fMask=SEE_MASK_NOCLOSEPROCESS,
             hwnd=None,
-            lpVerb='runas',
+            lpVerb="runas",
             lpFile=arg0,
             lpParameters=param_str,
             lpDirectory=None,
@@ -170,7 +181,7 @@ def run_as_admin(args, wait=True):
     except Exception as e:
         successful = False
         error_code = e
-        log.info('%r', e)
+        log.info("%r", e)
 
     if not successful:
         error_code = WinError()

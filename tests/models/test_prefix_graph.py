@@ -1,34 +1,34 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+import warnings
+from functools import lru_cache
 from pprint import pprint
 
-from conda._vendor.auxlib.decorators import memoize
+import pytest
+
+import conda.models.prefix_graph
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
-import conda.models.prefix_graph
-from conda.models.prefix_graph import PrefixGraph, GeneralGraph
+from conda.models.prefix_graph import GeneralGraph, PrefixGraph
 from conda.models.records import PackageRecord
-import pytest
-from tests.core.test_solve import get_solver_4, get_solver_5
-from tests.helpers import add_subdir_to_iter
+from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
 
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
 
-@memoize
+@lru_cache(maxsize=None)
 def get_conda_build_record_set(tmpdir):
-    specs = MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("intel-openmp"),
+    specs = (
+        MatchSpec("conda"),
+        MatchSpec("conda-build"),
+        MatchSpec("intel-openmp"),
+    )
     with get_solver_4(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_pandas_record_set(tmpdir):
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13")
     with get_solver_4(tmpdir, specs) as solver:
@@ -36,19 +36,27 @@ def get_pandas_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_windows_conda_build_record_set(tmpdir):
-    specs = (MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("affine"),
-             MatchSpec("colour"), MatchSpec("uses-spiffy-test-app"),)
+    specs = (
+        MatchSpec("conda"),
+        MatchSpec("conda-build"),
+        MatchSpec("affine"),
+        MatchSpec("colour"),
+        MatchSpec("uses-spiffy-test-app"),
+    )
     with get_solver_5(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_sqlite_cyclical_record_set(tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
-    specs = MatchSpec("sqlite=3.20.1[build_number=4]"), MatchSpec("flask"),
+    specs = (
+        MatchSpec("sqlite=3.20.1[build_number=4]"),
+        MatchSpec("flask"),
+    )
     with get_solver_4(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
@@ -60,72 +68,78 @@ def test_prefix_graph_1(tmpdir):
     records, specs = get_conda_build_record_set(tmpdir)
     graph = PrefixGraph(records, specs)
 
+    channel_name = next(graph.records).channel.canonical_name
+    if channel_name.startswith("file:///"):
+        warnings.warn(
+            f"channel name starts with file:/// and is {channel_name}; cache issue in tests?"
+        )
+
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
     order = (
-        'intel-openmp',
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
-        'conda-build',
+        "intel-openmp",
+        "ca-certificates",
+        "conda-env",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "patchelf",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
+        "requests",
+        "conda",
+        "conda-build",
     )
     assert nodes == order
 
-    python_node = graph.get_node_by_name('python')
+    python_node = graph.get_node_by_name("python")
     python_ancestors = graph.all_ancestors(python_node)
     nodes = tuple(rec.name for rec in python_ancestors)
     pprint(nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "tk",
+        "xz",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
     )
     assert nodes == order
 
@@ -133,32 +147,32 @@ def test_prefix_graph_1(tmpdir):
     nodes = tuple(rec.name for rec in python_descendants)
     pprint(nodes)
     order = (
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
-        'conda-build',
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
+        "requests",
+        "conda",
+        "conda-build",
     )
     assert nodes == order
 
@@ -167,112 +181,118 @@ def test_prefix_graph_1(tmpdir):
     nodes = tuple(rec.name for rec in removed_nodes)
     pprint(nodes)
     order = (
-        'requests',
-        'conda',
-        'conda-build',
+        "requests",
+        "conda",
+        "conda-build",
     )
     assert nodes == order
+
+    # separate code path to remove track_features= matches
+    assert graph.remove_spec(MatchSpec("requests[track_features=x]")) == ()
 
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
     order = (
-        'conda-env',
-        'intel-openmp',
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
+        "conda-env",
+        "intel-openmp",
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "patchelf",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
     )
     assert nodes == order
 
-    spec_matches = add_subdir_to_iter({
-        'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
-    })
-    assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
+    spec_matches = add_subdir_to_iter(
+        {
+            f"{channel_name}::intel-openmp-2018.0.3-0": {"intel-openmp"},
+        }
+    )
+    assert {
+        node.dist_str(): {str(ms) for ms in specs}
+        for node, specs in graph.spec_matches.items()
+    } == spec_matches
 
     removed_nodes = graph.prune()
     nodes = tuple(rec.dist_str() for rec in graph.records)
     pprint(nodes)
-    order = add_subdir_to_iter((
-        'channel-4::intel-openmp-2018.0.3-0',
-    ))
+    order = add_subdir_to_iter((f"{channel_name}::intel-openmp-2018.0.3-0",))
     assert nodes == order
 
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     order = (
-        'conda-env',
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
+        "conda-env",
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "patchelf",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
     )
     pprint(removed_nodes)
     assert removed_nodes == order
@@ -282,55 +302,55 @@ def test_prefix_graph_2(tmpdir):
     records, specs = get_conda_build_record_set(tmpdir)
     graph = PrefixGraph(records, specs)
 
-    conda_build_node = graph.get_node_by_name('conda-build')
+    conda_build_node = graph.get_node_by_name("conda-build")
     del graph.spec_matches[conda_build_node]
 
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
     order = (
-        'intel-openmp',
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
-        'conda-build',
+        "intel-openmp",
+        "ca-certificates",
+        "conda-env",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "patchelf",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
+        "requests",
+        "conda",
+        "conda-build",
     )
     assert nodes == order
 
@@ -338,53 +358,53 @@ def test_prefix_graph_2(tmpdir):
     remaining_nodes = tuple(rec.name for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'intel-openmp',
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'idna',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'cryptography',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
+        "intel-openmp",
+        "ca-certificates",
+        "conda-env",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "idna",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "cryptography",
+        "pyopenssl",
+        "urllib3",
+        "requests",
+        "conda",
     )
     assert remaining_nodes == order
 
     order = (
-        'patchelf',
-        'beautifulsoup4',
-        'filelock',
-        'glob2',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pyyaml',
-        'setuptools',
-        'jinja2',
-        'conda-build',
+        "patchelf",
+        "beautifulsoup4",
+        "filelock",
+        "glob2",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pyyaml",
+        "setuptools",
+        "jinja2",
+        "conda-build",
     )
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
@@ -400,53 +420,53 @@ def test_remove_youngest_descendant_nodes_with_specs(tmpdir):
     remaining_nodes = tuple(rec.name for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
+        "ca-certificates",
+        "conda-env",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "patchelf",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
+        "requests",
+        "conda",
     )
     assert remaining_nodes == order
 
     order = (
-        'intel-openmp',
-        'conda-build',
+        "intel-openmp",
+        "conda-build",
     )
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
@@ -458,52 +478,50 @@ def test_remove_youngest_descendant_nodes_with_specs(tmpdir):
     remaining_nodes = tuple(rec.name for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'conda-env',
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
+        "conda-env",
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "patchelf",
+        "tk",
+        "xz",
+        "yaml",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pysocks",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "cffi",
+        "setuptools",
+        "cryptography",
+        "jinja2",
+        "pyopenssl",
+        "urllib3",
+        "requests",
     )
     assert remaining_nodes == order
 
-    order = (
-        'conda',
-    )
+    order = ("conda",)
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == order
@@ -514,50 +532,50 @@ def test_remove_youngest_descendant_nodes_with_specs(tmpdir):
     remaining_nodes = tuple(rec.name for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'certifi',
-        'chardet',
-        'cryptography-vectors',
-        'idna',
-        'pycparser',
-        'pysocks',
-        'six',
-        'cffi',
-        'cryptography',
-        'pyopenssl',
-        'urllib3',
-        'requests',
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "tk",
+        "xz",
+        "zlib",
+        "libedit",
+        "readline",
+        "sqlite",
+        "python",
+        "asn1crypto",
+        "certifi",
+        "chardet",
+        "cryptography-vectors",
+        "idna",
+        "pycparser",
+        "pysocks",
+        "six",
+        "cffi",
+        "cryptography",
+        "pyopenssl",
+        "urllib3",
+        "requests",
     )
     assert remaining_nodes == order
 
     order = (
-        'conda-env',
-        'patchelf',
-        'yaml',
-        'beautifulsoup4',
-        'filelock',
-        'glob2',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pyyaml',
-        'ruamel_yaml',
-        'setuptools',
-        'jinja2',
+        "conda-env",
+        "patchelf",
+        "yaml",
+        "beautifulsoup4",
+        "filelock",
+        "glob2",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pyyaml",
+        "ruamel_yaml",
+        "setuptools",
+        "jinja2",
     )
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
@@ -577,49 +595,49 @@ def test_windows_sort_orders_1(tmpdir):
         nodes = tuple(rec.name for rec in graph.records)
         pprint(nodes)
         order = (
-            'ca-certificates',
-            'conda-env',
-            'vs2015_runtime',
-            'vc',
-            'openssl',
-            'python',
-            'yaml',
-            'pywin32',
-            'menuinst',  # on_win, menuinst should be very early
-            'affine',
-            'asn1crypto',
-            'beautifulsoup4',
-            'certifi',
-            'chardet',
-            'colour',
-            'cryptography-vectors',
-            'filelock',
-            'glob2',
-            'idna',
-            'markupsafe',
-            'pkginfo',
-            'psutil',
-            'pycosat',
-            'pycparser',
-            'pyyaml',
-            'ruamel_yaml',
-            'six',
-            'win_inet_pton',
-            'wincertstore',
-            'cffi',
-            'pysocks',
-            'setuptools',
-            'cryptography',
-            'jinja2',
-            'wheel',
-            'pip',  # pip always comes after python
-            'pyopenssl',
-            'urllib3',
-            'requests',
-            'conda',  # on_win, conda comes before all noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
-            'conda-build',
-            'spiffy-test-app',
-            'uses-spiffy-test-app',
+            "ca-certificates",
+            "conda-env",
+            "vs2015_runtime",
+            "vc",
+            "openssl",
+            "python",
+            "yaml",
+            "pywin32",
+            "menuinst",  # on_win, menuinst should be very early
+            "affine",
+            "asn1crypto",
+            "beautifulsoup4",
+            "certifi",
+            "chardet",
+            "colour",
+            "cryptography-vectors",
+            "filelock",
+            "glob2",
+            "idna",
+            "markupsafe",
+            "pkginfo",
+            "psutil",
+            "pycosat",
+            "pycparser",
+            "pyyaml",
+            "ruamel_yaml",
+            "six",
+            "win_inet_pton",
+            "wincertstore",
+            "cffi",
+            "pysocks",
+            "setuptools",
+            "cryptography",
+            "jinja2",
+            "wheel",
+            "pip",  # pip always comes after python
+            "pyopenssl",
+            "urllib3",
+            "requests",
+            "conda",  # on_win, conda comes before all noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
+            "conda-build",
+            "spiffy-test-app",
+            "uses-spiffy-test-app",
         )
         assert nodes == order
     finally:
@@ -630,133 +648,141 @@ def test_windows_sort_orders_2(tmpdir):
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
 
-    with env_var('CONDA_ALLOW_CYCLES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+    with env_var(
+        "CONDA_ALLOW_CYCLES", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
         old_on_win = conda.models.prefix_graph.on_win
         conda.models.prefix_graph.on_win = False
         try:
             records, specs = get_windows_conda_build_record_set(tmpdir)
             graph = PrefixGraph(records, specs)
 
-            python_node = graph.get_node_by_name('python')
-            pip_node = graph.get_node_by_name('pip')
+            python_node = graph.get_node_by_name("python")
+            pip_node = graph.get_node_by_name("pip")
             assert pip_node in graph.graph[python_node]
             assert python_node in graph.graph[pip_node]
 
             nodes = tuple(rec.name for rec in graph.records)
             pprint(nodes)
             order = (
-                'ca-certificates',
-                'conda-env',
-                'vs2015_runtime',
-                'vc',
-                'openssl',
-                'python',
-                'yaml',
-                'affine',
-                'asn1crypto',
-                'beautifulsoup4',
-                'certifi',
-                'chardet',
-                'colour',
-                'cryptography-vectors',
-                'filelock',
-                'glob2',
-                'idna',
-                'markupsafe',
-                'pkginfo',
-                'psutil',
-                'pycosat',
-                'pycparser',
-                'pywin32',
-                'pyyaml',
-                'ruamel_yaml',
-                'six',
-                'spiffy-test-app',
-                'win_inet_pton',
-                'wincertstore',
-                'cffi',
-                'menuinst',  # not on_win, menuinst isn't changed
-                'pysocks',
-                'setuptools',
-                'uses-spiffy-test-app',
-                'cryptography',
-                'jinja2',
-                'wheel',
-                'pip',  # pip always comes after python
-                'pyopenssl',
-                'urllib3',
-                'requests',
-                'conda',  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
-                'conda-build',
+                "ca-certificates",
+                "conda-env",
+                "vs2015_runtime",
+                "vc",
+                "openssl",
+                "python",
+                "yaml",
+                "affine",
+                "asn1crypto",
+                "beautifulsoup4",
+                "certifi",
+                "chardet",
+                "colour",
+                "cryptography-vectors",
+                "filelock",
+                "glob2",
+                "idna",
+                "markupsafe",
+                "pkginfo",
+                "psutil",
+                "pycosat",
+                "pycparser",
+                "pywin32",
+                "pyyaml",
+                "ruamel_yaml",
+                "six",
+                "spiffy-test-app",
+                "win_inet_pton",
+                "wincertstore",
+                "cffi",
+                "menuinst",  # not on_win, menuinst isn't changed
+                "pysocks",
+                "setuptools",
+                "uses-spiffy-test-app",
+                "cryptography",
+                "jinja2",
+                "wheel",
+                "pip",  # pip always comes after python
+                "pyopenssl",
+                "urllib3",
+                "requests",
+                "conda",  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
+                "conda-build",
             )
             assert nodes == order
         finally:
             conda.models.prefix_graph.on_win = old_on_win
 
 
-def test_sort_without_prep(tmpdir):
+def test_sort_without_prep(tmpdir, mocker):
     # Test the _toposort_prepare_graph method, here by not running it at all.
     # The method is invoked in every other test.  This is what happens when it's not invoked.
 
-    with patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
+    with mocker.patch.object(
+        conda.models.prefix_graph.PrefixGraph,
+        "_toposort_prepare_graph",
+        return_value=None,
+    ):
         records, specs = get_windows_conda_build_record_set(tmpdir)
         graph = PrefixGraph(records, specs)
 
-        python_node = graph.get_node_by_name('python')
-        pip_node = graph.get_node_by_name('pip')
+        python_node = graph.get_node_by_name("python")
+        pip_node = graph.get_node_by_name("pip")
         assert pip_node in graph.graph[python_node]
         assert python_node in graph.graph[pip_node]
 
         nodes = tuple(rec.name for rec in graph.records)
         pprint(nodes)
         order = (
-            'ca-certificates',
-            'conda-env',
-            'vs2015_runtime',
-            'vc',
-            'openssl',
-            'yaml',
-            'affine',
-            'asn1crypto',
-            'beautifulsoup4',
-            'certifi',
-            'chardet',
-            'colour',
-            'cryptography-vectors',
-            'filelock',
-            'glob2',
-            'idna',
-            'markupsafe',
-            'pkginfo',
-            'psutil',
-            'pycosat',
-            'pycparser',
-            'cffi',
-            'python',
-            'pywin32',
-            'pyyaml',
-            'ruamel_yaml',
-            'six',
-            'spiffy-test-app',
-            'win_inet_pton',
-            'wincertstore',
-            'cryptography',
-            'menuinst',
-            'pysocks',
-            'setuptools',
-            'uses-spiffy-test-app',
-            'jinja2',
-            'pyopenssl',
-            'wheel',
-            'pip',
-            'urllib3',
-            'requests',
-            'conda',
-            'conda-build',
+            "ca-certificates",
+            "conda-env",
+            "vs2015_runtime",
+            "vc",
+            "openssl",
+            "yaml",
+            "affine",
+            "asn1crypto",
+            "beautifulsoup4",
+            "certifi",
+            "chardet",
+            "colour",
+            "cryptography-vectors",
+            "filelock",
+            "glob2",
+            "idna",
+            "markupsafe",
+            "pkginfo",
+            "psutil",
+            "pycosat",
+            "pycparser",
+            "cffi",
+            "python",
+            "pywin32",
+            "pyyaml",
+            "ruamel_yaml",
+            "six",
+            "spiffy-test-app",
+            "win_inet_pton",
+            "wincertstore",
+            "cryptography",
+            "menuinst",
+            "pysocks",
+            "setuptools",
+            "uses-spiffy-test-app",
+            "jinja2",
+            "pyopenssl",
+            "wheel",
+            "pip",
+            "urllib3",
+            "requests",
+            "conda",
+            "conda-build",
         )
         assert nodes == order
 
-        with env_var('CONDA_ALLOW_CYCLES', 'false', stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var(
+            "CONDA_ALLOW_CYCLES", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
             records, specs = get_windows_conda_build_record_set(tmpdir)
             with pytest.raises(CyclicalDependencyError):
                 graph = PrefixGraph(records, specs)
@@ -789,43 +815,43 @@ def test_deep_cyclical_dependency(tmpdir):
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'certifi',
-        'click',
-        'itsdangerous',
-        'markupsafe',
-        'python',
-        'setuptools',
-        'werkzeug',
-        'jinja2',
-        'flask',
-        'sqlite',  # deep cyclical dependency; guess this is what we get
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "tk",
+        "xz",
+        "zlib",
+        "libedit",
+        "readline",
+        "certifi",
+        "click",
+        "itsdangerous",
+        "markupsafe",
+        "python",
+        "setuptools",
+        "werkzeug",
+        "jinja2",
+        "flask",
+        "sqlite",  # deep cyclical dependency; guess this is what we get
     )
     assert nodes == order
 
     # test remove spec
     # because of this deep cyclical dependency, removing jinja2 will remove sqlite and python
     expected_removal = (
-        'certifi',
-        'click',
-        'itsdangerous',
-        'markupsafe',
-        'python',
-        'setuptools',
-        'werkzeug',
-        'jinja2',
-        'flask',
-        'sqlite',
+        "certifi",
+        "click",
+        "itsdangerous",
+        "markupsafe",
+        "python",
+        "setuptools",
+        "werkzeug",
+        "jinja2",
+        "flask",
+        "sqlite",
     )
 
     removed_nodes = graph.remove_spec(MatchSpec("sqlite"))
@@ -851,23 +877,20 @@ def test_deep_cyclical_dependency(tmpdir):
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
-
     graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
-    expected_removal = (
-        'flask',
-    )
+    expected_removal = ("flask",)
     assert removed_nodes == expected_removal
 
     removed_nodes = graph.prune()
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
     expected_removal = (
-        'click',
-        'itsdangerous',
-        'werkzeug',
+        "click",
+        "itsdangerous",
+        "werkzeug",
     )
     assert removed_nodes == expected_removal
 
@@ -879,30 +902,29 @@ def test_deep_cyclical_dependency(tmpdir):
     )
     assert removed_nodes == expected_removal
 
-
     graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
-    markupsafe_node = graph.get_node_by_name('markupsafe')
+    markupsafe_node = graph.get_node_by_name("markupsafe")
     markupsafe_ancestors = graph.all_ancestors(markupsafe_node)
     nodes = tuple(rec.name for rec in markupsafe_ancestors)
     pprint(nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'certifi',
-        'markupsafe',
-        'python',
-        'setuptools',
-        'jinja2',
-        'sqlite',
+        "ca-certificates",
+        "libgcc-ng",
+        "libstdcxx-ng",
+        "libffi",
+        "ncurses",
+        "openssl",
+        "tk",
+        "xz",
+        "zlib",
+        "libedit",
+        "readline",
+        "certifi",
+        "markupsafe",
+        "python",
+        "setuptools",
+        "jinja2",
+        "sqlite",
     )
     assert nodes == order
 
@@ -910,25 +932,29 @@ def test_deep_cyclical_dependency(tmpdir):
     nodes = tuple(rec.name for rec in markupsafe_descendants)
     pprint(nodes)
     order = (
-        'certifi',
-        'click',
-        'itsdangerous',
-        'markupsafe',
-        'python',
-        'setuptools',
-        'werkzeug',
-        'jinja2',
-        'flask',
-        'sqlite',
+        "certifi",
+        "click",
+        "itsdangerous",
+        "markupsafe",
+        "python",
+        "setuptools",
+        "werkzeug",
+        "jinja2",
+        "flask",
+        "sqlite",
     )
     assert nodes == order
 
 
 def test_general_graph_bfs_simple():
-    a = PackageRecord(name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"])
+    a = PackageRecord(
+        name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"]
+    )
     b = PackageRecord(name="b", version="1", build="0", build_number=0, depends=["e"])
     c = PackageRecord(name="c", version="1", build="0", build_number=0)
-    d = PackageRecord(name="d", version="1", build="0", build_number=0, depends=["f", "g"])
+    d = PackageRecord(
+        name="d", version="1", build="0", build_number=0, depends=["f", "g"]
+    )
     e = PackageRecord(name="e", version="1", build="0", build_number=0)
     f = PackageRecord(name="f", version="1", build="0", build_number=0)
     g = PackageRecord(name="g", version="1", build="0", build_number=0)
@@ -952,10 +978,14 @@ def test_general_graph_bfs_simple():
 
 
 def test_general_graph_bfs_version():
-    a = PackageRecord(name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"])
+    a = PackageRecord(
+        name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"]
+    )
     b = PackageRecord(name="b", version="1", build="0", build_number=0, depends=["e"])
     c = PackageRecord(name="c", version="1", build="0", build_number=0, depends=["g=1"])
-    d = PackageRecord(name="d", version="1", build="0", build_number=0, depends=["f", "g=2"])
+    d = PackageRecord(
+        name="d", version="1", build="0", build_number=0, depends=["f", "g=2"]
+    )
     e = PackageRecord(name="e", version="1", build="0", build_number=0)
     f = PackageRecord(name="f", version="1", build="0", build_number=0)
     g1 = PackageRecord(name="g", version="1", build="0", build_number=0)
@@ -968,4 +998,3 @@ def test_general_graph_bfs_version():
 
     a_to_g2 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=2"))
     assert a_to_g2 == [MatchSpec("a"), MatchSpec("d"), MatchSpec("g=2")]
-

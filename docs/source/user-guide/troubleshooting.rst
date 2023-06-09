@@ -15,7 +15,7 @@ Unfortunately, this means it's a little complicated to use conda from other batc
 scripts from within batch scripts, you must prefix your command with ``CALL``. If you do not do this, your batch
 script that calls conda will exit immediately after the conda usage. In other words, if you write this in a .bat file:
 
-   .. code-block:: bash
+   .. code-block::
 
       conda create myenv python
       conda activate myenv
@@ -23,7 +23,7 @@ script that calls conda will exit immediately after the conda usage. In other wo
 
 Neither the activation, nor the echo will happen. You must write this in your batch script:
 
-   .. code-block:: bash
+   .. code-block::
 
       CALL conda create myenv python
       CALL conda activate myenv
@@ -40,13 +40,13 @@ NumPy MKL library load failed
 Error messages like
 
 .. code-block::
-   
+
     Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll
 
 or
 
 .. code-block::
-    
+
     The ordinal 241 could not be located in the the dynamic link library
 
 Cause
@@ -111,7 +111,7 @@ more drastic measures.
      These should be set to a value of ``1`` to enable them.  For example, in an Anaconda Prompt terminal::
 
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
-    
+
     .. note::
        Only ``CONDA_DLL_SEARCH_MODIFICATION_ENABLE`` should be set finally.
 
@@ -289,13 +289,13 @@ Cause
 
 This error may be caused by lack of activation on Windows or expired
 certifications::
-    
+
     SSL verification error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
 
 Solution
 ~~~~~~~~
 Make sure your conda is up-to-date: ``conda --version``
- 
+
 If not, run: ``conda update conda``
 
 Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
@@ -304,10 +304,10 @@ set ``ssl_verify`` back to ``true`` using the following commands::
     conda config --set ssl_verify false
     conda update requests
     conda config --set ssl_verify true
- 
+
 You can also set ``ssl_verify`` to a string path to a certificate, which can be used to verify
 SSL connections. Modify your ``.condarc`` and include the following::
- 
+
     ssl_verify: path-to-cert/chain/filename.ext
 
 If the repository uses a self-signed certificate, use the actual path to the certificate.
@@ -346,7 +346,7 @@ prevent the group and other users from having access:
 
 #. Return the ``umask`` to the original setting:
 
-   .. code-block:: bash
+   .. code-block::
 
       umask 007
       conda install
@@ -391,7 +391,7 @@ for your operating system from the `Miniconda download page
 <https://docs.conda.io/en/latest/miniconda.html>`_ using the force option
 ``--force`` or ``-f``:
 
-.. code-block:: bash
+.. code-block::
 
     bash Miniconda3-latest-MacOSX-x86_64.sh -f
 
@@ -435,6 +435,7 @@ Solution
    .. code:: python
 
       import sys
+
       print(sys.prefix)
 
 
@@ -605,7 +606,7 @@ cause Terminal to use incorrect settings for your locale. The
 To use the correct language, add a line to your bash profile,
 which is typically ``~/.profile``:
 
-.. code-block:: bash
+.. code-block::
 
    export LANG=your-lang
 
@@ -767,7 +768,8 @@ message such as this one::
     The following specifications were found to be in conflict:
     - python 3*
     - wxpython 3* -> python 2.7*
-    Use "conda info <package>" to see the dependencies for each package.
+    Use ``conda search <package> --info`` to see the dependencies
+    for each package.
 
 This indicates that the specification to install wxpython 3
 depends on installing Python 2.7, which conflicts with the
@@ -776,8 +778,8 @@ specification to install Python 3.
 Solution
 --------
 
-Use ``conda info wxpython`` or ``conda info wxpython=3`` to show
-information about this package and its dependencies::
+Use ``conda search wxpython --info`` or ``conda search 'wxpython=3' --info``
+to show information about this package and its dependencies::
 
     wxpython 3.0 py27_0
     -------------------
@@ -831,13 +833,13 @@ Suppose you have a specific need to install the Python
 ``cx_freeze`` module with Python 3.4. A first step is to create a
 Python 3.4 environment:
 
-.. code-block:: bash
+.. code-block::
 
    conda create -n py34 python=3.4
 
 Using this environment you should first attempt:
 
-.. code-block:: bash
+.. code-block::
 
    conda install -n py34 cx_freeze
 
@@ -858,7 +860,7 @@ default package channels. However, there may be a
 community-created version available and you can search for it by
 running the following command:
 
-.. code-block:: bash
+.. code-block::
 
    $ anaconda search -t conda cx_freeze
    Using Anaconda Cloud api site https://api.anaconda.org
@@ -895,7 +897,7 @@ downloads, so you might choose to use their package. If so, you
 can add their organization's channel by specifying it on the
 command line:
 
-.. code-block:: bash
+.. code-block::
 
    $ conda create -c pyzo -n cxfreeze_py34 cx_freeze python=3.4
    Using Anaconda Cloud api site https://api.anaconda.org
@@ -966,7 +968,7 @@ Cause
 -----
 Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda`` or  ``conda upgrade conda`` will produce a solving and upgrade error similar to the following:
 
-.. code-block:: python
+.. code-block::
 
    Solving environment: failed
    CondaUpgradeError: This environment has previously been operated on by a conda version that's newer than the conda currently being used. A newer version of conda is required.
@@ -977,8 +979,8 @@ Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda``
 Solution
 --------
 
-Change the ``.condarc`` file. Set the parameter by editing the ``.condarc`` file directly: 
-``allow_conda_downgrades: true`` in conda version 4.5.12. This will then let you upgrade. If you have something older than 4.5.12, install conda 4.6.1 again from the package cache. 
+Change the ``.condarc`` file. Set the parameter by editing the ``.condarc`` file directly:
+``allow_conda_downgrades: true`` in conda version 4.5.12. This will then let you upgrade. If you have something older than 4.5.12, install conda 4.6.1 again from the package cache.
 
 EXAMPLE: If my conda info says package cache : /opt/conda/pkgs and my Python version is 3.7, then on the command line, type ``conda install /opt/conda/pkgs/conda-4.6.1-py37_0.tar.bz2`` to resolve the issue.
 
@@ -1077,12 +1079,12 @@ above. Note that only the quotes wrapping the entire expression should be
 there. That is how variables are properly set in batch scripts, and these
 account for any spaces in any entries in PATH. No additional quotes should
 be within the value assigned to PATH.
- 
+
 To make 3rd party software take precedence over the same-named programs
 as supplied by conda, add it to PATH after activating conda:
 
 .. code-block:: console
-   
+
    set
    “PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\”
    call “<miniconda/anaconda root>\Scripts\activate”
@@ -1098,4 +1100,3 @@ they have priority.
    set
    PATH=”%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;<3rd-party-entries>”
    call “<miniconda/anaconda root>\Scripts\activate”
-

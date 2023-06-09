@@ -1,16 +1,13 @@
-import unittest
-from logging import getLogger, Handler, DEBUG
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 import os
+import unittest
+from logging import DEBUG, Handler
 
 from conda import instructions
+from conda.exceptions import CondaFileIOError
 from conda.exports import execute_instructions
 from conda.instructions import commands
-from conda.exceptions import CondaFileIOError
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 
 def test_expected_operation_order():
@@ -40,40 +37,38 @@ class LoggingTestHandler(Handler):
 
 
 class TestExecutePlan(unittest.TestCase):
-
     def test_simple_instruction(self):
-
-        index = {'This is an index': True}
+        index = {"This is an index": True}
 
         def simple_cmd(state, arg):
             simple_cmd.called = True
             simple_cmd.call_args = (arg,)
 
-        commands['SIMPLE'] = simple_cmd
+        commands["SIMPLE"] = simple_cmd
 
-        plan = [('SIMPLE', ('arg1',))]
+        plan = [("SIMPLE", ("arg1",))]
 
         execute_instructions(plan, index, verbose=False)
 
         self.assertTrue(simple_cmd.called)
-        self.assertTrue(simple_cmd.call_args, ('arg1',))
+        self.assertTrue(simple_cmd.call_args, ("arg1",))
 
     def test_state(self):
-
-        index = {'This is an index': True}
+        index = {"This is an index": True}
 
         def simple_cmd(state, arg):
             expect, x = arg
-            state.setdefault('x', 1)
-            self.assertEqual(state['x'], expect)
-            state['x'] = x
+            state.setdefault("x", 1)
+            self.assertEqual(state["x"], expect)
+            state["x"] = x
             simple_cmd.called = True
 
-        commands['SIMPLE'] = simple_cmd
+        commands["SIMPLE"] = simple_cmd
 
-        plan = [('SIMPLE', (1, 5)),
-                ('SIMPLE', (5, None)),
-                ]
+        plan = [
+            ("SIMPLE", (1, 5)),
+            ("SIMPLE", (5, None)),
+        ]
 
         execute_instructions(plan, index, verbose=False)
         self.assertTrue(simple_cmd.called)
@@ -91,8 +86,15 @@ class TestExecutePlan(unittest.TestCase):
         except CondaFileIOError as e:
             assert isinstance(e, CondaFileIOError)
         else:
-            self.fail('CondaFileIOError not raised')
+            self.fail("CondaFileIOError not raised")
 
 
-if __name__ == '__main__':
+def test_prefix_cmd():
+    """Unused, but run it anyway."""
+    state = {}
+    instructions.PREFIX_CMD(state, "prefix")
+    assert state["prefix"] == "prefix"
+
+
+if __name__ == "__main__":
     unittest.main()

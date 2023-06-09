@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 import json
 from logging import getLogger
-
 from os.path import isdir
 
 from conda.cli.python_api import Commands, run_command
@@ -12,7 +10,7 @@ from conda.common.io import env_var
 log = getLogger(__name__)
 
 
-def test_info_root():
+def test_info_root(reset_conda_context):
     stdout, stderr, rc = run_command(Commands.INFO, "--root")
     assert rc == 0
     assert not stderr
@@ -25,7 +23,7 @@ def test_info_root():
     assert isdir(json_obj["root_prefix"])
 
 
-def test_info_unsafe_channels():
+def test_info_unsafe_channels(reset_conda_context):
     url = "https://conda.anaconda.org/t/tk-123/a/b/c"
     with env_var("CONDA_CHANNELS", url):
         stdout, stderr, rc = run_command(Commands.INFO, "--unsafe-channels")

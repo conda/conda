@@ -1,25 +1,27 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from contextlib import contextmanager
 from os.path import isdir, join, lexists
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda.common.compat import on_win, odict
-from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from tests.data.env_metadata import (
-    PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
-)
+import pytest
+
 from conda.base.constants import PREFIX_STATE_FILE
+from conda.common.compat import on_win
+from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
+from conda.exceptions import CorruptedEnvironmentError
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
+from tests.data.env_metadata import (
+    PATH_TEST_ENV_1,
+    PATH_TEST_ENV_2,
+    PATH_TEST_ENV_3,
+    PATH_TEST_ENV_4,
+)
 
-
-ENV_VARS_FILE = '''
+ENV_VARS_FILE = """
 {
   "version": 1,
   "env_vars": {
@@ -27,14 +29,14 @@ ENV_VARS_FILE = '''
     "ENV_TWO": "you",
     "ENV_THREE": "me"
   }
-}'''
+}"""
 
 
 def _print_output(*args):
     """Helper function to print output in case of failed tests."""
     for arg in args:
         print(arg)
-    print('\n')
+    print("\n")
 
 
 class DummyPythonRecord:
@@ -46,6 +48,7 @@ def set_on_win(val):
     import conda.common.path
     import conda.common.pkg_formats.python
     import conda.core.prefix_data
+
     on_win_saved = conda.common.path.on_win
     win_path_ok_saved_1 = conda.core.prefix_data.win_path_ok
     win_path_ok_saved_2 = conda.common.pkg_formats.python.win_path_ok
@@ -66,26 +69,111 @@ def set_on_win(val):
 
 def test_pip_interop_windows():
     test_cases = (
-        (PATH_TEST_ENV_3,
-         ('babel', 'backports-functools-lru-cache', 'chardet', 'cheroot', 'cherrypy',
-         'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
-         'entrypoints', 'h5py', 'idna', 'jaraco-functools', 'lxml', 'more-itertools',
-         'numpy', 'parsel', 'phonenumberslite', 'pluggy', 'portend', 'py', 'pyjwt',
-         'pyopenssl', 'pytz', 'pywin32', 'pywin32-ctypes', 'queuelib', 'requests',
-         'scrapy', 'service-identity', 'six', 'tempora', 'tox', 'urllib3', 'virtualenv',
-         'w3lib')
+        (
+            PATH_TEST_ENV_3,
+            (
+                "babel",
+                "backports-functools-lru-cache",
+                "chardet",
+                "cheroot",
+                "cherrypy",
+                "cssselect",
+                "dask",
+                "django",
+                "django-phonenumber-field",
+                "django-twilio",
+                "entrypoints",
+                "h5py",
+                "idna",
+                "jaraco-functools",
+                "lxml",
+                "more-itertools",
+                "numpy",
+                "parsel",
+                "phonenumberslite",
+                "pluggy",
+                "portend",
+                "py",
+                "pyjwt",
+                "pyopenssl",
+                "pytz",
+                "pywin32",
+                "pywin32-ctypes",
+                "queuelib",
+                "requests",
+                "scrapy",
+                "service-identity",
+                "six",
+                "tempora",
+                "tox",
+                "urllib3",
+                "virtualenv",
+                "w3lib",
+            ),
         ),
-        (PATH_TEST_ENV_4,
-         ('asn1crypto', 'attrs', 'automat', 'babel', 'backports-functools-lru-cache',
-         'cffi', 'chardet', 'cheroot', 'cherrypy', 'configparser', 'constantly',
-         'cryptography', 'cssselect', 'dask', 'django', 'django-phonenumber-field',
-         'django-twilio', 'entrypoints', 'enum34', 'functools32', 'h5py', 'hdf5storage',
-         'hyperlink', 'idna', 'incremental', 'ipaddress', 'jaraco-functools', 'keyring',
-         'lxml', 'more-itertools', 'numpy', 'parsel', 'phonenumberslite', 'pluggy',
-        'portend', 'py', 'pyasn1', 'pyasn1-modules', 'pycparser', 'pydispatcher',
-        'pyhamcrest', 'pyjwt', 'pyopenssl', 'pytz', 'pywin32', 'pywin32-ctypes',
-        'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
-        'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
+        (
+            PATH_TEST_ENV_4,
+            (
+                "asn1crypto",
+                "attrs",
+                "automat",
+                "babel",
+                "backports-functools-lru-cache",
+                "cffi",
+                "chardet",
+                "cheroot",
+                "cherrypy",
+                "configparser",
+                "constantly",
+                "cryptography",
+                "cssselect",
+                "dask",
+                "django",
+                "django-phonenumber-field",
+                "django-twilio",
+                "entrypoints",
+                "enum34",
+                "functools32",
+                "h5py",
+                "hdf5storage",
+                "hyperlink",
+                "idna",
+                "incremental",
+                "ipaddress",
+                "jaraco-functools",
+                "keyring",
+                "lxml",
+                "more-itertools",
+                "numpy",
+                "parsel",
+                "phonenumberslite",
+                "pluggy",
+                "portend",
+                "py",
+                "pyasn1",
+                "pyasn1-modules",
+                "pycparser",
+                "pydispatcher",
+                "pyhamcrest",
+                "pyjwt",
+                "pyopenssl",
+                "pytz",
+                "pywin32",
+                "pywin32-ctypes",
+                "queuelib",
+                "requests",
+                "scrapy",
+                "service-identity",
+                "six",
+                "tempora",
+                "tox",
+                "twilio",
+                "twisted",
+                "urllib3",
+                "virtualenv",
+                "w3lib",
+                "zope-interface",
+            ),
         ),
     )
 
@@ -96,7 +184,7 @@ def test_pip_interop_windows():
                 prefixdata.load()
                 records = prefixdata._load_site_packages()
                 record_names = tuple(sorted(records.keys()))
-                print('RECORDS', record_names)
+                print("RECORDS", record_names)
                 assert len(record_names), len(expected_output)
                 _print_output(expected_output, record_names)
                 for record_name in record_names:
@@ -109,26 +197,114 @@ def test_pip_interop_windows():
 
 def test_pip_interop_osx():
     test_cases = (
-        (PATH_TEST_ENV_1,
-         ('asn1crypto', 'babel', 'backports-functools-lru-cache', 'cffi', 'chardet',
-          'cheroot', 'cherrypy', 'configparser', 'cryptography', 'cssselect', 'dask',
-          'django', 'django-phonenumber-field', 'django-twilio', 'entrypoints',
-          'enum34', 'h5py', 'idna', 'ipaddress', 'jaraco-functools', 'lxml',
-          'more-itertools', 'numpy', 'parsel', 'phonenumberslite', 'pip', 'pluggy',
-          'portend', 'py', 'pycparser', 'pyjwt', 'pyopenssl', 'pytz', 'queuelib',
-          'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox', 'twisted',
-          'urllib3', 'virtualenv', 'w3lib')
+        (
+            PATH_TEST_ENV_1,
+            (
+                "asn1crypto",
+                "babel",
+                "backports-functools-lru-cache",
+                "cffi",
+                "chardet",
+                "cheroot",
+                "cherrypy",
+                "configparser",
+                "cryptography",
+                "cssselect",
+                "dask",
+                "django",
+                "django-phonenumber-field",
+                "django-twilio",
+                "entrypoints",
+                "enum34",
+                "h5py",
+                "idna",
+                "ipaddress",
+                "jaraco-functools",
+                "lxml",
+                "more-itertools",
+                "numpy",
+                "parsel",
+                "phonenumberslite",
+                "pip",
+                "pluggy",
+                "portend",
+                "py",
+                "pycparser",
+                "pyjwt",
+                "pyopenssl",
+                "pytz",
+                "queuelib",
+                "requests",
+                "scrapy",
+                "service-identity",
+                "six",
+                "tempora",
+                "tox",
+                "twisted",
+                "urllib3",
+                "virtualenv",
+                "w3lib",
+            ),
         ),
-        (PATH_TEST_ENV_2,
-         ('asn1crypto', 'attrs', 'automat', 'babel', 'backports-functools-lru-cache',
-          'cffi', 'chardet', 'cheroot', 'cherrypy', 'constantly', 'cryptography',
-          'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
-          'entrypoints', 'h5py', 'hdf5storage', 'hyperlink', 'idna', 'incremental',
-          'jaraco-functools', 'keyring', 'lxml', 'more-itertools', 'numpy', 'parsel',
-          'phonenumberslite', 'pip', 'pluggy', 'portend', 'py', 'pyasn1', 'pyasn1-modules',
-          'pycparser', 'pydispatcher', 'pyhamcrest', 'pyjwt', 'pyopenssl', 'pysocks', 'pytz',
-          'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
-          'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
+        (
+            PATH_TEST_ENV_2,
+            (
+                "asn1crypto",
+                "attrs",
+                "automat",
+                "babel",
+                "backports-functools-lru-cache",
+                "cffi",
+                "chardet",
+                "cheroot",
+                "cherrypy",
+                "constantly",
+                "cryptography",
+                "cssselect",
+                "dask",
+                "django",
+                "django-phonenumber-field",
+                "django-twilio",
+                "entrypoints",
+                "h5py",
+                "hdf5storage",
+                "hyperlink",
+                "idna",
+                "incremental",
+                "jaraco-functools",
+                "keyring",
+                "lxml",
+                "more-itertools",
+                "numpy",
+                "parsel",
+                "phonenumberslite",
+                "pip",
+                "pluggy",
+                "portend",
+                "py",
+                "pyasn1",
+                "pyasn1-modules",
+                "pycparser",
+                "pydispatcher",
+                "pyhamcrest",
+                "pyjwt",
+                "pyopenssl",
+                "pysocks",
+                "pytz",
+                "queuelib",
+                "requests",
+                "scrapy",
+                "service-identity",
+                "six",
+                "tempora",
+                "tox",
+                "twilio",
+                "twisted",
+                "urllib3",
+                "virtualenv",
+                "w3lib",
+                "zope-interface",
+            ),
         ),
     )
 
@@ -139,7 +315,7 @@ def test_pip_interop_osx():
                 prefixdata.load()
                 records = prefixdata._load_site_packages()
                 record_names = tuple(sorted(records.keys()))
-                print('RECORDS', record_names)
+                print("RECORDS", record_names)
                 assert len(record_names), len(expected_output)
                 _print_output(expected_output, record_names)
                 for record_name in record_names:
@@ -152,19 +328,19 @@ def test_pip_interop_osx():
 
 def test_get_conda_anchor_files_and_records():
     valid_tests = [
-        'v/site-packages/spam.egg-info/PKG-INFO',
-        'v/site-packages/foo.dist-info/RECORD',
-        'v/site-packages/bar.egg-info',
+        "v/site-packages/spam.egg-info/PKG-INFO",
+        "v/site-packages/foo.dist-info/RECORD",
+        "v/site-packages/bar.egg-info",
     ]
     invalid_tests = [
-        'v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO',
-        'i/site-packages/stuff.egg-link',
-        'i/spam.egg-info/PKG-INFO',
-        'i/foo.dist-info/RECORD',
-        'i/bar.egg-info',
-        'i/site-packages/spam',
-        'i/site-packages/foo',
-        'i/site-packages/bar',
+        "v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO",
+        "i/site-packages/stuff.egg-link",
+        "i/spam.egg-info/PKG-INFO",
+        "i/foo.dist-info/RECORD",
+        "i/bar.egg-info",
+        "i/site-packages/spam",
+        "i/site-packages/foo",
+        "i/site-packages/bar",
     ]
     tests = valid_tests + invalid_tests
     records = []
@@ -174,24 +350,36 @@ def test_get_conda_anchor_files_and_records():
         records.append(record)
 
     output = get_conda_anchor_files_and_records("v/site-packages", records)
-    expected_output = odict()
+    expected_output = {}
     for i in range(len(valid_tests)):
         expected_output[valid_tests[i]] = records[i]
 
     _print_output(output, expected_output)
     assert output == expected_output
 
-class PrefixDatarUnitTests(TestCase):
 
+def test_corrupt_unicode_conda_meta_json():
+    """Test for graceful failure if a Unicode corrupt file exists in conda-meta."""
+    with pytest.raises(CorruptedEnvironmentError):
+        PrefixData("tests/data/corrupt/unicode").load()
+
+
+def test_corrupt_json_conda_meta_json():
+    """Test for graceful failure if a JSON corrupt file exists in conda-meta."""
+    with pytest.raises(CorruptedEnvironmentError):
+        PrefixData("tests/data/corrupt/json").load()
+
+
+class PrefixDatarUnitTests(TestCase):
     def setUp(self):
         tempdirdir = gettempdir()
         dirname = str(uuid4())[:8]
         self.prefix = join(tempdirdir, dirname)
         mkdir_p(self.prefix)
         assert isdir(self.prefix)
-        mkdir_p(join(self.prefix, 'conda-meta'))
+        mkdir_p(join(self.prefix, "conda-meta"))
         activate_env_vars = join(self.prefix, PREFIX_STATE_FILE)
-        with open(activate_env_vars, 'w') as f:
+        with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
         self.pd = PrefixData(self.prefix)
 
@@ -200,11 +388,7 @@ class PrefixDatarUnitTests(TestCase):
         assert not lexists(self.prefix)
 
     def test_get_environment_env_vars(self):
-        ex_env_vars = {
-            "ENV_ONE": "one",
-            "ENV_TWO": "you",
-            "ENV_THREE": "me"
-        }
+        ex_env_vars = {"ENV_ONE": "one", "ENV_TWO": "you", "ENV_THREE": "me"}
         env_vars = self.pd.get_environment_env_vars()
         assert ex_env_vars == env_vars
 
@@ -218,13 +402,13 @@ class PrefixDatarUnitTests(TestCase):
             "ENV_ONE": "one",
             "ENV_TWO": "you",
             "ENV_THREE": "me",
-            "WOAH": "dude"
+            "WOAH": "dude",
         }
-        self.pd.set_environment_env_vars({"WOAH":"dude"})
+        self.pd.set_environment_env_vars({"WOAH": "dude"})
         env_vars = self.pd.get_environment_env_vars()
         assert env_vars_add == env_vars
 
-        self.pd.unset_environment_env_vars(['WOAH'])
+        self.pd.unset_environment_env_vars(["WOAH"])
         env_vars = self.pd.get_environment_env_vars()
         assert env_vars_one == env_vars
 
@@ -234,6 +418,6 @@ class PrefixDatarUnitTests(TestCase):
             "ENV_TWO": "you",
             "ENV_THREE": "me",
         }
-        self.pd.unset_environment_env_vars(['WOAH'])
+        self.pd.unset_environment_env_vars(["WOAH"])
         env_vars = self.pd.get_environment_env_vars()
         assert env_vars_one == env_vars

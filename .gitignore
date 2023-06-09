@@ -3,9 +3,8 @@
 *.egg-info
 build/
 dist/
-docs/build
 docs/_build
-docs/source/_build
+docs/source/umls/dev-guide/*.puml
 .cache/
 .idea/
 ve/
@@ -14,7 +13,6 @@ MANIFEST
 coverage.xml
 .tox/
 junit.xml
-.version
 tmpfile.rc
 .DS_Store
 .coverage*
@@ -25,7 +23,6 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
-docs/source/_build
 env/
 dev-init.bat
 devenv/
@@ -33,9 +30,12 @@ Miniconda*.sh
 miniconda*.sh
 miniconda*.exe
 .pytest_cache/
-docs/source/_build
 **/.vscode
 conda.tmp/
 *.iml
 *.ipr
 *.iws
+test-report.xml
+
+# Rever
+rever/

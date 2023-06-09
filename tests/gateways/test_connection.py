@@ -1,25 +1,27 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
-from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
+from pathlib import Path
 from unittest import TestCase
-import warnings
+from unittest.mock import patch
 
 import pytest
 from requests import HTTPError
 
-from conda.common.compat import ensure_binary, PY3
+from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
+from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
+from conda.testing.gateways.fixtures import MINIO_EXE
+from conda.testing.integration import env_var, make_temp_env
 
 log = getLogger(__name__)
 
 
 class CondaHttpAuthTests(TestCase):
-
     def test_add_binstar_token(self):
         try:
             # # token already exists in url, don't add anything
@@ -40,15 +42,14 @@ class CondaHttpAuthTests(TestCase):
 
 
 class CondaSessionTests(TestCase):
-
     def test_local_file_adapter_404(self):
         session = CondaSession()
-        test_path = 'file:///some/location/doesnt/exist'
+        test_path = "file:///some/location/doesnt/exist"
         r = session.get(test_path)
-        with pytest.raises(HTTPError) as exc:
+        with pytest.raises(HTTPError):
             r.raise_for_status()
         assert r.status_code == 404
-        assert r.json()['path'] == test_path[len('file://'):]
+        assert r.json()["path"] == test_path[len("file://") :]
 
     def test_local_file_adapter_200(self):
         test_path = None
@@ -62,7 +63,50 @@ class CondaSessionTests(TestCase):
             r = session.get(test_url)
             r.raise_for_status()
             assert r.status_code == 200
-            assert r.json()['content'] == "file content"
+            assert r.json()["content"] == "file content"
         finally:
             if test_path is not None:
                 rm_rf(test_path)
+
+
+@pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
+@pytest.mark.integration
+def test_s3_server(minio_s3_server):
+    import boto3
+    from botocore.client import Config
+
+    endpoint, bucket_name = minio_s3_server.server_url.rsplit("/", 1)
+    channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"
+    minio_s3_server.populate_bucket(endpoint, bucket_name, channel_dir)
+
+    # We patch the default kwargs values in boto3.session.Session.resource(...)
+    # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
+    # connection; otherwise it would default to a real AWS instance
+    patched_defaults = (
+        "us-east-1",  # region_name
+        None,  # api_version
+        True,  # use_ssl
+        None,  # verify
+        endpoint,  # endpoint_url
+        "minioadmin",  # aws_access_key_id
+        "minioadmin",  # aws_secret_access_key
+        None,  # aws_session_token
+        Config(signature_version="s3v4"),  # config
+    )
+    with pytest.raises(CondaExitZero):
+        with patch.object(
+            boto3.session.Session.resource, "__defaults__", patched_defaults
+        ):
+            # the .conda files in this repo are somehow corrupted
+            with env_var("CONDA_USE_ONLY_TAR_BZ2", "True"):
+                with make_temp_env(
+                    "--override-channels",
+                    f"--channel=s3://{bucket_name}",
+                    "--download-only",
+                    "--no-deps",  # this fake repo only includes the zlib tarball
+                    "zlib",
+                    use_exception_handler=False,
+                    no_capture=True,
+                ):
+                    # we just want to run make_temp_env and cleanup after
+                    pass

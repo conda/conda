@@ -28,7 +28,7 @@ Info
 
   * metadata about the package including platform, version,
     dependencies, and build info
-  
+
 .. code-block:: bash
 
   {
@@ -80,7 +80,7 @@ file is stored in ``repodata.json``, which is the repository
 index file, hence the name ``index.json``. The JSON object is a
 dictionary containing the keys shown below. The filename of the
 conda package is composed of the first 3 values, as in:
-``<name>-<version>-<build>.tar.bz2``. 
+``<name>-<version>-<build>.tar.bz2``.
 
 .. list-table::
    :widths: 15 15 50
@@ -471,7 +471,7 @@ rules are applied to each pair of corresponding subcomponents:
   * Strings are smaller than integers, except
 
       * ``dev`` versions are smaller than all corresponding versions of other types.
-      
+
       * ``post`` versions are greater than all corresponding versions of other types.
   * If a subcomponent has no correspondent, the missing correspondent is
     treated as integer 0 to ensure ``'1.1' == 1.1.0'``.
@@ -514,4 +514,3 @@ You can work around this problem by appending a dash to plain
 version numbers:
 
 ``1.0.1a  =>  1.0.1post.a      # ensure correct ordering for OpenSSL``
-

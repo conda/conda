@@ -1,27 +1,27 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 
 import logging
-from os.path import dirname
 import re
 import sys
+from contextlib import contextmanager
+from functools import lru_cache, wraps
+from os import PathLike, environ
+from os.path import abspath, basename, dirname, isfile, join
+from pathlib import Path
+from shutil import which
+from typing import Literal
 
-from ._vendor.auxlib.decorators import memoize
-from ._vendor.auxlib.compat import shlex_split_unicode, string_types, Utf8NamedTemporaryFile
-from .common.compat import on_win, isiterable
-
-from .common.path import win_path_to_unix, which
+from . import CondaError
+from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
+from .common.compat import isiterable, on_win
+from .common.path import win_path_to_unix
 from .common.url import path_to_url
-from os.path import abspath, join, isfile, basename
-from os import environ
-from subprocess import list2cmdline
+from .deprecations import deprecated
+from .gateways.disk.read import compute_sum
 
 log = logging.getLogger(__name__)
-
-# in conda/exports.py
-memoized = memoize
 
 
 def path_identity(path):
@@ -41,12 +41,15 @@ def unix_path_to_win(path, root_prefix=""):
 
     def _translation(found_path):
         group = found_path.group(0)
-        return "{0}:{1}".format(group[len(root_prefix)+1],
-                                group[len(root_prefix)+2:].replace("/", "\\"))
+        return "{}:{}".format(
+            group[len(root_prefix) + 1],
+            group[len(root_prefix) + 2 :].replace("/", "\\"),
+        )
+
     translation = re.sub(path_re, _translation, path)
-    translation = re.sub(":([a-zA-Z]):\\\\",
-                         lambda match: ";" + match.group(0)[1] + ":\\",
-                         translation)
+    translation = re.sub(
+        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
+    )
     return translation
 
 
@@ -78,15 +81,15 @@ def human_bytes(n):
         '93.13 GB'
     """
     if n < 1024:
-        return '%d B' % n
-    k = n/1024
+        return "%d B" % n
+    k = n / 1024
     if k < 1024:
-        return '%d KB' % round(k)
-    m = k/1024
+        return "%d KB" % round(k)
+    m = k / 1024
     if m < 1024:
-        return '%.1f MB' % m
-    g = m/1024
-    return '%.2f GB' % g
+        return "%.1f MB" % m
+    g = m / 1024
+    return "%.2f GB" % g
 
 
 # TODO: this should be done in a more extensible way
@@ -95,33 +98,33 @@ def human_bytes(n):
 # defaults for unix shells.  Note: missing "exe" entry, which should be set to
 #    either an executable on PATH, or a full path to an executable for a shell
 unix_shell_base = dict(
-                       binpath="/bin/",  # mind the trailing slash.
-                       echo="echo",
-                       env_script_suffix=".sh",
-                       nul='2>/dev/null',
-                       path_from=path_identity,
-                       path_to=path_identity,
-                       pathsep=":",
-                       printdefaultenv='echo $CONDA_DEFAULT_ENV',
-                       printpath="echo $PATH",
-                       printps1='echo $CONDA_PROMPT_MODIFIER',
-                       promptvar='PS1',
-                       sep="/",
-                       set_var='export ',
-                       shell_args=["-l", "-c"],
-                       shell_suffix="",
-                       slash_convert=("\\", "/"),
-                       source_setup="source",
-                       test_echo_extra="",
-                       var_format="${}",
+    binpath="/bin/",  # mind the trailing slash.
+    echo="echo",
+    env_script_suffix=".sh",
+    nul="2>/dev/null",
+    path_from=path_identity,
+    path_to=path_identity,
+    pathsep=":",
+    printdefaultenv="echo $CONDA_DEFAULT_ENV",
+    printpath="echo $PATH",
+    printps1="echo $CONDA_PROMPT_MODIFIER",
+    promptvar="PS1",
+    sep="/",
+    set_var="export ",
+    shell_args=["-l", "-c"],
+    shell_suffix="",
+    slash_convert=("\\", "/"),
+    source_setup="source",
+    test_echo_extra="",
+    var_format="${}",
 )
 
 msys2_shell_base = dict(
-                        unix_shell_base,
-                        path_from=unix_path_to_win,
-                        path_to=win_path_to_unix,
-                        binpath="/bin/",  # mind the trailing slash.
-                        printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
+    unix_shell_base,
+    path_from=unix_path_to_win,
+    path_to=win_path_to_unix,
+    binpath="/bin/",  # mind the trailing slash.
+    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
 if on_win:
@@ -150,16 +153,16 @@ if on_win:
             binpath="\\Scripts\\",  # mind the trailing slash.
             source_setup="call",
             test_echo_extra="",
-            nul='1>NUL 2>&1',
-            set_var='set ',
+            nul="1>NUL 2>&1",
+            set_var="set ",
             shell_suffix=".bat",
             env_script_suffix=".bat",
             printps1="@echo %PROMPT%",
             promptvar="PROMPT",
             # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
-                            'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
-                            'echo()',
+            "echo %CONDA_DEFAULT_ENV% ) ELSE (\n"
+            "echo()",
             printpath="@echo %PATH%",
             exe="cmd.exe",
             shell_args=["/d", "/c"],
@@ -174,42 +177,51 @@ if on_win:
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin
+            path_to=win_path_to_cygwin,
         ),
         # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
         #    filesystem root.
         "bash.exe": dict(
-            msys2_shell_base, exe="bash.exe",
+            msys2_shell_base,
+            exe="bash.exe",
         ),
         "bash": dict(
-            msys2_shell_base, exe="bash",
+            msys2_shell_base,
+            exe="bash",
         ),
         "sh.exe": dict(
-            msys2_shell_base, exe="sh.exe",
+            msys2_shell_base,
+            exe="sh.exe",
         ),
         "zsh.exe": dict(
-            msys2_shell_base, exe="zsh.exe",
+            msys2_shell_base,
+            exe="zsh.exe",
         ),
         "zsh": dict(
-            msys2_shell_base, exe="zsh",
+            msys2_shell_base,
+            exe="zsh",
         ),
     }
 
 else:
     shells = {
         "bash": dict(
-            unix_shell_base, exe="bash",
+            unix_shell_base,
+            exe="bash",
         ),
         "dash": dict(
-            unix_shell_base, exe="dash",
+            unix_shell_base,
+            exe="dash",
             source_setup=".",
         ),
         "zsh": dict(
-            unix_shell_base, exe="zsh",
+            unix_shell_base,
+            exe="zsh",
         ),
         "fish": dict(
-            unix_shell_base, exe="fish",
+            unix_shell_base,
+            exe="fish",
             pathsep=" ",
         ),
     }
@@ -222,24 +234,23 @@ else:
 urlpath = url_path = path_to_url
 
 
-def md5_file(path):  # pragma: no cover
-    from .gateways.disk.read import compute_md5sum
-    return compute_md5sum(path)
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
+)
+def md5_file(path: str | PathLike) -> str:
+    return compute_sum(path, "md5")
 
 
-def hashsum_file(path, mode='md5'):  # pragma: no cover
-    import hashlib
-    h = hashlib.new(mode)
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
+@deprecated(
+    "23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead."
+)
+def hashsum_file(path: str | PathLike, mode: Literal["md5", "sha256"] = "md5") -> str:
+    return compute_sum(path, mode)
 
 
-@memoize
+@lru_cache(maxsize=None)
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to
@@ -261,37 +272,64 @@ def sys_prefix_unfollowed():
     return unfollowed
 
 
-def quote_for_shell(arguments, shell=None):
-    if not shell:
-        shell = 'cmd.exe' if on_win else 'bash'
-    if shell == 'cmd.exe':
-        return list2cmdline(arguments)
-    else:
-        # If any multiline argument gets mixed with any other argument (which is true if we've
-        # arrived in this function) then we just quote it. This assumes something like:
-        # ['python', '-c', 'a\nmultiline\nprogram\n']
-        # It may make sense to allow specifying a replacement character for '\n' too? e.g. ';'
-        quoted = []
-        # This could all be replaced with some regex wizardry but that is less readable and
-        # for code like this, readability is very important.
-        for arg in arguments:
-            if '"' in arg:
-                quote = "'"
-            elif "'" in arg:
-                quote = '"'
-            elif not any(_ in arg for _ in (' ', '\n')):
-                quote = ''
-            else:
-                quote = '"'
-            quoted.append(quote + arg + quote)
-        return ' '.join(quoted)
+def quote_for_shell(*arguments):
+    """Properly quote arguments for command line passing.
+
+    For POSIX uses `shlex.join`, for Windows uses a custom implementation to properly escape
+    metacharacters.
+
+    :param arguments: Arguments to quote.
+    :type arguments: list of str
+    :return: Quoted arguments.
+    :rtype: str
+    """
+    # [backport] Support passing in a list of strings or args of string.
+    if len(arguments) == 1 and isiterable(arguments[0]):
+        arguments = arguments[0]
+
+    return _args_join(arguments)
+
+
+if on_win:
+    # https://ss64.com/nt/syntax-esc.html
+    # https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+
+    _RE_UNSAFE = re.compile(r'["%\s^<>&|]')
+    _RE_DBL = re.compile(r'(["%])')
+
+    def _args_join(args):
+        """Return a shell-escaped string from *args*."""
+
+        def quote(s):
+            # derived from shlex.quote
+            if not s:
+                return '""'
+            # if any unsafe chars are present we must quote
+            if not _RE_UNSAFE.search(s):
+                return s
+            # double escape (" -> "")
+            s = _RE_DBL.sub(r"\1\1", s)
+            # quote entire string
+            return f'"{s}"'
+
+        return " ".join(quote(arg) for arg in args)
+
+else:
+    try:
+        from shlex import join as _args_join
+    except ImportError:
+        # [backport] Python <3.8
+        def _args_join(args):
+            """Return a shell-escaped string from *args*."""
+            from shlex import quote
+
+            return " ".join(quote(arg) for arg in args)
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
 # by shlex_split_unicode() which is bad; we warn about it or else
 # we assert (and fix the code).
-def massage_arguments(arguments, errors='assert'):
-
+def massage_arguments(arguments, errors="assert"):
     # For reference and in-case anything breaks ..
     # .. one of the places (run_command in conda_env/utils.py) this
     # gets called from used to do this too:
@@ -302,90 +340,109 @@ def massage_arguments(arguments, errors='assert'):
     #    if not isinstance(arguments, list):
     #        arguments = list(map(escape_for_winpath, arguments))
 
-    if isinstance(arguments, string_types):
-        if errors == 'assert':
+    if isinstance(arguments, str):
+        if errors == "assert":
             # This should be something like 'conda programming bug', it is an assert
-            assert False, 'Please ensure arguments are not strings'
+            assert False, "Please ensure arguments are not strings"
         else:
             arguments = shlex_split_unicode(arguments)
-            log.warning("Please ensure arguments is not a string; "
-                        "used `shlex_split_unicode()` on it")
+            log.warning(
+                "Please ensure arguments is not a string; "
+                "used `shlex_split_unicode()` on it"
+            )
 
     if not isiterable(arguments):
         arguments = (arguments,)
 
-    assert not any([isiterable(arg) for arg in arguments]), "Individual arguments must not be iterable"  # NOQA
+    assert not any(
+        [isiterable(arg) for arg in arguments]
+    ), "Individual arguments must not be iterable"  # NOQA
     arguments = list(arguments)
 
     return arguments
 
 
-def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
-    if on_win:
-        ensure_comspec_set()
+def wrap_subprocess_call(
+    root_prefix,
+    prefix,
+    dev_mode,
+    debug_wrapper_scripts,
+    arguments,
+    use_system_tmp_path=False,
+):
     arguments = massage_arguments(arguments)
-    tmp_prefix = abspath(join(prefix, '.tmp'))
+    if not use_system_tmp_path:
+        tmp_prefix = abspath(join(prefix, ".tmp"))
+    else:
+        tmp_prefix = None
     script_caller = None
     multiline = False
-    if len(arguments) == 1 and '\n' in arguments[0]:
+    if len(arguments) == 1 and "\n" in arguments[0]:
         multiline = True
     if on_win:
-        comspec = environ[str('COMSPEC')]
+        comspec = get_comspec()  # fail early with KeyError if undefined
         if dev_mode:
             from conda import CONDA_PACKAGE_ROOT
-            conda_bat = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
+
+            conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
         else:
-            conda_bat = environ.get("CONDA_BAT",
-                                    abspath(join(root_prefix, 'condabin', 'conda.bat')))
-        with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix,
-                                    suffix='.bat', delete=False) as fh:
+            conda_bat = environ.get(
+                "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
+            )
+        with Utf8NamedTemporaryFile(
+            mode="w", prefix=tmp_prefix, suffix=".bat", delete=False
+        ) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
-            fh.write("{}ECHO OFF\n".format(silencer))
-            fh.write("{}SET PYTHONIOENCODING=utf-8\n".format(silencer))
-            fh.write("{}SET PYTHONUTF8=1\n".format(silencer))
-            fh.write('{}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'.format(silencer))  # NOQA
-            fh.write("{}chcp 65001 > NUL\n".format(silencer))
+            fh.write(f"{silencer}ECHO OFF\n")
+            fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
+            fh.write(f"{silencer}SET PYTHONUTF8=1\n")
+            fh.write(
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+            )
+            fh.write(f"{silencer}chcp 65001 > NUL\n")
             if dev_mode:
-                from conda.core.initialize import CONDA_PACKAGE_ROOT
-                fh.write("{}SET CONDA_DEV=1\n".format(silencer))
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(f"{silencer}SET CONDA_DEV=1\n")
                 # In dev mode, conda is really:
                 # 'python -m conda'
                 # *with* PYTHONPATH set.
-                fh.write("{}SET PYTHONPATH={}\n".format(silencer, dirname(CONDA_PACKAGE_ROOT)))
-                fh.write("{}SET CONDA_EXE={}\n".format(silencer, sys.executable))
-                fh.write("{}SET _CE_M=-m\n".format(silencer))
-                fh.write("{}SET _CE_CONDA=conda\n".format(silencer))
+                fh.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")
+                fh.write(f"{silencer}SET CONDA_EXE={sys.executable}\n")
+                fh.write(f"{silencer}SET _CE_M=-m\n")
+                fh.write(f"{silencer}SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
-                fh.write('echo *** environment before *** 1>&2\n')
-                fh.write('SET 1>&2\n')
+                fh.write("echo *** environment before *** 1>&2\n")
+                fh.write("SET 1>&2\n")
             # Not sure there is any point in backing this up, nothing will get called with it reset
             # after all!
             # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             # fh.write('@chcp 65001>NUL\n')
-            fh.write('{0}CALL \"{1}\" activate \"{2}\"\n'.format(silencer, conda_bat, prefix))
-            fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
+            fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
+            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
-                fh.write('echo *** environment after *** 1>&2\n')
-                fh.write('SET 1>&2\n')
+                fh.write("echo *** environment after *** 1>&2\n")
+                fh.write("SET 1>&2\n")
             if multiline:
                 # No point silencing the first line. If that's what's wanted then
                 # it needs doing for each line and the caller may as well do that.
-                fh.write("{0}\n".format(arguments[0]))
+                fh.write(f"{arguments[0]}\n")
             else:
-                assert not any('\n' in arg for arg in arguments), \
-                    "Support for scripts where arguments contain newlines not implemented.\n"     \
-                    ".. requires writing the script to an external file and knowing how to "      \
-                    "transform the command-line (e.g. `python -c args` => `python file`) "        \
-                    "in a tool dependent way, or attempting something like:\n"                    \
-                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"         \
+                assert not any("\n" in arg for arg in arguments), (
+                    "Support for scripts where arguments contain newlines not implemented.\n"
+                    ".. requires writing the script to an external file and knowing how to "
+                    "transform the command-line (e.g. `python -c args` => `python file`) "
+                    "in a tool dependent way, or attempting something like:\n"
+                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
                     "requirements)"
-                fh.write("{0}{1}\n".format(silencer, quote_for_shell(arguments)))
-            fh.write("{}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n".format(silencer))
-            fh.write('{}chcp %_CONDA_OLD_CHCP%>NUL\n'.format(silencer))
+                )
+                fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
+            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
             script_caller = fh.name
-        command_args = [comspec, '/d', '/c', script_caller]
+        command_args = [comspec, "/d", "/c", script_caller]
     else:
-        shell_path = which('bash') or which('sh')
+        shell_path = which("bash") or which("sh")
         if shell_path is None:
             raise Exception("No compatible shell found!")
 
@@ -393,35 +450,34 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
         # and have it run tests against the very latest development sources. For that to
         # work we need extra smarts here, we want it to be instead:
         if dev_mode:
-            conda_exe = [abspath(join(root_prefix, 'bin', 'python')), '-m', 'conda']
-            dev_arg = '--dev'
+            conda_exe = [abspath(join(root_prefix, "bin", "python")), "-m", "conda"]
+            dev_arg = "--dev"
             dev_args = [dev_arg]
         else:
-            conda_exe = [environ.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))]
-            dev_arg = ''
+            conda_exe = [
+                environ.get("CONDA_EXE", abspath(join(root_prefix, "bin", "conda")))
+            ]
+            dev_arg = ""
             dev_args = []
-        with Utf8NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
+        with Utf8NamedTemporaryFile(mode="w", prefix=tmp_prefix, delete=False) as fh:
             if dev_mode:
-                from conda.core.initialize import CONDA_PACKAGE_ROOT
-                fh.write(">&2 export PYTHONPATH=" + dirname(CONDA_PACKAGE_ROOT) + "\n")
-            hook_quoted = quote_for_shell(conda_exe + ['shell.posix', 'hook'] + dev_args)
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
+            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment before ***'\n"
-                         ">&2 env\n")
-                fh.write(">&2 echo \"$({0})\"\n"
-                         .format(hook_quoted))
-            fh.write("eval \"$({0})\"\n"
-                     .format(hook_quoted))
-            fh.write("conda activate {0} {1}\n".format(dev_arg, quote_for_shell((prefix,))))
+                fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
+                fh.write(f'>&2 echo "$({hook_quoted})"\n')
+            fh.write(f'eval "$({hook_quoted})"\n')
+            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment after ***'\n"
-                         ">&2 env\n")
+                fh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
-                fh.write("{0}\n".format(' '.join(arguments)))
+                fh.write("{}\n".format(" ".join(arguments)))
             else:
-                fh.write("{0}\n".format(quote_for_shell(arguments)))
+                fh.write(f"{quote_for_shell(*arguments)}\n")
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
@@ -431,13 +487,77 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_sc
     return script_caller, command_args
 
 
-def ensure_comspec_set():
+def get_comspec():
+    """Returns COMSPEC from envvars.
+
+    Ensures COMSPEC envvar is set to cmd.exe, if not attempt to find it.
+
+    :raises KeyError: COMSPEC is undefined and cannot be found.
+    :returns: COMSPEC value.
+    :rtype: str
+    """
     if basename(environ.get("COMSPEC", "")).lower() != "cmd.exe":
-        cmd_exe = join(environ.get('SystemRoot'), 'System32', 'cmd.exe')
-        if not isfile(cmd_exe):
-            cmd_exe = join(environ.get('windir'), 'System32', 'cmd.exe')
-        if not isfile(cmd_exe):
-            log.warn("cmd.exe could not be found. "
-                     "Looked in SystemRoot and windir env vars.\n")
+        for comspec in (
+            # %SystemRoot%\System32\cmd.exe
+            environ.get("SystemRoot")
+            and join(environ["SystemRoot"], "System32", "cmd.exe"),
+            # %windir%\System32\cmd.exe
+            environ.get("windir") and join(environ["windir"], "System32", "cmd.exe"),
+        ):
+            if comspec and isfile(comspec):
+                environ["COMSPEC"] = comspec
+                break
         else:
-            environ['COMSPEC'] = cmd_exe
+            log.warn(
+                "cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n"
+            )
+
+    # fails with KeyError if still undefined
+    return environ["COMSPEC"]
+
+
+def ensure_dir_exists(func):
+    """
+    Ensures that the directory exists for functions returning
+    a Path object containing a directory
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+
+        if isinstance(result, Path):
+            try:
+                result.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                raise CondaError(
+                    "Error encountered while attempting to create cache directory."
+                    f"\n  Directory: {result}"
+                    f"\n  Exception: {exc}"
+                )
+
+        return result
+
+    return wrapper
+
+
+@deprecated("23.9", "24.3", addendum="Use `open` instead.")
+@contextmanager
+def safe_open(*args, **kwargs):
+    """
+    Allows us to open files while catching any exceptions
+    and raise them as CondaErrors instead.
+
+    We do this to provide a more informative/actionable error output.
+    """
+    try:
+        fp = open(*args, **kwargs)
+        yield fp
+    except OSError as exc:
+        raise CondaError(
+            "Error encountered while reading or writing from cache."
+            f"\n  File: {args[0]}"
+            f"\n  Exception: {exc}"
+        )
+
+    fp.close()

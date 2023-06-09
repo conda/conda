@@ -261,8 +261,7 @@ def _screen_shape_windows(fp):  # pragma: no cover
 def _screen_shape_tput(*_):  # pragma: no cover
     """cygwin xterm (windows)"""
     try:
-        # from shlex import split as ss
-        from conda._vendor.auxlib.compat import shlex_split_unicode as ss
+        from conda.auxlib.compat import shlex_split_unicode as ss
         from subprocess import check_call  # nosec
         return [int(check_call(ss('tput ' + i))) - 1
                 for i in ('cols', 'lines')]

@@ -1,8 +1,17 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Conda Libmamba Solver Issues/Features
+    url: https://github.com/conda/conda-libmamba-solver/issues
+    about: Anything related to the `conda-libmamba-solver` project
   - name: Conda Build Issues/Features
     url: https://github.com/conda/conda-build/issues
-    about: Anything related to the "conda-build" project should go here
-  - name: Package Request
-    url: https://github.com/ContinuumIO/anaconda-issues/
-    about: A specific Conda package from Anaconda ('defaults' channel)
+    about: Anything related to the `conda-build` project
+  - name: Anaconda/defaults Package Issues/Requests
+    url: https://github.com/ContinuumIO/anaconda-issues
+    about: Anything related to a package from Anaconda/defaults channel
+  - name: conda-forge Package Issues/Requests
+    url: https://github.com/conda-forge
+    about: Anything related to a package from conda-forge channel
+  - name: bioconda Package Issues/Requests
+    url: https://github.com/bioconda/bioconda-recipes/issues
+    about: Anything related to a package from conda-forge channel

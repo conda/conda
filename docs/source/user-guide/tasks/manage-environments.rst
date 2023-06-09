@@ -56,7 +56,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
    .. code-block:: bash
 
-      conda create -n myenv python=3.6
+      conda create -n myenv python=3.9
 
 4. To create an environment with a specific package:
 
@@ -75,21 +75,21 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
    .. code-block:: bash
 
-      conda create -n myenv scipy=0.15.0
+      conda create -n myenv scipy=0.17.3
 
    OR:
 
    .. code-block:: bash
 
       conda create -n myenv python
-      conda install -n myenv scipy=0.15.0
+      conda install -n myenv scipy=0.17.3
 
 6. To create an environment with a specific version of Python and
    multiple packages:
 
   .. code-block:: bash
 
-     conda create -n myenv python=3.6 scipy=0.15.0 astroid babel
+     conda create -n myenv python=3.9 scipy=0.17.3 astroid babel
 
   .. tip::
      Install all the programs that you want in this environment
@@ -140,7 +140,7 @@ Use the terminal or an Anaconda Prompt for the following steps:
       conda env list
 
   You can also use ``conda info --envs``.
-  
+
 
 .. _specifying-location:
 
@@ -152,13 +152,13 @@ to a target directory when creating the environment. For example,
 the following command will create a new environment in a subdirectory
 of the current working directory called ``envs``::
 
-  conda create --prefix ./envs jupyterlab=0.35 matplotlib=3.1 numpy=1.16
+  conda create --prefix ./envs jupyterlab=3.2 matplotlib=3.5 numpy=1.21
 
 You then activate an environment created with a prefix using the same
 command used to activate environments created by name::
- 
+
   conda activate ./envs
- 
+
 Specifying a path to a subdirectory of your project directory when
 creating an environment has the following benefits:
 
@@ -174,7 +174,7 @@ folder, you’ll have to give each environment a different name.
 
 There are a few things to be aware of when placing conda environments
 outside of the default ``envs`` folder.
- 
+
 #. Conda can no longer find your environment with the ``--name`` flag.
    You’ll generally need to pass the ``--prefix`` flag along with the
    environment’s full path to find the environment.
@@ -626,7 +626,7 @@ Once you have set an environment variable, you have to reactivate your environme
 ``conda activate test-env``.
 
 To check if the environment variable has been set, run
-``echo my_var`` or ``conda env config vars list``.
+``echo $my_var`` (``echo %my_var%`` on Windows)  or ``conda env config vars list``.
 
 When you deactivate your environment, you can use those same commands to see that
 the environment variable goes away.
@@ -635,7 +635,7 @@ You can specify the environment you want to affect using the ``-n`` and ``-p`` f
 
 To unset the environment variable, run ``conda env config vars unset my_var -n test-env``.
 
-When you deactivate your environment, you can see that environment variable goes away by rerunning 
+When you deactivate your environment, you can see that environment variable goes away by rerunning
 ``echo my_var`` or ``conda env config vars list`` to show that the variable name
 is no longer present.
 
@@ -762,7 +762,7 @@ Exporting the environment.yml file
    current directory, it will be overwritten during this task.
 
 #. Activate the environment to export: ``conda activate myenv``
-   
+
    .. note::
       Replace ``myenv`` with the name of the environment.
 
@@ -796,7 +796,7 @@ for dependencies. This will introduce packages that may not be compatible
 across platforms.
 
 If you use ``conda env export``, it will export all of those packages.
-However, if you use ``conda env export --from-history``, it will 
+However, if you use ``conda env export --from-history``, it will
 only export those you specifically chose:
 
 .. code-block::
@@ -812,7 +812,7 @@ only export those you specifically chose:
    prefix: /Users/username/anaconda3/envs/env-name
 
 .. note::
-   If you installed Anaconda 2019.10 on macOS, your prefix may be 
+   If you installed Anaconda 2019.10 on macOS, your prefix may be
    ``/Users/username/opt/envs/env-name``.
 
 .. _create-env-file-manually:
@@ -840,21 +840,35 @@ EXAMPLE: A more complex environment file:
    channels:
      - javascript
    dependencies:
-     - python=3.6   # or 2.7
-     - bokeh=0.9.2
-     - numpy=1.9.*
-     - nodejs=0.10.*
+     - python=3.9
+     - bokeh=2.4.2
+     - conda-forge::numpy=1.21.*
+     - nodejs=16.13.*
      - flask
+     - pip
      - pip:
        - Flask-Testing
 
-.. note:: 
-   Note the use of the wildcard * when defining the patch version
-   number. Defining the version number by fixing the major and minor
-   version numbers while allowing the patch version number to vary
-   allows us to use our environment file to update our environment
-   to get any bug fixes whilst still maintaining consistency of
-   software environment.
+.. note::
+   **Using wildcards**
+
+   Note the use of the wildcard ``*`` when defining a few of the
+   versions in the complex environment file. Keeping the major and
+   minor versions fixed while allowing the patch to be any number
+   allows you to use your environment file to get any bug fixes
+   while still maintaining consistency in your environment. For
+   more information on package installation values,
+   see :doc:`../concepts/pkg-search`.
+
+   **Specifying channels outside of "channels"**
+
+   You may occasionally want to specify which channel conda will
+   use to install a specific package. To accomplish this, use the
+   `channel::package` syntax in `dependencies:`, as demonstrated
+   above with `conda-forge::numpy` (version numbers optional). The
+   specified channel does not need to be present in the `channels:`
+   list, which is useful if you want some—but not *all*—packages
+   installed from a community channel such as `conda-forge`.
 
 You can exclude the default channels by adding ``nodefaults``
 to the channels list.
@@ -883,13 +897,13 @@ Restoring an environment
 Conda keeps a history of all the changes made to your environment,
 so you can easily "roll back" to a previous version. To list the history of each change to the current environment:
 ``conda list --revisions``
- 
+
 To restore environment to a previous revision: ``conda install --revision=REVNUM``
 or ``conda install --rev REVNUM``.
- 
+
 .. note::
    Replace REVNUM with the revision number.
- 
+
 Example:
 If you want to restore your environment to revision 8, run ``conda install --rev 8``.
 

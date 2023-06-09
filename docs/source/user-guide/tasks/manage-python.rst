@@ -10,15 +10,7 @@ Managing Python
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Anaconda supports Python 2.7, 3.6, 3.7, and 3.8. The default is Python
-2.7 or 3.8, depending on which installer you used:
-
-* For the installers "Anaconda" and "Miniconda," the default is
-  2.7.
-
-* For the installers "Anaconda3" or "Miniconda3," the default is
-  3.8.
-
+Conda supports Python 3.8, 3.9, 3.10, and 3.11.
 
 Viewing a list of available Python versions
 ===========================================
@@ -66,13 +58,6 @@ Python version into it:
         package, such as ``numpy=1.19``, or :ref:`multiple packages
         <installing multiple packages>`.
 
-   * To create the new environment for Python 2.7, in your terminal window
-     or an Anaconda Prompt, run:
-
-     .. code-block:: bash
-
-        conda create -n py27 python=2.7 anaconda
-
 #. :ref:`Activate the new environment <activate-env>`.
 
 #. Verify that the new environment is your :ref:`current
@@ -90,7 +75,7 @@ Installing PyPy
 
 To use the PyPy builds you can do the following::
 
-    conda config conda config --add channels conda-forge
+    conda config --add channels conda-forge
     conda config --set channel_priority strict
     conda create -n pypy pypy
     conda activate pypy

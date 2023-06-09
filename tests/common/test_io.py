@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-from conda.common.io import attach_stderr_handler, captured, CaptureTarget
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
-import sys
+
+from conda.common.io import CaptureTarget, attach_stderr_handler, captured
 
 
 def test_captured():
@@ -46,7 +46,7 @@ def test_captured():
 
 
 def test_attach_stderr_handler():
-    name = 'abbacadabba'
+    name = "abbacadabba"
     logr = getLogger(name)
     assert len(logr.handlers) == 0
     assert logr.level is NOTSET
@@ -55,30 +55,28 @@ def test_attach_stderr_handler():
 
     with captured() as c:
         attach_stderr_handler(WARN, name)
-        logr.warn('test message')
+        logr.warn("test message")
         logr.debug(debug_message)
 
     assert len(logr.handlers) == 1
-    assert logr.handlers[0].name == 'stderr'
-    assert logr.handlers[0].level is NOTSET
-    assert logr.level is WARN
-    assert c.stdout == ''
-    assert 'test message' in c.stderr
+    assert logr.handlers[0].name == "stderr"
+    assert logr.handlers[0].level is WARN
+    assert logr.level is NOTSET
+    assert c.stdout == ""
+    assert "test message" in c.stderr
     assert debug_message not in c.stderr
 
     # round two, with debug
     with captured() as c:
         attach_stderr_handler(DEBUG, name)
-        logr.warn('test message')
+        logr.warn("test message")
         logr.debug(debug_message)
-        logr.info('info message')
+        logr.info("info message")
 
     assert len(logr.handlers) == 1
-    assert logr.handlers[0].name == 'stderr'
-    assert logr.handlers[0].level is NOTSET
-    assert logr.level is DEBUG
-    assert c.stdout == ''
-    assert 'test message' in c.stderr
+    assert logr.handlers[0].name == "stderr"
+    assert logr.handlers[0].level is DEBUG
+    assert logr.level is NOTSET
+    assert c.stdout == ""
+    assert "test message" in c.stderr
     assert debug_message in c.stderr
-
-

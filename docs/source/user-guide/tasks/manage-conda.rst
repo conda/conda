@@ -17,7 +17,7 @@ To verify that conda is installed, in your terminal window or an Anaconda Prompt
    conda --version
 
 Conda responds with the version number that you have installed,
-such as ``conda 4.7.12``.
+such as ``conda 4.12.0``.
 
 If you get an error message, make sure of the following:
 
@@ -78,12 +78,11 @@ to update conda to the latest version:
     ==> WARNING: A newer version of conda exists. <==
     current version: 4.6.13
     latest version: 4.8.0
- 
+
 Update conda by running: ``conda update -n base conda``
- 
+
 Run the following command from your terminal or Anaconda Prompt:
 ``conda config --set notify_outdated_conda false``
- 
+
 Or add the following line in your ``.condarc`` file:
 ``notify_outdated_conda: false``
-

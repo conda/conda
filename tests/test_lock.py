@@ -1,12 +1,14 @@
-import pytest
-from conda.lock import DirectoryLock, FileLock, LockError
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from os.path import basename, exists, isfile, join
+
+import pytest
+
+from conda.lock import DirectoryLock, FileLock, LockError
 
 
 def test_filelock_passes(tmpdir):
-    """
-        Normal test on file lock
-    """
+    """Normal test on file lock."""
     package_name = "conda_file1"
     tmpfile = join(tmpdir.strpath, package_name)
     with FileLock(tmpfile) as lock:
@@ -19,8 +21,8 @@ def test_filelock_passes(tmpdir):
 
 def test_filelock_locks(tmpdir):
     """
-        Test on file lock, multiple lock on same file
-        Lock error should raised
+    Test on file lock, multiple lock on same file
+    Lock error should raised
     """
     package_name = "conda_file_2"
     tmpfile = join(tmpdir.strpath, package_name)
@@ -28,7 +30,7 @@ def test_filelock_locks(tmpdir):
         path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists()
 
-        with pytest.raises(LockError) as execinfo:
+        with pytest.raises(LockError):
             with FileLock(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.path_to_lock == lock1.path_to_lock
@@ -40,17 +42,14 @@ def test_filelock_locks(tmpdir):
 
 
 def test_folder_locks(tmpdir):
-    """
-        Test on Directory lock
-    """
+    """Test on Directory lock."""
     package_name = "dir_1"
     tmpfile = join(tmpdir.strpath, package_name)
     with DirectoryLock(tmpfile) as lock1:
-
         assert exists(lock1.lock_file_path) and isfile(lock1.lock_file_path)
 
-        with pytest.raises(LockError) as execinfo:
-            with DirectoryLock(tmpfile, retries=1) as lock2:
+        with pytest.raises(LockError):
+            with DirectoryLock(tmpfile, retries=1):
                 assert False  # this should never happen
 
         assert exists(lock1.lock_file_path) and isfile(lock1.lock_file_path)
@@ -61,9 +60,10 @@ def test_folder_locks(tmpdir):
 
 def test_lock_thread(tmpdir):
     """
-        2 thread want to lock a file
-        One thread will have LockError Raised
+    2 thread want to lock a file
+    One thread will have LockError Raised
     """
+
     def lock_thread(tmpdir, file_path):
         with FileLock(file_path) as lock1:
             path = basename(lock1.lock_file_path)
@@ -71,6 +71,7 @@ def test_lock_thread(tmpdir):
         assert not tmpdir.join(path).exists()
 
     from threading import Thread
+
     package_name = "conda_file_3"
     tmpfile = join(tmpdir.strpath, package_name)
     t = Thread(target=lock_thread, args=(tmpdir, tmpfile))
@@ -87,10 +88,11 @@ def test_lock_thread(tmpdir):
 
 def test_lock_retries(tmpdir):
     """
-        2 thread want to lock a same file
-        Lock has zero retries
-        One thread will have LockError raised
+    2 thread want to lock a same file
+    Lock has zero retries
+    One thread will have LockError raised
     """
+
     def lock_thread_retries(tmpdir, file_path):
         with pytest.raises(LockError) as execinfo:
             with FileLock(file_path, retries=0):
@@ -98,6 +100,7 @@ def test_lock_retries(tmpdir):
             assert "LOCKERROR" in str(execinfo.value)
 
     from threading import Thread
+
     package_name = "conda_file_3"
     tmpfile = join(tmpdir.strpath, package_name)
     t = Thread(target=lock_thread_retries, args=(tmpdir, tmpfile))
@@ -114,15 +117,14 @@ def test_lock_retries(tmpdir):
 
 def test_permission_file():
     """
-        Test when lock cannot be created due to permission
-        Make sure no exception raised
+    Test when lock cannot be created due to permission
+    Make sure no exception raised
     """
-    from conda._vendor.auxlib.compat import Utf8NamedTemporaryFile
-    from conda.common.compat import text_type
-    with Utf8NamedTemporaryFile(mode='r') as f:
-        if not isinstance(f.name, text_type):
+    from conda.auxlib.compat import Utf8NamedTemporaryFile
+
+    with Utf8NamedTemporaryFile(mode="r") as f:
+        if not isinstance(f.name, str):
             return
         with FileLock(f.name) as lock:
-
             path = basename(lock.lock_file_path)
             assert not exists(join(f.name, path))

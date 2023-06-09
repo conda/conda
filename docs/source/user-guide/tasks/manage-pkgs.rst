@@ -252,31 +252,31 @@ Listing package dependencies
 To find what packages are depending on a specific package in
 your environment, there is not one specific conda command.
 It requires a series of steps:
- 
+
 #. List the dependencies that a specific package requires to run:
-   ``conda info package_name``
- 
+   ``conda search package_name --info``
+
 #. Find your installation’s package cache directory:
    ``conda info``
- 
+
 #. Find package dependencies. By default, Anaconda/Miniconda stores packages in ~/anaconda/pkgs/ (or ~/opt/pkgs/ on macOS Catalina).
    Each package has an index.json file which lists the package’s dependencies.
    This file resides in ~anaconda/pkgs/package_name/info/index.json.
 
 #. Now you can find what packages depend on a specific package. Use grep to search all index.json files
    as follows: ``grep package_name ~/anaconda/pkgs/*/info/index.json``
- 
+
 The result will be the full package path and version of anything containing the <package_name>.
- 
+
 Example:
 ``grep numpy ~/anaconda3/pkgs/*/info/index.json``
- 
+
 Output from the above command::
 
   /Users/testuser/anaconda3/pkgs/anaconda-4.3.0-np111py36_0/info/index.json: numpy 1.11.3 py36_0
   /Users/testuser/anaconda3/pkgs/anaconda-4.3.0-np111py36_0/info/index.json: numpydoc 0.6.0 py36_0
   /Users/testuser/anaconda3/pkgs/anaconda-4.3.0-np111py36_0/info/index.json: numpy 1.11.3 py36_0
-  
+
 Note this also returned “numpydoc” as it contains the string “numpy”. To get a more specific result
 set you can add \< and \>.
 
@@ -309,8 +309,7 @@ Use the terminal or an Anaconda Prompt for the following steps.
 
 .. note::
    Conda updates to the highest version in its series, so
-   Python 2.7 updates to the highest available in the 2.x series and
-   3.6 updates to the highest available in the 3.x series.
+   Python 3.8 updates to the highest available in the 3.x series.
 
 To update the Anaconda metapackage:
 
@@ -373,11 +372,11 @@ To automatically add default packages to each new environment that you create:
 
 #. Open Anaconda Prompt or terminal and run:
    ``conda config --add create_default_packages PACKAGENAME1 PACKAGENAME2``
- 
+
 #. Now, you can create new environments and the default packages will be installed in all of them.
 
 You can also :ref:`edit the .condarc file <config-add-default-pkgs>` with a list of packages to create
-by default. 
+by default.
 
 You can override this option at the command prompt with the ``--no-default-packages`` flag.
 

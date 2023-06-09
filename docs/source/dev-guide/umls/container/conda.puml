@@ -1,0 +1,25 @@
+@startuml
+!include <C4/C4_Container.puml>
+!include ../includes/base.puml
+
+' Define the items different to the base diagram
+Container_Boundary(conda, "Conda") {
+  Container(conda_api, "conda.api", "Python API", "High-level, public Python API to interact with lower-level functionality")
+  Container(conda_base, "conda.base", "Base", "Fast base code loaded on every conda run")
+  Container(conda_cli, "conda.cli", "Command Line Interface", "Handles user commands and is divided into subcommands")
+  Container(conda_core, "conda.core", "Core", "Contains core application logic, e.g. solver")
+  Container(conda_common, "conda.common", "Common", "Generic code that lives next to rest of Conda")
+  Container(conda_exceptions, "conda.exceptions", "Exceptions", "Project-wide exception subclasses")
+  Container(conda_gateways, "conda.gateways", "I/O", "File and network handling code")
+  Container(conda_models, "conda.models", "Models", "Data classes for conda-internal handling")
+  Container(conda_resolve, "conda.resolve", "Resolve", "Low-level solver code")
+  Container(conda_shell, "conda.shell", "Shell", "Shell support code")
+  Container(conda_vendor, "conda._vendor", "Vendor", "Manually maintained")
+}
+
+ContainerDb_Ext(channels, "Channels", "Software package storage systems")
+
+' Include relationships here once we've set the differences.
+!include ../includes/rels.puml
+
+@enduml

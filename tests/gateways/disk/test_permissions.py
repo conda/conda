@@ -1,25 +1,29 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+import errno
 import os
 import uuid
-
-import errno
-import pytest
-from errno import ENOENT, EACCES, EROFS, EPERM
-from shutil import rmtree
 from contextlib import contextmanager
+from errno import EACCES, ENOENT, EPERM, EROFS
+from os.path import isfile, join, lexists
+from shutil import rmtree
+from stat import (
+    S_IRGRP,
+    S_IROTH,
+    S_IRUSR,
+    S_IRWXG,
+    S_IRWXO,
+    S_IRWXU,
+    S_IXGRP,
+    S_IXOTH,
+    S_IXUSR,
+)
 from tempfile import gettempdir
-from os.path import join, isfile, lexists
-from stat import S_IRUSR, S_IRGRP, S_IROTH
-from stat import S_IRWXG, S_IRWXO, S_IRWXU
-from stat import S_IXUSR, S_IXGRP, S_IXOTH
-from conda.gateways.disk.update import touch
+from unittest.mock import patch
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
+import pytest
+
+from conda.gateways.disk.update import touch
 
 
 def create_temp_location():
@@ -42,7 +46,7 @@ def tempdir():
 def _remove_read_only(func, path, exc):
     excvalue = exc[1]
     if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-        os.chmod(path, S_IRWXU| S_IRWXG| S_IRWXO)
+        os.chmod(path, S_IRWXU | S_IRWXG | S_IRWXO)
         func(path)
     else:
         pass
@@ -54,7 +58,7 @@ def _make_read_only(path):
 
 def _can_write_file(test, content):
     try:
-        with open(test, 'w+') as fh:
+        with open(test, "w+") as fh:
             fh.write(content)
             fh.close()
         if os.stat(test).st_size == 0.0:
@@ -62,14 +66,14 @@ def _can_write_file(test, content):
         else:
             return True
     except Exception as e:
-        eno = getattr(e, 'errono', None)
+        eno = getattr(e, "errono", None)
         if eno == 13:
             return False
 
 
 def _try_open(path):
     try:
-        f = open(path, 'a+')
+        f = open(path, "a+")
     except:
         raise
     else:
@@ -82,8 +86,9 @@ def _can_execute(path):
 
 def test_make_writable():
     from conda.gateways.disk.permissions import make_writable
+
     with tempdir() as td:
-        test_path = join(td, 'test_path')
+        test_path = join(td, "test_path")
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
@@ -98,16 +103,18 @@ def test_make_writable():
 
 def test_make_writable_doesnt_exist():
     from conda.gateways.disk.permissions import make_writable
+
     with pytest.raises((IOError, OSError)) as exc:
-        make_writable(join('some', 'path', 'that', 'definitely', 'doesnt', 'exist'))
+        make_writable(join("some", "path", "that", "definitely", "doesnt", "exist"))
     assert exc.value.errno == ENOENT
 
 
 def test_make_writable_dir_EPERM():
     import conda.gateways.disk.permissions
     from conda.gateways.disk.permissions import make_writable
-    with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
-        chmod_mock.side_effect = IOError(EPERM, 'some message', 'foo')
+
+    with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
+        chmod_mock.side_effect = IOError(EPERM, "some message", "foo")
         with tempdir() as td:
             assert not make_writable(td)
 
@@ -115,8 +122,9 @@ def test_make_writable_dir_EPERM():
 def test_make_writable_dir_EACCES():
     import conda.gateways.disk.permissions
     from conda.gateways.disk.permissions import make_writable
-    with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
-        chmod_mock.side_effect = IOError(EACCES, 'some message', 'foo')
+
+    with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
+        chmod_mock.side_effect = IOError(EACCES, "some message", "foo")
         with tempdir() as td:
             assert not make_writable(td)
 
@@ -124,16 +132,18 @@ def test_make_writable_dir_EACCES():
 def test_make_writable_dir_EROFS():
     import conda.gateways.disk.permissions
     from conda.gateways.disk.permissions import make_writable
-    with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
-        chmod_mock.side_effect = IOError(EROFS, 'some message', 'foo')
+
+    with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
+        chmod_mock.side_effect = IOError(EROFS, "some message", "foo")
         with tempdir() as td:
             assert not make_writable(td)
 
 
 def test_recursive_make_writable():
     from conda.gateways.disk.permissions import recursive_make_writable
+
     with tempdir() as td:
-        test_path = join(td, 'test_path')
+        test_path = join(td, "test_path")
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
@@ -148,8 +158,9 @@ def test_recursive_make_writable():
 
 def test_make_executable():
     from conda.gateways.disk.permissions import make_executable
+
     with tempdir() as td:
-        test_path = join(td, 'test_path')
+        test_path = join(td, "test_path")
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)

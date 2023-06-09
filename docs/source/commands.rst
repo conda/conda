@@ -15,16 +15,12 @@ You can also access help from the command line with the
 
    conda install --help
 
-
-Conda general commands
-======================
-
 The following commands are part of conda:
 
 .. toctree::
    :glob:
    :maxdepth: 2
- 
+
    commands/*
 
 Conda vs. pip vs. virtualenv commands
@@ -32,7 +28,7 @@ Conda vs. pip vs. virtualenv commands
 
 If you have used pip and virtualenv in the past, you can use
 conda to perform all of the same operations. Pip is a package
-manager and virtualenv is an environment manager. Conda is both.
+manager and virtualenv is an environment manager. conda is both.
 
 Scroll to the right to see the entire table.
 
@@ -108,7 +104,7 @@ Scroll to the right to see the entire table.
 
 \* ``conda activate`` only works on conda 4.6 and later versions.
 For conda versions prior to 4.6, type:
-   
+
    * Windows: ``activate``
    * Linux and macOS: ``source activate``
 

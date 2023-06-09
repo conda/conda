@@ -208,7 +208,7 @@ specify the version of Python that you want.
    When conda asks if you want to proceed, type "y" and press Enter.
 
 #. Activate the new environment:
-     
+
    * Windows: ``conda activate snakes``
    * macOS and Linux: ``conda activate snakes``
 
@@ -256,7 +256,7 @@ specify the version of Python that you want.
 
    .. note::
       For versions prior to conda 4.6, use:
-       
+
         * Windows:  ``activate``
         * macOS, Linux: ``source activate``
 
@@ -302,6 +302,6 @@ More information
 ================
 
 * :doc:`Conda cheat sheet <cheatsheet>`
-* Full documentation--- https://conda.io/docs/ 
-* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda 
-* Paid support options--- https://www.anaconda.com/support/ 
+* Full documentation--- https://conda.io/docs/
+* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda
+* Paid support options--- https://www.anaconda.com/support/

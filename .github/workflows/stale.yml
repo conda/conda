@@ -1,116 +1,99 @@
-name: 'Stale'
+---
+name: Stale
+
 on:
+  # NOTE: github.event is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
+    inputs:
+      dryrun:
+        description: 'dryrun: Preview stale issues/prs without marking them (true|false)'
+        required: true
+        type: boolean
+        default: true
+
   schedule:
-    - cron: '0 4 * * *'
+    - cron: 0 4 * * *
+
+permissions:
+  issues: write
+  pull-requests: write
 
 jobs:
   stale:
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - only-issue-labels: ''
+            days-before-issue-stale: 365
+            days-before-issue-close: 30
+          # [type::support] issues have a more aggressive stale/close timeline
+          - only-issue-labels: type::support
+            days-before-issue-stale: 90
+            days-before-issue-close: 21
     steps:
-      - uses: actions/stale@v4
+      - uses: conda/actions/read-yaml@v23.4.0
+        id: read_yaml
+        with:
+          path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
+
+      - uses: actions/stale@v8
         id: stale
         with:
-          # Idle number of days before marking issues stale (default: 60)
-          days-before-issue-stale: 365
-          # Idle number of days before closing stale issues/PRs (default: 7)
-          days-before-issue-close: 90
-          # Idle number of days before marking PRs stale (default: 60)
-          days-before-pr-stale: 360
-          # Idle number of days before closing stale PRs (default: 7)
+          # Only issues with these labels are checked whether they are stale
+          only-issue-labels: ${{ matrix.only-issue-labels }}
+
+          # Idle number of days before marking issues stale
+          days-before-issue-stale: ${{ matrix.days-before-issue-stale }}
+          # Idle number of days before closing stale issues/PRs
+          days-before-issue-close: ${{ matrix.days-before-issue-close }}
+          # Idle number of days before marking PRs stale
+          days-before-pr-stale: 365
+          # Idle number of days before closing stale PRs
           days-before-pr-close: 30
 
           # Comment on the staled issues
-          stale-issue-message: |
-            Hi there, thank you for your contribution to Conda!
-
-            This issue has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
-
-            If you would like this issue to remain open please:
-
-            1. Verify that you can still reproduce the issue in the latest version of Conda
-
-            2. Comment that the issue is still reproducible and include:
-
-              - What version of Conda you reproduced the issue on
-              - What OS and version you reproduced the issue on
-              - What steps you followed to reproduce the issue
-
-            3. It would also be helpful to have the output of the following commands available:
-
-              - `conda info`
-              - `conda config --show-sources`
-              - `conda list --show-channel-urls`
-
-            **NOTE:** If this issue was closed prematurely, please leave a comment and we will gladly reopen the issue.
-
-            In case this issue was originally about a project that is covered by the [Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues) (e.g. Anaconda, Miniconda, packages built by Anaconda, Inc. like Anaconda Navigator etc), please reopen the issue there again.
-
-            Thanks!
-          # Comment on the staled issues while closed
-          close-issue-message: |
-            Hi again!
-
-            This issue has been closed since it has not had recent activity.
-            Please don't hesitate to leave a comment if that was done prematurely.
-
-            Thank you for your contribution.
-          # Comment on the staled PRs
-          stale-pr-message: |
-            Hi there, thank you for your contribution to Conda!
-
-            This pull request has been **automatically marked as stale** because it has not had recent activity. It will be closed automatically if no further activity occurs.
-
-            If you would like this pull request to remain open please:
-
-              1. Update the pull request with the latest code in the main branch
-              2. Verify that the pull request change is still working and update it if needed
-              3. Leave a comment with the current status of the pull request
-
-            **NOTE:** If this pull request was closed prematurely, please leave a comment.
-
-            Thanks!
-          # Comment on the staled PRs while closed
-          close-pr-message: >
-            Hi again!
-
-            This pull request has been closed since it has not had recent activity.
-            Please don't hesitate to leave a comment if that was done prematurely.
-
-            Thank you for your contribution.
+          stale-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-issue'] }}
           # Label to apply on staled issues
-          stale-issue-label: stale-marked
+          stale-issue-label: stale
           # Label to apply on closed issues
-          close-issue-label: stale-closed
-          # Label to apply on staled PRs
-          stale-pr-label: stale-marked
-          # Label to apply on closed PRs
-          close-pr-label: stale-closed
+          close-issue-label: stale::closed
+          # Reason to use when closing issues
+          close-issue-reason: not_planned
 
-          # Issues with these labels will never be considered stale
-          exempt-issue-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
-          # Issues with these labels will never be considered stale
-          exempt-pr-labels: 'good-first-issue,help-wanted,Epic,priority-high,s-1,source-partner,type-advisory,type-techdebt'
+          # Comment on the staled PRs
+          stale-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-pr'] }}
+          # Label to apply on staled PRs
+          stale-pr-label: stale
+          # Label to apply on closed PRs
+          close-pr-label: stale::closed
+          # Reason to use when closing PRs
+          close-pr-reason: not_planned
+
+          # Remove stale label from issues/PRs on updates/comments
+          remove-stale-when-updated: true
+          # Add specified labels to issues/PRs when they become unstale
+          labels-to-add-when-unstale: stale::recovered
+          # Remove specified labels to issues/PRs when they become unstale
+          labels-to-remove-when-unstale: stale,stale::closed
 
           # Max number of operations per run
           operations-per-run: ${{ secrets.STALE_OPERATIONS_PER_RUN || 100 }}
-          # Remove stale label from issues/PRs on updates/comments
-          remove-stale-when-updated: true
-
-          # Add specified labels to issues/PRs when they become unstale
-          # disabled due to https://github.com/actions/stale/issues/551
-          # labels-to-add-when-unstale: stale-recovered
-
-          # Dry-run (default: false)
-          debug-only: false
-          # Order to get issues/PRs (default: false)
+          # Dry-run
+          debug-only: ${{ github.event.inputs.dryrun || false }}
+          # Order to get issues/PRs
           ascending: true
-          # Delete branch after closing a stale PR (default: false)
+          # Delete branch after closing a stale PR
           delete-branch: false
 
+          # Issues with these labels will never be considered stale
+          exempt-issue-labels: stale::recovered,epic
+          # Issues with these labels will never be considered stale
+          exempt-pr-labels: stale::recovered,epic
           # Exempt all issues/PRs with milestones from stale
           exempt-all-milestones: true
-
           # Assignees on issues/PRs exempted from stale
           exempt-assignees: mingwandroid
 

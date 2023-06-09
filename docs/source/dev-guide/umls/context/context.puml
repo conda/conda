@@ -1,0 +1,11 @@
+@startuml
+!include <C4/C4_Dynamic>
+!include ../includes/base.puml
+
+System(conda, "conda", "Software package and environment management system")
+SystemDb_Ext(channels, "Channels", "Software package storage systems")
+
+' Include relationships here once we've set the differences.
+!include ../includes/rels.puml
+
+@enduml

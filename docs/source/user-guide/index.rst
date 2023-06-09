@@ -5,7 +5,7 @@ User guide
 .. toctree::
    :maxdepth: 1
    :hidden:
-    
+
    concepts/index
    getting-started
    install/index
@@ -23,6 +23,7 @@ User guide
 * :doc:`Create your first conda project in 20 minutes <getting-started>`.
 * :doc:`View system requirements and installation directions <install/index>`.
 
+Looking for more information on conda? Anaconda has a free Conda Basics course in `Anaconda Learning <https://learning.anaconda.cloud/conda-basics>`_.
 
 **Dive deeper**
 

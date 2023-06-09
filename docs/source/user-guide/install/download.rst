@@ -43,7 +43,7 @@ Choose Anaconda if you:
 * Do not want to individually install each of the packages you
   want to use.
 
-* Wish to use a curated and vetted set of packages.
+* Wish to use a set of packages curated and vetted for interoperability and usability.
 
 Choose Miniconda if you:
 
@@ -101,7 +101,7 @@ Cryptographic hash verification
 
 SHA-256 checksums are available for
 `Miniconda <https://conda.io/en/latest/miniconda_hashes.html>`_ and
-`Anaconda <https://docs.continuum.io/anaconda/install/hashes/all>`_.
+`Anaconda <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 
 Download the installer file and before installing verify it as follows:
@@ -127,7 +127,7 @@ Download the installer file and before installing verify it as follows:
     #. Navigate to the file.
 
     #. Run the following command::
-    
+
         Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
 * macOS: In iTerm or a terminal window enter ``shasum -a 256 filename``.

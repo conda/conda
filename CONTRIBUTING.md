@@ -1,197 +1,111 @@
 # Contributing to Conda
 
-## New Issues
+Thank you for your interest in improving conda! Below, we describe how our
+development process works and how you can be a part of it.
 
-If your issue is a bug report or feature request for:
+*Already know how to contribute and need help setting up your development environment?
+[Read the development environment guide here][development-environment]*
 
-* **a specific conda package**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
-* **anaconda.org**: please file it at <https://github.com/Anaconda-Platform/support/issues>
-* **repo.anaconda.com**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
-* **commands under `conda build`**: please file it at <https://github.com/conda/conda-build/issues>
-* **commands under `conda env`**: please file it here!
-* **all other conda commands**: please file it here!
+## Hosted on GitHub
 
+All development currently takes place on [GitHub][github]. This means we make extensive
+use of the project management tools they provide such as [issues](https://github.com/conda/conda/issues)
+and [projects](https://github.com/orgs/conda/projects).
 
-## Development Environment, Bash <!-- TODO: make this so (including the msys2 shell on Windows) -->
+## Code of Conduct
 
-To set up an environment to start developing on conda code, we recommend the following steps:
-
-1. Fork the conda/conda repository, clone it locally anywhere you choose (an isolation miniconda
-   will be set up within the clone directory), and set up `git remote` to point to upstream
-   and fork. For detailed directions, see below.
-
-   1a. Choose where you want the repository located (not location of existing conda)
-
-       CONDA_PROJECT_ROOT="$HOME/conda"
-
-   1b. Clone the project, with `upstream` being the main repository. Make sure to click the `Fork`
-       button above so you have your own copy of this repo.
-
-       GITHUB_USERNAME=kalefranz
-       git clone git@github.com:$GITHUB_USERNAME/conda "$CONDA_PROJECT_ROOT"
-       cd "$CONDA_PROJECT_ROOT"
-       git remote add upstream git@github.com:conda/conda
-
-2. Create a local development environment, and activate that environment
-
-       source ./dev/start
-
-   This command will create a project-specific base environment at `./devenv`. If
-   the environment already exists, this command will just quickly activate the
-   already-created `./devenv` environment.
-
-   To be sure that the conda code being interpreted is the code in the project directory,
-   look at the value of `conda location:` in the output of `conda info --all`.
-
-3. Run conda's unit tests using GNU make
-
-       make unit
-
-   or alternately with pytest
-
-       pytest -m "not integration" conda tests
-
-   or you can use pytest to focus on one specific test
-
-       pytest tests/test_create.py -k create_install_update_remove_smoketest
-
-3.1  Test-suite issues
-
-       If you do not have git installed and your test does not install it then
-       queries to conda --version will except (yeah, this should get fixed). To
-       workaround:
-
-       git describe > conda/.version
-
-       .. Then make this file PEP440 compliant.
-
-       .. (initially an every time you commit).
-
-       The tests-suite is very sensitive to the initial environment. We have make
-       some effort to make the tests runnable in popular IDEs, and in PyCharm's
-       case, many tests can be run from a clean environment (variable-wise)
-
-## Development Environment, Windows cmd.exe shell
-
-In these steps, we assume `git` is installed and available on `PATH`.
-
-1. Choose where you want the project located
-
-       set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
-
-2. Clone the project, with `origin` being the main repository. Make sure to click the `Fork`
-   button above so you have your own copy of this repo.
-
-       set GITHUB_USERNAME=kalefranz
-       git clone git@github.com:conda/conda "%CONDA_PROJECT_ROOT%"
-       cd "%CONDA_PROJECT_ROOT%"
-       git remote add %GITHUB_USERNAME% git@github.com:%GITHUB_USERNAME%/conda
-
-3. Create a local development environment, and activate that environment
-
-       .\dev\start.bat
-
-   This command will create a project-specific base environment at `.\devenv`. If
-   the environment already exists, this command will just quickly activate the
-   already-created `.\devenv` environment.
-
-   To be sure that the conda code being interpreted is the code in the project directory,
-   look at the value of `conda location:` in the output of `conda info --all`.
-
+When you decide to contribute to this project, it is important to adhere to our
+code of conduct, which is currently the [NumFOCUS Code of Conduct](https://www.numfocus.org/code-of-conduct).
+Please read it carefully.
 
 ## Conda Contributor License Agreement
 
-In case you're new to CLAs, this is rather standard procedure for larger projects.
-[Django](https://www.djangoproject.com/foundation/cla/) and even
-[Python](https://www.python.org/psf/contrib/contrib-form/) itself both use something similar.
+To begin contributing to this repository, you need to sign the Conda
+Contributor License Agreement (CLA). In case you're new to CLAs, this
+is a rather standard procedure for larger projects.
+[Django](https://www.djangoproject.com/foundation/cla/) and
+[Python](https://www.python.org/psf/contrib/contrib-form/) for example
+both use similar agreements.
 
-### Process
+[Click here to sign the Conda Contributor License Agreement][conda cla].
 
-New contributors should complete the Conda Contributor License Agreement located
-[here](https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement). A 
-signed contributor license agreement for a pull request author needs to be on file with 
-Anaconda, Inc. for pull requests to be merged. A record of signatories is kept in the 
-[`.cla-signers`](https://github.com/conda/conda/blob/master/.cla-signers) file in the
-project root.
+A record of prior signatories is kept in a [separate repo in conda's GitHub][clabot] organization.
 
-### Individual Contributor License Agreement – Conda Code Organization
+## Ways to contribute
 
-In order to clarify the intellectual property license granted with Contributions from any person 
-or entity, all projects under the **Conda Code Organization** (“Conda”) must have a Contributor 
-License Agreement (“Agreement”) on file that has been signed by each Contributor, indicating 
-agreement to the license terms below for each project. This license is for your protection as a 
-Contributor as well as the protection of **Anaconda, Inc.** (“Anaconda”) as project manager and 
-Conda users; it does not change your rights to use your own Contributions for any other purpose. 
-This agreement applies to any current and all future Conda projects, including conda, conda-build, 
-constructor, and associated projects under the Conda Code Organization. While currently hosted on 
-GitHub at https://github.com/conda, the project hosting site is subject to change at Anaconda's 
-sole discretion. 
+Below are all the ways you can get involved in with conda.
 
-You accept and agree to the following terms and conditions for Your present and future 
-Contributions submitted to Anaconda under Conda. In return, Anaconda shall not use Your 
-Contributions in a way that is contrary to the public benefit. Except for the license granted 
-herein to Anaconda and recipients of software distributed by Anaconda, you reserve all right, 
-title, and interest in and to Your Contributions.
+### Bug reports and feature requests
 
-1. Definitions. "You" (or "Your") shall mean the copyright owner or legal entity authorized 
-by the copyright owner that is making this Agreement with Anaconda. For legal entities, the entity 
-making a Contribution and all other entities that control, are controlled by, or are under common 
-control with that entity are considered to be a single Contributor. For the purposes of this 
-definition, "control" means (i) the power, direct or indirect, to cause the direction or 
-management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent 
-(50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity. 
-"Contribution" shall mean any original work of authorship, including any modifications or 
-additions to an existing work, that is intentionally submitted by You to Anaconda for inclusion 
-in, or documentation of, any of the projects owned or managed by Anaconda (the "Work"). For the 
-purposes of this definition, "submitted" means any form of electronic, verbal, or written 
-communication sent to Anaconda or its representatives, including but not limited to communication 
-on electronic mailing lists, source code control systems, and issue tracking systems that are 
-managed by, or on behalf of, Anaconda for the purpose of discussing and improving the Work, but 
-excluding communication that is conspicuously marked or otherwise designated in writing by You as 
-"Not a Contribution."
+Bug reports and feature requests are always welcome. To file a new issue,
+[head to the issue form](https://github.com/conda/conda/issues/new/choose).
 
-2. Grant of Copyright License. Subject to the terms and conditions of this Agreement, You hereby 
-grant to Anaconda and to recipients of software distributed by Anaconda a perpetual, worldwide, 
-non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare 
-derivative works of, publicly display, publicly perform, sublicense, and distribute Your 
-Contributions and such derivative works.
+It should be noted that `conda-build` issues need to be filed separately at
+[its issue tracker](https://github.com/conda/conda-build/issues).
 
-3. Grant of Patent License. Subject to the terms and conditions of this Agreement, You hereby 
-grant to Anaconda and to recipients of software distributed by Anaconda a perpetual, worldwide, 
-non-exclusive, no-charge, royalty-free, irrevocable (except as stated in this section) patent 
-license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Work, 
-where such license applies only to those patent claims licensable by You that are necessarily 
-infringed by Your Contribution(s) alone or by combination of Your Contribution(s) with the Work 
-to which such Contribution(s) was submitted. If any entity institutes patent litigation against 
-You or any other entity (including a cross-claim or counterclaim in a lawsuit) alleging that Your
-Contribution, or the Work to which You have contributed, constitutes direct or contributory patent
-infringement, then any patent licenses granted to that entity under this Agreement for that
-Contribution or Work shall terminate as of the date such litigation is filed.
+For all other types of issues, please head to [Anaconda.org's "Report a Bug" page][anaconda-bug-report].
+For even more information and documentation on everything related to Anaconda, head to the
+[Support Center at Anaconda Nucleus][anaconda-support].
 
-4. You represent that you are legally entitled to grant the above license. If your employer(s) has
-rights to intellectual property that you create that includes your Contributions, You represent
-that you have received permission to make Contributions on behalf of that employer, that your
-employer has waived such rights for your Contributions to Anaconda, or that your employer has
-executed a separate Corporate Contributor License Agreement with Anaconda. 
+Before submitting an issue via any of these channels, make sure to document it
+as well as possible and follow the submission guidelines (this makes everyone's job a lot easier!).
 
-5. You represent that each of Your Contributions is Your original creation (see Section 7 for
-submissions on behalf of others). You represent that Your Contribution submissions include
-complete details of any third-party license or other restriction (including, but not limited to,
-related patents and trademarks) of which you are personally aware and which are associated with
-any part of Your Contributions. 
+### Contributing your changes to conda
 
-6.	You are not expected to provide support for Your Contributions, except to the extent You
-desire to provide support. You may provide support for free, for a fee, or not at all. Unless
-required by applicable law or agreed to in writing, You provide Your Contributions on an "AS IS"
-BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties or conditions of TITLE, NONINFRINGEMENT, MERCHANTABILITY, or FITNESS
-FOR A PARTICULAR PURPOSE. 
+Here are the steps you need to take to contribute to conda:
 
-7. Should You wish to submit work that is not Your original creation, You may submit it to
-Anaconda separately from any Contribution, identifying the complete details of its source and of
-any license or other restriction (including, but not limited to, related patents, trademarks,
-and license agreements) of which you are personally aware, and conspicuously marking the work as
-"Submitted on behalf of a third-party: [named here]".
+1. [Signup for a GitHub account][github signup] (if you haven't already) and
+   [install Git on your system][install git].
+2. Sign the [Conda Contributor License Agreement][conda cla].
+3. Fork the conda repository to your personal GitHub account by clicking the
+   "Fork" button on [https://github.com/conda/conda](https://github.com/conda/conda) and follow GitHub's
+   instructions.
+4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
+5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
 
-8. You agree to notify Anaconda of any facts or circumstances of which you become aware that
-would make these representations inaccurate in any respect.
+### Issue sorting
+
+Issue sorting is how we filter incoming issues and get them ready for active development.
+To see how this process works for this project, read "[The Issue Sorting Process at conda][sorting]".
+
+*The project maintainers are currently not seeking help with issue sorting, but this may change in the future*
+
+
+[conda cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
+[clabot]: https://github.com/conda/infra/blob/main/.clabot
+[install git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+[github signup]: https://github.com/signup
+[github]: https://github.com/
+[anaconda-issues]: https://github.com/ContinuumIO/anaconda-issues/issues
+[anaconda-support]: https://anaconda.cloud/support-center
+[anaconda-bug-report]: https://anaconda.org/contact/report
+[sorting]: https://github.com/conda/infra/blob/main/HOW_WE_USE_GITHUB.md
+[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html
+
+## Conda capitalization standards
+
+1. Conda should be written in lowercase, whether in reference to the tool, ecosystem, packages, or organization.
+2. References to the conda command should use code formatting (i.e. `conda`).
+3. If the use of conda is not a command and if conda is at the beginning of a sentence, conda should be uppercase.
+
+### Examples
+
+#### In sentences
+
+Beginning a sentence:
+
+- Conda is an open-source package and environment management system.
+- `conda install` can be used to install packages.
+
+Conda in the middle of a sentence:
+
+- If a newer version of conda is available, you can use `conda update conda` to update to that version.
+- You can find conda packages within conda channels. The `conda` command can search these channels.
+
+#### In titles and headers
+
+Titles and headers should use the same capitalization and formmating standards as sentences.
+
+#### In links
+
+Links should use the same capitalization conventions as sentences. Because the conda docs currently use reStructuredText (RST) as a markup language, and [RST does not support nested inline markup](https://docutils.sourceforge.io/FAQ.html#is-nested-inline-markup-possible), documentation writers should avoid using code backtick formatting inside links.

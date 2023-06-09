@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+from .base.constants import DepsModifier as _DepsModifier
+from .base.constants import UpdateModifier as _UpdateModifier
+from .base.context import context
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import DepsModifier as _DepsModifier, Solver as _Solver
-from .core.solve import UpdateModifier as _UpdateModifier
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
@@ -18,7 +16,7 @@ UpdateModifier = _UpdateModifier
 """Flags to enable alternate handling for updates of existing packages in the environment."""
 
 
-class Solver(object):
+class Solver:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -31,7 +29,9 @@ class Solver(object):
 
     """
 
-    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()):
+    def __init__(
+        self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()
+    ):
         """
         **Beta**
 
@@ -43,16 +43,25 @@ class Solver(object):
                 A prioritized list of channels to use for the solution.
             subdirs (Sequence[str]):
                 A prioritized list of subdirs to use for the solution.
-            specs_to_add (Set[:class:`MatchSpec`]):
+            specs_to_add (set[:class:`MatchSpec`]):
                 The set of package specs to add to the prefix.
-            specs_to_remove (Set[:class:`MatchSpec`]):
+            specs_to_remove (set[:class:`MatchSpec`]):
                 The set of package specs to remove from the prefix.
 
         """
-        self._internal = _Solver(prefix, channels, subdirs, specs_to_add, specs_to_remove)
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        self._internal = solver_backend(
+            prefix, channels, subdirs, specs_to_add, specs_to_remove
+        )
 
-    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                          ignore_pinned=NULL, force_remove=NULL):
+    def solve_final_state(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+    ):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -80,16 +89,24 @@ class Solver(object):
                 Forces removal of a package without removing packages that depend on it.
 
         Returns:
-            Tuple[PackageRef]:
+            tuple[PackageRef]:
                 In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
         """
-        return self._internal.solve_final_state(update_modifier, deps_modifier, prune,
-                                                ignore_pinned, force_remove)
+        return self._internal.solve_final_state(
+            update_modifier, deps_modifier, prune, ignore_pinned, force_remove
+        )
 
-    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
+    def solve_for_diff(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=False,
+    ):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -112,18 +129,31 @@ class Solver(object):
                 depending on the spec exactness.
 
         Returns:
-            Tuple[PackageRef], Tuple[PackageRef]:
+            tuple[PackageRef], tuple[PackageRef]:
                 A two-tuple of PackageRef sequences.  The first is the group of packages to
                 remove from the environment, in sorted dependency order from leaves to roots.
                 The second is the group of packages to add to the environment, in sorted
                 dependency order from roots to leaves.
 
         """
-        return self._internal.solve_for_diff(update_modifier, deps_modifier, prune, ignore_pinned,
-                                             force_remove, force_reinstall)
+        return self._internal.solve_for_diff(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+        )
 
-    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
-                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
+    def solve_for_transaction(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        force_reinstall=False,
+    ):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -146,11 +176,17 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        return self._internal.solve_for_transaction(update_modifier, deps_modifier, prune,
-                                                    ignore_pinned, force_remove, force_reinstall)
+        return self._internal.solve_for_transaction(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+        )
 
 
-class SubdirData(object):
+class SubdirData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -185,7 +221,7 @@ class SubdirData(object):
                 query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
 
         Returns:
-            Tuple[PackageRecord]
+            tuple[PackageRecord]
 
         """
         return tuple(self._internal.query(package_ref_or_match_spec))
@@ -208,10 +244,12 @@ class SubdirData(object):
                 If None, will fall back to context.subdirs.
 
         Returns:
-            Tuple[PackageRecord]
+            tuple[PackageRecord]
 
         """
-        return tuple(_SubdirData.query_all(package_ref_or_match_spec, channels, subdirs))
+        return tuple(
+            _SubdirData.query_all(package_ref_or_match_spec, channels, subdirs)
+        )
 
     def iter_records(self):
         """
@@ -240,7 +278,7 @@ class SubdirData(object):
         return self
 
 
-class PackageCacheData(object):
+class PackageCacheData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -285,7 +323,7 @@ class PackageCacheData(object):
                 query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
 
         Returns:
-            Tuple[PackageCacheRecord]
+            tuple[PackageCacheRecord]
 
         """
         return tuple(self._internal.query(package_ref_or_match_spec))
@@ -305,7 +343,7 @@ class PackageCacheData(object):
                 If None, will fall back to context.pkgs_dirs.
 
         Returns:
-            Tuple[PackageCacheRecord]
+            tuple[PackageCacheRecord]
 
         """
         return tuple(_PackageCacheData.query_all(package_ref_or_match_spec, pkgs_dirs))
@@ -368,7 +406,7 @@ class PackageCacheData(object):
         return self
 
 
-class PrefixData(object):
+class PrefixData:
     """
     **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -413,7 +451,7 @@ class PrefixData(object):
                 query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
 
         Returns:
-            Tuple[PrefixRecord]
+            tuple[PrefixRecord]
 
         """
         return tuple(self._internal.query(package_ref_or_match_spec))

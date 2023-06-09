@@ -1,0 +1,117 @@
+diff --git a/conda/_vendor/tqdm/__init__.py b/conda/_vendor/tqdm/__init__.py
+index a021d16..a9a8745 100644
+--- a/conda/_vendor/tqdm/__init__.py
++++ b/conda/_vendor/tqdm/__init__.py
+@@ -1,41 +1,13 @@
+ from ._monitor import TMonitor, TqdmSynchronisationWarning
+-from ._tqdm_pandas import tqdm_pandas
+ from .cli import main  # TODO: remove in v5.0.0
+-from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0
+-from .gui import trange as tgrange  # TODO: remove in v5.0.0
+ from .std import (
+     TqdmDeprecationWarning, TqdmExperimentalWarning, TqdmKeyError, TqdmMonitorWarning,
+     TqdmTypeError, TqdmWarning, tqdm, trange)
+ from .version import __version__
+ 
+-__all__ = ['tqdm', 'tqdm_gui', 'trange', 'tgrange', 'tqdm_pandas',
+-           'tqdm_notebook', 'tnrange', 'main', 'TMonitor',
++__all__ = ['tqdm', 'trange', 'main', 'TMonitor',
+            'TqdmTypeError', 'TqdmKeyError',
+            'TqdmWarning', 'TqdmDeprecationWarning',
+            'TqdmExperimentalWarning',
+            'TqdmMonitorWarning', 'TqdmSynchronisationWarning',
+            '__version__']
+-
+-
+-def tqdm_notebook(*args, **kwargs):  # pragma: no cover
+-    """See tqdm.notebook.tqdm for full documentation"""
+-    from warnings import warn
+-
+-    from .notebook import tqdm as _tqdm_notebook
+-    warn("This function will be removed in tqdm==5.0.0\n"
+-         "Please use `tqdm.notebook.tqdm` instead of `tqdm.tqdm_notebook`",
+-         TqdmDeprecationWarning, stacklevel=2)
+-    return _tqdm_notebook(*args, **kwargs)
+-
+-
+-def tnrange(*args, **kwargs):  # pragma: no cover
+-    """
+-    A shortcut for `tqdm.notebook.tqdm(xrange(*args), **kwargs)`.
+-    On Python3+, `range` is used instead of `xrange`.
+-    """
+-    from warnings import warn
+-
+-    from .notebook import trange as _tnrange
+-    warn("Please use `tqdm.notebook.trange` instead of `tqdm.tnrange`",
+-         TqdmDeprecationWarning, stacklevel=2)
+-    return _tnrange(*args, **kwargs)
+diff --git a/conda/_vendor/tqdm/auto.py b/conda/_vendor/tqdm/auto.py
+index cffca20..c121fa5 100644
+--- a/conda/_vendor/tqdm/auto.py
++++ b/conda/_vendor/tqdm/auto.py
+@@ -12,33 +12,6 @@ Usage:
+ >>> for i in trange(10):
+ ...     ...
+ """
+-import sys
+-import warnings
+-
+-from .std import TqdmExperimentalWarning
+-
+-with warnings.catch_warnings():
+-    warnings.simplefilter("ignore", category=TqdmExperimentalWarning)
+-    from .autonotebook import tqdm as notebook_tqdm
+-    from .autonotebook import trange as notebook_trange
+-
+-if sys.version_info[:2] < (3, 6):
+-    tqdm = notebook_tqdm
+-    trange = notebook_trange
+-else:  # Python3.6+
+-    from .asyncio import tqdm as asyncio_tqdm
+-    from .std import tqdm as std_tqdm
+-
+-    if notebook_tqdm != std_tqdm:
+-        class tqdm(notebook_tqdm, asyncio_tqdm):  # pylint: disable=inconsistent-mro
+-            pass
+-    else:
+-        tqdm = asyncio_tqdm
+-
+-    def trange(*args, **kwargs):
+-        """
+-        A shortcut for `tqdm.auto.tqdm(range(*args), **kwargs)`.
+-        """
+-        return tqdm(range(*args), **kwargs)
++from .std import tqdm, trange
+ 
+ __all__ = ["tqdm", "trange"]
+diff --git a/conda/_vendor/tqdm/utils.py b/conda/_vendor/tqdm/utils.py
+index 6466599..6cfb7ab 100644
+--- a/conda/_vendor/tqdm/utils.py
++++ b/conda/_vendor/tqdm/utils.py
+@@ -261,9 +261,9 @@ def _screen_shape_windows(fp):  # pragma: no cover
+ def _screen_shape_tput(*_):  # pragma: no cover
+     """cygwin xterm (windows)"""
+     try:
+-        import shlex
++        from conda.auxlib.compat import shlex_split_unicode as ss
+         from subprocess import check_call  # nosec
+-        return [int(check_call(shlex.split('tput ' + i))) - 1
++        return [int(check_call(ss('tput ' + i))) - 1
+                 for i in ('cols', 'lines')]
+     except Exception:  # nosec
+         pass
+diff --git a/conda/_vendor/tqdm/version.py b/conda/_vendor/tqdm/version.py
+index 11cbaea..1d6c589 100644
+--- a/conda/_vendor/tqdm/version.py
++++ b/conda/_vendor/tqdm/version.py
+@@ -1,9 +1,2 @@
+ """`tqdm` version detector. Precedence: installed dist, git, 'UNKNOWN'."""
+-try:
+-    from ._dist_ver import __version__
+-except ImportError:
+-    try:
+-        from setuptools_scm import get_version
+-        __version__ = get_version(root='..', relative_to=__file__)
+-    except (ImportError, LookupError):
+-        __version__ = "UNKNOWN"
++__version__ = '4.61.1'

@@ -1,3 +1,7 @@
 name: test
 dependencies:
-  - flask==0.12.2
+  - flask==2.0.2
+variables:
+  FIXED: fixed
+  CHANGES: original_value
+  GETS_DELETED: not_actually_removed_though

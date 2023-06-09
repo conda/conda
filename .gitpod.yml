@@ -1,0 +1,36 @@
+image: ghcr.io/conda/conda-ci:main-linux-python3.9
+tasks:
+  - name: initialize
+    init: |
+      mkdir -p .vscode
+      echo '{"python.pythonPath": "/opt/conda/bin/python"}' > .vscode/settings.json
+      git tag "$(git tag --sort=committerdate | tail -1).dev"
+      eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+      sudo su root -c "/opt/conda/bin/conda install -yq conda-build"
+    command: |
+      eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+
+vscode:
+  extensions:
+    - eamodio.gitlens
+    - ms-python.python
+    - ms-python.vscode-pylance
+
+github:
+  prebuilds:
+    # enable for default branch
+    master: true
+    # enable for other branches (defaults to false)
+    branches: false
+    # enable for pull requests coming from this repo (defaults to true)
+    pullRequests: false
+    # enable for pull requests coming from forks (defaults to false)
+    pullRequestsFromForks: false
+    # add a check to pull requests (defaults to true)
+    addCheck: false
+    # add a "Review in Gitpod" button as a comment to pull requests (defaults to false)
+    addComment: false
+    # add a "Review in Gitpod" button to the pull request's description (defaults to false)
+    addBadge: false
+    # add a label once the prebuild is ready to pull requests (defaults to false)
+    addLabel: false

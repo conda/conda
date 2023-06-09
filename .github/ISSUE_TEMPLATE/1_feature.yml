@@ -1,0 +1,49 @@
+---
+name: Feature Request
+description: Create a feature request.
+labels:
+  - type::feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Because processing new feature requests is time-consuming, we would like to ask you to fill out the following form to the best of your ability and as completely as possible.
+
+        > **Note**
+        > Feature requests that are incomplete or missing information may be closed as inactionable.
+
+        Since there are already a lot of open issues, please also take a moment to search existing ones to see if your feature request has already been submitted. If you find something related, please upvote that issue and provide additional details as necessary.
+
+        💐 Thank you for helping to make Conda better. We would be unable to improve Conda without our community!
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      description: Please confirm and check all of the following options.
+      options:
+        - label: I added a descriptive title
+          required: true
+        - label: I searched open requests and couldn't find a duplicate
+          required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What is the idea?
+      description: Describe what the feature is and the desired state.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this needed?
+      description: Who would benefit from this feature? Why would this add value to them? What problem does this solve?
+  - type: textarea
+    id: what
+    attributes:
+      label: What should happen?
+      description: What should be the user experience with the feature? Describe from a user perpective what they would do and see.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Include any additional information that you think would be valuable.

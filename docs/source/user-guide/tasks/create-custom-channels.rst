@@ -58,7 +58,7 @@ To create a custom channel:
 
    EXAMPLE: If you want a file in the custom channel location
    ``/opt/channel/linux-64/``, search for files in that location:
-  
+
    .. code::
 
       conda search -c file:///opt/channel/ --override-channels
@@ -68,18 +68,18 @@ To create a custom channel:
       automatically detects and adds the platform.
 
    .. note::
-      The option  ``--override-channels`` ensures that conda 
-      searches only your specified channel and no other channels, 
-      such as default channels or any other channels you may have 
+      The option  ``--override-channels`` ensures that conda
+      searches only your specified channel and no other channels,
+      such as default channels or any other channels you may have
       listed in your ``.condarc`` file.
 
-   If you have set up your private repository correctly, you 
+   If you have set up your private repository correctly, you
    get the following output:
 
    .. code::
 
       Fetching package metadata: . . . .
 
-   This is followed by a list of the conda packages found. This 
-   verifies that you have set up and indexed your private 
-   repository successfully. 
+   This is followed by a list of the conda packages found. This
+   verifies that you have set up and indexed your private
+   repository successfully.

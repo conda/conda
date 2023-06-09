@@ -1,51 +1,66 @@
-from functools import partial
-import os
-import sys
-import warnings
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+import subprocess
+from pathlib import Path
 
-import py
 import pytest
 
-from conda.common.compat import PY3
-from conda.gateways.disk.create import TemporaryDirectory
-from conda.core.subdir_data import SubdirData
+from conda.testing import conda_cli, path_factory, tmp_env
 
-win_default_shells = ["cmd.exe", "powershell", "git_bash", "cygwin"]
-shells = ["bash", "zsh"]
+from . import http_test_server
+from .fixtures_jlap import package_repository_base, package_server  # NOQA
 
-if sys.platform == "win32":
-    shells = win_default_shells
-
-
-def pytest_addoption(parser):
-    parser.addoption("--shell", action="append", default=[],
-                     help="list of shells to run shell tests on")
+pytest_plugins = (
+    # Add testing fixtures and internal pytest plugins here
+    "conda.testing.gateways.fixtures",
+    "conda.testing.notices.fixtures",
+    "conda.testing.fixtures",
+)
 
 
-def pytest_generate_tests(metafunc):
-    if 'shell' in metafunc.fixturenames:
-        metafunc.parametrize("shell", metafunc.config.option.shell)
+def _conda_build_recipe(recipe):
+    subprocess.run(
+        ["conda-build", str(Path(__file__).resolve().parent / "test-recipes" / recipe)],
+        check=True,
+    )
+    return recipe
 
 
-@pytest.fixture(autouse=True)
-def suppress_resource_warning():
-    '''
-Suppress `Unclosed Socket Warning`
-
-It seems urllib3 keeps a socket open to avoid costly recreation costs.
-
-xref: https://github.com/kennethreitz/requests/issues/1882
-'''
-    if PY3:
-        warnings.filterwarnings("ignore", category=ResourceWarning)
-
-@pytest.fixture(scope='function')
-def tmpdir(tmpdir, request):
-    tmpdir = TemporaryDirectory(dir=str(tmpdir))
-    request.addfinalizer(tmpdir.cleanup)
-    return py.path.local(tmpdir.name)
+@pytest.fixture(scope="session")
+def activate_deactivate_package():
+    return _conda_build_recipe("activate_deactivate_package")
 
 
-@pytest.fixture(autouse=True)
-def clear_subdir_cache():
-    SubdirData.clear_cached_local_channel_data()
+@pytest.fixture(scope="session")
+def pre_link_messages_package():
+    return _conda_build_recipe("pre_link_messages_package")
+
+
+@pytest.fixture
+def clear_cache():
+    from conda.core.subdir_data import SubdirData
+
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+
+@pytest.fixture(scope="session")
+def support_file_server():
+    """Open a local web server to test remote support files."""
+    base = Path(__file__).parents[0] / "conda_env" / "support"
+    http = http_test_server.run_test_server(str(base))
+    yield http
+    # shutdown is checked at a polling interval, or the daemon thread will shut
+    # down when the test suite exits.
+    http.shutdown()
+
+
+@pytest.fixture
+def support_file_server_port(support_file_server):
+    return support_file_server.socket.getsockname()[1]
+
+
+@pytest.fixture
+def clear_cuda_version():
+    from conda.plugins.virtual_packages import cuda
+
+    cuda.cached_cuda_version.cache_clear()

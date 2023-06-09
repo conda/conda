@@ -11,6 +11,6 @@ Configuration
    admin-multi-user-install
    enable-tab-completion
    pip-interoperability
-   use-winxp-with-proxy
    disable-ssl-verification
    non-standard-certs
+   mirroring
