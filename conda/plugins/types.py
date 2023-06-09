@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from typing import Callable, NamedTuple
+from typing import Callable, Literal, NamedTuple
 
 from ..core.solve import Solver
+
+#: These are the two different types of conda_*_commands hooks that are available
+CommandHookTypes = Literal["pre", "post"]
 
 
 class CondaSubcommand(NamedTuple):

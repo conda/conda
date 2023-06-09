@@ -9,11 +9,7 @@ import sys
 # when importing pip (and pip_util)
 import conda.exports  # noqa
 from conda.base.context import context
-from conda.cli.conda_argparse import (
-    ArgumentParser,
-    _run_post_command_hooks,
-    _run_pre_command_hooks,
-)
+from conda.cli.conda_argparse import ArgumentParser, _run_command_hooks
 from conda.cli.main import init_loggers
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
@@ -52,10 +48,11 @@ def do_call(args, parser):
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
 
-    _run_pre_command_hooks(f"env_{command}", args)
+    _run_command_hooks("pre", f"env_{command}", args)
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
     exit_code = getattr(module, func_name)(args, parser)
-    _run_post_command_hooks(f"env_{command}", args)
+    _run_command_hooks("post", f"env_{command}", args, exit_code)
+
     return exit_code
 
 

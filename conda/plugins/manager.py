@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable, Iterable
 from importlib.metadata import distributions
 
 import pluggy
@@ -15,6 +14,7 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .types import CommandHookTypes
 
 log = logging.getLogger(__name__)
 
@@ -160,34 +160,19 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    # TODO: Combine the following two methods into one
-    def yield_pre_command_hook_actions(self, command: str) -> Iterable[Callable]:
+    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command):
         """
-        Yields the ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands``
-        hook.
+        Yields either the ``CondaPreCommand.action`` or ``CondaPostCommand.action`` functions
+        registered by the ``conda_pre_commands`` or ``conda_post_commands`` hook.
 
+        :param hook_type: the type of command hook to retrieve
         :param command: name of the command that is currently being invoked
         """
-        # Load pre-commands available to run
-        pre_command_hooks = self.get_hook_results("pre_commands")
+        command_hooks = self.get_hook_results(f"{hook_type}_commands")
 
-        for pre_command in pre_command_hooks:
-            if command in pre_command.run_for:
-                yield pre_command.action
-
-    def yield_post_command_hook_actions(self, command: str) -> Iterable[Callable]:
-        """
-        Yields the ``CondaPostCommand.action`` functions registered by the ``conda_post_commands``
-        hook.
-
-        :param command: name of the command that is currently being invoked
-        """
-        # Load post-commands available to run
-        post_command_hooks = self.get_hook_results("post_commands")
-
-        for post_command in post_command_hooks:
-            if command in post_command.run_for:
-                yield post_command.action
+        for command_hook in command_hooks:
+            if command in command_hook.run_for:
+                yield command_hook.action
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

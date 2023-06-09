@@ -11,7 +11,8 @@ class PostCommandPlugin:
         self.invoked = False
         self.args = None
 
-    def post_command_action(self, command, args, result) -> int:
+    @staticmethod
+    def post_command_action(command, args, result) -> int:
         pass
 
     @plugins.hookimpl
@@ -25,7 +26,11 @@ class PostCommandPlugin:
 
 @pytest.fixture()
 def post_command_plugin(mocker, plugin_manager):
-    mocker.patch.object(PostCommandPlugin, "post_command_action")
+    mocker.patch.object(
+        PostCommandPlugin,
+        "post_command_action",
+        wraps=PostCommandPlugin.post_command_action,
+    )
 
     post_command_plugin = PostCommandPlugin()
     plugin_manager.register(post_command_plugin)
