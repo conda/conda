@@ -110,6 +110,7 @@ API reference
    :maxdepth: 1
 
    manager
+   post_commands
    pre_commands
    solvers
    subcommands
