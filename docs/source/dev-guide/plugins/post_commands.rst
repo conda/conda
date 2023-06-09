@@ -1,5 +1,5 @@
 ============
-Pre-commands
+Post-commands
 ============
 
 Conda commands can be extended with the ``conda_post_commands`` plugin hook.
