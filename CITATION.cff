@@ -5,7 +5,7 @@ message: >-
   If you use this software, please cite it using the metadata from this file.
 type: software
 authors:
-  - name: "The conda development team"
+  - name: "conda contributors"
 repository-code: "https://github.com/conda/conda"
 url: "https://docs.conda.io/projects/conda/"
 abstract: >-
