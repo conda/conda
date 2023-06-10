@@ -756,9 +756,13 @@ class RepodataFetch:
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
-            return json.loads(parsed), state
-        else:
-            return parsed, state
+            parsed = json.loads(parsed)
+
+        # allow plugins to modify the repodata and state
+        for pre_solve in context.plugin_manager.get_hook_results("repodata_patches"):
+            parsed = pre_solve.action(parsed)
+
+        return parsed, state
 
     def fetch_latest_path(self) -> tuple[Path, RepodataState]:
         """
