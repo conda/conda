@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a CITATION.cff file to the root of the repository to make it easier for users to cite conda.
+* Add a CITATION.cff file to the root of the repository to make it easier for users to cite conda (#12781).
 
 ### Bug fixes
 
