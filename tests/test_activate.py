@@ -1141,6 +1141,7 @@ class ActivatorUnitTests(TestCase):
                     "ENV_THREE": "me",
                     "ENV_WITH_SAME_VALUE": "with_same_value",
                     "__CONDA_SHLVL_1_ENV_ONE": "already_set_env_var",
+                    "__CONDA_SHLVL_1_ENV_WITH_SAME_VALUE": "with_same_value",
                 }
                 export_vars, _ = activator.add_export_unset_vars(export_vars, None)
                 export_vars["CONDA_PREFIX_1"] = old_prefix
