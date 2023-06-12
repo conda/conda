@@ -160,7 +160,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command):
+    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command: str):
         """
         Yields either the ``CondaPreCommand.action`` or ``CondaPostCommand.action`` functions
         registered by the ``conda_pre_commands`` or ``conda_post_commands`` hook.

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import warnings
@@ -109,34 +110,38 @@ def generate_parser():
     return p
 
 
-def do_call(args, parser):
+def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     """
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if getattr(args, "plugin_subcommand", None):
-        _run_command_hooks("pre", args.plugin_subcommand.name, sys.argv[2:])
-        result = args.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", args.plugin_subcommand.name, sys.argv[2:], result)
+    if getattr(arguments, "plugin_subcommand", None):
+        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
+        result = arguments.plugin_subcommand.action(sys.argv[2:])
+        _run_command_hooks(
+            "post", arguments.plugin_subcommand.name, sys.argv[2:], result
+        )
 
         return result
 
-    relative_mod, func_name = args.func.rsplit(".", 1)
+    relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
     from importlib import import_module
 
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, args)
-    result = getattr(module, func_name)(args, parser)
-    _run_command_hooks("post", command, args, result)
+    _run_command_hooks("pre", command, arguments)
+    result = getattr(module, func_name)(arguments, parser)
+    _run_command_hooks("post", command, arguments, result)
 
     return result
 
 
-def _run_command_hooks(hook_type: CommandHookTypes, *args) -> None:
+def _run_command_hooks(
+    hook_type: CommandHookTypes, command: str, *args, **kwargs
+) -> None:
     """
     Helper function used to gather applicable "pre" or "post" command hook functions
     and then run them.
@@ -144,11 +149,10 @@ def _run_command_hooks(hook_type: CommandHookTypes, *args) -> None:
     The values in *args are passed directly through to the "pre" or "post" command
     hook function.
     """
-    command, *_ = args
     actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
 
     for action in actions:
-        action(*args)
+        action(command, *args, **kwargs)
 
 
 def find_builtin_commands(parser):

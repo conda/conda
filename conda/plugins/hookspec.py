@@ -117,7 +117,7 @@ class CondaSpecs:
            from conda import plugins
 
 
-           def example_pre_command(command, args):
+           def example_pre_command(command, arguments):
                print("pre-command action")
 
 
@@ -142,7 +142,7 @@ class CondaSpecs:
            from conda import plugins
 
 
-           def example_post_command(command, args, result):
+           def example_post_command(command, arguments, result):
                print("post-command action")
 
 
