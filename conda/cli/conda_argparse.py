@@ -599,7 +599,7 @@ def configure_parser_config(sub_parsers):
         "If no environment is active, write to the user config file (%s)."
         ""
         % (
-            os.getenv("CONDA_PREFIX", "<no active environment>").replace("%", "%%"),
+            context.active_prefix or "<no active environment>",
             escaped_user_rc_path,
         ),
     )

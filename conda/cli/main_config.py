@@ -281,8 +281,8 @@ def execute_config(args, parser):
     if args.system:
         rc_path = sys_rc_path
     elif args.env:
-        if "CONDA_PREFIX" in os.environ:
-            rc_path = join(os.environ["CONDA_PREFIX"], ".condarc")
+        if context.active_prefix:
+            rc_path = join(context.active_prefix, ".condarc")
         else:
             rc_path = user_rc_path
     elif args.file:
