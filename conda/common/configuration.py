@@ -1482,6 +1482,7 @@ class Configuration(metaclass=ConfigurationType):
         self._cache_ = {}
         for callback in self._reset_callbacks:
             callback()
+        return self
 
     def register_reset_callaback(self, callback):
         self._reset_callbacks.add(callback)
