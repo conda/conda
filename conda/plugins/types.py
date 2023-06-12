@@ -62,3 +62,15 @@ class CondaPreCommand(NamedTuple):
     name: str
     action: Callable
     run_for: set[str]
+
+
+class CondaRepodataPatch(NamedTuple):
+    """
+    A conda repodata patch.
+
+    :param name: Repodata patch name
+    :param action: Callable that will be run when the repodata is patched.
+    """
+
+    name: str
+    action: Callable[[dict], dict]

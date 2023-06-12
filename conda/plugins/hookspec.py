@@ -6,7 +6,13 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaPreCommand, CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaPreCommand,
+    CondaRepodataPatch,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -122,4 +128,28 @@ class CondaSpecs:
                    action=example_pre_command,
                    run_for={"install", "create"},
                )
+        """
+
+    @_hookspec
+    def conda_repodata_patches(self) -> Iterable[CondaRepodataPatch]:
+        """
+        Register repodata patches in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def example_repodata_patch(repodata):
+                print("repodata patch action")
+
+
+            @plugins.hookimpl
+            def conda_repodata_patches():
+                yield CondaRepodataPatch(
+                    name="example-repodata-patch",
+                    action=example_repodata_patch,
+                )
         """
