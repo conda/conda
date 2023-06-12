@@ -25,13 +25,14 @@ from logging import getLogger
 from os import environ
 from os.path import expandvars
 from pathlib import Path
+from re import IGNORECASE, VERBOSE, Match, compile
 from string import Template
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import Hashable, Iterable, Sequence
+    from typing import Any, Hashable, Iterable, Sequence
 
 try:
     from boltons.setutils import IndexedSet
@@ -469,9 +470,7 @@ class DefaultValueRawParameter(RawParameter):
 
 
 @deprecated("24.3", "24.9")
-def load_file_configs(
-    search_path: Iterable[Path | Template | str], **kwargs
-) -> dict[Path, dict]:
+def load_file_configs(search_path: Iterable[Path | str], **kwargs) -> dict[Path, dict]:
     expanded_paths = Configuration._expand_search_path(search_path, **kwargs)
     return dict(Configuration._load_search_path(expanded_paths))
 
@@ -1318,6 +1317,56 @@ class ConfigurationType(type):
 
 CONDARC_FILENAMES = (".condarc", "condarc")
 YAML_EXTENSIONS = (".yml", ".yaml")
+_RE_CUSTOM_EXPANDVARS = compile(
+    rf"""
+    # delimiter and a Python identifier
+    \$(?P<named>{Template.idpattern}) |
+
+    # delimiter and a braced identifier
+    \${{(?P<braced>{Template.idpattern})}} |
+
+    # delimiter padded identifier
+    %(?P<padded>{Template.idpattern})%
+    """,
+    flags=IGNORECASE | VERBOSE,
+)
+
+
+def custom_expandvars(
+    template: str, mapping: Mapping[str, Any] = {}, /, **kwargs
+) -> str:
+    """Expand variables in a string.
+
+    Inspired by `string.Template` and modified to mirror `os.path.expandvars` functionality
+    allowing custom variables without mutating `os.environ`.
+
+    Expands POSIX and Windows CMD environment variables as follows:
+
+    - $VARIABLE → value of VARIABLE
+    - ${VARIABLE} → value of VARIABLE
+    - %VARIABLE% → value of VARIABLE
+
+    Invalid substitutions are left as-is:
+
+    - $MISSING → $MISSING
+    - ${MISSING} → ${MISSING}
+    - %MISSING% → %MISSING%
+    - $$ → $$
+    - %% → %%
+    - $ → $
+    - % → %
+    """
+    mapping = {**mapping, **kwargs}
+
+    def convert(match: Match):
+        return str(
+            mapping.get(
+                match.group("named") or match.group("braced") or match.group("padded"),
+                match.group(),  # fallback to the original string
+            )
+        )
+
+    return _RE_CUSTOM_EXPANDVARS.sub(convert, template)
 
 
 class Configuration(metaclass=ConfigurationType):
@@ -1335,21 +1384,17 @@ class Configuration(metaclass=ConfigurationType):
 
     @staticmethod
     def _expand_search_path(
-        search_path: Iterable[Path | Template | str],
+        search_path: Iterable[Path | str],
         **kwargs,
     ) -> Iterable[Path]:
         for search in search_path:
-            # use string.Template instead of os.path.expand so additional variables can be passed
-            # in without mutating os.environ
-            template = (
-                search if isinstance(search, (Path, Template)) else Template(search)
-            )
-            path = (
-                template
-                if isinstance(template, Path)
-                else Path(template.safe_substitute(environ, **kwargs))
-            )
-            path = path.expanduser().resolve()
+            # use custom_expandvars instead of os.path.expandvars so additional variables can be
+            # passed in without mutating os.environ
+            if isinstance(search, Path):
+                path = search
+            else:
+                template = custom_expandvars(search, environ, **kwargs)
+                path = Path(template).expanduser().resolve()
 
             if path.is_file() and (
                 path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS
@@ -1377,7 +1422,7 @@ class Configuration(metaclass=ConfigurationType):
                     err,
                 )
 
-    def _set_search_path(self, search_path: Iterable[Path | Template | str], **kwargs):
+    def _set_search_path(self, search_path: Iterable[Path | str], **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
