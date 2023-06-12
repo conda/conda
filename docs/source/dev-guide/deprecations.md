@@ -109,7 +109,7 @@ def bar(enabled=True):
 
 ## `argparse.Action`
 
-Occasionally there is a need to deprecate CLI arguments. For this we provide a helper function to monkeypatch any `argparse.Action`:
+Occasionally, there is a need to deprecate CLI arguments. For this, we provide a helper function to monkeypatch any `argparse.Action`:
 
 ```{code-block} python
 :caption: Example file, `foo.py`.
