@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from argparse import Action
 from functools import wraps
 from types import ModuleType
 from typing import Any, Callable
@@ -124,6 +125,50 @@ class DeprecationHandler:
             return inner
 
         return deprecated_decorator
+
+    def action(
+        self,
+        deprecate_in: str,
+        remove_in: str,
+        action: Action,
+        *,
+        addendum: str | None = None,
+        stack: int = 0,
+    ):
+        class DeprecationMixin:
+            def __init__(inner_self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                category, message = self._generate_message(
+                    deprecate_in,
+                    remove_in,
+                    (
+                        # option_string are ordered shortest to longest,
+                        # use the longest as it's the most descriptive
+                        f"`{inner_self.option_strings[-1]}`"
+                        if inner_self.option_strings
+                        # if not a flag/switch, use the destination itself
+                        else f"`{inner_self.dest}`"
+                    ),
+                    addendum=addendum,
+                )
+
+                # alert developer that it's time to remove something
+                if not category:
+                    raise DeprecatedError(message)
+
+                inner_self.category = category
+                inner_self.help = message
+
+            def __call__(inner_self, parser, namespace, values, option_string=None):
+                # alert user that it's time to remove something
+                warnings.warn(
+                    inner_self.help, inner_self.category, stacklevel=7 + stack
+                )
+
+                super().__call__(parser, namespace, values, option_string)
+
+        return type(action.__name__, (DeprecationMixin, action), {})
 
     def module(
         self,

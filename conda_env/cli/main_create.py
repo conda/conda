@@ -4,18 +4,19 @@ import json
 import os
 import sys
 import textwrap
-from argparse import RawDescriptionHelpFormatter
+from argparse import RawDescriptionHelpFormatter, _StoreTrueAction
 
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import (
+    add_output_and_prompt_options,
     add_parser_default_packages,
-    add_parser_json,
     add_parser_networking,
     add_parser_prefix,
     add_parser_solver,
 )
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.notices import notices
@@ -80,23 +81,17 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         "--force",
-        help=(
-            "Force creation of environment (removing a previously-existing "
-            "environment of the same name)."
+        dest="yes",
+        action=deprecated.action(
+            "23.9",
+            "24.3",
+            _StoreTrueAction,
+            addendum="Use `--yes` instead.",
         ),
-        action="store_true",
-        default=False,
-    )
-    p.add_argument(
-        "-d",
-        "--dry-run",
-        help="Only display what can be done with the current command, arguments, "
-        "and other flags. Remove this flag to actually run the command.",
-        action="store_true",
         default=False,
     )
     add_parser_default_packages(p)
-    add_parser_json(p)
+    add_output_and_prompt_options(p)
     add_parser_solver(p)
     p.set_defaults(func=".main_create.execute")
 
@@ -118,7 +113,7 @@ def execute(args, parser):
 
     prefix = determine_target_prefix(context, args)
 
-    if args.force and prefix != context.root_prefix and os.path.exists(prefix):
+    if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import sys
-import warnings
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
@@ -342,23 +341,6 @@ class ExtendConstAction(Action):
         items = [] if items is None else items[:]
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
-
-
-class PendingDeprecationAction(_StoreAction):
-    def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(
-            f"Option {self.option_strings} is pending deprecation.",
-            PendingDeprecationWarning,
-        )
-        super().__call__(parser, namespace, values, option_string)
-
-
-class DeprecatedAction(_StoreAction):
-    def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(
-            f"Option {self.option_strings} is deprecated!", DeprecationWarning
-        )
-        super().__call__(parser, namespace, values, option_string)
 
 
 # #############################################################################################
@@ -1612,6 +1594,7 @@ def configure_parser_rename(sub_parsers) -> None:
     add_parser_prefix(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
+    # TODO: deprecate --force in favor of --yes
     p.add_argument(
         "--force",
         help="Force rename of an environment.",
@@ -1753,7 +1736,7 @@ def add_parser_json(p):
         "-v",
         "--verbose",
         action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
+        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
         dest="verbosity",
         default=NULL,
     )
@@ -1768,41 +1751,12 @@ def add_parser_json(p):
 
 
 def add_output_and_prompt_options(p):
-    output_and_prompt_options = p.add_argument_group(
-        "Output, Prompt, and Flow Control Options"
-    )
-    output_and_prompt_options.add_argument(
-        "--debug",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,
-    )
+    output_and_prompt_options = add_parser_json(p)
     output_and_prompt_options.add_argument(
         "-d",
         "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
-    )
-    output_and_prompt_options.add_argument(
-        "--json",
-        action="store_true",
-        default=NULL,
-        help="Report all output as json. Suitable for using conda programmatically.",
-    )
-    output_and_prompt_options.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        default=NULL,
-        help="Do not display progress bar.",
-    )
-    output_and_prompt_options.add_argument(
-        "-v",
-        "--verbose",
-        action=NullCountAction,
-        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
-        dest="verbosity",
-        default=NULL,
     )
     output_and_prompt_options.add_argument(
         "-y",
@@ -2003,10 +1957,14 @@ def add_parser_solver(p):
     )
     group.add_argument(
         "--experimental-solver",
-        action=PendingDeprecationAction,
+        action=deprecated.action(
+            "23.9",
+            "24.3",
+            _StoreAction,
+            addendum="Use `--solver` instead.",
+        ),
         dest="solver",
         choices=solver_choices,
-        help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )
 
