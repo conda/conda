@@ -42,12 +42,14 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
         "paths_data": {
             "paths": [
                 {
-                    "_paths": bin_doctor,
-                    "sha256": "",
+                    "_path": bin_doctor,
+                    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
                 {
-                    "_paths": lib_doctor,
-                    "sha256": "",
+                    "_path": lib_doctor,
+                    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
             ]
         },
@@ -71,9 +73,8 @@ def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, st
     """Fixture that returns a testing environment with altered files"""
     prefix, _, lib_doctor, _ = env_ok
 
-    with open(prefix / lib_doctor, "w+") as f:
+    with open(prefix / lib_doctor, "w") as f:
         f.write("print('Hello, World!')")
-        f.close
 
     return env_ok
 

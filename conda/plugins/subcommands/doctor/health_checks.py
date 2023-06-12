@@ -58,6 +58,8 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
 
         for path in required_data:
             _path = path.get("_path")
+            if _path is None:
+                continue
             old_sha256 = path.get("sha256_in_prefix")
             file_location = f"{prefix}/{_path}"
             if not os.path.isfile(file_location):
