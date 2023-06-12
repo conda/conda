@@ -40,18 +40,18 @@ def create_parser():
     return p
 
 
-def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit(".", 1)
+def do_call(arguments, parser):
+    relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
     from importlib import import_module
 
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
 
-    _run_command_hooks("pre", f"env_{command}", args)
+    _run_command_hooks("pre", f"env_{command}", arguments)
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
-    exit_code = getattr(module, func_name)(args, parser)
-    _run_command_hooks("post", f"env_{command}", args, exit_code)
+    exit_code = getattr(module, func_name)(arguments, parser)
+    _run_command_hooks("post", f"env_{command}", arguments, exit_code)
 
     return exit_code
 
