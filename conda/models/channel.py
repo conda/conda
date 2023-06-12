@@ -351,7 +351,8 @@ class MultiChannel(Channel):
 
         if platform:
             self._channels = tuple(
-                Channel(**channel.dump(), platform=platform) for channel in channels
+                Channel(**{**channel.dump(), "platform": platform})
+                for channel in channels
             )
         else:
             self._channels = channels
