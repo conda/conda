@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Disk utility functions for creating new files or directories."""
 import codecs
 import os
 import sys

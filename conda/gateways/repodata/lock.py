@@ -5,7 +5,6 @@ Record locking to manage potential repodata / repodata metadata file contention
 between conda processes. Try to acquire a lock on a single byte in the metadat
 file; modify both files; then release the lock.
 """
-
 import time
 import warnings
 from contextlib import contextmanager

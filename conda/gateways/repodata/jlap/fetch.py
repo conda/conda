@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# Lappin' up the jlap
+"""Jlap consumer."""
 from __future__ import annotations
 
 import io

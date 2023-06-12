@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Small jlap reader."""
-
+"""Jlap reader."""
 from __future__ import annotations
 
 import logging
