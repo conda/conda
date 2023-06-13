@@ -96,9 +96,7 @@ html_js_files = [
     "js/panzoom.js",
 ]
 
-html_css_files = [
-    "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css",
-]
+html_css_files = ["https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css"]
 
 # Setting the prod URL of the site here as the base URL.
 html_baseurl = f"https://docs.conda.io/projects/{project}/"
