@@ -3,15 +3,9 @@
 """Implements the version spec with parsing and comparison logic.
 
 Object inheritance:
- ┌──────────┐
- │ BaseSpec │
- └┬─────────┘
-  │ ┌─────────────┐
-  ├─┤ VersionSpec │
-  │ └─────────────┘
-  │ ┌──────────────────┐
-  └─┤ BuildNumberMatch │
-    └──────────────────┘
+
+.. autoclasstree:: conda.models.records
+   :full:
 """
 from __future__ import annotations
 

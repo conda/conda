@@ -3,12 +3,9 @@
 """Implements directed graphs to sort and manipulate packages within a prefix.
 
 Object inheritance:
- ┌─────────────┐
- │ PrefixGraph │
- └┬────────────┘
-  │ ┌──────────────┐
-  └─┤ GeneralGraph │
-    └──────────────┘
+
+.. autoclasstree:: conda.models.prefix_graph
+   :full:
 """
 from collections import defaultdict
 from logging import getLogger

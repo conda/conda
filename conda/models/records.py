@@ -7,18 +7,9 @@ downloaded and cached package. A PrefixRecord is the record of a package install
 environment.
 
 Object inheritance:
- ┌────────────────────────────┐
- │ conda.auxlib.entity.Entity │
- └┬───────────────────────────┘
-  │ ┌───────────────┐
-  └─┤ PackageRecord │
-    └┬──────────────┘
-     │ ┌────────────────────┐
-     ├─┤ PackageCacheRecord │
-     │ └────────────────────┘
-     │ ┌──────────────┐
-     └─┤ PrefixRecord │
-       └──────────────┘
+
+.. autoclasstree:: conda.models.records
+   :full:
 """
 
 from os.path import basename, join

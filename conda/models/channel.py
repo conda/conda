@@ -3,12 +3,9 @@
 """Defines Channel and MultiChannel objects and other channel-related functions.
 
 Object inheritance:
- ┌─────────┐
- │ Channel │
- └┬────────┘
-  │ ┌──────────────┐
-  └─┤ MultiChannel │
-    └──────────────┘
+
+.. autoclasstree:: conda.models.channel
+   :full:
 """
 from copy import copy
 from itertools import chain
