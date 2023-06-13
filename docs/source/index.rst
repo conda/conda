@@ -52,6 +52,7 @@ that approach may not be as up to date.
 .. toctree::
    :hidden:
    :maxdepth: 1
+   :titlesonly:
 
    user-guide/index
    configuration
@@ -59,6 +60,7 @@ that approach may not be as up to date.
    commands
    glossary
    dev-guide/index
+   API <autoapi/conda/index>
    release-notes
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN
