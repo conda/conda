@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 # expose custom extensions
-sys.path.insert(0, os.path.abspath("_ext"))
+sys.path.insert(0, os.path.abspath("_extensions"))
 
 # expose source code for import
 sys.path.insert(0, os.path.abspath("../.."))
