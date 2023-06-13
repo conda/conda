@@ -154,21 +154,6 @@ html_js_files = [
 
 html_css_files = ["https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css"]
 
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# This is required for the alabaster theme
-# refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-    "**": [
-        "about.html",
-        "navigation.html",
-        "relations.html",  # needs 'show_related': True theme option to display
-        "searchbox.html",
-        "donate.html",
-    ]
-}
-
 # Setting the prod URL of the site here as the base URL.
 html_baseurl = f"https://docs.conda.io/projects/{project}/"
 # We don't have a locale set, so we can safely ignore that for the sitemaps.
