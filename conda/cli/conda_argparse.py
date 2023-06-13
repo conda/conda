@@ -118,9 +118,7 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     if getattr(arguments, "plugin_subcommand", None):
         _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
         result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks(
-            "post", arguments.plugin_subcommand.name, sys.argv[2:], result
-        )
+        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
 
         return result
 
