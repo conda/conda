@@ -1,15 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from os import environ, mkdir
-from os.path import join
+from os.path import expandvars, join
+from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
+from uuid import uuid4
 
 import pytest
-from pytest import raises
+from pytest import MonkeyPatch, raises
 
 from conda.auxlib.ish import dals
+from conda.common.compat import on_win
 from conda.common.configuration import (
     Configuration,
     ConfigurationObject,
@@ -24,6 +27,7 @@ from conda.common.configuration import (
     SequenceParameter,
     ValidationError,
     YamlRawParameter,
+    custom_expandvars,
     load_file_configs,
     pretty_list,
     raise_errors,
@@ -435,24 +439,26 @@ class ConfigurationTests(TestCase):
 
     def test_load_raw_configs(self):
         try:
-            tempdir = mkdtemp()
-            condarc = join(tempdir, ".condarc")
-            condarcd = join(tempdir, "condarc.d")
-            f1 = join(condarcd, "file1.yml")
-            f2 = join(condarcd, "file2.yml")
-            not_a_file = join(tempdir, "not_a_file")
+            tempdir = Path(mkdtemp()).resolve()
+            condarc = tempdir / ".condarc"
+            condarcd = tempdir / "condarc.d"
+            f1 = condarcd / "file1.yml"
+            f2 = condarcd / "file2.yml"
+            not_a_file = tempdir / "not_a_file"
 
-            mkdir(condarcd)
+            condarcd.mkdir(exist_ok=True, parents=True)
 
-            with open(f1, "wb") as fh:
-                fh.write(test_yaml_raw["file1"].encode("utf-8"))
-            with open(f2, "wb") as fh:
-                fh.write(test_yaml_raw["file2"].encode("utf-8"))
-            with open(condarc, "wb") as fh:
-                fh.write(test_yaml_raw["file3"].encode("utf-8"))
+            f1.write_text(test_yaml_raw["file1"])
+            f2.write_text(test_yaml_raw["file2"])
+            condarc.write_text(test_yaml_raw["file3"])
+
             search_path = [condarc, not_a_file, condarcd]
+
             raw_data = load_file_configs(search_path)
+            assert condarc in raw_data
             assert not_a_file not in raw_data
+            assert f1 in raw_data
+            assert f2 in raw_data
             assert raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
             assert raw_data[f1]["always_yes"].value(None) == "no"
             assert (
@@ -766,3 +772,50 @@ def test_raise_errors():
 def test_parameter_flag():
     # run __str__ method of ParameterFlag enum
     assert str(ParameterFlag("final")) == "final"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        # valid substitutions
+        "prefix/$VARIABLE/suffix",
+        "prefix/${VARIABLE}/suffix",
+        pytest.param(
+            "prefix/%VARIABLE%/suffix",
+            marks=pytest.mark.skipif(
+                not on_win,
+                reason="%...% variable expansion is only on Windows",
+            ),
+        ),
+        # invalid substitutions
+        "prefix/$MISSING/suffix",
+        "prefix/${MISSING}/suffix",
+        "prefix/%MISSING%/suffix",
+        # escaped characters
+        pytest.param(
+            "prefix/$$/suffix",
+            marks=pytest.mark.skipif(
+                on_win,
+                reason="$$ is incorrectly handled on Windows",
+            ),
+        ),
+        pytest.param(
+            "prefix/%%/suffix",
+            marks=pytest.mark.skipif(
+                on_win,
+                reason="%% is incorrectly handled on Windows",
+            ),
+        ),
+        # ill-formed
+        "prefix/$/suffix",
+        "prefix/${}/suffix",
+        "prefix/%/suffix",
+        "prefix/$1/suffix",
+        "prefix/${1}/suffix",
+        "prefix/%1/suffix",
+        "prefix/%1%/suffix",
+    ],
+)
+def test_custom_expandvars(path: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("VARIABLE", value := uuid4().hex)
+    assert custom_expandvars(path, VARIABLE=value) == expandvars(path)

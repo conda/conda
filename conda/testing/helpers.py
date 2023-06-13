@@ -93,6 +93,11 @@ def capture_json_with_argv(
         raise
 
 
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
+)
 @contextmanager
 def set_active_prefix(prefix: str) -> None:
     old_prefix = os.environ["CONDA_PREFIX"]

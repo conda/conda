@@ -42,7 +42,7 @@ jobs:
           python-version: '3.11'
 
       - name: combine recent durations from artifacts
-        run: python tests/durations/combine.py ${{ runner.temp }}/artifacts/
+        run: python ./tools/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
         uses: peter-evans/create-pull-request@v5

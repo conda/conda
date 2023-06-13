@@ -107,6 +107,35 @@ def bar(enabled=True):
 <stdin>:1: PendingDeprecationWarning: foo.bar(is_true) is pending deprecation and will be removed in 24.3. Use 'enabled' instead.
 ```
 
+## `argparse.Action`
+
+Occasionally, there is a need to deprecate CLI arguments. For this, we provide a helper function to monkeypatch any `argparse.Action`:
+
+```{code-block} python
+:caption: Example file, `foo.py`.
+import argparse
+from conda.deprecations import deprecated
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--force",
+    dest="yes",
+    action=deprecated.action(
+        "23.9",
+        "24.3",
+        argparse._StoreTrueAction,
+        addendum="Use `--yes` instead.",
+    ),
+    default=False,
+)
+parser.parse_args()
+```
+
+```{code-block} bash
+python foo.py --force
+foo.py:16: PendingDeprecationWarning: `--force` is pending deprecation and will be removed in 24.3. Use `--yes` instead.
+```
+
 ## Constants and Enums
 
 We also offer a way to deprecate global variables or constants:

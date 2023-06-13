@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from textwrap import dedent
 
 import pytest
+from ruamel.yaml.scanner import ScannerError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
@@ -87,9 +88,12 @@ def test_invalid_yaml():
     )
     try:
         with make_temp_condarc(condarc) as rc:
-            run_command(Commands.CONFIG, "--file", rc, "--add", "channels", "test")
+            try:
+                run_command(Commands.CONFIG, "--file", rc, "--add", "channels", "test")
+            except ScannerError as err:
+                assert "mapping values are not allowed here" == err.problem
     except ConfigurationLoadError as err:
-        assert "reason: invalid yaml at line" in err.message, err.message
+        assert "reason: invalid yaml at line" in err.message
 
 
 def test_channels_add_empty():
