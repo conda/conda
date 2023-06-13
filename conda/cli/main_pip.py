@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Entry point if `conda` has not been properly initialized in the user's shell."""
+"""PEP 621 compatible entry point used when `conda init` has not updated the user shell profile."""
 import os
 import sys
 from logging import getLogger
