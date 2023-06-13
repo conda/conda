@@ -39,22 +39,22 @@ import conda
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "autoapi.extension",
+    "conda_umls",
     "myst_parser",
-    "sphinxarg.ext",
-    "sphinxcontrib.programoutput",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
-    "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx.ext.graphviz",
     "sphinx.ext.ifconfig",
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.intersphinx",
-    "sphinxcontrib.plantuml",
-    "conda_umls",
+    "sphinx.ext.napoleon",
     "sphinx_sitemap",
+    "sphinxarg.ext",
     "sphinxcontrib.mermaid",
-    "autoapi.extension",
+    "sphinxcontrib.plantuml",
+    "sphinxcontrib.programoutput",
 ]
 
 myst_heading_anchors = 3
