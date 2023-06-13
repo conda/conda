@@ -53,6 +53,8 @@ extensions = [
     "sphinxcontrib.plantuml",
     "conda_umls",
     "sphinx_sitemap",
+    "sphinxcontrib.mermaid",
+    "autoapi.extension",
 ]
 
 myst_heading_anchors = 3
@@ -69,6 +71,8 @@ myst_enable_extensions = [
     "substitution",
     "tasklist",
 ]
+
+autoapi_dirs = ["../conda"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
