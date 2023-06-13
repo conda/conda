@@ -134,14 +134,12 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     command = relative_mod.replace(".main_", "")
     _run_command_hooks("pre", command, arguments)
     result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, arguments, result)
+    _run_command_hooks("post", command, arguments)
 
     return result
 
 
-def _run_command_hooks(
-    hook_type: CommandHookTypes, command: str, *args, **kwargs
-) -> None:
+def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
     """
     Helper function used to gather applicable "pre" or "post" command hook functions
     and then run them.
@@ -152,7 +150,7 @@ def _run_command_hooks(
     actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
 
     for action in actions:
-        action(command, *args, **kwargs)
+        action(command, arguments)
 
 
 def find_builtin_commands(parser):

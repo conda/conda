@@ -142,7 +142,7 @@ class CondaSpecs:
            from conda import plugins
 
 
-           def example_post_command(command, arguments, result):
+           def example_post_command(command, arguments):
                print("post-command action")
 
 
