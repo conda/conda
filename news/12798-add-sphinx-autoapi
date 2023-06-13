@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Auto generate API docs using `sphinx-autoapi`. (#12798)
+
+### Other
+
+* <news item>
