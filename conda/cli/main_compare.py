@@ -22,7 +22,7 @@ def get_packages(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
     return sorted(
-        PrefixData(prefix, pip_interop_enabled=True).iter_records(),
+        PrefixData(prefix).iter_records(),
         key=lambda x: x.name,
     )
 

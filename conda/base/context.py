@@ -188,7 +188,7 @@ class Context(Configuration):
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
 
-    pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
+    # pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
     # multithreading in various places
     _default_threads = ParameterLoader(

@@ -3,6 +3,8 @@
 import json
 import os
 import re
+import sys
+import traceback
 from logging import getLogger
 from os.path import basename, isdir, isfile, join, lexists
 
@@ -39,13 +41,13 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
-    def __call__(cls, prefix_path, pip_interop_enabled=None):
+    def __call__(cls, prefix_path):
         if prefix_path in PrefixData._cache_:
             return PrefixData._cache_[prefix_path]
         elif isinstance(prefix_path, PrefixData):
             return prefix_path
         else:
-            prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
+            prefix_data_instance = super().__call__(prefix_path)
             PrefixData._cache_[prefix_path] = prefix_data_instance
             return prefix_data_instance
 
@@ -53,17 +55,10 @@ class PrefixDataType(type):
 class PrefixData(metaclass=PrefixDataType):
     _cache_ = {}
 
-    def __init__(self, prefix_path, pip_interop_enabled=None):
-        # pip_interop_enabled is a temporary parameter; DO NOT USE
-        # TODO: when removing pip_interop_enabled, also remove from meta class
+    def __init__(self, prefix_path, *args, **kwargs):
         self.prefix_path = prefix_path
         self.__prefix_records = None
         self.__is_writable = NULL
-        self._pip_interop_enabled = (
-            pip_interop_enabled
-            if pip_interop_enabled is not None
-            else context.pip_interop_enabled
-        )
 
     @time_recorder(module_name=__name__)
     def load(self):
@@ -77,8 +72,7 @@ class PrefixData(metaclass=PrefixDataType):
             )
             for meta_file in conda_meta_json_paths:
                 self._load_single_record(meta_file)
-        if self._pip_interop_enabled:
-            self._load_site_packages()
+        self._load_site_packages()
 
     def reload(self):
         self.load()
@@ -328,11 +322,7 @@ class PrefixData(metaclass=PrefixDataType):
                 )
                 continue
             except ValidationError:
-                import sys
-
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                import traceback
-
                 tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 log.warn(
                     "Problem reading non-conda package record at %s. Please verify that you "
