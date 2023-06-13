@@ -370,19 +370,17 @@ class _Activator(metaclass=abc.ABCMeta):
 
         # get clobbered environment variables
         clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
-        overwritten_clobber_vars = dict()
-        for clobber_var in clobber_vars:
-            os_value = os.environ[clobber_var]
-            clobber_value = env_vars[clobber_var]
-            if clobber_value != os_value:
-                overwritten_clobber_vars[clobber_var] = (os_value, clobber_value)
+        overwritten_clobber_vars = [
+            clobber_var
+            for clobber_var in clobber_vars
+            if os.environ[clobber_var] != env_vars[clobber_var]
+        ]
         if overwritten_clobber_vars:
             print(
                 "WARNING: overwriting environment variables set in the machine",
                 file=sys.stderr,
             )
-            for key, values in overwritten_clobber_vars.items():
-                print(f"`{key}`: from `{values[0]}` to `{values[1]}`", file=sys.stderr)
+            print(f"overwriting variable {overwritten_clobber_vars}", file=sys.stderr)
         for name in clobber_vars:
             env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
 
