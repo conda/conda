@@ -3,18 +3,18 @@
 
 .. py:module:: conda.api
 
-.. autoclass:: Solver
+.. autoapiclass:: Solver
    :members:
    :undoc-members:
 
-.. autoclass:: SubdirData
+.. autoapiclass:: SubdirData
   :members:
   :undoc-members:
 
-.. autoclass:: PackageCacheData
+.. autoapiclass:: PackageCacheData
   :members:
   :undoc-members:
 
-.. autoclass:: PrefixData
+.. autoapiclass:: PrefixData
   :members:
   :undoc-members:

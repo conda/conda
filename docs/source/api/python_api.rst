@@ -3,8 +3,8 @@
 
 .. py:module:: conda.cli.python_api
 
-.. autoclass:: Commands
+.. autoapiclass:: Commands
    :members:
    :undoc-members:
 
-.. autofunction:: run_command
+.. autoapifunction:: run_command

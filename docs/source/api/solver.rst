@@ -3,9 +3,9 @@
 
 .. py:module:: conda.core.solve
 
-.. autoclass:: DepsModifier
+.. autoapiclass:: DepsModifier
    :members:
    :undoc-members:
 
-.. autoclass:: Solver
+.. autoapiclass:: Solver
    :members:

@@ -101,7 +101,7 @@ the `"Choose an Open Source License"`_ site.
 API reference
 -------------
 
-.. autoattribute:: conda.plugins::hookimpl
+.. autoapiattribute:: conda.plugins::hookimpl
    :no-value:
 
    Conda plugin hook implementation marker.
