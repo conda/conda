@@ -8,6 +8,7 @@ requests==2.27.0
 ruamel.yaml==0.17.16
 Sphinx==4.2.0
 sphinx-argparse==0.3.1
+sphinx-autoapi
 sphinx-autobuild==2021.3.14
 sphinx-rtd-theme==1.0.0
 sphinx-sitemap==2.2.0
@@ -15,6 +16,7 @@ sphinxcontrib-applehelp==1.0.2
 sphinxcontrib-devhelp==1.0.2
 sphinxcontrib-htmlhelp==2.0.0
 sphinxcontrib-jsmath==1.0.1
+sphinxcontrib-mermaid
 sphinxcontrib-plantuml==0.21
 sphinxcontrib-programoutput==0.17
 sphinxcontrib-qthelp==1.0.3
