@@ -1,6 +1,6 @@
-===============
+=============
 Writing Tests
-===============
+=============
 
 This section contains a series of guides and guidelines for writing tests
 in the ``conda`` repository.

@@ -1,5 +1,6 @@
+================
 ``conda rename``
-*****************
+================
 
 .. argparse::
    :module: conda.cli.conda_argparse

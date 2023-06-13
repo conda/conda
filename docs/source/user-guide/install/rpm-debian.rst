@@ -1,6 +1,6 @@
------------------------------------------
+=========================================
 RPM and Debian Repositories for Miniconda
------------------------------------------
+=========================================
 Conda, the package manager from Anaconda, is available as either a RedHat RPM or as a Debian package. The packages are the equivalent to the Miniconda installer which only contains conda and its dependencies. You can use yum or apt to install, uninstall and manage conda on your system. To install conda, follow the instructions for your Linux distribution.
 
 To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based distributions such as openSUSE, download the GPG key and add a repository configuration file for conda.

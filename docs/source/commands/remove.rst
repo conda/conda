@@ -1,5 +1,6 @@
+================
 ``conda remove``
-*****************
+================
 
 .. argparse::
    :module: conda.cli.conda_argparse

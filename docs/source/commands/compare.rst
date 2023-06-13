@@ -1,5 +1,6 @@
+=================
 ``conda compare``
-*****************
+=================
 
 .. argparse::
    :module: conda.cli.conda_argparse

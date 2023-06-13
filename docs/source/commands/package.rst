@@ -1,5 +1,6 @@
+=================
 ``conda package``
-*****************
+=================
 
 .. argparse::
    :module: conda.cli.conda_argparse

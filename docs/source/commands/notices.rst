@@ -1,5 +1,6 @@
+=================
 ``conda notices``
-*****************
+=================
 
 .. argparse::
    :module: conda.cli.conda_argparse
