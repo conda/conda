@@ -69,8 +69,6 @@ jobs:
           stale-pr-label: stale
           # Label to apply on closed PRs
           close-pr-label: stale::closed
-          # Reason to use when closing PRs
-          close-pr-reason: not_planned
 
           # Remove stale label from issues/PRs on updates/comments
           remove-stale-when-updated: true
