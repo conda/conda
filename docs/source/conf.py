@@ -21,8 +21,10 @@
 import os
 import sys
 
+# expose custom extensions
 sys.path.insert(0, os.path.abspath("_ext"))
-sys.path.insert(0, os.path.abspath(".."))
+
+# expose source code for import
 sys.path.insert(0, os.path.abspath("../.."))
 
 import conda
