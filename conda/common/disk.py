@@ -4,8 +4,10 @@ from contextlib import contextmanager
 from os import unlink
 
 from ..auxlib.compat import Utf8NamedTemporaryFile
+from ..deprecations import deprecated
 
 
+@deprecated("24.3", "24.9", addendum="Use `tempfile` instead.")
 @contextmanager
 def temporary_content_in_file(content, suffix=""):
     # content returns temporary file path with contents
