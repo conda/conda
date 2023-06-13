@@ -1,6 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""The low-level SAT solver wrapper/interface (conda.core.solver.Solver is a higher-level API)."""
+"""Low-level SAT solver wrapper/interface for the classic solver.
+
+See conda.core.solver.Solver for the high-level API.
+"""
 from __future__ import annotations
 
 import copy
