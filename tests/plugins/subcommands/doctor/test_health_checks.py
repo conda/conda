@@ -34,6 +34,8 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
     lib_doctor = f"lib/{package}.py"
     (tmp_path / lib_doctor).touch()
 
+    # A template json file mimicking a json file in conda-meta
+    # the "sha256" and "sha256_in_prefix" values are sha256 checksum generated for an empty file
     PACKAGE_JSON = {
         "files": [
             bin_doctor,
@@ -64,7 +66,7 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
 def env_missing_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
     """Fixture that returns a testing environment with missing files"""
     prefix, bin_doctor, _, _ = env_ok
-    (prefix / bin_doctor).unlink()
+    (prefix / bin_doctor).unlink()  # file bin_doctor becomes "missing"
     return env_ok
 
 
@@ -72,7 +74,7 @@ def env_missing_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, st
 def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
     """Fixture that returns a testing environment with altered files"""
     prefix, _, lib_doctor, _ = env_ok
-
+    # Altering the lib_doctor.py file so that it's sha256 checksum will change
     with open(prefix / lib_doctor, "w") as f:
         f.write("print('Hello, World!')")
 
@@ -109,6 +111,12 @@ def test_display_health_checks(env_ok: tuple[Path, str, str, str], verbose: bool
         {"CONDA_PREFIX": prefix},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
+        # running the fuction with no missing or altered files
         display_health_checks(prefix, verbose=verbose)
+        # creating missing files
         (prefix / bin_doctor).unlink()
+        # creating altered files
+        with open(prefix / lib_doctor, "w") as f:
+            f.write("print('Hello, World!')")
+        # running the function again
         display_health_checks(prefix, verbose=verbose)
