@@ -48,7 +48,6 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
                 f"Could not load the json file {file}"
                 + f" because of the following error: {e}."
             )
-            continue
         required_data = data["paths_data"]["paths"]
 
         for path in required_data:
