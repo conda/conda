@@ -60,7 +60,8 @@ that approach may not be as up to date.
    commands
    glossary
    dev-guide/index
-   API <autoapi/conda/index>
+   autoapi/conda/index
+   autoapi/conda_env/index
    release-notes
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

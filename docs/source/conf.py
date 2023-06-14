@@ -147,7 +147,7 @@ myst_enable_extensions = [
 
 # -- For autoapi.extension -------------------------------------------------
 
-autoapi_dirs = ["../../conda"]
+autoapi_dirs = ["../../conda", "../../conda_env"]
 
 # Manually inserted into TOC in index.rst for proper integration into
 # folder-view
