@@ -62,16 +62,14 @@ setup(
 )
 """
 from collections import namedtuple
-from distutils.command.build_py import build_py
-from distutils.command.sdist import sdist
-from distutils.util import convert_path
+from setuptools.command.build_py import build_py
+from setuptools.command.sdist import sdist
 from fnmatch import fnmatchcase
 from logging import getLogger
-from os import getenv, listdir, remove
+from os import curdir, getenv, listdir, remove, sep
 from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
 from subprocess import CalledProcessError, PIPE, Popen
-import sys
 
 from .compat import shlex_split_unicode
 from ..deprecations import deprecated
@@ -218,6 +216,34 @@ class SDistCommand(sdist):
         target_dir = join(base_dir, self.distribution.metadata.name)
         write_version_into_init(target_dir, self.distribution.metadata.version)
         write_version_file(target_dir, self.distribution.metadata.version)
+
+
+def convert_path(pathname):
+    """Return 'pathname' as a name that will work on the native filesystem,
+    i.e. split it on '/' and put it back together again using the current
+    directory separator.  Needed because filenames in the setup script are
+    always supplied in Unix style, and have to be converted to the local
+    convention before we can actually use them in the filesystem.  Raises
+    ValueError on non-Unix-ish systems if 'pathname' either starts or
+    ends with a slash.
+
+    Copied from setuptools._distutils.util: https://github.com/pypa/setuptools/blob/b545fc778583f644d6c331773dbe0ea53bfa41af/setuptools/_distutils/util.py#L125-L148
+    """
+    if sep == '/':
+        return pathname
+    if not pathname:
+        return pathname
+    if pathname[0] == '/':
+        raise ValueError("path '%s' cannot be absolute" % pathname)
+    if pathname[-1] == '/':
+        raise ValueError("path '%s' cannot end with '/'" % pathname)
+
+    paths = pathname.split('/')
+    while '.' in paths:
+        paths.remove('.')
+    if not paths:
+        return curdir
+    return join(*paths)
 
 
 # swiped from setuptools

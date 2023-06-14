@@ -247,7 +247,7 @@ def get_env_vars_str(info_dict):
 
 def get_main_info_str(info_dict):
     for key in "pkgs_dirs", "envs_dirs", "channels", "config_files":
-        info_dict["_" + key] = ("\n" + 26 * " ").join(info_dict[key])
+        info_dict[f"_{key}"] = ("\n" + 26 * " ").join(map(str, info_dict[key]))
 
     info_dict["_virtual_pkgs"] = ("\n" + 26 * " ").join(
         ["%s=%s=%s" % tuple(x) for x in info_dict["virtual_pkgs"]]

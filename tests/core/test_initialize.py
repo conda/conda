@@ -3,8 +3,8 @@
 import ntpath
 import os
 import sys
-from distutils.sysconfig import get_python_lib
 from os.path import abspath, dirname, isfile, join, realpath
+from sysconfig import get_path
 
 import pytest
 
@@ -56,7 +56,7 @@ def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
     assert python_version == "%s.%s.%s" % sys.version_info[:3]
-    assert site_packages_dir == get_python_lib()
+    assert site_packages_dir == get_path("platlib")
 
 
 def test_make_install_plan(verbose, mocker):
