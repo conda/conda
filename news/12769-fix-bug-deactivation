@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-*   Fix bug: When the user's existing shell environment variable is equal to the value of the conda environment's variable on conda activation, then that environment variable become unset upon conda deactivation (#12769)
+*   Fix erroneous `conda deactivate` behavior of unsetting preexisting environment variables that are identical to those set during `conda activate`. (#12769)
 
 ### Deprecations
 
