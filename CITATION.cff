@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+title: "conda: A system-level, binary package and environment manager running on all major
+  operating systems and platforms."
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - name: "conda contributors"
+repository-code: "https://github.com/conda/conda"
+url: "https://docs.conda.io/projects/conda/"
+abstract: >-
+  Conda is a cross-platform, language-agnostic binary package manager. It is the package manager
+  used by Anaconda installations, but it may be used for other systems as well. Conda makes
+  environments first-class citizens, making it easy to create independent environments even for
+  C libraries. Conda is written entirely in Python, and is BSD licensed open source.
+license: BSD-3-clause
