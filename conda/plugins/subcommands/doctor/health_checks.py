@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
-import os
+from logging import getLogger
 from pathlib import Path
 
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
+
+logger = getLogger("health_checks")
 
 OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
@@ -43,31 +45,30 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     for file in (prefix / "conda-meta").glob("*.json"):
         try:
             data = json.loads(file.read_text())
-        except Exception as e:
-            raise CondaError(
-                f"Could not load the json file {file}"
-                + f" because of the following error: {e}."
-            )
+        except Exception:
+            logger.error("Could not load the json file {file}")
+
         required_data = data["paths_data"]["paths"]
 
         for path in required_data:
             _path = path.get("_path")
-            if _path is None:
-                continue
             old_sha256 = path.get("sha256_in_prefix")
-            file_location = f"{prefix}/{_path}"
-            if not os.path.isfile(file_location):
+            if _path is None or old_sha256 is None:
+                continue
+
+            file_location = prefix / _path
+            if not file_location.is_file():
                 continue
 
             try:
                 new_sha256 = compute_sum(file_location, "sha256")
             except OSError as err:
                 raise CondaError(
-                    f"Could not generate checksum for file {file_location}"
-                    + f" because of the following error: {err}."
+                    f"Could not generate checksum for file {file_location} "
+                    f"because of the following error: {err}."
                 )
 
-            if old_sha256 is not None and old_sha256 != new_sha256:
+            if old_sha256 != new_sha256:
                 altered_packages.setdefault(file.stem, []).append(_path)
 
     return altered_packages
