@@ -4,25 +4,24 @@
 Script to combine test durations from all runs.
 
 If the tests splits are looking uneven or the test suite has
-siginificantly changed, update tests/durations/${OS}.json in the root of the
+siginificantly changed, update ./tools/durations/${OS}.json in the root of the
 repository and pytest-split may work better.
 
 ```
 $ gh run list --branch <branch>
 $ gh run download --dir ./artifacts/ <databaseId>
-$ python ./tests/durations/combine.py ./artifacts/
-$ git add ./tests/durations/
+$ python ./tools/durations/combine.py ./artifacts/
+$ git add ./tools/durations/
 $ git commit -m "Update test durations"
 $ git push
 ```
 """
 import json
-from itertools import chain
 from pathlib import Path
 from statistics import fmean
 from sys import argv
 
-combined = {}
+combined: dict[str, dict[str, list[float]]] = {}
 
 durations_dir = Path(__file__).parent
 artifacts_dir = Path(argv[-1]).expanduser().resolve()

@@ -4,8 +4,7 @@
 name: Tests
 
 on:
-  # NOTE: github.event context is push payload:
-  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     branches:
       - main
@@ -13,8 +12,7 @@ on:
       - '[0-9].*.x'  # e.g., 4.14.x
       - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
-  # NOTE: github.event context is pull_request payload:
-  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
 
   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
@@ -38,14 +36,16 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     permissions:
+      # necessary to detect changes
+      # https://github.com/dorny/paths-filter#supported-workflows
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v3
         # dorny/paths-filter needs git clone for push events
-        # https://github.com/marketplace/actions/paths-changes-filter#supported-workflows
-        if: github.event_name == 'push'
+        # https://github.com/dorny/paths-filter#supported-workflows
+        if: github.event_name != 'pull_request'
       - uses: dorny/paths-filter@v2.11.1
         id: filter
         with:
@@ -54,7 +54,6 @@ jobs:
               - 'conda/**'
               - 'conda_env/**'
               - 'tests/**'
-              - '!tests/durations/**'
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
@@ -151,7 +150,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${{ runner.os }}.json
+            .\tools\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -209,7 +208,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ runner.os }}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -366,7 +365,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ runner.os }}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 

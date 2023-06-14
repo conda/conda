@@ -13,7 +13,11 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..deprecations import deprecated
-from ..exceptions import DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
+from ..exceptions import (
+    CondaError,
+    DirectoryNotACondaEnvironmentError,
+    EnvironmentLocationNotFound,
+)
 from ..models.match_spec import MatchSpec
 
 
@@ -37,7 +41,10 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
         # raw_input has a bug and prints to stderr, not desirable
         sys.stdout.write(message)
         sys.stdout.flush()
-        user_choice = sys.stdin.readline().strip().lower()
+        try:
+            user_choice = sys.stdin.readline().strip().lower()
+        except OSError as e:
+            raise CondaError(f"cannot read from stdin: {e}")
         if user_choice not in choices:
             print("Invalid choice: %s" % user_choice)
         else:

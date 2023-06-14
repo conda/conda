@@ -156,7 +156,9 @@ def pretty_record(record):
     push_line("version", "version")
     push_line("build", "build")
     push_line("build number", "build_number")
-    builder.append("%-12s: %s" % ("size", human_bytes(record.size)))
+    size = getattr(record, "size", None)
+    if size is not None:
+        builder.append("%-12s: %s" % ("size", human_bytes(size)))
     push_line("license", "license")
     push_line("subdir", "subdir")
     push_line("url", "url")

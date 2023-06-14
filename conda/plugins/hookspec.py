@@ -6,7 +6,13 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaPreCommand, CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaPostCommand,
+    CondaPreCommand,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -111,7 +117,7 @@ class CondaSpecs:
            from conda import plugins
 
 
-           def example_pre_command(command, args):
+           def example_pre_command(command, arguments):
                print("pre-command action")
 
 
@@ -120,6 +126,31 @@ class CondaSpecs:
                yield CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
+                   run_for={"install", "create"},
+               )
+        """
+
+    @_hookspec
+    def conda_post_commands(self) -> Iterable[CondaPostCommand]:
+        """
+        Register post-commands functions in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           def example_post_command(command, arguments):
+               print("post-command action")
+
+
+           @plugins.hookimpl
+           def conda_post_commands():
+               yield CondaPostCommand(
+                   name="example-post-command",
+                   action=example_post_command,
                    run_for={"install", "create"},
                )
         """

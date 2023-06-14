@@ -16,9 +16,7 @@ def execute(args, parser):
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
-        validate_prefix(
-            context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
-        ),
+        validate_prefix(context.target_prefix),  # ensure prefix exists
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
