@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
 
 from conda.exceptions import CondaError
+from conda.gateways.disk.read import compute_sum
 
 OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
@@ -39,21 +39,16 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     """Finds altered packages"""
     altered_packages = {}
 
-    def generate_sha256_checksum(filepath) -> str:
-        try:
-            with open(filepath, "rb") as f:
-                bytes = f.read()
-                hash = hashlib.sha256(bytes).hexdigest()
-                return hash
-        except OSError as err:
-            raise CondaError(
-                f"Could not generate checksum for file {filepath}"
-                + f" because of the following error: {err}."
-            )
-
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
-        data = json.loads(file.read_text())
+        try:
+            data = json.loads(file.read_text())
+        except Exception as e:
+            raise CondaError(
+                f"Could not load the json file {file}"
+                + f" because of the following error: {e}."
+            )
+            continue
         required_data = data["paths_data"]["paths"]
 
         for path in required_data:
@@ -64,7 +59,14 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
             file_location = f"{prefix}/{_path}"
             if not os.path.isfile(file_location):
                 continue
-            new_sha256 = generate_sha256_checksum(file_location)
+
+            try:
+                new_sha256 = compute_sum(file_location)
+            except OSError as err:
+                raise CondaError(
+                    f"Could not generate checksum for file {file_location}"
+                    + f" because of the following error: {err}."
+                )
 
             if old_sha256 is not None and old_sha256 != new_sha256:
                 altered_packages.setdefault(file.stem, []).append(_path)
