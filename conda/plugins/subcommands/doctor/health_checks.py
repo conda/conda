@@ -61,7 +61,7 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
                 continue
 
             try:
-                new_sha256 = compute_sum(file_location)
+                new_sha256 = compute_sum(file_location, "sha256")
             except OSError as err:
                 raise CondaError(
                     f"Could not generate checksum for file {file_location}"
