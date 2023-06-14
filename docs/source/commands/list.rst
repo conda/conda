@@ -1,6 +1,5 @@
-==============
 ``conda list``
-==============
+*****************
 
 .. argparse::
    :module: conda.cli.conda_argparse

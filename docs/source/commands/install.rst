@@ -1,6 +1,5 @@
-=================
 ``conda install``
-=================
+*****************
 
 .. argparse::
    :module: conda.cli.conda_argparse

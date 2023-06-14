@@ -1,5 +1,4 @@
 (deep_dive_activation)=
-
 # `conda init` and `conda activate`
 
 `conda` ships _virtual environments_ by design. When you install Anaconda or Miniconda, you obtain

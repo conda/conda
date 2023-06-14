@@ -1,6 +1,5 @@
-================
 ``conda config``
-================
+*****************
 
 .. argparse::
    :module: conda.cli.conda_argparse

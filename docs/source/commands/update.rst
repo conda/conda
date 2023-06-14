@@ -1,6 +1,5 @@
-================
 ``conda update``
-================
+*****************
 
 .. argparse::
    :module: conda.cli.conda_argparse

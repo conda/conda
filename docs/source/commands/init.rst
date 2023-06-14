@@ -1,6 +1,5 @@
-==============
 ``conda init``
-==============
+***************
 
 .. argparse::
    :module: conda.cli.conda_argparse

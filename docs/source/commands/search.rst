@@ -1,6 +1,5 @@
-================
 ``conda search``
-================
+*****************
 
 .. argparse::
    :module: conda.cli.conda_argparse
