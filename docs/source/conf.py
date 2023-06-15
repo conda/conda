@@ -168,4 +168,5 @@ redirects = {
     "custom-channels": "user-guide/tasks/create-custom-channels.html",
     "download": "user-guide/install/download.html",
     "env-commands": "commands.html",
+    "faq": "user-guide/tasks/index.html",
 }
