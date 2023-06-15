@@ -189,4 +189,5 @@ redirects = {
     "using/envs": "../user-guide/tasks/manage-environments.html",
     "using/index": "../user-guide/tasks/index.html",
     "using/pkgs": "../user-guide/tasks/manage-pkgs.html",
+    "using/test-drive": "../user-guide/getting-started.html",
 }
