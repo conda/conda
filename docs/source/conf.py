@@ -176,4 +176,5 @@ redirects = {
     "install/central": "../user-guide/configuration/admin-multi-user-install.html",
     "install/full": "../user-guide/install/index.html",
     "install/quick": "../user-guide/install/index.html",
+    "install/sample-condarc": "../user-guide/configuration/sample-condarc.html",
 }
