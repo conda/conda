@@ -165,4 +165,5 @@ redirects = {
     "changelog": "release-notes.html",
     "channels": "user-guide/tasks/manage-channels.html",
     "config": "user-guide/configuration/index.html",
+    "custom-channels": "user-guide/tasks/create-custom-channels.html",
 }
