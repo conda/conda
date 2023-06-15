@@ -56,7 +56,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_sitemap",
     "sphinxarg.ext",
-    "sphinxcontrib.mermaid",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
 ]
