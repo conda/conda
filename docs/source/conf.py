@@ -169,4 +169,5 @@ redirects = {
     "download": "user-guide/install/download.html",
     "env-commands": "commands.html",
     "faq": "user-guide/tasks/index.html",
+    "general-commands": "commands.html",
 }
