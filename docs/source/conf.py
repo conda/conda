@@ -178,4 +178,5 @@ redirects = {
     "install/quick": "../user-guide/install/index.html",
     "install/sample-condarc": "../user-guide/configuration/sample-condarc.html",
     "install/tab-completion": "../user-guide/configuration/enable-tab-completion.html",
+    "installation": "user-guide/install/index.html",
 }
