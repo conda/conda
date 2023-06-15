@@ -162,4 +162,5 @@ redirects = {
     "api/index": "../../dev-guide/api.html",
     "api/python_api": "../../dev-guide/api/conda/cli/python_api.html",
     "api/solver": "../../dev-guide/api/conda/api.html#conda.api.Solver",
+    "changelog": "release-notes.html",
 }
