@@ -187,4 +187,5 @@ redirects = {
     "troubleshooting": "user-guide/troubleshooting.html",
     "using/cheatsheet": "../user-guide/cheatsheet.html",
     "using/envs": "../user-guide/tasks/manage-environments.html",
+    "using/index": "../user-guide/tasks/index.html",
 }
