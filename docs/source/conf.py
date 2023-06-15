@@ -54,6 +54,7 @@ extensions = [
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
+    "sphinx_reredirects",
     "sphinx_sitemap",
     "sphinxarg.ext",
     "sphinxcontrib.plantuml",
@@ -151,3 +152,13 @@ autoapi_root = "dev-guide/api"
 # Manually inserted into TOC in dev-guide/api.rst for proper integration into
 # folder-view
 autoapi_add_toctree_entry = False
+
+# -- For sphinx_reredirects ------------------------------------------------
+
+redirects = {
+    # internal redirects
+    "api/api": "../../dev-guide/api/conda/api.html",
+    "api/index": "../../dev-guide/api.html",
+    "api/python_api": "../../dev-guide/api/conda/cli/python_api.html",
+    "api/solver": "../../dev-guide/api/conda/api.html#conda.api.Solver",
+}
