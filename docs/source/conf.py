@@ -180,4 +180,5 @@ redirects = {
     "install/tab-completion": "../user-guide/configuration/enable-tab-completion.html",
     "installation": "user-guide/install/index.html",
     "intro": "index.html",
+    "mro": "user-guide/tasks/use-mro-with-conda.html",
 }
