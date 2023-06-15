@@ -195,4 +195,5 @@ redirects = {
     "travis": "https://github.com/conda-incubator/setup-miniconda",
     "user-guide/tasks/use-conda-with-travis-ci": "https://github.com/conda-incubator/setup-miniconda",
     "user-guide/tasks/use-mro-with-conda": "https://docs.anaconda.com/anaconda/user-guide/tasks/use-r-language",
+    "user-guide/tasks/use-r-with-conda": "https://docs.anaconda.com/anaconda/user-guide/tasks/use-r-language",
 }
