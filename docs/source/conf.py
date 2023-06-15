@@ -172,4 +172,5 @@ redirects = {
     "general-commands": "commands.html",
     "get-started": "user-guide/index.html",
     "help/conda-pip-virtualenv-translator": "../commands.html",
+    "help/silent": "../user-guide/install/index.html",
 }
