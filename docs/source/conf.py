@@ -184,4 +184,5 @@ redirects = {
     "py2or3": "user-guide/tasks/manage-python.html",
     "r-with-conda": "user-guide/tasks/use-r-with-conda.html",
     "test-drive": "user-guide/getting-started.html",
+    "troubleshooting": "user-guide/troubleshooting.html",
 }
