@@ -111,12 +111,11 @@ def test_display_health_checks(env_ok: tuple[Path, str, str, str], verbose: bool
         {"CONDA_PREFIX": prefix},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        # running the fuction with no missing or altered files
-        display_health_checks(prefix, verbose=verbose)
-        # creating missing files
-        (prefix / bin_doctor).unlink()
-        # creating altered files
-        with open(prefix / lib_doctor, "w") as f:
-            f.write("print('Hello, World!')")
-        # running the function again
-        display_health_checks(prefix, verbose=verbose)
+        display_health_checks(
+            prefix, verbose=verbose
+        )  # running the fuction with no missing or altered files
+        (prefix / bin_doctor).unlink()  # creating missing files
+        (prefix / lib_doctor).write_text(
+            "print('Hello, World!')"
+        )  # creating altered files
+        display_health_checks(prefix, verbose=verbose)  # running the function again
