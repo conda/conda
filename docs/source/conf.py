@@ -164,4 +164,5 @@ redirects = {
     "api/solver": "../../dev-guide/api/conda/api.html#conda.api.Solver",
     "changelog": "release-notes.html",
     "channels": "user-guide/tasks/manage-channels.html",
+    "config": "user-guide/configuration/index.html",
 }
