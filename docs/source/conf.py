@@ -170,4 +170,5 @@ redirects = {
     "env-commands": "commands.html",
     "faq": "user-guide/tasks/index.html",
     "general-commands": "commands.html",
+    "get-started": "user-guide/index.html",
 }
