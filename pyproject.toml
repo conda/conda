@@ -56,7 +56,6 @@ source = "vcs"
 
 [tool.hatch.version.raw-options]
 local_scheme = "dirty-tag"
-version_scheme = "calver-by-date"
 
 [tool.hatch.build]
 include = ["conda", "conda_env"]
@@ -81,7 +80,8 @@ protected-files = ["__init__.py", "vendor.txt", "README.md"]
 [tool.vendoring.transformations]
 drop = [
   # contains unnecessary scripts
-  "bin/", # remove unwanted modules
+  "bin/",
+  # remove unwanted modules
   '^boltons/(cache|debug|depr|dict|easter|eco|exc|file|format|func|gc|io|iter|json|list|math|mbox|named|path|queue|socket|stats|str|table|tb||type|url)utils\.py',
   "boltons/txurl_notes.md",
   "cpuinfo/__main__.py",
