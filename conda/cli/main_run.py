@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda run`.
+
+Runs the provided command within the specified environment.
+"""
 import os
 import sys
 from logging import getLogger

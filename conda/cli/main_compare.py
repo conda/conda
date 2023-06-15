@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda compare`.
+
+Compare the packages in an environment with the packages listed in an environment file.
+"""
 import logging
 import os
 from os.path import abspath, expanduser, expandvars

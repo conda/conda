@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""The conda plugin manager that loads all plugins on startup."""
 from __future__ import annotations
 
 import functools

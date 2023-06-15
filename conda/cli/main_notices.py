@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda notices`.
+
+Manually retrieves channel notifications, caches them and displays them.
+"""
 from argparse import ArgumentParser, Namespace
 
 from ..exceptions import CondaError

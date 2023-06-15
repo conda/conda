@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda clean`.
+
+Removes cached package tarballs, index files, package metadata, temporary files, and log files.
+"""
 from __future__ import annotations
 
 import os

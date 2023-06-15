@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Intercept signals and handle them gracefully."""
 import signal
 import threading
 from contextlib import contextmanager

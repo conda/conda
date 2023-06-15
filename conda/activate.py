@@ -1,5 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda activate and deactivate logic.
+
+Implementation for all shell interface logic exposed via
+`conda shell.* [activate|deactivate|reactivate|hook|commands]`. This includes a custom argument
+parser, an abstract shell class, and special path handling for Windows.
+
+See conda.cli.main.main_sourced for the entry point into this module.
+"""
 from __future__ import annotations
 
 import abc

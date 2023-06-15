@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda init`.
+
+Prepares the user's profile for running conda, and sets up the conda shell interface.
+"""
 from logging import getLogger
 
 from ..base.context import context

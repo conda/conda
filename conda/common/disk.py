@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common disk utilities."""
 from contextlib import contextmanager
 from os import unlink
 

@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda-env export`.
+
+Dumps specified environment package specifications to the screen.
+"""
 from argparse import RawDescriptionHelpFormatter
 
 from conda.base.context import context, determine_target_prefix, env_name

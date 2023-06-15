@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda-env create`.
+
+Creates new conda environments with the specified packages.
+"""
 import json
 import os
 import sys

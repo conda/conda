@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
+"""Backend logic for `conda init`.
+
 Sections in this module are
 
   1. top-level functions
