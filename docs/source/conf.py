@@ -181,4 +181,5 @@ redirects = {
     "installation": "user-guide/install/index.html",
     "intro": "index.html",
     "mro": "user-guide/tasks/use-mro-with-conda.html",
+    "py2or3": "user-guide/tasks/manage-python.html",
 }
