@@ -9,12 +9,13 @@ import sys
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
-    Namespace,
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
     _StoreAction,
 )
+from functools import lru_cache
+from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
 from subprocess import Popen
@@ -106,6 +107,7 @@ def generate_parser():
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
     configure_parser_notices(sub_parsers)
+    configure_parser_plugins(sub_parsers, p.plugin_subcommands)
 
     return p
 
@@ -115,25 +117,25 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
-        result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
+    # let's see if during the parsing phase it was discovered that the
+    # called command was in fact a plugin subcommand
+    plugin_subcommand = getattr(arguments, "plugin_subcommand", None)
 
-        return result
+    if plugin_subcommand is None:
+        # let's call the subcommand the old-fashioned way via the assigned func..
+        relative_mod, func_name = arguments.func.rsplit(".", 1)
+        # func_name should always be 'execute'
+        module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
+        callback = getattr(module, func_name)
+        command = relative_mod.replace(".main_", "")
+    else:
+        # or use the plugin subcommand callback directly
+        callback = arguments.func
+        command = plugin_subcommand.name
 
-    relative_mod, func_name = arguments.func.rsplit(".", 1)
-    # func_name should always be 'execute'
-    from importlib import import_module
-
-    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
-
-    command = relative_mod.replace(".main_", "")
     _run_command_hooks("pre", command, arguments)
-    result = getattr(module, func_name)(arguments, parser)
+    result = callback(arguments, parser)
     _run_command_hooks("post", command, arguments)
-
     return result
 
 
@@ -174,13 +176,14 @@ class ArgumentParser(ArgumentParserBase):
         if self.description:
             self.description += "\n\nOptions:\n"
 
-        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
-
-        if self._subcommands:
-            self.epilog = "conda commands available from other packages:" + "".join(
-                f"\n {subcommand.name} - {subcommand.summary}"
-                for subcommand in self._subcommands
-            )
+    # FUTURE: Python 3.8+, replace with functools.cached_property
+    @property
+    @lru_cache(maxsize=None)
+    def plugin_subcommands(self):
+        return {
+            subcommand.name: subcommand
+            for subcommand in context.plugin_manager.get_hook_results("subcommands")
+        }
 
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
@@ -269,25 +272,25 @@ class ArgumentParser(ArgumentParserBase):
         if args is None:
             args = sys.argv[1:]
 
-        plugin_subcommand = None
-        if args:
-            name = args[0]
-            for subcommand in self._subcommands:
-                if subcommand.name == name:
-                    if name.lower() in BUILTIN_COMMANDS:
-                        error_message = dals(
-                            f"The plugin '{subcommand.name}: {subcommand.summary}' is trying "
-                            f"to override the built-in command {name}, which is not allowed. "
-                            "Please uninstall this plugin to stop seeing this error message"
-                        )
-                        log.error(error_message)
-                    else:
-                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
+        namespace = super().parse_args(args=args, namespace=namespace)
+        plugin_subcommand = self.plugin_subcommands.get(namespace.cmd, None)
 
-        if plugin_subcommand is not None:
-            return plugin_subcommand
+        if plugin_subcommand is None:
+            return namespace
 
-        return super().parse_args(args, namespace)
+        elif plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
+            error_message = dals(
+                f"""
+            The plugin '{plugin_subcommand.name}' is trying to override the built-in command with
+            the same name, which is not allowed.
+
+            Please uninstall the plugin to stop seeing this error message.
+            """
+            )
+            log.error(error_message)
+        namespace.plugin_subcommand = plugin_subcommand
+
+        return namespace
 
 
 def _exec(executable_args, env_vars):
@@ -359,6 +362,19 @@ class ExtendConstAction(Action):
 # sub-parsers
 #
 # #############################################################################################
+
+
+def configure_parser_plugins(sub_parsers, plugin_subcommands):
+    for plugin_subcommand in plugin_subcommands.values():
+        parser = sub_parsers.add_parser(
+            plugin_subcommand.name,
+            description=plugin_subcommand.summary,
+            help=plugin_subcommand.summary,
+        )
+        setup = getattr(plugin_subcommand, "setup", None)
+        if setup and callable(setup):
+            setup(parser)
+        parser.set_defaults(func=plugin_subcommand.action)
 
 
 def configure_parser_clean(sub_parsers):

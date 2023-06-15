@@ -8,6 +8,7 @@ Each type corresponds to the plugin hook for which it is used.
 """
 from __future__ import annotations
 
+from argparse import ArgumentParser
 from typing import Callable, Literal, NamedTuple
 
 from ..core.solve import Solver
@@ -25,11 +26,16 @@ class CondaSubcommand(NamedTuple):
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
+    :param setup: Callable that will be run when the subcommand parser is set up.
     :param action: Callable that will be run when the subcommand is invoked.
     """
 
     name: str
     summary: str
+    setup: Callable[
+        [ArgumentParser],  # arguments
+        None,  # return code
+    ] | None
     action: Callable[
         [list[str]],  # arguments
         int | None,  # return code
