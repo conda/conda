@@ -157,6 +157,7 @@ autoapi_add_toctree_entry = False
 
 redirects = {
     # internal redirects
+    "admin": "user-guide/configuration/admin-multi-user-install.html",
     "api/api": "../../dev-guide/api/conda/api.html",
     "api/index": "../../dev-guide/api.html",
     "api/python_api": "../../dev-guide/api/conda/cli/python_api.html",
