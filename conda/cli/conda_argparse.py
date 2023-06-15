@@ -117,9 +117,10 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
+        plugin_arguments = sys.argv[2:]
+        _run_command_hooks("pre", arguments.plugin_subcommand.name, plugin_arguments)
         result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
+        _run_command_hooks("post", arguments.plugin_subcommand.name, plugin_arguments)
 
         return result
 
