@@ -186,4 +186,5 @@ redirects = {
     "test-drive": "user-guide/getting-started.html",
     "troubleshooting": "user-guide/troubleshooting.html",
     "using/cheatsheet": "../user-guide/cheatsheet.html",
+    "using/envs": "../user-guide/tasks/manage-environments.html",
 }
