@@ -193,4 +193,5 @@ redirects = {
     "using/using": "../user-guide/tasks/manage-conda.html",
     # external redirects
     "travis": "https://github.com/conda-incubator/setup-miniconda",
+    "user-guide/tasks/use-conda-with-travis-ci": "https://github.com/conda-incubator/setup-miniconda",
 }
