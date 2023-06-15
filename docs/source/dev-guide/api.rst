@@ -7,6 +7,7 @@ As of conda 4.4, conda can be installed in any environment, not just environment
 As of conda 4.5, we do not support ``pip install conda``. However, we are considering that as a supported bootstrap method in the future.
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
    :titlesonly:
 
