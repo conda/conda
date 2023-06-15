@@ -57,7 +57,7 @@ that approach may not be as up to date.
    user-guide/index
    configuration
    api/index
-   commands
+   commands/index
    glossary
    dev-guide/index
    release-notes
