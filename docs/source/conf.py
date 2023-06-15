@@ -185,4 +185,5 @@ redirects = {
     "r-with-conda": "user-guide/tasks/use-r-with-conda.html",
     "test-drive": "user-guide/getting-started.html",
     "troubleshooting": "user-guide/troubleshooting.html",
+    "using/cheatsheet": "../user-guide/cheatsheet.html",
 }
