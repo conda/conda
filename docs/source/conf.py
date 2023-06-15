@@ -191,4 +191,6 @@ redirects = {
     "using/pkgs": "../user-guide/tasks/manage-pkgs.html",
     "using/test-drive": "../user-guide/getting-started.html",
     "using/using": "../user-guide/tasks/manage-conda.html",
+    # external redirects
+    "travis": "https://github.com/conda-incubator/setup-miniconda",
 }
