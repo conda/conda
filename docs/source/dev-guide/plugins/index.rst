@@ -74,9 +74,9 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    )
 
 In both examples shown above, we define an entry point for conda. It's important to make sure
-that the entry point is for "conda" and that it points the correct module in you plugin package.
+that the entry point is for "conda" and that it points to the correct module in your plugin package.
 Our package only consists a single Python module called ``example``. If you have a large project,
-be sure to always point the entry point to the file contained the plugin hook declarations (i.e.
+be sure to always point the entry point to the module containing the plugin hook declarations (i.e.
 where ``conda.plugins.hookimpl`` is used).
 
 More examples
@@ -94,7 +94,6 @@ For examples of how to use other plugin hooks, please read their respective docu
 .. toctree::
    :maxdepth: 1
 
-   manager
    post_commands
    pre_commands
    solvers
