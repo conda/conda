@@ -31,14 +31,14 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 Let's break down what's going on here step-by-step:
 
 1. First, we create the function ``command`` that serves as our subcommand. This function is passed a list of
-   arguments which equal to `sys.argv[2:]`.
-2. Next, we register this subcommand by using the ``conda_subcommands`` plugin hook. For this to work, we must
-   return a ``conda.plugins.CondaSubcommand`` object. We do this by decorating the function ``conda_subcommands``
-   with ``conda.plugins.hookimpl``.
-3. The object we return ``conda.plugins.CondaSubcommand`` does several things:
-   1. ``name`` is the name we use to call this subcommand via the command line (i.e. ``conda example``)
-   2. ``action`` is the subcommand function that will be called when we invoke ``conda example``
-   3. ``summary`` is the description of the of the subcommand that appears when users call ``conda --help``
+   arguments which equal to ``sys.argv[2:]``.
+2. Next, we register this subcommand by using the ``conda_subcommands`` plugin hook. We do this by creating a function
+   called ``conda_subcommands`` and then decorating it with ``conda.plugins.hookimpl``.
+3. The object we return from this function is ``conda.plugins.CondaSubcommand``, which does several things:
+
+   1. **name** is what we use to call this subcommand via the command line (i.e. "conda example")
+   2. **action** is the function that will be called when we invoke "conda example"
+   3. **summary** is the description of the of the subcommand that appears when users call "conda --help"
 
 In order to actually use conda plugins, they must be packaged as Python packages. Furthermore, we also need to take
 advantage of a feature known as `Python package entrypoints`_. We can define our Python package and the entry points
