@@ -13,7 +13,7 @@
 ### Docs
 
 * Auto generate API docs using `sphinx-autoapi`. (#12798)
-* Convert all manual redirects into config using `sphinx_reredirects`. (#12798)
+* Convert all manual redirects into config using `sphinx-reredirects`. (#12798)
 
 ### Other
 
