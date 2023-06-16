@@ -11,7 +11,8 @@ class PostCommandPlugin:
         self.invoked = False
         self.args = None
 
-    def post_command_action(self, command, args) -> int:
+    @staticmethod
+    def post_command_action(command, arguments) -> int:
         pass
 
     @plugins.hookimpl
