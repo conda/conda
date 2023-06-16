@@ -39,9 +39,6 @@
 {% set visible_children = obj.children|selectattr("display")|rejectattr("imported")|list %}
 {% endif %}
 {% if visible_children %}
-{{ obj.type|title }} Contents
-{{ "-" * obj.type|length }}---------
-
 {% set visible_classes = visible_children|selectattr("type", "equalto", "class")|list %}
 {% set visible_functions = visible_children|selectattr("type", "equalto", "function")|list %}
 {% set visible_attributes = visible_children|selectattr("type", "equalto", "data")|list %}
@@ -49,7 +46,7 @@
 {% block classes scoped %}
 {% if visible_classes %}
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
@@ -64,7 +61,7 @@ Classes
 {% block functions scoped %}
 {% if visible_functions %}
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -79,7 +76,7 @@ Functions
 {% block attributes scoped %}
 {% if visible_attributes %}
 Attributes
-~~~~~~~~~~
+----------
 
 .. autoapisummary::
 
