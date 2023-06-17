@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Collection of enums used throughout conda."""
 import sys
 from enum import Enum
 from platform import machine

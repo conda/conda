@@ -1,12 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Pluggy hookspecs to register conda plugins."""
 from __future__ import annotations
 
 from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaPostCommand,
+    CondaPreCommand,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -21,14 +28,14 @@ class CondaSpecs:
         """
         Register solvers in conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             import logging
 
             from conda import plugins
             from conda.core import solve
-
 
             log = logging.getLogger(__name__)
 
@@ -54,7 +61,8 @@ class CondaSpecs:
         """
         Register external subcommands in conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             from conda import plugins
@@ -80,7 +88,8 @@ class CondaSpecs:
         """
         Register virtual packages in Conda.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
             from conda import plugins
@@ -95,4 +104,54 @@ class CondaSpecs:
                 )
 
         :return: An iterable of virtual package entries.
+        """
+
+    @_hookspec
+    def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
+        """
+        Register pre-commands functions in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           def example_pre_command(command, arguments):
+               print("pre-command action")
+
+
+           @plugins.hookimpl
+           def conda_pre_commands():
+               yield CondaPreCommand(
+                   name="example-pre-command",
+                   action=example_pre_command,
+                   run_for={"install", "create"},
+               )
+        """
+
+    @_hookspec
+    def conda_post_commands(self) -> Iterable[CondaPostCommand]:
+        """
+        Register post-commands functions in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           def example_post_command(command, arguments):
+               print("post-command action")
+
+
+           @plugins.hookimpl
+           def conda_post_commands():
+               yield CondaPostCommand(
+                   name="example-post-command",
+                   action=example_post_command,
+                   run_for={"install", "create"},
+               )
         """

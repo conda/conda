@@ -1,5 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Implements the version spec with parsing and comparison logic.
+
+Object inheritance:
+
+.. autoclasstree:: conda.models.records
+   :full:
+"""
 from __future__ import annotations
 
 import operator as op

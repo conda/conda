@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Utilities for finding executables and `conda-*` commands."""
 import os
 import re
 import sys

@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Download logic for conda indices and packages."""
 import hashlib
 import tempfile
 import warnings

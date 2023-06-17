@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Entry point for all conda-env subcommands."""
 import os
 import sys
 
@@ -9,7 +10,7 @@ import sys
 # when importing pip (and pip_util)
 import conda.exports  # noqa
 from conda.base.context import context
-from conda.cli.conda_argparse import ArgumentParser
+from conda.cli.conda_argparse import ArgumentParser, _run_command_hooks
 from conda.cli.main import init_loggers
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
@@ -40,13 +41,19 @@ def create_parser():
     return p
 
 
-def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit(".", 1)
+def do_call(arguments, parser):
+    relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
     from importlib import import_module
 
+    # Run the pre_command actions
+    command = relative_mod.replace(".main_", "")
+
+    _run_command_hooks("pre", f"env_{command}", arguments)
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
-    exit_code = getattr(module, func_name)(args, parser)
+    exit_code = getattr(module, func_name)(arguments, parser)
+    _run_command_hooks("post", f"env_{command}", arguments)
+
     return exit_code
 
 

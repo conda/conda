@@ -14,7 +14,6 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentNameNotFound,
 )
-from conda.plugins.subcommands.doctor.cli import get_prefix
 from conda.plugins.subcommands.doctor.health_checks import MISSING_FILES_SUCCESS_MESSAGE
 from conda.testing import TmpEnvFixture
 from conda.testing.helpers import run_inprocess_conda_command as run

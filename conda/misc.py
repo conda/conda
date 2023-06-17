@@ -1,9 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# this module contains miscellaneous stuff which eventually could be moved
-# into other places
-
-
+"""Miscellaneous utility functions."""
 import os
 import re
 import shutil

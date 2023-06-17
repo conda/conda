@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Pip-flavored installer."""
 import os
 import os.path as op
 from logging import getLogger

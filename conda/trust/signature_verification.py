@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Interface between conda-content-trust and conda."""
 import json
 import warnings
 from functools import lru_cache
@@ -17,8 +18,9 @@ try:
     )
     from conda_content_trust.signing import wrap_as_signable
 except ImportError:
-    # SignatureStatus.enabled handles this
-    pass
+    # _SignatureVerification.enabled handles the rest of this state
+    class SignatureError(Exception):
+        pass
 
 
 from ..base.context import context

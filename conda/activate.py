@@ -1,5 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda activate and deactivate logic.
+
+Implementation for all shell interface logic exposed via
+`conda shell.* [activate|deactivate|reactivate|hook|commands]`. This includes a custom argument
+parser, an abstract shell class, and special path handling for Windows.
+
+See conda.cli.main.main_sourced for the entry point into this module.
+"""
 from __future__ import annotations
 
 import abc
@@ -60,7 +68,9 @@ class _Activator(metaclass=abc.ABCMeta):
     # The following instance variables must be defined by each implementation.
     pathsep_join: str
     sep: str
-    path_conversion: Callable[(str | Iterable[str] | None), str | tuple[str] | None]
+    path_conversion: Callable[
+        [str | Iterable[str] | None], str | tuple[str, ...] | None
+    ]
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
@@ -81,11 +91,11 @@ class _Activator(metaclass=abc.ABCMeta):
         """
         :param export_metavars: whether to export `conda_exe_vars` meta variables.
         :param kwargs: environment variables to export.
-                       .. if you pass and set any other variable to None, then it
-                       emits it to the dict with a value of None.
+            .. if you pass and set any other variable to None, then it
+            emits it to the dict with a value of None.
 
         :return: A dict of env vars to export ordered the same way as kwargs.
-                 And a list of env vars to unset.
+            And a list of env vars to unset.
         """
         unset_vars = []
         export_vars = {}
@@ -368,15 +378,17 @@ class _Activator(metaclass=abc.ABCMeta):
 
         # get clobbered environment variables
         clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
-        clobber_vars = set(
-            filter(lambda var: env_vars[var] != os.environ[var], clobber_vars)
-        )
-        if clobber_vars:
+        overwritten_clobber_vars = [
+            clobber_var
+            for clobber_var in clobber_vars
+            if os.environ[clobber_var] != env_vars[clobber_var]
+        ]
+        if overwritten_clobber_vars:
             print(
                 "WARNING: overwriting environment variables set in the machine",
                 file=sys.stderr,
             )
-            print(f"overwriting variable {clobber_vars}", file=sys.stderr)
+            print(f"overwriting variable {overwritten_clobber_vars}", file=sys.stderr)
         for name in clobber_vars:
             env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
 
