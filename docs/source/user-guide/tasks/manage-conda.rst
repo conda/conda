@@ -17,7 +17,7 @@ To verify that conda is installed, in your terminal window or an Anaconda Prompt
    conda --version
 
 Conda responds with the version number that you have installed,
-such as ``conda 4.7.12``.
+such as ``conda 4.12.0``.
 
 If you get an error message, make sure of the following:
 

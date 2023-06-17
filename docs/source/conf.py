@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 #
 # conda documentation build configuration file, created by
 # sphinx-quickstart on Wed Aug 16 00:33:55 2017.
@@ -45,11 +43,13 @@ extensions = [
     "sphinxarg.ext",
     "sphinxcontrib.programoutput",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx.ext.graphviz",
     "sphinx.ext.ifconfig",
     "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.intersphinx",
     "sphinxcontrib.plantuml",
     "conda_umls",
     "sphinx_sitemap",
@@ -232,3 +232,11 @@ plantuml_jarfile_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "_build", "plantuml.jar")
 )
 plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
+
+add_module_names = False
+
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "pluggy": ("https://pluggy.readthedocs.io/en/stable/", None),
+}

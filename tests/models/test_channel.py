@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-from collections import OrderedDict
 from logging import getLogger
-from os.path import join
 from tempfile import gettempdir
 from unittest import TestCase
 
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import Context, conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import odict
+from conda.base.context import (
+    Context,
+    conda_tests_ctxt_mgmt_def_pol,
+    context,
+    reset_context,
+)
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified, env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
@@ -24,75 +22,72 @@ from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
 initialize_logging()
 log = getLogger(__name__)
 
 
 class DefaultConfigChannelTests(TestCase):
-
     @classmethod
     def setUpClass(cls):
         reset_context(())
         cls.platform = context.subdir
-        cls.DEFAULT_URLS = ['https://repo.anaconda.com/pkgs/main/%s' % cls.platform,
-                            'https://repo.anaconda.com/pkgs/main/noarch',
-                            'https://repo.anaconda.com/pkgs/r/%s' % cls.platform,
-                            'https://repo.anaconda.com/pkgs/r/noarch',
-                            ]
+        cls.DEFAULT_URLS = [
+            "https://repo.anaconda.com/pkgs/main/%s" % cls.platform,
+            "https://repo.anaconda.com/pkgs/main/noarch",
+            "https://repo.anaconda.com/pkgs/r/%s" % cls.platform,
+            "https://repo.anaconda.com/pkgs/r/noarch",
+        ]
         if on_win:
-            cls.DEFAULT_URLS.extend(['https://repo.anaconda.com/pkgs/msys2/%s' % cls.platform,
-                                     'https://repo.anaconda.com/pkgs/msys2/noarch'])
+            cls.DEFAULT_URLS.extend(
+                [
+                    "https://repo.anaconda.com/pkgs/msys2/%s" % cls.platform,
+                    "https://repo.anaconda.com/pkgs/msys2/noarch",
+                ]
+            )
 
     def test_channel_alias_channels(self):
-        channel = Channel('binstar/label/dev')
+        channel = Channel("binstar/label/dev")
         assert channel.channel_name == "binstar/label/dev"
         assert channel.channel_location == "conda.anaconda.org"
         assert channel.platform is None
         assert channel.package_filename is None
         assert channel.canonical_name == "binstar/label/dev"
         assert channel.urls() == [
-            'https://conda.anaconda.org/binstar/label/dev/%s' % context.subdir,
-            'https://conda.anaconda.org/binstar/label/dev/noarch',
+            "https://conda.anaconda.org/binstar/label/dev/%s" % context.subdir,
+            "https://conda.anaconda.org/binstar/label/dev/noarch",
         ]
 
-        channel = Channel('binstar/label/dev/win-32')
+        channel = Channel("binstar/label/dev/win-32")
         assert channel.channel_name == "binstar/label/dev"
         assert channel.channel_location == "conda.anaconda.org"
-        assert channel.platform == 'win-32'
+        assert channel.platform == "win-32"
         assert channel.package_filename is None
         assert channel.canonical_name == "binstar/label/dev"
         assert channel.urls() == [
-            'https://conda.anaconda.org/binstar/label/dev/win-32',
-            'https://conda.anaconda.org/binstar/label/dev/noarch',
+            "https://conda.anaconda.org/binstar/label/dev/win-32",
+            "https://conda.anaconda.org/binstar/label/dev/noarch",
         ]
 
-
     def test_channel_host_port(self):
-        channel = Channel('https://192.168.0.0:8000')
+        channel = Channel("https://192.168.0.0:8000")
         assert channel.channel_name == ""
         assert channel.channel_location == "192.168.0.0:8000"
         assert channel.platform is None
         assert channel.package_filename is None
         assert channel.canonical_name == "https://192.168.0.0:8000"
         assert channel.urls() == [
-            'https://192.168.0.0:8000/%s' % context.subdir,
-            'https://192.168.0.0:8000/noarch',
+            "https://192.168.0.0:8000/%s" % context.subdir,
+            "https://192.168.0.0:8000/noarch",
         ]
-
 
     def test_channel_cache(self):
         Channel._reset_state()
         assert len(Channel._cache_) == 0
-        dc = Channel('defaults')
+        dc = Channel("defaults")
         assert len(Channel._cache_) == 1
-        dc1 = Channel('defaults')
+        dc1 = Channel("defaults")
         assert len(Channel._cache_) == 1
-        dc2 = Channel('defaults')
+        dc2 = Channel("defaults")
         assert len(Channel._cache_) == 1
 
         assert dc1 is dc
@@ -102,43 +97,43 @@ class DefaultConfigChannelTests(TestCase):
         assert len(Channel._cache_) == 1
         assert dc3 is dc
 
-        ccc = Channel('conda-canary')
+        ccc = Channel("conda-canary")
         assert len(Channel._cache_) == 2
 
-        ccc1 = Channel('conda-canary')
+        ccc1 = Channel("conda-canary")
         assert len(Channel._cache_) == 2
         assert ccc1 is ccc
 
     def test_default_channel(self):
         with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-            dc = Channel('defaults')
-            assert dc.canonical_name == 'defaults'
+            dc = Channel("defaults")
+            assert dc.canonical_name == "defaults"
             assert dc.urls() == self.DEFAULT_URLS
             assert dc.subdir is None
-            assert str(dc) == 'defaults'
+            assert str(dc) == "defaults"
 
-            dc = Channel('defaults/win-32')
-            assert dc.canonical_name == 'defaults'
-            assert dc.subdir == 'win-32'
-            assert dc.urls()[0] == 'https://repo.anaconda.com/pkgs/main/win-32'
-            assert dc.urls()[1] == 'https://repo.anaconda.com/pkgs/main/noarch'
-            assert dc.urls()[2].endswith('/win-32')
+            dc = Channel("defaults/win-32")
+            assert dc.canonical_name == "defaults"
+            assert dc.subdir == "win-32"
+            assert dc.urls()[0] == "https://repo.anaconda.com/pkgs/main/win-32"
+            assert dc.urls()[1] == "https://repo.anaconda.com/pkgs/main/noarch"
+            assert dc.urls()[2].endswith("/win-32")
 
     def test_url_channel_w_platform(self):
         with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-            channel = Channel('https://repo.anaconda.com/pkgs/main/osx-64')
+            channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
 
             assert channel.scheme == "https"
             assert channel.location == "repo.anaconda.com"
-            assert channel.platform == 'osx-64' == channel.subdir
-            assert channel.name == 'pkgs/main'
+            assert channel.platform == "osx-64" == channel.subdir
+            assert channel.name == "pkgs/main"
 
-            assert channel.base_url == 'https://repo.anaconda.com/pkgs/main'
-            assert channel.canonical_name == 'defaults'
-            assert channel.url() == 'https://repo.anaconda.com/pkgs/main/osx-64'
+            assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
+            assert channel.canonical_name == "defaults"
+            assert channel.url() == "https://repo.anaconda.com/pkgs/main/osx-64"
             assert channel.urls() == [
-                'https://repo.anaconda.com/pkgs/main/osx-64',
-                'https://repo.anaconda.com/pkgs/main/noarch',
+                "https://repo.anaconda.com/pkgs/main/osx-64",
+                "https://repo.anaconda.com/pkgs/main/noarch",
             ]
 
     def test_bare_channel_http(self):
@@ -148,13 +143,13 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.location == "conda-01"
         assert channel.platform is None
         assert channel.canonical_name == url
-        assert channel.name is ''
+        assert channel.name == ""
 
         assert channel.base_url == url
         assert channel.url() == join_url(url, context.subdir)
         assert channel.urls() == [
             join_url(url, context.subdir),
-            join_url(url, 'noarch'),
+            join_url(url, "noarch"),
         ]
 
     def test_bare_channel_file(self):
@@ -170,38 +165,43 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.url() == join_url(url, context.subdir)
         assert channel.urls() == [
             join_url(url, context.subdir),
-            join_url(url, 'noarch'),
+            join_url(url, "noarch"),
         ]
 
     def test_channel_name_subdir_only(self):
         with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-            channel = Channel('pkgs/main/win-64')
+            channel = Channel("pkgs/main/win-64")
             assert channel.scheme == "https"
             assert channel.location == "repo.anaconda.com"
-            assert channel.platform == 'win-64' == channel.subdir
-            assert channel.name == 'pkgs/main'
+            assert channel.platform == "win-64" == channel.subdir
+            assert channel.name == "pkgs/main"
 
-            assert channel.base_url == 'https://repo.anaconda.com/pkgs/main'
-            assert channel.canonical_name == 'defaults'
-            assert channel.url() == 'https://repo.anaconda.com/pkgs/main/win-64'
+            assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
+            assert channel.canonical_name == "defaults"
+            assert channel.url() == "https://repo.anaconda.com/pkgs/main/win-64"
             assert channel.urls() == [
-                'https://repo.anaconda.com/pkgs/main/win-64',
-                'https://repo.anaconda.com/pkgs/main/noarch',
+                "https://repo.anaconda.com/pkgs/main/win-64",
+                "https://repo.anaconda.com/pkgs/main/noarch",
             ]
 
 
 class AnacondaServerChannelTests(TestCase):
-
     @classmethod
     def setUpClass(cls):
-        string = dals("""
+        string = dals(
+            """
         channel_alias: https://10.2.3.4:8080/conda/t/tk-123-45
         migrated_channel_aliases:
           - https://conda.anaconda.org
           - http://10.2.3.4:7070/conda
-        """)
+        """
+        )
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -212,31 +212,34 @@ class AnacondaServerChannelTests(TestCase):
         reset_context()
 
     def test_channel_alias_w_conda_path(self):
-        channel = Channel('bioconda')
+        channel = Channel("bioconda")
         assert channel.channel_name == "bioconda"
         assert channel.channel_location == "10.2.3.4:8080/conda"
         assert channel.platform is None
         assert channel.package_filename is None
         assert channel.auth is None
         assert channel.scheme == "https"
-        assert channel.canonical_name == 'bioconda'
+        assert channel.canonical_name == "bioconda"
         assert channel.urls() == [
             "https://10.2.3.4:8080/conda/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
         assert channel.token == "tk-123-45"
         assert str(channel) == "https://10.2.3.4:8080/conda/bioconda"
-        assert str(Channel('bioconda/linux-32')) == "https://10.2.3.4:8080/conda/bioconda/linux-32"
+        assert (
+            str(Channel("bioconda/linux-32"))
+            == "https://10.2.3.4:8080/conda/bioconda/linux-32"
+        )
 
     def test_channel_alias_w_subhcnnale(self):
-        channel = Channel('bioconda/label/dev')
+        channel = Channel("bioconda/label/dev")
         assert channel.channel_name == "bioconda/label/dev"
         assert channel.channel_location == "10.2.3.4:8080/conda"
         assert channel.platform is None
         assert channel.package_filename is None
         assert channel.auth is None
         assert channel.scheme == "https"
-        assert channel.canonical_name == 'bioconda/label/dev'
+        assert channel.canonical_name == "bioconda/label/dev"
         assert channel.urls() == [
             "https://10.2.3.4:8080/conda/bioconda/label/dev/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/label/dev/noarch",
@@ -252,7 +255,7 @@ class AnacondaServerChannelTests(TestCase):
         assert channel.auth is None
         assert channel.token == "x1029384756"
         assert channel.scheme == "https"
-        assert channel.canonical_name == 'bioconda'
+        assert channel.canonical_name == "bioconda"
         assert channel.urls() == [
             "https://10.2.3.4:8080/conda/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch",
@@ -309,7 +312,8 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.8.9:8080/conda/bioconda/label/dev/noarch",
         ]
         assert channel.urls(with_credentials=True) == [
-            "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/label/dev/%s" % self.platform,
+            "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/label/dev/%s"
+            % self.platform,
             "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/label/dev/noarch",
         ]
 
@@ -335,7 +339,8 @@ class CustomConfigChannelTests(TestCase):
 
     @classmethod
     def setUp(cls):
-        string = dals("""
+        string = dals(
+            """
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://user1:pass2@another.url:8080/t/tk-1234/with/path
@@ -351,187 +356,203 @@ class CustomConfigChannelTests(TestCase):
           - http://192.168.0.15:8080/pkgs/anaconda
           - http://192.168.0.15:8080/pkgs/pro
           - http://192.168.0.15:8080/pkgs/msys2
-        """)
+        """
+        )
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
         cls.platform = context.subdir
 
-        cls.DEFAULT_URLS = ['http://192.168.0.15:8080/pkgs/anaconda/%s' % cls.platform,
-                            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
-                            'http://192.168.0.15:8080/pkgs/pro/%s' % cls.platform,
-                            'http://192.168.0.15:8080/pkgs/pro/noarch',
-                            'http://192.168.0.15:8080/pkgs/msys2/%s' % cls.platform,
-                            'http://192.168.0.15:8080/pkgs/msys2/noarch',
-                            ]
+        cls.DEFAULT_URLS = [
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % cls.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
+            "http://192.168.0.15:8080/pkgs/pro/%s" % cls.platform,
+            "http://192.168.0.15:8080/pkgs/pro/noarch",
+            "http://192.168.0.15:8080/pkgs/msys2/%s" % cls.platform,
+            "http://192.168.0.15:8080/pkgs/msys2/noarch",
+        ]
 
     @classmethod
     def tearDown(cls):
         reset_context()
 
     def test_pkgs_main(self):
-        channel = Channel('pkgs/anaconda')
+        channel = Channel("pkgs/anaconda")
         assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/anaconda/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/anaconda')
+        channel = Channel("https://repo.anaconda.com/pkgs/anaconda")
         assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/anaconda/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/noarch')
+        channel = Channel("https://repo.anaconda.com/pkgs/anaconda/noarch")
         assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/label/dev')
+        channel = Channel("https://repo.anaconda.com/pkgs/anaconda/label/dev")
         assert channel.channel_name == "pkgs/anaconda/label/dev"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "pkgs/anaconda/label/dev"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/anaconda/label/dev/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/anaconda/label/dev/noarch',
+            "http://192.168.0.15:8080/pkgs/anaconda/label/dev/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/label/dev/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.tar.bz2')
+        channel = Channel(
+            "https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.tar.bz2"
+        )
         assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
         ]
-        channel = Channel('https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.conda')
+        channel = Channel(
+            "https://repo.anaconda.com/pkgs/anaconda/noarch/flask-1.0.conda"
+        )
         assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.conda"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
         ]
 
     def test_pkgs_pro(self):
-        channel = Channel('pkgs/pro')
+        channel = Channel("pkgs/pro")
         assert channel.channel_name == "pkgs/pro"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/pro/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/pro/noarch',
+            "http://192.168.0.15:8080/pkgs/pro/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/pro/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/pro')
+        channel = Channel("https://repo.anaconda.com/pkgs/pro")
         assert channel.channel_name == "pkgs/pro"
         assert channel.channel_location == "repo.anaconda.com"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/pro/%s' % self.platform,
-            'https://repo.anaconda.com/pkgs/pro/noarch',
+            "https://repo.anaconda.com/pkgs/pro/%s" % self.platform,
+            "https://repo.anaconda.com/pkgs/pro/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/pro/noarch')
+        channel = Channel("https://repo.anaconda.com/pkgs/pro/noarch")
         assert channel.channel_name == "pkgs/pro"
         assert channel.channel_location == "repo.anaconda.com"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/pro/noarch',
+            "https://repo.anaconda.com/pkgs/pro/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/pro/label/dev')
+        channel = Channel("https://repo.anaconda.com/pkgs/pro/label/dev")
         assert channel.channel_name == "pkgs/pro/label/dev"
         assert channel.channel_location == "repo.anaconda.com"
         assert channel.canonical_name == "pkgs/pro/label/dev"
         assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/pro/label/dev/%s' % self.platform,
-            'https://repo.anaconda.com/pkgs/pro/label/dev/noarch',
+            "https://repo.anaconda.com/pkgs/pro/label/dev/%s" % self.platform,
+            "https://repo.anaconda.com/pkgs/pro/label/dev/noarch",
         ]
 
-        channel = Channel('https://repo.anaconda.com/pkgs/pro/noarch/flask-1.0.tar.bz2')
+        channel = Channel("https://repo.anaconda.com/pkgs/pro/noarch/flask-1.0.tar.bz2")
         assert channel.channel_name == "pkgs/pro"
         assert channel.channel_location == "repo.anaconda.com"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'https://repo.anaconda.com/pkgs/pro/noarch',
+            "https://repo.anaconda.com/pkgs/pro/noarch",
         ]
 
     def test_custom_channels(self):
-        channel = Channel('darwin')
+        channel = Channel("darwin")
         assert channel.channel_name == "darwin"
         assert channel.channel_location == "some.url.somewhere/stuff"
 
-        channel = Channel('https://some.url.somewhere/stuff/darwin')
+        channel = Channel("https://some.url.somewhere/stuff/darwin")
         assert channel.channel_name == "darwin"
         assert channel.channel_location == "some.url.somewhere/stuff"
 
-        channel = Channel('https://some.url.somewhere/stuff/darwin/label/dev')
+        channel = Channel("https://some.url.somewhere/stuff/darwin/label/dev")
         assert channel.channel_name == "darwin/label/dev"
         assert channel.channel_location == "some.url.somewhere/stuff"
         assert channel.platform is None
 
-        channel = Channel('https://some.url.somewhere/stuff/darwin/label/dev/linux-64')
+        channel = Channel("https://some.url.somewhere/stuff/darwin/label/dev/linux-64")
         assert channel.channel_name == "darwin/label/dev"
         assert channel.channel_location == "some.url.somewhere/stuff"
-        assert channel.platform == 'linux-64'
+        assert channel.platform == "linux-64"
         assert channel.package_filename is None
 
-        channel = Channel('https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2')
+        channel = Channel(
+            "https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2"
+        )
         assert channel.channel_name == "darwin/label/dev"
         assert channel.channel_location == "some.url.somewhere/stuff"
-        assert channel.platform == 'linux-64'
-        assert channel.package_filename == 'flask-1.0.tar.bz2'
+        assert channel.platform == "linux-64"
+        assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.auth is None
         assert channel.token is None
         assert channel.scheme == "https"
 
-        channel = Channel('https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2')
+        channel = Channel(
+            "https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2"
+        )
         assert channel.channel_name == "darwin/label/dev"
         assert channel.channel_location == "some.url.somewhere/stuff"
-        assert channel.platform == 'linux-64'
-        assert channel.package_filename == 'flask-1.0.tar.bz2'
+        assert channel.platform == "linux-64"
+        assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.auth is None
         assert channel.token is None
         assert channel.scheme == "https"
 
     def test_custom_channels_port_token_auth(self):
-        channel = Channel('chuck')
+        channel = Channel("chuck")
         assert channel.channel_name == "chuck"
         assert channel.channel_location == "another.url:8080/with/path"
-        assert channel.auth == 'user1:pass2'
-        assert channel.token == 'tk-1234'
+        assert channel.auth == "user1:pass2"
+        assert channel.token == "tk-1234"
         assert channel.scheme == "http"
 
-        channel = Channel('https://another.url:8080/with/path/chuck/label/dev/linux-64/flask-1.0.tar.bz2')
+        channel = Channel(
+            "https://another.url:8080/with/path/chuck/label/dev/linux-64/flask-1.0.tar.bz2"
+        )
         assert channel.channel_name == "chuck/label/dev"
         assert channel.channel_location == "another.url:8080/with/path"
-        assert channel.auth == 'user1:pass2'
-        assert channel.token == 'tk-1234'
+        assert channel.auth == "user1:pass2"
+        assert channel.token == "tk-1234"
         assert channel.scheme == "https"
-        assert channel.platform == 'linux-64'
-        assert channel.package_filename == 'flask-1.0.tar.bz2'
+        assert channel.platform == "linux-64"
+        assert channel.package_filename == "flask-1.0.tar.bz2"
 
     def test_migrated_custom_channels(self):
-        channel = Channel('s3://just/cant/darwin/osx-64')
+        channel = Channel("s3://just/cant/darwin/osx-64")
         assert channel.channel_name == "darwin"
         assert channel.channel_location == "some.url.somewhere/stuff"
-        assert channel.platform == 'osx-64'
+        assert channel.platform == "osx-64"
         assert channel.package_filename is None
         assert channel.auth is None
         assert channel.token is None
@@ -547,16 +568,21 @@ class CustomConfigChannelTests(TestCase):
             "https://some.url.somewhere/stuff/darwin/noarch",
         ]
 
-        channel = Channel('https://some.url.somewhere/stuff/darwin/noarch/a-mighty-fine.tar.bz2')
+        channel = Channel(
+            "https://some.url.somewhere/stuff/darwin/noarch/a-mighty-fine.tar.bz2"
+        )
         assert channel.channel_name == "darwin"
         assert channel.channel_location == "some.url.somewhere/stuff"
-        assert channel.platform == 'noarch'
-        assert channel.package_filename == 'a-mighty-fine.tar.bz2'
+        assert channel.platform == "noarch"
+        assert channel.package_filename == "a-mighty-fine.tar.bz2"
         assert channel.auth is None
         assert channel.token is None
         assert channel.scheme == "https"
         assert channel.canonical_name == "darwin"
-        assert channel.url() == "https://some.url.somewhere/stuff/darwin/noarch/a-mighty-fine.tar.bz2"
+        assert (
+            channel.url()
+            == "https://some.url.somewhere/stuff/darwin/noarch/a-mighty-fine.tar.bz2"
+        )
         assert channel.urls() == [
             "https://some.url.somewhere/stuff/darwin/noarch",
         ]
@@ -566,14 +592,17 @@ class CustomConfigChannelTests(TestCase):
         ]
 
     def test_local_channel(self):
-        conda_bld_path = join(gettempdir(), 'conda-bld')
+        conda_bld_path = join(gettempdir(), "conda-bld")
         mkdir_p(conda_bld_path)
         try:
-            from functools import partial
-            with env_var('CONDA_CROOT', conda_bld_path, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+            with env_var(
+                "CONDA_CROOT",
+                conda_bld_path,
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+            ):
                 Channel._reset_state()
-                channel = Channel('local')
-                assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
+                channel = Channel("local")
+                assert channel._channels[0].name.rsplit("/", 1)[-1] == "conda-bld"
                 assert channel.channel_name == "local"
                 assert channel.platform is None
                 assert channel.package_filename is None
@@ -593,63 +622,82 @@ class CustomConfigChannelTests(TestCase):
                 assert channel.canonical_name == "local"
 
                 assert channel.urls() == Channel(local_channel_first_subchannel).urls()
-                assert channel.urls()[0].startswith('file:///')
+                assert channel.urls()[0].startswith("file:///")
         finally:
             rm_rf(conda_bld_path)
 
     def test_defaults_channel(self):
-        channel = Channel('defaults')
-        assert channel.name == 'defaults'
+        channel = Channel("defaults")
+        assert channel.name == "defaults"
         assert channel.platform is None
         assert channel.package_filename is None
         assert channel.auth is None
         assert channel.token is None
         assert channel.scheme is None
-        assert channel.canonical_name == 'defaults'
+        assert channel.canonical_name == "defaults"
         assert channel.urls() == self.DEFAULT_URLS
 
     def test_file_channel(self):
-        channel = Channel("file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/osx-64/flask-0.10.1-py35_2.tar.bz2")
-        assert channel.name == '5d9f5e45'
-        assert channel.location == '/var/folders/cp/7r2s_s593j7_cpdtp/T'
-        assert channel.platform == 'osx-64'
+        channel = Channel(
+            "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/osx-64/flask-0.10.1-py35_2.tar.bz2"
+        )
+        assert channel.name == "5d9f5e45"
+        assert channel.location == "/var/folders/cp/7r2s_s593j7_cpdtp/T"
+        assert channel.platform == "osx-64"
         assert channel.package_filename == "flask-0.10.1-py35_2.tar.bz2"
         assert channel.auth is None
         assert channel.token is None
         assert channel.scheme == "file"
-        assert channel.url() == "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/osx-64/flask-0.10.1-py35_2.tar.bz2"
+        assert (
+            channel.url()
+            == "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/osx-64/flask-0.10.1-py35_2.tar.bz2"
+        )
         assert channel.urls() == [
             "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/osx-64",
-            "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/noarch"
+            "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45/noarch",
         ]
-        assert channel.canonical_name == 'file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45'
+        assert (
+            channel.canonical_name
+            == "file:///var/folders/cp/7r2s_s593j7_cpdtp/T/5d9f5e45"
+        )
 
     def test_old_channel_alias(self):
-        cf_urls = ["ftp://new.url:8082/conda-forge/%s" % self.platform,
-                   "ftp://new.url:8082/conda-forge/noarch"]
-        assert Channel('conda-forge').urls() == cf_urls
+        cf_urls = [
+            "ftp://new.url:8082/conda-forge/%s" % self.platform,
+            "ftp://new.url:8082/conda-forge/noarch",
+        ]
+        assert Channel("conda-forge").urls() == cf_urls
 
         url = "https://conda.anaconda.org/conda-forge/osx-64/some-great-package.tar.bz2"
-        assert Channel(url).canonical_name == 'conda-forge'
-        assert Channel(url).base_url == 'ftp://new.url:8082/conda-forge'
-        assert Channel(url).url() == "ftp://new.url:8082/conda-forge/osx-64/some-great-package.tar.bz2"
+        assert Channel(url).canonical_name == "conda-forge"
+        assert Channel(url).base_url == "ftp://new.url:8082/conda-forge"
+        assert (
+            Channel(url).url()
+            == "ftp://new.url:8082/conda-forge/osx-64/some-great-package.tar.bz2"
+        )
         assert Channel(url).urls() == [
             "ftp://new.url:8082/conda-forge/osx-64",
             "ftp://new.url:8082/conda-forge/noarch",
         ]
 
-        channel = Channel("https://conda.anaconda.org/conda-forge/label/dev/linux-64/some-great-package.tar.bz2")
-        assert channel.url() == "ftp://new.url:8082/conda-forge/label/dev/linux-64/some-great-package.tar.bz2"
+        channel = Channel(
+            "https://conda.anaconda.org/conda-forge/label/dev/linux-64/some-great-package.tar.bz2"
+        )
+        assert (
+            channel.url()
+            == "ftp://new.url:8082/conda-forge/label/dev/linux-64/some-great-package.tar.bz2"
+        )
         assert channel.urls() == [
             "ftp://new.url:8082/conda-forge/label/dev/linux-64",
             "ftp://new.url:8082/conda-forge/label/dev/noarch",
         ]
 
-class ChannelEnvironmentVarExpansionTest(TestCase):
 
+class ChannelEnvironmentVarExpansionTest(TestCase):
     @classmethod
     def setUpClass(cls):
-        channels_config = dals("""
+        channels_config = dals(
+            """
         channels:
           - http://user22:$EXPANDED_PWD@some.url:8080
 
@@ -659,9 +707,14 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
         custom_channels:
           unexpanded: http://user1:$UNEXPANDED_PWD@another.url:8080/with/path/t/tk-1234
           expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
-        """)
+        """
+        )
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(channels_config)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(channels_config)
+            )
+        }
         context._set_raw_data(rd)
 
     @classmethod
@@ -669,23 +722,23 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
         reset_context()
 
     def test_unexpanded_variables(self):
-        with env_var('EXPANDED_PWD', 'pass44'):
-            channel = Channel('unexpanded')
-            assert channel.auth == 'user1:$UNEXPANDED_PWD'
+        with env_var("EXPANDED_PWD", "pass44"):
+            channel = Channel("unexpanded")
+            assert channel.auth == "user1:$UNEXPANDED_PWD"
 
     def test_expanded_variables(self):
-        with env_var('EXPANDED_PWD', 'pass44'):
-            channel = Channel('expanded')
-            assert channel.auth == 'user33:pass44'
-            assert context.channels[0] == 'http://user22:pass44@some.url:8080'
-            assert context.allowlist_channels[0] == 'http://user22:pass44@some.url:8080'
+        with env_var("EXPANDED_PWD", "pass44"):
+            channel = Channel("expanded")
+            assert channel.auth == "user33:pass44"
+            assert context.channels[0] == "http://user22:pass44@some.url:8080"
+            assert context.allowlist_channels[0] == "http://user22:pass44@some.url:8080"
 
 
 class ChannelAuthTokenPriorityTests(TestCase):
-
     @classmethod
     def setUpClass(cls):
-        string = dals("""
+        string = dals(
+            """
         custom_channels:
           chuck: http://user1:pass2@another.url:8080/with/path/t/tk-1234
           chuck/subchan: http://user33:pass44@another.url:8080/with/path/t/tk-1234
@@ -698,9 +751,14 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - http://192.168.0.15:8080/pkgs/anaconda
           - donald/label/main
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
-        """)
+        """
+        )
         reset_context(())
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -714,44 +772,70 @@ class ChannelAuthTokenPriorityTests(TestCase):
         channel = Channel("chuck")
         assert channel.canonical_name == "chuck"
         assert channel.location == "another.url:8080/with/path"
-        assert channel.url() == "http://another.url:8080/with/path/chuck/%s" % self.platform
-        assert channel.url(True) == "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/%s" % self.platform
+        assert (
+            channel.url()
+            == "http://another.url:8080/with/path/chuck/%s" % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/%s"
+            % self.platform
+        )
         assert channel.urls() == [
             "http://another.url:8080/with/path/chuck/%s" % self.platform,
             "http://another.url:8080/with/path/chuck/noarch",
         ]
         assert channel.urls(True) == [
-            "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/%s" % self.platform,
+            "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/%s"
+            % self.platform,
             "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/noarch",
         ]
 
         channel = Channel("chuck/label/dev")
         assert channel.canonical_name == "chuck/label/dev"
         assert channel.location == "another.url:8080/with/path"
-        assert channel.url() == "http://another.url:8080/with/path/chuck/label/dev/%s" % self.platform
-        assert channel.url(True) == "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/label/dev/%s" % self.platform
+        assert (
+            channel.url()
+            == "http://another.url:8080/with/path/chuck/label/dev/%s" % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/label/dev/%s"
+            % self.platform
+        )
         assert channel.urls() == [
             "http://another.url:8080/with/path/chuck/label/dev/%s" % self.platform,
             "http://another.url:8080/with/path/chuck/label/dev/noarch",
         ]
         assert channel.urls(True) == [
-            "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/label/dev/%s" % self.platform,
+            "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/label/dev/%s"
+            % self.platform,
             "http://user1:pass2@another.url:8080/with/path/t/tk-1234/chuck/label/dev/noarch",
         ]
 
     def test_url_custom_channel(self):
         # scheme and credentials within url should override what's registered in config
-        channel = Channel("https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev")
+        channel = Channel(
+            "https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev"
+        )
         assert channel.canonical_name == "chuck/label/dev"
         assert channel.location == "another.url:8080/with/path"
-        assert channel.url() == "https://another.url:8080/with/path/chuck/label/dev/%s" % self.platform
-        assert channel.url(True) == "https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev/%s" % self.platform
+        assert (
+            channel.url()
+            == "https://another.url:8080/with/path/chuck/label/dev/%s" % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev/%s"
+            % self.platform
+        )
         assert channel.urls() == [
             "https://another.url:8080/with/path/chuck/label/dev/%s" % self.platform,
             "https://another.url:8080/with/path/chuck/label/dev/noarch",
         ]
         assert channel.urls(True) == [
-            "https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev/%s" % self.platform,
+            "https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev/%s"
+            % self.platform,
             "https://newuser:newpass@another.url:8080/with/path/t/new-token/chuck/label/dev/noarch",
         ]
 
@@ -759,30 +843,46 @@ class ChannelAuthTokenPriorityTests(TestCase):
         channel = Channel("chuck/subchan")
         assert channel.canonical_name == "chuck/subchan"
         assert channel.location == "another.url:8080/with/path"
-        assert channel.url() == "http://another.url:8080/with/path/chuck/subchan/%s" % self.platform
-        assert channel.url(
-            True) == "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/%s" % self.platform
+        assert (
+            channel.url()
+            == "http://another.url:8080/with/path/chuck/subchan/%s" % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/%s"
+            % self.platform
+        )
         assert channel.urls() == [
             "http://another.url:8080/with/path/chuck/subchan/%s" % self.platform,
             "http://another.url:8080/with/path/chuck/subchan/noarch",
         ]
         assert channel.urls(True) == [
-            "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/%s" % self.platform,
+            "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/%s"
+            % self.platform,
             "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/noarch",
         ]
 
         channel = Channel("chuck/subchan/label/main")
         assert channel.canonical_name == "chuck/subchan/label/main"
         assert channel.location == "another.url:8080/with/path"
-        assert channel.url() == "http://another.url:8080/with/path/chuck/subchan/label/main/%s" % self.platform
-        assert channel.url(
-            True) == "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s" % self.platform
+        assert (
+            channel.url()
+            == "http://another.url:8080/with/path/chuck/subchan/label/main/%s"
+            % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s"
+            % self.platform
+        )
         assert channel.urls() == [
-            "http://another.url:8080/with/path/chuck/subchan/label/main/%s" % self.platform,
+            "http://another.url:8080/with/path/chuck/subchan/label/main/%s"
+            % self.platform,
             "http://another.url:8080/with/path/chuck/subchan/label/main/noarch",
         ]
         assert channel.urls(True) == [
-            "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s" % self.platform,
+            "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s"
+            % self.platform,
             "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/noarch",
         ]
 
@@ -790,14 +890,24 @@ class ChannelAuthTokenPriorityTests(TestCase):
         channel = Channel("http://another.url:8080/with/path/chuck/subchan/label/main")
         assert channel.canonical_name == "chuck/subchan/label/main"
         assert channel.location == "another.url:8080/with/path"
-        assert channel.url() == "http://another.url:8080/with/path/chuck/subchan/label/main/%s" % self.platform
-        assert channel.url(True) == "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s" % self.platform
+        assert (
+            channel.url()
+            == "http://another.url:8080/with/path/chuck/subchan/label/main/%s"
+            % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s"
+            % self.platform
+        )
         assert channel.urls() == [
-            "http://another.url:8080/with/path/chuck/subchan/label/main/%s" % self.platform,
+            "http://another.url:8080/with/path/chuck/subchan/label/main/%s"
+            % self.platform,
             "http://another.url:8080/with/path/chuck/subchan/label/main/noarch",
         ]
         assert channel.urls(True) == [
-            "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s" % self.platform,
+            "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/%s"
+            % self.platform,
             "http://user33:pass44@another.url:8080/with/path/t/tk-1234/chuck/subchan/label/main/noarch",
         ]
 
@@ -806,7 +916,10 @@ class ChannelAuthTokenPriorityTests(TestCase):
         assert channel.canonical_name == "charlie"
         assert channel.location == "new.url:8082"
         assert channel.url() == "ftp://new.url:8082/charlie/%s" % self.platform
-        assert channel.url(True) == "ftp://nm:ps@new.url:8082/t/zyx-wvut/charlie/%s" % self.platform
+        assert (
+            channel.url(True)
+            == "ftp://nm:ps@new.url:8082/t/zyx-wvut/charlie/%s" % self.platform
+        )
         assert channel.urls() == [
             "ftp://new.url:8082/charlie/%s" % self.platform,
             "ftp://new.url:8082/charlie/noarch",
@@ -819,8 +932,14 @@ class ChannelAuthTokenPriorityTests(TestCase):
         channel = Channel("charlie/label/dev")
         assert channel.canonical_name == "charlie/label/dev"
         assert channel.location == "new.url:8082"
-        assert channel.url() == "ftp://new.url:8082/charlie/label/dev/%s" % self.platform
-        assert channel.url(True) == "ftp://nm:ps@new.url:8082/t/zyx-wvut/charlie/label/dev/%s" % self.platform
+        assert (
+            channel.url() == "ftp://new.url:8082/charlie/label/dev/%s" % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "ftp://nm:ps@new.url:8082/t/zyx-wvut/charlie/label/dev/%s"
+            % self.platform
+        )
         assert channel.urls() == [
             "ftp://new.url:8082/charlie/label/dev/%s" % self.platform,
             "ftp://new.url:8082/charlie/label/dev/noarch",
@@ -833,9 +952,14 @@ class ChannelAuthTokenPriorityTests(TestCase):
         channel = Channel("ftp://nm:ps@new.url:8082/t/new-token/charlie/label/dev")
         assert channel.canonical_name == "charlie/label/dev"
         assert channel.location == "new.url:8082"
-        assert channel.url() == "ftp://new.url:8082/charlie/label/dev/%s" % self.platform
-        assert channel.url(
-            True) == "ftp://nm:ps@new.url:8082/t/new-token/charlie/label/dev/%s" % self.platform
+        assert (
+            channel.url() == "ftp://new.url:8082/charlie/label/dev/%s" % self.platform
+        )
+        assert (
+            channel.url(True)
+            == "ftp://nm:ps@new.url:8082/t/new-token/charlie/label/dev/%s"
+            % self.platform
+        )
         assert channel.urls() == [
             "ftp://new.url:8082/charlie/label/dev/%s" % self.platform,
             "ftp://new.url:8082/charlie/label/dev/noarch",
@@ -846,7 +970,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
         ]
 
     def test_default_channels(self):
-        channel = Channel('defaults')
+        channel = Channel("defaults")
         assert channel.canonical_name == "defaults"
         assert channel.location is None
         assert channel.url() is None
@@ -880,7 +1004,6 @@ class ChannelAuthTokenPriorityTests(TestCase):
 
 
 class UrlChannelTests(TestCase):
-
     def test_file_urls(self):
         url = "file:///machine/shared_folder"
         c = Channel(url)
@@ -918,28 +1041,30 @@ class UrlChannelTests(TestCase):
         ]
 
     def test_env_var_file_urls(self):
-        channels = ("file://\\\\network_share\\shared_folder\\path\\conda",
-                    "https://some.url/ch_name",
-                    "file:///some/place/on/my/machine",)
-        with env_var("CONDA_CHANNELS", ','.join(channels)):
+        channels = (
+            "file://\\\\network_share\\shared_folder\\path\\conda",
+            "https://some.url/ch_name",
+            "file:///some/place/on/my/machine",
+        )
+        with env_var("CONDA_CHANNELS", ",".join(channels)):
             new_context = Context(())
-            assert new_context.channels == (
-                "file://\\\\network_share\\shared_folder\\path\\conda",
-                "https://some.url/ch_name",
-                "file:///some/place/on/my/machine",)
+            assert new_context.channels == channels
 
             prioritized = prioritize_channels(new_context.channels)
-            assert prioritized == OrderedDict((
-                ("file://network_share/shared_folder/path/conda/%s" % context.subdir, ("file://network_share/shared_folder/path/conda", 0)),
-                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 0)),
-                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 1)),
-                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 1)),
-                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
-                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
-            ))
+            network_share = "file://network_share/shared_folder/path/conda"
+            some_url = "https://some.url/ch_name"
+            local_path = "file:///some/place/on/my/machine"
+            assert prioritized == {
+                f"{network_share}/{context.subdir}": (network_share, 0),
+                f"{network_share}/noarch": (network_share, 0),
+                f"{some_url}/{context.subdir}": (some_url, 1),
+                f"{some_url}/noarch": (some_url, 1),
+                f"{local_path}/{context.subdir}": (local_path, 2),
+                f"{local_path}/noarch": (local_path, 2),
+            }
 
     def test_subdirs_env_var(self):
-        subdirs = ('linux-highest', 'linux-64', 'noarch')
+        subdirs = ("linux-highest", "linux-64", "noarch")
 
         def _channel_urls(channels=None):
             for channel in channels or DEFAULT_CHANNELS:
@@ -947,44 +1072,65 @@ class UrlChannelTests(TestCase):
                 for subdir in subdirs:
                     yield join_url(channel.base_url, subdir)
 
-        with env_vars(dict({'CONDA_SUBDIRS': ','.join(subdirs)}), stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            c = Channel('defaults')
+        with env_vars(
+            {"CONDA_SUBDIRS": ",".join(subdirs)},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            c = Channel("defaults")
             assert c.urls() == list(_channel_urls())
 
-            c = Channel('conda-forge')
-            assert c.urls() == list(_channel_urls(('conda-forge',)))
+            c = Channel("conda-forge")
+            assert c.urls() == list(_channel_urls(("conda-forge",)))
 
-            channels = ('bioconda', 'conda-forge')
+            channels = ("bioconda", "conda-forge")
             prioritized = prioritize_channels(channels)
-            assert prioritized == OrderedDict((
-                ("https://conda.anaconda.org/bioconda/linux-highest", ("bioconda", 0)),
-                ("https://conda.anaconda.org/bioconda/linux-64", ("bioconda", 0)),
-                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 0)),
-                ("https://conda.anaconda.org/conda-forge/linux-highest", ("conda-forge", 1)),
-                ("https://conda.anaconda.org/conda-forge/linux-64", ("conda-forge", 1)),
-                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 1)),
-            ))
+            assert prioritized == {
+                "https://conda.anaconda.org/bioconda/linux-highest": ("bioconda", 0),
+                "https://conda.anaconda.org/bioconda/linux-64": ("bioconda", 0),
+                "https://conda.anaconda.org/bioconda/noarch": ("bioconda", 0),
+                "https://conda.anaconda.org/conda-forge/linux-highest": (
+                    "conda-forge",
+                    1,
+                ),
+                "https://conda.anaconda.org/conda-forge/linux-64": ("conda-forge", 1),
+                "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 1),
+            }
 
-            prioritized = prioritize_channels(channels, subdirs=('linux-again', 'noarch'))
-            assert prioritized == OrderedDict((
-                ("https://conda.anaconda.org/bioconda/linux-again", ("bioconda", 0)),
-                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 0)),
-                ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 1)),
-                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 1)),
-            ))
+            prioritized = prioritize_channels(
+                channels, subdirs=("linux-again", "noarch")
+            )
+            assert prioritized == {
+                "https://conda.anaconda.org/bioconda/linux-again": ("bioconda", 0),
+                "https://conda.anaconda.org/bioconda/noarch": ("bioconda", 0),
+                "https://conda.anaconda.org/conda-forge/linux-again": (
+                    "conda-forge",
+                    1,
+                ),
+                "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 1),
+            }
 
     def test_subdir_env_var(self):
-        with env_var('CONDA_SUBDIR', 'osx-1012-x84_64', stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            channel = Channel('https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2')
-            assert channel.base_url == 'https://conda.anaconda.org/msarahan'
-            assert channel.package_filename == 'clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2'
-            assert channel.platform == 'osx-1012-x84_64'  # the platform attribute is misnamed here in conda 4.3; conda 4.4 code can correctly use the channel.subdir attribute
+        with env_var(
+            "CONDA_SUBDIR",
+            "osx-1012-x84_64",
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            channel = Channel(
+                "https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2"
+            )
+            assert channel.base_url == "https://conda.anaconda.org/msarahan"
+            assert (
+                channel.package_filename
+                == "clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2"
+            )
+            assert (
+                channel.platform == "osx-1012-x84_64"
+            )  # the platform attribute is misnamed here in conda 4.3; conda 4.4 code can correctly use the channel.subdir attribute
 
 
 class UnknownChannelTests(TestCase):
-
     def test_regression_against_unknown_none(self):
-        defaults = Channel('defaults')
+        defaults = Channel("defaults")
 
         channel = Channel(None)
         assert channel.scheme is None
@@ -997,7 +1143,7 @@ class UnknownChannelTests(TestCase):
         assert channel.url() == defaults.url()
         assert channel.urls() == defaults.urls()
 
-        channel = Channel('<unknown>')
+        channel = Channel("<unknown>")
         assert channel.scheme is None
         assert channel.location is None
         assert channel.platform is None
@@ -1008,7 +1154,7 @@ class UnknownChannelTests(TestCase):
         assert channel.url() == defaults.url()
         assert channel.urls() == defaults.urls()
 
-        channel = Channel('None:///<unknown>')
+        channel = Channel("None:///<unknown>")
         assert channel.scheme is None
         assert channel.location is None
         assert channel.platform is None
@@ -1019,7 +1165,7 @@ class UnknownChannelTests(TestCase):
         assert channel.url() == defaults.url()
         assert channel.urls() == defaults.urls()
 
-        channel = Channel('None')
+        channel = Channel("None")
         assert channel.scheme is None
         assert channel.location is None
         assert channel.platform is None
@@ -1032,17 +1178,22 @@ class UnknownChannelTests(TestCase):
 
 
 class OtherChannelParsingTests(TestCase):
-
     @classmethod
     def setUpClass(cls):
-        string = dals("""
+        string = dals(
+            """
         default_channels:
            - http://test/conda/anaconda
         channels:
            - http://test/conda/anaconda-cluster
-        """)
+        """
+        )
         reset_context()
-        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(string)
+            )
+        }
         context._set_raw_data(rd)
         Channel._reset_state()
 
@@ -1054,51 +1205,86 @@ class OtherChannelParsingTests(TestCase):
 
     def test_channels_with_dashes(self):
         # regression test for #5763
-        assert context.channels[0] == 'http://test/conda/anaconda-cluster'
+        assert context.channels[0] == "http://test/conda/anaconda-cluster"
         channel_urls = prioritize_channels(context.channels)
         channel_urls = tuple(channel_urls.items())
-        assert channel_urls[0] == ('http://test/conda/anaconda-cluster/%s' % context.subdir, ('http://test/conda/anaconda-cluster', 0))
-        assert channel_urls[1] == ('http://test/conda/anaconda-cluster/noarch', ('http://test/conda/anaconda-cluster', 0))
+        assert channel_urls[0] == (
+            "http://test/conda/anaconda-cluster/%s" % context.subdir,
+            ("http://test/conda/anaconda-cluster", 0),
+        )
+        assert channel_urls[1] == (
+            "http://test/conda/anaconda-cluster/noarch",
+            ("http://test/conda/anaconda-cluster", 0),
+        )
 
 
 def test_multichannel_priority():
     with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channels = ['conda-test', 'defaults', 'conda-forge']
-        subdirs = ['new-optimized-subdir', 'linux-32', 'noarch']
-        channel_priority_map = prioritize_channels(channels, with_credentials=True, subdirs=subdirs)
+        channels = ["conda-test", "defaults", "conda-forge"]
+        subdirs = ["new-optimized-subdir", "linux-32", "noarch"]
+        channel_priority_map = prioritize_channels(
+            channels, with_credentials=True, subdirs=subdirs
+        )
         if on_win:
-            assert channel_priority_map == OrderedDict([
-                ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
-                ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
-                ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
-                ('https://repo.anaconda.com/pkgs/main/new-optimized-subdir', ('defaults', 1)),
-                ('https://repo.anaconda.com/pkgs/main/linux-32', ('defaults', 1)),
-                ('https://repo.anaconda.com/pkgs/main/noarch', ('defaults', 1)),
-                ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 2)),
-                ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 2)),
-                ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 2)),
-                ('https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir', ('defaults', 3)),
-                ('https://repo.anaconda.com/pkgs/msys2/linux-32', ('defaults', 3)),
-                ('https://repo.anaconda.com/pkgs/msys2/noarch', ('defaults', 3)),
-                ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 4)),
-                ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 4)),
-                ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 4)),
-            ])
+            assert channel_priority_map == {
+                "https://conda.anaconda.org/conda-test/new-optimized-subdir": (
+                    "conda-test",
+                    0,
+                ),
+                "https://conda.anaconda.org/conda-test/linux-32": ("conda-test", 0),
+                "https://conda.anaconda.org/conda-test/noarch": ("conda-test", 0),
+                "https://repo.anaconda.com/pkgs/main/new-optimized-subdir": (
+                    "defaults",
+                    1,
+                ),
+                "https://repo.anaconda.com/pkgs/main/linux-32": ("defaults", 1),
+                "https://repo.anaconda.com/pkgs/main/noarch": ("defaults", 1),
+                "https://repo.anaconda.com/pkgs/r/new-optimized-subdir": (
+                    "defaults",
+                    2,
+                ),
+                "https://repo.anaconda.com/pkgs/r/linux-32": ("defaults", 2),
+                "https://repo.anaconda.com/pkgs/r/noarch": ("defaults", 2),
+                "https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir": (
+                    "defaults",
+                    3,
+                ),
+                "https://repo.anaconda.com/pkgs/msys2/linux-32": ("defaults", 3),
+                "https://repo.anaconda.com/pkgs/msys2/noarch": ("defaults", 3),
+                "https://conda.anaconda.org/conda-forge/new-optimized-subdir": (
+                    "conda-forge",
+                    4,
+                ),
+                "https://conda.anaconda.org/conda-forge/linux-32": ("conda-forge", 4),
+                "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 4),
+            }
         else:
-            assert channel_priority_map == OrderedDict([
-                ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
-                ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
-                ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
-                ('https://repo.anaconda.com/pkgs/main/new-optimized-subdir', ('defaults', 1)),
-                ('https://repo.anaconda.com/pkgs/main/linux-32', ('defaults', 1)),
-                ('https://repo.anaconda.com/pkgs/main/noarch', ('defaults', 1)),
-                ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 2)),
-                ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 2)),
-                ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 2)),
-                ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 3)),
-                ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 3)),
-                ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 3)),
-            ])
+            assert channel_priority_map == {
+                "https://conda.anaconda.org/conda-test/new-optimized-subdir": (
+                    "conda-test",
+                    0,
+                ),
+                "https://conda.anaconda.org/conda-test/linux-32": ("conda-test", 0),
+                "https://conda.anaconda.org/conda-test/noarch": ("conda-test", 0),
+                "https://repo.anaconda.com/pkgs/main/new-optimized-subdir": (
+                    "defaults",
+                    1,
+                ),
+                "https://repo.anaconda.com/pkgs/main/linux-32": ("defaults", 1),
+                "https://repo.anaconda.com/pkgs/main/noarch": ("defaults", 1),
+                "https://repo.anaconda.com/pkgs/r/new-optimized-subdir": (
+                    "defaults",
+                    2,
+                ),
+                "https://repo.anaconda.com/pkgs/r/linux-32": ("defaults", 2),
+                "https://repo.anaconda.com/pkgs/r/noarch": ("defaults", 2),
+                "https://conda.anaconda.org/conda-forge/new-optimized-subdir": (
+                    "conda-forge",
+                    3,
+                ),
+                "https://conda.anaconda.org/conda-forge/linux-32": ("conda-forge", 3),
+                "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 3),
+            }
 
 
 def test_ppc64le_vs_ppc64():
@@ -1106,18 +1292,55 @@ def test_ppc64le_vs_ppc64():
 
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
-    assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+    assert (
+        ppc64_channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+    )
 
     ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
     assert ppc64le_channel.subdir == "linux-ppc64le"
-    assert ppc64le_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    assert (
+        ppc64le_channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    )
     print(Channel._cache_)
     Channel._cache_.clear()
 
     ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
     assert ppc64le_channel.subdir == "linux-ppc64le"
-    assert ppc64le_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    assert (
+        ppc64le_channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
+    )
 
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
-    assert ppc64_channel.url(with_credentials=True) == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+    assert (
+        ppc64_channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/dummy-channel/linux-ppc64"
+    )
+
+
+def test_channel_mangles_urls():
+    """
+    CondaSession() runs urls through Channel, and cannot be used to fetch files
+    with unknown extensions (it will mangle the URL)
+    """
+    cases = [
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+        ),
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+        ),
+        # This strange behavior may need to change:
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json.bz2",
+            "https://conda.anaconda.org/conda-forge/repodata.json.bz2/linux-64",
+        ),
+    ]
+
+    for url, expected in cases:
+        assert str(Channel(url)) == expected

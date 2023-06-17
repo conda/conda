@@ -178,7 +178,6 @@ General configuration
 =====================
 
 * :ref:`config-channels`
-* :ref:`allow-other-channels`
 * :ref:`default-channels`
 * :ref:`auto-update-conda`
 * :ref:`always-yes`
@@ -726,6 +725,7 @@ Conda-build configuration
 
 * :ref:`specify-root-dir`
 * :ref:`specify-output-folder`
+* :ref:`pkg_format`
 * :ref:`auto-upload`
 * :ref:`anaconda-token`
 * :ref:`quiet`
@@ -773,6 +773,18 @@ the root build directory (``root-dir``).
 
    conda-build:
        output_folder: conda-bld
+
+.. pkg_format:
+
+Specify conda-build package version (pkg_version)
+-------------------------------------------------
+
+Conda package version to create. Use ``2`` for ``.conda`` packages. If not set, conda-build defaults to ``.tar.bz2``.
+
+.. code-block:: yaml
+
+   conda-build:
+      pkg_format: 2
 
 .. _auto-upload:
 

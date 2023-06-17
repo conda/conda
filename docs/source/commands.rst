@@ -28,7 +28,7 @@ Conda vs. pip vs. virtualenv commands
 
 If you have used pip and virtualenv in the past, you can use
 conda to perform all of the same operations. Pip is a package
-manager and virtualenv is an environment manager. Conda is both.
+manager and virtualenv is an environment manager. conda is both.
 
 Scroll to the right to see the entire table.
 

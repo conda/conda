@@ -1,33 +1,17 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
-
 from collections import OrderedDict as odict  # noqa: F401
-from itertools import chain
 import os
 from shlex import split
 from tempfile import NamedTemporaryFile
 
-from .._vendor.six import (  # noqa: F401
-    integer_types,
-    iteritems,
-    iterkeys,
-    itervalues,
-    string_types,
-    text_type,
-    wraps,
-)
 
 NoneType = type(None)
-primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
+primitive_types = (str, int, float, complex, bool, NoneType)
 
 
 def isiterable(obj):
     # and not a string
-    try:
-        from collections.abc import Iterable
-    except ImportError:
-        from collections import Iterable
-    return not isinstance(obj, string_types) and isinstance(obj, Iterable)
+    from collections.abc import Iterable
+    return not isinstance(obj, str) and isinstance(obj, Iterable)
 
 
 # shlex.split() is a poor function to use for anything general purpose (like calling subprocess).

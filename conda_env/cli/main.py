@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function
-
+"""Entry point for all conda-env subcommands."""
 import os
 import sys
 
@@ -12,41 +10,12 @@ import sys
 # when importing pip (and pip_util)
 import conda.exports  # noqa
 from conda.base.context import context
-from conda.cli.conda_argparse import ArgumentParser
+from conda.cli.conda_argparse import ArgumentParser, _run_command_hooks
 from conda.cli.main import init_loggers
+from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
 
-try:
-    from conda.exceptions import conda_exception_handler
-except ImportError as e:
-    if 'CONDA_DEFAULT_ENV' in os.environ:
-        sys.stderr.write("""
-There was an error importing conda.
-
-It appears this was caused by installing conda-env into a conda
-environment.  Like conda, conda-env needs to be installed into your
-base conda/Anaconda environment.
-
-Please deactivate your current environment, then re-install conda-env
-using this command:
-
-    conda install -c conda conda-env
-
-If you are seeing this error and have not installed conda-env into an
-environment, please open a bug report at:
-    https://github.com/conda/conda-env
-
-""".lstrip())
-        sys.exit(-1)
-    else:
-        raise e
-
-from . import main_create
-from . import main_export
-from . import main_list
-from . import main_remove
-from . import main_update
-from . import main_config
+from . import main_config, main_create, main_export, main_list, main_remove, main_update
 
 
 # TODO: This belongs in a helper library somewhere
@@ -54,7 +23,7 @@ from . import main_config
 # merged into conda-env, this needs to be adjusted.
 def show_help_on_empty_command():
     if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
-        sys.argv.append('--help')
+        sys.argv.append("--help")
 
 
 def create_parser():
@@ -72,12 +41,19 @@ def create_parser():
     return p
 
 
-def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit('.', 1)
+def do_call(arguments, parser):
+    relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
     from importlib import import_module
-    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
-    exit_code = getattr(module, func_name)(args, parser)
+
+    # Run the pre_command actions
+    command = relative_mod.replace(".main_", "")
+
+    _run_command_hooks("pre", f"env_{command}", arguments)
+    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
+    exit_code = getattr(module, func_name)(arguments, parser)
+    _run_command_hooks("post", f"env_{command}", arguments)
+
     return exit_code
 
 
@@ -91,5 +67,8 @@ def main():
     return conda_exception_handler(do_call, args, parser)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    from conda.deprecations import deprecated
+
+    deprecated.module("23.9", "24.3", addendum="Use `conda env` instead.")
     sys.exit(main())
