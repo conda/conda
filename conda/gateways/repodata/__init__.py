@@ -760,7 +760,7 @@ class RepodataFetch:
 
         # allow plugins to modify the repodata and state
         for pre_solve in context.plugin_manager.get_hook_results("repodata_patches"):
-            parsed = pre_solve.action(parsed)
+            parsed = pre_solve.action(self.channel, parsed)
 
         return parsed, state
 
