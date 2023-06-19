@@ -115,11 +115,12 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
+    plugin_arguments = tuple(sys.argv[2:])
+
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
-        plugin_arguments = sys.argv[2:]
         _run_command_hooks("pre", arguments.plugin_subcommand.name, plugin_arguments)
-        result = arguments.plugin_subcommand.action(sys.argv[2:])
+        result = arguments.plugin_subcommand.action(plugin_arguments)
         _run_command_hooks("post", arguments.plugin_subcommand.name, plugin_arguments)
 
         return result
@@ -131,9 +132,9 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, arguments)
+    _run_command_hooks("pre", command, plugin_arguments)
     result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, arguments)
+    _run_command_hooks("post", command, plugin_arguments)
 
     return result
 
