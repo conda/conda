@@ -1,16 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda run`.
 
-
-from logging import getLogger
+Runs the provided command within the specified environment.
+"""
 import os
 import sys
+from logging import getLogger
 
 from ..base.context import context
-from ..utils import wrap_subprocess_call
-from ..gateways.disk.delete import rm_rf
 from ..common.compat import encode_environment
+from ..gateways.disk.delete import rm_rf
 from ..gateways.subprocess import subprocess_call
+from ..utils import wrap_subprocess_call
 from .common import validate_prefix
 
 
@@ -18,7 +20,7 @@ def execute(args, parser):
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
-        validate_prefix(context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix),
+        validate_prefix(context.target_prefix),  # ensure prefix exists
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
@@ -44,7 +46,9 @@ def execute(args, parser):
     # log error
     if response.rc != 0:
         log = getLogger(__name__)
-        log.error(f"`conda run {' '.join(args.executable_call)}` failed. (See above for error)")
+        log.error(
+            f"`conda run {' '.join(args.executable_call)}` failed. (See above for error)"
+        )
 
     # remove script
     if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
@@ -53,4 +57,4 @@ def execute(args, parser):
         log = getLogger(__name__)
         log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining main_run script {script}")
 
-    return response
+    return response.rc

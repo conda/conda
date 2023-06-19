@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Common constants."""
 from ..auxlib import NULL
 
 # Use this NULL object when needing to distinguish a value from None

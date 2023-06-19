@@ -101,7 +101,7 @@ Cryptographic hash verification
 
 SHA-256 checksums are available for
 `Miniconda <https://conda.io/en/latest/miniconda_hashes.html>`_ and
-`Anaconda <https://docs.continuum.io/anaconda/install/hashes/all>`_.
+`Anaconda <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 
 Download the installer file and before installing verify it as follows:

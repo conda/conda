@@ -1,10 +1,12 @@
 # disable autofixing PRs, commenting "pre-commit.ci autofix" on a pull request triggers a autofix
 ci:
-    autofix_prs: false
+  autofix_prs: false
 # generally speaking we ignore all vendored code as well as tests data
+# ignore patches/diffs since slight reformatting can break them
 exclude: |
   (?x)^(
     conda/_vendor |
+    conda/auxlib |
     tests/data/(
       conda_format_repo |
       env_metadata/.+ |
@@ -13,9 +15,11 @@ exclude: |
       tar_traversal |
       corrupt
     ) |
+    .*\.(patch|diff) |
     tools/vendoring/patches
   )/
 repos:
+  # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -29,42 +33,46 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
+  # Python verification and formatting
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.1
+    hooks:
+      # auto inject license blurb
+      - id: insert-license
+        files: \.py$
+        exclude: |
+          (?x)^(
+            conda/gateways/connection/adapters/ftp.py |  # Apache 2.0
+            conda/gateways/disk/link.py  # MIT
+          )$
+        args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.6.0
     hooks:
+      # upgrade standard Python codes
       - id: pyupgrade
-        args: ["--py37-plus"]
+        args: [--py38-plus]
         exclude: ^conda/exports.py
-  - repo: https://github.com/akaihola/darker
-    rev: 1.5.1
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
     hooks:
-      - id: darker
-        additional_dependencies: [black==22.10.0]
-  - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
+      # auto sort Python imports
+      - id: isort
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
     hooks:
+      # auto format Python codes
+      - id: black
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.13.0
+    hooks:
+      # auto format Python codes within docstrings
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
+      # lint Python codes
       - id: flake8
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.15.9
-    hooks:
-      - id: pylint
-        args: [--exit-zero]
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.4
-    hooks:
-      - id: bandit
-        args: [--exit-zero]
-        # ignore all tests, not just tests data
-        exclude: ^tests/
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.3.1
-    hooks:
-      - id: insert-license
-        files: \.py$
-        args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
-        exclude: ^conda/auxlib/
+        args: [--docstring-convention=pep257]
+        additional_dependencies: [flake8-docstrings]

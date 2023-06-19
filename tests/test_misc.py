@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import codecs
 import sys
+import warnings
 from unittest.mock import patch
+
 import pytest
 
 from conda.core.subdir_data import cache_fn_url
-from conda.misc import url_pat, explicit, walk_prefix
+from conda.misc import explicit, url_pat, walk_prefix
+from conda.testing.integration import Commands, make_temp_env, run_command
 from conda.utils import Utf8NamedTemporaryFile
 
 
@@ -15,7 +18,9 @@ def test_Utf8NamedTemporaryFile():
     try:
         with Utf8NamedTemporaryFile(delete=False) as tf:
             tf.write(
-                test_string.encode("utf-8") if hasattr(test_string, "encode") else test_string
+                test_string.encode("utf-8")
+                if hasattr(test_string, "encode")
+                else test_string
             )
             fname = tf.name
         with codecs.open(fname, mode="rb", encoding="utf-8") as fh:
@@ -54,7 +59,7 @@ def test_url_pat_2():
     match = url_pat.match("http://test/pkgs/linux-64/foo.tar.bz2")
     assert match.group("url_p") == "http://test/pkgs/linux-64"
     assert match.group("fn") == "foo.tar.bz2"
-    assert match.group("md5") == None
+    assert match.group("md5") is None
 
 
 def test_url_pat_3():
@@ -77,23 +82,33 @@ def test_explicit_no_cache(ProgressiveFetchExtract):
         )
 
 
-# Patching ProgressiveFetchExtract prevents trying to download a package from the url.
-# Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
-@patch("conda.misc.ProgressiveFetchExtract")
-def test_explicit_missing_cache_entries(ProgressiveFetchExtract):
+def test_explicit_missing_cache_entries(mocker):
     """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
     from conda.core.package_cache_data import PackageCacheData
 
-    with pytest.raises(
-        AssertionError, match="Missing package cache records for: pkgs/linux-64::foo==1.0.0=py_0"
-    ):
-        explicit(
-            [
-                "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",  # does not exist
-                PackageCacheData.get_all_extracted_entries()[0].url,  # exists
-            ],
-            "",
-        )
+    with make_temp_env() as prefix:  # ensure writable env
+        if len(PackageCacheData.get_all_extracted_entries()) == 0:
+            # Package cache e.g. ./devenv/Darwin/x86_64/envs/devenv-3.9-c/pkgs/ can
+            # be empty in certain cases (Noted in OSX with Python 3.9, when
+            # Miniconda installs Python 3.10). Install a small package.
+            warnings.warn("test_explicit_missing_cache_entries: No packages in cache.")
+            run_command(Commands.INSTALL, prefix, "heapdict")
+
+        # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
+        # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
+        mocker.patch("conda.misc.ProgressiveFetchExtract")
+
+        with pytest.raises(
+            AssertionError,
+            match="Missing package cache records for: pkgs/linux-64::foo==1.0.0=py_0",
+        ):
+            explicit(
+                [
+                    "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",  # does not exist
+                    PackageCacheData.get_all_extracted_entries()[0].url,  # exists
+                ],
+                prefix,
+            )
 
 
 def make_mock_directory(tmpdir, mock_directory):
@@ -122,7 +137,12 @@ def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
     # walk_prefix has windows_forward_slahes on by default, so we don't need
     # any special-casing there
 
-    answer = {"testfile1", "bin/testfile", "testdir1/testfile", "testdir1/testdir2/testfile"}
+    answer = {
+        "testfile1",
+        "bin/testfile",
+        "testdir1/testfile",
+        "testdir1/testdir2/testfile",
+    }
     if sys.platform != "darwin":
         answer.add("python.app")
 

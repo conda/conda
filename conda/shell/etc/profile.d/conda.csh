@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 if (! $?_CONDA_EXE) then
   set _CONDA_EXE="${PWD}/conda/shell/bin/conda"
 else

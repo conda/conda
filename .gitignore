@@ -13,7 +13,6 @@ MANIFEST
 coverage.xml
 .tox/
 junit.xml
-.version
 tmpfile.rc
 .DS_Store
 .coverage*

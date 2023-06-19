@@ -1,17 +1,23 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""The conda plugin manager that loads all plugins on startup."""
 from __future__ import annotations
 
 import functools
+import logging
+from importlib.metadata import distributions
 
 import pluggy
 
-from . import solvers, virtual_packages
-from .hookspec import CondaSpecs, spec_name
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
+from . import solvers, subcommands, virtual_packages
+from .hookspec import CondaSpecs, spec_name
+from .types import CommandHookTypes
+
+log = logging.getLogger(__name__)
 
 
 class CondaPluginManager(pluggy.PluginManager):
@@ -19,6 +25,7 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to
     pluggy's default plugin manager.
     """
+
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
     #: method.
     get_cached_solver_backend = None
@@ -30,7 +37,9 @@ class CondaPluginManager(pluggy.PluginManager):
         super().__init__(project_name, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
-        self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(self.get_solver_backend)
+        self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(
+            self.get_solver_backend
+        )
 
     def load_plugins(self, *plugins) -> list[str]:
         """
@@ -50,24 +59,43 @@ class CondaPluginManager(pluggy.PluginManager):
                 plugin_names.append(plugin_name)
         return plugin_names
 
-    def load_setuptools_entrypoints(self, *args, **kwargs) -> int:
+    def load_entrypoints(self, group: str, name: str | None = None) -> int:
+        """Load modules from querying the specified setuptools ``group``.
+        :param str group: Entry point group to load plugins.
+        :param str name: If given, loads only plugins with the given ``name``.
+        :rtype: int
+        :return: The number of plugins loaded by this call.
         """
-        Overloading the parent method from pluggy to add conda specific exceptions.
-
-        See :meth:`pluggy.PluginManager.load_setuptools_entrypoints` for
-        more information.
-        """
-        try:
-            return super().load_setuptools_entrypoints(*args, **kwargs)
-        except Exception as err:
-            raise PluginError(
-                f"Error while loading conda plugins from entrypoints: {err}"
-            )
+        count = 0
+        for dist in list(distributions()):
+            for entry_point in dist.entry_points:
+                if (
+                    entry_point.group != group
+                    or (name is not None and entry_point.name != name)
+                    # already registered
+                    or self.get_plugin(entry_point.name)
+                    or self.is_blocked(entry_point.name)
+                ):
+                    continue
+                try:
+                    plugin = entry_point.load()
+                except Exception as err:
+                    # not using exc_info=True here since the CLI loggers are
+                    # set up after CLI initialization and argument parsing,
+                    # meaning that it comes too late to properly render
+                    # a traceback
+                    log.warning(
+                        f"Could not load conda plugin `{entry_point.name}`:\n\n{err}"
+                    )
+                    continue
+                self.register(plugin, name=entry_point.name)
+                count += 1
+        return count
 
     def get_hook_results(self, name: str) -> list:
         """
         Return results of the plugin hooks with the given name and
-        raise an error if there is an conflict.
+        raise an error if there is a conflict.
         """
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
@@ -80,7 +108,9 @@ class CondaPluginManager(pluggy.PluginManager):
         )
         # Check for conflicts
         seen = set()
-        conflicts = [plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)]
+        conflicts = [
+            plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
+        ]
         if conflicts:
             raise PluginError(
                 dals(
@@ -119,7 +149,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for solver in self.get_hook_results("solvers")
         }
 
-        # Look up the solver mapping an fail loudly if it can't
+        # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
         backend = solvers_mapping.get(name, None)
         if backend is None:
@@ -131,6 +161,20 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
+    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command: str):
+        """
+        Yields either the ``CondaPreCommand.action`` or ``CondaPostCommand.action`` functions
+        registered by the ``conda_pre_commands`` or ``conda_post_commands`` hook.
+
+        :param hook_type: the type of command hook to retrieve
+        :param command: name of the command that is currently being invoked
+        """
+        command_hooks = self.get_hook_results(f"{hook_type}_commands")
+
+        for command_hook in command_hooks:
+            if command in command_hook.run_for:
+                yield command_hook.action
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -140,6 +184,8 @@ def get_plugin_manager() -> CondaPluginManager:
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
-    plugin_manager.load_plugins(solvers, *virtual_packages.plugins)
-    plugin_manager.load_setuptools_entrypoints(spec_name)
+    plugin_manager.load_plugins(
+        solvers, *virtual_packages.plugins, *subcommands.plugins
+    )
+    plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

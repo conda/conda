@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Topological sorting implementation."""
 from functools import reduce as _reduce
 from logging import getLogger
 
@@ -9,12 +9,11 @@ log = getLogger(__name__)
 
 def _toposort(data):
     """Dependencies are expressed as a dictionary whose keys are items
-and whose values are a set of dependent items. Output is a list of
-sets in topological order. The first set consists of items with no
-dependences, each subsequent set consists of items that depend upon
-items in the preceding sets.
-"""
-
+    and whose values are a set of dependent items. Output is a list of
+    sets in topological order. The first set consists of items with no
+    dependences, each subsequent set consists of items that depend upon
+    items in the preceding sets.
+    """
     # Special case empty input.
     if len(data) == 0:
         return
@@ -27,7 +26,6 @@ items in the preceding sets.
     # Add empty dependences where needed.
     data.update({item: set() for item in extra_items_in_deps})
     while True:
-
         ordered = sorted({item for item, dep in data.items() if len(dep) == 0})
         if not ordered:
             break
@@ -41,8 +39,10 @@ items in the preceding sets.
 
     if len(data) != 0:
         from ..exceptions import CondaValueError
-        msg = 'Cyclic dependencies exist among these items: {}'
-        raise CondaValueError(msg.format(' -> '.join(repr(x) for x in data.keys())))
+
+        msg = "Cyclic dependencies exist among these items: {}"
+        raise CondaValueError(msg.format(" -> ".join(repr(x) for x in data.keys())))
+
 
 def pop_key(data):
     """
@@ -59,14 +59,14 @@ def pop_key(data):
 
     return key
 
+
 def _safe_toposort(data):
     """Dependencies are expressed as a dictionary whose keys are items
-and whose values are a set of dependent items. Output is a list of
-sets in topological order. The first set consists of items with no
-dependencies, each subsequent set consists of items that depend upon
-items in the preceding sets.
-"""
-
+    and whose values are a set of dependent items. Output is a list of
+    sets in topological order. The first set consists of items with no
+    dependencies, each subsequent set consists of items that depend upon
+    items in the preceding sets.
+    """
     # Special case empty input.
     if len(data) == 0:
         return
@@ -93,10 +93,9 @@ items in the preceding sets.
 
 
 def toposort(data, safe=True):
-
     data = {k: set(v) for k, v in data.items()}
 
-    if 'python' in data:
+    if "python" in data:
         # Special case: Remove circular dependency between python and pip,
         # to ensure python is always installed before anything that needs it.
         # For more details:
@@ -104,7 +103,7 @@ def toposort(data, safe=True):
         # - https://github.com/conda/conda/pull/1154
         # - https://github.com/conda/conda-build/issues/401
         # - https://github.com/conda/conda/pull/1614
-        data['python'].discard('pip')
+        data["python"].discard("pip")
 
     if safe:
         return list(_safe_toposort(data))

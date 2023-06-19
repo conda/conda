@@ -4,12 +4,11 @@ import pytest
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.notices import core as notices
-
 from conda.testing.notices.helpers import (
-    add_resp_to_mock,
-    notices_decorator_assert_message_in_stdout,
     DummyArgs,
+    add_resp_to_mock,
     get_test_notices,
+    notices_decorator_assert_message_in_stdout,
     offset_cache_file_mtime,
 )
 
@@ -38,6 +37,16 @@ def test_display_notices_happy_path(
         else:
             assert message not in captured.out
 
+    # should not display the same notices again
+    channel_notice_set = notices.retrieve_notices(always_show_viewed=False)
+    notices.display_notices(channel_notice_set)
+    captured = capsys.readouterr()
+
+    assert captured.err == ""
+
+    for message in messages:
+        assert message not in captured.out
+
 
 def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_get):
     """
@@ -55,7 +64,7 @@ def test_notices_decorator(capsys, notices_cache_dir, notices_mock_http_session_
     def dummy(args, parser):
         print(dummy_mesg)
 
-    dummy_args = DummyArgs()
+    dummy_args = DummyArgs(toves="slithy")
     dummy(dummy_args, None)
 
     captured = capsys.readouterr()
@@ -89,7 +98,9 @@ def test__conda_user_story__only_see_once(
     dummy(dummy_args, None)
 
     captured = capsys.readouterr()
-    notices_decorator_assert_message_in_stdout(captured, messages=messages, dummy_mesg=dummy_mesg)
+    notices_decorator_assert_message_in_stdout(
+        captured, messages=messages, dummy_mesg=dummy_mesg
+    )
 
     dummy(dummy_args, None)
     captured = capsys.readouterr()

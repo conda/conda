@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Helpers for testing the solver."""
 from __future__ import annotations
 
 import collections
@@ -11,16 +11,20 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from ..exceptions import PackagesNotFoundError, ResolvePackageNotFound, UnsatisfiableError
 from ..base.context import context
 from ..core.solve import Solver
+from ..exceptions import (
+    PackagesNotFoundError,
+    ResolvePackageNotFound,
+    UnsatisfiableError,
+)
 from ..models.channel import Channel
-from ..models.records import PackageRecord
 from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
@@ -111,7 +115,11 @@ class SimpleEnvironment:
 
     def _package_data(self, record):
         """Turn record into data, to be written in the JSON environment/repo files."""
-        data = {key: value for key, value in vars(record).items() if key in self.REPO_DATA_KEYS}
+        data = {
+            key: value
+            for key, value in vars(record).items()
+            if key in self.REPO_DATA_KEYS
+        }
         if "subdir" not in data:
             data["subdir"] = context.subdir
         return data
@@ -123,7 +131,9 @@ class SimpleEnvironment:
         conda_meta.mkdir(exist_ok=True, parents=True)
         # write record files
         for record in self.installed_packages:
-            record_path = conda_meta / f"{record.name}-{record.version}-{record.build}.json"
+            record_path = (
+                conda_meta / f"{record.name}-{record.version}-{record.build}.json"
+            )
             record_data = self._package_data(record)
             record_data["channel"] = record.channel.name
             record_path.write_text(json.dumps(record_data))
@@ -175,7 +185,7 @@ class SolverTests:
     """Tests for :py:class:`conda.core.solve.Solver` implementations."""
 
     @property
-    def solver_class(self) -> Type[Solver]:
+    def solver_class(self) -> type[Solver]:
         """Class under test."""
         raise NotImplementedError
 
@@ -214,11 +224,14 @@ class SolverTests:
 
     def assert_unsatisfiable(self, exc_info, entries):
         """Helper to assert that a :py:class:`conda.exceptions.UnsatisfiableError`
-        instance as a the specified set of unsatisfiable specifications."""
+        instance as a the specified set of unsatisfiable specifications.
+        """
         assert issubclass(exc_info.type, UnsatisfiableError)
         if exc_info.type is UnsatisfiableError:
             assert (
-                sorted(tuple(map(str, entries)) for entries in exc_info.value.unsatisfiable)
+                sorted(
+                    tuple(map(str, entries)) for entries in exc_info.value.unsatisfiable
+                )
                 == entries
             )
 
@@ -265,7 +278,9 @@ class SolverTests:
 
     def test_mkl(self, env):
         env.repo_packages = index_packages(1)
-        assert env.install("mkl") == env.install("mkl 11*", MatchSpec(track_features="mkl"))
+        assert env.install("mkl") == env.install(
+            "mkl 11*", MatchSpec(track_features="mkl")
+        )
 
     def test_accelerate(self, env):
         env.repo_packages = index_packages(1)
@@ -469,8 +484,12 @@ class SolverTests:
             helpers.record(name="a", depends=["py =3.7.1"]),
             helpers.record(name="py_req_1"),
             helpers.record(name="py_req_2"),
-            helpers.record(name="py", version="3.7.1", depends=["py_req_1", "py_req_2"]),
-            helpers.record(name="py", version="3.6.1", depends=["py_req_1", "py_req_2"]),
+            helpers.record(
+                name="py", version="3.7.1", depends=["py_req_1", "py_req_2"]
+            ),
+            helpers.record(
+                name="py", version="3.6.1", depends=["py_req_1", "py_req_2"]
+            ),
         ]
         with pytest.raises(UnsatisfiableError) as exc_info:
             env.install("a", "py=3.6.1")
@@ -609,8 +628,14 @@ class SolverTests:
         # this is testing that previously installed reqs are not disrupted
         # by newer timestamps. regression test of sorts for
         #  https://github.com/conda/conda/issues/6271
-        assert env.install("mypackage", *env.install("libpng 1.2.*", as_specs=True)) == records_12
-        assert env.install("mypackage", *env.install("libpng 1.5.*", as_specs=True)) == records_15
+        assert (
+            env.install("mypackage", *env.install("libpng 1.2.*", as_specs=True))
+            == records_12
+        )
+        assert (
+            env.install("mypackage", *env.install("libpng 1.5.*", as_specs=True))
+            == records_15
+        )
         # unspecified python version should maximize libpng (v1.5),
         # even though it has a lower timestamp
         assert env.install("mypackage") == records_15
@@ -778,7 +803,9 @@ class SolverTests:
         # will be selected for install instead of a later
         # build of scipy 0.11.0.
         good_rec_match = MatchSpec("channel-1::scipy==0.11.0=np17py33_3")
-        good_rec = next(prec for prec in index_packages(1) if good_rec_match.match(prec))
+        good_rec = next(
+            prec for prec in index_packages(1) if good_rec_match.match(prec)
+        )
         bad_deps = tuple(d for d in good_rec.depends if not d.startswith("numpy"))
         bad_rec = PackageRecord.from_objects(
             good_rec,
@@ -925,7 +952,7 @@ class SolverTests:
         # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
         #      have any effect. I have also tried conda.common.io.env_var like
         #      the other tests but no luck.
-        env.repo_packages = collections.OrderedDict()
+        env.repo_packages = {}
         env.repo_packages["channel-A"] = []
         env.repo_packages["channel-1"] = index_packages(1)
 
@@ -950,7 +977,7 @@ class SolverTests:
             "pandas", "python 2.7*", "numpy 1.6*"
         )
         # now lets revert the channels
-        env.repo_packages = collections.OrderedDict(reversed(env.repo_packages.items()))
+        env.repo_packages = dict(reversed(env.repo_packages.items()))
         monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
         assert "channel-1::pandas-0.11.0-np16py27_1" in env.install(
             "pandas", "python 2.7*", "numpy 1.6*"
@@ -961,7 +988,7 @@ class SolverTests:
         # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
         #      have any effect. I have also tried conda.common.io.env_var like
         #      the other tests but no luck.
-        env.repo_packages = collections.OrderedDict()
+        env.repo_packages = {}
         # higher priority
         env.repo_packages["channel-1"] = [
             helpers.record(

@@ -237,14 +237,18 @@ Chapter X: The del and null Weeds
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime
+from enum import Enum
 from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
+from pathlib import Path
 
-from enum import Enum
+try:
+    from boltons.timeutils import isoparse
+except ImportError:  # pragma: no cover
+    from .._vendor.boltons.timeutils import isoparse
 
 from . import NULL
-from .._vendor.boltons.timeutils import isoparse
 from .._vendor.frozendict import frozendict
 from .collection import AttrDict, make_immutable
 from .compat import isiterable, odict
@@ -959,4 +963,6 @@ class EntityEncoder(JSONEncoder):
             return obj.as_json()
         elif isinstance(obj, Enum):
             return obj.value
+        elif isinstance(obj, Path):
+            return str(obj)
         return JSONEncoder.default(self, obj)

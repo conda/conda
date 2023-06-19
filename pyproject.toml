@@ -1,23 +1,84 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatchling >=1.12.2",
+  "hatch-vcs >=0.2.0",
+]
+
+[project]
+authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "boltons >=23.0.0",
+  "conda-package-handling >=1.3.0",
+  "jsonpatch >=1.32",
+  # "menuinst >=1.4.11,<2 ; platform_system=='Windows'",
+  "menuinst >=2.0a0",
+  "packaging",
+  "pluggy >=1.0.0",
+  "pycosat >=0.6.3",
+  "pyopenssl >=16.2.0",
+  "requests >=2.27.0,<3",
+  "ruamel.yaml >=0.11.14,<0.18",
+  "setuptools >=60.0.0",
+  "toolz >=0.8.1",
+  "tqdm >=4",
+]
+description = "OS-agnostic, system-level binary package manager."
+dynamic = ["version"]
+license = {file = "LICENSE"}
+name = "conda"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.urls]
+changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
+documentation = "https://docs.conda.io/projects/conda/en/stable/"
+repository = "https://github.com/conda/conda"
+
+[project.scripts]
+conda = "conda.cli.main_pip:main"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "dirty-tag"
+
+[tool.hatch.build]
+include = ["conda", "conda_env"]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "conda/__version__.py"
+
 [tool.black]
-line-length = 99
-target-version = ['py37', 'py38', 'py39', 'py310']
-extend-exclude = '''
-^/(
-    conda/_vendor
-  | devenv
-)/
-'''
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
 
 [tool.vendoring]
 destination = "conda/_vendor/"
-requirements = "conda/_vendor/vendor.txt"
 namespace = "conda._vendor"
+requirements = "conda/_vendor/vendor.txt"
 
-protected-files = ["__init__.py", "vendor.txt", "README.md"]
 patches-dir = "tools/vendoring/patches"
+protected-files = ["__init__.py", "vendor.txt", "README.md"]
 
 [tool.vendoring.transformations]
-substitute = []
 drop = [
   # contains unnecessary scripts
   "bin/",
@@ -35,24 +96,23 @@ drop = [
   '^tqdm/(completion\.sh|tqdm\.1)',
   "tqdm/contrib",
 ]
+substitute = []
 
 [tool.vendoring.typing-stubs]
 # prevent stubs from being generated
-boltons = []
-toolz = []
-tqdm = []
 appdirs = []
+boltons = []
 cpuinfo = []
 distro = []
 frozendict = []
-six = []
+toolz = []
+tqdm = []
 
 [tool.vendoring.license.fallback-urls]
-boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE"  # BSD
-toolz = "https://raw.githubusercontent.com/pytoolz/toolz/master/LICENSE.txt"  # BSD
-tqdm = "https://raw.githubusercontent.com/tqdm/tqdm/master/LICENCE"  # MPL, MIT
-appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt"  # MIT
-cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
-distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
-frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
-six = "https://raw.githubusercontent.com/benjaminp/six/master/LICENSE"  # MIT
+appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt" # MIT
+boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE" # BSD
+cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE" # MIT
+distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE" # Apache
+frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt" # LGPL
+toolz = "https://raw.githubusercontent.com/pytoolz/toolz/master/LICENSE.txt" # BSD
+tqdm = "https://raw.githubusercontent.com/tqdm/tqdm/master/LICENCE" # MPL, MIT

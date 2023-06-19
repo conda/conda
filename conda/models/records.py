@@ -1,21 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
-                         +---------------+
-                         | PackageRecord |
-                         +--+---------+--+
-+--------------------+      |         |      +--------------+
-| PackageCacheRecord <------+         +------> PrefixRecord |
-+--------------------+                       +--------------+
+"""Implements the data model for conda packages.
 
+A PackageRecord is the record of a package present in a channel. A PackageCache is the record of a
+downloaded and cached package. A PrefixRecord is the record of a package installed into a conda
+environment.
 
+Object inheritance:
+
+.. autoclasstree:: conda.models.records
+   :full:
 """
 
 from os.path import basename, join
 
-from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
-from .match_spec import MatchSpec
+try:
+    from boltons.timeutils import dt_to_timestamp, isoparse
+except ImportError:  # pragma: no cover
+    from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
+
 from ..auxlib.entity import (
     BooleanField,
     ComposableField,
@@ -27,19 +30,21 @@ from ..auxlib.entity import (
     NumberField,
     StringField,
 )
-from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
+from .channel import Channel
+from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .match_spec import MatchSpec
 
 
 class LinkTypeField(EnumField):
     def box(self, instance, instance_type, val):
         if isinstance(val, str):
-            val = val.replace('-', '').replace('_', '').lower()
-            if val == 'hard':
+            val = val.replace("-", "").replace("_", "").lower()
+            if val == "hard":
                 val = LinkType.hardlink
-            elif val == 'soft':
+            elif val == "soft":
                 val = LinkType.softlink
         return super().box(instance, instance_type, val)
 
@@ -50,7 +55,6 @@ class NoarchField(EnumField):
 
 
 class TimestampField(NumberField):
-
     def __init__(self):
         super().__init__(default=0, required=False, default_in_dump=False)
 
@@ -59,7 +63,9 @@ class TimestampField(NumberField):
         if val:
             val = val
             if val > 253402300799:  # 9999-12-31
-                val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+                val /= (
+                    1000  # convert milliseconds to seconds; see conda/conda-build#1988
+                )
         return val
 
     @staticmethod
@@ -93,29 +99,27 @@ class Link(DictSafeMixin, Entity):
     type = LinkTypeField(LinkType, required=False)
 
 
-EMPTY_LINK = Link(source='')
+EMPTY_LINK = Link(source="")
 
 
 class _FeaturesField(ListField):
-
     def __init__(self, **kwargs):
         super().__init__(str, **kwargs)
 
     def box(self, instance, instance_type, val):
         if isinstance(val, str):
-            val = val.replace(' ', ',').split(',')
+            val = val.replace(" ", ",").split(",")
         val = tuple(f for f in (ff.strip() for ff in val) if f)
         return super().box(instance, instance_type, val)
 
     def dump(self, instance, instance_type, val):
         if isiterable(val):
-            return ' '.join(val)
+            return " ".join(val)
         else:
             return val or ()  # default value is (), and default_in_dump=False
 
 
 class ChannelField(ComposableField):
-
     def __init__(self, aliases=()):
         super().__init__(Channel, required=False, aliases=aliases)
 
@@ -135,7 +139,6 @@ class ChannelField(ComposableField):
 
 
 class SubdirField(StringField):
-
     def __init__(self):
         super().__init__(required=False)
 
@@ -155,7 +158,7 @@ class SubdirField(StringField):
             except AttributeError:
                 platform, arch = None, None
             if platform and not arch:
-                return self.unbox(instance, instance_type, 'noarch')
+                return self.unbox(instance, instance_type, "noarch")
             elif platform:
                 if "x86" in arch:
                     arch = "64" if "64" in arch else "32"
@@ -165,7 +168,6 @@ class SubdirField(StringField):
 
 
 class FilenameField(StringField):
-
     def __init__(self, aliases=()):
         super().__init__(required=False, aliases=aliases)
 
@@ -185,10 +187,13 @@ class FilenameField(StringField):
 
 
 class PackageTypeField(EnumField):
-
     def __init__(self):
         super().__init__(
-            PackageType, required=False, nullable=True, default=None, default_in_dump=False
+            PackageType,
+            required=False,
+            nullable=True,
+            default=None,
+            default_in_dump=False,
         )
 
     def __get__(self, instance, instance_type):
@@ -208,10 +213,13 @@ class PackageTypeField(EnumField):
 
 class PathData(Entity):
     _path = StringField()
-    prefix_placeholder = StringField(required=False, nullable=True, default=None,
-                                     default_in_dump=False)
+    prefix_placeholder = StringField(
+        required=False, nullable=True, default=None, default_in_dump=False
+    )
     file_mode = EnumField(FileMode, required=False, nullable=True)
-    no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
+    no_link = BooleanField(
+        required=False, nullable=True, default=None, default_in_dump=False
+    )
     path_type = EnumField(PathType)
 
     @property
@@ -238,22 +246,29 @@ class PathsData(Entity):
 class PackageRecord(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
-    build = StringField(aliases=('build_string',))
+    build = StringField(aliases=("build_string",))
     build_number = IntegerField()
 
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
-    channel = ChannelField(aliases=('schannel',))
+    channel = ChannelField(aliases=("schannel",))
     subdir = SubdirField()
-    fn = FilenameField(aliases=('filename',))
+    fn = FilenameField(aliases=("filename",))
 
-    md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
-    legacy_bz2_md5 = StringField(default=None, required=False, nullable=True,
-                                 default_in_dump=False)
+    md5 = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
+    legacy_bz2_md5 = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
-    url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
-    sha256 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
+    url = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
+    sha256 = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
 
     metadata_signature_status = StringField(
         default="", required=False, nullable=True, default_in_dump=False
@@ -269,8 +284,12 @@ class PackageRecord(DictSafeMixin, Entity):
             return self.__pkey
         except AttributeError:
             __pkey = self.__pkey = [
-                self.channel.canonical_name, self.subdir, self.name,
-                self.version, self.build_number, self.build
+                self.channel.canonical_name,
+                self.subdir,
+                self.name,
+                self.version,
+                self.build_number,
+                self.build,
             ]
             # NOTE: fn is included to distinguish between .conda and .tar.bz2 packages
             if context.separate_format_cache:
@@ -294,7 +313,8 @@ class PackageRecord(DictSafeMixin, Entity):
             ("/" + self.subdir) if self.subdir else "",
             self.name,
             self.version,
-            self.build)
+            self.build,
+        )
 
     def dist_fields_dump(self):
         return {
@@ -317,13 +337,19 @@ class PackageRecord(DictSafeMixin, Entity):
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
-    noarch = NoarchField(NoarchType, required=False, nullable=True, default=None,
-                         default_in_dump=False)  # TODO: rename to package_type
-    preferred_env = StringField(required=False, nullable=True, default=None, default_in_dump=False)
+    noarch = NoarchField(
+        NoarchType, required=False, nullable=True, default=None, default_in_dump=False
+    )  # TODO: rename to package_type
+    preferred_env = StringField(
+        required=False, nullable=True, default=None, default_in_dump=False
+    )
 
-    license = StringField(required=False, nullable=True, default=None, default_in_dump=False)
-    license_family = StringField(required=False, nullable=True, default=None,
-                                 default_in_dump=False)
+    license = StringField(
+        required=False, nullable=True, default=None, default_in_dump=False
+    )
+    license_family = StringField(
+        required=False, nullable=True, default=None, default_in_dump=False
+    )
     package_type = PackageTypeField()
 
     @property
@@ -335,8 +361,9 @@ class PackageRecord(DictSafeMixin, Entity):
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec
+
         result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        for spec in (self.constrains or ()):
+        for spec in self.constrains or ():
             ms = MatchSpec(spec)
             result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
         return tuple(result.values())
@@ -355,7 +382,11 @@ class PackageRecord(DictSafeMixin, Entity):
 
     def __str__(self):
         return "{}/{}::{}=={}={}".format(
-            self.channel.canonical_name, self.subdir, self.name, self.version, self.build
+            self.channel.canonical_name,
+            self.subdir,
+            self.name,
+            self.version,
+            self.build,
         )
 
     def to_match_spec(self):
@@ -388,7 +419,6 @@ class PackageRecord(DictSafeMixin, Entity):
 
 
 class Md5Field(StringField):
-
     def __init__(self):
         super().__init__(required=False, nullable=True)
 
@@ -403,7 +433,6 @@ class Md5Field(StringField):
 
 
 class PackageCacheRecord(PackageRecord):
-
     package_tarball_full_path = StringField()
     extracted_package_dir = StringField()
 
@@ -412,38 +441,43 @@ class PackageCacheRecord(PackageRecord):
     @property
     def is_fetched(self):
         from ..gateways.disk.read import isfile
+
         return isfile(self.package_tarball_full_path)
 
     @property
     def is_extracted(self):
         from ..gateways.disk.read import isdir, isfile
+
         epd = self.extracted_package_dir
-        return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
+        return isdir(epd) and isfile(join(epd, "info", "index.json"))
 
     @property
     def tarball_basename(self):
         return basename(self.package_tarball_full_path)
 
     def _calculate_md5sum(self):
-        memoized_md5 = getattr(self, '_memoized_md5', None)
+        memoized_md5 = getattr(self, "_memoized_md5", None)
         if memoized_md5:
             return memoized_md5
 
         from os.path import isfile
+
         if isfile(self.package_tarball_full_path):
-            from ..gateways.disk.read import compute_md5sum
-            md5sum = compute_md5sum(self.package_tarball_full_path)
-            setattr(self, '_memoized_md5', md5sum)
+            from ..gateways.disk.read import compute_sum
+
+            md5sum = compute_sum(self.package_tarball_full_path, "md5")
+            setattr(self, "_memoized_md5", md5sum)
             return md5sum
 
 
 class PrefixRecord(PackageRecord):
-
     package_tarball_full_path = StringField(required=False)
     extracted_package_dir = StringField(required=False)
 
     files = ListField(str, default=(), required=False)
-    paths_data = ComposableField(PathsData, required=False, nullable=True, default_in_dump=False)
+    paths_data = ComposableField(
+        PathsData, required=False, nullable=True, default_in_dump=False
+    )
     link = ComposableField(Link, required=False)
     # app = ComposableField(App, required=False)
 
@@ -452,9 +486,6 @@ class PrefixRecord(PackageRecord):
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
     auth = StringField(required=False, nullable=True)
-
-    # # a new concept introduced in 4.4 for private env packages
-    # leased_paths = ListField(LeasedPathEntry, required=False)
 
     # @classmethod
     # def load(cls, conda_meta_json_path):

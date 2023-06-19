@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 #
 # conda documentation build configuration file, created by
 # sphinx-quickstart on Wed Aug 16 00:33:55 2017.
@@ -238,6 +237,6 @@ add_module_names = False
 
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'pluggy': ('https://pluggy.readthedocs.io/en/stable/', None),
+    "python": ("https://docs.python.org/3", None),
+    "pluggy": ("https://pluggy.readthedocs.io/en/stable/", None),
 }

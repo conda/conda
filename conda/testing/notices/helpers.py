@@ -1,30 +1,31 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Collection of helper functions used in conda.notices tests."""
 from __future__ import annotations
 
 import datetime
-import uuid
 import json
 import os
+import uuid
 from itertools import chain
 from pathlib import Path
 from typing import Sequence
 from unittest import mock
 
 from conda.base.context import Context
+from conda.models.channel import get_channel_objs
 from conda.notices.cache import get_notices_cache_file
 from conda.notices.core import get_channel_name_and_urls
 from conda.notices.types import ChannelNoticeResponse
-from conda.models.channel import get_channel_objs
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
 
 def get_test_notices(
     messages: Sequence[str],
-    level: Optional[str] = "info",
-    created_at: Optional[datetime.datetime] = None,
-    expired_at: Optional[datetime.datetime] = None,
+    level: str | None = "info",
+    created_at: datetime.datetime | None = None,
+    expired_at: datetime.datetime | None = None,
 ) -> dict:
     created_at = created_at or datetime.datetime.now(datetime.timezone.utc)
     expired_at = expired_at or created_at + datetime.timedelta(days=7)
@@ -80,14 +81,13 @@ def offset_cache_file_mtime(mtime_offset) -> None:
     """
     cache_file = get_notices_cache_file()
     os.utime(
-        cache_file, times=(cache_file.stat().st_atime, cache_file.stat().st_mtime - mtime_offset)
+        cache_file,
+        times=(cache_file.stat().st_atime, cache_file.stat().st_mtime - mtime_offset),
     )
 
 
 class DummyArgs:
-    """
-    Dummy object that sets all kwargs as object properties
-    """
+    """Dummy object that sets all kwargs as object properties."""
 
     def __init__(self, **kwargs):
         self.no_ansi_colors = True
@@ -97,7 +97,10 @@ class DummyArgs:
 
 
 def notices_decorator_assert_message_in_stdout(
-    captured, messages: Sequence[str], dummy_mesg: Optional[str] = None, not_in: bool = False
+    captured,
+    messages: Sequence[str],
+    dummy_mesg: str | None = None,
+    not_in: bool = False,
 ):
     """
     Tests a run of notices decorator where we expect to see the messages

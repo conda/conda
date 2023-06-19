@@ -1,20 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Tools for cross-OS portability."""
 from __future__ import annotations
 
-from logging import getLogger
-from os.path import realpath, basename
 import os
 import re
 import struct
 import subprocess
 import sys
+from logging import getLogger
+from os.path import basename, realpath
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_win, on_linux
-from ..exceptions import CondaIOError, BinaryPrefixReplacementError
+from ..common.compat import on_linux, on_win
+from ..exceptions import BinaryPrefixReplacementError, CondaIOError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
 
@@ -22,11 +23,13 @@ log = getLogger(__name__)
 
 
 # three capture groups: whole_shebang, executable, options
-SHEBANG_REGEX = (br'^(#!'  # pretty much the whole match string
-                 br'(?:[ ]*)'  # allow spaces between #! and beginning of the executable path
-                 br'(/(?:\\ |[^ \n\r\t])*)'  # the executable is the next text block without an escaped space or non-space whitespace character  # NOQA
-                 br'(.*)'  # the rest of the line can contain option flags
-                 br')$')  # end whole_shebang group
+SHEBANG_REGEX = (
+    rb"^(#!"  # pretty much the whole match string
+    rb"(?:[ ]*)"  # allow spaces between #! and beginning of the executable path
+    rb"(/(?:\\ |[^ \n\r\t])*)"  # the executable is the next text block without an escaped space or non-space whitespace character  # NOQA
+    rb"(.*)"  # the rest of the line can contain option flags
+    rb")$"
+)  # end whole_shebang group
 
 MAX_SHEBANG_LENGTH = 127 if on_linux else 512  # Not used on Windows
 
@@ -59,7 +62,6 @@ def update_prefix(
         new_prefix = new_prefix.replace("\\", "/")
 
     def _update_prefix(original_data):
-
         # Step 1. do all prefix replacement
         data = replace_prefix(mode, original_data, placeholder, new_prefix)
 
@@ -75,19 +77,29 @@ def update_prefix(
         # Step 4. if we have a binary file, make sure the byte size is the same before
         #         and after the update
         if mode == FileMode.binary and len(data) != len(original_data):
-            raise BinaryPrefixReplacementError(path, placeholder, new_prefix,
-                                               len(original_data), len(data))
+            raise BinaryPrefixReplacementError(
+                path, placeholder, new_prefix, len(original_data), len(data)
+            )
 
         return data
 
     updated = update_file_in_place_as_binary(realpath(path), _update_prefix)
 
-    if updated and mode == FileMode.binary and subdir == "osx-arm64" and sys.platform == "darwin":
+    if (
+        updated
+        and mode == FileMode.binary
+        and subdir == "osx-arm64"
+        and sys.platform == "darwin"
+    ):
         # Apple arm64 needs signed executables
-        subprocess.run(['/usr/bin/codesign', '-s', '-', '-f', realpath(path)], capture_output=True)
+        subprocess.run(
+            ["/usr/bin/codesign", "-s", "-", "-f", realpath(path)], capture_output=True
+        )
 
 
-def replace_prefix(mode: FileMode, data: bytes, placeholder: str, new_prefix: str) -> bytes:
+def replace_prefix(
+    mode: FileMode, data: bytes, placeholder: str, new_prefix: str
+) -> bytes:
     """
     Replaces `placeholder` text with the `new_prefix` provided. The `mode` provided can
     either be text or binary.
@@ -110,14 +122,23 @@ def replace_prefix(mode: FileMode, data: bytes, placeholder: str, new_prefix: st
                     shebang_line, rest_of_data = data[:newline_pos], data[newline_pos:]
                     shebang_placeholder = f"#!{placeholder}".encode(encoding)
                     if shebang_placeholder in shebang_line:
-                        escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode(encoding)
-                        shebang_line = shebang_line.replace(shebang_placeholder, escaped_shebang)
+                        escaped_shebang = f"#!{new_prefix}".replace(" ", "\\ ").encode(
+                            encoding
+                        )
+                        shebang_line = shebang_line.replace(
+                            shebang_placeholder, escaped_shebang
+                        )
                         data = shebang_line + rest_of_data
             # the rest of the file can be replaced normally
-            data = data.replace(placeholder.encode(encoding), new_prefix.encode(encoding))
+            data = data.replace(
+                placeholder.encode(encoding), new_prefix.encode(encoding)
+            )
         elif mode == FileMode.binary:
             data = binary_replace(
-                data, placeholder.encode(encoding), new_prefix.encode(encoding), encoding=encoding
+                data,
+                placeholder.encode(encoding),
+                new_prefix.encode(encoding),
+                encoding=encoding,
             )
         else:
             raise CondaIOError("Invalid mode: %r" % mode)
@@ -166,8 +187,9 @@ def binary_replace(
 
     return data
 
+
 def has_pyzzer_entry_point(data):
-    pos = data.rfind(b'PK\x05\x06')
+    pos = data.rfind(b"PK\x05\x06")
     return pos >= 0
 
 
@@ -197,24 +219,24 @@ def replace_pyzzer_entry_point_shebang(all_data, placeholder, new_prefix):
     # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     # THE SOFTWARE.
     launcher = shebang = None
-    pos = all_data.rfind(b'PK\x05\x06')
+    pos = all_data.rfind(b"PK\x05\x06")
     if pos >= 0:
-        end_cdr = all_data[pos + 12:pos + 20]
-        cdr_size, cdr_offset = struct.unpack('<LL', end_cdr)
+        end_cdr = all_data[pos + 12 : pos + 20]
+        cdr_size, cdr_offset = struct.unpack("<LL", end_cdr)
         arc_pos = pos - cdr_size - cdr_offset
         data = all_data[arc_pos:]
         if arc_pos > 0:
-            pos = all_data.rfind(b'#!', 0, arc_pos)
+            pos = all_data.rfind(b"#!", 0, arc_pos)
             if pos >= 0:
                 shebang = all_data[pos:arc_pos]
                 if pos > 0:
                     launcher = all_data[:pos]
 
         if data and shebang and launcher:
-            if hasattr(placeholder, 'encode'):
-                placeholder = placeholder.encode('utf-8')
-            if hasattr(new_prefix, 'encode'):
-                new_prefix = new_prefix.encode('utf-8')
+            if hasattr(placeholder, "encode"):
+                placeholder = placeholder.encode("utf-8")
+            if hasattr(new_prefix, "encode"):
+                new_prefix = new_prefix.encode("utf-8")
             shebang = shebang.replace(placeholder, new_prefix)
             all_data = b"".join([launcher, shebang, data])
     return all_data
@@ -234,7 +256,9 @@ def replace_long_shebang(mode, data):
             whole_shebang, executable, options = shebang_match.groups()
             prefix, executable_name = executable.decode("utf-8").rsplit("/", 1)
             if len(whole_shebang) > MAX_SHEBANG_LENGTH or "\\ " in prefix:
-                new_shebang = f"#!/usr/bin/env {executable_name}{options.decode('utf-8')}"
+                new_shebang = (
+                    f"#!/usr/bin/env {executable_name}{options.decode('utf-8')}"
+                )
                 data = data.replace(whole_shebang, new_shebang.encode("utf-8"))
 
     else:

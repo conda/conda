@@ -1,18 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Disk utility functions testing path properties (e.g., writable, hardlinks, softlinks, etc.)."""
 from functools import lru_cache
 from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
-from .create import create_link
-from .delete import rm_rf
-from .link import islink, lexists
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.path import expand
 from ...models.enums import LinkType
+from .create import create_link
+from .delete import rm_rf
+from .link import islink, lexists
 
 log = getLogger(__name__)
 
@@ -23,7 +23,7 @@ def file_path_is_writable(path):
     if isdir(dirname(path)):
         path_existed = lexists(path)
         try:
-            fh = open(path, 'a+')
+            fh = open(path, "a+")
         except OSError as e:
             log.debug(e)
             return False
@@ -67,7 +67,7 @@ def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.
     log.trace("checking soft link capability for %s => %s", source_file, dest_dir)
-    test_path = join(dest_dir, '.tmp.' + basename(source_file))
+    test_path = join(dest_dir, ".tmp." + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
     assert not lexists(test_path), test_path

@@ -1,38 +1,49 @@
 # conda
-# run as 'conda install --file tests/requirements.txt -c defaults'
+# run as 'conda install --file tests/requirements.txt -c defaults' or
+# run as 'conda install --file tests/requirements.txt -c conda-forge'
 anaconda-client
 beautifulsoup4
-boto3 # NOTE: we also need the `minio` server, installed manually in CI
+boltons >=23.0.0
+boto3  # also need the `minio` server, installed manually in CI
 chardet
 conda
-conda-build
-conda-forge::pre-commit
+conda-build >=3.23.3
+conda-content-trust
+conda-forge::flake8-docstrings
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
-conda-package-handling
+conda-package-handling >=1.3.0
 conda-verify
-filelock
+coverage
+cryptography <41.0.0  # 41.0.0 breaks conda-content-trust 0.1.3
 flake8
+flask >=2.2
 git
+jsonpatch >=1.32
 nbformat
+packaging
 perl
 pexpect
 pip
-pluggy
 pkginfo
-pycosat
-pycrypto
+pluggy >=1.0.0
+pre-commit
+pycosat >=0.6.3
 pyflakes
+pyopenssl >=16.2.0,<23.2.0  # 23.2.0 breaks conda-content-trust 0.1.3
 pytest
 pytest-cov
 pytest-mock
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
-requests
+requests >=2.18.4,<3
 responses
-ruamel.yaml
-toolz
-tqdm
+ruamel.yaml >=0.11.14,<0.18
+setuptools >=60.0.0
+setuptools_scm  # needed for devenv version detection
+toolz >=0.8.1
+tqdm >=4
+werkzeug >=2.2
 jaimergp/label/menuinst_dev::menuinst  # temporary

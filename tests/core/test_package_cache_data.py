@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import datetime
 import json
 from os.path import abspath, basename, dirname, join
 
 import pytest
 
+import conda.core.package_cache
 from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
@@ -25,9 +25,12 @@ from conda.exports import MatchSpec, url_path
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
+from conda.testing.helpers import CHANNEL_DIR
 from conda.testing.integration import make_temp_package_cache
 
-CHANNEL_DIR = abspath(join(dirname(__file__), "..", "data", "conda_format_repo"))
+assert CHANNEL_DIR == abspath(
+    join(dirname(__file__), "..", "data", "conda_format_repo")
+)
 CONDA_PKG_REPO = url_path(CHANNEL_DIR)
 
 subdir = "win-64"
@@ -88,7 +91,9 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format():
             # zlib is the one package in the test index that has a .conda file record
             if rec.name == "zlib" and rec.version == "1.2.11":
                 break
-        cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(rec)
+        cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+            rec
+        )
     assert cache_action
     assert cache_action.target_package_basename.endswith(".conda")
     assert extract_action
@@ -96,7 +101,8 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format():
 
 
 @pytest.mark.skipif(
-    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
+    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30),
+    reason="time bomb",
 )
 def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg():
     """
@@ -145,7 +151,8 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg():
     complementary .conda package replaces it if that's what is requested.
     """
     with env_vars(
-        {"CONDA_SEPARATE_FORMAT_CACHE": True}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        {"CONDA_SEPARATE_FORMAT_CACHE": True},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         with make_temp_package_cache() as pkgs_dir:
             # Cache the .tar.bz2 file in the package cache and extract it
@@ -185,7 +192,9 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg():
 
             pfe.execute()
 
-            with open(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")) as fh:
+            with open(
+                join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")
+            ) as fh:
                 repodata_record = json.load(fh)
             assert repodata_record["fn"] == zlib_conda_fn
 
@@ -202,7 +211,8 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
     complementary .tar.bz2 package replaces it if that's what is requested.
     """
     with env_vars(
-        {"CONDA_SEPARATE_FORMAT_CACHE": True}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        {"CONDA_SEPARATE_FORMAT_CACHE": True},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         with make_temp_package_cache() as pkgs_dir:
             # Cache the .conda file in the package cache and extract it
@@ -242,7 +252,9 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
 
             pfe.execute()
 
-            with open(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")) as fh:
+            with open(
+                join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")
+            ) as fh:
                 repodata_record = json.load(fh)
             assert repodata_record["fn"] == zlib_tar_bz2_fn
 
@@ -271,7 +283,8 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2():
 
 
 @pytest.mark.skipif(
-    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
+    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30),
+    reason="time bomb",
 )
 def test_tar_bz2_in_cache_not_extracted():
     """
@@ -279,7 +292,9 @@ def test_tar_bz2_in_cache_not_extracted():
     .conda package is requested, the .tar.bz2 package in the cache is used by default.
     """
     with make_temp_package_cache() as pkgs_dir:
-        copy(join(CHANNEL_DIR, subdir, zlib_tar_bz2_fn), join(pkgs_dir, zlib_tar_bz2_fn))
+        copy(
+            join(CHANNEL_DIR, subdir, zlib_tar_bz2_fn), join(pkgs_dir, zlib_tar_bz2_fn)
+        )
         pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
         pfe.prepare()
         assert len(pfe.cache_actions) == 1
@@ -300,7 +315,8 @@ def test_tar_bz2_in_cache_not_extracted():
 
 
 @pytest.mark.skipif(
-    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30), reason="time bomb"
+    on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30),
+    reason="time bomb",
 )
 def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist():
     """
@@ -397,6 +413,46 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
         assert zlib_conda_fn in pkgs_dir_files
 
 
+def test_instantiating_package_cache_when_unpacked_conda_exist():
+    """
+    If .conda package exist in a writable package cache, but is unpacked,
+    the .conda package should be unpacked in place.
+    """
+    with make_temp_package_cache() as pkgs_dir:
+        # copy .conda to package cache
+        pkg_url = f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}"
+        cache_action = CacheUrlAction(
+            pkg_url,
+            pkgs_dir,
+            zlib_conda_fn,
+        )
+        cache_action.verify()
+        cache_action.execute()
+        cache_action.cleanup()
+
+        PackageCacheData._cache_.clear()
+        pcd = PackageCacheData(pkgs_dir)
+        pcrecs = tuple(pcd.iter_records())
+        assert len(pcrecs) == 1
+        pcrec = pcrecs[0]
+
+        # ensure the package was actually extracted by presence of repodata_record.json
+        with open(join(pkgs_dir, zlib_base_fn, "info", "repodata_record.json")) as fh:
+            repodata_record = json.load(fh)
+
+        assert pcrec.fn == zlib_conda_fn == repodata_record["fn"]
+        assert pcrec.md5 == repodata_record["md5"]
+
+        pkgs_dir_files = listdir(pkgs_dir)
+        assert zlib_base_fn in pkgs_dir_files
+        assert zlib_conda_fn in pkgs_dir_files
+
+        # PackageRecord should have valid url otherwise query won't find a match when MatchSpec is an explicit url
+        assert pcrec.url == pkg_url
+        pcrec_match = tuple(pcd.query(MatchSpec(pkg_url)))
+        assert len(pcrec_match) == 1
+
+
 def test_cover_reverse():
     class f:
         def result(self):
@@ -487,3 +543,8 @@ def test_cover_extract_bad_package(tmp_path):
     with open(fullpath, "w") as archive:
         archive.write("")
     PackageCacheData.first_writable()._make_single_record(str(fullpath))
+
+
+def test_conda_build_alias():
+    """conda-build wants to use an old import."""
+    assert conda.core.package_cache.ProgressiveFetchExtract

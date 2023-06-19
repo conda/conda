@@ -7,7 +7,7 @@ source:
 
 build:
   number: 0
-  noarch: True
+  noarch: generic
   script:
     - cp -r etc ${PREFIX}            #[not win]
     - (robocopy etc %PREFIX%\etc /E /v /fp) ^& IF %ERRORLEVEL% LSS 8 SET ERRORLEVEL = 0  #[win] https://superuser.com/a/346112

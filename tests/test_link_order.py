@@ -1,18 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
-from logging import getLogger
-import unittest
-import pytest
-import os
 import shutil
 import tempfile
-from unittest.mock import patch
+import unittest
+from logging import getLogger
 
-from conda.testing.integration import run_command, Commands
+import pytest
+
+from conda.testing.integration import Commands, run_command
 
 log = getLogger(__name__)
+
 
 class TestLinkOrder(unittest.TestCase):
     def setUp(self):
@@ -23,10 +21,14 @@ class TestLinkOrder(unittest.TestCase):
 
     @pytest.mark.integration
     def test_link_order_post_link_actions(self):
-        stdout, stderr, _ = run_command(Commands.CREATE, self.prefix, "c_post_link_package", "-c", "conda-test")
-        assert(stderr == '')
+        stdout, stderr, _ = run_command(
+            Commands.CREATE, self.prefix, "c_post_link_package", "-c", "conda-test"
+        )
+        assert stderr == ""
 
     @pytest.mark.integration
     def test_link_order_post_link_depend(self):
-        stdout, stderr, _ = run_command(Commands.CREATE, self.prefix, "e_post_link_package", "-c", "conda-test")
-        assert(stderr == '')
+        stdout, stderr, _ = run_command(
+            Commands.CREATE, self.prefix, "e_post_link_package", "-c", "conda-test"
+        )
+        assert stderr == ""

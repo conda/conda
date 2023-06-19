@@ -1,12 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from functools import lru_cache
+"""Utilities for finding executables and `conda-*` commands."""
 import os
-from os.path import basename, expanduser, isdir, isfile, join
 import re
 import sys
 import sysconfig
+from functools import lru_cache
+from os.path import basename, expanduser, isdir, isfile, join
 
 from ..common.compat import on_win
 
@@ -17,22 +17,22 @@ def find_executable(executable, include_others=True):
 
     if include_others:
         from ..utils import sys_prefix_unfollowed
+
         prefixes = [sys_prefix_unfollowed()]
         if sys.prefix != prefixes[0]:
             prefixes.append(sys.prefix)
-        dir_paths = [join(p, basename(sysconfig.get_path('scripts')))
-                     for p in prefixes]
+        dir_paths = [join(p, basename(sysconfig.get_path("scripts"))) for p in prefixes]
         # Is this still needed?
         if on_win:
-            dir_paths.append('C:\\cygwin\\bin')
+            dir_paths.append("C:\\cygwin\\bin")
     else:
         dir_paths = []
 
-    dir_paths.extend(os.environ.get('PATH', '').split(os.pathsep))
+    dir_paths.extend(os.environ.get("PATH", "").split(os.pathsep))
 
     for dir_path in dir_paths:
         if on_win:
-            for ext in ('.exe', '.bat', ''):
+            for ext in (".exe", ".bat", ""):
                 path = join(dir_path, executable + ext)
                 if isfile(path):
                     return path
@@ -45,24 +45,23 @@ def find_executable(executable, include_others=True):
 
 @lru_cache(maxsize=None)
 def find_commands(include_others=True):
-
     if include_others:
         from ..utils import sys_prefix_unfollowed
+
         prefixes = [sys_prefix_unfollowed()]
         if sys.prefix != prefixes[0]:
             prefixes.append(sys.prefix)
-        dir_paths = [join(p, basename(sysconfig.get_path('scripts')))
-                     for p in prefixes]
+        dir_paths = [join(p, basename(sysconfig.get_path("scripts"))) for p in prefixes]
         # Is this still needed?
         if on_win:
-            dir_paths.append('C:\\cygwin\\bin')
+            dir_paths.append("C:\\cygwin\\bin")
     else:
         dir_paths = []
 
     if on_win:
-        pat = re.compile(r'conda-([\w\-]+)\.(exe|bat)$')
+        pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)$")
     else:
-        pat = re.compile(r'conda-([\w\-]+)$')
+        pat = re.compile(r"conda-([\w\-]+)$")
 
     res = set()
     for dir_path in dir_paths:

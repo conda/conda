@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# WARNING: Not a real conda entry point.  Do not use other than for tests.
-from os.path import abspath, join
+"""Conda entry point for testing."""
 import sys
+from os.path import abspath, join
 
-_conda_root = abspath(join(__file__, '..', '..', '..', '..'))
+_conda_root = abspath(join(__file__, "..", "..", "..", ".."))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.path.insert(0, _conda_root)
     from conda.cli import main
+    from conda.deprecations import deprecated
+
+    deprecated.topic("24.3", "24.9")
+
     sys.exit(main())
