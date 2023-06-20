@@ -1453,10 +1453,6 @@ def test_package_pinning(clear_package_cache: None):
 
 def test_update_all_updates_pip_pkg(clear_package_cache: None):
     with make_temp_env("python=3.6", "pip", "pytz=2018", no_capture=True) as prefix:
-        pip_ioo, pip_ioe, _ = run_command(
-            Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true"
-        )
-
         pip_o, pip_e, _ = run_command(
             Commands.RUN,
             prefix,
@@ -1761,7 +1757,6 @@ def test_packages_not_found(clear_package_cache: None):
 
 def test_conda_pip_interop_dependency_satisfied_by_pip(clear_package_cache: None):
     with make_temp_env("python=3.10", "pip", use_restricted_unicode=False) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
         run_command(
             Commands.RUN,
             prefix,
@@ -1829,7 +1824,6 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
         "python=3.5",
         use_restricted_unicode=on_win,
     ) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
         assert package_is_installed(prefix, "six=1.9.0")
         assert package_is_installed(prefix, "python=3.5")
 
@@ -2031,7 +2025,6 @@ def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
         ) as prefix:
             workdir = prefix
 
-            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
@@ -2162,7 +2155,6 @@ def test_conda_pip_interop_compatible_release_operator(clear_package_cache: None
         "appdirs",
         use_restricted_unicode=on_win,
     ) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
         assert package_is_installed(prefix, "python")
         assert package_is_installed(prefix, "six=1.9")
         assert package_is_installed(prefix, "appdirs>=1.4.3")

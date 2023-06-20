@@ -180,7 +180,7 @@ def test_pip_interop_windows():
     for path, expected_output in test_cases:
         with set_on_win(True):
             if isdir(path):
-                prefixdata = PrefixData(path, pip_interop_enabled=True)
+                prefixdata = PrefixData(path)
                 prefixdata.load()
                 records = prefixdata._load_site_packages()
                 record_names = tuple(sorted(records.keys()))
@@ -311,7 +311,7 @@ def test_pip_interop_osx():
     for path, expected_output in test_cases:
         if isdir(path):
             with set_on_win(False):
-                prefixdata = PrefixData(path, pip_interop_enabled=True)
+                prefixdata = PrefixData(path)
                 prefixdata.load()
                 records = prefixdata._load_site_packages()
                 record_names = tuple(sorted(records.keys()))

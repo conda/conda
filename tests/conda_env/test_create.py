@@ -42,27 +42,21 @@ def reenable_dotlog(handlers):
     dotlogger.handlers = handlers
 
 
-def package_is_installed(prefix, spec, pip=None):
+def package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=pip).query(spec))
+    prefix_recs = tuple(PrefixData(prefix).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
             "Multiple packages installed.%s"
             % (dashlist(prec.dist_str() for prec in prefix_recs))
         )
     is_installed = bool(len(prefix_recs))
-    if is_installed and pip is True:
+    if is_installed:
         assert prefix_recs[0].package_type in (
             PackageType.VIRTUAL_PYTHON_WHEEL,
             PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
             PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
             PackageType.VIRTUAL_PYTHON_EGG_LINK,
-        )
-    if is_installed and pip is False:
-        assert prefix_recs[0].package_type in (
-            None,
-            PackageType.NOARCH_GENERIC,
-            PackageType.NOARCH_PYTHON,
         )
     return is_installed
 
@@ -173,16 +167,16 @@ class IntegrationTests(TestCase):
                 )
                 assert exists(python_path)
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "argh", pip=True)
+                assert package_is_installed(prefix, "argh")
                 assert package_is_installed(
-                    prefix, "module-to-install-in-editable-mode", pip=True
+                    prefix, "module-to-install-in-editable-mode"
                 )
                 try:
-                    assert package_is_installed(prefix, "six", pip=True)
+                    assert package_is_installed(prefix, "six")
                 except AssertionError:
                     # six may now be conda-installed because of packaging changes
                     assert package_is_installed(prefix, "six", pip=False)
-                assert package_is_installed(prefix, "xmltodict=0.10.2", pip=True)
+                assert package_is_installed(prefix, "xmltodict=0.10.2")
 
     def test_create_empty_env(self):
         with make_temp_envs_dir() as envs_dir:
