@@ -307,7 +307,13 @@ class _Activator(metaclass=abc.ABCMeta):
                     + str(remainder_args)
                     + "\n"
                 )
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or "base"
+
+            # environment name is either contained in arguments, or drawn from context
+            self.env_name_or_prefix = (
+                remainder_args
+                and remainder_args[0]
+                or context.auto_activate_environment
+            )
 
         else:
             if remainder_args:

@@ -13,6 +13,7 @@ from re import escape
 from shutil import which
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
+from typing import Literal
 from unittest import TestCase
 from uuid import uuid4
 
@@ -39,7 +40,7 @@ from conda.base.constants import (
     ROOT_ENV_NAME,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.cli.main import main_sourced
+from conda.cli.main import main_sourced, main_subshell
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -53,6 +54,7 @@ from conda.testing.integration import (
     make_temp_env,
     run_command,
 )
+from conda_env import env
 
 log = getLogger(__name__)
 
@@ -1207,6 +1209,48 @@ class ActivatorUnitTests(TestCase):
                     assert builder["export_path"] == export_path
                     assert builder["activate_scripts"] == ()
                     assert builder["deactivate_scripts"] == ()
+
+    def test_set_auto_activate_env(self):
+        # create an env called test-env, and then set it to the default
+        exit_code_1 = main_subshell("create", "-y", "-n", "test-env")
+        exit_code_2 = main_subshell(
+            "config", "--set", "auto_activate_environment", "test-env"
+        )
+
+        # activate an unspecified env
+        activator = (
+            PowerShellActivator(["activate", "--no-stack"])
+            if on_win
+            else PosixActivator(["activate", "--no-stack"])
+        )
+        activator.execute()
+
+        # if the we've managed to activate test-env without naming it, the test passes
+        assert activator.env_name_or_prefix == "test-env"
+
+        # isolate the test by clearing out the env and resetting the context
+        activator.deactivate()
+        exit_code_3 = main_subshell("remove", "-n", "test-env", "--all", "-y")
+        exit_code_4 = main_subshell(
+            "config", "--remove-key", "auto_activate_environment"
+        )
+        context.__init__()
+
+    def test_auto_activate_env_base_if_not_set(self):
+        # activate an unspecified env
+        activator = (
+            PowerShellActivator(["activate", "--no-stack"])
+            if on_win
+            else PosixActivator(["activate", "--no-stack"])
+        )
+        activator.execute()
+
+        # if the we've managed to activate the base environment, the test passes
+        assert activator.env_name_or_prefix == "base"
+
+        # isolate the test by clearing out the env and resetting the context
+        activator.deactivate()
+        context.__init__()
 
 
 class ShellWrapperUnitTests(TestCase):
@@ -3118,7 +3162,11 @@ def prefix():
         ),
     ],
 )
-def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_package):
+def test_activate_deactivate_modify_path(
+    shell,
+    prefix: str,
+    activate_deactivate_package: Literal["activate_deactivate_package"],
+):
     original_path = os.environ.get("PATH")
     run_command(Commands.INSTALL, prefix, activate_deactivate_package, "--use-local")
 
@@ -3217,7 +3265,13 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
+def test_stacking(
+    create_stackable_envs: tuple[str, dict[str, env.Environment]],
+    auto_stack,
+    stack,
+    run,
+    expected,
+):
     which, envs = create_stackable_envs
     stack = filter(None, stack.split(","))
     expected = filter(None, expected.split(","))

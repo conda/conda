@@ -421,6 +421,7 @@ Advanced configuration
 * :ref:`specify-env-directories`
 * :ref:`specify-pkg-directories`
 * :ref:`use-only-tar-bz2`
+* :ref:`set-default-env`
 
 .. _disallow-soft-linking:
 
@@ -690,6 +691,22 @@ EXAMPLE:
 
    This is forced to ``True`` if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
+
+.. _set-default-env:
+Specify a default environment to activate on launch
+---------------------------------------------------
+Conda 23.5.0 introduced the ability to auto-activate a non-base environment on shell start-up. This is done
+by setting the ``auto_activate_environment`` variable.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  auto_activate_environment: my-favourite-env
+
+.. note::
+  If ``auto_activate_environment`` is not set (or is set and subsequently removed), conda
+  will continue to activate base by default.
 
 Conda-build configuration
 =========================
