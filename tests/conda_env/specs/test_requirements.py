@@ -24,4 +24,4 @@ class TestRequiremets(unittest.TestCase):
     def test_environment(self):
         spec = RequirementsSpec(filename=support_file("requirements.txt"), name="env")
         self.assertIsInstance(spec.environment, env.Environment)
-        self.assertEqual(spec.environment.dependencies["conda"][0], "flask==0.10.1")
+        self.assertEqual(spec.environment.dependencies["conda"][0], "flask==1.1.1")
