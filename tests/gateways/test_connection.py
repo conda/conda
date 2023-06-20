@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
 from pathlib import Path
-from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -21,52 +20,51 @@ from conda.testing.integration import env_var, make_temp_env
 log = getLogger(__name__)
 
 
-class CondaHttpAuthTests(TestCase):
-    def test_add_binstar_token(self):
-        try:
-            # # token already exists in url, don't add anything
-            # url = "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
-            # assert CondaHttpAuth.add_binstar_token(url) == url
-            #
-            # # even if a token is there, don't use it
-            set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
-            # url = "https://conda.anaconda.test/t/dont-add-a-token/biopython/linux-64/repodata.json"
-            # assert CondaHttpAuth.add_binstar_token(url) == url
+def test_add_binstar_token():
+    try:
+        # # token already exists in url, don't add anything
+        # url = "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
+        # assert CondaHttpAuth.add_binstar_token(url) == url
+        #
+        # # even if a token is there, don't use it
+        set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
+        # url = "https://conda.anaconda.test/t/dont-add-a-token/biopython/linux-64/repodata.json"
+        # assert CondaHttpAuth.add_binstar_token(url) == url
 
-            # now test adding the token
-            url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
-            new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
-            assert CondaHttpAuth.add_binstar_token(url) == new_url
-        finally:
-            remove_binstar_token("https://api.anaconda.test")
+        # now test adding the token
+        url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
+        new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
+        assert CondaHttpAuth.add_binstar_token(url) == new_url
+    finally:
+        remove_binstar_token("https://api.anaconda.test")
 
 
-class CondaSessionTests(TestCase):
-    def test_local_file_adapter_404(self):
+def test_local_file_adapter_404():
+    session = CondaSession()
+    test_path = "file:///some/location/doesnt/exist"
+    r = session.get(test_path)
+    with pytest.raises(HTTPError):
+        r.raise_for_status()
+    assert r.status_code == 404
+    assert r.json()["path"] == test_path[len("file://") :]
+
+
+def test_local_file_adapter_200():
+    test_path = None
+    try:
+        with Utf8NamedTemporaryFile(delete=False) as fh:
+            test_path = fh.name
+            fh.write(ensure_binary('{"content": "file content"}'))
+
+        test_url = path_to_url(test_path)
         session = CondaSession()
-        test_path = "file:///some/location/doesnt/exist"
-        r = session.get(test_path)
-        with pytest.raises(HTTPError):
-            r.raise_for_status()
-        assert r.status_code == 404
-        assert r.json()["path"] == test_path[len("file://") :]
-
-    def test_local_file_adapter_200(self):
-        test_path = None
-        try:
-            with Utf8NamedTemporaryFile(delete=False) as fh:
-                test_path = fh.name
-                fh.write(ensure_binary('{"content": "file content"}'))
-
-            test_url = path_to_url(test_path)
-            session = CondaSession()
-            r = session.get(test_url)
-            r.raise_for_status()
-            assert r.status_code == 200
-            assert r.json()["content"] == "file content"
-        finally:
-            if test_path is not None:
-                rm_rf(test_path)
+        r = session.get(test_url)
+        r.raise_for_status()
+        assert r.status_code == 200
+        assert r.json()["content"] == "file content"
+    finally:
+        if test_path is not None:
+            rm_rf(test_path)
 
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
