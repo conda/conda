@@ -11,7 +11,7 @@ Quick start
 This is an example of a minimal working conda plugin that defines a new subcommand:
 
 .. code-block:: python
-   :caption: example.py
+   :caption: example_plugin.py
 
    import conda.plugins
    from conda.base.context import context
@@ -23,7 +23,7 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 
    @conda.plugins.hookimpl
    def conda_subcommands():
-       yield plugins.CondaPreCommand(
+       yield plugins.CondaSubcommand(
            name="example", action=command, summary="Example of a conda subcommand"
        )
 
@@ -52,14 +52,14 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    build-backend = "setuptools.build_meta"
 
    [project]
-   name = "example"
+   name = "conda-example-plugin"
    version = "1.0.0"
    description = "Example conda plugin"
    requires-python = ">=3.8"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]
-   example = "example"
+   conda-example-plugin = "example_plugin"
 
 .. code-block:: python
    :caption: setup.py
@@ -67,17 +67,18 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    from setuptools import setup
 
    setup(
-       name="example",
+       name="conda-example-plugin",
        install_requires="conda",
-       entry_points={"conda": ["example = example"]},
-       py_modules=["my_plugin"],
+       entry_points={"conda": ["conda-example-plugin = example_plugin"]},
+       py_modules=["example_plugin"],
    )
 
 In both examples shown above, we define an entry point for conda. It's important to make sure
 that the entry point is for "conda" and that it points to the correct module in your plugin package.
-Our package only consists a single Python module called ``example``. If you have a large project,
+Our package only consists a single Python module called ``example_plugin``. If you have a large project,
 be sure to always point the entry point to the module containing the plugin hook declarations (i.e.
-where ``conda.plugins.hookimpl`` is used).
+where ``conda.plugins.hookimpl`` is used). We recommend using the `plugin` submodule
+in these cases, e.g. `large_project.plugin` (in `large_project/plugin.py`).
 
 More examples
 -------------
@@ -104,7 +105,12 @@ For examples of how to use other plugin hooks, please read their respective docu
 More information about how plugins work
 ---------------------------------------
 
-Our plugins system is built on top of the great `Pluggy`_ library. For more information about how it
+Plugins in ``conda`` are implemented with the use of Pluggy_, a Python framework used by
+other projects, such as ``pytest``, ``tox``, and ``devpi``. ``pluggy`` provides the ability to
+extend and modify the behavior of ``conda`` via function hooking, which results in plugin
+systems that are discoverable with the use of `Python package entrypoints`_.
+
+For more information about how it
 works, we suggest heading over to their `documentation`_.
 
 
