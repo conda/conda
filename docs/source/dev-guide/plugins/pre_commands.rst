@@ -11,8 +11,8 @@ of the command currently running and the command line arguments, respectively.
 If you would like to target ``conda env`` commands, prefix the command name with ``env_``.
 For example, ``conda env list`` would be passed to ``run_for`` as ``env_list``.
 
-.. autoclass:: conda.plugins.types.CondaPreCommand
+.. autoapiclass:: conda.plugins.types.CondaPreCommand
    :members:
    :undoc-members:
 
-.. autofunction:: conda.plugins.hookspec.CondaSpecs.conda_pre_commands
+.. autoapifunction:: conda.plugins.hookspec.CondaSpecs.conda_pre_commands

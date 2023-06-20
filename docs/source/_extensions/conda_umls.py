@@ -89,7 +89,12 @@ def generate_pumls(app=None, config=None):
             "--all-ancestors",
         ]
         # Run pyreverse to create the files first
-        Run(args)
+        try:
+            Run(args)
+        except SystemExit as err:
+            # ignore sys.exit() call from pyreverse.Run if the exit code is 0
+            if err.code:
+                raise
         # Then post-process the generated files to fix some things.
         post_process(files, output_path)
         sys.stdout.write("Done generating PlantUML files.\n")
@@ -122,7 +127,6 @@ def setup(app):
     if "AUTOBUILD" not in os.environ:
         app.add_config_value("plantuml_jarfile_path", None, rebuild="")
         app.connect("config-inited", download_plantuml)
-    if "READTHEDOCS" not in os.environ:
         app.connect("config-inited", generate_pumls)
 
     return {

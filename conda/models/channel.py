@@ -4,8 +4,9 @@
 
 Object inheritance:
 
-.. autoclasstree:: conda.models.channel
-   :full:
+.. autoapi-inheritance-diagram:: Channel MultiChannel
+   :top-classes: conda.models.channel.Channel
+   :parts: 1
 """
 from copy import copy
 from itertools import chain

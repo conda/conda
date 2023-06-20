@@ -8,8 +8,9 @@ environment.
 
 Object inheritance:
 
-.. autoclasstree:: conda.models.records
-   :full:
+.. autoapi-inheritance-diagram:: PackageRecord PackageCacheRecord PrefixRecord
+   :top-classes: conda.models.records.PackageRecord
+   :parts: 1
 """
 
 from os.path import basename, join

@@ -21,7 +21,7 @@ The following commands are part of conda:
    :glob:
    :maxdepth: 2
 
-   commands/*
+   *
 
 Conda vs. pip vs. virtualenv commands
 =====================================
