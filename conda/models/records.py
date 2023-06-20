@@ -37,6 +37,7 @@ from ..exceptions import PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .match_spec import MatchSpec
+from .version import version_prerelease_re
 
 
 class LinkTypeField(EnumField):
@@ -274,6 +275,11 @@ class PackageRecord(DictSafeMixin, Entity):
     metadata_signature_status = StringField(
         default="", required=False, nullable=True, default_in_dump=False
     )
+
+    @property
+    def is_prerelease(self) -> bool:
+        """True if package has prerelase version ending with an alphabetic tag other than 'post'"""
+        return bool(version_prerelease_re.match(self.version))
 
     @property
     def schannel(self):

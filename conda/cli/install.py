@@ -13,7 +13,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join
 
 from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
+from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, PrereleaseBehavior, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
@@ -281,6 +281,7 @@ def install(args, parser, command="install"):
     ) and not newenv
 
     for repodata_fn in repodata_fns:
+        is_last_repodata = repodata_fn == repodata_fns[-1]
         try:
             if isinstall and args.revision:
                 index = get_index(
@@ -321,6 +322,14 @@ def install(args, parser, command="install"):
                         _should_retry_unfrozen or repodata_fn != repodata_fns[-1]
                     ),
                 )
+
+                if (
+                    context.prerelease_behavior is PrereleaseBehavior.LIMIT 
+                    and not is_last_repodata
+                    and unlink_link_transaction.adds_prereleases
+                ):
+                    continue
+
             # we only need one of these to work.  If we haven't raised an exception,
             #   we're good.
             break
@@ -329,7 +338,7 @@ def install(args, parser, command="install"):
             if not getattr(e, "allow_retry", True):
                 raise e  # see note in next except block
             # end of the line.  Raise the exception
-            if repodata_fn == repodata_fns[-1]:
+            if is_last_repodata:
                 # PackagesNotFoundError is the only exception type we want to raise.
                 #    Over time, we should try to get rid of ResolvePackageNotFound
                 if isinstance(e, PackagesNotFoundError):
@@ -361,7 +370,7 @@ def install(args, parser, command="install"):
                 raise e
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, "update_modifier"):
-                if repodata_fn == repodata_fns[-1]:
+                if is_last_repodata:
                     raise e
             elif _should_retry_unfrozen:
                 try:
@@ -381,9 +390,9 @@ def install(args, parser, command="install"):
                         raise CondaImportError(str(e))
                     # we want to fall through without raising if we're not at the end of the list
                     #    of fns.  That way, we fall to the next fn.
-                    if repodata_fn == repodata_fns[-1]:
+                    if is_last_repodata:
                         raise e
-            elif repodata_fn != repodata_fns[-1]:
+            elif not is_last_repodata:
                 continue  # if we hit this, we should retry with next repodata source
             else:
                 # end of the line.  Raise the exception

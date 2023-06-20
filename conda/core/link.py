@@ -236,6 +236,15 @@ class UnlinkLinkTransaction:
         )
 
     @property
+    def adds_prereleases(self) -> bool:
+        """True if a new/updated spec is a prerelease version"""
+        for stp in self.prefix_setups.values():
+            for prec in list(stp.link_precs) + list(stp.update_specs):
+                if context.is_prerelease(prec):
+                    return True
+        return False
+
+    @property
     def nothing_to_do(self):
         return not any(
             (stp.unlink_precs or stp.link_precs) for stp in self.prefix_setups.values()

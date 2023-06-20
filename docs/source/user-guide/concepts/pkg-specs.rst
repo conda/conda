@@ -407,6 +407,8 @@ followed by ``!`` - can precede the actual version string
 (this is useful to indicate a change in the versioning
 scheme itself). Version comparison is case-insensitive.
 
+.. _supported-version-strings:
+
 Supported version strings
 -------------------------
 
@@ -428,6 +430,12 @@ Conda supports six types of version strings:
      in comparisons when the main versions are equal, but otherwise
      handled in exactly the same manner.
 
+Note that for the purposes of
+`PEP 440 prerelease handling <https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases>`_,
+a prerelease version is one using a tag other than ``post``, i.e. versions that are
+sorted before the release version.
+
+See: :ref:`prerelease-behavior`.
 
 Predictable version ordering
 ----------------------------

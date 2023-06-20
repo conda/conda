@@ -228,6 +228,11 @@ class MatchSpec(metaclass=MatchSpecType):
             and self.name != "*"
         )
 
+    @property
+    def is_prerelease(self) -> bool:
+        """True if spec contains an exact version spec for a prerelease version."""
+        return self.version is not None and self.version.is_prerelease
+
     def dist_str(self):
         return self.__str__()
 

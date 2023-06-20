@@ -59,6 +59,7 @@ from .constants import (
     KNOWN_SUBDIRS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
+    PrereleaseBehavior,
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
@@ -432,6 +433,16 @@ class Context(Configuration):
     unsatisfiable_hints = ParameterLoader(PrimitiveParameter(True))
     unsatisfiable_hints_check_depth = ParameterLoader(PrimitiveParameter(2))
 
+    prerelease_behavior = ParameterLoader(PrimitiveParameter(PrereleaseBehavior.ALLOW,
+                                                             element_type=PrereleaseBehavior))
+    prerelease_allowed_packages = ParameterLoader(
+        SequenceParameter(
+            PrimitiveParameter("", element_type=str),
+            default=("openssl <=2.99.99",),
+            string_delimiter='&',
+        )
+    )
+
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(""))
     anaconda_upload = ParameterLoader(
@@ -709,6 +720,20 @@ class Context(Configuration):
         from ..models.match_spec import MatchSpec
 
         return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
+
+    @memoizedproperty
+    def prerelease_allowed_specs(self):
+        from ..models.match_spec import MatchSpec
+        return tuple(MatchSpec(s) for s in context.prerelease_allowed_packages)
+
+    def is_prerelease(self, rec):
+        """True if PackageRecord or MatchSpec specifies a prerelease
+
+        Will return false if package is a prerelease but matches a spec in
+        prerelease_allowed_packages.
+        """
+        return (rec.is_prerelease and
+                not any(spec.match(rec) for spec in self.prerelease_allowed_specs))
 
     @property
     def target_prefix(self):
@@ -1112,6 +1137,8 @@ class Context(Configuration):
                 "aggressive_update_packages",
                 "auto_update_conda",
                 "channel_priority",
+                "prerelease_behavior",
+                "prerelease_allowed_packages",
                 "create_default_packages",
                 "disallowed_packages",
                 "force_reinstall",
@@ -1545,6 +1572,28 @@ class Context(Configuration):
                 The list of directories where locally-available packages are linked from at
                 install time. Packages not locally available are downloaded and extracted
                 into the first writable directory.
+                """
+            ),
+            prerelease_behavior=dals(
+                """
+                Specifies how to handle prerelease versions (e.g. 1.2.3.dev3) when installing
+                or updating. The options are 'allow' (the default), 'limit', and 'exclude'.
+
+                When 'allow' is selected, prerelease versions are treated the same as any
+                other version.
+
+                When 'limit' is selected, prerelease packages will only be used if already
+                present or is the only way to satisfy a dependency.
+
+                When 'exclude' is selected, prerelease packages will be excluded from
+                consideration.
+                """
+            ),
+            prerelease_allowed_packages=dals(
+                """
+                A list of package specs of packages whose prerelease versions will be
+                accepted regardless of the chosen `prerelease_behavior`. This is primarily
+                intended to support the few packages that do not follow the PEP440 guidelines.
                 """
             ),
             proxy_servers=dals(

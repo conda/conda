@@ -11,7 +11,7 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.constants import ChannelPriority, PathConflict
+from conda.base.constants import ChannelPriority, PathConflict, PrereleaseBehavior
 from conda.base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     context,
@@ -511,6 +511,40 @@ class ContextCustomRcTests(TestCase):
         }
         context._set_raw_data(rd)
         assert context.channels == ("conda-forge",)
+
+    def test_prerelease_behavior(self):
+        reset_context(())
+        assert context.prerelease_behavior == PrereleaseBehavior.ALLOW
+        reset_context((), argparse_args=AttrDict(prerelease_behavior='limit'))
+        assert context.prerelease_behavior == PrereleaseBehavior.LIMIT
+        reset_context((), argparse_args=AttrDict(prerelease_behavior='exclude'))
+        assert context.prerelease_behavior == PrereleaseBehavior.EXCLUDE
+
+    def test_prerelease_allowed_packages(self):
+        assert context.prerelease_allowed_packages == ("openssl <=2.99.99",)
+        assert not context.is_prerelease(MatchSpec("openssl 1.1.1q"))
+        assert context.is_prerelease(MatchSpec("openssl 3.0.0.dev0"))
+        assert context.is_prerelease(MatchSpec("foo 1.0.dev3"))
+
+        string = dals("""
+        prerelease_allowed_packages:
+          - foo
+          - bar <4.2
+        """)
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_round_trip_load(string)))
+        reset_context(())
+        context._set_raw_data(rd)
+
+        context.prerelease_allowed_packages = ("foo", "bar <4.2")
+        assert context.prerelease_allowed_packages == ("foo", "bar <4.2")
+        assert context.is_prerelease(MatchSpec("openssl 1.1.1q"))
+        assert not context.is_prerelease(MatchSpec("foo"))
+        assert not context.is_prerelease(MatchSpec("foo 1.2.dev3"))
+        assert not context.is_prerelease(MatchSpec("bar 4.1.dev1"))
+        assert not context.is_prerelease(MatchSpec("baz 1.2.3"))
+        assert not context.is_prerelease(MatchSpec("bar 4.2.dev3"))
+        assert context.is_prerelease(MatchSpec("bar 4.3.dev0"))
+
 
     def test_expandvars(self):
         """Environment variables should be expanded in settings that have expandvars=True."""

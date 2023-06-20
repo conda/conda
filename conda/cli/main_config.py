@@ -21,6 +21,7 @@ from ..base.constants import (
     ChannelPriority,
     DepsModifier,
     PathConflict,
+    PrereleaseBehavior,
     SafetyChecks,
     SatSolverChoice,
     UpdateModifier,
@@ -482,7 +483,9 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(
             SatSolverChoice, enum_representer
         )
-
+        yaml.representer.RoundTripRepresenter.add_representer(
+            PrereleaseBehavior, enum_representer
+        )
         try:
             with open(rc_path, "w") as rc:
                 rc.write(yaml_round_trip_dump(rc_config))
