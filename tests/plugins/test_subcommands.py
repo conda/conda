@@ -41,7 +41,7 @@ def test_invoked(plugin, cli_main):
     """Ensure we are able to invoke our command after creating it."""
     cli_main("custom", "some-arg", "some-other-arg")
 
-    plugin.custom_command.assert_called_with(["some-arg", "some-other-arg"])
+    plugin.custom_command.assert_called_with(("some-arg", "some-other-arg"))
 
 
 def test_help(plugin, cli_main, capsys):
