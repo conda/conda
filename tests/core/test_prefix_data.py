@@ -1,10 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 from contextlib import contextmanager
-from os.path import isdir, join, lexists
-from tempfile import gettempdir
-from unittest import TestCase
-from uuid import uuid4
+from os.path import isdir
 
 import pytest
 
@@ -12,24 +10,13 @@ from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CorruptedEnvironmentError
-from conda.gateways.disk import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.testing import TmpEnvFixture
 from tests.data.env_metadata import (
     PATH_TEST_ENV_1,
     PATH_TEST_ENV_2,
     PATH_TEST_ENV_3,
     PATH_TEST_ENV_4,
 )
-
-ENV_VARS_FILE = """
-{
-  "version": 1,
-  "env_vars": {
-    "ENV_ONE": "one",
-    "ENV_TWO": "you",
-    "ENV_THREE": "me"
-  }
-}"""
 
 
 def _print_output(*args):
@@ -370,54 +357,53 @@ def test_corrupt_json_conda_meta_json():
         PrefixData("tests/data/corrupt/json").load()
 
 
-class PrefixDatarUnitTests(TestCase):
-    def setUp(self):
-        tempdirdir = gettempdir()
-        dirname = str(uuid4())[:8]
-        self.prefix = join(tempdirdir, dirname)
-        mkdir_p(self.prefix)
-        assert isdir(self.prefix)
-        mkdir_p(join(self.prefix, "conda-meta"))
-        activate_env_vars = join(self.prefix, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-        self.pd = PrefixData(self.prefix)
+@pytest.fixture
+def prefix_data(tmp_env: TmpEnvFixture) -> PrefixData:
+    with tmp_env() as prefix:
+        (prefix / PREFIX_STATE_FILE).write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "env_vars": {"ENV_ONE": "one", "ENV_TWO": "you", "ENV_THREE": "me"},
+                }
+            )
+        )
+        return PrefixData(prefix)
 
-    def tearDown(self):
-        rm_rf(self.prefix)
-        assert not lexists(self.prefix)
 
-    def test_get_environment_env_vars(self):
-        ex_env_vars = {"ENV_ONE": "one", "ENV_TWO": "you", "ENV_THREE": "me"}
-        env_vars = self.pd.get_environment_env_vars()
-        assert ex_env_vars == env_vars
+def test_get_environment_env_vars(prefix_data: PrefixData):
+    ex_env_vars = {"ENV_ONE": "one", "ENV_TWO": "you", "ENV_THREE": "me"}
+    env_vars = prefix_data.get_environment_env_vars()
+    assert ex_env_vars == env_vars
 
-    def test_set_unset_environment_env_vars(self):
-        env_vars_one = {
-            "ENV_ONE": "one",
-            "ENV_TWO": "you",
-            "ENV_THREE": "me",
-        }
-        env_vars_add = {
-            "ENV_ONE": "one",
-            "ENV_TWO": "you",
-            "ENV_THREE": "me",
-            "WOAH": "dude",
-        }
-        self.pd.set_environment_env_vars({"WOAH": "dude"})
-        env_vars = self.pd.get_environment_env_vars()
-        assert env_vars_add == env_vars
 
-        self.pd.unset_environment_env_vars(["WOAH"])
-        env_vars = self.pd.get_environment_env_vars()
-        assert env_vars_one == env_vars
+def test_set_unset_environment_env_vars(prefix_data: PrefixData):
+    env_vars_one = {
+        "ENV_ONE": "one",
+        "ENV_TWO": "you",
+        "ENV_THREE": "me",
+    }
+    env_vars_add = {
+        "ENV_ONE": "one",
+        "ENV_TWO": "you",
+        "ENV_THREE": "me",
+        "WOAH": "dude",
+    }
+    prefix_data.set_environment_env_vars({"WOAH": "dude"})
+    env_vars = prefix_data.get_environment_env_vars()
+    assert env_vars_add == env_vars
 
-    def test_set_unset_environment_env_vars_no_exist(self):
-        env_vars_one = {
-            "ENV_ONE": "one",
-            "ENV_TWO": "you",
-            "ENV_THREE": "me",
-        }
-        self.pd.unset_environment_env_vars(["WOAH"])
-        env_vars = self.pd.get_environment_env_vars()
-        assert env_vars_one == env_vars
+    prefix_data.unset_environment_env_vars(["WOAH"])
+    env_vars = prefix_data.get_environment_env_vars()
+    assert env_vars_one == env_vars
+
+
+def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
+    env_vars_one = {
+        "ENV_ONE": "one",
+        "ENV_TWO": "you",
+        "ENV_THREE": "me",
+    }
+    prefix_data.unset_environment_env_vars(["WOAH"])
+    env_vars = prefix_data.get_environment_env_vars()
+    assert env_vars_one == env_vars
