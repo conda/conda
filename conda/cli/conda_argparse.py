@@ -107,6 +107,8 @@ def generate_parser():
     configure_parser_update(sub_parsers, aliases=["upgrade"])
     configure_parser_notices(sub_parsers)
 
+    configure_parser_plugin(sub_parsers)
+
     return p
 
 
@@ -132,9 +134,9 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, plugin_arguments)
+    _run_command_hooks("pre", command, arguments)
     result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, plugin_arguments)
+    _run_command_hooks("post", command, arguments)
 
     return result
 
@@ -271,7 +273,7 @@ class ArgumentParser(ArgumentParserBase):
         if args is None:
             args = sys.argv[1:]
 
-        plugin_subcommand = None
+        plugin_namespace = None
         if args:
             name = args[0]
             for subcommand in self._subcommands:
@@ -284,10 +286,10 @@ class ArgumentParser(ArgumentParserBase):
                         )
                         log.error(error_message)
                     else:
-                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
+                        plugin_namespace = Namespace(plugin_namespace=subcommand)
 
-        if plugin_subcommand is not None:
-            return plugin_subcommand
+        if plugin_namespace is not None:
+            namespace = plugin_namespace
 
         return super().parse_args(args, namespace)
 
@@ -361,6 +363,11 @@ class ExtendConstAction(Action):
 # sub-parsers
 #
 # #############################################################################################
+
+
+def configure_parser_plugin(sub_parser):
+    for subcommand in context.plugin_manager.get_hook_results("subcommands"):
+        sub_parser.add_parser(subcommand.name, help=subcommand.summary)
 
 
 def configure_parser_clean(sub_parsers):
