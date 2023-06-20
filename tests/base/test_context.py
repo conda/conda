@@ -619,6 +619,8 @@ def test_subdirs():
 
 
 def test_local_build_root_default_rc():
+    reset_context()
+
     if context.root_writable:
         assert context.local_build_root == join(context.root_prefix, "conda-bld")
     else:
