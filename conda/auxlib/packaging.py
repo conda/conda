@@ -12,7 +12,7 @@ Method #2: ``auxlib.packaging`` as a build time-only dependency
 .. code-block:: python
     import auxlib
 
-    # When executing the setup.py, we need to be able to import ourselves, this
+    # When executing the setup.py, we need to be able to import ourselves; this
     # means that we need to add the src directory to the sys.path.
     here = os.path.abspath(os.path.dirname(__file__))
     src_dir = os.path.join(here, "auxlib")
