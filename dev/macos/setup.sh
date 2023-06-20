@@ -14,4 +14,3 @@ sudo cp minio /usr/local/bin/minio
 conda config --set changeps1 true
 # install all test requirements
 conda install --yes --name conda-test-env --file tests/requirements.txt
-conda update --yes openssl ca-certificates certifi
