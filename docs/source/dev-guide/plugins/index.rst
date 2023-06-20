@@ -117,16 +117,9 @@ works, we suggest heading over to their `documentation`_.
 A note on licensing
 -------------------
 
-When licensing plugins, we recommend using licenses such as BSD-3_, MIT_, and
-`Apache License 2.0`_. Some ``import`` statements may possibly require the GPLv3_
-license, which ensures that the software being licensed is open source.
-
-Ultimately, the authors of the plugins can decide which license is best for their particular
-use case. Be sure to credit the original author of the plugin, and keep in mind that
-licenses can be altered depending on the situation.
-
 For more information on which license to use for your custom plugin, please reference
-the `"Choose an Open Source License"`_ site.
+the `"Choose an Open Source License"`_ site. If you need help figuring out exactly
+which one to use, we advise to seeking a qualified legal professional.
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/
