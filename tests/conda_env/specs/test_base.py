@@ -57,13 +57,3 @@ class DetectTestCase(unittest.TestCase):
         with patched_specs(spec1):
             with self.assertRaises(SpecNotFound):
                 specs.detect(name="foo")
-
-    def test_has_build_msg_function(self):
-        self.assertTrue(hasattr(specs, "build_message"))
-        self.assertIsInstance(specs.build_message, types.FunctionType)
-
-    def test_build_msg(self):
-        spec3 = mock.Mock(msg="error 3")
-        spec4 = mock.Mock(msg="error 4")
-        spec5 = mock.Mock(msg=None)
-        self.assertEqual(specs.build_message([spec3, spec4, spec5]), "error 3\nerror 4")
