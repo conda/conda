@@ -97,7 +97,23 @@ class from_file_TestCase(unittest.TestCase):
                 "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/does-not-exist.yml"
             )
 
-    def test_envvars(self):
+    def test_variables_envvars(self):
+        current_conda_prefix = os.environ.get("CONDA_PREFIX")
+        os.environ["CONDA_PREFIX"] = "/home/conda/prefix"
+        e = get_environment("variables_with_envvars.yml")
+        self.assertEqual(
+            e.variables,
+            {
+                "FOO": "asd",
+                "PARAMS": "/home/conda/prefix/share/params",
+            },
+        )
+        if current_conda_prefix:
+            os.environ["CONDA_PREFIX"] = current_conda_prefix
+        else:
+            del os.environ["CONDA_PREFIX"]
+
+    def test_channels_envvars(self):
         current_conda_token = os.environ.get("CONDA_TOKEN")
         os.environ["CONDA_TOKEN"] = "aaa-12345"
         os.environ["OTHER_KEY"] = "12345-aaa"

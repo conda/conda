@@ -654,6 +654,9 @@ as shown here::
       VAR1: valueA
       VAR2: valueB
 
+Environment variables are expanded in the ``variables`` section of environment.yml. However, the
+expansion is not recursive. Variables defined in this file are not available for expansion.
+
 
 Saving environment variables
 ============================
