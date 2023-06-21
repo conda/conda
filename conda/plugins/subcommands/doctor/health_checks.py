@@ -80,12 +80,12 @@ def display_health_checks(prefix: str, verbose: bool) -> None:
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:
         print("Missing Files\n")
-        for file, files in missing_files.items():
+        for package_name, missing_files in missing_files.items():
             if verbose:
                 delimiter = "\n  "
-                print(f"{file}:{delimiter}{delimiter.join(files)}\n")
+                print(f"{package_name}:{delimiter}{delimiter.join(missing_files)}\n")
             else:
-                print(f"{file}: {len(files)}")
+                print(f"{package_name}: {len(missing_files)}")
 
         print("\n")
     else:
@@ -94,12 +94,12 @@ def display_health_checks(prefix: str, verbose: bool) -> None:
     altered_packages = find_altered_packages(prefix)
     if altered_packages:
         print("Altered Files\n")
-        for file, files in altered_packages.items():
+        for package_name, altered_files in altered_packages.items():
             if verbose:
                 delimiter = "\n "
-                print(f"{file}:{delimiter}{delimiter.join(files)}\n")
+                print(f"{package_name}:{delimiter}{delimiter.join(altered_files)}\n")
             else:
-                print(f"{file}: {len(files)}")
+                print(f"{package_name}: {len(altered_files)}")
 
         print("\n")
     else:
