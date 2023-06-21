@@ -9,13 +9,13 @@ from pathlib import Path
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
 
-logger = getLogger("health_checks")
+logger = getLogger(__name__)
 
 OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
 DETAILED_REPORT_TITLE = "\nDETAILED ENVIRONMENT HEALTH REPORT\n"
 MISSING_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with missing files.\n"
-ALTERED_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with altered files\n"
+ALTERED_FILES_SUCCESS_MESSAGE = f"{OK_MARK} There are no packages with altered files.\n"
 
 
 def display_report_heading(prefix: str) -> None:
