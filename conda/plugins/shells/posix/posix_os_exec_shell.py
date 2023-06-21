@@ -3,19 +3,33 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import PurePath
 
 from conda.activate import native_path_to_unix
 from conda.plugins import CondaShellPlugins, hookimpl
 
-POSIX_SHELLS = {"ash", "bash", "zsh", "sh", "dash", "ksh"}
+POSIX_SHELLS = {"ash", "bash", "dash", "ksh", "sh", "zsh"}
+
+
+def determine_shell(command: str) -> bool:
+    """
+    Execute the specified command as a Python subprocess, through the shell.
+    Determine whether the final path component of the output is in the set of
+        compatible shells.
+    """
+    s = subprocess.run(command, shell=True, capture_output=True)
+
+    output = s.stdout.decode().strip("\n")
+
+    return PurePath(output).name in POSIX_SHELLS
 
 
 @hookimpl
 def conda_shell_plugins():
-    if (
-        PurePath(os.environ.get("SHELL", "")).name in POSIX_SHELLS
-    ):  # change to figure out what shell is CURRENTLY in use, not default shell
+    if determine_shell("echo $0") or determine_shell(
+        "shellPID=$$; ps -ocomm= $shellPID"
+    ):
         yield CondaShellPlugins(
             name="posixp",
             summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
