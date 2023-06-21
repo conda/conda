@@ -12,9 +12,10 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import CondaError, CondaValueError, PluginError
 from . import shells, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .types import CondaShellPlugins
 
 log = logging.getLogger(__name__)
 
@@ -173,6 +174,23 @@ class CondaPluginManager(pluggy.PluginManager):
         for pre_command in pre_command_hooks:
             if command in pre_command.run_for:
                 yield pre_command.action
+
+    def get_shell_syntax(self) -> CondaShellPlugins:
+        """
+        Return shell plugin hook that is compatible with shell only if one hook is available.
+        Raise error if more than one compatible hook is installed or if no compatible hooks
+            are installed.
+        """
+        shell_hooks = list(self.get_hook_results("shells"))
+
+        if len(shell_hooks) > 1:
+            raise CondaError(
+                "Too many compatible plugins installed: please install only one plugin per shell."
+            )
+        if not shell_hooks:
+            raise CondaError("No plugins installed are compatible with this shell.")
+
+        return shell_hooks[0]
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
