@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import argparse
 import os
 import sys
-import warnings
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
@@ -31,6 +31,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
+from ..plugins.types import CommandHookTypes
 
 log = getLogger(__name__)
 
@@ -108,37 +109,45 @@ def generate_parser():
     return p
 
 
-def do_call(args, parser):
+def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     """
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if getattr(args, "plugin_subcommand", None):
-        _run_pre_command_hooks(args.plugin_subcommand.name, args)
-        return args.plugin_subcommand.action(sys.argv[2:])
+    if getattr(arguments, "plugin_subcommand", None):
+        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
+        result = arguments.plugin_subcommand.action(sys.argv[2:])
+        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
 
-    relative_mod, func_name = args.func.rsplit(".", 1)
+        return result
+
+    relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
     from importlib import import_module
 
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    _run_pre_command_hooks(command, args)
+    _run_command_hooks("pre", command, arguments)
+    result = getattr(module, func_name)(arguments, parser)
+    _run_command_hooks("post", command, arguments)
 
-    return getattr(module, func_name)(args, parser)
+    return result
 
 
-def _run_pre_command_hooks(command: str, args) -> None:
+def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
     """
-    Helper function used to gather applicable pre_command hook functions
+    Helper function used to gather applicable "pre" or "post" command hook functions
     and then run them.
+
+    The values in *args are passed directly through to the "pre" or "post" command
+    hook function.
     """
-    actions = context.plugin_manager.yield_pre_command_hook_actions(command)
+    actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
 
     for action in actions:
-        action(command, args)
+        action(command, arguments)
 
 
 def find_builtin_commands(parser):
@@ -342,23 +351,6 @@ class ExtendConstAction(Action):
         items = [] if items is None else items[:]
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
-
-
-class PendingDeprecationAction(_StoreAction):
-    def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(
-            f"Option {self.option_strings} is pending deprecation.",
-            PendingDeprecationWarning,
-        )
-        super().__call__(parser, namespace, values, option_string)
-
-
-class DeprecatedAction(_StoreAction):
-    def __call__(self, parser, namespace, values, option_string=None):
-        warnings.warn(
-            f"Option {self.option_strings} is deprecated!", DeprecationWarning
-        )
-        super().__call__(parser, namespace, values, option_string)
 
 
 # #############################################################################################
@@ -599,7 +591,7 @@ def configure_parser_config(sub_parsers):
         "If no environment is active, write to the user config file (%s)."
         ""
         % (
-            os.getenv("CONDA_PREFIX", "<no active environment>").replace("%", "%%"),
+            context.active_prefix or "<no active environment>",
             escaped_user_rc_path,
         ),
     )
@@ -1612,6 +1604,7 @@ def configure_parser_rename(sub_parsers) -> None:
     add_parser_prefix(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
+    # TODO: deprecate --force in favor of --yes
     p.add_argument(
         "--force",
         help="Force rename of an environment.",
@@ -1753,7 +1746,7 @@ def add_parser_json(p):
         "-v",
         "--verbose",
         action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
+        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
         dest="verbosity",
         default=NULL,
     )
@@ -1768,41 +1761,12 @@ def add_parser_json(p):
 
 
 def add_output_and_prompt_options(p):
-    output_and_prompt_options = p.add_argument_group(
-        "Output, Prompt, and Flow Control Options"
-    )
-    output_and_prompt_options.add_argument(
-        "--debug",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,
-    )
+    output_and_prompt_options = add_parser_json(p)
     output_and_prompt_options.add_argument(
         "-d",
         "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
-    )
-    output_and_prompt_options.add_argument(
-        "--json",
-        action="store_true",
-        default=NULL,
-        help="Report all output as json. Suitable for using conda programmatically.",
-    )
-    output_and_prompt_options.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        default=NULL,
-        help="Do not display progress bar.",
-    )
-    output_and_prompt_options.add_argument(
-        "-v",
-        "--verbose",
-        action=NullCountAction,
-        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
-        dest="verbosity",
-        default=NULL,
     )
     output_and_prompt_options.add_argument(
         "-y",
@@ -2003,10 +1967,14 @@ def add_parser_solver(p):
     )
     group.add_argument(
         "--experimental-solver",
-        action=PendingDeprecationAction,
+        action=deprecated.action(
+            "23.9",
+            "24.3",
+            _StoreAction,
+            addendum="Use `--solver` instead.",
+        ),
         dest="solver",
         choices=solver_choices,
-        help="DEPRECATED. Please use '--solver' instead.",
         default=NULL,
     )
 
