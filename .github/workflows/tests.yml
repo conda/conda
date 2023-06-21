@@ -121,7 +121,7 @@ jobs:
         run: |
           Invoke-Item .\dev\windows\setup.bat
           conda install --yes pywin32 --file tests/requirements.txt
-          conda-build `
+          conda build `
             tests/test-recipes/activate_deactivate_package `
             tests/test-recipes/pre_link_messages_package
 
@@ -205,7 +205,7 @@ jobs:
       - name: Setup environment
         run: |
           conda install --yes --file tests/requirements.txt
-          conda-build \
+          conda build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
 
@@ -311,6 +311,9 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_CHANNELS: ${{ matrix.default-channel }}
+      CONDA_CHANNEL_PRIORITY: strict
+      CONDA_CHANGEPS1: true
     steps:
       - uses: actions/checkout@v3
         with:
@@ -345,9 +348,8 @@ jobs:
       - name: Setup environment
         run: |
           ./dev/macos/setup.sh
-          conda config --set changeps1 true
           conda install --yes --file tests/requirements.txt
-          conda-build \
+          conda build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
 
