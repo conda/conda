@@ -132,6 +132,8 @@ jobs:
       - name: Run tests
         run: |
           Get-ChildItem -Force
+          where pytest
+          where python
           pytest `
             --cov=conda `
             --store-durations `
@@ -218,6 +220,8 @@ jobs:
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
           ls -lah
+          which pytest
+          which python
           pytest \
             --cov=conda \
             --store-durations \
@@ -364,6 +368,8 @@ jobs:
       - name: Run tests
         run: |
           ls -lah
+          which pytest
+          which python
           pytest \
             --cov=conda \
             --store-durations \
