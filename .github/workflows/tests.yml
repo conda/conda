@@ -80,6 +80,9 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_CHANNELS: ${{ matrix.default-channel }}
+      CONDA_CHANNEL_PRIORITY: strict
+      CONDA_CHANGEPS1: true
     steps:
       - uses: actions/checkout@v3
         with:
@@ -109,25 +112,36 @@ jobs:
           key:
             ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
-      - name: Set temp dirs correctly
-        # https://github.com/actions/virtual-environments/issues/712
-        run: |
-          echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+      - uses: conda-incubator/setup-miniconda@v2
+        name: Setup miniconda
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         shell: cmd
-        env:
-          CONDA_CHANNELS: ${{ matrix.default-channel }}
-          CONDA_CHANNEL_PRIORITY: strict
         run: |
           call .\dev\windows\setup.bat
+          conda install --yes pywin32 --file tests/requirements.txt
+          conda-build `
+            tests/test-recipes/activate_deactivate_package `
+            tests/test-recipes/pre_link_messages_package
+
+      - name: Conda Info
+        run: |
+          pwd
+          conda info --all
+          python -c "from conda.base.context import context; print(context.channels)"
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
-        shell: cmd
         run: |
-          call .\dev\windows\tests.bat
+          python -m pytest `
+            --cov=conda `
+            --store-durations `
+            --durations-path=.\tools\durations\${{ runner.os }}.json `
+            --splitting-algorithm=least_duration `
+            -v `
+            --splits=5 `
+            --group=${{ matrix.test-group }}
 
       - uses: codecov/codecov-action@v3
         with:
@@ -172,19 +186,42 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_CHANNELS: ${{ matrix.default-channel }}
+      CONDA_CHANNEL_PRIORITY: strict
+      CONDA_CHANGEPS1: true
+    container:
+      image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}-${{ matrix.default-channel }}
+      # volumes:
+      #   - .:/opt/conda-src
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
+      - name: Setup environment
+        shell: cmd
+        run: |
+          conda install --yes --file tests/requirements.txt
+          conda-build \
+            tests/test-recipes/activate_deactivate_package \
+            tests/test-recipes/pre_link_messages_package
+
+      - name: Conda Info
+        run: |
+          pwd
+          conda info --all
+          python -c "from conda.base.context import context; print(context.channels)"
+
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          -e TEST_SPLITS
-          -e TEST_GROUP
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/tests.sh
+        run: |
+          python -m pytest \
+            --cov=conda \
+            --store-durations \
+            --durations-path=./tools/durations/${{ runner.os }}.json \
+            --splitting-algorithm=least_duration \
+            -v \
+            --splits=5 \
+            --group=${{ matrix.test-group }}
 
       - uses: codecov/codecov-action@v3
         with:
@@ -298,35 +335,33 @@ jobs:
             ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
 
       - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda for defaults
-        if: matrix.default-channel == 'defaults'
-        env:
-          CONDA_SOLVER: classic
+        name: Setup miniconda
         with:
-          activate-environment: conda-test-env
-          miniconda-version: "latest"
-          python-version: ${{ matrix.python-version }}
-
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda for conda-forge
-        if: matrix.default-channel == 'conda-forge'
-        env:
-          CONDA_SOLVER: classic
-        with:
-          activate-environment: conda-test-env
-          miniforge-version: latest
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
-        shell: bash -l {0}
-        timeout-minutes: 10
         run: |
           ./dev/macos/setup.sh
+          conda config --set changeps1 true
+          conda install --yes --name conda-test-env --file tests/requirements.txt
+          conda-build \
+            tests/test-recipes/activate_deactivate_package \
+            tests/test-recipes/pre_link_messages_package
+
+      - name: Conda Info
+        run: |
+          conda info
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
-        shell: bash -l {0}
         run: |
-          ./dev/macos/tests.sh
+          python -m pytest \
+            --cov=conda \
+            --store-durations \
+            --durations-path=./tools/durations/${{ runner.os }}.json \
+            --splitting-algorithm=least_duration \
+            -v \
+            --splits=5 \
+            --group=${{ matrix.test-group }}
 
       - uses: codecov/codecov-action@v3
         with:

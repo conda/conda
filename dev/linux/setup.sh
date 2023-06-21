@@ -35,8 +35,3 @@ echo "gitpod ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 ### Prevent git safety errors when mounting directories ###
 git config --global --add safe.directory /opt/conda-src
-
-# restoring the default for changeps1 to have parity with dev
-conda config --set changeps1 true
-# install all test requirements
-conda install --yes --name conda-test-env --file tests/requirements.txt
