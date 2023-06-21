@@ -735,7 +735,7 @@ class NewIntegrationTests(unittest.TestCase):
         from conda.core.prefix_data import PrefixData
 
         PrefixData._cache_.clear()
-        run_conda_command(Commands.CREATE, TEST_ENV_NAME_2, "python=3.5")
+        run_conda_command(Commands.CREATE, TEST_ENV_NAME_2, "python")
         self.assertTrue(env_is_created(TEST_ENV_NAME_2))
 
         # install something from other channel not in config file
