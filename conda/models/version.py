@@ -4,8 +4,9 @@
 
 Object inheritance:
 
-.. autoclasstree:: conda.models.records
-   :full:
+.. autoapi-inheritance-diagram:: BaseSpec VersionSpec BuildNumberMatch
+   :top-classes: conda.models.version.BaseSpec
+   :parts: 1
 """
 from __future__ import annotations
 

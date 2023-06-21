@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import unittest
-from logging import Handler, getLogger
 from os.path import exists, join
 from unittest import TestCase
 from uuid import uuid4
@@ -23,23 +22,6 @@ from .utils import Commands, make_temp_envs_dir, run_command
 
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
 from tests.test_utils import is_prefix_activated_PATHwise
-
-
-def disable_dotlog():
-    class NullHandler(Handler):
-        def emit(self, record):
-            pass
-
-    dotlogger = getLogger("dotupdate")
-    saved_handlers = dotlogger.handlers
-    dotlogger.handlers = []
-    dotlogger.addHandler(NullHandler())
-    return saved_handlers
-
-
-def reenable_dotlog(handlers):
-    dotlogger = getLogger("dotupdate")
-    dotlogger.handlers = handlers
 
 
 def package_is_installed(prefix, spec, pip=None):
@@ -77,12 +59,6 @@ def get_env_vars(prefix):
 
 @pytest.mark.integration
 class IntegrationTests(TestCase):
-    def setUp(self):
-        self.saved_dotlog_handlers = disable_dotlog()
-
-    def tearDown(self):
-        reenable_dotlog(self.saved_dotlog_handlers)
-
     def test_create_update(self):
         with make_temp_envs_dir() as envs_dir:
             with env_var(

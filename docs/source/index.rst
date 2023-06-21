@@ -52,11 +52,12 @@ that approach may not be as up to date.
 .. toctree::
    :hidden:
    :maxdepth: 1
+   :titlesonly:
 
    user-guide/index
    configuration
    api/index
-   commands
+   commands/index
    glossary
    dev-guide/index
    release-notes
