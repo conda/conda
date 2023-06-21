@@ -1,6 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""The conda plugin manager that loads all plugins on startup."""
+"""
+Module that contains subclass implementation of pluggy's
+`PluginManager <https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluginManager>`_.
+
+Additionally, it contains a function we use to construct the ``PluginManager`` object and
+register all plugins during conda's startup process.
+"""
 from __future__ import annotations
 
 import functools
@@ -18,6 +24,8 @@ from .hookspec import CondaSpecs, spec_name
 from .types import CommandHookTypes
 
 log = logging.getLogger(__name__)
+
+__all__ = ("CondaPluginManager", "get_plugin_manager")
 
 
 class CondaPluginManager(pluggy.PluginManager):

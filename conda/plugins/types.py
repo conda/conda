@@ -1,6 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Define types for conda plugins to be using in conjunction with the hookspecs."""
+"""
+Definition of specific return types for use when defining a conda plugin hook.
+
+Each type corresponds to the plugin hook for which it is used.
+
+"""
 from __future__ import annotations
 
 from typing import Callable, Literal, NamedTuple
@@ -10,10 +15,21 @@ from ..core.solve import Solver
 #: These are the two different types of conda_*_commands hooks that are available
 CommandHookTypes = Literal["pre", "post"]
 
+__all__ = (
+    "CondaSubcommand",
+    "CondaVirtualPackage",
+    "CondaSolver",
+    "CondaPreCommand",
+    "CondaPostCommand",
+)
+
 
 class CondaSubcommand(NamedTuple):
     """
-    A conda subcommand.
+    Return type to use when defining a conda subcommand plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_subcommands`.
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
@@ -30,7 +46,10 @@ class CondaSubcommand(NamedTuple):
 
 class CondaVirtualPackage(NamedTuple):
     """
-    A conda virtual package.
+    Return type to use when defining a conda virtual package plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages`.
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
@@ -44,7 +63,10 @@ class CondaVirtualPackage(NamedTuple):
 
 class CondaSolver(NamedTuple):
     """
-    A conda solver.
+    Return type to use when defining a conda solver plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_solvers`.
 
     :param name: Solver name (e.g., ``custom-solver``).
     :param backend: Type that will be instantiated as the solver backend.
@@ -56,7 +78,10 @@ class CondaSolver(NamedTuple):
 
 class CondaPreCommand(NamedTuple):
     """
-    Allows a plugin hook to execute before an invoked conda command is run.
+    Return type to use when defining a conda pre command plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_commands`.
 
     :param name: Pre-command name (e.g., ``custom_plugin_pre_commands``).
     :param action: Callable which contains the code to be run.
@@ -70,7 +95,10 @@ class CondaPreCommand(NamedTuple):
 
 class CondaPostCommand(NamedTuple):
     """
-    Allows a plugin hook to execute after an invoked conda command is run.
+    Return type to use when defining a conda post command plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_commands`.
 
     :param name: Post-command name (e.g., ``custom_plugin_post_commands``).
     :param action: Callable which contains the code to be run.
