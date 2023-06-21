@@ -83,59 +83,56 @@ jobs:
       CONDA_CHANNELS: ${{ matrix.default-channel }}
       CONDA_CHANNEL_PRIORITY: strict
       CONDA_CHANGEPS1: true
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Cache conda packages
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 3
-        with:
-          # setup.bat makes a directory junction from \conda_bin to
-          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
-          # at this stage.
-          path: C:\Miniconda\envs\conda-test-env\pkgs
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+      # - name: Cache conda packages
+      #   uses: actions/cache@v3
+      #   env:
+      #     # Increase this value to reset cache
+      #     CACHE_NUMBER: 3
+      #   with:
+      #     # setup.bat makes a directory junction from \conda_bin to
+      #     # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+      #     # at this stage.
+      #     path: C:\Miniconda\envs\conda-test-env\pkgs
+      #     key:
+      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+      #       hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio.exe
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
+      # - name: Cache minio
+      #   uses: actions/cache@v3
+      #   env:
+      #     # Increase this value to reset cache
+      #     CACHE_NUMBER: 4
+      #   with:
+      #     path: minio.exe
+      #     key:
+      #       ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          conda activate test
-          Invoke-Item .\dev\windows\setup.bat
-          conda install --yes pywin32 --file tests/requirements.txt
+          conda install --quiet --yes --file tests/requirements.txt pywin32
           conda-build `
             tests/test-recipes/activate_deactivate_package `
             tests/test-recipes/pre_link_messages_package
 
-      - name: Conda Info
+      - name: Show info
         run: |
-          conda activate test
-          (Get-Item .).FullName
           conda info --all
+          conda list --show-channel-urls
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
+      - name: Run tests
         run: |
-          conda activate test
-          python -m pytest `
+          pytest `
             --cov=conda `
             --store-durations `
             --durations-path=.\tools\durations\${{ runner.os }}.json `
@@ -194,34 +191,32 @@ jobs:
     #   image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
       # volumes:
       #   - .:/opt/conda-src
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          conda activate test
           conda install --yes --file tests/requirements.txt
           conda-build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
 
-      - name: Conda Info
+      - name: Show info
         run: |
-          conda activate test
-          pwd
           conda info --all
+          conda list --show-channel-urls
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
-          conda activate test
-          python -m pytest \
+          pytest \
             --cov=conda \
             --store-durations \
             --durations-path=./tools/durations/${{ runner.os }}.json \
@@ -318,56 +313,54 @@ jobs:
       CONDA_CHANNELS: ${{ matrix.default-channel }}
       CONDA_CHANNEL_PRIORITY: strict
       CONDA_CHANGEPS1: true
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Cache conda packages
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+      # - name: Cache conda packages
+      #   uses: actions/cache@v3
+      #   env:
+      #     # Increase this value to reset cache
+      #     CACHE_NUMBER: 4
+      #   with:
+      #     path: ~/conda_pkgs_dir
+      #     key:
+      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+      #       hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
+      # - name: Cache minio
+      #   uses: actions/cache@v3
+      #   env:
+      #     # Increase this value to reset cache
+      #     CACHE_NUMBER: 4
+      #   with:
+      #     path: minio
+      #     key:
+      #       ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
 
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          conda activate test
           ./dev/macos/setup.sh
-          conda install --yes --file tests/requirements.txt
+          conda install --quiet --yes --file tests/requirements.txt
           conda-build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
 
-      - name: Conda Info
+      - name: Show info
         run: |
-          conda activate test
-          pwd
-          conda info
+          conda info --all
+          conda list --show-channel-urls
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
+      - name: Run tests
         run: |
-          conda activate test
-          python -m pytest \
+          pytest \
             --cov=conda \
             --store-durations \
             --durations-path=./tools/durations/${{ runner.os }}.json \
