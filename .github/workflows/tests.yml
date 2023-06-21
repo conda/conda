@@ -129,7 +129,6 @@ jobs:
         run: |
           (Get-Item .).FullName
           conda info --all
-          python -c "from conda.base.context import context; print(context.channels)"
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
@@ -213,7 +212,6 @@ jobs:
         run: |
           pwd
           conda info --all
-          python -c "from conda.base.context import context; print(context.channels)"
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
@@ -355,6 +353,7 @@ jobs:
 
       - name: Conda Info
         run: |
+          pwd
           conda info
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
