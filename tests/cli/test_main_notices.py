@@ -7,12 +7,15 @@ import os
 from unittest import mock
 
 import pytest
+from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.notices import fetch
+from conda.testing import CondaCLIFixture
 from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
@@ -264,9 +267,6 @@ def test_notices_appear_once_when_running_decorated_commands(
 
     This test intentionally does not make any external network calls and never should.
     """
-    monkeypatch.setenv("CONDA_USE_LOCAL", "False")
-    reset_context()
-
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
     with mock.patch(
@@ -286,7 +286,9 @@ def test_notices_appear_once_when_running_decorated_commands(
         # If we did this correctly, args should be an empty list because our local channel has not
         # been initialized. This causes no network traffic because there are no URLs to fetch which
         # is what we want.
-        assert args == ([],)
+        assert [
+            [(url, name) for url, name in arg if name != "local"] for arg in args
+        ] == [[]]
 
         # Reset our mock for another call to "conda install"
         fetch_mock.reset_mock()
@@ -346,19 +348,19 @@ def test_notices_does_not_interrupt_command_on_failure(
 
 
 def test_notices_cannot_read_cache_files(
-    notices_cache_dir, notices_mock_http_session_get
+    notices_cache_dir,
+    notices_mock_http_session_get,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
     """
     As a user, when I run `conda notices` and the cache file cannot be read or written, I want
     to see an error message.
     """
     error_message = "Can't touch this"
+    mock_open = mocker.patch(
+        "builtins.open", side_effect=PermissionError(error_message)
+    )
 
-    with mock.patch("conda.notices.cache.open") as mock_open:
-        mock_open.side_effect = [PermissionError(error_message)]
-        out, err, exit_code = run(
-            "conda notices -c local --override-channels", disallow_stderr=False
-        )
-
-        assert f"Unable to retrieve notices: {error_message}" in err
-        assert exit_code == 1
+    with pytest.raises(PermissionError, match=error_message):
+        conda_cli("notices", "--channel", "local", "--override-channels")
