@@ -11,8 +11,7 @@ class PreCommandPlugin:
         self.invoked = False
         self.args = None
 
-    @staticmethod
-    def pre_command_action(command, arguments) -> int:
+    def pre_command_action(self, command, args) -> int:
         pass
 
     @plugins.hookimpl

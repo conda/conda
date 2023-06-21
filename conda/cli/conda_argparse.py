@@ -107,8 +107,6 @@ def generate_parser():
     configure_parser_update(sub_parsers, aliases=["upgrade"])
     configure_parser_notices(sub_parsers)
 
-    configure_parser_plugin(sub_parsers)
-
     return p
 
 
@@ -117,13 +115,11 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    plugin_arguments = tuple(sys.argv[2:])
-
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, plugin_arguments)
-        result = arguments.plugin_subcommand.action(plugin_arguments)
-        _run_command_hooks("post", arguments.plugin_subcommand.name, plugin_arguments)
+        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
+        result = arguments.plugin_subcommand.action(sys.argv[2:])
+        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
 
         return result
 
@@ -273,7 +269,7 @@ class ArgumentParser(ArgumentParserBase):
         if args is None:
             args = sys.argv[1:]
 
-        plugin_namespace = None
+        plugin_subcommand = None
         if args:
             name = args[0]
             for subcommand in self._subcommands:
@@ -286,10 +282,10 @@ class ArgumentParser(ArgumentParserBase):
                         )
                         log.error(error_message)
                     else:
-                        plugin_namespace = Namespace(plugin_namespace=subcommand)
+                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
 
-        if plugin_namespace is not None:
-            namespace = plugin_namespace
+        if plugin_subcommand is not None:
+            return plugin_subcommand
 
         return super().parse_args(args, namespace)
 
@@ -363,11 +359,6 @@ class ExtendConstAction(Action):
 # sub-parsers
 #
 # #############################################################################################
-
-
-def configure_parser_plugin(sub_parser):
-    for subcommand in context.plugin_manager.get_hook_results("subcommands"):
-        sub_parser.add_parser(subcommand.name, help=subcommand.summary)
 
 
 def configure_parser_clean(sub_parsers):
