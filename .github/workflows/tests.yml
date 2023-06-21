@@ -118,7 +118,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
-        shell: cmd
         run: |
           call .\dev\windows\setup.bat
           conda install --yes pywin32 --file tests/requirements.txt
@@ -199,7 +198,6 @@ jobs:
           fetch-depth: 0
 
       - name: Setup environment
-        shell: cmd
         run: |
           conda install --yes --file tests/requirements.txt
           conda-build \
