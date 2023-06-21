@@ -9,7 +9,7 @@ from pathlib import Path
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
 
-logger = getLogger("health_checks")
+logger = getLogger(__name__)
 
 OK_MARK = "✅"
 REPORT_TITLE = "\nENVIRONMENT HEALTH REPORT\n"
