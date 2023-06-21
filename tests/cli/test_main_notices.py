@@ -9,7 +9,7 @@ from unittest import mock
 import pytest
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.notices import fetch
@@ -264,6 +264,9 @@ def test_notices_appear_once_when_running_decorated_commands(
 
     This test intentionally does not make any external network calls and never should.
     """
+    monkeypatch.setenv("CONDA_USE_LOCAL", "False")
+    reset_context()
+
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
     with mock.patch(
