@@ -188,14 +188,19 @@ jobs:
       CONDA_CHANNELS: ${{ matrix.default-channel }}
       CONDA_CHANNEL_PRIORITY: strict
       CONDA_CHANGEPS1: true
-    container:
-      image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
+    # container:
+    #   image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
       # volumes:
       #   - .:/opt/conda-src
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - uses: conda-incubator/setup-miniconda@v2
+        name: Setup miniconda
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
@@ -341,7 +346,7 @@ jobs:
         run: |
           ./dev/macos/setup.sh
           conda config --set changeps1 true
-          conda install --yes --name conda-test-env --file tests/requirements.txt
+          conda install --yes --file tests/requirements.txt
           conda-build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
