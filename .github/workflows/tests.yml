@@ -165,6 +165,9 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
@@ -299,6 +302,9 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
