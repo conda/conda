@@ -119,7 +119,7 @@ jobs:
 
       - name: Setup environment
         run: |
-          call .\dev\windows\setup.bat
+          Invoke-Item .\dev\windows\setup.bat
           conda install --yes pywin32 --file tests/requirements.txt
           conda-build `
             tests/test-recipes/activate_deactivate_package `
@@ -127,7 +127,7 @@ jobs:
 
       - name: Conda Info
         run: |
-          pwd
+          (Get-Item .).FullName
           conda info --all
           python -c "from conda.base.context import context; print(context.channels)"
 
