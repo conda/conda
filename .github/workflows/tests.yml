@@ -119,19 +119,22 @@ jobs:
 
       - name: Setup environment
         run: |
+          conda activate test
           Invoke-Item .\dev\windows\setup.bat
           conda install --yes pywin32 --file tests/requirements.txt
-          conda build `
+          conda-build `
             tests/test-recipes/activate_deactivate_package `
             tests/test-recipes/pre_link_messages_package
 
       - name: Conda Info
         run: |
+          conda activate test
           (Get-Item .).FullName
           conda info --all
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
+          conda activate test
           python -m pytest `
             --cov=conda `
             --store-durations `
@@ -203,18 +206,21 @@ jobs:
 
       - name: Setup environment
         run: |
+          conda activate test
           conda install --yes --file tests/requirements.txt
-          conda build \
+          conda-build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
 
       - name: Conda Info
         run: |
+          conda activate test
           pwd
           conda info --all
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
+          conda activate test
           python -m pytest \
             --cov=conda \
             --store-durations \
@@ -345,19 +351,22 @@ jobs:
 
       - name: Setup environment
         run: |
+          conda activate test
           ./dev/macos/setup.sh
           conda install --yes --file tests/requirements.txt
-          conda build \
+          conda-build \
             tests/test-recipes/activate_deactivate_package \
             tests/test-recipes/pre_link_messages_package
 
       - name: Conda Info
         run: |
+          conda activate test
           pwd
           conda info
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
+          conda activate test
           python -m pytest \
             --cov=conda \
             --store-durations \
