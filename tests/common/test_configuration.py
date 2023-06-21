@@ -761,7 +761,7 @@ def test_pretty_list():
     # cover TypeError in pretty_list
 
     class RaisesTypeErrorInStr:
-        def __str__():
+        def __str__(self):
             raise TypeError()
 
     print(pretty_list(RaisesTypeErrorInStr()))
