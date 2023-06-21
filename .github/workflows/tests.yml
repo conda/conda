@@ -190,7 +190,7 @@ jobs:
       CONDA_CHANNEL_PRIORITY: strict
       CONDA_CHANGEPS1: true
     container:
-      image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}-${{ matrix.default-channel }}
+      image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
       # volumes:
       #   - .:/opt/conda-src
     steps:

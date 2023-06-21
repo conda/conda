@@ -87,7 +87,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
-            suffix=-linux-python${{ matrix.python }}-${{ matrix.channel }}
+            suffix=-linux-python${{ matrix.python }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
 
       - name: Build for ${{ matrix.channel }} & push Python ${{ matrix.python }}
         uses: docker/build-push-action@v3
