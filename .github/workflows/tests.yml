@@ -132,16 +132,17 @@ jobs:
       - name: Run tests
         run: |
           Get-ChildItem -Force
-          where pytest
-          where python
-          pytest `
-            --cov=conda `
-            --store-durations `
-            --durations-path=.\tools\durations\${{ runner.os }}.json `
-            --splitting-algorithm=least_duration `
-            -v `
-            --splits=5 `
-            --group=${{ matrix.test-group }}
+          (Get-Command pytest).Path
+          (Get-Command python).Path
+
+      # pytest `
+      #   --cov=conda `
+      #   --store-durations `
+      #   --durations-path=.\tools\durations\${{ runner.os }}.json `
+      #   --splitting-algorithm=least_duration `
+      #   -v `
+      #   --splits=5 `
+      #   --group=${{ matrix.test-group }}
 
       - uses: codecov/codecov-action@v3
         with:
