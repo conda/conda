@@ -80,12 +80,10 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
-      CONDA_CHANNELS: ${{ matrix.default-channel }}
-      CONDA_CHANNEL_PRIORITY: strict
-      CONDA_CHANGEPS1: true
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -116,6 +114,7 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
+          condarc-file: ./.github/ci/${{ matrix.default-channel }}.condarc
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
@@ -187,9 +186,6 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
-      CONDA_CHANNELS: ${{ matrix.default-channel }}
-      CONDA_CHANNEL_PRIORITY: strict
-      CONDA_CHANGEPS1: true
     # container:
     #   image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
       # volumes:
@@ -203,6 +199,7 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
+          condarc-file: ./.github/ci/${{ matrix.default-channel }}.condarc
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
@@ -316,9 +313,6 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
-      CONDA_CHANNELS: ${{ matrix.default-channel }}
-      CONDA_CHANNEL_PRIORITY: strict
-      CONDA_CHANGEPS1: true
 
     steps:
       - uses: actions/checkout@v3
@@ -349,6 +343,7 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
+          condarc-file: ./.github/ci/${{ matrix.default-channel }}.condarc
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
