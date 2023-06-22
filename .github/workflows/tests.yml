@@ -88,10 +88,6 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
-    # container:
-    #   image: ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.channel == 'conda-forge' && '-conda-forge' || '' }}
-      # volumes:
-      #   - .:/opt/conda-src
 
     steps:
       - uses: actions/checkout@v3
@@ -101,12 +97,12 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          condarc-file: ./.github/ci/${{ matrix.default-channel }}.condarc
+          condarc-file: ./.github/ci/condarc.${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          ./dev/linux/setup.sh
+          ./.github/ci/install_minio.sh
           conda install --yes --file tests/requirements.txt
           conda-build \
             tests/test-recipes/activate_deactivate_package \
@@ -181,7 +177,7 @@ jobs:
           --rm -v ${PWD}:/opt/conda-src
           --platform linux/${{ matrix.platform }}
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/qemu.sh
+          /opt/conda-src/.github/ci/qemu.sh
 
       - name: Upload test results
         if: always()
@@ -224,39 +220,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Cache conda packages
-      #   uses: actions/cache@v3
-      #   env:
-      #     # Increase this value to reset cache
-      #     CACHE_NUMBER: 3
-      #   with:
-      #     # setup.bat makes a directory junction from \conda_bin to
-      #     # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
-      #     # at this stage.
-      #     path: C:\Miniconda\envs\conda-test-env\pkgs
-      #     key:
-      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-      #       hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
-
-      # - name: Cache minio
-      #   uses: actions/cache@v3
-      #   env:
-      #     # Increase this value to reset cache
-      #     CACHE_NUMBER: 4
-      #   with:
-      #     path: minio.exe
-      #     key:
-      #       ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
-
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          condarc-file: .\.github\ci\${{ matrix.default-channel }}.condarc
+          condarc-file: .\.github\ci\condarc.${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          cmd /c .\dev\windows\setup.bat
+          cmd /C .\.github\ci\install_minio.bat
           conda install --quiet --yes --file tests/requirements.txt pywin32
           conda-build `
             tests/test-recipes/activate_deactivate_package `
@@ -322,36 +294,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Cache conda packages
-      #   uses: actions/cache@v3
-      #   env:
-      #     # Increase this value to reset cache
-      #     CACHE_NUMBER: 4
-      #   with:
-      #     path: ~/conda_pkgs_dir
-      #     key:
-      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-      #       hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
-
-      # - name: Cache minio
-      #   uses: actions/cache@v3
-      #   env:
-      #     # Increase this value to reset cache
-      #     CACHE_NUMBER: 4
-      #   with:
-      #     path: minio
-      #     key:
-      #       ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
-
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          condarc-file: ./.github/ci/${{ matrix.default-channel }}.condarc
+          condarc-file: ./.github/ci/condarc.${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          ./dev/macos/setup.sh
+          ./.github/ci/install_minio.sh
           conda install --quiet --yes --file tests/requirements.txt
           conda-build \
             tests/test-recipes/activate_deactivate_package \
