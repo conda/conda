@@ -86,7 +86,6 @@ jobs:
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
 
     steps:
@@ -204,14 +203,13 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.11']
-        test-group: ['1', '2', '3', '4', '5']
+        test-group: ['1', '2', '3', '4', '5', '6']
         exclude:
           - default-channel: 'conda-forge'
             python-version: '3.8'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
 
     steps:
@@ -247,7 +245,7 @@ jobs:
             --durations-path=.\tools\durations\${{ runner.os }}.json `
             --splitting-algorithm=least_duration `
             -v `
-            --splits=5 `
+            --splits=6 `
             --group=${{ matrix.test-group }}
 
       - uses: codecov/codecov-action@v3
@@ -280,13 +278,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
-        test-group: ['1', '2', '3', '4', '5']
+        include:
+          - default-channel: defaults
+            python-version: '3.9'
+            test-group: '1'
+          - default-channel: conda-forge
+            python-version: '3.9'
+            test-group: '2'
+          - default-channel: defaults
+            python-version: '3.9'
+            test-group: '3'
+          - default-channel: conda-forge
+            python-version: '3.9'
+            test-group: '4'
+          - default-channel: defaults
+            python-version: '3.9'
+            test-group: '5'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 5
       TEST_GROUP: ${{ matrix.test-group }}
 
     steps:
