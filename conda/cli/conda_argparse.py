@@ -89,7 +89,7 @@ def generate_parser():
         "-P",
         "--no-plugins",
         action="store_true",
-        help='Disable usage of all plugins during built-in conda commands (e.g. "install")',
+        help='Disable usage of all plugins during built-in conda commands (e.g. "install").',
     )
     sub_parsers = p.add_subparsers(
         metavar="command",

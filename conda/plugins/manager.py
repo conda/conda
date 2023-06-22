@@ -186,7 +186,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Disables all currently registered plugins except built-in conda plugins
         """
         for name, _ in self.list_name_plugin():
-            if not name.startswith("conda.plugins"):
+            if not name.startswith("conda."):
                 self.set_blocked(name)
 
 
