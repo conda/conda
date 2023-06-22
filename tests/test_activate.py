@@ -40,7 +40,7 @@ from conda.base.constants import (
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import ensure_text_type, on_win
 from conda.common.io import captured, env_var, env_vars
@@ -1272,6 +1272,7 @@ def test_native_path_to_unix(shell_wrapper_unit: str):
 def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
+    assert context.changeps1
 
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
@@ -1417,6 +1418,8 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     monkeypatch.setenv("CONDA_DEV", "false")
     reset_context()
+    assert context.changeps1
+    assert not context.dev
 
     activator = CmdExeActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
@@ -1558,6 +1561,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
+    assert context.changeps1
 
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
@@ -1700,6 +1704,7 @@ def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
+    assert context.changeps1
 
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
@@ -1853,6 +1858,7 @@ def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
+    assert context.changeps1
 
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
@@ -1987,6 +1993,7 @@ def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
+    assert context.changeps1
 
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
@@ -2119,6 +2126,7 @@ def test_unicode(shell_wrapper_unit: str):
 def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
+    assert context.changeps1
 
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
