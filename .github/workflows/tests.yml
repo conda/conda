@@ -106,6 +106,7 @@ jobs:
 
       - name: Setup environment
         run: |
+          ./dev/linux/setup.sh
           conda install --yes --file tests/requirements.txt
           conda-build \
             tests/test-recipes/activate_deactivate_package \
@@ -258,6 +259,7 @@ jobs:
 
       - name: Setup environment
         run: |
+          cmd /c .\dev\windows\setup.bat
           conda install --quiet --yes --file tests/requirements.txt pywin32
           conda-build `
             tests/test-recipes/activate_deactivate_package `
