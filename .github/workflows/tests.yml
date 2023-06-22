@@ -134,9 +134,7 @@ jobs:
           Get-ChildItem -Force
           (Get-Command pytest).Path
           (Get-Command python).Path
-          pytest `
-            --cov=conda `
-            -v
+          pytest
 
       # pytest `
       #   --cov=conda `
