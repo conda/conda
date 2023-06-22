@@ -7,15 +7,12 @@ import os
 from unittest import mock
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.notices import fetch
-from conda.testing import CondaCLIFixture
 from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
@@ -318,9 +315,7 @@ def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_sessi
     assert arg_1 == "s3://conda-org/notices.json"
 
 
-def test_notices_does_not_interrupt_command_on_failure(
-    notices_cache_dir, notices_mock_http_session_get
-):
+def test_notices_does_not_interrupt_command_on_failure(notices_cache_dir):
     """
     As a user, when I run conda in an environment where notice cache files might not be readable or
     writable, I still want commands to run and not end up failing.
@@ -347,20 +342,18 @@ def test_notices_does_not_interrupt_command_on_failure(
     assert exit_code is None
 
 
-def test_notices_cannot_read_cache_files(
-    notices_cache_dir,
-    notices_mock_http_session_get,
-    conda_cli: CondaCLIFixture,
-    mocker: MockerFixture,
-):
+def test_notices_cannot_read_cache_files(notices_cache_dir):
     """
     As a user, when I run `conda notices` and the cache file cannot be read or written, I want
     to see an error message.
     """
     error_message = "Can't touch this"
-    mock_open = mocker.patch(
-        "builtins.open", side_effect=PermissionError(error_message)
-    )
 
-    with pytest.raises(PermissionError, match=error_message):
-        conda_cli("notices", "--channel", "local", "--override-channels")
+    with mock.patch("conda.notices.cache.open") as mock_open:
+        mock_open.side_effect = [PermissionError(error_message)]
+        out, err, exit_code = run(
+            "conda notices -c local --override-channels", disallow_stderr=False
+        )
+
+        assert f"Unable to retrieve notices: {error_message}" in err
+        assert exit_code == 1
