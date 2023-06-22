@@ -32,6 +32,3 @@ from .types import (  # noqa: F401
     CondaSubcommand,
     CondaVirtualPackage,
 )
-
-# Used for sphinx-autoapi
-__all__ = ()

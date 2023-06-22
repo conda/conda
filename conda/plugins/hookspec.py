@@ -21,8 +21,6 @@ from .types import (
     CondaVirtualPackage,
 )
 
-__all__ = ("CondaSpecs", "hookimpl")
-
 #: Name used for organizing conda hook specifications
 spec_name = "conda"
 

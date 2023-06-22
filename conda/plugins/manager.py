@@ -25,8 +25,6 @@ from .types import CommandHookTypes
 
 log = logging.getLogger(__name__)
 
-__all__ = ("CondaPluginManager", "get_plugin_manager")
-
 
 class CondaPluginManager(pluggy.PluginManager):
     """
