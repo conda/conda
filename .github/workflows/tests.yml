@@ -269,10 +269,8 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run tests
+        shell: cmd
         run: |
-          Get-ChildItem -Force
-          Get-ChildItem (Get-Command pytest).path
-          Get-ChildItem (Get-Command python).Path
           pytest .\tests
 
       # pytest `
