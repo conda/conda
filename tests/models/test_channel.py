@@ -1308,6 +1308,7 @@ def test_channel_mangles_urls():
     CondaSession() runs urls through Channel, and cannot be used to fetch files
     with unknown extensions (it will mangle the URL)
     """
+    reset_context()
     cases = [
         (
             "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",

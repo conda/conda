@@ -2820,21 +2820,39 @@ def basic_csh(shell, prefix, prefix2, prefix3):
 @pytest.mark.flaky(reruns=5)
 @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
 @pytest.mark.integration
-def test_bash_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_bash_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     with InteractiveShell("bash") as shell:
         basic_posix(shell, *shell_wrapper_integration)
 
 
 @pytest.mark.skipif(not which("dash") or on_win, reason="dash not installed")
 @pytest.mark.integration
-def test_dash_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_dash_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     with InteractiveShell("dash") as shell:
         basic_posix(shell, *shell_wrapper_integration)
 
 
 @pytest.mark.skipif(not which("zsh"), reason="zsh not installed")
 @pytest.mark.integration
-def test_zsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_zsh_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     with InteractiveShell("zsh") as shell:
         basic_posix(shell, *shell_wrapper_integration)
 
@@ -2844,7 +2862,13 @@ def test_zsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     reason="pure csh doesn't support argument passing to sourced scripts"
 )
 @pytest.mark.integration
-def test_csh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_csh_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     with InteractiveShell("csh") as shell:
         basic_csh(shell, *shell_wrapper_integration)
 
@@ -2852,7 +2876,13 @@ def test_csh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
 @pytest.mark.skipif(not which("tcsh"), reason="tcsh not installed")
 @pytest.mark.xfail(reason="punting until we officially enable support for tcsh")
 @pytest.mark.integration
-def test_tcsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_tcsh_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     with InteractiveShell("tcsh") as shell:
         basic_csh(shell, *shell_wrapper_integration)
 
@@ -2860,7 +2890,13 @@ def test_tcsh_basic_integration(shell_wrapper_integration: tuple[str, str, str])
 @pytest.mark.skipif(not which("fish"), reason="fish not installed")
 @pytest.mark.xfail(reason="fish and pexpect don't seem to work together?")
 @pytest.mark.integration
-def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_fish_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     prefix, _, _ = shell_wrapper_integration
 
     with InteractiveShell("fish") as shell:
@@ -2889,7 +2925,13 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
 
 @pytest.mark.skipif(not which_powershell(), reason="PowerShell not installed")
 @pytest.mark.integration
-def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_powershell_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     prefix, charizard, venusaur = shell_wrapper_integration
 
     posh_kind, posh_path = which_powershell()
@@ -2978,7 +3020,13 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
 @pytest.mark.integration
-def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_cmd_exe_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
     prefix, charizard, _ = shell_wrapper_integration
 
     conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
