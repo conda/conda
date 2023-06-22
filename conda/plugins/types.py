@@ -77,7 +77,7 @@ class CondaPreCommand(NamedTuple):
 
     :param name: Pre-command name (e.g., ``custom_plugin_pre_commands``).
     :param action: Callable which contains the code to be run.
-    :param run_for: Represents the command(s) this will be run on (e.g. install or create).
+    :param run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
     """
 
     name: str
@@ -94,7 +94,7 @@ class CondaPostCommand(NamedTuple):
 
     :param name: Post-command name (e.g., ``custom_plugin_post_commands``).
     :param action: Callable which contains the code to be run.
-    :param run_for: Represents the command(s) this will be run on (e.g. install or create).
+    :param run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
     """
 
     name: str

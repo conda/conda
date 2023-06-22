@@ -50,7 +50,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def load_plugins(self, *plugins) -> list[str]:
         """
         Load the provided list of plugins and fail gracefully on error.
-        The provided list plugins can either be classes or modules with
+        The provided list of plugins can either be classes or modules with
         :attr:`~conda.plugins.hook_impl`.
         """
         plugin_names = []
@@ -186,7 +186,7 @@ class CondaPluginManager(pluggy.PluginManager):
 def get_plugin_manager() -> CondaPluginManager:
     """
     Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
-    instance, with the built-in and the entrypoints provided plugins loaded.
+    instance, with the built-in and the entrypoints provided by the plugins loaded.
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)

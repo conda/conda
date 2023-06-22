@@ -65,7 +65,7 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
-        :return: An iterable of solvers entries.
+        :return: An iterable of solver entries.
         """
 
     @_hookspec
@@ -121,7 +121,7 @@ class CondaSpecs:
     @_hookspec
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
         """
-        Register pre-commands functions in conda.
+        Register pre-command functions in conda.
 
         **Example:**
 
@@ -146,7 +146,7 @@ class CondaSpecs:
     @_hookspec
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
-        Register post-commands functions in conda.
+        Register post-command functions in conda.
 
         **Example:**
 
