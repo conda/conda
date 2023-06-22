@@ -23,8 +23,7 @@ from os.path import (
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
-from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -38,12 +37,7 @@ from conda.base.constants import (
     PREFIX_MAGIC_FILE,
     SafetyChecks,
 )
-from conda.base.context import (
-    Context,
-    conda_tests_ctxt_mgmt_def_pol,
-    context,
-    reset_context,
-)
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import ensure_text_type, on_mac, on_win
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
@@ -83,14 +77,12 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
-from conda.testing.cases import BaseTestCase
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     Commands,
     cp_or_copy,
-    create_temp_location,
     env_or_set,
     get_shortcut_dir,
     make_temp_channel,
