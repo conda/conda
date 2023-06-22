@@ -174,6 +174,15 @@ class ExceptionHandler:
                 "An unexpected error has occurred. Conda has prepared the above report."
             )
             message_builder.append("")
+            message_builder.append(
+                "If you suspect this error is being caused by a malfunctioning plugin,"
+            )
+            message_builder.append(
+                "consider using the --no-plugins option to turn off external plugins."
+            )
+            message_builder.append("")
+            message_builder.append("Example: conda --no-plugins install <package>")
+            message_builder.append("")
             self.write_out(*message_builder)
 
     def print_expected_error_report(self, error_report):
