@@ -18,6 +18,7 @@ from tempfile import gettempdir
 from uuid import uuid4
 
 import pytest
+from pytest import MonkeyPatch
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda import __version__ as conda_version
@@ -1268,7 +1269,10 @@ def test_native_path_to_unix(shell_wrapper_unit: str):
         assert native_path_to_unix(paths) == paths
 
 
-def test_posix_basic(shell_wrapper_unit: str):
+def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1409,9 +1413,11 @@ def test_posix_basic(shell_wrapper_unit: str):
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
-def test_cmd_exe_basic(shell_wrapper_unit: str):
-    # NOTE :: We do not want dev mode here.
-    context.dev = False
+def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    monkeypatch.setenv("CONDA_DEV", "false")
+    reset_context()
+
     activator = CmdExeActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1549,7 +1555,10 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_csh_basic(shell_wrapper_unit: str):
+def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1688,7 +1697,10 @@ def test_csh_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_xonsh_basic(shell_wrapper_unit: str):
+def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1838,7 +1850,10 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_fish_basic(shell_wrapper_unit: str):
+def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1969,7 +1984,10 @@ def test_fish_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_powershell_basic(shell_wrapper_unit: str):
+def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -2098,7 +2116,10 @@ def test_unicode(shell_wrapper_unit: str):
                     main_sourced(shell, *activate_args, shell_wrapper_unit)
 
 
-def test_json_basic(shell_wrapper_unit: str):
+def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
