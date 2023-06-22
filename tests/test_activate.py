@@ -7,7 +7,7 @@ import os
 import platform
 import sys
 from functools import lru_cache
-from itertools import chain
+from itertools import chain, zip_longest
 from logging import getLogger
 from os.path import dirname, isdir, join
 from pathlib import Path
@@ -3383,15 +3383,15 @@ def _run_command(*lines):
 )
 def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
     which, envs = create_stackable_envs
-    stack = filter(None, stack.split(","))
     expected = filter(None, expected.split(","))
-    expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
-    assert (
-        _run_command(
-            *("conda deactivate" for _ in range(5)),
-            f"conda config --set auto_stack {auto_stack}",
-            *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
-            f'conda run -p "{envs[run.strip()].prefix}" {which}',
-        )
-        == expected
+    expected = chain.from_iterable(envs[env.strip()].paths for env in expected)
+
+    stack = filter(None, stack.split(","))
+    stack = _run_command(
+        *("conda deactivate" for _ in range(5)),
+        f"conda config --set auto_stack {auto_stack}",
+        *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
+        f'conda run -p "{envs[run.strip()].prefix}" {which}',
     )
+    for path1, path2 in zip_longest(stack, expected):
+        assert path1.samefile(path2)
