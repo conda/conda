@@ -43,6 +43,10 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from ..base.context import context
 
     context.__init__(argparse_args=args)
+
+    if hasattr(args, "no_plugins") and args.no_plugins:
+        context.plugin_manager.disable_external_plugins()
+
     init_loggers(context)
 
     # used with main_pip.py
