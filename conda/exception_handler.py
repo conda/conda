@@ -175,10 +175,10 @@ class ExceptionHandler:
             )
             message_builder.append("")
             message_builder.append(
-                "If you suspect this error is being caused by a malfunctioning plugin,"
+                "If you suspect this error is being caused by a malfunctioning plugin, consider"
             )
             message_builder.append(
-                "consider using the --no-plugins option to turn off external plugins."
+                "using the --no-plugins option to run the command without plugins enabled."
             )
             message_builder.append("")
             message_builder.append("Example: conda --no-plugins install <package>")
