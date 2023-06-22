@@ -59,110 +59,6 @@ jobs:
               - 'recipe/**'
               - '.github/workflows/tests.yml'
 
-  # windows test suite
-  windows:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-
-    runs-on: windows-2019
-    strategy:
-      fail-fast: false
-      matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.11']
-        test-group: ['1', '2', '3', '4', '5']
-        exclude:
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-    env:
-      OS: Windows
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 5
-      TEST_GROUP: ${{ matrix.test-group }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      # - name: Cache conda packages
-      #   uses: actions/cache@v3
-      #   env:
-      #     # Increase this value to reset cache
-      #     CACHE_NUMBER: 3
-      #   with:
-      #     # setup.bat makes a directory junction from \conda_bin to
-      #     # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
-      #     # at this stage.
-      #     path: C:\Miniconda\envs\conda-test-env\pkgs
-      #     key:
-      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-      #       hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
-
-      # - name: Cache minio
-      #   uses: actions/cache@v3
-      #   env:
-      #     # Increase this value to reset cache
-      #     CACHE_NUMBER: 4
-      #   with:
-      #     path: minio.exe
-      #     key:
-      #       ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
-
-      - name: Setup miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          condarc-file: .\.github\ci\${{ matrix.default-channel }}.condarc
-          python-version: ${{ matrix.python-version }}
-
-      - name: Setup environment
-        run: |
-          conda install --quiet --yes --file tests/requirements.txt pywin32
-          conda-build `
-            tests/test-recipes/activate_deactivate_package `
-            tests/test-recipes/pre_link_messages_package
-
-      - name: Show info
-        run: |
-          conda info --all
-          conda list --show-channel-urls
-
-      - name: Run tests
-        run: |
-          Get-ChildItem -Force
-          Get-ChildItem (Get-Command pytest).path
-          Get-ChildItem (Get-Command python).Path
-          pytest .\tests
-
-      # pytest `
-      #   --cov=conda `
-      #   --store-durations `
-      #   --durations-path=.\tools\durations\${{ runner.os }}.json `
-      #   --splitting-algorithm=least_duration `
-      #   -v `
-      #   --splits=5 `
-      #   --group=${{ matrix.test-group }}
-
-      - uses: codecov/codecov-action@v3
-        with:
-          flags: ${{ runner.os }},${{ matrix.python-version }}
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            .\tools\durations\${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
-
   # linux test suite
   linux:
     # only run test suite if there are code changes
@@ -298,6 +194,110 @@ jobs:
           name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.default-channel }}-${{ matrix.python-version }}
           path: |
             .coverage
+            test-report.xml
+          retention-days: 1
+
+  # windows test suite
+  windows:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.8', '3.11']
+        test-group: ['1', '2', '3', '4', '5']
+        exclude:
+          - default-channel: 'conda-forge'
+            python-version: '3.8'
+    env:
+      OS: Windows
+      PYTHON: ${{ matrix.python-version }}
+      TEST_SPLITS: 5
+      TEST_GROUP: ${{ matrix.test-group }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # - name: Cache conda packages
+      #   uses: actions/cache@v3
+      #   env:
+      #     # Increase this value to reset cache
+      #     CACHE_NUMBER: 3
+      #   with:
+      #     # setup.bat makes a directory junction from \conda_bin to
+      #     # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+      #     # at this stage.
+      #     path: C:\Miniconda\envs\conda-test-env\pkgs
+      #     key:
+      #       ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+      #       hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+
+      # - name: Cache minio
+      #   uses: actions/cache@v3
+      #   env:
+      #     # Increase this value to reset cache
+      #     CACHE_NUMBER: 4
+      #   with:
+      #     path: minio.exe
+      #     key:
+      #       ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
+
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          condarc-file: .\.github\ci\${{ matrix.default-channel }}.condarc
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup environment
+        run: |
+          conda install --quiet --yes --file tests/requirements.txt pywin32
+          conda-build `
+            tests/test-recipes/activate_deactivate_package `
+            tests/test-recipes/pre_link_messages_package
+
+      - name: Show info
+        run: |
+          conda info --all
+          conda list --show-channel-urls
+
+      - name: Run tests
+        run: |
+          Get-ChildItem -Force
+          Get-ChildItem (Get-Command pytest).path
+          Get-ChildItem (Get-Command python).Path
+          pytest .\tests
+
+      # pytest `
+      #   --cov=conda `
+      #   --store-durations `
+      #   --durations-path=.\tools\durations\${{ runner.os }}.json `
+      #   --splitting-algorithm=least_duration `
+      #   -v `
+      #   --splits=5 `
+      #   --group=${{ matrix.test-group }}
+
+      - uses: codecov/codecov-action@v3
+        with:
+          flags: ${{ runner.os }},${{ matrix.python-version }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-group }}
+          path: |
+            .coverage
+            .\tools\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
