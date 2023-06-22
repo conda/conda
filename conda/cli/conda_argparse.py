@@ -121,6 +121,9 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
+    if hasattr(arguments, "no_plugins") and arguments.no_plugins:
+        context.plugin_manager.disable_external_plugins()
+
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
         _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])

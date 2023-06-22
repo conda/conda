@@ -10,6 +10,7 @@ from conda import plugins
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
+from tests.plugins.test_plugins import verbose_pre_command
 
 log = logging.getLogger(__name__)
 
@@ -94,3 +95,19 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     assert mocked_warning.call_args.args[0] == (
         "Could not load conda plugin `conda-test-plugin`:\n\nNo module named 'package_that_does_not_exist'"
     )
+
+
+def test_disable_plugins(conda_cli, plugin_manager, mocker):
+    """
+    Run a test to ensure we can successfully disable externally registered plugins
+    """
+    plugin_manager.load_plugins(verbose_pre_command)
+    patch = mocker.patch(
+        "tests.plugins.test_plugins.verbose_pre_command.verbose_pre_command_action"
+    )
+
+    out, err, code = conda_cli("--no-plugins", "info")
+
+    assert patch.mock_calls == []
+
+    assert err == ""
