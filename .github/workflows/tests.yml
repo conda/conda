@@ -119,9 +119,6 @@ jobs:
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
-          ls -lah
-          which pytest
-          which python
           pytest \
             --cov=conda \
             --store-durations \
@@ -271,18 +268,16 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run tests
-        shell: cmd
+        shell: cmd /C call {0}
         run: |
-          pytest .\tests
-
-      # pytest `
-      #   --cov=conda `
-      #   --store-durations `
-      #   --durations-path=.\tools\durations\${{ runner.os }}.json `
-      #   --splitting-algorithm=least_duration `
-      #   -v `
-      #   --splits=5 `
-      #   --group=${{ matrix.test-group }}
+          pytest `
+            --cov=conda `
+            --store-durations `
+            --durations-path=.\tools\durations\${{ runner.os }}.json `
+            --splitting-algorithm=least_duration `
+            -v `
+            --splits=5 `
+            --group=${{ matrix.test-group }}
 
       - uses: codecov/codecov-action@v3
         with:
@@ -370,9 +365,6 @@ jobs:
 
       - name: Run tests
         run: |
-          ls -lah
-          which pytest
-          which python
           pytest \
             --cov=conda \
             --store-durations \
