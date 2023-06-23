@@ -9,6 +9,7 @@ import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, splitext
+from pathlib import Path
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
@@ -233,6 +234,13 @@ def extract_tarball(
         tarball_full_path, dest_dir=destination_directory
     )
 
+    # ensure all extracted files and folders adhere to user's umask
+    if not on_win:
+        for root, dirs, files in os.walk(destination_directory):
+            for stem in (*dirs, *files):
+                path = Path(root, stem)
+                path.chmod(path.stat().st_mode & (0o777 - _get_umask()))
+
     if hasattr(conda_package_handling.api, "THREADSAFE_EXTRACT"):
         return  # indicates conda-package-handling 2.x, which implements --no-same-owner
 
@@ -244,6 +252,13 @@ def extract_tarball(
             for fn in files:
                 p = join(root, fn)
                 os.lchown(p, 0, 0)
+
+
+def _get_umask() -> int:
+    # os.umask() both sets the new value and returns the old value
+    umask = os.umask(0)
+    os.umask(umask)
+    return umask
 
 
 def make_menu(prefix, file_path, remove=False):
