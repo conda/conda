@@ -2382,15 +2382,15 @@ class InteractiveShell:
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
 
+        from conda.utils import quote_for_shell
+
         # remove all CONDA_ env vars
         # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
-        os.environ["MSYS2_PATH_TYPE"] = "inherit"
-        os.environ["CHERE_INVOKING"] = "1"
-        env = {str(k): str(v) for k, v in os.environ.items()}
-        remove_these = {var_name for var_name in env if var_name.startswith("CONDA_")}
-        for var_name in remove_these:
-            del env[var_name]
-        from conda.utils import quote_for_shell
+        env = {
+            **{key: value for key, value in os.environ.items() if key not in POP_THESE},
+            "MSYS2_PATH_TYPE": "inherit",
+            "CHERE_INVOKING": "1",
+        }
 
         # 1. shell='cmd.exe' is deliberate. We are not, at this time, running bash, we
         #    are launching it (from `cmd.exe` most likely).
