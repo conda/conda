@@ -3,6 +3,7 @@
 """Entry point for all conda-env subcommands."""
 import os
 import sys
+from copy import deepcopy
 
 # pip_util.py import on_win from conda.exports
 # conda.exports resets the context
@@ -49,10 +50,11 @@ def do_call(arguments, parser):
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
 
-    _run_command_hooks("pre", f"env_{command}", arguments)
+    plugin_arguments = deepcopy(arguments)
+    _run_command_hooks("pre", f"env_{command}", parsed_args=plugin_arguments)
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
     exit_code = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", f"env_{command}", arguments)
+    _run_command_hooks("post", f"env_{command}", parsed_args=plugin_arguments)
 
     return exit_code
 

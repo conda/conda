@@ -12,7 +12,7 @@ class PostCommandPlugin:
         self.args = None
 
     @staticmethod
-    def post_command_action(command, args) -> int:
+    def post_command_action(command, parsed_args=None, raw_args=None) -> int:
         pass
 
     @plugins.hookimpl

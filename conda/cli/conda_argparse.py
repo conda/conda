@@ -15,6 +15,7 @@ from argparse import (
     _HelpAction,
     _StoreAction,
 )
+from copy import deepcopy
 from logging import getLogger
 from os.path import abspath, expanduser, join
 from subprocess import Popen
@@ -117,9 +118,13 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
+        _run_command_hooks(
+            "pre", arguments.plugin_subcommand.name, raw_args=sys.argv[2:]
+        )
         result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
+        _run_command_hooks(
+            "post", arguments.plugin_subcommand.name, raw_args=sys.argv[2:]
+        )
 
         return result
 
@@ -130,25 +135,28 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, arguments)
+    plugin_arguments = deepcopy(arguments)
+    _run_command_hooks("pre", command, parsed_args=plugin_arguments)
     result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, arguments)
+    _run_command_hooks("post", command, parsed_args=plugin_arguments)
 
     return result
 
 
-def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
+def _run_command_hooks(
+    hook_type: CommandHookTypes, command: str, parsed_args=None, raw_args=None
+) -> None:
     """
     Helper function used to gather applicable "pre" or "post" command hook functions
     and then run them.
 
-    The values in *args are passed directly through to the "pre" or "post" command
-    hook function.
+    This function allows the calling code to pass in either ``parsed_args`` (an argparse.Namespace
+    object) or ``raw_args`` (a list of argument and option strings).
     """
     actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
 
     for action in actions:
-        action(command, arguments)
+        action(command, parsed_args=parsed_args, raw_args=raw_args)
 
 
 def find_builtin_commands(parser):
