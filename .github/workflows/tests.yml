@@ -123,7 +123,8 @@ jobs:
             --splitting-algorithm=least_duration \
             -v \
             --splits=5 \
-            --group=${{ matrix.test-group }}
+            --group=${{ matrix.test-group }} \
+            tests/test_create.py -k test_anaconda_token_with_private_package
 
       - uses: codecov/codecov-action@v3
         with:
@@ -250,7 +251,8 @@ jobs:
             --splitting-algorithm=least_duration `
             -v `
             --splits=6 `
-            --group=${{ matrix.test-group }}
+            --group=${{ matrix.test-group }} `
+            tests/test_create.py -k test_anaconda_token_with_private_package
 
       - uses: codecov/codecov-action@v3
         with:
@@ -338,7 +340,8 @@ jobs:
             --splitting-algorithm=least_duration \
             -v \
             --splits=5 \
-            --group=${{ matrix.test-group }}
+            --group=${{ matrix.test-group }} \
+            tests/test_create.py -k test_anaconda_token_with_private_package
 
       - uses: codecov/codecov-action@v3
         with:

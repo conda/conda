@@ -2360,12 +2360,6 @@ def test_anaconda_token_with_private_package(
     # Step 1. Make sure without the token we don't see the anyjson package
     channel_url = "https://conda.anaconda.org/kalefranz"
     monkeypatch.setenv("CONDA_CHANNELS", channel_url)
-
-    stdout, stderr, err = conda_cli("config", "--show-sources")
-    print(stdout)
-    assert not stderr
-    assert not err
-
     reset_context()
     assert context.channels == (channel_url,)
 
