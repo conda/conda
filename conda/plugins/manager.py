@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Module that contains subclass implementation of pluggy's
+This module contains a subclass implementation of pluggy's
 `PluginManager <https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluginManager>`_.
 
 Additionally, it contains a function we use to construct the ``PluginManager`` object and

@@ -1,10 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Pluggy hookspecs to register conda plugins.
+Pluggy hook specifications ("hookspecs") to register conda plugins.
 
 Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
-and example of how to use it.
+an example of how to use it.
 
 """
 from __future__ import annotations
@@ -21,8 +21,8 @@ from .types import (
     CondaVirtualPackage,
 )
 
-#: Name used for organizing conda hook specifications
 spec_name = "conda"
+"""Name used for organizing conda hook specifications"""
 
 _hookspec = pluggy.HookspecMarker(spec_name)
 

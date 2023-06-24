@@ -70,7 +70,7 @@ class CondaSolver(NamedTuple):
 
 class CondaPreCommand(NamedTuple):
     """
-    Return type to use when defining a conda pre command plugin hook.
+    Return type to use when defining a conda pre-command plugin hook.
 
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_commands`.
@@ -87,7 +87,7 @@ class CondaPreCommand(NamedTuple):
 
 class CondaPostCommand(NamedTuple):
     """
-    Return type to use when defining a conda post command plugin hook.
+    Return type to use when defining a conda post-command plugin hook.
 
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_commands`.

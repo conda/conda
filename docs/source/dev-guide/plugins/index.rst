@@ -24,7 +24,9 @@ This is an example of a minimal working conda plugin that defines a new subcomma
    @conda.plugins.hookimpl
    def conda_subcommands():
        yield plugins.CondaSubcommand(
-           name="example", action=command, summary="Example of a conda subcommand"
+           name="example",
+           action=command,
+           summary="Example of a conda subcommand",
        )
 
 
@@ -136,5 +138,5 @@ which one to use, we advise to seeking a qualified legal professional.
 .. _`Apache License 2.0`: https://www.apache.org/licenses/LICENSE-2.0
 .. _GPLv3: https://www.gnu.org/licenses/gpl-3.0.en.html
 .. _`"Choose an Open Source License"`: https://choosealicense.com/
-.. _`conda-plugins-template`: https://github.com/conda/conda-plugin-template/tree/main/tutorials
+.. _`conda-plugins-template`: https://github.com/conda/conda-plugin-template
 .. _`plugins-api`: /dev-guide/api/conda/plugins
