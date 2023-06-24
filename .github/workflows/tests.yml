@@ -116,6 +116,7 @@ jobs:
         run: |
           python -m pytest \
             --cov=conda \
+            --cov=conda_env \
             --store-durations \
             --durations-path=./tools/durations/${{ runner.os }}.json \
             --splitting-algorithm=least_duration \
@@ -241,6 +242,7 @@ jobs:
         run: |
           python -m pytest `
             --cov=conda `
+            --cov=conda_env `
             --store-durations `
             --durations-path=.\tools\durations\${{ runner.os }}.json `
             --splitting-algorithm=least_duration `
@@ -327,6 +329,7 @@ jobs:
         run: |
           python -m pytest \
             --cov=conda \
+            --cov=conda_env \
             --store-durations \
             --durations-path=./tools/durations/${{ runner.os }}.json \
             --splitting-algorithm=least_duration \
