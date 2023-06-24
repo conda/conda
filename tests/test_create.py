@@ -20,6 +20,7 @@ from os.path import (
     lexists,
     relpath,
 )
+from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
@@ -28,6 +29,7 @@ from uuid import uuid4
 
 import pytest
 import requests
+from pytest import MonkeyPatch
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
@@ -816,7 +818,9 @@ def test_tarball_install(clear_package_cache: None):
         assert package_is_installed(prefix, "bzip2")
 
 
-def test_tarball_install_and_bad_metadata(clear_package_cache: None):
+def test_tarball_install_and_bad_metadata(
+    clear_package_cache: None, monkeypatch: MonkeyPatch
+):
     with make_temp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
         assert package_is_installed(prefix, "flask==1.1.1")
         flask_data = [
@@ -852,6 +856,9 @@ def test_tarball_install_and_bad_metadata(clear_package_cache: None):
 
         # regression test for #2626
         # install tarball with relative path, outside channel
+        # ensure we're on the same drive before deriving a relative path
+        if on_win:
+            monkeypatch.chdir(Path(tar_new_path).drive)
         run_command(Commands.REMOVE, prefix, "flask")
         assert not package_is_installed(prefix, "flask=1.1.1")
         tar_new_path = relpath(tar_new_path)
