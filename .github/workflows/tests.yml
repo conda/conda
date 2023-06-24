@@ -75,7 +75,7 @@ jobs:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        test-group: ['1', '2', '3', '4', '5']
+        test-group: ['1']
         exclude:
           - default-channel: 'conda-forge'
             python-version: '3.8'
@@ -113,6 +113,9 @@ jobs:
           conda config --show-sources
           conda list --show-channel-urls
 
+      - name: Debugging with tmate
+        uses: mxschmitt/action-tmate@v3.16
+
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
           python -m pytest \
@@ -122,8 +125,6 @@ jobs:
             --durations-path=./tools/durations/${{ runner.os }}.json \
             --splitting-algorithm=least_duration \
             -v \
-            --splits=5 \
-            --group=${{ matrix.test-group }} \
             tests/test_create.py -k test_anaconda_token_with_private_package
 
       - uses: codecov/codecov-action@v3
@@ -206,7 +207,7 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.11']
-        test-group: ['1', '2', '3', '4', '5', '6']
+        test-group: ['1']
         exclude:
           - default-channel: 'conda-forge'
             python-version: '3.8'
@@ -250,8 +251,6 @@ jobs:
             --durations-path=.\tools\durations\${{ runner.os }}.json `
             --splitting-algorithm=least_duration `
             -v `
-            --splits=6 `
-            --group=${{ matrix.test-group }} `
             tests/test_create.py -k test_anaconda_token_with_private_package
 
       - uses: codecov/codecov-action@v3
@@ -288,18 +287,6 @@ jobs:
           - default-channel: defaults
             python-version: '3.9'
             test-group: '1'
-          - default-channel: conda-forge
-            python-version: '3.9'
-            test-group: '2'
-          - default-channel: defaults
-            python-version: '3.9'
-            test-group: '3'
-          - default-channel: conda-forge
-            python-version: '3.9'
-            test-group: '4'
-          - default-channel: defaults
-            python-version: '3.9'
-            test-group: '5'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
@@ -339,8 +326,6 @@ jobs:
             --durations-path=./tools/durations/${{ runner.os }}.json \
             --splitting-algorithm=least_duration \
             -v \
-            --splits=5 \
-            --group=${{ matrix.test-group }} \
             tests/test_create.py -k test_anaconda_token_with_private_package
 
       - uses: codecov/codecov-action@v3
