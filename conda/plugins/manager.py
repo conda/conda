@@ -28,8 +28,7 @@ log = logging.getLogger(__name__)
 
 class CondaPluginManager(pluggy.PluginManager):
     """
-    The conda plugin manager to implement behavior additional to
-    pluggy's default plugin manager.
+    The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
@@ -67,6 +66,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
         """Load modules from querying the specified setuptools ``group``.
+
         :param str group: Entry point group to load plugins.
         :param str name: If given, loads only plugins with the given ``name``.
         :rtype: int
@@ -185,8 +185,8 @@ class CondaPluginManager(pluggy.PluginManager):
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
-    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
-    instance, with the built-in and the entrypoints provided by the plugins loaded.
+    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,
+    with the built-in and entrypoints provided by the plugins loaded.
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)

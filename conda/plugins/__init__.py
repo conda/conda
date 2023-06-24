@@ -20,6 +20,7 @@ as well as conda's internal implementations of plugins.
 
 - :mod:`conda.plugins.solvers`: implementation of the "classic" solver
 - :mod:`conda.plugins.subcommands.doctor`: ``conda doctor`` subcommand
+- :mod:`conda.plugins.virtual_packages`: registers virtual packages in conda
 
 """  # noqa: E501
 

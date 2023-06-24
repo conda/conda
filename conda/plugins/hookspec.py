@@ -25,6 +25,9 @@ spec_name = "conda"
 """Name used for organizing conda hook specifications"""
 
 _hookspec = pluggy.HookspecMarker(spec_name)
+"""
+The conda plugin hook specifications, to be used by developers
+"""
 
 hookimpl = pluggy.HookimplMarker(spec_name)
 """

@@ -119,7 +119,7 @@ API
 ---
 
 For even more detailed information about our plugin system, please the see the
-:doc:`Plugin API </dev-guide/api/conda/plugins/index>`.
+:doc:`Plugin API </dev-guide/api/conda/plugins/index>` section.
 
 
 A note on licensing
@@ -139,4 +139,3 @@ which one to use, we advise to seeking a qualified legal professional.
 .. _GPLv3: https://www.gnu.org/licenses/gpl-3.0.en.html
 .. _`"Choose an Open Source License"`: https://choosealicense.com/
 .. _`conda-plugins-template`: https://github.com/conda/conda-plugin-template
-.. _`plugins-api`: /dev-guide/api/conda/plugins

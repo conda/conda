@@ -12,8 +12,8 @@ from typing import Callable, Literal, NamedTuple
 
 from ..core.solve import Solver
 
-#: These are the two different types of conda_*_commands hooks that are available
 CommandHookTypes = Literal["pre", "post"]
+"""The two different types of `conda_*_commands` hooks that are available"""
 
 
 class CondaSubcommand(NamedTuple):
