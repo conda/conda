@@ -114,7 +114,7 @@ jobs:
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
-          pytest \
+          python -m pytest \
             --cov=conda \
             --store-durations \
             --durations-path=./tools/durations/${{ runner.os }}.json \
@@ -239,7 +239,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest `
+          python -m pytest `
             --cov=conda `
             --store-durations `
             --durations-path=.\tools\durations\${{ runner.os }}.json `
@@ -325,7 +325,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest \
+          python -m pytest \
             --cov=conda \
             --store-durations \
             --durations-path=./tools/durations/${{ runner.os }}.json \
