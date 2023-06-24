@@ -110,6 +110,7 @@ jobs:
       - name: Show info
         run: |
           conda info --all
+          conda config --show-sources
           conda list --show-channel-urls
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
@@ -236,6 +237,7 @@ jobs:
       - name: Show info
         run: |
           conda info --all
+          conda config --show-sources
           conda list --show-channel-urls
 
       - name: Run tests
@@ -323,6 +325,7 @@ jobs:
       - name: Show info
         run: |
           conda info --all
+          conda config --show-sources
           conda list --show-channel-urls
 
       - name: Run tests
