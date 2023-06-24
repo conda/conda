@@ -113,8 +113,8 @@ jobs:
           conda config --show-sources
           conda list --show-channel-urls
 
-      - name: Debugging with tmate
-        uses: mxschmitt/action-tmate@v3.16
+      # - name: Debugging with tmate
+      #   uses: mxschmitt/action-tmate@v3.16
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, group ${{ matrix.test-group }}
         run: |
