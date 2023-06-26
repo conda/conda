@@ -2378,6 +2378,7 @@ def test_anaconda_token_with_private_package(
     assert context.channels == (channel_url,)
 
     stdout, _, _ = conda_cli("search", "anyjson", "--platform", "linux-64", "--json")
+    print(stdout)
     assert "anyjson" in json_loads(stdout)
 
 
