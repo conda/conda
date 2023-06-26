@@ -30,7 +30,6 @@ concurrency:
 env:
     # see https://github.com/conda/conda/pull/12524
     MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
-    ACTIONS_STEP_DEBUG: true
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -87,6 +86,9 @@ jobs:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_CHANNELS: ${{ matrix.default-channel }}
+      CONDA_PRIORITY: strict
+      CONDA_CHANGEPS1: true
 
     steps:
       - uses: actions/checkout@v3
@@ -96,7 +98,6 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          condarc-file: ./.github/ci/condarc.${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
@@ -164,6 +165,7 @@ jobs:
         platform: ['arm64', 'ppc64le']
     env:
       PYTHON: ${{ matrix.python-version }}
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -215,6 +217,9 @@ jobs:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_CHANNELS: ${{ matrix.default-channel }}
+      CONDA_PRIORITY: strict
+      CONDA_CHANGEPS1: true
 
     steps:
       - name: Checkout repository
@@ -225,7 +230,6 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          condarc-file: .\.github\ci\condarc.${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
@@ -291,6 +295,9 @@ jobs:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
       TEST_GROUP: ${{ matrix.test-group }}
+      CONDA_CHANNELS: ${{ matrix.default-channel }}
+      CONDA_PRIORITY: strict
+      CONDA_CHANGEPS1: true
 
     steps:
       - uses: actions/checkout@v3
@@ -300,7 +307,6 @@ jobs:
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          condarc-file: ./.github/ci/condarc.${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
