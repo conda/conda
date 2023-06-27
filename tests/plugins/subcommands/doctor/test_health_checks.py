@@ -10,7 +10,7 @@ from typing import Iterable
 import pytest
 from pytest import MonkeyPatch
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, reset_context
+from conda.base.context import reset_context
 from conda.common.io import env_vars
 from conda.plugins.subcommands.doctor.health_checks import (
     display_health_checks,
