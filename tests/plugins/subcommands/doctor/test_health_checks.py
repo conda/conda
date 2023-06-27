@@ -8,8 +8,9 @@ from pathlib import Path
 from typing import Iterable
 
 import pytest
+from pytest import MonkeyPatch
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, reset_context
 from conda.common.io import env_vars
 from conda.plugins.subcommands.doctor.health_checks import (
     display_health_checks,
@@ -106,57 +107,57 @@ def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_display_health_checks(
-    env_ok: tuple[Path, str, str, str], verbose: bool, capsys
+    env_ok: tuple[Path, str, str, str], verbose: bool, capsys, monkeypatch: MonkeyPatch
 ):
     """Run display_health_checks without missing or altered files."""
     prefix, bin_doctor, lib_doctor, package = env_ok
-    with env_vars(
-        {"CONDA_PREFIX": prefix},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        display_health_checks(
-            prefix, verbose=verbose
-        )  # running the fuction with no missing or altered files
-        captured = capsys.readouterr()
-        assert "There are no packages with missing files." in captured.out
-        assert "There are no packages with altered files." in captured.out
+    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    reset_context()
+    display_health_checks(
+        prefix, verbose=verbose
+    )  # running the fuction with no missing or altered files
+    captured = capsys.readouterr()
+    assert "There are no packages with missing files." in captured.out
+    assert "There are no packages with altered files." in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_display_health_checks_missing_files(
-    env_missing_files: tuple[Path, str, str, str], verbose: bool, capsys
+    env_missing_files: tuple[Path, str, str, str],
+    verbose: bool,
+    capsys,
+    monkeypatch: MonkeyPatch,
 ):
     """Run display_health_checks with missing files"""
     prefix, bin_doctor, _, package = env_missing_files
-    with env_vars(
-        {"CONDA_PREFIX": prefix},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        display_health_checks(
-            prefix, verbose=verbose
-        )  # running the fuction with no missing or altered files
-        captured = capsys.readouterr()
-        if verbose:
-            assert str(bin_doctor) in captured.out
-        else:
-            assert f"{package}: 1" in captured.out
+    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    reset_context()
+    display_health_checks(
+        prefix, verbose=verbose
+    )  # running the fuction with no missing or altered files
+    captured = capsys.readouterr()
+    if verbose:
+        assert str(bin_doctor) in captured.out
+    else:
+        assert f"{package}: 1" in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_display_health_checks_altered_files(
-    env_altered_files: tuple[Path, str, str, str], verbose: bool, capsys
+    env_altered_files: tuple[Path, str, str, str],
+    verbose: bool,
+    capsys,
+    monkeypatch: MonkeyPatch,
 ):
     """Run display_health_checks with altered files"""
     prefix, _, lib_doctor, package = env_altered_files
-    with env_vars(
-        {"CONDA_PREFIX": prefix},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,  # resetting
-    ):
-        display_health_checks(
-            prefix, verbose=verbose
-        )  # running the fuction with no missing or altered files
-        captured = capsys.readouterr()
-        if verbose:
-            assert str(lib_doctor) in captured.out
-        else:
-            assert f"{package}: 1" in captured.out
+    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    reset_context()
+    display_health_checks(
+        prefix, verbose=verbose
+    )  # running the fuction with no missing or altered files
+    captured = capsys.readouterr()
+    if verbose:
+        assert str(lib_doctor) in captured.out
+    else:
+        assert f"{package}: 1" in captured.out
