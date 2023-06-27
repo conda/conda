@@ -1,6 +1,6 @@
-============
+=============
 Post-commands
-============
+=============
 
 Conda commands can be extended with the ``conda_post_commands`` plugin hook.
 By specifying the set of commands you would like to use in the ``run_for`` configuration
@@ -13,8 +13,8 @@ be run.
 If you would like to target ``conda env`` commands, prefix the command name with ``env_``.
 For example, ``conda env list`` would be passed to ``run_for`` as ``env_list``.
 
-.. autoclass:: conda.plugins.types.CondaPostCommand
+.. autoapiclass:: conda.plugins.types.CondaPostCommand
    :members:
    :undoc-members:
 
-.. autofunction:: conda.plugins.hookspec.CondaSpecs.conda_post_commands
+.. autoapifunction:: conda.plugins.hookspec.CondaSpecs.conda_post_commands
