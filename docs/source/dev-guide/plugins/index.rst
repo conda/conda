@@ -87,7 +87,7 @@ More examples
 
 To see more examples of conda plugins, please visit the following resources:
 
-- `conda-plugins-template`_: this is a repository with full examples that could be used a starting point for your plugin
+- `conda-plugins-template`_: This is a repository with full examples that could be used a starting point for your plugin
 
 Using other plugin hooks
 ------------------------
@@ -127,7 +127,7 @@ A note on licensing
 
 For more information on which license to use for your custom plugin, please reference
 the `"Choose an Open Source License"`_ site. If you need help figuring out exactly
-which one to use, we advise to seeking a qualified legal professional.
+which one to use, we advise communicating with a qualified legal professional.
 
 
 .. _Pluggy: https://pluggy.readthedocs.io/en/stable/

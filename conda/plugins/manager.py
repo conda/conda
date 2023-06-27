@@ -50,7 +50,7 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Load the provided list of plugins and fail gracefully on error.
         The provided list of plugins can either be classes or modules with
-        :attr:`~conda.plugins.hook_impl`.
+        :attr:`~conda.plugins.hookimpl`.
         """
         plugin_names = []
         for plugin in plugins:

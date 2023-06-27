@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """
 In this module, you will find everything relevant to conda's plugin system.
-It contains all of the code that plugin authors will use to write plugins
+It contains all of the code that plugin authors will use to write plugins,
 as well as conda's internal implementations of plugins.
 
 **Modules relevant for plugin authors**
