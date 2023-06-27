@@ -44,13 +44,20 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
         try:
-            data = json.loads(file.read_text())
+            metadata = json.loads(file.read_text())
         except Exception:
             logger.error("Could not load the json file {file}")
 
-        required_data = data["paths_data"]["paths"]
+        try:
+            paths_data = metadata.get("paths_data")
+            paths = paths_data["paths"]
+        except KeyError:
+            continue
 
-        for path in required_data:
+        if paths_data.get("paths_version") != 1:
+            continue
+
+        for path in paths:
             _path = path.get("_path")
             old_sha256 = path.get("sha256_in_prefix")
             if _path is None or old_sha256 is None:

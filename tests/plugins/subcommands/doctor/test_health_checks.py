@@ -53,7 +53,8 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
-            ]
+            ],
+            "paths_version": 1,
         },
     }
 
