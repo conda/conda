@@ -123,6 +123,8 @@ jobs:
             --cov=conda \
             --cov=conda_env \
             --durations-path=./tools/durations/${{ runner.os }}.json \
+            --group=${{ matrix.test-group }} \
+            --splits=5 \
             --splitting-algorithm=least_duration \
             --store-durations \
             -v
@@ -251,6 +253,8 @@ jobs:
             --cov=conda `
             --cov=conda_env `
             --durations-path=.\tools\durations\${{ runner.os }}.json `
+            --group=${{ matrix.test-group }} `
+            --splits=6 `
             --splitting-algorithm=least_duration `
             --store-durations `
             -v
@@ -339,6 +343,8 @@ jobs:
             --cov=conda \
             --cov=conda_env \
             --durations-path=./tools/durations/${{ runner.os }}.json \
+            --group=${{ matrix.test-group }} \
+            --splits=5 \
             --splitting-algorithm=least_duration \
             --store-durations \
             -v
