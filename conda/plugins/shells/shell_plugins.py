@@ -17,7 +17,6 @@ from conda.base.constants import (
 from conda.base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from conda.common.compat import on_win
 from conda.common.path import paths_equal
-from conda.plugins.manager import CondaPluginManager
 from conda.plugins.types import CondaShellPlugins
 
 
@@ -65,7 +64,7 @@ class PluginActivator:
             self.run_script_tmpl: str
             self.environ: map
         """
-        syntax = CondaPluginManager.get_shell_syntax()
+        syntax = context.plugin_manager.get_shell_syntax()
 
         for field in CondaShellPlugins._fields:
             setattr(self, field, getattr(syntax, field, None))

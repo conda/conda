@@ -136,8 +136,10 @@ class CondaSpecs:
         Register external shell plugins in conda.
 
 
-        Example:
+        **Example:**
+
         .. code-block:: python
+
             import os
             from conda import plugins
 

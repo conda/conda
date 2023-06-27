@@ -15,7 +15,6 @@ from ..core.solve import Solver
 from ..exceptions import CondaError, CondaValueError, PluginError
 from . import shells, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import CondaShellPlugins
 
 log = logging.getLogger(__name__)
 
@@ -175,13 +174,13 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in pre_command.run_for:
                 yield pre_command.action
 
-    def get_shell_syntax(self) -> CondaShellPlugins:
+    def get_shell_syntax(self) -> Iterable[Callable]:
         """
         Return shell plugin hook that is compatible with shell only if one hook is available.
         Raise error if more than one compatible hook is installed or if no compatible hooks
-            are installed.
+        are installed.
         """
-        shell_hooks = list(self.get_hook_results("shells"))
+        shell_hooks = list(self.get_hook_results("shell_plugins"))
 
         if len(shell_hooks) > 1:
             raise CondaError(

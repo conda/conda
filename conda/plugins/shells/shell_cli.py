@@ -8,7 +8,7 @@ from conda.base.context import context
 from conda.cli.main import init_loggers
 from conda.plugins import CondaSubcommand, hookimpl
 
-from ...shells.shell_plugins import PluginActivator
+from .shell_plugins import PluginActivator
 
 
 def get_parsed_args(argv: list[str]) -> argparse.Namespace:
