@@ -2361,10 +2361,6 @@ def test_anaconda_token_with_private_package(
     channel_url = "https://conda.anaconda.org/kalefranz"
     monkeypatch.setenv("CONDA_CHANNELS", channel_url)
     reset_context()
-    from pprint import pprint
-
-    pprint(context.raw_data)
-    assert context._channels == (channel_url,)
     assert context.channels == (channel_url,)
 
     with pytest.raises(PackagesNotFoundError):
@@ -2374,11 +2370,9 @@ def test_anaconda_token_with_private_package(
     channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
     monkeypatch.setenv("CONDA_CHANNELS", channel_url)
     reset_context()
-    assert context._channels == (channel_url,)
     assert context.channels == (channel_url,)
 
     stdout, _, _ = conda_cli("search", "anyjson", "--platform", "linux-64", "--json")
-    print(stdout)
     assert "anyjson" in json_loads(stdout)
 
 
