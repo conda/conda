@@ -109,13 +109,11 @@ def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
 def test_display_health_checks(
     env_ok: tuple[Path, str, str, str], verbose: bool, capsys, monkeypatch: MonkeyPatch
 ):
-    """Run display_health_checks without missing or altered files."""
+    """Test that runs display_health_checks without missing or altered files."""
     prefix, bin_doctor, lib_doctor, package = env_ok
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     reset_context()
-    display_health_checks(
-        prefix, verbose=verbose
-    )  # running the fuction with no missing or altered files
+    display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with missing files." in captured.out
     assert "There are no packages with altered files." in captured.out
@@ -128,13 +126,11 @@ def test_display_health_checks_missing_files(
     capsys,
     monkeypatch: MonkeyPatch,
 ):
-    """Run display_health_checks with missing files"""
+    """Test that runs display_health_checks with missing files"""
     prefix, bin_doctor, _, package = env_missing_files
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     reset_context()
-    display_health_checks(
-        prefix, verbose=verbose
-    )  # running the fuction with no missing or altered files
+    display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(bin_doctor) in captured.out
@@ -149,13 +145,11 @@ def test_display_health_checks_altered_files(
     capsys,
     monkeypatch: MonkeyPatch,
 ):
-    """Run display_health_checks with altered files"""
+    """Test that runs display_health_checks with altered files"""
     prefix, _, lib_doctor, package = env_altered_files
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     reset_context()
-    display_health_checks(
-        prefix, verbose=verbose
-    )  # running the fuction with no missing or altered files
+    display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(lib_doctor) in captured.out
