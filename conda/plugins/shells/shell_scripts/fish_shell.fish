@@ -10,4 +10,4 @@ set args (string join " " $argv)
 eval $args
 
 # Activate a new instance of the current shell
-exec $fish_user_shell
+fish
