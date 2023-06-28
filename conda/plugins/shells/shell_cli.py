@@ -102,7 +102,7 @@ def execute(argv: list[str]) -> SystemExit:
     init_loggers(context)
 
     activator = PluginActivator()
-    cmds_dict = activator.parse_and_build(activator, args)
+    cmds_dict = activator.parse_and_build(args)
 
     return activator.activate(cmds_dict)
 

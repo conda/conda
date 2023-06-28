@@ -153,7 +153,7 @@ class CondaSpecs:
                         script_path=os.path.abspath("./posix_script.sh"),
                         pathsep_join=":".join,
                         sep="/",
-                        path_conversion=staticmethod(some_function),
+                        path_conversion=some_function,
                         script_extension=".sh",
                         tempfile_extension=None,
                         command_join="\n",

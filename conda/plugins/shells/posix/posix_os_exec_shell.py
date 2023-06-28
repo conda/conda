@@ -34,7 +34,7 @@ def conda_shell_plugins():
             ),
             pathsep_join=":".join,
             sep="/",
-            path_conversion=staticmethod(native_path_to_unix),
+            path_conversion=native_path_to_unix,
             script_extension=".sh",
             tempfile_extension=None,
             command_join="\n",
