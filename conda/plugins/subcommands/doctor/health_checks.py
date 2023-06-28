@@ -45,8 +45,10 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     for file in (prefix / "conda-meta").glob("*.json"):
         try:
             metadata = json.loads(file.read_text())
-        except Exception:
-            logger.error("Could not load the json file {file}")
+        except Exception as exc:
+            logger.error(
+                f"Could not load the json file {file} because of the following error: {exc}."
+            )
 
         try:
             paths_data = metadata.get("paths_data")
