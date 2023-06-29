@@ -519,10 +519,11 @@ def configure_parser_info(sub_parsers):
 
 
 def configure_parser_config(sub_parsers):
+    help_ = "Modify configuration values in .condarc."
     descr = (
         dedent(
             """
-    Modify configuration values in .condarc.  This is modeled after the git
+    This is modeled after the git
     config command.  Writes to the user .condarc file (%s) by default. Use the
     --show-sources flag to display all identified configuration locations on
     your computer.
@@ -584,7 +585,7 @@ def configure_parser_config(sub_parsers):
     p = sub_parsers.add_parser(
         "config",
         description=descr,
-        help=descr,
+        help=help_,
         epilog=additional_descr,
     )
     add_parser_json(p)
@@ -907,7 +908,7 @@ def configure_parser_init(sub_parsers):
 
 
 def configure_parser_install(sub_parsers):
-    help = "Installs a list of packages into a specified conda environment."
+    help = "Install a list of packages into a specified conda environment."
     descr = dedent(
         help
         + """
@@ -1148,7 +1149,7 @@ def configure_parser_compare(sub_parsers):
 
 
 def configure_parser_package(sub_parsers):
-    descr = "Low-level conda package utility. (EXPERIMENTAL)"
+    descr = "Create low-level conda packages. (EXPERIMENTAL)"
     p = sub_parsers.add_parser(
         "package",
         description=descr,
@@ -1199,11 +1200,11 @@ def configure_parser_package(sub_parsers):
 def configure_parser_remove(sub_parsers, aliases):
     help_ = (
         "Remove a list of packages from a specified conda environment. "
-        "Use `--all` flag to remove all packages and the environment itself."
     )
     descr = dals(
         f"""
         {help_}
+        "Use `--all` flag to remove all packages and the environment itself."
 
         This command will also remove any package that depends on any of the
         specified packages as well---unless a replacement can be found without
@@ -1375,11 +1376,9 @@ def configure_parser_run(sub_parsers):
 
 
 def configure_parser_search(sub_parsers):
-    help = "Search for packages and display associated information."
+    help = "Search for packages and display associated information using the MatchSpec format."
     descr = (
-        help
-        + """The input is a MatchSpec, a query language for conda packages.
-    See examples below.
+        f"""{help} MatchSpec is a query language for conda packages.
     """
     )
 
@@ -1419,7 +1418,7 @@ def configure_parser_search(sub_parsers):
     p = sub_parsers.add_parser(
         "search",
         description=descr,
-        help=descr,
+        help=help,
         epilog=example,
     )
     p.add_argument(
@@ -1493,7 +1492,7 @@ def configure_parser_search(sub_parsers):
 
 
 def configure_parser_update(sub_parsers, aliases):
-    help_ = "Updates conda packages to the latest compatible version."
+    help_ = "Update conda packages to the latest compatible version."
     descr = dals(
         f"""
         {help_}
@@ -1548,7 +1547,7 @@ def configure_parser_update(sub_parsers, aliases):
     p.set_defaults(func=".main_update.execute")
 
 
-NOTICES_HELP = "Retrieves latest channel notifications."
+NOTICES_HELP = "Retrieve latest channel notifications."
 NOTICES_DESCRIPTION = dals(
     f"""
     {NOTICES_HELP}
@@ -1583,7 +1582,7 @@ def configure_parser_notices(sub_parsers, name="notices"):
 
 
 def configure_parser_rename(sub_parsers) -> None:
-    help = "Renames an existing environment."
+    help = "Rename an existing environment."
     descr = dals(
         f"""
         {help}
