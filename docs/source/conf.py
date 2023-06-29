@@ -52,6 +52,16 @@ smartquotes = False
 add_module_names = False
 
 
+def skip_log(app, what, name, obj, skip, options):
+    if what == "log" in name:
+        skip = True
+    return skip
+
+
+def setup(sphinx):
+    sphinx.connect("autoapi-skip-member", skip_log)
+
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
