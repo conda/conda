@@ -13,7 +13,7 @@ from ... import CondaArgparseSubcommand, hookimpl
 
 class DoctorSubcommand(CondaArgparseSubcommand):
 
-    def configure(self, parser: ArgumentParser):
+    def configure_parser(self, parser: ArgumentParser):
         parser.add_argument(
             "-v",
             "--verbose",

@@ -60,7 +60,7 @@ class CondaArgparseSubcommand(NamedTuple):
         int | None,  # return code
     ]
 
-    def configure(self, parser: ArgumentParser):
+    def configure_parser(self, parser: ArgumentParser):
         raise NotImplementedError
 
 

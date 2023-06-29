@@ -372,7 +372,7 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             help=plugin_subcommand.summary,
         )
         if isinstance(plugin_subcommand, CondaArgparseSubcommand):
-            plugin_subcommand.configure(parser)
+            plugin_subcommand.configure_parser(parser)
             parser.set_defaults(func=plugin_subcommand.action)
 
 
