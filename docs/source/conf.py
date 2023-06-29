@@ -53,7 +53,7 @@ add_module_names = False
 
 
 def skip_log(app, what, name, obj, skip, options):
-    if what == "log" in name:
+    if what == "attribute" and name == "log":
         skip = True
     return skip
 
