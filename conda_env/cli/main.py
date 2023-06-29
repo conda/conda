@@ -52,7 +52,7 @@ def do_call(arguments, parser):
     command = relative_mod.replace(".main_", "")
 
     _run_command_hooks("pre", f"env_{command}", arguments)
-    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
+    module = import_module(relative_mod, "conda_env.cli")
     exit_code = getattr(module, func_name)(arguments, parser)
     _run_command_hooks("post", f"env_{command}", arguments)
 

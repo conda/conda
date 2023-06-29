@@ -125,7 +125,7 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = arguments.func.rsplit(".", 1)
         # func_name should always be 'execute'
-        module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
+        module = import_module(relative_mod, "conda.cli")
         callback = getattr(module, func_name)
         command = relative_mod.replace(".main_", "")
     else:
