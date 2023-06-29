@@ -87,7 +87,9 @@ def generate_parser():
         help=SUPPRESS,
     )
     sub_parsers = p.add_subparsers(
-        metavar="command",
+        metavar="COMMAND",
+        title="commands",
+        description="The following built-in and plugins subcommands are available.",
         dest="cmd",
         required=True,
     )
@@ -130,7 +132,7 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
         command = relative_mod.replace(".main_", "")
     else:
         # or use the plugin subcommand callback directly
-        callback = arguments.func
+        callback = plugin_subcommand.action
         command = plugin_subcommand.name
 
     _run_command_hooks("pre", command, arguments)
@@ -172,9 +174,6 @@ class ArgumentParser(ArgumentParserBase):
 
         if add_custom_help:
             add_parser_help(self)
-
-        if self.description:
-            self.description += "\n\nOptions:\n"
 
     # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
@@ -288,8 +287,10 @@ class ArgumentParser(ArgumentParserBase):
             """
             )
             log.error(error_message)
-        namespace.plugin_subcommand = plugin_subcommand
 
+        # Adding the parsed plugin subcommand if available to the current
+        # argparse namespace, so we can later call it correctly in `do_call`
+        namespace.plugin_subcommand = plugin_subcommand
         return namespace
 
 
@@ -370,10 +371,10 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             plugin_subcommand.name,
             description=plugin_subcommand.summary,
             help=plugin_subcommand.summary,
+            formatter_class=RawDescriptionHelpFormatter,
         )
         if isinstance(plugin_subcommand, CondaArgparseSubcommand):
             plugin_subcommand.configure_parser(parser)
-            parser.set_defaults(func=plugin_subcommand.action)
 
 
 def configure_parser_clean(sub_parsers):
