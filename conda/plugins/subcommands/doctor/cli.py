@@ -8,17 +8,19 @@ import argparse
 from ....base.context import context
 from ....cli.conda_argparse import ArgumentParser, add_parser_prefix
 from ....deprecations import deprecated
-from ... import CondaSubcommand, hookimpl
+from ... import CondaArgparseSubcommand, hookimpl
 
 
-def setup(parser: ArgumentParser):
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Generate a detailed environment health report.",
-    )
-    add_parser_prefix(parser)
+class DoctorSubcommand(CondaArgparseSubcommand):
+
+    def configure(self, parser: ArgumentParser):
+        parser.add_argument(
+            "-v",
+            "--verbose",
+            action="store_true",
+            help="Generate a detailed environment health report.",
+        )
+        add_parser_prefix(parser)
 
 
 @deprecated(
@@ -38,9 +40,8 @@ def execute(args: argparse.Namespace, parser: ArgumentParser) -> None:
 
 @hookimpl
 def conda_subcommands():
-    yield CondaSubcommand(
-        name="info",
+    yield DoctorSubcommand(
+        name="doctor",
         summary="Display a health report for your environment.",
         action=execute,
-        setup=setup,
     )

@@ -33,7 +33,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
-from ..plugins.types import CommandHookTypes
+from ..plugins.types import CommandHookTypes, CondaArgparseSubcommand
 
 log = getLogger(__name__)
 
@@ -99,6 +99,7 @@ def generate_parser():
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
+    configure_parser_notices(sub_parsers)
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers, aliases=["uninstall"])
@@ -106,7 +107,6 @@ def generate_parser():
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
-    configure_parser_notices(sub_parsers)
     configure_parser_plugins(sub_parsers, p.plugin_subcommands)
 
     return p
@@ -250,7 +250,7 @@ class ArgumentParser(ArgumentParserBase):
             if other_commands:
                 builder = [""]
                 builder.append("conda commands available from other packages (legacy):")
-                builder.extend("  %s" % cmd for cmd in sorted(other_commands))
+                builder.extend("    %s" % cmd for cmd in sorted(other_commands))
                 print("\n".join(builder))
 
     def _check_value(self, action, value):
@@ -371,10 +371,9 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             description=plugin_subcommand.summary,
             help=plugin_subcommand.summary,
         )
-        setup = getattr(plugin_subcommand, "setup", None)
-        if setup and callable(setup):
-            setup(parser)
-        parser.set_defaults(func=plugin_subcommand.action)
+        if isinstance(plugin_subcommand, CondaArgparseSubcommand):
+            plugin_subcommand.configure(parser)
+            parser.set_defaults(func=plugin_subcommand.action)
 
 
 def configure_parser_clean(sub_parsers):
