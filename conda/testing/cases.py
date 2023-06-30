@@ -7,7 +7,7 @@ import pytest
 
 
 class BaseTestCase(unittest.TestCase):
-    fixture_names = ("tmpdir", "tmp_env")
+    fixture_names = ("tmpdir",)
 
     @pytest.fixture(autouse=True)
     def auto_injector_fixture(self, request):
