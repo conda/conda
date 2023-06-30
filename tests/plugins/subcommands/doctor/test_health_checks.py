@@ -24,7 +24,6 @@ from conda.testing.integration import make_temp_env
 def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
     """Fixture that returns a testing environment with no missing files"""
     package = uuid.uuid4().hex
-    empty_package = uuid.uuid4().hex
 
     (tmp_path / "bin").mkdir(parents=True, exist_ok=True)
     (tmp_path / "lib").mkdir(parents=True, exist_ok=True)
@@ -84,23 +83,6 @@ def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, st
     return env_ok
 
 
-@pytest.fixture
-def env_empty_json(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
-    """Fixture that returns a testing environment with the json file missing"""
-    prefix, _, _, package = env_ok
-    # Deleting the contents "package.json"
-    file = prefix / "conda-meta" / f"{package}.json"
-    with open(file) as f:
-        data = json.load(f)
-    del data["paths_data"]
-    with open(file, "w") as f:
-        json.dump(data, f)
-
-    print(data)
-
-    return env_ok
-
-
 def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
     """Test that runs for the case with no missing files"""
     prefix, _, _, _ = env_ok
@@ -123,9 +105,36 @@ def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
     assert find_altered_packages(prefix) == {package: [lib_doctor]}
 
 
-def test_json_keys_missing(env_empty_json: tuple[Path, str, str, str], capsys):
+def test_json_keys_missing(env_ok: tuple[Path, str, str, str], capsys):
     """Test that runs for the case with empty json"""
-    prefix, _, _, package = env_empty_json
+    prefix, _, _, package = env_ok
+    file = prefix / "conda-meta" / f"{package}.json"
+    with open(file) as f:
+        data = json.load(f)
+    del data["paths_data"]
+    with open(file, "w") as f:
+        json.dump(data, f)
+
+    assert find_altered_packages(prefix) == {}
+
+
+def test_wrong_path_version(env_ok: tuple[Path, str, str, str]):
+    """Test that runs for the case when path_version is not equal to 1"""
+    prefix, _, _, package = env_ok
+    file = prefix / "conda-meta" / f"{package}.json"
+    with open(file) as f:
+        data = json.load(f)
+        data["paths_data"]["paths_version"] = 2
+    with open(file, "w") as f:
+        json.dump(data, f)
+
+    assert find_altered_packages(prefix) == {}
+
+
+def test_json_file_missing(env_ok: tuple[Path, str, str, str]):
+    """Test that runs for the case when json file is missing"""
+    prefix, _, _, package = env_ok
+    (prefix / "conda-meta" / f"{package}.json").unlink()
     assert find_altered_packages(prefix) == {}
 
 
