@@ -173,10 +173,15 @@ class ExceptionHandler:
                 "",
                 "An unexpected error has occurred. Conda has prepared the above report."
                 "",
-                "If you suspect this error is being caused by a malfunctioning plugin, consider",
-                "setting the 'no_external_plugins' option to run the command without external",
-                "(i.e., non-conda) plugins enabled. You can do this by running:" "",
-                "    $ conda config --set no_external_plugins true",
+                "If you suspect this error is being caused by a malfunctioning plugin,",
+                "consider using the --no-plugins option to turn off external plugins.",
+                "",
+                "Example: conda --no-plugins install <package>",
+                "",
+                "Alternatively, you can set the 'no_plugins' option to run the command",
+                "without external (i.e., non-conda) plugins enabled. You can do this",
+                "by running:",
+                "    $ conda config --set no_plugins true",
                 "",
             )
             self.write_out(*message_builder)

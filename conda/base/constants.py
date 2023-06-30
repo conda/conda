@@ -319,3 +319,5 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Not all python namespace packages are registered on PyPI. If a package
 # contains files in site-packages, it probably belongs in the python namespace.
+
+NO_PLUGINS = False

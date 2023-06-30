@@ -57,6 +57,7 @@ from .constants import (
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
+    NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
@@ -192,9 +193,6 @@ class Context(Configuration):
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
-    no_external_plugins = ParameterLoader(
-        PrimitiveParameter(None, element_type=(bool, NoneType))
-    )
     pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
     # multithreading in various places
@@ -446,6 +444,18 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
+    ####################################################
+    #               Plugin Configuration               #
+    ####################################################
+
+    _no_plugins = ParameterLoader(
+        PrimitiveParameter(NO_PLUGINS, element_type=(bool, NoneType)),
+        aliases=(
+            "no_plugins",
+            "no_plugin",
+        ),
+    )
+
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(argparse_args=argparse_args)
 
@@ -488,6 +498,24 @@ class Context(Configuration):
         from ..plugins.manager import get_plugin_manager
 
         return get_plugin_manager()
+
+    @property
+    def no_plugins(self):
+        """
+        This property is used to determine if plugins should be loaded or not.  It is set by
+        the ``--no-plugins`` command line flag.  It can also be set by the ``NO_PLUGINS``
+        environment variable.  If neither of those are set, then the default value is used.
+        """
+        if (
+            self._argparse_args
+            and "no_plugins" in vars(self._argparse_args)
+            and self._argparse_args.no_plugins is not None
+        ):
+            return True
+        elif os.getenv("NO_PLUGINS") is not None:
+            return True
+        else:
+            return False
 
     @property
     def conda_build_local_paths(self):
@@ -1192,7 +1220,7 @@ class Context(Configuration):
                 "target_prefix_override",
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
             ),
-            "Plugin Configuration": ("no_external_plugins",),
+            "Plugin Configuration": ("no_plugins",),
         }
 
     def get_descriptions(self):
@@ -1502,7 +1530,7 @@ class Context(Configuration):
             #     environments and inconsistent behavior. Use at your own risk.
             #     """
             # ),
-            no_external_plugins=dals(
+            no_plugins=dals(
                 """
                 Disable or enable all currently-registered plugins except built-in conda plugins.
                 """

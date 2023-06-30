@@ -99,12 +99,28 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     )
 
 
-def test_disable_plugins(conda_cli, plugin_manager, mocker):
+def test_disable_plugins_with_flag(conda_cli, plugin_manager, mocker):
     """
     Run a test to ensure we can successfully disable externally registered plugins
+    with the --no-plugins flag
     """
     plugin_manager.load_plugins(verbose_pre_command)
-    context.no_external_plugins = True
+    patch = mocker.patch(
+        "tests.plugins.test_plugins.verbose_pre_command.verbose_pre_command_action"
+    )
+
+    out, err, code = conda_cli("--no-plugins", "info")
+    assert patch.mock_calls == []
+    assert err == ""
+
+
+def test_disable_plugins_with_config(conda_cli, plugin_manager, mocker):
+    """
+    Run a test to ensure we can successfully disable externally registered plugins
+    via the config file
+    """
+    plugin_manager.load_plugins(verbose_pre_command)
+    context._no_plugins = True
     patch = mocker.patch(
         "tests.plugins.test_plugins.verbose_pre_command.verbose_pre_command_action"
     )
