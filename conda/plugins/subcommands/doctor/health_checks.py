@@ -49,9 +49,13 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
             logger.error(
                 f"Could not load the json file {file} because of the following error: {exc}."
             )
+            continue
+
+        if not isinstance(metadata, dict):
+            continue
 
         try:
-            paths_data = metadata.get("paths_data")
+            paths_data = metadata["paths_data"]
             paths = paths_data["paths"]
         except KeyError:
             continue
