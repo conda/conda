@@ -25,6 +25,7 @@ The following commands are part of conda:
    compare
    config
    create
+   doctor
    env/index
    info
    init
