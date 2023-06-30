@@ -33,7 +33,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
-from ..plugins.types import CommandHookTypes, CondaArgparseSubcommand
+from ..plugins.types import CommandHookTypes
 
 log = getLogger(__name__)
 
@@ -373,8 +373,10 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             help=plugin_subcommand.summary,
             formatter_class=RawDescriptionHelpFormatter,
         )
-        if isinstance(plugin_subcommand, CondaArgparseSubcommand):
-            plugin_subcommand.configure_parser(parser)
+        try:
+            plugin_subcommand.configure_argparse(parser)
+        except NotImplementedError:
+            pass
 
 
 def configure_parser_clean(sub_parsers):

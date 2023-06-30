@@ -8,12 +8,12 @@ import argparse
 from ....base.context import context
 from ....cli.conda_argparse import ArgumentParser, add_parser_prefix
 from ....deprecations import deprecated
-from ... import CondaArgparseSubcommand, hookimpl
+from ... import CondaSubcommand, hookimpl
 
 
-class DoctorSubcommand(CondaArgparseSubcommand):
+class DoctorSubcommand(CondaSubcommand):
 
-    def configure_parser(self, parser: ArgumentParser):
+    def configure_argparse(self, parser: ArgumentParser):
         parser.add_argument(
             "-v",
             "--verbose",

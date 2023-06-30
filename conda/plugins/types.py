@@ -17,7 +17,7 @@ CommandHookTypes = Literal["pre", "post"]
 """The two different types of `conda_*_commands` hooks that are available"""
 
 
-class CondaRawSubcommand(NamedTuple):
+class CondaSubcommand(NamedTuple):
     """
     Return type to use when defining a conda subcommand plugin hook.
 
@@ -35,32 +35,7 @@ class CondaRawSubcommand(NamedTuple):
         [list[str]],  # arguments
         int | None,  # return code
     ]
-
-
-CondaSubcommand = CondaRawSubcommand  # noqa
-
-
-class CondaArgparseSubcommand(NamedTuple):
-    """
-    Return type to use when defining a conda subcommand plugin hook
-    that uses argparse.
-
-    For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_subcommands`.
-
-    :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
-    :param summary: Subcommand summary, will be shown in ``conda --help``.
-    :param action: Callable that will be run when the subcommand is invoked.
-
-    """
-    name: str
-    summary: str
-    action: Callable[
-        [list[str]],  # arguments
-        int | None,  # return code
-    ]
-
-    def configure_parser(self, parser: ArgumentParser):
+    def configure_argparse(self, parser: ArgumentParser):
         raise NotImplementedError
 
 
