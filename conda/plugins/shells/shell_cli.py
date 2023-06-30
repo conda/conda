@@ -95,13 +95,17 @@ def execute(argv: list[str]) -> SystemExit:
     """
     Run process associated with parsed CLI command (activate, deactivate, reactivate).
     This plugin is intended for use only with POSIX shells.
+
+    Raise an error if no shell-compatible plugin is installed or if more than one is
+    installed (via context.plugin_manager.get_shell_syntax).
     """
     args = get_parsed_args(argv)
 
     context.__init__()
     init_loggers(context)
 
-    activator = PluginActivator()
+    syntax = context.plugin_manager.get_shell_syntax()
+    activator = PluginActivator(syntax)
     cmds_dict = activator.parse_and_build(args)
 
     return activator.activate(cmds_dict)
@@ -111,6 +115,6 @@ def execute(argv: list[str]) -> SystemExit:
 def conda_subcommands():
     yield CondaSubcommand(
         name="shell",
-        summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
+        summary="Run plugins used for activate, deactivate, and reactivate",
         action=execute,
     )

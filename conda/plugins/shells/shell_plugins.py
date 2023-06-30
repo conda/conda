@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+from typing import NamedTuple
 
 from conda.activate import expand
 from conda.base.constants import (
@@ -40,14 +41,11 @@ class PluginActivator:
     the methods of this class.
     """
 
-    def __init__(self):
+    def __init__(self, syntax: NamedTuple):
         """
         Create properties so that each class property is assigned the value from the corresponding
-        property in the plugin hook's named tuple. If a property is missing from the plugin hook,
-        it will be assigned a value of None.
-
-        If no shell-compatible plugin is installed CondaPluginManager.get_shell_syntax() will
-        raise an error, so none of the other methods will be run.
+        property in the named tuple, based on the expected fields in the shell plugin hook.
+        If a property is missing from the named tuple, it will be assigned a value of None.
 
         Expected properties:
             self.name: str
@@ -64,8 +62,6 @@ class PluginActivator:
             self.run_script_tmpl: str
             self.environ: map
         """
-        syntax = context.plugin_manager.get_shell_syntax()
-
         for field in CondaShellPlugins._fields:
             setattr(self, field, getattr(syntax, field, None))
 

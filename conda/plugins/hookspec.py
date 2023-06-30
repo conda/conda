@@ -141,12 +141,19 @@ class CondaSpecs:
         .. code-block:: python
 
             import os
+            from pathlib import PurePath
+            import psutil
             from conda import plugins
+
+
+            def confirm_example_shell():
+                shell_process = psutil.Process(psutil.Process().ppid()).exe()
+                return PurePath(shell_process).name == "example"
 
 
             @plugins.hookimpl
             def conda_shell_plugins():
-                if ():
+                if confirm_example_shell():
                     yield plugins.CondaShellPlugins(
                         name="plugin_name",
                         summary="Conda shell plugin for example shell",
