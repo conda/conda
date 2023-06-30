@@ -11,18 +11,6 @@ from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
 
 
-class DoctorSubcommand(CondaSubcommand):
-
-    def configure_argparse(self, parser: ArgumentParser):
-        parser.add_argument(
-            "-v",
-            "--verbose",
-            action="store_true",
-            help="Generate a detailed environment health report.",
-        )
-        add_parser_prefix(parser)
-
-
 @deprecated(
     "24.3", "24.9", addendum="Use `conda.base.context.context.target_prefix` instead."
 )
@@ -31,7 +19,17 @@ def get_prefix(args: argparse.Namespace) -> str:
     return context.target_prefix
 
 
-def execute(args: argparse.Namespace, parser: ArgumentParser) -> None:
+def configure_parser(parser: ArgumentParser):
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Generate a detailed environment health report.",
+    )
+    add_parser_prefix(parser)
+
+
+def execute(args: argparse.Namespace) -> None:
     """Run conda doctor subcommand."""
     from .health_checks import display_health_checks
 
@@ -40,8 +38,9 @@ def execute(args: argparse.Namespace, parser: ArgumentParser) -> None:
 
 @hookimpl
 def conda_subcommands():
-    yield DoctorSubcommand(
+    yield CondaSubcommand(
         name="doctor",
         summary="Display a health report for your environment.",
         action=execute,
+        configure_parser=configure_parser,
     )

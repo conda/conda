@@ -114,31 +114,34 @@ def generate_parser():
     return p
 
 
-def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
+def do_call(args: argparse.Namespace, parser: ArgumentParser):
     """
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
-    plugin_subcommand = getattr(arguments, "plugin_subcommand", None)
+    plugin_subcommand = getattr(args, "plugin_subcommand", None)
 
-    if plugin_subcommand is None:
+    if plugin_subcommand:
+        # pass on the rest of the plugin specific args or fall back to
+        # the whole discovered arguments
+        args = args.plugin_args or args
+        _run_command_hooks("pre", plugin_subcommand.name, args)
+        result = plugin_subcommand.action(args)
+        _run_command_hooks("post", plugin_subcommand.name, args)
+        return result
+    else:
         # let's call the subcommand the old-fashioned way via the assigned func..
-        relative_mod, func_name = arguments.func.rsplit(".", 1)
+        relative_mod, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
         module = import_module(relative_mod, "conda.cli")
-        callback = getattr(module, func_name)
         command = relative_mod.replace(".main_", "")
-    else:
-        # or use the plugin subcommand callback directly
-        callback = plugin_subcommand.action
-        command = plugin_subcommand.name
 
-    _run_command_hooks("pre", command, arguments)
-    result = callback(arguments, parser)
-    _run_command_hooks("post", command, arguments)
-    return result
+        _run_command_hooks("pre", command, args)
+        result = getattr(module, func_name)(args, parser)
+        _run_command_hooks("post", command, args)
+        return result
 
 
 def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
@@ -373,8 +376,15 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             help=plugin_subcommand.summary,
             formatter_class=RawDescriptionHelpFormatter,
         )
+        # we store all other arguments here, so we can pass them to the
+        # plugin subcommands later
+        parser.add_argument(
+            "plugin_args",
+            nargs=argparse.REMAINDER,
+            help=argparse.SUPPRESS,  # to hide it from the help output
+        )
         try:
-            plugin_subcommand.configure_argparse(parser)
+            plugin_subcommand.configure_parser(parser)
         except NotImplementedError:
             pass
 

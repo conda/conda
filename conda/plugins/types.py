@@ -9,7 +9,8 @@ Each type corresponds to the plugin hook for which it is used.
 from __future__ import annotations
 
 from argparse import ArgumentParser
-from typing import Callable, Literal, NamedTuple
+from dataclasses import dataclass, field
+from typing import Callable, Literal, NamedTuple, Optional
 
 from ..core.solve import Solver
 
@@ -17,7 +18,8 @@ CommandHookTypes = Literal["pre", "post"]
 """The two different types of `conda_*_commands` hooks that are available"""
 
 
-class CondaSubcommand(NamedTuple):
+@dataclass
+class CondaSubcommand:
     """
     Return type to use when defining a conda subcommand plugin hook.
 
@@ -35,8 +37,10 @@ class CondaSubcommand(NamedTuple):
         [list[str]],  # arguments
         int | None,  # return code
     ]
-    def configure_argparse(self, parser: ArgumentParser):
-        raise NotImplementedError
+    configure_parser: Optional[Callable[
+        [ArgumentParser],
+        None
+    ]] = field(default=lambda parser: None)
 
 
 class CondaVirtualPackage(NamedTuple):
