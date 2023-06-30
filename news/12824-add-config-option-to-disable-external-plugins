@@ -1,0 +1,19 @@
+### Enhancements
+
+* Adds a new config option, "no_external_plugins", that disables external plugins for built-in conda commands (#12748)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

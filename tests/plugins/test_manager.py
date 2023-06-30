@@ -7,6 +7,8 @@ import sys
 import pytest
 
 from conda import plugins
+from conda.base.context import context
+from conda.common.io import env_var
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
@@ -102,12 +104,11 @@ def test_disable_plugins(conda_cli, plugin_manager, mocker):
     Run a test to ensure we can successfully disable externally registered plugins
     """
     plugin_manager.load_plugins(verbose_pre_command)
+    context.no_external_plugins = True
     patch = mocker.patch(
         "tests.plugins.test_plugins.verbose_pre_command.verbose_pre_command_action"
     )
 
-    out, err, code = conda_cli("--no-plugins", "info")
-
+    out, err, code = conda_cli("info")
     assert patch.mock_calls == []
-
     assert err == ""

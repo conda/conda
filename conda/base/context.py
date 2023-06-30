@@ -192,7 +192,9 @@ class Context(Configuration):
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
-
+    no_external_plugins = ParameterLoader(
+        PrimitiveParameter(None, element_type=(bool, NoneType))
+    )
     pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
     # multithreading in various places
@@ -1190,6 +1192,7 @@ class Context(Configuration):
                 "target_prefix_override",
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
             ),
+            "Plugin Configuration": ("no_external_plugins",),
         }
 
     def get_descriptions(self):
@@ -1499,6 +1502,11 @@ class Context(Configuration):
             #     environments and inconsistent behavior. Use at your own risk.
             #     """
             # ),
+            no_external_plugins=dals(
+                """
+                Disable or enable all currently-registered plugins except built-in conda plugins.
+                """
+            ),
             non_admin_enabled=dals(
                 """
                 Allows completion of conda's create, install, update, and remove operations, for
