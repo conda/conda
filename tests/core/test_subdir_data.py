@@ -29,7 +29,6 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.testing import TmpEnvFixture
 from conda.testing.helpers import CHANNEL_DIR
 
 log = getLogger(__name__)

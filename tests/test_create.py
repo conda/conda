@@ -24,17 +24,16 @@ from os.path import (
 )
 from pathlib import Path
 from shutil import copyfile, rmtree
-from subprocess import PIPE, Popen, check_call, check_output, run
-from textwrap import dedent
+from subprocess import PIPE, Popen, check_output, run
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 import requests
 from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaMultiError
-from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
@@ -58,13 +57,11 @@ from conda.core.subdir_data import SubdirData, create_cache_dir
 from conda.exceptions import (
     ArgumentError,
     CondaExitZero,
-    CondaMultiError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
     EnvironmentLocationNotFound,
-    EnvironmentNotWritableError,
     OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -75,14 +72,12 @@ from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.delete import path_is_clean, rm_rf
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.update import touch
 from conda.gateways.subprocess import (
     Response,
     subprocess_call,
     subprocess_call_with_clean_env,
 )
 from conda.models.channel import Channel
-from conda.models.dist import Dist
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
@@ -100,7 +95,6 @@ from conda.testing.integration import (
     make_temp_package_cache,
     make_temp_prefix,
     package_is_installed,
-    reload_config,
     run_command,
     tempdir,
     which_or_where,

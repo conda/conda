@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from os import PathLike, walk
+from os import walk
 from os.path import basename, exists, isdir, join
+from pathlib import Path
 from shutil import copy
 
 import pytest
+from pytest_mock import MockerFixture
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,

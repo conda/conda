@@ -1,14 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import json
-import re
-
 import pytest
 from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.io import env_var, env_vars
+from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.helpers import set_active_prefix
