@@ -52,16 +52,6 @@ smartquotes = False
 add_module_names = False
 
 
-def skip_log(app, what, name, obj, skip, options):
-    if what == "attribute" and name == "log":
-        skip = True
-    return skip
-
-
-def setup(sphinx):
-    sphinx.connect("autoapi-skip-member", skip_log)
-
-
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -153,6 +143,16 @@ autoapi_root = "dev-guide/api"
 # folder-view
 autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
+
+
+def skip_log(app, what, name, obj, skip, options):
+    if what == "data" and name.split(".")[-1] == "log":
+        skip = True
+    return skip
+
+
+def setup(sphinx):
+    sphinx.connect("autoapi-skip-member", skip_log)
 
 
 # -- For sphinx_reredirects ------------------------------------------------
