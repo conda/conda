@@ -22,6 +22,7 @@ The following commands are part of conda:
    :maxdepth: 2
 
    *
+   env/index
 
 Conda vs. pip vs. virtualenv commands
 =====================================
