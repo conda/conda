@@ -319,7 +319,7 @@ of the remote server.
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 
-If your current network has https://www.anaconda.com blocked, please file
+If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
 %s

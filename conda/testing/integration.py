@@ -313,7 +313,7 @@ def make_temp_env(*packages, **kwargs):
             rm_rf(prefix)
     if not isdir(prefix):
         make_temp_prefix(name, use_restricted_unicode, prefix)
-    with disable_logger("fetch"), disable_logger("dotupdate"):
+    with disable_logger("fetch"):
         try:
             # try to clear any config that's been set by other tests
             # CAUTION :: This does not partake in the context stack management code

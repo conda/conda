@@ -1,8 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 import re
-from json import loads as json_loads
-from unittest import TestCase
 
 import pytest
 from pytest import MonkeyPatch

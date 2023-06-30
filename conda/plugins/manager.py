@@ -1,6 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""The conda plugin manager that loads all plugins on startup."""
+"""
+This module contains a subclass implementation of pluggy's
+`PluginManager <https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluginManager>`_.
+
+Additionally, it contains a function we use to construct the ``PluginManager`` object and
+register all plugins during conda's startup process.
+"""
 from __future__ import annotations
 
 import functools
@@ -22,8 +28,7 @@ log = logging.getLogger(__name__)
 
 class CondaPluginManager(pluggy.PluginManager):
     """
-    The conda plugin manager to implement behavior additional to
-    pluggy's default plugin manager.
+    The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
@@ -44,8 +49,8 @@ class CondaPluginManager(pluggy.PluginManager):
     def load_plugins(self, *plugins) -> list[str]:
         """
         Load the provided list of plugins and fail gracefully on error.
-        The provided list plugins can either be classes or modules with
-        :attr:`~conda.plugins.hook_impl`.
+        The provided list of plugins can either be classes or modules with
+        :attr:`~conda.plugins.hookimpl`.
         """
         plugin_names = []
         for plugin in plugins:
@@ -61,6 +66,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
         """Load modules from querying the specified setuptools ``group``.
+
         :param str group: Entry point group to load plugins.
         :param str name: If given, loads only plugins with the given ``name``.
         :rtype: int
@@ -179,8 +185,8 @@ class CondaPluginManager(pluggy.PluginManager):
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
-    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
-    instance, with the built-in and the entrypoints provided plugins loaded.
+    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,
+    with the built-in and entrypoints provided by the plugins loaded.
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
