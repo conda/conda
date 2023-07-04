@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 
 from ....base.context import context
-from ....cli.conda_argparse import ArgumentParser, add_parser_prefix
+from ....cli.conda_argparse import ArgumentParser, add_parser_help, add_parser_prefix
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
 
@@ -26,6 +26,7 @@ def configure_parser(parser: ArgumentParser):
         action="store_true",
         help="Generate a detailed environment health report.",
     )
+    add_parser_help(parser)
     add_parser_prefix(parser)
 
 

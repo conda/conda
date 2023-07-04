@@ -31,7 +31,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     return packages_with_missing_files
 
 
-def display_health_checks(prefix: str, verbose: bool) -> None:
+def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
     display_report_heading(prefix)
     missing_files = find_packages_with_missing_files(prefix)

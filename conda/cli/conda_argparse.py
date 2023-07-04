@@ -126,10 +126,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     if plugin_subcommand:
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
-        args = args.plugin_args or args
-        _run_command_hooks("pre", plugin_subcommand.name, args)
-        result = plugin_subcommand.action(args)
-        _run_command_hooks("post", plugin_subcommand.name, args)
+        plugin_args = getattr(args, "plugin_args", args)
+        _run_command_hooks("pre", plugin_subcommand.name, plugin_args)
+        result = plugin_subcommand.action(plugin_args)
+        _run_command_hooks("post", plugin_subcommand.name, plugin_args)
         return result
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
@@ -166,13 +166,14 @@ def find_builtin_commands(parser):
 
 class ArgumentParser(ArgumentParserBase):
     def __init__(self, *args, **kwargs):
-        if not kwargs.get("formatter_class"):
-            kwargs["formatter_class"] = RawDescriptionHelpFormatter
+        kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
         if "add_help" not in kwargs:
             add_custom_help = True
             kwargs["add_help"] = False
         else:
             add_custom_help = False
+        # Handle option conflicts gracefully
+        kwargs.setdefault("conflict_handler", "resolve")
         super().__init__(*args, **kwargs)
 
         if add_custom_help:
@@ -277,9 +278,13 @@ class ArgumentParser(ArgumentParserBase):
         namespace = super().parse_args(args=args, namespace=namespace)
         plugin_subcommand = self.plugin_subcommands.get(namespace.cmd, None)
 
+        # if the current run is not handled by a plugin-based subcommand
+        # we simply return the already parsed argparse namespace
         if plugin_subcommand is None:
             return namespace
 
+        # and if the name of the plugin-based subcommand overlaps a built-in
+        # subcommand, we print an error
         elif plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
             error_message = dals(
                 f"""
@@ -291,10 +296,11 @@ class ArgumentParser(ArgumentParserBase):
             )
             log.error(error_message)
 
-        # Adding the parsed plugin subcommand if available to the current
-        # argparse namespace, so we can later call it correctly in `do_call`
-        namespace.plugin_subcommand = plugin_subcommand
-        return namespace
+        # finally, we add the parsed plugin subcommand if available to the
+        # current namespace, so we can later refer to it
+        else:
+            namespace.plugin_subcommand = plugin_subcommand
+            return namespace
 
 
 def _exec(executable_args, env_vars):
@@ -368,7 +374,13 @@ class ExtendConstAction(Action):
 # #############################################################################################
 
 
-def configure_parser_plugins(sub_parsers, plugin_subcommands):
+def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
+    """
+    For each of the provided plugin-based subcommands, we'll create
+    a new subparser for an improved help printout and calling the
+    :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
+    with the newly created subcommand specific argument parser.
+    """
     for plugin_subcommand in plugin_subcommands.values():
         parser = sub_parsers.add_parser(
             plugin_subcommand.name,
@@ -383,7 +395,7 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             # plugin subcommands later
             parser.add_argument(
                 "plugin_args",
-                nargs=argparse.REMAINDER,
+                nargs=argparse.REMAINDER,  # everything remaining, after the subcommand name
                 help=argparse.SUPPRESS,  # to hide it from the help output
             )
 
