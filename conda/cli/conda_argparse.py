@@ -376,17 +376,16 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands):
             help=plugin_subcommand.summary,
             formatter_class=RawDescriptionHelpFormatter,
         )
-        # we store all other arguments here, so we can pass them to the
-        # plugin subcommands later
-        parser.add_argument(
-            "plugin_args",
-            nargs=argparse.REMAINDER,
-            help=argparse.SUPPRESS,  # to hide it from the help output
-        )
         try:
             plugin_subcommand.configure_parser(parser)
         except NotImplementedError:
-            pass
+            # we store all other arguments here, so we can pass them to the
+            # plugin subcommands later
+            parser.add_argument(
+                "plugin_args",
+                nargs=argparse.REMAINDER,
+                help=argparse.SUPPRESS,  # to hide it from the help output
+            )
 
 
 def configure_parser_clean(sub_parsers):
