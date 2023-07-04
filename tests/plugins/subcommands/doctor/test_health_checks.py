@@ -131,10 +131,11 @@ def test_wrong_path_version(env_ok: tuple[Path, str, str, str]):
     assert find_altered_packages(prefix) == {}
 
 
-def test_json_file_missing(env_ok: tuple[Path, str, str, str]):
+def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str]):
     """Test that runs for the case when json file is missing"""
     prefix, _, _, package = env_ok
-    (prefix / "conda-meta" / f"{package}.json").unlink()
+    # passing a None type to json.loads() so that it fails
+    package = None
     assert find_altered_packages(prefix) == {}
 
 

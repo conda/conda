@@ -51,9 +51,6 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
             )
             continue
 
-        if not isinstance(metadata, dict):
-            continue
-
         try:
             paths_data = metadata["paths_data"]
             paths = paths_data["paths"]
