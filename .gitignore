@@ -23,7 +23,6 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
-env/
 dev-init.bat
 devenv/
 Miniconda*.sh
