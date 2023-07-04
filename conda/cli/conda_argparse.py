@@ -1221,9 +1221,7 @@ def configure_parser_package(sub_parsers):
 
 
 def configure_parser_remove(sub_parsers, aliases):
-    help_ = (
-        "Remove a list of packages from a specified conda environment. "
-    )
+    help_ = "Remove a list of packages from a specified conda environment. "
     descr = dals(
         f"""
         {help_}
@@ -1400,10 +1398,8 @@ def configure_parser_run(sub_parsers):
 
 def configure_parser_search(sub_parsers):
     help = "Search for packages and display associated information using the MatchSpec format."
-    descr = (
-        f"""{help} MatchSpec is a query language for conda packages.
+    descr = f"""{help} MatchSpec is a query language for conda packages.
     """
-    )
 
     example = dedent(
         """

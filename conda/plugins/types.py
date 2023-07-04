@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from argparse import ArgumentParser
 from dataclasses import dataclass, field
-from typing import Callable, Literal, NamedTuple, Optional
+from typing import Callable, Literal, NamedTuple
 
 from ..core.solve import Solver
 
@@ -31,16 +31,16 @@ class CondaSubcommand:
     :param setup: Callable that will be run when the subcommand parser is set up.
     :param action: Callable that will be run when the subcommand is invoked.
     """
+
     name: str
     summary: str
     action: Callable[
         [list[str]],  # arguments
         int | None,  # return code
     ]
-    configure_parser: Optional[Callable[
-        [ArgumentParser],
-        None
-    ]] = field(default=lambda parser: None)
+    configure_parser: None | (Callable[[ArgumentParser], None]) = field(
+        default=lambda parser: None
+    )
 
 
 class CondaVirtualPackage(NamedTuple):
