@@ -11,7 +11,7 @@ from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
 
 
-def get_parsed_args(argv: list[str]) -> argparse.Namespace:
+def generate_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         "conda doctor",
         description="Display a health report for your environment.",
@@ -23,9 +23,12 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
         help="generate a detailed environment health report",
     )
     add_parser_prefix(parser)
-    args = parser.parse_args(argv)
+    return parser
 
-    return args
+
+def get_parsed_args(argv: list[str]) -> argparse.Namespace:
+    parser = generate_parser()
+    return parser.parse_args(argv)
 
 
 @deprecated(
