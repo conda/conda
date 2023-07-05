@@ -507,7 +507,7 @@ class Context(Configuration):
             self._argparse_args
             and "no_plugins" in self._argparse_args
             and self._argparse_args["no_plugins"] is not None
-        ) or os.getenv("NO_PLUGINS") is not None
+        ) or self._no_plugins
 
     @property
     def conda_build_local_paths(self):
