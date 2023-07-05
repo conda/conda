@@ -120,7 +120,7 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    if hasattr(arguments, "no_plugins") and arguments.no_plugins or context._no_plugins:
+    if context._no_plugins:
         context.plugin_manager.disable_external_plugins()
 
     if getattr(arguments, "plugin_subcommand", None):

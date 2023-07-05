@@ -450,10 +450,7 @@ class Context(Configuration):
 
     _no_plugins = ParameterLoader(
         PrimitiveParameter(NO_PLUGINS, element_type=(bool, NoneType)),
-        aliases=(
-            "no_plugins",
-            "no_plugin",
-        ),
+        aliases=("no_plugins",),
     )
 
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
