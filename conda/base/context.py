@@ -506,16 +506,11 @@ class Context(Configuration):
         the ``--no-plugins`` command line flag.  It can also be set by the ``NO_PLUGINS``
         environment variable.  If neither of those are set, then the default value is used.
         """
-        if (
+        return (
             self._argparse_args
-            and "no_plugins" in vars(self._argparse_args)
-            and self._argparse_args.no_plugins is not None
-        ):
-            return True
-        elif os.getenv("NO_PLUGINS") is not None:
-            return True
-        else:
-            return False
+            and "no_plugins" in self._argparse_args
+            and self._argparse_args["no_plugins"] is not None
+        ) or os.getenv("NO_PLUGINS") is not None
 
     @property
     def conda_build_local_paths(self):
@@ -1532,7 +1527,7 @@ class Context(Configuration):
             # ),
             no_plugins=dals(
                 """
-                Disable or enable all currently-registered plugins except built-in conda plugins.
+                Disable all currently-registered plugins, except built-in conda plugins.
                 """
             ),
             non_admin_enabled=dals(
