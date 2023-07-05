@@ -12,7 +12,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
-from ..exceptions import CondaError, CondaValueError, PluginError
+from ..exceptions import CondaValueError, PluginError
 from . import shells, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
@@ -183,11 +183,11 @@ class CondaPluginManager(pluggy.PluginManager):
         shell_hooks = list(self.get_hook_results("shell_plugins"))
 
         if len(shell_hooks) > 1:
-            raise CondaError(
+            raise PluginError(
                 "Too many compatible plugins installed: please install only one plugin per shell."
             )
         if not shell_hooks:
-            raise CondaError("No plugins installed are compatible with this shell.")
+            raise PluginError("No plugins installed are compatible with this shell.")
 
         return shell_hooks[0]
 
