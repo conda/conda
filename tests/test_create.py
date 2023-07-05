@@ -1190,7 +1190,7 @@ def test_conda_config_describe(clear_package_cache: None):
             assert (
                 "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
             )
-            assert json_obj["cmd_line"] == {"json": True}
+            assert json_obj["cmd_line"] == {"json": True, "no_plugins": False}
 
         run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
         with pytest.raises(CondaError):
@@ -1226,7 +1226,7 @@ def test_conda_config_describe(clear_package_cache: None):
             assert (
                 "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
             )
-            assert json_obj["cmd_line"] == {"json": True}
+            assert json_obj["cmd_line"] == {"json": True, "no_plugins": False}
 
 
 def test_conda_config_validate(clear_package_cache: None):
