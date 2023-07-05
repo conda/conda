@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new health check to conda doctor that detects altered packages in an environment by comparing expected and actual sha256 checksums.
+* Add a new health check to `conda doctor` detecting altered packages in an environment by comparing expected and computed sha256 checksums. (#12757)
 
 ### Bug fixes
 
