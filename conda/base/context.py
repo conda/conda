@@ -500,13 +500,13 @@ class Context(Configuration):
     def no_plugins(self):
         """
         This property is used to determine if plugins should be loaded or not.  It is set by
-        the ``--no-plugins`` command line flag.  It can also be set by the ``NO_PLUGINS``
+        the ``--no-plugins`` command line flag.  It can also be set by the ``CONDA_NO_PLUGINS``
         environment variable.  If neither of those are set, then the default value is used.
         """
         return (
             self._argparse_args
             and "no_plugins" in self._argparse_args
-            and self._argparse_args["no_plugins"] is not None
+            and self._argparse_args["no_plugins"]
         ) or self._no_plugins
 
     @property
