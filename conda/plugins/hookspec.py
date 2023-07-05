@@ -132,26 +132,41 @@ class CondaSpecs:
 
     @_hookspec
     def conda_shell_plugins(self) -> Iterable[CondaShellPlugins]:
-        """
+        r"""
         Register external shell plugins in conda.
 
-        :return: An iterable of shell plugin entries.
 
-        Example:
+        **Example:**
+
         .. code-block:: python
 
+            import os
+            from pathlib import PurePath
+            import psutil
             from conda import plugins
 
 
-            def example_command(args):
-                print("This is an example command!")
+            def confirm_example_shell():
+                shell_process = psutil.Process(psutil.Process().ppid()).exe()
+                return PurePath(shell_process).name == "example"
 
 
             @plugins.hookimpl
             def conda_shell_plugins():
-                yield plugins.CondaShellPlugins(
-                    name="example",
-                    summary="example command",
-                    action=example_command,
-                )
+                if confirm_example_shell():
+                    yield plugins.CondaShellPlugins(
+                        name="plugin_name",
+                        summary="Conda shell plugin for example shell",
+                        script_path=os.path.abspath("./posix_script.sh"),
+                        pathsep_join=":".join,
+                        sep="/",
+                        path_conversion=some_function,
+                        script_extension=".sh",
+                        tempfile_extension=None,
+                        command_join="\n",
+                        run_script_tmpl='. "%s"',
+                        unset_var_tmpl="unset %s",
+                        export_var_tmpl="export %s='%s'",
+                        set_var_tmpl="%s='%s'",
+                    )
         """

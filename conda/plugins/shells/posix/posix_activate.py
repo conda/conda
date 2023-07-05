@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from conda.activate import native_path_to_unix
 from conda.base.context import context
 from conda.cli.main import init_loggers
 from conda.exceptions import conda_exception_handler
@@ -50,7 +51,8 @@ def handle_env(*args, **kwargs):
     context.__init__()
     init_loggers(context)
 
-    activator = PosixPluginActivator(args)
+    syntax = context.plugin_manager.get_shell_syntax("posix_plugin_current_logic")
+    activator = PosixPluginActivator(syntax, args)
     print(activator.execute(), end="")
 
     return 0
@@ -80,5 +82,15 @@ def conda_shell_plugins():
     yield CondaShellPlugins(
         name="posix_plugin_current_logic",
         summary="Plugin for POSIX shells: handles conda activate, deactivate, and reactivate",
-        activator=PosixPluginActivator,
+        script_path=None,
+        pathsep_join=":".join,
+        sep="/",
+        path_conversion=native_path_to_unix,
+        script_extension=".sh",
+        tempfile_extension=None,
+        command_join="\n",
+        run_script_tmpl='. "%s"',
+        unset_var_tmpl="unset %s",
+        export_var_tmpl="export %s='%s'",
+        set_var_tmpl="%s='%s'",
     )

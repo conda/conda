@@ -174,6 +174,18 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in pre_command.run_for:
                 yield pre_command.action
 
+    def get_shell_syntax(self, plugin_name) -> Iterable[Callable]:
+        """
+        Return shell plugin hook that is compatible with shell only if one hook is available.
+        Raise error if more than one compatible hook is installed or if no compatible hooks
+        are installed.
+        """
+        shell_hooks = list(self.get_hook_results("shell_plugins"))
+
+        for shell_hook in shell_hooks:
+            if shell_hook.name == plugin_name:
+                return shell_hook
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:

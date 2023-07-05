@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 
+from conda.activate import native_path_to_unix
 from conda.base.context import context
 from conda.cli.main import init_loggers
 from conda.plugins import CondaShellPlugins, CondaSubcommand, hookimpl
@@ -71,7 +72,8 @@ def posix_plugin_no_shell(argv: list[str]) -> SystemExit:
     context.__init__()
     init_loggers(context)
 
-    activator = PosixPluginActivator(args)
+    syntax = context.plugin_manager.get_shell_syntax("posix_exec_plugin")
+    activator = PosixPluginActivator(syntax, args)
     cmds_dict = parse_and_build(activator, args)
 
     return activate(cmds_dict)
@@ -91,5 +93,17 @@ def conda_shell_plugins():
     yield CondaShellPlugins(
         name="posix_exec_plugin",
         summary="Plugin for POSIX shells used for activate, deactivate, and reactivate",
-        activator=PosixPluginActivator,
+        script_path=os.path.abspath(
+            "conda/plugins/shells/shell_scripts/posix_os_exec_shell.sh"
+        ),
+        pathsep_join=":".join,
+        sep="/",
+        path_conversion=native_path_to_unix,
+        script_extension=".sh",
+        tempfile_extension=None,
+        command_join="\n",
+        run_script_tmpl='. "%s"',
+        unset_var_tmpl=None,
+        export_var_tmpl=None,
+        set_var_tmpl=None,
     )

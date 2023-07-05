@@ -7,9 +7,10 @@ import re
 from os.path import join
 
 from conda import CONDA_PACKAGE_ROOT
-from conda.activate import _Activator, native_path_to_unix
+from conda.activate import _Activator
 from conda.base.context import context
 from conda.common.compat import on_win
+from conda.plugins.types import CondaShellPlugins
 
 
 class PosixPluginActivator(_Activator):
@@ -21,25 +22,19 @@ class PosixPluginActivator(_Activator):
     the only difference is the included _parse_and_set_args method.
     """
 
-    pathsep_join = ":".join
-    sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
-    script_extension = ".sh"
-    tempfile_extension = None  # output to stdout
-    command_join = "\n"
+    def __init__(self, syntax, arguments=None):
+        """Set syntax attributes yielded from the plugin hook."""
+        for field in CondaShellPlugins._fields:
+            setattr(self, field, getattr(syntax, field, None))
 
-    unset_var_tmpl = "unset %s"
-    export_var_tmpl = "export %s='%s'"
-    set_var_tmpl = "%s='%s'"
-    run_script_tmpl = '. "%s"'
-
-    hook_source_path = join(
-        CONDA_PACKAGE_ROOT,
-        "shell",
-        "etc",
-        "profile.d",
-        "conda.sh",
-    )
+        self.hook_source_path = join(
+            CONDA_PACKAGE_ROOT,
+            "shell",
+            "etc",
+            "profile.d",
+            "conda.sh",
+        )
+        super().__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         ps1 = self.environ.get("PS1", "")

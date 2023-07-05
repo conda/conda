@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from typing import Callable, NamedTuple
-
-from conda.activate import _Activator
+from typing import Callable, Iterable, NamedTuple
 
 from ..core.solve import Solver
 
@@ -77,4 +75,16 @@ class CondaShellPlugins(NamedTuple):
 
     name: str
     summary: str
-    activator: type[_Activator]
+    script_path: str | None
+    pathsep_join: str
+    sep: str
+    path_conversion: Callable[
+        [str | Iterable[str] | None], str | tuple[str, ...] | None
+    ]
+    script_extension: str
+    tempfile_extension: str | None
+    command_join: str
+    run_script_tmpl: str
+    unset_var_tmpl: str | None
+    export_var_tmpl: str | None
+    set_var_tmpl: str | None
