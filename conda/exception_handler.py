@@ -169,7 +169,7 @@ class ExceptionHandler:
                     log.warn("%r", e, exc_info=True)
                     message_builder.append("conda info could not be constructed.")
                     message_builder.append("%r" % e)
-            message_builder.append(
+            message_builder.extend([
                 "",
                 "An unexpected error has occurred. Conda has prepared the above report."
                 "",
@@ -182,7 +182,7 @@ class ExceptionHandler:
                 "without plugins enabled. You can do this by running:",
                 "    $ conda config --set no_plugins true",
                 "",
-            )
+            ])
             self.write_out(*message_builder)
 
     def print_expected_error_report(self, error_report):
