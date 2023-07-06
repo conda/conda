@@ -177,14 +177,18 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_shell_syntax(self) -> Iterable[Callable]:
         """
         Return shell plugin hook that is compatible with shell only if one hook is available.
-        Raise error if more than one compatible hook is installed or if no compatible hooks
-        are installed.
+        Raise error if more than one installed plugin yields a hook or if no hooks are yielded.
         """
         shell_hooks = list(self.get_hook_results("shell_plugins"))
 
         if len(shell_hooks) > 1:
             raise PluginError(
-                "Too many compatible plugins installed: please install only one plugin per shell."
+                dals(
+                    f"""
+                    Multiple compatible plugins found: please install only one plugin per shell.
+                    Compatible plugins found:
+                    {', '.join([plugin.name for plugin in shell_hooks])}"""
+                )
             )
         if not shell_hooks:
             raise PluginError("No plugins installed are compatible with this shell.")

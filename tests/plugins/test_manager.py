@@ -9,7 +9,7 @@ import pytest
 from conda import plugins
 from conda.core import solve
 from conda.exceptions import PluginError
-from conda.plugins import virtual_packages
+from conda.plugins import shells, virtual_packages
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +26,52 @@ class VerboseSolverPlugin:
         yield plugins.CondaSolver(
             name="verbose-classic",
             backend=VerboseSolver,
+        )
+
+
+class OneShellPlugin:
+    @plugins.hookimpl
+    def conda_shell_plugins():
+        yield plugins.CondaShellPlugins(
+            name="shellplugin",
+            summary="test plugin",
+            script_path="abc.sh",
+            pathsep_join=":".join,
+            sep="/",
+            path_conversion=lambda x: x + 1,
+            script_extension=".sh",
+            tempfile_extension=None,
+            command_join="\n",
+            run_script_tmpl='. "%s"',
+        )
+
+
+class TwoShellPlugins:
+    @plugins.hookimpl
+    def conda_shell_plugins():
+        yield plugins.CondaShellPlugins(
+            name="shellplugin",
+            summary="test plugin",
+            script_path="abc.sh",
+            pathsep_join=":".join,
+            sep="/",
+            path_conversion=lambda x: x,
+            script_extension=".sh",
+            tempfile_extension=None,
+            command_join="\n",
+            run_script_tmpl='. "%s"',
+        )
+        yield plugins.CondaShellPlugins(
+            name="shellplugin2",
+            summary="second test plugin",
+            script_path="abc.sh",
+            pathsep_join=":".join,
+            sep="/",
+            path_conversion=lambda x: x,
+            script_extension=".sh",
+            tempfile_extension=None,
+            command_join="\n",
+            run_script_tmpl='. "%s"',
         )
 
 
@@ -94,3 +140,55 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     assert mocked_warning.call_args.args[0] == (
         "Could not load conda plugin `conda-test-plugin`:\n\nNo module named 'package_that_does_not_exist'"
     )
+
+
+def test_get_shell_syntax_no_plugins(plugin_manager):
+    """Raise error if no shell plugins are loaded"""
+    plugin_manager.load_plugins()
+
+    with pytest.raises(PluginError) as e:
+        plugin_manager.get_shell_syntax()
+
+    assert "No plugins installed are compatible with this shell" in str(e.value)
+
+
+def test_get_shell_syntax(plugin_manager):
+    """Ensure that hook is returned correctly"""
+    plugin_manager.load_plugins(OneShellPlugin)
+    results = list(plugin_manager.get_hook_results("shell_plugins"))
+    assert len(results) == 1
+
+    hook = plugin_manager.get_shell_syntax()
+
+    assert hook.name == "shellplugin"
+    assert hook.summary == "test plugin"
+    assert hook.script_path == "abc.sh"
+    assert hook.pathsep_join(["a", "b", "c"]) == "a:b:c"
+    assert hook.sep == "/"
+    assert hook.path_conversion(3) == 4
+    assert hook.script_extension == ".sh"
+    assert hook.tempfile_extension == None
+    assert hook.command_join == "\n"
+    assert hook.run_script_tmpl % hook.script_path == '. "abc.sh"'
+
+
+def test_get_shell_syntax_error_multiple_plugins(plugin_manager):
+    """Raise error if multiple shell plugins are yielded"""
+    plugin_manager.load_plugins(TwoShellPlugins)
+
+    with pytest.raises(PluginError) as e:
+        plugin_manager.get_shell_syntax()
+
+    assert "Multiple compatible plugins found" in str(e.value)
+    assert "shellplugin" in str(e.value)
+    assert "shellplugin2" in str(e.value)
+
+
+def test_get_shell_syntax_error_no_plugins(plugin_manager):
+    """Raise error if no shell plugins are yielded"""
+    plugin_manager.load_plugins()
+
+    with pytest.raises(PluginError) as e:
+        plugin_manager.get_shell_syntax()
+
+    assert "No plugins installed are compatible with this shell" in str(e.value)
