@@ -443,6 +443,26 @@ jobs:
           clean: true
           fetch-depth: 0
 
+      - name: Detect label
+        shell: python
+        run: |
+          from pathlib import Path
+          from re import match
+
+          if "${{ github.ref_name }}" == "main":
+              # main branch commits are uploaded to the dev label
+              label = "dev"
+          elif "${{ github.ref_name }}".startswith("feature/"):
+              # feature branch commits are uploaded to a custom label
+              label = "${{ github.ref_name }}"
+          else:
+              # release branch commits are added to the rc label
+              # see https://github.com/conda/infrastructure/issues/760
+              _, name = "${{ github.repository }}".split("/")
+              label = f"rc-{name}-${{ github.ref_name }}"
+
+          Path("${{ env.GITHUB_ENV }}").write_text(f"ANACONDA_ORG_LABEL={label}")
+
       - name: Create and upload canary build
         uses: conda/actions/canary-release@v22.10.0
         env:
@@ -452,5 +472,5 @@ jobs:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
-          anaconda-org-label: ${{ github.ref_name == 'main' && 'dev' || github.ref_name }}
+          anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
