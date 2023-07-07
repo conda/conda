@@ -123,6 +123,7 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     if context.no_plugins:
         context.plugin_manager.disable_external_plugins()
 
+    # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
         _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
         result = arguments.plugin_subcommand.action(sys.argv[2:])

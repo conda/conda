@@ -7,12 +7,13 @@ import sys
 import pytest
 
 from conda import plugins
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
-from tests.plugins.test_plugins import verbose_pre_command
+
+from .test_pre_command import pre_command_plugin
 
 log = logging.getLogger(__name__)
 
@@ -99,32 +100,30 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     )
 
 
-def test_disable_plugins_with_flag(conda_cli, plugin_manager, mocker):
+def test_disable_plugins_with_flag(
+    conda_cli, plugin_manager, mocker, pre_command_plugin
+):
     """
     Run a test to ensure we can successfully disable externally registered plugins
     with the --no-plugins flag
     """
-    plugin_manager.load_plugins(verbose_pre_command)
-    patch = mocker.patch(
-        "tests.plugins.test_plugins.verbose_pre_command.verbose_pre_command_action"
-    )
-
+    assert not context.no_plugins
     out, err, code = conda_cli("--no-plugins", "info")
-    assert patch.mock_calls == []
+    assert pre_command_plugin.pre_command_action.mock_calls == []
     assert err == ""
 
 
-def test_disable_plugins_with_config(conda_cli, plugin_manager, mocker):
+def test_disable_plugins_with_config(
+    conda_cli, plugin_manager, mocker, monkeypatch, pre_command_plugin
+):
     """
     Run a test to ensure we can successfully disable externally registered plugins
     via the config file
     """
-    plugin_manager.load_plugins(verbose_pre_command)
-    context._no_plugins = True
-    patch = mocker.patch(
-        "tests.plugins.test_plugins.verbose_pre_command.verbose_pre_command_action"
-    )
+    monkeypatch.setenv("CONDA_NO_PLUGINS", "True")
+    reset_context()
+    assert context.no_plugins
 
     out, err, code = conda_cli("info")
-    assert patch.mock_calls == []
+    assert pre_command_plugin.pre_command_action.mock_calls == []
     assert err == ""
