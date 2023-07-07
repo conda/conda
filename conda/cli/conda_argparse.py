@@ -288,11 +288,11 @@ class ArgumentParser(ArgumentParserBase):
         elif plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
             error_message = dals(
                 f"""
-            The plugin '{plugin_subcommand.name}' is trying to override the built-in command with
-            the same name, which is not allowed.
+                The plugin '{plugin_subcommand.name}' is trying to override the built-in command with
+                the same name, which is not allowed.
 
-            Please uninstall the plugin to stop seeing this error message.
-            """
+                Please uninstall the plugin to stop seeing this error message.
+                """
             )
             log.error(error_message)
 
