@@ -504,10 +504,17 @@ class Context(Configuration):
         environment variable.  If neither of those are set, then the default value is used.
         """
         return (
-            self._argparse_args
-            and "no_plugins" in self._argparse_args
-            and self._argparse_args["no_plugins"]
-        ) or self._no_plugins
+            (
+                self._argparse_args
+                and "no_plugins" in self._argparse_args
+                and self._argparse_args["no_plugins"]
+            )
+            or self._no_plugins
+            or (
+                os.environ.get("CONDA_NO_PLUGINS")
+                and (bool(os.environ.get("CONDA_NO_PLUGINS", True)))
+            )
+        )
 
     @property
     def conda_build_local_paths(self):
