@@ -113,12 +113,12 @@ def test_disable_plugins_with_flag(
     assert err == ""
 
 
-def test_disable_plugins_with_config(
+def test_disable_plugins_with_env_var(
     conda_cli, plugin_manager, mocker, monkeypatch, pre_command_plugin
 ):
     """
     Run a test to ensure we can successfully disable externally registered plugins
-    via the config file
+    via the CONDA_NO_PLUGINS environment variable
     """
     monkeypatch.setenv("CONDA_NO_PLUGINS", "True")
     reset_context()
