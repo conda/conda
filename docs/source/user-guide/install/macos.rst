@@ -2,6 +2,9 @@
 Installing on macOS
 ===================
 
+.. caution::
+   If you use the .pkg installer for Miniconda, be aware that those installers may skip the which will cause the installation to fail. If the installer skips this page, click Change Install Location... on the Installation Type page and choose a location for your install, then click Continue.
+
 #. Download the installer:
 
    * `Miniconda installer for macOS <https://conda.io/miniconda.html>`_.
