@@ -57,6 +57,13 @@ def test_config(conda_cli: CondaCLIFixture):
     assert not code
 
 
+def test_doctor(conda_cli: CondaCLIFixture):
+    out, err, code = conda_cli("doctor")
+    assert out
+    assert not err
+    assert not code
+
+
 def test_info(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("info")
     assert out
