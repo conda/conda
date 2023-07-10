@@ -448,9 +448,8 @@ class Context(Configuration):
     #               Plugin Configuration               #
     ####################################################
 
-    _no_plugins = ParameterLoader(
+    no_plugins = ParameterLoader(
         PrimitiveParameter(NO_PLUGINS, element_type=(bool, NoneType)),
-        aliases=("no_plugins",),
     )
 
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
@@ -495,26 +494,6 @@ class Context(Configuration):
         from ..plugins.manager import get_plugin_manager
 
         return get_plugin_manager()
-
-    @property
-    def no_plugins(self):
-        """
-        This property is used to determine if plugins should be loaded or not.  It is set by
-        the ``--no-plugins`` command line flag.  It can also be set by the ``CONDA_NO_PLUGINS``
-        environment variable.  If neither of those are set, then the default value is used.
-        """
-        return (
-            (
-                self._argparse_args
-                and "no_plugins" in self._argparse_args
-                and self._argparse_args["no_plugins"]
-            )
-            or self._no_plugins
-            or (
-                os.environ.get("CONDA_NO_PLUGINS")
-                and (bool(os.environ.get("CONDA_NO_PLUGINS", True)))
-            )
-        )
 
     @property
     def conda_build_local_paths(self):
