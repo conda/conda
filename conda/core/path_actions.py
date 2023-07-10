@@ -566,7 +566,10 @@ class MakeMenuAction(CreateInPrefixPathAction):
     def create_actions(
         cls, transaction_context, package_info, target_prefix, requested_link_type
     ):
-        if on_win and context.shortcuts:
+        if context.shortcuts and (
+            not context.shortcuts_only
+            or (context.shortcuts_only and package_info.name in context.shortcuts_only)
+        ):
             MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
             return tuple(
                 cls(transaction_context, package_info, target_prefix, spi.path)
@@ -1129,7 +1132,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 class RemoveMenuAction(RemoveFromPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-        MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+        MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
         return tuple(
             cls(transaction_context, linked_package_data, target_prefix, trgt)
             for trgt in linked_package_data.files
