@@ -1,6 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Pluggy hookspecs to register conda plugins."""
+"""
+Pluggy hook specifications ("hookspecs") to register conda plugins.
+
+Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
+an example of how to use it.
+
+"""
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -16,8 +22,17 @@ from .types import (
 )
 
 spec_name = "conda"
+"""Name used for organizing conda hook specifications"""
+
 _hookspec = pluggy.HookspecMarker(spec_name)
+"""
+The conda plugin hook specifications, to be used by developers
+"""
+
 hookimpl = pluggy.HookimplMarker(spec_name)
+"""
+Decorator used to mark plugin hook implementations
+"""
 
 
 class CondaSpecs:
@@ -53,7 +68,7 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
-        :return: An iterable of solvers entries.
+        :return: An iterable of solver entries.
         """
 
     @_hookspec
@@ -109,7 +124,7 @@ class CondaSpecs:
     @_hookspec
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
         """
-        Register pre-commands functions in conda.
+        Register pre-command functions in conda.
 
         **Example:**
 
@@ -134,7 +149,7 @@ class CondaSpecs:
     @_hookspec
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
-        Register post-commands functions in conda.
+        Register post-command functions in conda.
 
         **Example:**
 

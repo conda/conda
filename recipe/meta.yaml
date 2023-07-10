@@ -29,6 +29,8 @@ requirements:
     - hatch-vcs >=0.2.0
     - wheel
     # for `conda init` in build/script above
+    - menuinst >=1.4.11,<2         # [win]
+    - requests >=2.18.4,<3
     - ruamel.yaml >=0.11.14,<0.18
     - tqdm >=4
     # - menuinst >=1.4.11,<2         # [win]

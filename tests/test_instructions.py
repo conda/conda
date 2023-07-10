@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import os
-import unittest
-from logging import DEBUG, Handler
+
+import pytest
 
 from conda import instructions
 from conda.exceptions import CondaFileIOError
@@ -26,67 +26,56 @@ def test_expected_operation_order():
     assert expected == instructions.ACTION_CODES
 
 
-class LoggingTestHandler(Handler):
-    def __init__(self):
-        Handler.__init__(self)
-        self.setLevel(DEBUG)
-        self.records = []
+def test_simple_instruction():
+    index = {"This is an index": True}
 
-    def handle(self, record):
-        self.records.append((record.name, record.msg))
+    def simple_cmd(state, arg):
+        simple_cmd.called = True
+        simple_cmd.call_args = arg
+
+    commands["SIMPLE"] = simple_cmd
+
+    plan = [("SIMPLE", ["arg1"])]
+
+    execute_instructions(plan, index, verbose=False)
+
+    assert simple_cmd.called
+    assert simple_cmd.call_args == ["arg1"]
 
 
-class TestExecutePlan(unittest.TestCase):
-    def test_simple_instruction(self):
-        index = {"This is an index": True}
+def test_state():
+    index = {"This is an index": True}
 
-        def simple_cmd(state, arg):
-            simple_cmd.called = True
-            simple_cmd.call_args = (arg,)
+    def simple_cmd(state, arg):
+        expect, x = arg
+        state.setdefault("x", 1)
+        assert state["x"] == expect
+        state["x"] = x
+        simple_cmd.called = True
 
-        commands["SIMPLE"] = simple_cmd
+    commands["SIMPLE"] = simple_cmd
 
-        plan = [("SIMPLE", ("arg1",))]
+    plan = [
+        ("SIMPLE", (1, 5)),
+        ("SIMPLE", (5, None)),
+    ]
 
-        execute_instructions(plan, index, verbose=False)
+    execute_instructions(plan, index, verbose=False)
+    assert simple_cmd.called
 
-        self.assertTrue(simple_cmd.called)
-        self.assertTrue(simple_cmd.call_args, ("arg1",))
 
-    def test_state(self):
-        index = {"This is an index": True}
+def test_check_files_in_tarball_files_exist():
+    source_dir = os.getcwd()
+    files = [__file__]
+    assert instructions.check_files_in_package(source_dir, files)
 
-        def simple_cmd(state, arg):
-            expect, x = arg
-            state.setdefault("x", 1)
-            self.assertEqual(state["x"], expect)
-            state["x"] = x
-            simple_cmd.called = True
 
-        commands["SIMPLE"] = simple_cmd
+def test_check_files_in_tarball_files_not_exist():
+    source_dir = os.getcwd()
+    files = ["test-thing-that-does-not-exist"]
 
-        plan = [
-            ("SIMPLE", (1, 5)),
-            ("SIMPLE", (5, None)),
-        ]
-
-        execute_instructions(plan, index, verbose=False)
-        self.assertTrue(simple_cmd.called)
-
-    def test_check_files_in_tarball_files_exist(self):
-        source_dir = os.getcwd()
-        files = [__file__]
-        self.assertTrue(instructions.check_files_in_package(source_dir, files))
-
-    def test_check_files_in_tarball_files_not_exist(self):
-        source_dir = os.getcwd()
-        files = ["test-thing-that-does-not-exist"]
-        try:
-            instructions.check_files_in_package(source_dir, files)
-        except CondaFileIOError as e:
-            assert isinstance(e, CondaFileIOError)
-        else:
-            self.fail("CondaFileIOError not raised")
+    with pytest.raises(CondaFileIOError):
+        instructions.check_files_in_package(source_dir, files)
 
 
 def test_prefix_cmd():
@@ -94,7 +83,3 @@ def test_prefix_cmd():
     state = {}
     instructions.PREFIX_CMD(state, "prefix")
     assert state["prefix"] == "prefix"
-
-
-if __name__ == "__main__":
-    unittest.main()

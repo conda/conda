@@ -1,65 +1,53 @@
 """
-=====
-Usage
-=====
+Method #1: ``auxlib.packaging`` as a run time dependency
 
-Method #1: auxlib.packaging as a run time dependency
----------------------------------------------------
+Place the following lines in your package's main ``__init__.py``
 
-Place the following lines in your package's main __init__.py
+.. code-block:: python
+    from auxlib import get_version
+    __version__ = get_version(__file__)
 
-from auxlib import get_version
-__version__ = get_version(__file__)
+Method #2: ``auxlib.packaging`` as a build time-only dependency
 
+.. code-block:: python
+    import auxlib
 
+    # When executing the setup.py, we need to be able to import ourselves; this
+    # means that we need to add the src directory to the sys.path.
+    here = os.path.abspath(os.path.dirname(__file__))
+    src_dir = os.path.join(here, "auxlib")
+    sys.path.insert(0, src_dir)
 
-Method #2: auxlib.packaging as a build time-only dependency
-----------------------------------------------------------
+    setup(
+        version=auxlib.__version__,
+        cmdclass={
+            'build_py': auxlib.BuildPyCommand,
+            'sdist': auxlib.SDistCommand,
+            'test': auxlib.Tox,
+        },
+    )
 
+Place the following lines in your package's main `__init__.py`
 
-import auxlib
+.. code-block:: python
+    from auxlib import get_version
+    __version__ = get_version(__file__)
 
-# When executing the setup.py, we need to be able to import ourselves, this
-# means that we need to add the src directory to the sys.path.
-here = os.path.abspath(os.path.dirname(__file__))
-src_dir = os.path.join(here, "auxlib")
-sys.path.insert(0, src_dir)
-
-setup(
-    version=auxlib.__version__,
-    cmdclass={
-        'build_py': auxlib.BuildPyCommand,
-        'sdist': auxlib.SDistCommand,
-        'test': auxlib.Tox,
-    },
-)
-
-
-
-Place the following lines in your package's main __init__.py
-
-from auxlib import get_version
-__version__ = get_version(__file__)
-
-
-Method #3: write .version file
-------------------------------
-
-
+Method #3: write `.version` file
 
 Configuring `python setup.py test` for Tox
-------------------------------------------
 
 must use setuptools (distutils doesn't have a test cmd)
 
-setup(
-    version=auxlib.__version__,
-    cmdclass={
-        'build_py': auxlib.BuildPyCommand,
-        'sdist': auxlib.SDistCommand,
-        'test': auxlib.Tox,
-    },
-)
+.. code-block:: python
+    setup(
+        version=auxlib.__version__,
+        cmdclass={
+            'build_py': auxlib.BuildPyCommand,
+            'sdist': auxlib.SDistCommand,
+            'test': auxlib.Tox,
+        },
+    )
 """
 from collections import namedtuple
 from setuptools.command.build_py import build_py

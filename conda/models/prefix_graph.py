@@ -4,8 +4,9 @@
 
 Object inheritance:
 
-.. autoclasstree:: conda.models.prefix_graph
-   :full:
+.. autoapi-inheritance-diagram:: PrefixGraph GeneralGraph
+   :top-classes: conda.models.prefix_graph.PrefixGraph
+   :parts: 1
 """
 from collections import defaultdict
 from logging import getLogger

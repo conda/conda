@@ -1,40 +1,27 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import random
-import unittest
 from collections import defaultdict, namedtuple
-from contextlib import contextmanager
-from functools import partial
-from os.path import join
-from unittest import mock
+from random import randint
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 import conda.instructions as inst
 from conda import CondaError
-from conda.base.context import (
-    conda_tests_ctxt_mgmt_def_pol,
-    context,
-    reset_context,
-    stack_context,
-)
-from conda.cli.python_api import Commands, run_command
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
 from conda.exports import execute_plan
-from conda.gateways.disk.create import mkdir_p
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.plan import _update_old_plan as update_old_plan
-from conda.plan import add_defaults_to_specs, add_unlink, display_actions
+from conda.plan import add_unlink, display_actions
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.helpers import captured, get_index_r_1
-
-from .gateways.disk.test_permissions import tempdir
 
 index, r = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state
@@ -65,47 +52,19 @@ def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
-class add_unlink_TestCase(unittest.TestCase):
-    def generate_random_dist(self):
-        return "foobar-%s-0" % random.randint(100, 200)
-
-    @contextmanager
-    def mock_platform(self, windows=False):
-        from conda import plan
-
-        with mock.patch.object(plan, "sys") as sys:
-            sys.platform = "win32" if windows else "not win32"
-            yield sys
-
-    def test_simply_adds_unlink_on_non_windows(self):
-        actions = {}
-        dist = Dist.from_string(self.generate_random_dist())
-        with self.mock_platform(windows=False):
-            add_unlink(actions, dist)
-        self.assertIn(inst.UNLINK, actions)
-        self.assertEqual(
-            actions[inst.UNLINK],
-            [
-                dist,
-            ],
-        )
-
-    def test_adds_to_existing_actions(self):
-        actions = {inst.UNLINK: [{"foo": "bar"}]}
-        dist = Dist.from_string(self.generate_random_dist())
-        with self.mock_platform(windows=False):
-            add_unlink(actions, dist)
-        self.assertEqual(2, len(actions[inst.UNLINK]))
+def test_simply_adds_unlink_on_non_windows():
+    actions = {}
+    dist = Dist.from_string(f"foobar-{randint(100, 200)}-0")
+    add_unlink(actions, dist)
+    assert inst.UNLINK in actions
+    assert actions[inst.UNLINK] == [dist]
 
 
-class TestAddDeaultsToSpec(unittest.TestCase):
-    # tests for plan.add_defaults_to_specs(r, linked, specs)
-
-    def check(self, specs, added):
-        new_specs = list(specs + added)
-        add_defaults_to_specs(r, self.linked, specs)
-        specs = [s.split(" (")[0] for s in specs]
-        self.assertEqual(specs, new_specs)
+def test_adds_to_existing_actions():
+    actions = {inst.UNLINK: [{"foo": "bar"}]}
+    dist = Dist.from_string(f"foobar-{randint(100, 200)}-0")
+    add_unlink(actions, dist)
+    assert len(actions[inst.UNLINK]) == 2
 
 
 def test_display_actions_0():
@@ -1329,37 +1288,29 @@ The following packages will be UPDATED:
         )
 
 
-class TestDeprecatedExecutePlan(unittest.TestCase):
-    def test_update_old_plan(self):
-        old_plan = ["# plan", "INSTRUCTION arg"]
-        new_plan = update_old_plan(old_plan)
+def test_update_old_plan():
+    old_plan = ["# plan", "INSTRUCTION arg"]
+    new_plan = update_old_plan(old_plan)
 
-        expected = [("INSTRUCTION", "arg")]
-        self.assertEqual(new_plan, expected)
+    expected = [("INSTRUCTION", "arg")]
+    assert new_plan == expected
 
-        with self.assertRaises(CondaError):
-            update_old_plan(["INVALID"])
+    with pytest.raises(CondaError):
+        update_old_plan(["INVALID"])
 
-    def test_execute_plan(self):
-        initial_commands = inst.commands
 
-        def set_commands(cmds):
-            inst.commands = cmds
+def test_execute_plan(monkeypatch: MonkeyPatch):
+    def INSTRUCTION_CMD(state, arg):
+        INSTRUCTION_CMD.called = True
+        INSTRUCTION_CMD.arg = arg
 
-        self.addCleanup(lambda: set_commands(initial_commands))
+    monkeypatch.setitem(inst.commands, "INSTRUCTION", INSTRUCTION_CMD)
 
-        def INSTRUCTION_CMD(state, arg):
-            INSTRUCTION_CMD.called = True
-            INSTRUCTION_CMD.arg = arg
+    old_plan = ["# plan", "INSTRUCTION arg"]
+    execute_plan(old_plan)
 
-        set_commands({"INSTRUCTION": INSTRUCTION_CMD})
-
-        old_plan = ["# plan", "INSTRUCTION arg"]
-
-        execute_plan(old_plan)
-
-        self.assertTrue(INSTRUCTION_CMD.called)
-        self.assertEqual(INSTRUCTION_CMD.arg, "arg")
+    assert INSTRUCTION_CMD.called
+    assert INSTRUCTION_CMD.arg == "arg"
 
 
 def generate_mocked_resolve(pkgs, install=None):
@@ -1436,17 +1387,6 @@ def generate_mocked_context(prefix, root_prefix, envs_dirs):
         envs_dirs=envs_dirs,
         prefix_specified=False,
     )
-
-
-class TestGetActionsForDist(unittest.TestCase):
-    def setUp(self):
-        self.pkgs = [
-            (None, "test-spec", "defaults", "1"),
-            ("ranenv", "test-spec", "defaults", "5"),
-            (None, "test-spec2", "defaults", "1"),
-            ("ranenv", "test", "defaults", "1.2.0"),
-        ]
-        self.res = generate_mocked_resolve(self.pkgs)
 
 
 def generate_remove_action(prefix, unlink):
