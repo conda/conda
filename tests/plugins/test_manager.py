@@ -101,7 +101,7 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
 
 
 def test_disable_plugins_with_flag(
-    conda_cli, plugin_manager, mocker, pre_command_plugin
+    conda_cli, pre_command_plugin
 ):
     """
     Run a test to ensure we can successfully disable externally registered plugins
@@ -114,7 +114,7 @@ def test_disable_plugins_with_flag(
 
 
 def test_disable_plugins_with_env_var(
-    conda_cli, plugin_manager, mocker, monkeypatch, pre_command_plugin
+    conda_cli, monkeypatch, pre_command_plugin
 ):
     """
     Run a test to ensure we can successfully disable externally registered plugins
