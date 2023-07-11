@@ -31,13 +31,13 @@ class VerboseSolverPlugin:
 
 def test_load_no_plugins(plugin_manager):
     plugin_names = plugin_manager.load_plugins()
-    assert plugin_names == []
+    assert not plugin_names
 
 
 def test_load_two_plugins_one_impls(plugin_manager):
     this_module = sys.modules[__name__]
     plugin_names = plugin_manager.load_plugins(this_module)
-    assert plugin_names == [__name__]
+    assert plugin_names == 1
     assert plugin_manager.get_plugins() == {this_module}
     assert plugin_manager.hook.conda_solvers.get_hookimpls() == []
 
@@ -92,5 +92,6 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     assert plugin_manager.get_plugins() == set()
     assert mocked_warning.call_count == 1
     assert mocked_warning.call_args.args[0] == (
-        "Could not load conda plugin `conda-test-plugin`:\n\nNo module named 'package_that_does_not_exist'"
+        "Error while loading conda entry point: conda-test-plugin "
+        "(No module named 'package_that_does_not_exist')"
     )
