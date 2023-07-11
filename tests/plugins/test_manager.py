@@ -167,7 +167,7 @@ def test_get_shell_syntax(plugin_manager):
     assert hook.sep == "/"
     assert hook.path_conversion(3) == 4
     assert hook.script_extension == ".sh"
-    assert hook.tempfile_extension == None
+    assert hook.tempfile_extension is None
     assert hook.command_join == "\n"
     assert hook.run_script_tmpl % hook.script_path == '. "abc.sh"'
 
