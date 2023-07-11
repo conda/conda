@@ -443,6 +443,11 @@ jobs:
           clean: true
           fetch-depth: 0
 
+      # Explicitly use Python 3.11 since each of the OSes has a different default Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Detect label
         shell: python
         run: |
@@ -460,9 +465,9 @@ jobs:
               # release branch commits are added to the rc label
               # see https://github.com/conda/infrastructure/issues/760
               _, name = "${{ github.repository }}".split("/")
-              label = "rc-%s-${{ github.ref_name }}" % name
+              label = f"rc-{name}-${{ github.ref_name }}"
 
-          Path(environ["GITHUB_ENV"]).write_text("ANACONDA_ORG_LABEL=%s" % label)
+          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
         uses: conda/actions/canary-release@v22.10.0
