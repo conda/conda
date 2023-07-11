@@ -13,6 +13,7 @@ class PreCommandPlugin:
     @plugins.hookimpl
     def conda_pre_commands(self):
         yield CondaPreCommand(
+            name="custom-pre-command",
             action=self.pre_command_action,
             run_for={"install", "create", "info"},
         )

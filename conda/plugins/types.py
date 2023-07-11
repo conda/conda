@@ -72,10 +72,12 @@ class CondaPreCommand(NamedTuple):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_commands`.
 
+    :param name: Pre-command name (e.g., ``custom_plugin_pre_commands``).
     :param action: Callable which contains the code to be run.
     :param run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
     """
 
+    name: str
     action: Callable[[str], None]
     run_for: set[str]
 
@@ -87,9 +89,11 @@ class CondaPostCommand(NamedTuple):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_commands`.
 
+    :param name: Post-command name (e.g., ``custom_plugin_post_commands``).
     :param action: Callable which contains the code to be run.
     :param run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
     """
 
+    name: str
     action: Callable[[str], None]
     run_for: set[str]
