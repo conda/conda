@@ -7,12 +7,7 @@ from conda.plugins.types import CondaPostCommand
 
 
 class PostCommandPlugin:
-    def __init__(self):
-        self.invoked = False
-        self.args = None
-
-    @staticmethod
-    def post_command_action(command, arguments) -> int:
+    def post_command_action(self, command: str, arguments) -> int:
         pass
 
     @plugins.hookimpl
@@ -26,11 +21,7 @@ class PostCommandPlugin:
 
 @pytest.fixture()
 def post_command_plugin(mocker, plugin_manager):
-    mocker.patch.object(
-        PostCommandPlugin,
-        "post_command_action",
-        wraps=PostCommandPlugin.post_command_action,
-    )
+    mocker.patch.object(PostCommandPlugin, "post_command_action")
 
     post_command_plugin = PostCommandPlugin()
     plugin_manager.register(post_command_plugin)

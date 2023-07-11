@@ -33,7 +33,6 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
-from ..plugins.types import CommandHookTypes
 
 log = getLogger(__name__)
 
@@ -127,10 +126,9 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
         plugin_args = getattr(args, "plugin_args", args)
-        _run_command_hooks("pre", plugin_subcommand.name, plugin_args)
+        context.plugin_manager.apply_pre_commands(plugin_subcommand.name, plugin_args)
         result = plugin_subcommand.action(plugin_args)
-        _run_command_hooks("post", plugin_subcommand.name, plugin_args)
-        return result
+        context.plugin_manager.apply_post_commands(plugin_subcommand.name, plugin_args)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -138,24 +136,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         module = import_module(relative_mod, "conda.cli")
         command = relative_mod.replace(".main_", "")
 
-        _run_command_hooks("pre", command, args)
+        context.plugin_manager.apply_pre_commands(command, args)
         result = getattr(module, func_name)(args, parser)
-        _run_command_hooks("post", command, args)
-        return result
-
-
-def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
-    """
-    Helper function used to gather applicable "pre" or "post" command hook functions
-    and then run them.
-
-    The values in *args are passed directly through to the "pre" or "post" command
-    hook function.
-    """
-    actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
-
-    for action in actions:
-        action(command, arguments)
+        context.plugin_manager.apply_post_commands(command, args)
+    return result
 
 
 def find_builtin_commands(parser):
