@@ -462,7 +462,7 @@ jobs:
               _, name = "${{ github.repository }}".split("/")
               label = "rc-%s-${{ github.ref_name }}" % name
 
-          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
+          Path(environ["GITHUB_ENV"]).write_text("ANACONDA_ORG_LABEL=%s" % label)
 
       - name: Create and upload canary build
         uses: conda/actions/canary-release@v22.10.0
