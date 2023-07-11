@@ -448,6 +448,7 @@ jobs:
         run: |
           from pathlib import Path
           from re import match
+          from os import environ
 
           if "${{ github.ref_name }}" == "main":
               # main branch commits are uploaded to the dev label
@@ -461,7 +462,7 @@ jobs:
               _, name = "${{ github.repository }}".split("/")
               label = f"rc-{name}-${{ github.ref_name }}"
 
-          Path("${{ env.GITHUB_ENV }}").write_text(f"ANACONDA_ORG_LABEL={label}")
+          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
         uses: conda/actions/canary-release@v22.10.0
