@@ -13,7 +13,6 @@ class PostCommandPlugin:
     @plugins.hookimpl
     def conda_post_commands(self):
         yield CondaPostCommand(
-            name="custom-post-command",
             action=self.post_command_action,
             run_for={"install", "create", "info"},
         )
