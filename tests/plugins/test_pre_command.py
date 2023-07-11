@@ -7,7 +7,7 @@ from conda.plugins.types import CondaPreCommand
 
 
 class PreCommandPlugin:
-    def pre_command_action(self, command) -> int:
+    def pre_command_action(self, command: str) -> int:
         pass
 
     @plugins.hookimpl
