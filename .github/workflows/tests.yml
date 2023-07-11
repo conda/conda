@@ -460,7 +460,7 @@ jobs:
               # release branch commits are added to the rc label
               # see https://github.com/conda/infrastructure/issues/760
               _, name = "${{ github.repository }}".split("/")
-              label = f"rc-{name}-${{ github.ref_name }}"
+              label = "rc-%s-${{ github.ref_name }}" % name
 
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
