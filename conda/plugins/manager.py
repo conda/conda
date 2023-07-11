@@ -195,10 +195,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 # disable all plugins that can't be easily identified
                 # via their __module__ name (e.g. a class)
                 name: str | None = getattr(plugin, "__module__", None)
-            if (
-                name is None or
-                not name.startswith("conda.plugins")
-            ):
+            if name is None or not name.startswith("conda.plugins"):
                 self.set_blocked(registered_name)
 
 
