@@ -125,7 +125,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     if plugin_subcommand:
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
-        plugin_args = getattr(args, "plugin_args", args)
+        plugin_args = tuple(getattr(args, "plugin_args", args))
         context.plugin_manager.apply_pre_commands(plugin_subcommand.name, plugin_args)
         result = plugin_subcommand.action(plugin_args)
         context.plugin_manager.apply_post_commands(plugin_subcommand.name, plugin_args)
@@ -274,19 +274,6 @@ class ArgumentParser(ArgumentParserBase):
         if plugin_subcommand is None:
             return namespace
 
-        # and if the name of the plugin-based subcommand overlaps a built-in
-        # subcommand, we print an error
-        if plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
-            error_message = dals(
-                f"""
-                The plugin '{plugin_subcommand.name}' is trying to override the built-in command
-                with the same name, which is not allowed.
-
-                Please uninstall the plugin to stop seeing this error message.
-                """
-            )
-            log.error(error_message)
-
         # finally, we add the parsed plugin subcommand if available to the
         # current namespace, so we can later refer to it
         else:
@@ -373,6 +360,20 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
     with the newly created subcommand specific argument parser.
     """
     for plugin_subcommand in plugin_subcommands.values():
+        # if the name of the plugin-based subcommand overlaps a built-in
+        # subcommand, we print an error
+        if plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
+            error_message = dals(
+                f"""
+                The plugin '{plugin_subcommand.name}' is trying to override the built-in command
+                with the same name, which is not allowed.
+
+                Please uninstall the plugin to stop seeing this error message.
+                """
+            )
+            log.error(error_message)
+            continue
+
         parser = sub_parsers.add_parser(
             plugin_subcommand.name,
             description=plugin_subcommand.summary,
