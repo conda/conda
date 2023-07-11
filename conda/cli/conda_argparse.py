@@ -260,16 +260,23 @@ class ArgumentParser(ArgumentParserBase):
             args = sys.argv[1:]
 
         namespace = super().parse_args(args=args, namespace=namespace)
-        plugin_subcommand = self.plugin_subcommands.get(namespace.cmd, None)
 
-        # if the current run is not handled by a plugin-based subcommand
-        # we simply return the already parsed argparse namespace
+        # if the current run is not handled by argparse subparser with
+        # the conventional name of "cmd", we simply return the already parsed
+        # argparse namespace and hope the 3rd party library handles the rest
+        current_cmd = getattr(namespace, "cmd", None)
+        if current_cmd is None:
+            return namespace
+
+        # alternatively if the current run is not handled by a plugin-based
+        # subcommand we move on, as well
+        plugin_subcommand = self.plugin_subcommands.get(current_cmd, None)
         if plugin_subcommand is None:
             return namespace
 
         # and if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
-        elif plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
+        if plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
             error_message = dals(
                 f"""
                 The plugin '{plugin_subcommand.name}' is trying to override the built-in command
