@@ -55,30 +55,33 @@ class CondaPluginManager(pluggy.PluginManager):
         count = 0
         for plugin in plugins:
             # only use the canonical name after this point
-            name = self.get_canonical_name(plugin)
+            canonical = self.get_canonical_name(plugin)
 
             try:
-                self.register(plugin, name)
+                self.register(plugin, canonical)
             except ValueError as err:
                 raise PluginError(
-                    f"Error while loading first-party conda plugin: {name} ({err})"
+                    f"Error while loading first-party conda plugin: {canonical} ({err})"
                 )
 
             count += 1
         return count
 
-    def load_entrypoints(self, group: str) -> int:
+    def load_entrypoints(self, group: str, name: str | None = None) -> int:
         """Load modules from querying the specified setuptools ``group``.
 
         :param str group: Entry point group to load plugins.
+        :param str name: If given, loads only plugins with the given ``name``.
         :rtype: int
         :return: The number of plugins loaded by this call.
         """
         count = 0
         for dist in distributions():
             for entry_point in dist.entry_points:
-                # skip entry points that don't match the group
-                if entry_point.group != group:
+                # skip entry points that don't match the group/name
+                if entry_point.group != group or (
+                    name is not None and entry_point.name != name
+                ):
                     continue
 
                 # attempt to load plugin from entry point
@@ -95,17 +98,17 @@ class CondaPluginManager(pluggy.PluginManager):
                     continue
 
                 # only use the canonical name after this point
-                name = self.get_canonical_name(plugin)
+                canonical = self.get_canonical_name(plugin)
 
                 # skip plugin if already registered or blocked
-                if self.get_plugin(name) or self.is_blocked(name):
+                if self.get_plugin(canonical) or self.is_blocked(canonical):
                     continue
 
                 try:
-                    self.register(plugin, name)
+                    self.register(plugin, canonical)
                 except ValueError as err:
                     raise PluginError(
-                        f"Error while loading third-party conda plugin: {name} ({err})"
+                        f"Error while loading third-party conda plugin: {canonical} ({err})"
                     )
 
                 count += 1
