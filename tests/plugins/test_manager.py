@@ -11,7 +11,6 @@ from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
 
-
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
 
