@@ -7,15 +7,13 @@ import sys
 import pytest
 
 from conda import plugins
-from conda.base.context import context, reset_context
-from conda.common.io import env_var
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins import virtual_packages
 
-from .test_pre_command import pre_command_plugin
 
 log = logging.getLogger(__name__)
+this_module = sys.modules[__name__]
 
 
 class VerboseSolver(solve.Solver):
@@ -39,7 +37,6 @@ def test_load_no_plugins(plugin_manager):
 
 
 def test_load_two_plugins_one_impls(plugin_manager):
-    this_module = sys.modules[__name__]
     plugin_names = plugin_manager.load_plugins(this_module)
     assert plugin_names == [__name__]
     assert plugin_manager.get_plugins() == {this_module}
@@ -100,26 +97,19 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     )
 
 
-def test_disable_plugins_with_flag(conda_cli, pre_command_plugin):
+def test_disable_external_plugins(plugin_manager):
     """
     Run a test to ensure we can successfully disable externally registered plugins
     with the --no-plugins flag
     """
-    assert not context.no_plugins
-    out, err, code = conda_cli("--no-plugins", "info")
-    assert pre_command_plugin.pre_command_action.mock_calls == []
-    assert err == ""
+    plugin_names = plugin_manager.load_plugins(this_module)
+    assert plugin_names == [__name__]
+    assert plugin_manager.get_plugins() == {this_module}
+    plugin_manager.disable_external_plugins()
+    assert plugin_manager.get_plugins() == set()
 
-
-def test_disable_plugins_with_env_var(conda_cli, monkeypatch, pre_command_plugin):
-    """
-    Run a test to ensure we can successfully disable externally registered plugins
-    via the CONDA_NO_PLUGINS environment variable
-    """
-    monkeypatch.setenv("CONDA_NO_PLUGINS", "True")
-    reset_context()
-    assert context.no_plugins
-
-    out, err, code = conda_cli("info")
-    assert pre_command_plugin.pre_command_action.mock_calls == []
-    assert err == ""
+    plugin_names = plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_names == ["VerboseSolverPlugin"]
+    assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
+    plugin_manager.disable_external_plugins()
+    assert plugin_manager.get_plugins() == set()

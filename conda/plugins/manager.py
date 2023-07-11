@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import types
 from importlib.metadata import distributions
 
 import pluggy
@@ -185,9 +186,20 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Disables all currently registered plugins except built-in conda plugins
         """
-        for name, _ in self.list_name_plugin():
-            if not name.startswith("conda."):
-                self.set_blocked(name)
+        for registered_name, plugin in self.list_name_plugin():
+            # retrieves the name of the plugin module
+            if isinstance(plugin, types.ModuleType):
+                # the plugin is actually a module, which should have a __name__
+                name: str | None = getattr(plugin, "__name__", None)
+            else:
+                # disable all plugins that can't be easily identified
+                # via their __module__ name (e.g. a class)
+                name: str | None = getattr(plugin, "__module__", None)
+            if (
+                name is None or
+                not name.startswith("conda.plugins")
+            ):
+                self.set_blocked(registered_name)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
