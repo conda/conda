@@ -78,7 +78,7 @@ class CondaPreCommand(NamedTuple):
     """
 
     name: str
-    action: Callable
+    action: Callable[[str], None]
     run_for: set[str]
 
 
@@ -95,5 +95,5 @@ class CondaPostCommand(NamedTuple):
     """
 
     name: str
-    action: Callable
+    action: Callable[[str], None]
     run_for: set[str]
