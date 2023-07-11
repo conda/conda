@@ -49,10 +49,10 @@ def do_call(arguments, parser):
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
 
-    _run_command_hooks("pre", f"env_{command}", arguments)
+    _run_command_hooks("pre", f"env_{command}")
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
     exit_code = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", f"env_{command}", arguments)
+    _run_command_hooks("post", f"env_{command}")
 
     return exit_code
 
