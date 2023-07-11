@@ -116,9 +116,9 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     """
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
-        context.plugin_manager.apply_pre_commands(arguments.plugin_subcommand.name)
+        context.plugin_manager.invoke_pre_commands(arguments.plugin_subcommand.name)
         result = arguments.plugin_subcommand.action(sys.argv[2:])
-        context.plugin_manager.apply_post_commands(arguments.plugin_subcommand.name)
+        context.plugin_manager.invoke_post_commands(arguments.plugin_subcommand.name)
 
         return result
 
@@ -129,9 +129,9 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    context.plugin_manager.apply_pre_commands(command)
+    context.plugin_manager.invoke_pre_commands(command)
     result = getattr(module, func_name)(arguments, parser)
-    context.plugin_manager.apply_post_commands(command)
+    context.plugin_manager.invoke_post_commands(command)
 
     return result
 

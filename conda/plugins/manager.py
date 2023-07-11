@@ -166,7 +166,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def apply_pre_commands(self, command: str) -> None:
+    def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
 
@@ -176,7 +176,7 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in hook.run_for:
                 hook.action(command)
 
-    def apply_post_commands(self, command: str) -> None:
+    def invoke_post_commands(self, command: str) -> None:
         """
         Invokes ``CondaPostCommand.action`` functions registered with ``conda_post_commands``.
 
