@@ -832,17 +832,38 @@ def native_path_to_unix(
 
     bash = which("bash")
     cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
 
-    unix_path = run(
-        [
-            cygpath,
-            "--path",
-            paths if isinstance(paths, str) else os.pathsep.join(paths),
-        ],
-        text=True,
-        capture_output=True,
-        check=True,
-    ).stdout.strip()
+    try:
+        # if present, use cygpath to convert paths since its more reliable
+        unix_path = run(
+            [cygpath, "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        def _translation(found_path):
+            found = (
+                found_path.group(1)
+                .replace("\\", "/")
+                .replace(":", "")
+                .replace("//", "/")
+            )
+            return "/" + found.rstrip("/")
+
+        unix_path = (
+            re.sub(
+                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
+                _translation,
+                joined,
+            )
+            .replace(";/", ":/")
+            .rstrip(";")
+        )
+
     unix_path = unix_path.split(":") if unix_path else ()
 
     return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
