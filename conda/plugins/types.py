@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from typing import Callable, NamedTuple
+from typing import Callable, Iterable, NamedTuple
 
 from ..core.solve import Solver
 
@@ -62,3 +62,26 @@ class CondaPreCommand(NamedTuple):
     name: str
     action: Callable
     run_for: set[str]
+
+
+class CondaShellPlugins(NamedTuple):
+    """
+    A conda shell plugin.
+
+    :param name: Shell plugin name (e.g., ``posix-plugin``).
+    :param summary: Shell plugin summary, will be shown in ``conda --help``.
+    :param activator: Name of the _Activator child class associated with the plugin
+    """
+
+    name: str
+    summary: str
+    script_path: str
+    pathsep_join: str
+    sep: str
+    path_conversion: Callable[
+        [str | Iterable[str] | None], str | tuple[str, ...] | None
+    ]
+    script_extension: str
+    tempfile_extension: str | None
+    command_join: str
+    run_script_tmpl: str

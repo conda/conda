@@ -6,7 +6,13 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaPreCommand, CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaPreCommand,
+    CondaShellPlugins,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -108,18 +114,56 @@ class CondaSpecs:
 
         .. code-block:: python
 
-           from conda import plugins
+            from conda import plugins
 
 
-           def example_pre_command(command, args):
-               print("pre-command action")
+            def example_pre_command(command, args):
+                print("pre-command action")
 
 
-           @plugins.hookimpl
-           def conda_pre_commands():
-               yield CondaPreCommand(
-                   name="example-pre-command",
-                   action=example_pre_command,
-                   run_for={"install", "create"},
-               )
+            @plugins.hookimpl
+            def conda_pre_commands():
+                yield CondaPreCommand(
+                    name="example-pre-command",
+                    action=example_pre_command,
+                    run_for={"install", "create"},
+                )
+        """
+
+    @_hookspec
+    def conda_shell_plugins(self) -> Iterable[CondaShellPlugins]:
+        r"""
+        Register external shell plugins in conda.
+
+
+        **Example:**
+
+        .. code-block:: python
+
+            import os
+            from pathlib import PurePath
+            import psutil
+            from conda import plugins
+
+
+            def confirm_example_shell():
+                shell_process = psutil.Process(psutil.Process().ppid()).exe()
+                return PurePath(shell_process).name == "example"
+
+
+            @plugins.hookimpl
+            def conda_shell_plugins():
+                if confirm_example_shell():
+                    yield plugins.CondaShellPlugins(
+                        name="plugin_name",
+                        summary="Conda shell plugin for example shell",
+                        script_path=os.path.abspath("./posix_script.sh"),
+                        pathsep_join=":".join,
+                        sep="/",
+                        path_conversion=some_function,
+                        script_extension=".sh",
+                        tempfile_extension=None,
+                        command_join="\n",
+                        run_script_tmpl='. "%s"',
+                    )
         """

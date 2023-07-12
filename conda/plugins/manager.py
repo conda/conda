@@ -13,7 +13,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import solvers, subcommands, virtual_packages
+from . import shells, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 
 log = logging.getLogger(__name__)
@@ -174,6 +174,27 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in pre_command.run_for:
                 yield pre_command.action
 
+    def get_shell_syntax(self) -> Iterable[Callable]:
+        """
+        Return shell plugin hook that is compatible with shell only if one hook is available.
+        Raise error if more than one installed plugin yields a hook or if no hooks are yielded.
+        """
+        shell_hooks = list(self.get_hook_results("shell_plugins"))
+
+        if len(shell_hooks) > 1:
+            raise PluginError(
+                dals(
+                    f"""
+                    Multiple compatible plugins found: please install only one plugin per shell.
+                    Compatible plugins found:
+                    {', '.join([plugin.name for plugin in shell_hooks])}"""
+                )
+            )
+        if not shell_hooks:
+            raise PluginError("No plugins installed are compatible with this shell.")
+
+        return shell_hooks[0]
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -184,7 +205,10 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers, *virtual_packages.plugins, *subcommands.plugins
+        solvers,
+        *virtual_packages.plugins,
+        *subcommands.plugins,
+        *shells.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
