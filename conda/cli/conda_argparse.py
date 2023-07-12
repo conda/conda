@@ -125,7 +125,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     if plugin_subcommand:
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
-        plugin_args = tuple(getattr(args, "plugin_args", args))
+        try:
+            plugin_args = tuple(args.plugin_args)
+        except AttributeError:
+            plugin_args = args
         context.plugin_manager.apply_pre_commands(plugin_subcommand.name, plugin_args)
         result = plugin_subcommand.action(plugin_args)
         context.plugin_manager.apply_post_commands(plugin_subcommand.name, plugin_args)
