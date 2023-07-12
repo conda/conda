@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 23.5.1 (2023-07-12)
+
+### Bug fixes
+
+* Add (back) the `cygpath` fallback logic since `cygpath` is not always available on Windows. (#12873)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 23.5.0 (2023-05-17)
 
 ### Enhancements
