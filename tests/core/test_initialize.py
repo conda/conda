@@ -35,6 +35,7 @@ from conda.core.initialize import (
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
+from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
 
 
@@ -1099,3 +1100,11 @@ def test_init_sh_system(verbose):
 
         init_sh_system(target_path, conda_prefix, reverse=True)
         assert not isfile(target_path)
+
+
+def test_init_all(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("init", "--all", "--dry-run")
+
+    assert stdout
+    assert not stderr
+    assert not err
