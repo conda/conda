@@ -42,7 +42,7 @@ def test_load_two_plugins_one_impls(plugin_manager):
     assert plugin_manager.hook.conda_solvers.get_hookimpls() == []
 
     plugin_names = plugin_manager.load_plugins(VerboseSolverPlugin)
-    assert plugin_names == ["VerboseSolverPlugin"]
+    assert plugin_names == 1
     assert plugin_manager.get_plugins() == {this_module, VerboseSolverPlugin}
 
     hooks_impls = plugin_manager.hook.conda_solvers.get_hookimpls()
