@@ -1103,6 +1103,7 @@ def test_init_sh_system(verbose):
 
 
 def test_init_all(conda_cli: CondaCLIFixture):
+    # TODO: run this test without cygpath being available (on win)
     stdout, stderr, err = conda_cli("init", "--all", "--dry-run")
 
     assert stdout
