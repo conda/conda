@@ -80,13 +80,13 @@ def env_two_gdal(conda_cli: CondaCLIFixture) -> Iterable[str]:
 
 
 VALIDATE_GET_PARSED_ARGS_TEST_CASES = (
-    (["activate"], ("activate", False, False, None)),
-    (["activate", "test_env"], ("activate", False, False, "test_env")),
+    (["activate"], ("activate", False, None, None)),
+    (["activate", "test_env"], ("activate", False, None, "test_env")),
     (["reactivate"], ("reactivate", False, None, None)),
     (["reactivate", "--dev"], ("reactivate", True, None, None)),
     (["deactivate"], ("deactivate", False, None, None)),
     (["deactivate", "--dev"], ("deactivate", True, None, None)),
-    (["activate", "--dev", "test_env"], ("activate", True, False, "test_env")),
+    (["activate", "--dev", "test_env"], ("activate", True, None, "test_env")),
     (
         ["activate", "--dev", "--stack", "test_env"],
         ("activate", True, True, "test_env"),
