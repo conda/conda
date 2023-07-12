@@ -34,9 +34,30 @@ __conda_reactivate() {
     __conda_hashr
 }
 
+__conda_act_plugin() {
+    if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
+        # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
+        # after conda updated to >= 4.4. See issue #6173.
+        PS1="$CONDA_PS1_BACKUP"
+        \unset CONDA_PS1_BACKUP
+    fi
+
+    \local ask_conda
+    if ask_conda="$(PS1="${PS1:-}" __conda_exe "$@")";
+    then
+        \eval "$ask_conda"
+        __conda_hashr
+    else
+        \echo "$ask_conda"
+    fi
+}
+
 conda() {
     \local cmd="${1-__missing__}"
     case "$cmd" in
+        posix_plugin_current_logic)
+            __conda_act_plugin "$@"
+            ;;
         activate|deactivate)
             __conda_activate "$@"
             ;;

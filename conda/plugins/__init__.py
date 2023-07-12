@@ -3,6 +3,7 @@
 from .hookspec import hookimpl  # noqa: F401
 from .types import (  # noqa: F401
     CondaPreCommand,
+    CondaShellPlugins,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,

@@ -6,7 +6,13 @@ from collections.abc import Iterable
 
 import pluggy
 
-from .types import CondaPreCommand, CondaSolver, CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaPreCommand,
+    CondaShellPlugins,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 spec_name = "conda"
 _hookspec = pluggy.HookspecMarker(spec_name)
@@ -122,4 +128,37 @@ class CondaSpecs:
                    action=example_pre_command,
                    run_for={"install", "create"},
                )
+        """
+
+    @_hookspec
+    def conda_shell_plugins(self) -> Iterable[CondaShellPlugins]:
+        r"""
+        Register external shell plugins in conda.
+
+
+        **Example:**
+
+        .. code-block:: python
+
+            import os
+            from conda import plugins
+
+
+            @plugins.hookimpl
+            def conda_shell_plugins():
+                yield plugins.CondaShellPlugins(
+                    name="plugin_name",
+                    summary="Conda shell plugin for example shell",
+                    script_path=os.path.abspath("./posix_script.sh"),
+                    pathsep_join=":".join,
+                    sep="/",
+                    path_conversion=some_function,
+                    script_extension=".sh",
+                    tempfile_extension=None,
+                    command_join="\n",
+                    run_script_tmpl='. "%s"',
+                    unset_var_tmpl="unset %s",
+                    export_var_tmpl="export %s='%s'",
+                    set_var_tmpl="%s='%s'",
+                )
         """
