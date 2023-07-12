@@ -180,7 +180,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Raise error if more than one compatible hook is installed or if no compatible hooks
         are installed.
         """
-        shell_hooks = list(self.get_hook_results("shell_plugins"))
+        shell_hooks = self.get_hook_results("shell_plugins")
 
         for shell_hook in shell_hooks:
             if shell_hook.name == plugin_name:
