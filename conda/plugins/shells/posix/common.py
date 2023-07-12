@@ -117,6 +117,7 @@ def add_subparsers(parser: argparse.ArgumentParser) -> None:
     stack.add_argument(
         "--stack",
         action="store_true",
+        default=None,
         help="""
         Stack the environment being activated on top of the
         previous active environment, rather replacing the
@@ -130,6 +131,7 @@ def add_subparsers(parser: argparse.ArgumentParser) -> None:
         "--no-stack",
         dest="stack",
         action="store_false",
+        default=None,
         help="Do not stack the environment. Overrides 'auto_stack' setting.",
     )
     activate.add_argument(
