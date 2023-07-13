@@ -60,7 +60,9 @@ class _Activator(metaclass=abc.ABCMeta):
     # The following instance variables must be defined by each implementation.
     pathsep_join: str
     sep: str
-    path_conversion: Callable[(str | Iterable[str] | None), str | tuple[str] | None]
+    path_conversion: Callable[
+        (str | Iterable[str] | None), str | tuple[str, ...] | None
+    ]
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
@@ -813,7 +815,7 @@ def ensure_fs_path_encoding(value):
 
 def native_path_to_unix(
     paths: str | Iterable[str] | None,
-) -> str | tuple[str] | None:
+) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
     elif not on_win:
@@ -873,7 +875,7 @@ def native_path_to_unix(
     return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
 
 
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
+def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
     elif isinstance(paths, str):
@@ -884,10 +886,9 @@ def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
 
 def backslash_to_forwardslash(
     paths: str | Iterable[str] | None,
-) -> str | tuple[str] | None:
+) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-
     elif isinstance(paths, str):
         return paths.replace("\\", "/")
     else:
