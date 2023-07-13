@@ -84,14 +84,26 @@ def test_load_plugins_error(plugin_manager, mocker):
     assert "load_plugins error" in str(exc.value)
 
 
+def test_load_entrypoints_success(plugin_manager):
+    assert plugin_manager.load_entrypoints("load_entrypoints", "success") == 1
+    assert len(plugin_manager.get_plugins()) == 1
+
+
 def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
-    # the fake package under data/test-plugin is added to the PYTHONPATH
-    # via the pytest config
     mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
-    plugin_manager.load_entrypoints("conda")
-    assert plugin_manager.get_plugins() == set()
+
+    assert plugin_manager.load_entrypoints("load_entrypoints", "importerror") == 0
+    assert len(plugin_manager.get_plugins()) == 0
+
     assert mocked_warning.call_count == 1
     assert mocked_warning.call_args.args[0] == (
-        "Error while loading conda entry point: conda-test-plugin "
+        "Error while loading conda entry point: importerror "
         "(No module named 'package_that_does_not_exist')"
     )
+
+
+def test_load_entrypoints_blocked(plugin_manager):
+    plugin_manager.set_blocked("test_plugin.blocked")
+
+    assert plugin_manager.load_entrypoints("load_entrypoints", "blocked") == 0
+    assert len(plugin_manager.get_plugins()) == 0

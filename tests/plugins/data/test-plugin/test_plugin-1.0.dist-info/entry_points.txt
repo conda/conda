@@ -1,2 +1,4 @@
-[conda]
-conda-test-plugin=test_plugin.plugin
+[load_entrypoints]
+importerror=test_plugin.importerror
+success=test_plugin.success
+blocked=test_plugin.blocked
