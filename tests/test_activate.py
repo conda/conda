@@ -3238,7 +3238,9 @@ def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
         paths = tuple(str(tmp_path / path) for path in paths)
 
     # test that we receive a unix path
-    if not on_win:
+    if isinstance(paths, str) and not paths:
+        assert native_path_to_unix(paths) == "."
+    elif not on_win:
         assert native_path_to_unix(paths) == paths
     elif paths is None:
         assert native_path_to_unix(paths) is None

@@ -824,7 +824,7 @@ def native_path_to_unix(
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
     if not paths:
-        return paths
+        return "." if isinstance(paths, str) else ()
 
     # on windows, uses cygpath to convert windows native paths to posix paths
     from shutil import which
