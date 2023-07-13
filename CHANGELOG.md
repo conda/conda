@@ -1,5 +1,29 @@
 [//]: # (current developments)
 
+## 23.5.2 (2023-07-13)
+
+### Bug fixes
+
+* Correct `native_path_to_unix` failure to handle no paths (e.g., an empty string or an empty iterable). (#12880)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 23.5.1 (2023-07-12)
+
+### Bug fixes
+
+* Add (back) the `cygpath` fallback logic since `cygpath` is not always available on Windows. (#12873)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 23.5.0 (2023-05-17)
 
 ### Enhancements
