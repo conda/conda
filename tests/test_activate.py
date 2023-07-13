@@ -3205,9 +3205,9 @@ def prefix():
         ),
     ],
 )
-def test_activate_deactivate_modify_path(shell, prefix, activate_deactivate_package):
+def test_activate_deactivate_modify_path(test_recipes_channel: None, shell, prefix):
     original_path = os.environ.get("PATH")
-    run_command(Commands.INSTALL, prefix, activate_deactivate_package, "--use-local")
+    run_command(Commands.INSTALL, prefix, "activate_deactivate_package", "--use-local")
 
     with InteractiveShell(shell) as sh:
         sh.sendline('conda activate "%s"' % prefix)
