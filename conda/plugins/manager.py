@@ -12,6 +12,7 @@ from __future__ import annotations
 import functools
 import logging
 from importlib.metadata import distributions
+from inspect import getmodule, isclass
 
 import pluggy
 
@@ -45,6 +46,24 @@ class CondaPluginManager(pluggy.PluginManager):
         self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(
             self.get_solver_backend
         )
+
+    def get_canonical_name(self, plugin: object) -> str:
+        # detect the fully qualified module name
+        prefix = "<unknown_module>"
+        if module := getmodule(plugin):
+            prefix = module.__spec__.name if module.__spec__ else module.__name__
+
+        # return the fully qualified name for modules
+        if module is plugin:
+            return prefix
+
+        # return the fully qualified name for classes
+        elif isclass(plugin):
+            return f"{prefix}.{plugin.__qualname__}"
+
+        # return the fully qualified name for instances
+        else:
+            return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
     def load_plugins(self, *plugins) -> int:
         """
