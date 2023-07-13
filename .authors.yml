@@ -1957,7 +1957,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 462
+  num_commits: 466
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2003,7 +2003,7 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
-  num_commits: 67
+  num_commits: 68
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
