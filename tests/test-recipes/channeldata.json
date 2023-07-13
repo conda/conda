@@ -1,0 +1,105 @@
+{
+  "channeldata_version": 1,
+  "packages": {
+    "activate_deactivate_package": {
+      "activate.d": true,
+      "binary_prefix": false,
+      "deactivate.d": true,
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "run_exports": {},
+      "subdirs": [
+        "noarch"
+      ],
+      "summary": "Test activate and deactivate scripts effecting environment variables.",
+      "text_prefix": false,
+      "timestamp": 1689208292,
+      "version": "1.0.0"
+    },
+    "b_post_link_package": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "run_exports": {},
+      "subdirs": [
+        "noarch"
+      ],
+      "summary": "Test that post link scripts get run last",
+      "text_prefix": false,
+      "timestamp": 1689208607,
+      "version": "1.0.0"
+    },
+    "c_post_link_package": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "run_exports": {},
+      "subdirs": [
+        "noarch"
+      ],
+      "summary": "Test that post link scripts get run last",
+      "text_prefix": false,
+      "timestamp": 1689208708,
+      "version": "1.0.0"
+    },
+    "d_post_link_package": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "run_exports": {},
+      "subdirs": [
+        "noarch"
+      ],
+      "summary": "Test that post link scripts get run last",
+      "text_prefix": false,
+      "timestamp": 1689208718,
+      "version": "1.0.0"
+    },
+    "e_post_link_package": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "run_exports": {},
+      "subdirs": [
+        "noarch"
+      ],
+      "summary": "Test that post link scripts get run last",
+      "text_prefix": false,
+      "timestamp": 1689208717,
+      "version": "1.0.0"
+    },
+    "pre_link_messages_package": {
+      "activate.d": false,
+      "binary_prefix": false,
+      "deactivate.d": false,
+      "post_link": false,
+      "pre_link": false,
+      "pre_unlink": false,
+      "run_exports": {},
+      "subdirs": [
+        "noarch"
+      ],
+      "summary": "Package to test prelink_message",
+      "text_prefix": false,
+      "timestamp": 1689208733,
+      "version": "1.0.0"
+    }
+  },
+  "subdirs": [
+    "noarch",
+    "osx-arm64"
+  ]
+}
