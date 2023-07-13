@@ -15,6 +15,7 @@ from re import escape
 from shutil import which
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
+from typing import Iterable
 from uuid import uuid4
 
 import pytest
@@ -1246,26 +1247,40 @@ def make_dot_d_files(prefix, extension):
     touch(join(prefix, "etc", "conda", "deactivate.d", f"deactivate1{extension}"))
 
 
-def test_native_path_to_unix(shell_wrapper_unit: str):
+@pytest.mark.parametrize(
+    "paths",
+    [
+        pytest.param(None, id="None"),
+        pytest.param("", id="empty string"),
+        pytest.param((), id="empty tuple"),
+        pytest.param("path/number/one", id="single path"),
+        pytest.param(["path/number/one"], id="list with path"),
+        pytest.param(("path/number/one", "path/two", "three"), id="tuple with paths"),
+    ],
+)
+def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
     def assert_unix_path(path):
-        assert "\\" not in path, path
-        assert ":" not in path, path
-        return True
+        return "\\" not in path and ":" not in path
 
-    path1 = join(shell_wrapper_unit, "path", "number", "one")
-    path2 = join(shell_wrapper_unit, "path", "two")
-    path3 = join(shell_wrapper_unit, "three")
-    paths = (path1, path2, path3)
-
-    if on_win:
-        assert_unix_path(native_path_to_unix(path1))
+    # convert all path stubs to full paths (localized to current OS)
+    if not paths:
+        pass
+    elif isinstance(paths, str):
+        paths = str(tmp_path / paths)
     else:
-        assert native_path_to_unix(path1) == path1
+        paths = tuple(str(tmp_path / path) for path in paths)
 
-    if on_win:
-        assert all(assert_unix_path(p) for p in native_path_to_unix(paths))
-    else:
+    # test that we receive a unix path
+    if isinstance(paths, str) and not paths:
+        assert native_path_to_unix(paths) == "."
+    elif not on_win:
         assert native_path_to_unix(paths) == paths
+    elif paths is None:
+        assert native_path_to_unix(paths) is None
+    elif isinstance(paths, str):
+        assert assert_unix_path(native_path_to_unix(paths))
+    else:
+        assert all(assert_unix_path(path) for path in native_path_to_unix(paths))
 
 
 def test_posix_basic(shell_wrapper_unit: str):
