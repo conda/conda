@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda search`.
+
+Query channels for packages matching the provided package spec.
+"""
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -156,7 +160,9 @@ def pretty_record(record):
     push_line("version", "version")
     push_line("build", "build")
     push_line("build number", "build_number")
-    builder.append("%-12s: %s" % ("size", human_bytes(record.size)))
+    size = getattr(record, "size", None)
+    if size is not None:
+        builder.append("%-12s: %s" % ("size", human_bytes(size)))
     push_line("license", "license")
     push_line("subdir", "subdir")
     push_line("url", "url")

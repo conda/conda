@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Helpler functions for subprocess."""
 import os
 import sys
 from collections import namedtuple

@@ -377,6 +377,8 @@ def test_trusted_root_new_key_mgr_online(
     # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
     data_mock.side_effect = [test_key_mgr_data, err]
     sig_ver = _SignatureVerification()
+    if not sig_ver.enabled:
+        pytest.skip("Signature verification not enabled")
     sig_ver._fetch_channel_signing_data = data_mock
     check_key_mgr = sig_ver.key_mgr
 
@@ -404,6 +406,9 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
         "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
         new=initial_trust_root,
     )
+    sig_ver = _SignatureVerification()
+    if not sig_ver.enabled:
+        pytest.skip("Signature verification not enabled")
 
     ## Find and load invalid key_mgr data
     # Find key_mgr_invalid.json in our test data directory...
@@ -432,7 +437,6 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     # First time around we return an HTTPError(404) to signal we don't have new root metadata.
     # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
     data_mock.side_effect = [test_key_mgr_invalid_data, err]
-    sig_ver = _SignatureVerification()
     sig_ver._fetch_channel_signing_data = data_mock
 
     with pytest.raises(SignatureError):

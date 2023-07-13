@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda list`.
+
+Lists all packages installed into an environment.
+"""
 import logging
 import re
 from os.path import isdir, isfile

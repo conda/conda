@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Tools for managing conda environments."""
 import os
 from errno import EACCES, ENOENT, EROFS
 from logging import getLogger

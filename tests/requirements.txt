@@ -8,14 +8,15 @@ boto3  # also need the `minio` server, installed manually in CI
 chardet
 conda
 conda-build >=3.23.3
+conda-content-trust
+conda-forge::flake8-docstrings
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
-conda-forge::flake8-docstrings
 conda-package-handling >=1.3.0
 conda-verify
-conda-content-trust
 coverage
+cryptography <41.0.0  # 41.0.0 breaks conda-content-trust 0.1.3
 flake8
 flask >=2.2
 git
@@ -30,7 +31,7 @@ pluggy >=1.0.0
 pre-commit
 pycosat >=0.6.3
 pyflakes
-pyopenssl >=16.2.0
+pyopenssl >=16.2.0,<23.2.0  # 23.2.0 breaks conda-content-trust 0.1.3
 pytest
 pytest-cov
 pytest-mock
@@ -40,7 +41,7 @@ pytest-xdist
 requests >=2.18.4,<3
 responses
 ruamel.yaml >=0.11.14,<0.18
-setuptools >=31.0.1
+setuptools >=60.0.0
 setuptools_scm  # needed for devenv version detection
 toolz >=0.8.1
 tqdm >=4

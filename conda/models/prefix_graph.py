@@ -1,5 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Implements directed graphs to sort and manipulate packages within a prefix.
+
+Object inheritance:
+
+.. autoapi-inheritance-diagram:: PrefixGraph GeneralGraph
+   :top-classes: conda.models.prefix_graph.PrefixGraph
+   :parts: 1
+"""
 from collections import defaultdict
 from logging import getLogger
 

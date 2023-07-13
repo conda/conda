@@ -1,16 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda exceptions."""
 from __future__ import annotations
 
 import json
 import os
 import sys
 from datetime import timedelta
-from json.decoder import JSONDecodeError
 from logging import getLogger
 from os.path import join
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
+
+import requests
+from requests.exceptions import JSONDecodeError
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -494,7 +497,9 @@ class ChannelNotAllowed(ChannelError):
 class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
-    def __init__(self, channel, status_code, response=None):
+    def __init__(
+        self, channel, status_code, response: requests.models.Response | None = None
+    ):
         # parse channel
         channel = Channel(channel)
         channel_name = channel.name

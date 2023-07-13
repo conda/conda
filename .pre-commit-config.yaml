@@ -40,9 +40,14 @@ repos:
       # auto inject license blurb
       - id: insert-license
         files: \.py$
+        exclude: |
+          (?x)^(
+            conda/gateways/connection/adapters/ftp.py |  # Apache 2.0
+            conda/gateways/disk/link.py  # MIT
+          )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.4.0
+    rev: v3.9.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -59,7 +64,7 @@ repos:
       # auto format Python codes
       - id: black
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.13.0
+    rev: 1.15.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs

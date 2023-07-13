@@ -1,5 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda's global configuration object.
+
+The context aggregates all configuration files, environment variables, and command line arguments
+into one global stateful object to be used across all of conda.
+"""
 from __future__ import annotations
 
 import os
@@ -78,6 +83,7 @@ except OSError as e:
 log = getLogger(__name__)
 
 _platform_map = {
+    "freebsd13": "freebsd",
     "linux2": "linux",
     "linux": "linux",
     "darwin": "osx",
@@ -300,9 +306,9 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    # #############################
-    # channels
-    # #############################
+    ####################################################
+    #               Channel Configuration              #
+    ####################################################
     allow_non_channel_urls = ParameterLoader(PrimitiveParameter(False))
     _channel_alias = ParameterLoader(
         PrimitiveParameter(DEFAULT_CHANNEL_ALIAS, validation=channel_alias_validation),
@@ -391,9 +397,9 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
 
-    # ######################################################
-    # ##               Solver Configuration               ##
-    # ######################################################
+    ####################################################
+    #               Solver Configuration               #
+    ####################################################
     deps_modifier = ParameterLoader(PrimitiveParameter(DepsModifier.NOT_SET))
     update_modifier = ParameterLoader(PrimitiveParameter(UpdateModifier.UPDATE_SPECS))
     sat_solver = ParameterLoader(PrimitiveParameter(SatSolverChoice.PYCOSAT))
@@ -438,38 +444,16 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
-    def __init__(self, search_path=None, argparse_args=None):
-        if search_path is None:
-            search_path = SEARCH_PATH
+    def __init__(self, search_path=None, argparse_args=None, **kwargs):
+        super().__init__(argparse_args=argparse_args)
 
-        if argparse_args:
-            # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
-            # configuration can be properly loaded from those locations
-            func_name = ("func" in argparse_args and argparse_args.func or "").rsplit(
-                ".", 1
-            )[-1]
-            if func_name in (
-                "create",
-                "install",
-                "update",
-                "remove",
-                "uninstall",
-                "upgrade",
-            ):
-                if "prefix" in argparse_args and argparse_args.prefix:
-                    os.environ["CONDA_PREFIX"] = argparse_args.prefix
-                elif "name" in argparse_args and argparse_args.name:
-                    # Currently, usage of the '-n' flag is inefficient, with all configuration
-                    # files being loaded/re-loaded at least two times.
-                    target_prefix = determine_target_prefix(context, argparse_args)
-                    if target_prefix != context.root_prefix:
-                        os.environ["CONDA_PREFIX"] = determine_target_prefix(
-                            context, argparse_args
-                        )
-
-        super().__init__(
-            search_path=search_path, app_name=APP_NAME, argparse_args=argparse_args
+        self._set_search_path(
+            SEARCH_PATH if search_path is None else search_path,
+            # for proper search_path templating when --name/--prefix is used
+            CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
+        self._set_env_vars(APP_NAME)
+        self._set_argparse_args(argparse_args)
 
     def post_build_validation(self):
         errors = []
@@ -636,7 +620,12 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    def root_dir(self):
+    @deprecated(
+        "24.3",
+        "24.9",
+        addendum="Please use `conda.base.context.context.root_prefix` instead.",
+    )
+    def root_dir(self) -> os.PathLike:
         # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
         # because it is more consistent with other names
         return self.root_prefix

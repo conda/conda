@@ -1,17 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda doctor`."""
 from __future__ import annotations
 
 import argparse
 
-from ....base.context import context, locate_prefix_by_name
-from ....cli.common import validate_prefix
+from ....base.context import context
 from ....cli.conda_argparse import add_parser_prefix
-from ....exceptions import CondaEnvException
+from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
 
 
-def get_parsed_args(argv: list[str]) -> argparse.Namespace:
+def generate_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         "conda doctor",
         description="Display a health report for your environment.",
@@ -23,30 +23,20 @@ def get_parsed_args(argv: list[str]) -> argparse.Namespace:
         help="generate a detailed environment health report",
     )
     add_parser_prefix(parser)
-    args = parser.parse_args(argv)
-
-    return args
+    return parser
 
 
+def get_parsed_args(argv: list[str]) -> argparse.Namespace:
+    parser = generate_parser()
+    return parser.parse_args(argv)
+
+
+@deprecated(
+    "24.3", "24.9", addendum="Use `conda.base.context.context.target_prefix` instead."
+)
 def get_prefix(args: argparse.Namespace) -> str:
-    """
-    Determine the correct prefix to use provided the CLI arguments and the context object.
-
-    When not specified via CLI options, the default is the currently active prefix
-    """
-    if args.name:
-        return locate_prefix_by_name(args.name)
-
-    if args.prefix:
-        return validate_prefix(args.prefix)
-
-    if context.active_prefix:
-        return context.active_prefix
-
-    raise CondaEnvException(
-        "No environment specified. Activate an environment or specify the "
-        "environment via `--name` or `--prefix`."
-    )
+    context.__init__(argparse_args=args)
+    return context.target_prefix
 
 
 def execute(argv: list[str]) -> None:
@@ -54,8 +44,8 @@ def execute(argv: list[str]) -> None:
     from .health_checks import display_health_checks
 
     args = get_parsed_args(argv)
-    prefix = get_prefix(args)
-    display_health_checks(prefix, verbose=args.verbose)
+    context.__init__(argparse_args=args)
+    display_health_checks(context.target_prefix, verbose=args.verbose)
 
 
 @hookimpl

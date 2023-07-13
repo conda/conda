@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda-env as a module entry point."""
 import sys
 
 from conda.deprecations import deprecated

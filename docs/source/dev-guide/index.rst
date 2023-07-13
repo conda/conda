@@ -4,6 +4,7 @@ Developer guide
 
 .. toctree::
    :maxdepth: 2
+   :titlesonly:
 
    architecture
    contributing
@@ -14,3 +15,4 @@ Developer guide
    releasing
    plugins/index
    specs/index
+   api

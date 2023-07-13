@@ -1,5 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""
+This module contains a subclass implementation of pluggy's
+`PluginManager <https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluginManager>`_.
+
+Additionally, it contains a function we use to construct the ``PluginManager`` object and
+register all plugins during conda's startup process.
+"""
 from __future__ import annotations
 
 import functools
@@ -14,14 +21,14 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .types import CommandHookTypes
 
 log = logging.getLogger(__name__)
 
 
 class CondaPluginManager(pluggy.PluginManager):
     """
-    The conda plugin manager to implement behavior additional to
-    pluggy's default plugin manager.
+    The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
@@ -42,8 +49,8 @@ class CondaPluginManager(pluggy.PluginManager):
     def load_plugins(self, *plugins) -> list[str]:
         """
         Load the provided list of plugins and fail gracefully on error.
-        The provided list plugins can either be classes or modules with
-        :attr:`~conda.plugins.hook_impl`.
+        The provided list of plugins can either be classes or modules with
+        :attr:`~conda.plugins.hookimpl`.
         """
         plugin_names = []
         for plugin in plugins:
@@ -59,6 +66,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
         """Load modules from querying the specified setuptools ``group``.
+
         :param str group: Entry point group to load plugins.
         :param str name: If given, loads only plugins with the given ``name``.
         :rtype: int
@@ -93,7 +101,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(self, name: str) -> list:
         """
         Return results of the plugin hooks with the given name and
-        raise an error if there is an conflict.
+        raise an error if there is a conflict.
         """
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
@@ -147,7 +155,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for solver in self.get_hook_results("solvers")
         }
 
-        # Look up the solver mapping an fail loudly if it can't
+        # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
         backend = solvers_mapping.get(name, None)
         if backend is None:
@@ -159,19 +167,31 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
+    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command: str):
+        """
+        Yields either the ``CondaPreCommand.action`` or ``CondaPostCommand.action`` functions
+        registered by the ``conda_pre_commands`` or ``conda_post_commands`` hook.
+
+        :param hook_type: the type of command hook to retrieve
+        :param command: name of the command that is currently being invoked
+        """
+        command_hooks = self.get_hook_results(f"{hook_type}_commands")
+
+        for command_hook in command_hooks:
+            if command in command_hook.run_for:
+                yield command_hook.action
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
-    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
-    instance, with the built-in and the entrypoints provided plugins loaded.
+    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,
+    with the built-in and entrypoints provided by the plugins loaded.
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers,
-        *virtual_packages.plugins,
-        *subcommands.plugins,
+        solvers, *virtual_packages.plugins, *subcommands.plugins
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

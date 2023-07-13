@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Tools for fetching the current index."""
 import platform
 import sys
 from itertools import chain

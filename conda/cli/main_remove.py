@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda remove`.
+
+Removes the specified packages from an existing environment.
+"""
 import logging
 from os.path import isfile, join
 

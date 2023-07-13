@@ -1,36 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""conda is a tool for managing environments and packages.
-
-conda provides the following commands:
-
-    Information
-    ===========
-
-    info       : display information about the current install
-    list       : list packages linked into a specified environment
-    search     : print information about a specified package
-    help       : display a list of available conda commands and their help
-                 strings
-
-    Package Management
-    ==================
-
-    create     : create a new conda environment from a list of specified
-                 packages
-    install    : install new packages into an existing conda environment
-    update     : update packages in a specified conda environment
-
-
-    Packaging
-    =========
-
-    package    : create a conda package in an environment
-
-Additional help for each command can be accessed by using:
-
-    conda <command> -h
-"""
+"""Entry point for all conda subcommands."""
 import sys
 
 
