@@ -50,8 +50,8 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_canonical_name(self, plugin: object) -> str:
         # detect the fully qualified module name
         prefix = "<unknown_module>"
-        if module := getmodule(plugin):
-            prefix = module.__spec__.name if module.__spec__ else module.__name__
+        if (module := getmodule(plugin)) and module.__spec__:
+            prefix = module.__spec__.name
 
         # return the fully qualified name for modules
         if module is plugin:
