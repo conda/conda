@@ -448,9 +448,7 @@ class Context(Configuration):
     #               Plugin Configuration               #
     ####################################################
 
-    no_plugins = ParameterLoader(
-        PrimitiveParameter(NO_PLUGINS, element_type=(bool, NoneType)),
-    )
+    no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
 
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(argparse_args=argparse_args)
