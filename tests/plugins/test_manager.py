@@ -87,6 +87,7 @@ def test_load_plugins_error(plugin_manager, mocker):
 def test_load_entrypoints_success(plugin_manager):
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
     assert len(plugin_manager.get_plugins()) == 1
+    assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
 
 
 def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
@@ -106,6 +107,10 @@ def test_load_entrypoints_blocked(plugin_manager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-    print(plugin_manager.get_plugins())
-    print(plugin_manager.list_name_plugin())
-    assert len(plugin_manager.get_plugins()) == 0
+
+    # pluggy > 1.0.0
+    if plugin_manager.get_plugins() is {None}:
+        assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
+    # pluggy <= 1.0.0
+    else:
+        assert plugin_manager.list_name_plugin() == []
