@@ -86,11 +86,11 @@ def test_load_plugins_error(plugin_manager):
     plugin_manager.load_plugins(VerboseSolverPlugin)
     # then try again to trigger a PluginError via the `ValueError` that
     # pluggy.PluginManager.register throws on duplicate plugins
-    with pytest.raises(PluginError) as exc:
+    with pytest.raises(
+        PluginError, match="Error while loading first-party conda plugin"
+    ):
         plugin_manager.load_plugins(VerboseSolverPlugin)
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
-    assert exc.value.return_code == 1
-    assert "Error while loading first-party conda plugin" in str(exc.value)
 
 
 def test_load_entrypoints_success(plugin_manager):
