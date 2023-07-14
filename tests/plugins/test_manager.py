@@ -107,4 +107,5 @@ def test_load_entrypoints_blocked(plugin_manager):
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
     print(plugin_manager.get_plugins())
+    print(plugin_manager.list_name_plugin())
     assert len(plugin_manager.get_plugins()) == 0
