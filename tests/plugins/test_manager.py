@@ -16,6 +16,9 @@ from conda.plugins import virtual_packages
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
 
+# detect if this is an older pluggy
+pluggy_v100 = Version(pluggy.__version__) <= Version("1.0.0")
+
 
 class VerboseSolver(solve.Solver):
     def solve_final_state(self, *args, **kwargs):
@@ -116,10 +119,10 @@ def test_load_entrypoints_blocked(plugin_manager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-    if Version(pluggy.__version__) > Version("1.0.0"):
-        assert plugin_manager.get_plugins() == {None}
-    else:
+    if pluggy_v100:
         assert plugin_manager.get_plugins() == set()
+    else:
+        assert plugin_manager.get_plugins() == {None}
     assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
 
 
@@ -143,3 +146,18 @@ def test_get_canonical_name_instance(plugin_manager):
         rf"{__name__}.VerboseSolverPlugin\[\d+\]",
         canonical_name,
     )
+
+
+@pytest.mark.parametrize("plugin", [this_module, VerboseSolverPlugin])
+def test_disable_external_plugins(plugin_manager, plugin: object):
+    """
+    Run a test to ensure we can successfully disable externally registered plugins
+    with the --no-plugins flag
+    """
+    assert plugin_manager.load_plugins(plugin) == 1
+    assert plugin_manager.get_plugins() == {plugin}
+    plugin_manager.disable_external_plugins()
+    if pluggy_v100:
+        assert plugin_manager.get_plugins() == set()
+    else:
+        assert plugin_manager.get_plugins() == {None}

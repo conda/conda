@@ -222,6 +222,14 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in hook.run_for:
                 hook.action(command)
 
+    def disable_external_plugins(self) -> None:
+        """
+        Disables all currently registered plugins except built-in conda plugins
+        """
+        for name, plugin in self.list_name_plugin():
+            if not name.startswith("conda.plugins."):
+                self.set_blocked(name)
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:

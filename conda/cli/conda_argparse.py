@@ -85,6 +85,12 @@ def generate_parser():
         action="store_true",
         help=SUPPRESS,
     )
+    p.add_argument(
+        "--no-plugins",
+        action="store_true",
+        default=NULL,
+        help="Disable all plugins that are not built into conda.",
+    )
     sub_parsers = p.add_subparsers(
         metavar="COMMAND",
         title="commands",
@@ -118,6 +124,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
+    # disable all external plugins if requested
+    if context.no_plugins:
+        context.plugin_manager.disable_external_plugins()
+
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
     plugin_subcommand = getattr(args, "plugin_subcommand", None)

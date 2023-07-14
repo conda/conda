@@ -319,3 +319,8 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Not all python namespace packages are registered on PyPI. If a package
 # contains files in site-packages, it probably belongs in the python namespace.
+
+
+# Indicates whether or not external plugins (i.e., plugins that aren't shipped
+# with conda) are enabled
+NO_PLUGINS = False
