@@ -109,7 +109,7 @@ def test_load_entrypoints_blocked(plugin_manager):
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
 
     # pluggy > 1.0.0
-    if plugin_manager.get_plugins() is {None}:
+    if plugin_manager.get_plugins() == {None}:
         assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
     # pluggy <= 1.0.0
     else:
