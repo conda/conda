@@ -129,9 +129,9 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
             plugin_args = tuple(args.plugin_args)
         except AttributeError:
             plugin_args = args
-        context.plugin_manager.apply_pre_commands(plugin_subcommand.name, plugin_args)
+        context.plugin_manager.apply_pre_commands(plugin_subcommand.name)
         result = plugin_subcommand.action(plugin_args)
-        context.plugin_manager.apply_post_commands(plugin_subcommand.name, plugin_args)
+        context.plugin_manager.apply_post_commands(plugin_subcommand.name)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -139,9 +139,9 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         module = import_module(relative_mod, "conda.cli")
         command = relative_mod.replace(".main_", "")
 
-        context.plugin_manager.apply_pre_commands(command, args)
+        context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
-        context.plugin_manager.apply_post_commands(command, args)
+        context.plugin_manager.invoke_post_commands(command)
     return result
 
 

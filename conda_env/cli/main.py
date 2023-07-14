@@ -51,10 +51,10 @@ def do_call(arguments, parser):
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
 
-    context.plugin_manager.apply_pre_commands(f"env_{command}", arguments)
+    context.plugin_manager.invoke_pre_commands(f"env_{command}")
     module = import_module(relative_mod, "conda_env.cli")
     exit_code = getattr(module, func_name)(arguments, parser)
-    context.plugin_manager.apply_post_commands(f"env_{command}", arguments)
+    context.plugin_manager.invoke_post_commands(f"env_{command}")
 
     return exit_code
 

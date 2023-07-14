@@ -7,7 +7,7 @@ from conda.plugins.types import CondaPostCommand
 
 
 class PostCommandPlugin:
-    def post_command_action(self, command: str, arguments) -> int:
+    def post_command_action(self, command: str) -> int:
         pass
 
     @plugins.hookimpl
