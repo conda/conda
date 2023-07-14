@@ -21,7 +21,6 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import CommandHookTypes
 
 log = logging.getLogger(__name__)
 
@@ -132,7 +131,7 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
-    def get_solver_backend(self, name: str = None) -> type[Solver]:
+    def get_solver_backend(self, name: str | None = None) -> type[Solver]:
         """
         Get the solver backend with the given name (or fall back to the
         name provided in the context).
@@ -167,19 +166,25 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command: str):
+    def invoke_pre_commands(self, command: str) -> None:
         """
-        Yields either the ``CondaPreCommand.action`` or ``CondaPostCommand.action`` functions
-        registered by the ``conda_pre_commands`` or ``conda_post_commands`` hook.
+        Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
 
-        :param hook_type: the type of command hook to retrieve
         :param command: name of the command that is currently being invoked
         """
-        command_hooks = self.get_hook_results(f"{hook_type}_commands")
+        for hook in self.get_hook_results("pre_commands"):
+            if command in hook.run_for:
+                hook.action(command)
 
-        for command_hook in command_hooks:
-            if command in command_hook.run_for:
-                yield command_hook.action
+    def invoke_post_commands(self, command: str) -> None:
+        """
+        Invokes ``CondaPostCommand.action`` functions registered with ``conda_post_commands``.
+
+        :param command: name of the command that is currently being invoked
+        """
+        for hook in self.get_hook_results("post_commands"):
+            if command in hook.run_for:
+                hook.action(command)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
