@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import functools
 import logging
-from argparse import Namespace
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 
