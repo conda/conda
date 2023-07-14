@@ -141,7 +141,7 @@ class CondaPluginManager(pluggy.PluginManager):
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
         if hook is None:
-            raise PluginError(f"Could not load `{specname}` plugins.")
+            raise PluginError(f"Could not find requested `{name}` plugins")
 
         plugins = sorted(
             (item for items in hook() for item in items),

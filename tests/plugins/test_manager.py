@@ -62,6 +62,12 @@ def test_get_hook_results(plugin_manager):
     assert len(hook_result) == 1
     assert hook_result[0].name == "archspec"
 
+    # loading an unknown hook result should raise an error
+    with pytest.raises(
+        PluginError, match=re.escape("Could not find requested `unknown` plugins")
+    ):
+        plugin_manager.get_hook_results("unknown")
+
     # let's double-check the validation of conflicting plugins works
     class SecondArchspec:
         @plugins.hookimpl
@@ -75,15 +81,16 @@ def test_get_hook_results(plugin_manager):
         plugin_manager.get_hook_results(name)
 
 
-def test_load_plugins_error(plugin_manager, mocker):
-    mocker.patch.object(
-        plugin_manager, "register", side_effect=ValueError("load_plugins error")
-    )
+def test_load_plugins_error(plugin_manager):
+    # first load the plugin once
+    plugin_manager.load_plugins(VerboseSolverPlugin)
+    # then try again to trigger a PluginError via the `ValueError` that
+    # pluggy.PluginManager.register throws on duplicate plugins
     with pytest.raises(PluginError) as exc:
         plugin_manager.load_plugins(VerboseSolverPlugin)
-    assert plugin_manager.get_plugins() == set()
+    assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert exc.value.return_code == 1
-    assert "load_plugins error" in str(exc.value)
+    assert "Error while loading first-party conda plugin" in str(exc.value)
 
 
 def test_load_entrypoints_success(plugin_manager):
@@ -92,7 +99,7 @@ def test_load_entrypoints_success(plugin_manager):
     assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
 
 
-def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
+def test_load_entrypoints_importerror(plugin_manager, mocker):
     mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
 
     assert plugin_manager.load_entrypoints("test_plugin", "importerror") == 0
