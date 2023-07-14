@@ -8,7 +8,7 @@ Each type corresponds to the plugin hook for which it is used.
 """
 from __future__ import annotations
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from typing import Callable, NamedTuple
 
@@ -36,7 +36,7 @@ class CondaSubcommand:
     name: str
     summary: str
     action: Callable[
-        [list[str]],  # arguments
+        [Namespace | tuple[str]],  # arguments
         int | None,  # return code
     ]
     configure_parser: Callable[[ArgumentParser], None] = field(
