@@ -29,8 +29,8 @@ class CondaSubcommand:
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
-    :param setup: Callable that will be run when the subcommand parser is set up.
     :param action: Callable that will be run when the subcommand is invoked.
+    :param configure_parser: Callable that will be run when the subcommand parser is initialized.
     """
 
     name: str
