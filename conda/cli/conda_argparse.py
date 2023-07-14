@@ -32,7 +32,6 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
-from ..plugins.types import CommandHookTypes
 
 log = getLogger(__name__)
 
@@ -126,9 +125,9 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
 
     # First, check if this is a plugin subcommand; if this attribute is present then it is
     if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
+        context.plugin_manager.invoke_pre_commands(arguments.plugin_subcommand.name)
         result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
+        context.plugin_manager.invoke_post_commands(arguments.plugin_subcommand.name)
 
         return result
 
@@ -139,25 +138,11 @@ def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
     module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
 
     command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, arguments)
+    context.plugin_manager.invoke_pre_commands(command)
     result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, arguments)
+    context.plugin_manager.invoke_post_commands(command)
 
     return result
-
-
-def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
-    """
-    Helper function used to gather applicable "pre" or "post" command hook functions
-    and then run them.
-
-    The values in *args are passed directly through to the "pre" or "post" command
-    hook function.
-    """
-    actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
-
-    for action in actions:
-        action(command, arguments)
 
 
 def find_builtin_commands(parser):
