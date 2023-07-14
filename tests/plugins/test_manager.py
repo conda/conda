@@ -34,7 +34,7 @@ class VerboseSolverPlugin:
 
 def test_load_no_plugins(plugin_manager):
     plugin_names = plugin_manager.load_plugins()
-    assert not plugin_names
+    assert plugin_names == 0
 
 
 def test_load_two_plugins_one_impls(plugin_manager):
