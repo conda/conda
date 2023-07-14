@@ -4,7 +4,9 @@ import logging
 import re
 import sys
 
+import pluggy
 import pytest
+from packaging.version import Version
 
 from conda import plugins
 from conda.core import solve
@@ -107,10 +109,8 @@ def test_load_entrypoints_blocked(plugin_manager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-
-    # pluggy > 1.0.0
-    if plugin_manager.get_plugins() == {None}:
-        assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
-    # pluggy <= 1.0.0
+    if Version(pluggy.__version__) > Version("1.0.0"):
+        assert plugin_manager.get_plugins() == {None}
     else:
-        assert plugin_manager.list_name_plugin() == []
+        assert plugin_manager.get_plugins() == set()
+    assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
