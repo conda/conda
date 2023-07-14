@@ -1,4 +1,4 @@
-[load_entrypoints]
+[test_plugin]
+blocked=test_plugin.blocked
 importerror=test_plugin.importerror
 success=test_plugin.success
-blocked=test_plugin.blocked

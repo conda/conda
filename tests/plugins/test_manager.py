@@ -85,14 +85,14 @@ def test_load_plugins_error(plugin_manager, mocker):
 
 
 def test_load_entrypoints_success(plugin_manager):
-    assert plugin_manager.load_entrypoints("load_entrypoints", "success") == 1
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
     assert len(plugin_manager.get_plugins()) == 1
 
 
 def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
     mocked_warning = mocker.patch("conda.plugins.manager.log.warning")
 
-    assert plugin_manager.load_entrypoints("load_entrypoints", "importerror") == 0
+    assert plugin_manager.load_entrypoints("test_plugin", "importerror") == 0
     assert len(plugin_manager.get_plugins()) == 0
 
     assert mocked_warning.call_count == 1
@@ -105,5 +105,6 @@ def test_load_entrypoints_importerror(plugin_manager, mocker, monkeypatch):
 def test_load_entrypoints_blocked(plugin_manager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
-    assert plugin_manager.load_entrypoints("load_entrypoints", "blocked") == 0
+    assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
+    print(plugin_manager.get_plugins())
     assert len(plugin_manager.get_plugins()) == 0
