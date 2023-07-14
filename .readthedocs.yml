@@ -22,3 +22,9 @@ build:
 python:
   install:
     - requirements: docs/requirements.txt
+
+# Build PDF & ePub
+formats:
+  - epub
+  - pdf
+  - htmlzip
