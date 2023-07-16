@@ -7,11 +7,7 @@ from conda.plugins.types import CondaPreCommand
 
 
 class PreCommandPlugin:
-    def __init__(self):
-        self.invoked = False
-        self.args = None
-
-    def pre_command_action(self, command, args) -> int:
+    def pre_command_action(self, command: str) -> int:
         pass
 
     @plugins.hookimpl
@@ -57,7 +53,7 @@ def test_pre_command_action_raises_exception(pre_command_plugin, conda_cli):
     that it bubbles up to the top and isn't caught anywhere. This will ensure that it
     goes through our normal exception catching/reporting mechanism.
     """
-    exc_message = "Boom!"
+    exc_message = "💥"
     pre_command_plugin.pre_command_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):

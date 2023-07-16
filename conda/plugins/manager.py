@@ -12,6 +12,7 @@ from __future__ import annotations
 import functools
 import logging
 from importlib.metadata import distributions
+from inspect import getmodule, isclass
 
 import pluggy
 
@@ -21,7 +22,6 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import CommandHookTypes
 
 log = logging.getLogger(__name__)
 
@@ -46,23 +46,44 @@ class CondaPluginManager(pluggy.PluginManager):
             self.get_solver_backend
         )
 
-    def load_plugins(self, *plugins) -> list[str]:
+    def get_canonical_name(self, plugin: object) -> str:
+        # detect the fully qualified module name
+        prefix = "<unknown_module>"
+        if (module := getmodule(plugin)) and module.__spec__:
+            prefix = module.__spec__.name
+
+        # return the fully qualified name for modules
+        if module is plugin:
+            return prefix
+
+        # return the fully qualified name for classes
+        elif isclass(plugin):
+            return f"{prefix}.{plugin.__qualname__}"
+
+        # return the fully qualified name for instances
+        else:
+            return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
+
+    def load_plugins(self, *plugins) -> int:
         """
         Load the provided list of plugins and fail gracefully on error.
         The provided list of plugins can either be classes or modules with
         :attr:`~conda.plugins.hookimpl`.
         """
-        plugin_names = []
+        count = 0
         for plugin in plugins:
+            # only use the canonical name after this point
+            canonical = self.get_canonical_name(plugin)
+
             try:
-                plugin_name = self.register(plugin)
+                self.register(plugin, canonical)
             except ValueError as err:
                 raise PluginError(
-                    f"Error while loading conda plugins from {plugins}: {err}"
+                    f"Error while loading first-party conda plugin: {canonical} ({err})"
                 )
-            else:
-                plugin_names.append(plugin_name)
-        return plugin_names
+
+            count += 1
+        return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
         """Load modules from querying the specified setuptools ``group``.
@@ -73,16 +94,15 @@ class CondaPluginManager(pluggy.PluginManager):
         :return: The number of plugins loaded by this call.
         """
         count = 0
-        for dist in list(distributions()):
+        for dist in distributions():
             for entry_point in dist.entry_points:
-                if (
-                    entry_point.group != group
-                    or (name is not None and entry_point.name != name)
-                    # already registered
-                    or self.get_plugin(entry_point.name)
-                    or self.is_blocked(entry_point.name)
+                # skip entry points that don't match the group/name
+                if entry_point.group != group or (
+                    name is not None and entry_point.name != name
                 ):
                     continue
+
+                # attempt to load plugin from entry point
                 try:
                     plugin = entry_point.load()
                 except Exception as err:
@@ -91,10 +111,24 @@ class CondaPluginManager(pluggy.PluginManager):
                     # meaning that it comes too late to properly render
                     # a traceback
                     log.warning(
-                        f"Could not load conda plugin `{entry_point.name}`:\n\n{err}"
+                        f"Error while loading conda entry point: {entry_point.name} ({err})"
                     )
                     continue
-                self.register(plugin, name=entry_point.name)
+
+                # only use the canonical name after this point
+                canonical = self.get_canonical_name(plugin)
+
+                # skip plugin if already registered or blocked
+                if self.get_plugin(canonical) or self.is_blocked(canonical):
+                    continue
+
+                try:
+                    self.register(plugin, canonical)
+                except ValueError as err:
+                    raise PluginError(
+                        f"Error while loading third-party conda plugin: {canonical} ({err})"
+                    )
+
                 count += 1
         return count
 
@@ -106,7 +140,7 @@ class CondaPluginManager(pluggy.PluginManager):
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
         if hook is None:
-            raise PluginError(f"Could not load `{specname}` plugins.")
+            raise PluginError(f"Could not find requested `{name}` plugins")
 
         plugins = sorted(
             (item for items in hook() for item in items),
@@ -132,7 +166,7 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
-    def get_solver_backend(self, name: str = None) -> type[Solver]:
+    def get_solver_backend(self, name: str | None = None) -> type[Solver]:
         """
         Get the solver backend with the given name (or fall back to the
         name provided in the context).
@@ -167,19 +201,33 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def yield_command_hook_actions(self, hook_type: CommandHookTypes, command: str):
+    def invoke_pre_commands(self, command: str) -> None:
         """
-        Yields either the ``CondaPreCommand.action`` or ``CondaPostCommand.action`` functions
-        registered by the ``conda_pre_commands`` or ``conda_post_commands`` hook.
+        Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
 
-        :param hook_type: the type of command hook to retrieve
         :param command: name of the command that is currently being invoked
         """
-        command_hooks = self.get_hook_results(f"{hook_type}_commands")
+        for hook in self.get_hook_results("pre_commands"):
+            if command in hook.run_for:
+                hook.action(command)
 
-        for command_hook in command_hooks:
-            if command in command_hook.run_for:
-                yield command_hook.action
+    def invoke_post_commands(self, command: str) -> None:
+        """
+        Invokes ``CondaPostCommand.action`` functions registered with ``conda_post_commands``.
+
+        :param command: name of the command that is currently being invoked
+        """
+        for hook in self.get_hook_results("post_commands"):
+            if command in hook.run_for:
+                hook.action(command)
+
+    def disable_external_plugins(self) -> None:
+        """
+        Disables all currently registered plugins except built-in conda plugins
+        """
+        for name, plugin in self.list_name_plugin():
+            if not name.startswith("conda.plugins."):
+                self.set_blocked(name)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

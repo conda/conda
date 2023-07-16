@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new "post_commands" hook allowing plugins to run code before a `conda` subcommand. (#12758)
+* Add a new "post_commands" hook allowing plugins to run code before a `conda` subcommand. (#12758, #12864)
 
 ### Docs
 
