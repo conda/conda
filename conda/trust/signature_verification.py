@@ -193,23 +193,27 @@ class _SignatureVerification:
             headers["If-Modified-Since"] = mod_stamp
 
         try:
-            # The `auth` argument below looks a bit weird, but passing `None` seems
-            # insufficient for suppressing modifying the URL to add an Anaconda
-            # server token; for whatever reason, we must pass an actual callable in
-            # order to suppress the HTTP auth behavior configured in the session.
+            # Assume trust metadata is intended to be "generally available",
+            # and specifically, _not_ protected by a conda/binstar token.
+            # Seems reasonable, since we (probably) don't want the headaches of
+            # dealing with protected, per-channel trust metadata.
             #
-            # TODO: Figure how to handle authn for obtaining trust metadata,
-            # independently of the authn used to access package repositories.
+            # Note: Setting `auth=None` here does allow trust metadata to be
+            # protected using standard HTTP basic auth mechanisms, with the
+            # login information being provided in the user's netrc file.
+            saved_token_setting = context.add_anaconda_token
+            context.add_anaconda_token = False
             resp = self.session.get(
                 join_url(signing_data_url, filename),
                 headers=headers,
                 proxies=self.session.proxies,
-                auth=lambda r: r,
+                auth=None,
                 timeout=(
                     context.remote_connect_timeout_secs,
                     context.remote_read_timeout_secs,
                 ),
             )
+            context.add_anaconda_token = saved_token_setting
 
             resp.raise_for_status()
         except:
