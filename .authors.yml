@@ -2083,7 +2083,7 @@
   github: beeankha
   alternate_emails:
   - beeankha@gmail.com
-  num_commits: 24
+  num_commits: 27
   first_commit: 2022-05-12 13:39:02
 - name: Kian-Meng Ang
   email: kianmeng.ang@gmail.com
@@ -2324,7 +2324,7 @@
   github: HeavenEvolved
   num_commits: 1
   first_commit: 2023-04-12 05:11:25
-- name: kalawac
+- name: Katherine Abrikian
   email: kalawac@users.noreply.github.com
   github: kalawac
   num_commits: 1
@@ -2354,9 +2354,11 @@
   github: lesteve
   num_commits: 1
   first_commit: 2023-05-30 10:31:55
-- name: morre
+- name: Maurice Meyer
   email: morre@mor.re
-  github: morremeyer
+  aliases:
+  - morre
+  github: morre
   num_commits: 1
   first_commit: 2023-07-12 07:59:22
 - name: Marco Esters
