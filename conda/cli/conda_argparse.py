@@ -246,7 +246,7 @@ class ArgumentParser(ArgumentParserBase):
         if sys.argv[1:] in ([], [""], ["help"], ["-h"], ["--help"]):
             from .find_commands import find_commands
 
-            other_commands = find_commands()
+            other_commands = set(find_commands()).difference(self.plugin_subcommands)
             if other_commands:
                 builder = [""]
                 builder.append("conda commands available from other packages (legacy):")
