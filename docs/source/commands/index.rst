@@ -21,7 +21,23 @@ The following commands are part of conda:
    :glob:
    :maxdepth: 2
 
-   *
+   clean
+   compare
+   config
+   create
+   doctor
+   env/index
+   info
+   init
+   install
+   list
+   notices
+   package
+   remove
+   rename
+   run
+   search
+   update
 
 Conda vs. pip vs. virtualenv commands
 =====================================

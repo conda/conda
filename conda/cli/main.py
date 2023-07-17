@@ -43,6 +43,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from ..base.context import context
 
     context.__init__(argparse_args=args)
+
     init_loggers(context)
 
     # used with main_pip.py

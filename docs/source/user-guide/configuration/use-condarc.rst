@@ -199,8 +199,8 @@ conda defaults, causing conda to search only the channels listed
 here, in the order given.
 
 Use ``defaults`` to automatically include all default channels.
-Non-URL channels are interpreted as Anaconda.org user names. You
-can change this by modifying the ``channel_alias`` as described
+Non-URL channels are interpreted as Anaconda.org user or organization
+names. You can change this by modifying the ``channel_alias`` as described
 in :ref:`set-ch-alias`. The default is just ``defaults``.
 
 EXAMPLE:
