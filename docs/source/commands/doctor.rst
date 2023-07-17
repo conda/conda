@@ -2,8 +2,9 @@
 *****************
 
 .. argparse::
-   :module: conda.plugins.subcommands.doctor.cli
+   :module: conda.cli.conda_argparse
    :func: generate_parser
    :prog: conda doctor
+   :path: doctor
    :nodefault:
    :nodefaultconst:

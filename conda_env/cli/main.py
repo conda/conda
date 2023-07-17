@@ -3,6 +3,7 @@
 """Entry point for all conda-env subcommands."""
 import os
 import sys
+from importlib import import_module
 
 # pip_util.py import on_win from conda.exports
 # conda.exports resets the context
@@ -28,8 +29,10 @@ def show_help_on_empty_command():
 
 def create_parser():
     p = ArgumentParser()
-    sub_parsers = p.add_subparsers()
-
+    sub_parsers = p.add_subparsers(
+        metavar="command",
+        dest="cmd",
+    )
     main_create.configure_parser(sub_parsers)
     main_export.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
@@ -44,13 +47,12 @@ def create_parser():
 def do_call(arguments, parser):
     relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
-    from importlib import import_module
 
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
 
     context.plugin_manager.invoke_pre_commands(f"env_{command}")
-    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
+    module = import_module(relative_mod, "conda_env.cli")
     exit_code = getattr(module, func_name)(arguments, parser)
     context.plugin_manager.invoke_post_commands(f"env_{command}")
 
