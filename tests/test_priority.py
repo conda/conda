@@ -33,10 +33,10 @@ def test_reorder_channel_priority(
     if pinned_package:
         monkeypatch.setenv("CONDA_PINNED_PACKAGES", package1)
 
-    # add defaults channel
-    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    # prefer defaults over conda-forge
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults,conda-forge")
     reset_context()
-    assert context.channels == ("defaults",)
+    assert context.channels == ("defaults", "conda-forge")
 
     # create environment with package1 and package2
     with tmp_env(package1, package2) as prefix, set_active_prefix(prefix):
@@ -45,7 +45,7 @@ def test_reorder_channel_priority(
         assert PrefixData(prefix).get(package1).channel.name == "pkgs/main"
         assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
 
-        # add conda-forge channel
+        # prefer conda-forge over defaults
         monkeypatch.setenv("CONDA_CHANNELS", "conda-forge,defaults")
         reset_context()
         assert context.channels == ("conda-forge", "defaults")
