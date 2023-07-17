@@ -16,4 +16,4 @@
 
 ### Other
 
-*   Update `tests/test_activate.py` to test the new behavior
+*   Update `tests/test_activate.py` to test the new behavior. (#12769)

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Register plugins using their canonical/fully qualified name instead of the easily spoofable entry point name. (#12869)
+* Register plugins using their canonical/fully-qualified name instead of the easily spoofable entry point name. (#12869)
 
 ### Bug fixes
 

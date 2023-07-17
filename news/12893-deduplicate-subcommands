@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Deduplicate plugin and legacy subcommands in `conda --help`. (#12893)
+* De-duplicate plugin and legacy subcommands in `conda --help`. (#12893)
 
 ### Bug fixes
 

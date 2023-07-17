@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new config option, `no_plugins`, a` --no-plugins` command line flag, and a `CONDA_NO_PLUGINS` env var that disables external plugins for built-in conda commands (#12748)
+* Add a new config option, `no_plugins`, a` --no-plugins` command line flag, and a `CONDA_NO_PLUGINS` environment variable that disables external plugins for built-in conda commands. (#12748)
 
 ### Bug fixes
 

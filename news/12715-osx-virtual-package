@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""` (#12715)
+* Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""`. (#12715)
 
 ### Deprecations
 

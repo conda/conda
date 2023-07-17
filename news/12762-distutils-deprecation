@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Stop using distutils directly in favor of the vendored version in
-  setuptools 60 and later. (#11136)
+* Stop using `distutils` directly in favor of the vendored version in `setuptools` 60 and later. (#11136)
 
 ### Bug fixes
 

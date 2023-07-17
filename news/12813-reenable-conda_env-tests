@@ -16,4 +16,4 @@
 
 ### Other
 
-* Re-enable all conda_env tests and remove irrelevant tests. (#12813)
+* Re-enable all `conda_env` tests and remove irrelevant tests. (#12813)

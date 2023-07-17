@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Adds docstrings to all plugic modules. (#12792)
+* Add docstrings to all public modules. (#12792)
 
 ### Other
 
