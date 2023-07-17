@@ -7,7 +7,6 @@ boltons >=23.0.0
 boto3  # also need the `minio` server, installed manually in CI
 chardet
 conda
-conda-build >=3.23.3
 conda-content-trust
 conda-forge::flake8-docstrings
 conda-forge::pytest-split
