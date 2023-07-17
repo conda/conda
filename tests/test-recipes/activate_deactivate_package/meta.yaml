@@ -9,8 +9,8 @@ build:
   number: 0
   noarch: generic
   script:
-    - cp -r etc ${PREFIX}            #[not win]
-    - (robocopy etc %PREFIX%\etc /E /v /fp) ^& IF %ERRORLEVEL% LSS 8 SET ERRORLEVEL = 0  #[win] https://superuser.com/a/346112
+    # since this is a noarch package we don't care that this is unix
+    - cp -r etc ${PREFIX}
 
 about:
   summary: Test activate and deactivate scripts effecting environment variables

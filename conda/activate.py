@@ -825,12 +825,16 @@ def ensure_fs_path_encoding(value):
 
 def native_path_to_unix(
     paths: str | Iterable[str] | None,
-) -> str | tuple[str] | None:
+) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-
-    if not on_win:
+    elif not on_win:
         return path_identity(paths)
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
 
     # on windows, uses cygpath to convert windows native paths to posix paths
     from shutil import which
@@ -844,23 +848,44 @@ def native_path_to_unix(
 
     bash = which("bash")
     cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
 
-    unix_path = run(
-        [
-            cygpath,
-            "--path",
-            paths if isinstance(paths, str) else os.pathsep.join(paths),
-        ],
-        text=True,
-        capture_output=True,
-        check=True,
-    ).stdout.strip()
+    try:
+        # if present, use cygpath to convert paths since its more reliable
+        unix_path = run(
+            [cygpath, "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        def _translation(found_path):
+            found = (
+                found_path.group(1)
+                .replace("\\", "/")
+                .replace(":", "")
+                .replace("//", "/")
+            )
+            return "/" + found.rstrip("/")
+
+        unix_path = (
+            re.sub(
+                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
+                _translation,
+                joined,
+            )
+            .replace(";/", ":/")
+            .rstrip(";")
+        )
+
     unix_path = unix_path.split(":") if unix_path else ()
 
     return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
 
 
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
+def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
     elif isinstance(paths, str):
@@ -871,10 +896,9 @@ def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
 
 def backslash_to_forwardslash(
     paths: str | Iterable[str] | None,
-) -> str | tuple[str] | None:
+) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-
     elif isinstance(paths, str):
         return paths.replace("\\", "/")
     else:

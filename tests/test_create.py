@@ -20,6 +20,7 @@ from os.path import (
     lexists,
     relpath,
 )
+from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
@@ -28,6 +29,7 @@ from uuid import uuid4
 
 import pytest
 import requests
+from pytest import MonkeyPatch
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
@@ -722,7 +724,9 @@ def test_compare_fail(clear_package_cache: None):
         rmtree(prefix, ignore_errors=True)
 
 
-def test_install_tarball_from_local_channel(clear_package_cache: None):
+def test_install_tarball_from_local_channel(
+    clear_package_cache: None, tmp_path: Path, monkeypatch: MonkeyPatch
+):
     # Regression test for #2812
     # install from local channel
     """
@@ -741,6 +745,10 @@ def test_install_tarball_from_local_channel(clear_package_cache: None):
     assert type(path) == type(path2)
     # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
     """
+    monkeypatch.setenv("CONDA_BLD_PATH", str(tmp_path))
+    reset_context()
+    assert context.bld_path == str(tmp_path)
+
     with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
         run_command(Commands.INSTALL, prefix, "-c", channel, "flask=2.1.3", "--json")
         assert package_is_installed(prefix, channel + "::" + "flask")
@@ -753,17 +761,16 @@ def test_install_tarball_from_local_channel(clear_package_cache: None):
 
         # Regression test for 2970
         # install from build channel as a tarball
-        tar_path = join(PackageCacheData.first_writable().pkgs_dir, flask_fname)
-        if not os.path.isfile(tar_path):
-            tar_path = tar_path.replace(".conda", ".tar.bz2")
-        conda_bld = join(
-            dirname(PackageCacheData.first_writable().pkgs_dir), "conda-bld"
-        )
-        conda_bld_sub = join(conda_bld, context.subdir)
-        if not isdir(conda_bld_sub):
-            os.makedirs(conda_bld_sub)
-        tar_bld_path = join(conda_bld_sub, basename(tar_path))
+        tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
+        if not tar_path.is_file():
+            tar_path = tar_path.with_suffix(".tar.bz2")
+
+        # create a temporary conda-bld
+        conda_bld_sub = tmp_path / context.subdir
+        conda_bld_sub.mkdir(exist_ok=True)
+        tar_bld_path = str(conda_bld_sub / tar_path.name)
         copyfile(tar_path, tar_bld_path)
+
         run_command(Commands.INSTALL, prefix, tar_bld_path)
         assert package_is_installed(prefix, "flask")
 

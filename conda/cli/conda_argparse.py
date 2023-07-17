@@ -9,12 +9,13 @@ import sys
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
-    Namespace,
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
     _StoreAction,
 )
+from functools import lru_cache
+from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
 from subprocess import Popen
@@ -32,7 +33,6 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
-from ..plugins.types import CommandHookTypes
 
 log = getLogger(__name__)
 
@@ -85,8 +85,16 @@ def generate_parser():
         action="store_true",
         help=SUPPRESS,
     )
+    p.add_argument(
+        "--no-plugins",
+        action="store_true",
+        default=NULL,
+        help="Disable all plugins that are not built into conda.",
+    )
     sub_parsers = p.add_subparsers(
-        metavar="command",
+        metavar="COMMAND",
+        title="commands",
+        description="The following built-in and plugins subcommands are available.",
         dest="cmd",
         required=True,
     )
@@ -99,56 +107,52 @@ def generate_parser():
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
+    configure_parser_notices(sub_parsers)
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers, aliases=["uninstall"])
     configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
-    configure_parser_notices(sub_parsers)
+    configure_parser_plugins(sub_parsers, p.plugin_subcommands)
 
     return p
 
 
-def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
+def do_call(args: argparse.Namespace, parser: ArgumentParser):
     """
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
-        result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
+    # disable all external plugins if requested
+    if context.no_plugins:
+        context.plugin_manager.disable_external_plugins()
 
-        return result
+    # let's see if during the parsing phase it was discovered that the
+    # called command was in fact a plugin subcommand
+    plugin_subcommand = getattr(args, "plugin_subcommand", None)
 
-    relative_mod, func_name = arguments.func.rsplit(".", 1)
-    # func_name should always be 'execute'
-    from importlib import import_module
+    if plugin_subcommand:
+        # pass on the rest of the plugin specific args or fall back to
+        # the whole discovered arguments
+        try:
+            plugin_args = tuple(args.plugin_args)
+        except AttributeError:
+            plugin_args = args
+        context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
+        result = plugin_subcommand.action(plugin_args)
+        context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
+    else:
+        # let's call the subcommand the old-fashioned way via the assigned func..
+        relative_mod, func_name = args.func.rsplit(".", 1)
+        # func_name should always be 'execute'
+        module = import_module(relative_mod, "conda.cli")
+        command = relative_mod.replace(".main_", "")
 
-    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
-
-    command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, arguments)
-    result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, arguments)
-
+        context.plugin_manager.invoke_pre_commands(command)
+        result = getattr(module, func_name)(args, parser)
+        context.plugin_manager.invoke_post_commands(command)
     return result
-
-
-def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
-    """
-    Helper function used to gather applicable "pre" or "post" command hook functions
-    and then run them.
-
-    The values in *args are passed directly through to the "pre" or "post" command
-    hook function.
-    """
-    actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
-
-    for action in actions:
-        action(command, arguments)
 
 
 def find_builtin_commands(parser):
@@ -159,28 +163,27 @@ def find_builtin_commands(parser):
 
 class ArgumentParser(ArgumentParserBase):
     def __init__(self, *args, **kwargs):
-        if not kwargs.get("formatter_class"):
-            kwargs["formatter_class"] = RawDescriptionHelpFormatter
+        kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
         if "add_help" not in kwargs:
             add_custom_help = True
             kwargs["add_help"] = False
         else:
             add_custom_help = False
+        # Handle option conflicts gracefully
+        kwargs.setdefault("conflict_handler", "resolve")
         super().__init__(*args, **kwargs)
 
         if add_custom_help:
             add_parser_help(self)
 
-        if self.description:
-            self.description += "\n\nOptions:\n"
-
-        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
-
-        if self._subcommands:
-            self.epilog = "conda commands available from other packages:" + "".join(
-                f"\n {subcommand.name} - {subcommand.summary}"
-                for subcommand in self._subcommands
-            )
+    # FUTURE: Python 3.8+, replace with functools.cached_property
+    @property
+    @lru_cache(maxsize=None)
+    def plugin_subcommands(self):
+        return {
+            subcommand.name: subcommand
+            for subcommand in context.plugin_manager.get_hook_results("subcommands")
+        }
 
     def _get_action_from_name(self, name):
         """Given a name, get the Action instance registered with this parser.
@@ -247,7 +250,7 @@ class ArgumentParser(ArgumentParserBase):
             if other_commands:
                 builder = [""]
                 builder.append("conda commands available from other packages (legacy):")
-                builder.extend("  %s" % cmd for cmd in sorted(other_commands))
+                builder.extend("    %s" % cmd for cmd in sorted(other_commands))
                 print("\n".join(builder))
 
     def _check_value(self, action, value):
@@ -269,25 +272,26 @@ class ArgumentParser(ArgumentParserBase):
         if args is None:
             args = sys.argv[1:]
 
-        plugin_subcommand = None
-        if args:
-            name = args[0]
-            for subcommand in self._subcommands:
-                if subcommand.name == name:
-                    if name.lower() in BUILTIN_COMMANDS:
-                        error_message = dals(
-                            f"The plugin '{subcommand.name}: {subcommand.summary}' is trying "
-                            f"to override the built-in command {name}, which is not allowed. "
-                            "Please uninstall this plugin to stop seeing this error message"
-                        )
-                        log.error(error_message)
-                    else:
-                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
+        namespace = super().parse_args(args=args, namespace=namespace)
 
-        if plugin_subcommand is not None:
-            return plugin_subcommand
+        # if the current run is not handled by argparse subparser with
+        # the conventional name of "cmd", we simply return the already parsed
+        # argparse namespace and hope the 3rd party library handles the rest
+        current_cmd = getattr(namespace, "cmd", None)
+        if current_cmd is None:
+            return namespace
 
-        return super().parse_args(args, namespace)
+        # alternatively if the current run is not handled by a plugin-based
+        # subcommand we move on, as well
+        plugin_subcommand = self.plugin_subcommands.get(current_cmd, None)
+        if plugin_subcommand is None:
+            return namespace
+
+        # finally, we add the parsed plugin subcommand if available to the
+        # current namespace, so we can later refer to it
+        else:
+            namespace.plugin_subcommand = plugin_subcommand
+            return namespace
 
 
 def _exec(executable_args, env_vars):
@@ -359,6 +363,46 @@ class ExtendConstAction(Action):
 # sub-parsers
 #
 # #############################################################################################
+
+
+def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
+    """
+    For each of the provided plugin-based subcommands, we'll create
+    a new subparser for an improved help printout and calling the
+    :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
+    with the newly created subcommand specific argument parser.
+    """
+    for plugin_subcommand in plugin_subcommands.values():
+        # if the name of the plugin-based subcommand overlaps a built-in
+        # subcommand, we print an error
+        if plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
+            error_message = dals(
+                f"""
+                The plugin '{plugin_subcommand.name}' is trying to override the built-in command
+                with the same name, which is not allowed.
+
+                Please uninstall the plugin to stop seeing this error message.
+                """
+            )
+            log.error(error_message)
+            continue
+
+        parser = sub_parsers.add_parser(
+            plugin_subcommand.name,
+            description=plugin_subcommand.summary,
+            help=plugin_subcommand.summary,
+            formatter_class=RawDescriptionHelpFormatter,
+        )
+        try:
+            plugin_subcommand.configure_parser(parser)
+        except NotImplementedError:
+            # we store all other arguments here, so we can pass them to the
+            # plugin subcommands later
+            parser.add_argument(
+                "plugin_args",
+                nargs=argparse.REMAINDER,  # everything remaining, after the subcommand name
+                help=argparse.SUPPRESS,  # to hide it from the help output
+            )
 
 
 def configure_parser_clean(sub_parsers):
@@ -503,10 +547,11 @@ def configure_parser_info(sub_parsers):
 
 
 def configure_parser_config(sub_parsers):
+    help_ = "Modify configuration values in .condarc."
     descr = (
         dedent(
             """
-    Modify configuration values in .condarc.  This is modeled after the git
+    This is modeled after the git
     config command.  Writes to the user .condarc file (%s) by default. Use the
     --show-sources flag to display all identified configuration locations on
     your computer.
@@ -568,7 +613,7 @@ def configure_parser_config(sub_parsers):
     p = sub_parsers.add_parser(
         "config",
         description=descr,
-        help=descr,
+        help=help_,
         epilog=additional_descr,
     )
     add_parser_json(p)
@@ -891,7 +936,7 @@ def configure_parser_init(sub_parsers):
 
 
 def configure_parser_install(sub_parsers):
-    help = "Installs a list of packages into a specified conda environment."
+    help = "Install a list of packages into a specified conda environment."
     descr = dedent(
         help
         + """
@@ -1132,7 +1177,7 @@ def configure_parser_compare(sub_parsers):
 
 
 def configure_parser_package(sub_parsers):
-    descr = "Low-level conda package utility. (EXPERIMENTAL)"
+    descr = "Create low-level conda packages. (EXPERIMENTAL)"
     p = sub_parsers.add_parser(
         "package",
         description=descr,
@@ -1181,13 +1226,11 @@ def configure_parser_package(sub_parsers):
 
 
 def configure_parser_remove(sub_parsers, aliases):
-    help_ = (
-        "Remove a list of packages from a specified conda environment. "
-        "Use `--all` flag to remove all packages and the environment itself."
-    )
+    help_ = "Remove a list of packages from a specified conda environment. "
     descr = dals(
         f"""
         {help_}
+        "Use `--all` flag to remove all packages and the environment itself."
 
         This command will also remove any package that depends on any of the
         specified packages as well---unless a replacement can be found without
@@ -1359,13 +1402,9 @@ def configure_parser_run(sub_parsers):
 
 
 def configure_parser_search(sub_parsers):
-    help = "Search for packages and display associated information."
-    descr = (
-        help
-        + """The input is a MatchSpec, a query language for conda packages.
-    See examples below.
+    help = "Search for packages and display associated information using the MatchSpec format."
+    descr = f"""{help} MatchSpec is a query language for conda packages.
     """
-    )
 
     example = dedent(
         """
@@ -1403,7 +1442,7 @@ def configure_parser_search(sub_parsers):
     p = sub_parsers.add_parser(
         "search",
         description=descr,
-        help=descr,
+        help=help,
         epilog=example,
     )
     p.add_argument(
@@ -1477,7 +1516,7 @@ def configure_parser_search(sub_parsers):
 
 
 def configure_parser_update(sub_parsers, aliases):
-    help_ = "Updates conda packages to the latest compatible version."
+    help_ = "Update conda packages to the latest compatible version."
     descr = dals(
         f"""
         {help_}
@@ -1532,7 +1571,7 @@ def configure_parser_update(sub_parsers, aliases):
     p.set_defaults(func=".main_update.execute")
 
 
-NOTICES_HELP = "Retrieves latest channel notifications."
+NOTICES_HELP = "Retrieve latest channel notifications."
 NOTICES_DESCRIPTION = dals(
     f"""
     {NOTICES_HELP}
@@ -1567,7 +1606,7 @@ def configure_parser_notices(sub_parsers, name="notices"):
 
 
 def configure_parser_rename(sub_parsers) -> None:
-    help = "Renames an existing environment."
+    help = "Rename an existing environment."
     descr = dals(
         f"""
         {help}

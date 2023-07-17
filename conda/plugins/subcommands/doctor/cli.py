@@ -6,29 +6,9 @@ from __future__ import annotations
 import argparse
 
 from ....base.context import context
-from ....cli.conda_argparse import add_parser_prefix
+from ....cli.conda_argparse import ArgumentParser, add_parser_help, add_parser_prefix
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
-
-
-def generate_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        "conda doctor",
-        description="Display a health report for your environment.",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="generate a detailed environment health report",
-    )
-    add_parser_prefix(parser)
-    return parser
-
-
-def get_parsed_args(argv: list[str]) -> argparse.Namespace:
-    parser = generate_parser()
-    return parser.parse_args(argv)
 
 
 @deprecated(
@@ -39,12 +19,21 @@ def get_prefix(args: argparse.Namespace) -> str:
     return context.target_prefix
 
 
-def execute(argv: list[str]) -> None:
+def configure_parser(parser: ArgumentParser):
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Generate a detailed environment health report.",
+    )
+    add_parser_help(parser)
+    add_parser_prefix(parser)
+
+
+def execute(args: argparse.Namespace) -> None:
     """Run conda doctor subcommand."""
     from .health_checks import display_health_checks
 
-    args = get_parsed_args(argv)
-    context.__init__(argparse_args=args)
     display_health_checks(context.target_prefix, verbose=args.verbose)
 
 
@@ -52,6 +41,7 @@ def execute(argv: list[str]) -> None:
 def conda_subcommands():
     yield CondaSubcommand(
         name="doctor",
-        summary="A subcommand that displays environment health report",
+        summary="Display a health report for your environment.",
         action=execute,
+        configure_parser=configure_parser,
     )
