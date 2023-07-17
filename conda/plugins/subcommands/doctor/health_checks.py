@@ -79,7 +79,7 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
-def display_health_checks(prefix: str, verbose: bool) -> None:
+def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
     display_report_heading(prefix)
     print("1. Missing Files:\n")
