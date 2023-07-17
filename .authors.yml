@@ -2356,9 +2356,7 @@
   first_commit: 2023-05-30 10:31:55
 - name: Maurice Meyer
   email: morre@mor.re
-  aliases:
-  - morre
-  github: morre
+  github: morremeyer
   num_commits: 1
   first_commit: 2023-07-12 07:59:22
 - name: Marco Esters

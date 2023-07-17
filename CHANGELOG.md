@@ -63,17 +63,17 @@
 * @dariocurr
 * @jaimergp
 * @jezdez
-* @johanneskoester
+* @johanneskoester made their first contribution in https://github.com/conda/conda/pull/12683
 * @jjhelmus
-* @kalawac
+* @kalawac made their first contribution in https://github.com/conda/conda/pull/12738
 * @kenodegard
-* @schackartk
-* @lesteve
+* @schackartk made their first contribution in https://github.com/conda/conda/pull/12781
+* @lesteve made their first contribution in https://github.com/conda/conda/pull/12715
 * @ForgottenProgramme
-* @marcoesters
-* @mpotane
-* @mattkram
-* @morre
+* @marcoesters made their first contribution in https://github.com/conda/conda/pull/12863
+* @mpotane made their first contribution in https://github.com/conda/conda/pull/11740
+* @mattkram made their first contribution in https://github.com/conda/conda/pull/12730
+* @morremeyer made their first contribution in https://github.com/conda/conda/pull/12871
 * @mcg1969
 * @travishathaway
 * @pre-commit-ci[bot]
