@@ -12,7 +12,6 @@
 * Add a new health check to `conda doctor` detecting altered packages in an environment by comparing expected and computed `sha256` checksums. (#12757)
 * Add a new "post_commands" hook allowing plugins to run code before a `conda` subcommand. (#12758, #12864)
 * Stop using `distutils` directly in favor of the vendored version in `setuptools` 60 and later. (#11136)
-*   <news item>
 * Add a `CITATION.cff` file to the root of the repository to make it easier for users to cite conda. (#12781)
 * Add optional `CondaSubcommand.configure_parser` allowing third-party plugins to hook into conda's argument parser. (#12814)
 * Only display third-party subcommands in `conda --help` and not for every other subcommand. (#12814, #12740)
@@ -24,7 +23,7 @@
 
 * Use `requests.exceptions.JSONDecodeError` for ensuring compatibility with different `json` implementations used by requests. This fixes a bug that caused only the first of multiple given source URLs to be tried. This also raises the minimum required requests version to 2.27.0. (#12683)
 * Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""`. (#12715)
-*   Fix erroneous `conda deactivate` behavior of unsetting preexisting environment variables that are identical to those set during `conda activate`. (#12769)
+* Fix erroneous `conda deactivate` behavior of unsetting preexisting environment variables that are identical to those set during `conda activate`. (#12769)
 * Correct third-party subcommands to receive _remaining_ arguments instead of a blanket `sys.argv[2:]` which broke `conda_cli` testing. (#12814)
 
 ### Deprecations
@@ -33,7 +32,6 @@
 * Mark `conda.plugins.subcommands.doctor.cli.get_prefix` as pending deprecation. Use `conda.base.context.context.target_prefix` instead. (#12725)
 * Mark `conda.models.leased_path_entry.LeasedPathEntry` as pending deprecation. (#12735)
 * Mark `conda.models.enums.LeasedPathType` as pending deprecation. (#12735)
-*   <news item>
 * Mark `conda.common.temporary_content_in_file` as pending deprecation. Use `tempfile` instead. (#12795)
 * Mark `conda.cli.python_api` as pending deprecation. Use `conda.testing.conda_cli` fixture instead. (#12796)
 
@@ -41,7 +39,6 @@
 
 * Document how to use the new "pre_commands" plugin hook. (#12712)
 * Document how to use the new "post_commands" plugin hook. (#12758)
-*   <news item>
 * Add docstrings to all public modules. (#12792)
 * Auto-generate API docs using `sphinx-autoapi`. (#12798)
 * Convert all manual redirects into config using `sphinx-reredirects`. (#12798)
@@ -51,7 +48,7 @@
 ### Other
 
 * Update `tests/cli/test_main_rename.py` to use latest fixtures. (#12517)
-*   Update `tests/test_activate.py` to test the new behavior. (#12769)
+* Update `tests/test_activate.py` to test the new behavior. (#12769)
 * Re-enable all `conda_env` tests and remove irrelevant tests. (#12813)
 * Convert all `unittest`-style tests to `pytest`-style. (#12819)
 * Convert tests/test-recipes into local noarch packages instead of relying on conda-test channel and local builds. (#12879)
