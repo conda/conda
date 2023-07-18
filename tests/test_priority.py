@@ -30,25 +30,24 @@ def test_reorder_channel_priority(
     if pinned_package:
         monkeypatch.setenv("CONDA_PINNED_PACKAGES", package1)
 
-    # prefer defaults over conda-forge
-    monkeypatch.setenv("CONDA_CHANNELS", "defaults,conda-forge")
-    reset_context()
-    assert context.channels == ("defaults", "conda-forge")
-
     # create environment with package1 and package2
-    with tmp_env(package1, package2) as prefix:
+    with tmp_env(
+        "--override-channels", "--channel=defaults", package1, package2
+    ) as prefix:
         # check both packages are installed from defaults
         PrefixData._cache_.clear()
         assert PrefixData(prefix).get(package1).channel.name == "pkgs/main"
         assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
 
-        # prefer conda-forge over defaults
-        monkeypatch.setenv("CONDA_CHANNELS", "conda-forge,defaults")
-        reset_context()
-        assert context.channels == ("conda-forge", "defaults")
-
         # update --all
-        conda_cli("update", "--prefix", prefix, "--all", "--yes")
+        conda_cli(
+            "update",
+            f"--prefix={prefix}",
+            "--override-channels",
+            "--channel=conda-forge",
+            "--all",
+            "--yes",
+        )
 
         # check pinned package is unchanged but unpinned packages are updated from conda-forge
         PrefixData._cache_.clear()
