@@ -51,7 +51,7 @@
 * Update `tests/test_activate.py` to test the new behavior. (#12769)
 * Re-enable all `conda_env` tests and remove irrelevant tests. (#12813)
 * Convert all `unittest`-style tests to `pytest`-style. (#12819)
-* Convert tests/test-recipes into local noarch packages instead of relying on conda-test channel and local builds. (#12879)
+* Convert `tests/test-recipes` into local noarch packages instead of relying on conda-test channel and local builds. (#12879)
 
 ### Contributors
 
