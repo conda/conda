@@ -2,12 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
-from conda.testing.helpers import set_active_prefix
 
 
 @pytest.mark.integration
@@ -21,7 +19,6 @@ from conda.testing.helpers import set_active_prefix
 def test_reorder_channel_priority(
     tmp_env: TmpEnvFixture,
     monkeypatch: MonkeyPatch,
-    mocker: MockerFixture,
     conda_cli: CondaCLIFixture,
     pinned_package: bool,
 ):
@@ -39,7 +36,7 @@ def test_reorder_channel_priority(
     assert context.channels == ("defaults", "conda-forge")
 
     # create environment with package1 and package2
-    with tmp_env(package1, package2) as prefix, set_active_prefix(prefix):
+    with tmp_env(package1, package2) as prefix:
         # check both packages are installed from defaults
         PrefixData._cache_.clear()
         assert PrefixData(prefix).get(package1).channel.name == "pkgs/main"
