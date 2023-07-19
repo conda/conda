@@ -8,7 +8,9 @@ from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.auxlib.ish import dals
-from conda.cli.conda_argparse import BUILTIN_COMMANDS
+from conda.base.context import context
+from conda.exceptions import CommandNotFoundError
+from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
 from conda.plugins.types import CondaSubcommand
 from conda.testing import CondaCLIFixture
 
@@ -104,3 +106,29 @@ def test_cannot_override_builtin_commands(command, plugin_manager, mocker, conda
     ]
 
     assert mocked.mock_calls == []
+
+
+def test_parser_no_plugins(plugin_manager):
+    subcommand_plugin = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    parser = generate_parser()
+
+    with pytest.raises(CommandNotFoundError):
+        parser.parse_args(["foobar"])
+
+    args = parser.parse_args(["custom"])
+    assert args.cmd == "custom"
+
+    # setting no_plugins to make sure the
+    # plugin disabling happens when the
+    # argument parser is created
+    context.no_plugins = True
+    parser = generate_parser()
+
+    with pytest.raises(CommandNotFoundError):
+        parser.parse_args(["foobar"])
+
+    with pytest.raises(CommandNotFoundError):
+        args = parser.parse_args(["custom"])
