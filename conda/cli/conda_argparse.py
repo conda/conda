@@ -114,7 +114,7 @@ def generate_parser():
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
-    configure_parser_plugins(sub_parsers, p)
+    configure_parser_plugins(sub_parsers, p.plugin_subcommands)
 
     return p
 
@@ -364,14 +364,14 @@ class ExtendConstAction(Action):
 # #############################################################################################
 
 
-def configure_parser_plugins(sub_parsers, parser) -> None:
+def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
     """
     For each of the provided plugin-based subcommands, we'll create
     a new subparser for an improved help printout and calling the
     :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
     with the newly created subcommand specific argument parser.
     """
-    for plugin_subcommand in parser.plugin_subcommands.values():
+    for plugin_subcommand in plugin_subcommands.values():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
         if plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
