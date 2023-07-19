@@ -192,6 +192,7 @@ class _SignatureVerification:
         if mod_stamp:
             headers["If-Modified-Since"] = mod_stamp
 
+        saved_token_setting = context.add_anaconda_token
         try:
             # Assume trust metadata is intended to be "generally available",
             # and specifically, _not_ protected by a conda/binstar token.
@@ -201,7 +202,6 @@ class _SignatureVerification:
             # Note: Setting `auth=None` here does allow trust metadata to be
             # protected using standard HTTP basic auth mechanisms, with the
             # login information being provided in the user's netrc file.
-            saved_token_setting = context.add_anaconda_token
             context.add_anaconda_token = False
             resp = self.session.get(
                 join_url(signing_data_url, filename),
@@ -213,12 +213,10 @@ class _SignatureVerification:
                     context.remote_read_timeout_secs,
                 ),
             )
-            context.add_anaconda_token = saved_token_setting
-
+            # TODO: maybe add more sensible error handling
             resp.raise_for_status()
-        except:
-            # TODO: more sensible error handling
-            raise
+        finally:
+            context.add_anaconda_token = saved_token_setting
 
         # In certain cases (e.g., using `-c` access anaconda.org channels), the
         # `CondaSession.get()` retry logic combined with the remote server's
