@@ -124,10 +124,6 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    # disable all external plugins if requested
-    if context.no_plugins:
-        context.plugin_manager.disable_external_plugins()
-
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
     plugin_subcommand = getattr(args, "plugin_subcommand", None)
@@ -179,7 +175,16 @@ class ArgumentParser(ArgumentParserBase):
     # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
     @lru_cache(maxsize=None)
+    def plugins_disabled(self) -> bool:
+        return "--no-plugins" in sys.argv or context.no_plugins
+
+    # FUTURE: Python 3.8+, replace with functools.cached_property
+    @property
+    @lru_cache(maxsize=None)
     def plugin_subcommands(self):
+        # first, let's disable all external plugins if requested
+        if self.plugins_disabled:
+            context.plugin_manager.disable_external_plugins()
         return {
             subcommand.name: subcommand
             for subcommand in context.plugin_manager.get_hook_results("subcommands")
@@ -243,10 +248,14 @@ class ArgumentParser(ArgumentParserBase):
     def print_help(self):
         super().print_help()
 
-        if sys.argv[1:] in ([], [""], ["help"], ["-h"], ["--help"]):
+        # using a set here to check for existence independent of order
+        if set(sys.argv[1:]).intersection({"", "help", "-h", "--help"}):
             from .find_commands import find_commands
 
-            other_commands = set(find_commands()).difference(self.plugin_subcommands)
+            other_commands = find_commands()
+            if not self.plugins_disabled:
+                other_commands = set(other_commands).difference(self.plugin_subcommands)
+
             if other_commands:
                 builder = [""]
                 builder.append("conda commands available from other packages (legacy):")
