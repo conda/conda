@@ -175,9 +175,15 @@ class ArgumentParser(ArgumentParserBase):
     # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
     @lru_cache(maxsize=None)
+    def plugins_disabled(self) -> bool:
+        return "--no-plugins" in sys.argv or context.no_plugins
+
+    # FUTURE: Python 3.8+, replace with functools.cached_property
+    @property
+    @lru_cache(maxsize=None)
     def plugin_subcommands(self):
         # first, let's disable all external plugins if requested
-        if "--no-plugins" in sys.argv or context.no_plugins:
+        if self.plugins_disabled:
             context.plugin_manager.disable_external_plugins()
         return {
             subcommand.name: subcommand
@@ -242,10 +248,14 @@ class ArgumentParser(ArgumentParserBase):
     def print_help(self):
         super().print_help()
 
-        if sys.argv[1:] in ([], [""], ["help"], ["-h"], ["--help"]):
+        # using a set here to check for existence independent of order
+        if set(sys.argv[1:]).intersection({"", "help", "-h", "--help"}):
             from .find_commands import find_commands
 
-            other_commands = set(find_commands()).difference(self.plugin_subcommands)
+            other_commands = find_commands()
+            if not self.plugins_disabled:
+                other_commands = set(other_commands).difference(self.plugin_subcommands)
+
             if other_commands:
                 builder = [""]
                 builder.append("conda commands available from other packages (legacy):")

@@ -9,8 +9,8 @@ from pytest_mock import MockerFixture
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
-from conda.exceptions import CommandNotFoundError
 from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
+from conda.exceptions import CommandNotFoundError
 from conda.plugins.types import CondaSubcommand
 from conda.testing import CondaCLIFixture
 
