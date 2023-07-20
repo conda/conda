@@ -136,7 +136,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     """
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
-    if plugin := getattr(args, "_plugin", None):
+    if plugin := getattr(args, "plugin_subcommand", None):
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
         try:
@@ -301,8 +301,7 @@ def configure_parser_plugins(sub_parsers) -> None:
     :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
     with the newly created subcommand specific argument parser.
     """
-    plugins = context.plugin_manager.get_subcommands()
-    for name, plugin in plugins.items():
+    for name, plugin_subcommand in context.plugin_manager.get_subcommands().items():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
         if name in BUILTIN_COMMANDS:
@@ -320,14 +319,14 @@ def configure_parser_plugins(sub_parsers) -> None:
 
         parser = sub_parsers.add_parser(
             name,
-            description=plugin.summary,
-            help=plugin.summary,
+            description=plugin_subcommand.summary,
+            help=plugin_subcommand.summary,
             add_help=False,
         )
 
         # case 1: plugin extends the parser
-        if plugin.configure_parser:
-            plugin.configure_parser(parser)
+        if plugin_subcommand.configure_parser:
+            plugin_subcommand.configure_parser(parser)
 
             try:
                 add_parser_help(parser)
@@ -338,7 +337,7 @@ def configure_parser_plugins(sub_parsers) -> None:
         else:
             parser.greedy = True
 
-        parser.set_defaults(_plugin=plugin)
+        parser.set_defaults(plugin_subcommand=plugin_subcommand)
 
     legacy = ["env"] if context.no_plugins else set(find_commands()).difference(plugins)
     for name in legacy:

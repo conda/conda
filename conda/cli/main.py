@@ -39,17 +39,17 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = args or ["--help"]
 
     pre_parser = generate_pre_parser(add_help=False)
-    pre, unknown = pre_parser.parse_known_args(args)
+    pre_args, unknown = pre_parser.parse_known_args(args)
 
-    context.__init__(argparse_args=pre)
+    context.__init__(argparse_args=pre_args)
     if context.no_plugins:
         context.plugin_manager.disable_external_plugins()
 
     # reinitialize in case any of the entrypoints modified the context
-    context.__init__(argparse_args=pre)
+    context.__init__(argparse_args=pre_args)
 
     parser = generate_parser(add_help=True)
-    args = parser.parse_args(unknown, namespace=pre)
+    args = parser.parse_args(unknown, namespace=pre_args)
 
     context.__init__(argparse_args=args)
     init_loggers(context)
