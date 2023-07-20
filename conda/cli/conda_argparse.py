@@ -9,6 +9,7 @@ import sys
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
+    Namespace,
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
@@ -277,30 +278,28 @@ class ArgumentParser(ArgumentParserBase):
         subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
         which is a ``conda.plugins.CondaSubcommand`` object.
         """
+        # Check to see if this is a subcommand plugin first
+        if len(args) > 0:
+            if not args[0].startswith("-"):
+                if args[0] not in BUILTIN_COMMANDS:
+                    plugin_subcommand = self.plugin_subcommands.get(args[0], None)
+
+                    # This is how we test if the subcommand plugin has a parser defined
+                    # If it doesn't, we exit early, so we don't call ``self.parse_args``
+                    try:
+                        plugin_subcommand.configure_parser(None)
+                    except NotImplementedError:
+                        return Namespace(
+                            plugin_args=args[1:], plugin_subcommand=plugin_subcommand
+                        )
+                    except Exception:
+                        pass
+
         # args default to the system args
         if args is None:
             args = sys.argv[1:]
 
-        namespace = super().parse_args(args=args, namespace=namespace)
-
-        # if the current run is not handled by argparse subparser with
-        # the conventional name of "cmd", we simply return the already parsed
-        # argparse namespace and hope the 3rd party library handles the rest
-        current_cmd = getattr(namespace, "cmd", None)
-        if current_cmd is None:
-            return namespace
-
-        # alternatively if the current run is not handled by a plugin-based
-        # subcommand we move on, as well
-        plugin_subcommand = self.plugin_subcommands.get(current_cmd, None)
-        if plugin_subcommand is None:
-            return namespace
-
-        # finally, we add the parsed plugin subcommand if available to the
-        # current namespace, so we can later refer to it
-        else:
-            namespace.plugin_subcommand = plugin_subcommand
-            return namespace
+        return super().parse_args(args=args, namespace=namespace)
 
 
 def _exec(executable_args, env_vars):
@@ -401,24 +400,12 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
             description=plugin_subcommand.summary,
             help=plugin_subcommand.summary,
             formatter_class=RawDescriptionHelpFormatter,
+            add_help=False,
         )
         try:
             plugin_subcommand.configure_parser(parser)
         except NotImplementedError:
-            # we first need to work around an issue in argparse,
-            # in which when using argparse.REMAINDER will mess up
-            # the parsing if it's the first argument being parsed.
-            # https://github.com/python/cpython/issues/61252#issuecomment-1093606584
-            # found out that if we add an unused positional argument
-            # it should just work
-            parser.add_argument("ignore")
-            # we store all other arguments here, so we can pass them to the
-            # plugin subcommands later
-            parser.add_argument(
-                "plugin_args",
-                nargs=argparse.REMAINDER,  # everything remaining, after the subcommand name
-                help=argparse.SUPPRESS,  # to hide it from the help output
-            )
+            pass
 
 
 def configure_parser_clean(sub_parsers):
