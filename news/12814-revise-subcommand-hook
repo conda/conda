@@ -5,7 +5,7 @@
 
 ### Bug fixes
 
-* Correct third-party subcommands to receive _remaining_ arguments instead of a blanket `sys.argv[2:]` which broke `conda_cli` testing. (#12814)
+* Correct third-party subcommands to receive _remaining_ arguments instead of a blanket `sys.argv[2:]` which broke `conda_cli` testing. (#12814, #12910)
 
 ### Deprecations
 
