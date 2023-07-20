@@ -1,6 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import Callable
 
 import pytest
 from pytest import CaptureFixture
@@ -19,6 +22,7 @@ from conda.testing import CondaCLIFixture
 class SubcommandPlugin:
     name: str
     summary: str
+    configure_parser: Callable | None = None
 
     def custom_command(self, args):
         pass
@@ -29,6 +33,7 @@ class SubcommandPlugin:
             name=self.name,
             summary=self.summary,
             action=self.custom_command,
+            configure_parser=self.configure_parser,
         )
 
 
@@ -130,3 +135,53 @@ def test_parser_no_plugins(plugin_manager):
 
     with pytest.raises(SystemExit, match="2"):
         args = parser.parse_args(["custom"])
+
+
+def test_custom_plugin_not_extend_parser(
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    subcommand_plugin = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    mocker.patch(
+        "conda.base.context.Context.plugin_manager",
+        return_value=plugin_manager,
+        new_callable=mocker.PropertyMock,
+    )
+    assert context.plugin_manager is plugin_manager
+
+    stdout, stderr, err = conda_cli("custom", "--help")
+    # configure_parser is undefined and action don't do anything, so this subcommand does not have any help text
+    assert not stdout
+    assert not stderr
+    assert not err
+
+
+def test_custom_plugin_extend_parser(
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    def configure_parser(subparser):
+        pass
+
+    subcommand_plugin = SubcommandPlugin(
+        name="custom",
+        summary="Summary.",
+        configure_parser=configure_parser,
+    )
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    mocker.patch(
+        "conda.base.context.Context.plugin_manager",
+        return_value=plugin_manager,
+        new_callable=mocker.PropertyMock,
+    )
+    assert context.plugin_manager is plugin_manager
+
+    with pytest.raises(SystemExit, match="0"):
+        conda_cli("custom", "--help")
