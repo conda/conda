@@ -139,12 +139,8 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     if plugin := getattr(args, "_plugin_subcommand", None):
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
-        try:
-            plugin_args = tuple(args._args)
-        except AttributeError:
-            plugin_args = args
         context.plugin_manager.invoke_pre_commands(plugin.name)
-        result = plugin.action(plugin_args)
+        result = plugin.action(getattr(args, "_args", args))
         context.plugin_manager.invoke_post_commands(plugin.name)
     elif name := getattr(args, "_executable", None):
         # run the subcommand from executables; legacy path
@@ -212,13 +208,13 @@ class _GreedySubParsersAction(argparse._SubParsersAction):
         # i.e. all unknown args should be passed to the subcommand as is
         if getattr(parser, "greedy", False):
             try:
-                extra = getattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
+                unknown = getattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
                 delattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
             except AttributeError:
-                extra = []
+                unknown = ()
 
             # underscore prefixed indicating this is not a normal argparse argument
-            namespace._args = extra
+            namespace._args = tuple(unknown)
 
     def _get_subactions(self):
         """Sort actions for subcommands to appear alphabetically in help blurb."""
@@ -324,13 +320,14 @@ def configure_parser_plugins(sub_parsers) -> None:
             name,
             description=plugin_subcommand.summary,
             help=plugin_subcommand.summary,
-            add_help=False,
+            add_help=False,  # defer to subcommand's help processing
         )
 
         # case 1: plugin extends the parser
         if plugin_subcommand.configure_parser:
             plugin_subcommand.configure_parser(parser)
 
+            # attempt to add standard help processing, will fail if plugin defines their own
             try:
                 add_parser_help(parser)
             except argparse.ArgumentError:
@@ -370,7 +367,7 @@ def configure_parser_plugins(sub_parsers) -> None:
             name,
             description=f"(legacy) Invoke `conda-{name}`.",
             help=f"(legacy) Invoke `conda-{name}`.",
-            add_help=False,
+            add_help=False,  # defer to subcommand's help processing
         )
 
         # case 3: legacy plugins are always greedy
