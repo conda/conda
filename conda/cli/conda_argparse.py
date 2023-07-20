@@ -419,7 +419,6 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
             description=plugin_subcommand.summary,
             help=plugin_subcommand.summary,
             formatter_class=RawDescriptionHelpFormatter,
-            add_help=False,
         )
         try:
             plugin_subcommand.configure_parser(parser)
