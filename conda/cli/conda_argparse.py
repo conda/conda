@@ -192,7 +192,7 @@ class ArgumentParser(ArgumentParserBase):
         if action.choices is not None and isiterable(value):
             for element in value:
                 super()._check_value(action, element)
-        elif value not in action.choices:
+        else:
             super()._check_value(action, value)
 
 
