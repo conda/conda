@@ -64,36 +64,36 @@ BUILTIN_COMMANDS = {
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
-    p = ArgumentParser(
+    pre_parser = ArgumentParser(
         description="conda is a tool for managing and deploying applications,"
         " environments and packages.",
         **kwargs,
     )
 
-    p.add_argument(
+    pre_parser.add_argument(
         "--debug",
         action="store_true",
         help=SUPPRESS,
     )
-    p.add_argument(
+    pre_parser.add_argument(
         "--json",
         action="store_true",
         help=SUPPRESS,
     )
-    p.add_argument(
+    pre_parser.add_argument(
         "--no-plugins",
         action="store_true",
         default=NULL,
         help="Disable all plugins that are not built into conda.",
     )
 
-    return p
+    return pre_parser
 
 
 def generate_parser(**kwargs) -> ArgumentParser:
-    p = generate_pre_parser(**kwargs)
+    parser = generate_pre_parser(**kwargs)
 
-    p.add_argument(
+    parser.add_argument(
         "-V",
         "--version",
         action="version",
@@ -101,7 +101,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
         help="Show the conda version number and exit.",
     )
 
-    sub_parsers = p.add_subparsers(
+    sub_parsers = parser.add_subparsers(
         metavar="COMMAND",
         title="commands",
         description="The following built-in and plugins subcommands are available.",
@@ -126,7 +126,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_update(sub_parsers, aliases=["upgrade"])
     configure_parser_plugins(sub_parsers)
 
-    return p
+    return parser
 
 
 def do_call(args: argparse.Namespace, parser: ArgumentParser):
@@ -136,7 +136,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     """
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
-    if plugin := getattr(args, "plugin_subcommand", None):
+    if plugin := getattr(args, "_plugin_subcommand", None):
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
         try:
@@ -216,6 +216,8 @@ class _GreedySubParsersAction(argparse._SubParsersAction):
                 delattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
             except AttributeError:
                 extra = []
+
+            # underscore prefixed indicating this is not a normal argparse argument
             namespace._args = extra
 
     def _get_subactions(self):
@@ -301,7 +303,8 @@ def configure_parser_plugins(sub_parsers) -> None:
     :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
     with the newly created subcommand specific argument parser.
     """
-    for name, plugin_subcommand in context.plugin_manager.get_subcommands().items():
+    plugin_subcommands = context.plugin_manager.get_subcommands()
+    for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
         if name in BUILTIN_COMMANDS:
@@ -337,9 +340,16 @@ def configure_parser_plugins(sub_parsers) -> None:
         else:
             parser.greedy = True
 
-        parser.set_defaults(plugin_subcommand=plugin_subcommand)
+        # underscore prefixed indicating this is not a normal argparse argument
+        parser.set_defaults(_plugin_subcommand=plugin_subcommand)
 
-    legacy = ["env"] if context.no_plugins else set(find_commands()).difference(plugins)
+    # `conda env` subcommand is a first-party conda subcommand even though it uses the legacy
+    # subcommand framework, so `conda env` must still be allowed when plugins are disabled
+    legacy = (
+        ["env"]
+        if context.no_plugins
+        else set(find_commands()).difference(plugin_subcommands)
+    )
     for name in legacy:
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
