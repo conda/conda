@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Optimize `_config_fish_content` function under `conda/core/initialize.py` for a 400x speed improvement. (#12811)
+* Improve speed of fish shell initialization. (#12811)
 
 ### Bug fixes
 
