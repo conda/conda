@@ -299,7 +299,26 @@ class ArgumentParser(ArgumentParserBase):
         if args is None:
             args = sys.argv[1:]
 
-        return super().parse_args(args=args, namespace=namespace)
+        namespace = super().parse_args(args=args, namespace=namespace)
+
+        # if the current run is not handled by argparse subparser with
+        # the conventional name of "cmd", we simply return the already parsed
+        # argparse namespace and hope the 3rd party library handles the rest
+        current_cmd = getattr(namespace, "cmd", None)
+        if current_cmd is None:
+            return namespace
+
+        # alternatively if the current run is not handled by a plugin-based
+        # subcommand we move on, as well
+        plugin_subcommand = self.plugin_subcommands.get(current_cmd, None)
+        if plugin_subcommand is None:
+            return namespace
+
+        # finally, we add the parsed plugin subcommand if available to the
+        # current namespace, so we can later refer to it
+        else:
+            namespace.plugin_subcommand = plugin_subcommand
+            return namespace
 
 
 def _exec(executable_args, env_vars):
