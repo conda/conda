@@ -411,7 +411,6 @@ def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
             # https://github.com/python/cpython/issues/61252#issuecomment-1093606584
             # found out that if we add an unused positional argument
             # it should just work
-            breakpoint()
             parser.add_argument("ignore")
             # we store all other arguments here, so we can pass them to the
             # plugin subcommands later
