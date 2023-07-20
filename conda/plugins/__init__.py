@@ -27,6 +27,7 @@ as well as conda's internal implementations of plugins.
 
 from .hookspec import hookimpl  # noqa: F401
 from .types import (  # noqa: F401
+    CondaFetch,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,

@@ -20,8 +20,9 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import solvers, subcommands, virtual_packages
+from . import fetch, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .types import SessionType
 
 log = logging.getLogger(__name__)
 
@@ -201,6 +202,22 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
+    def get_fetch_backend(self, name: str = None) -> type[SessionType]:
+        """
+        Get the session class with the given name (or fall back to the
+        default CondaSession class).
+        """
+        if name:
+            fetch_backends = self.get_hook_results("fetch")
+            matches = tuple(item for item in fetch_backends if item.name == name)
+
+            if len(matches) > 0:
+                return matches[0].session_class
+
+        from ..gateways.connection.session import CondaSession
+
+        return CondaSession
+
     def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
@@ -239,7 +256,7 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers, *virtual_packages.plugins, *subcommands.plugins
+        solvers, *virtual_packages.plugins, *subcommands.plugins, *fetch.plugins
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

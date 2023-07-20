@@ -1,6 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Requests session configured with all accepted scheme adapters."""
+from __future__ import annotations
+
+from functools import lru_cache
 from logging import getLogger
 from threading import local
 
@@ -14,6 +17,7 @@ from ...common.url import (
     urlparse,
 )
 from ...exceptions import ProxyError
+from ...models.channel import get_channel_objs
 from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
@@ -60,6 +64,43 @@ class EnforceUnusedAdapter(BaseAdapter):
         raise NotImplementedError()
 
 
+@lru_cache(None)
+def get_channel_name_from_url(url: str) -> str | None:
+    """
+    Given a URL, determine the channel it belongs to and return its name.
+    """
+    channel_objects = get_channel_objs(context)
+
+    for channel in channel_objects:
+        for base_url in channel.base_urls:
+            if url.lower().startswith(base_url):
+                return channel.canonical_name
+
+
+def session_manager(url: str):
+    """
+    Function that determines the correct Session object to be returned
+    based on the channel that is passed in.
+    """
+    channel_name = get_channel_name_from_url(url)
+
+    # If for whatever reason a channel name can't be determined, (should be unlikely)
+    # we just return the default session object.
+    if channel_name is None:
+        return CondaSession()
+
+    channel_params = context.channel_parameters.get(channel_name, {})
+    session_type = channel_params.get("session_type")
+
+    # Return default session object
+    if session_type is None:
+        return CondaSession()
+
+    session_class = context.plugin_manager.get_fetch_backend(session_type)
+
+    return session_class(channel_name=channel_name)
+
+
 class CondaSessionType(type):
     """
     Takes advice from https://github.com/requests/requests/issues/1871#issuecomment-33327847
@@ -78,7 +119,7 @@ class CondaSessionType(type):
             return session
 
 
-class CondaSession(Session, metaclass=CondaSessionType):
+class CondaSessionBase(Session):
     def __init__(self):
         super().__init__()
 
@@ -119,6 +160,13 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+
+class CondaSession(CondaSessionBase, metaclass=CondaSessionType):
+    """
+    Implementation of CondaSessionBase with an added metaclass for managing
+    object caching in a thread safe manner.
+    """
 
 
 class CondaHttpAuth(AuthBase):

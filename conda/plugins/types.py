@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Protocol
 
 from ..core.solve import Solver
 
@@ -108,3 +108,28 @@ class CondaPostCommand(NamedTuple):
     name: str
     action: Callable[[str], None]
     run_for: set[str]
+
+
+class ResponseType(Protocol):
+    ...
+
+
+class SessionType(Protocol):
+    """Protocol that must be adhered to when defining a session_class for the conda fetch hook"""
+
+    def get(self, *args, **kwargs) -> ResponseType:
+        ...
+
+
+class CondaFetch(NamedTuple):
+    """
+    Return type to use when the defining the conda fetch hook.
+
+    :param name: Name (e.g., ``basic-auth``). This name should be unique
+                 and only one may be registered at a time.
+    :param session_class: Type that will be instantiated as the conda session, which will handle
+                          all network calls.
+    """
+
+    name: str
+    session_class: type[SessionType]

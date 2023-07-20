@@ -14,6 +14,7 @@ from collections.abc import Iterable
 import pluggy
 
 from .types import (
+    CondaFetch,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -169,4 +170,32 @@ class CondaSpecs:
                    action=example_post_command,
                    run_for={"install", "create"},
                )
+        """
+
+    @_hookspec
+    def conda_fetch(self) -> Iterable[CondaFetch]:
+        """
+        Register conda fetch hook. This plugin hook replaces the
+        ``conda.gateways.connection.session.CondaSession`` class. The replacement
+        class should be compatible with ``requests.Session``.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from requests import Session
+
+
+            class MyCustomSession(Session):
+                def __init__(self, *args, **kwargs):
+                    self.custom_param = "custom-name"
+
+
+            @plugins.hookimpl
+            def conda_fetch():
+                yield plugins.CondaFetch(
+                    name="my-custom-fetch",
+                    session_class=MyCustomSession,
+                )
         """

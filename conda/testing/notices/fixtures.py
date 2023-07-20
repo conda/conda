@@ -25,11 +25,10 @@ def notices_cache_dir(tmpdir):
 
 
 @pytest.fixture(scope="function")
-def notices_mock_http_session_get():
-    with mock.patch(
-        "conda.gateways.connection.session.CondaSession.get"
-    ) as session_get:
-        yield session_get
+def notices_mock_fetch_session_manager():
+    with mock.patch("conda.notices.fetch.session_manager") as mock_session_manager:
+        mock_session_manager.return_value = mock.MagicMock()
+        yield mock_session_manager
 
 
 @pytest.fixture(scope="function")
