@@ -115,20 +115,18 @@ def test_parser_no_plugins(plugin_manager):
 
     parser = generate_parser()
 
-    with pytest.raises(CommandNotFoundError):
+    with pytest.raises(SystemExit, match="2"):
         parser.parse_args(["foobar"])
 
     args = parser.parse_args(["custom"])
     assert args.cmd == "custom"
 
-    # setting no_plugins to make sure the
-    # plugin disabling happens when the
-    # argument parser is created
-    context.no_plugins = True
+    plugin_manager.disable_external_plugins()
+
     parser = generate_parser()
 
-    with pytest.raises(CommandNotFoundError):
+    with pytest.raises(SystemExit, match="2"):
         parser.parse_args(["foobar"])
 
-    with pytest.raises(CommandNotFoundError):
+    with pytest.raises(SystemExit, match="2"):
         args = parser.parse_args(["custom"])
