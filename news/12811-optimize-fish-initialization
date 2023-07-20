@@ -1,0 +1,19 @@
+### Enhancements
+
+* Optimize `_config_fish_content` function under `conda/core/initialize.py` for a 400x speed improvement.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
