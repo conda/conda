@@ -155,7 +155,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
             from ..exceptions import CommandNotFoundError
 
             raise CommandNotFoundError(name)
-        _exec([executable, *args._args], os.environ)
+        return _exec([executable, *args._args], os.environ)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -365,8 +365,8 @@ def configure_parser_plugins(sub_parsers) -> None:
 
         parser = sub_parsers.add_parser(
             name,
-            description=f"(legacy) Invoke `conda-{name}`.",
-            help=f"(legacy) Invoke `conda-{name}`.",
+            description=f"See `conda {name} --help`.",
+            help=f"See `conda {name} --help`.",
             add_help=False,  # defer to subcommand's help processing
         )
 
