@@ -6,17 +6,26 @@ from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
 
 have_boto3 = have_boto = False
-try:
-    import boto3
 
-    have_boto3 = True
-except ImportError:
+
+def _load_boto3():
+    """
+    Import boto3 on demand only to save startup time.
+    """
+    global boto3, boto, have_boto3, have_boto
+
     try:
-        import boto
+        import boto3
 
-        have_boto = True
+        have_boto3 = True
     except ImportError:
-        pass
+        try:
+            import boto
+
+            have_boto = True
+        except ImportError:
+            pass
+
 
 from ....common.compat import ensure_binary
 from ....common.url import url_to_s3_info
@@ -36,6 +45,10 @@ class S3Adapter(BaseAdapter):
         resp = Response()
         resp.status_code = 200
         resp.url = request.url
+
+        if not have_boto3:
+            _load_boto3()
+
         if have_boto3:
             return self._send_boto3(boto3, resp, request)
         elif have_boto:
