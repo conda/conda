@@ -22,6 +22,7 @@ from conda_env.cli import main as conda_env_cli
 from .. import cli
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
+from ..common.configuration import YamlRawParameter, yaml_round_trip_load
 from ..common.io import argv
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
@@ -860,3 +861,22 @@ def convert_to_dist_str(solution):
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_cached_solver_backend()
+
+
+@contextmanager
+def temp_context(condarc: str):
+    """
+    Context manager that resets the context with the provided `condarc` string.
+    This string should be in the YAML format.
+    """
+    context_obj = reset_context(())
+    rd = dict(
+        testdata=YamlRawParameter.make_raw_parameters(
+            "testdata", yaml_round_trip_load(condarc)
+        )
+    )
+    context._set_raw_data(rd)
+
+    yield context_obj
+
+    reset_context()

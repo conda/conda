@@ -1,20 +1,28 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from io import StringIO
 from logging import getLogger
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from requests import HTTPError
+from ruamel.yaml import YAML
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
-from conda.gateways.connection.session import CondaHttpAuth, CondaSession
+from conda.gateways.connection.session import (
+    CondaHttpAuth,
+    CondaSession,
+    get_channel_name_from_url,
+    session_manager,
+)
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.gateways.fixtures import MINIO_EXE
+from conda.testing.helpers import temp_context
 from conda.testing.integration import env_var, make_temp_env
 
 log = getLogger(__name__)
@@ -108,3 +116,51 @@ def test_s3_server(minio_s3_server):
                 ):
                     # we just want to run make_temp_env and cleanup after
                     pass
+
+
+def test_session_manager_returns_default():
+    """
+    Tests to make sure that our session manager returns a regular
+    CondaSession object when no other session classes are registered.
+    """
+    url = "https://localhost/test"
+    session_obj = session_manager(url)
+
+    assert type(session_obj) == CondaSession
+
+
+@pytest.mark.parametrize(
+    "url, channels, expected",
+    (
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/test-package-0.1.0.conda",
+            ("defaults",),
+            "defaults",
+        ),
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/test-package-0.1.0.tar.bz2",
+            ("conda-forge", "defaults"),
+            "conda-forge",
+        ),
+        (
+            "http://localhost/noarch/test-package-0.1.0.conda",
+            ("defaults", "http://localhost"),
+            "http://localhost",
+        ),
+        ("http://localhost", ("defaults",), None),
+    ),
+)
+def test_get_channel_name_from_url(url, channels, expected):
+    """
+    Makes sure we return the correct value from the ``get_channel_name_from_url`` function.
+    """
+    condarc_data = {"channels": channels}
+    yml = YAML()
+    condarc_stream = StringIO()
+    yml.dump(condarc_data, stream=condarc_stream)
+    condarc_stream.seek(0)
+
+    with temp_context(condarc_stream.read()):
+        channel_name = get_channel_name_from_url(url)
+
+        assert expected == channel_name
