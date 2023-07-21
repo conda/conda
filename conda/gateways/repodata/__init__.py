@@ -46,7 +46,7 @@ from ..connection import (
     Response,
     SSLError,
 )
-from ..connection.session import CondaSession
+from ..connection.session import session_manager
 from ..disk import mkdir_p_sudo_safe
 from .lock import lock
 
@@ -128,7 +128,7 @@ class CondaRepoInterface(RepoInterface):
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
-        session = CondaSession()
+        session = session_manager(self._url)
 
         headers = {}
         etag = state.etag

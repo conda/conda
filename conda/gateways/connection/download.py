@@ -30,7 +30,7 @@ from . import (
     RequestsProxyError,
     SSLError,
 )
-from .session import CondaSession
+from .session import session_manager
 
 log = getLogger(__name__)
 
@@ -55,7 +55,7 @@ def download(
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        session = CondaSession()
+        session = session_manager(url)
         resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
@@ -214,7 +214,7 @@ def download_text(url):
         disable_ssl_verify_warning()
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        session = CondaSession()
+        session = session_manager(url)
         response = session.get(
             url, stream=True, proxies=session.proxies, timeout=timeout
         )

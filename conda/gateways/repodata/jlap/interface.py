@@ -7,7 +7,7 @@ import logging
 import os
 from pathlib import Path
 
-from conda.gateways.connection.session import CondaSession
+from conda.gateways.connection.session import session_manager
 
 from .. import (
     CACHE_CONTROL_KEY,
@@ -70,7 +70,7 @@ class JlapRepoInterface(RepoInterface):
         When repodata is not updated, it doesn't matter whether this function or
         the caller reads from a file.
         """
-        session = CondaSession()
+        session = session_manager(self._url)
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
 
