@@ -42,9 +42,9 @@ def collect_credentials():
     """
     Used to collect user credentials for each channel that is configured to use basic_auth.
 
-    We rely on channel_parameters to be correctly configured in order for this to work.
+    We rely on channel_settings to be correctly configured in order for this to work.
     """
-    for channel_name, params in context.channel_parameters.items():
+    for channel_name, params in context.channel_settings.items():
         if params.get("session_type") == PLUGIN_NAME:
             set_channel_user_credentials(channel_name)
 
