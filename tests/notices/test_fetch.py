@@ -14,7 +14,9 @@ def test_get_channel_notice_response_timeout_error(
 ):
     """Tests the timeout error case for the get_channel_notice_response function."""
     with patch("conda.notices.fetch.logger") as mock_logger:
-        notices_mock_fetch_session_manager.side_effect = requests.exceptions.Timeout
+        notices_mock_fetch_session_manager().get.side_effect = (
+            requests.exceptions.Timeout
+        )
 
         channel_notice_set = retrieve_notices()
         display_notices(channel_notice_set)
