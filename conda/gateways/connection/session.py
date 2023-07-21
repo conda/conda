@@ -89,9 +89,14 @@ def session_manager(url: str):
     if channel_name is None:
         return CondaSession()
 
-    channel_params = context.channel_settings.get(channel_name, {})
+    channel_settings = {}
+    for settings in context.channel_settings:
+        # TODO: This key name should be defined as a constant somewhere
+        if settings.get("channel") == channel_name:
+            channel_settings = settings
+
     # TODO: This key name should be defined as a constant somewhere.
-    session_type = channel_params.get("fetch_backend")
+    session_type = channel_settings.get("fetch_backend")
 
     # Return default session object
     if session_type is None:
