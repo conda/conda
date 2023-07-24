@@ -8,7 +8,11 @@ from logging import getLogger
 from threading import local
 
 from ...auxlib.ish import dals
-from ...base.constants import CONDA_HOMEPAGE_URL
+from ...base.constants import (
+    CHANNEL_SETTINGS_CHANNEL_NAME,
+    CONDA_HOMEPAGE_URL,
+    FETCH_BACKEND_SETTINGS_NAME,
+)
 from ...base.context import context
 from ...common.url import (
     add_username_and_password,
@@ -80,7 +84,7 @@ def get_channel_name_from_url(url: str) -> str | None:
 def session_manager(url: str):
     """
     Function that determines the correct Session object to be returned
-    based on the channel that is passed in.
+    based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
 
@@ -91,12 +95,10 @@ def session_manager(url: str):
 
     channel_settings = {}
     for settings in context.channel_settings:
-        # TODO: This key name should be defined as a constant somewhere
-        if settings.get("channel") == channel_name:
+        if settings.get(CHANNEL_SETTINGS_CHANNEL_NAME) == channel_name:
             channel_settings = settings
 
-    # TODO: This key name should be defined as a constant somewhere.
-    session_type = channel_settings.get("fetch_backend")
+    session_type = channel_settings.get(FETCH_BACKEND_SETTINGS_NAME)
 
     # Return default session object
     if session_type is None:

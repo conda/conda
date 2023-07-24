@@ -324,3 +324,9 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS = False
+
+#: Name we use to identify the fetch backend in ``channel_settings``
+FETCH_BACKEND_SETTINGS_NAME = "fetch_backend"
+
+#: Name we use to identify the channel name in ``channel_settings``
+CHANNEL_SETTINGS_CHANNEL_NAME = "channel"
