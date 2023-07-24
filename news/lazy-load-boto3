@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Import boto3 only when s3 channels are used, saving startup time.
+* Import boto3 only when s3 channels are used, saving startup time. (#12914)
 
 ### Bug fixes
 
