@@ -136,12 +136,12 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     """
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
-    if plugin := getattr(args, "_plugin_subcommand", None):
+    if plugin_subcommand := getattr(args, "_plugin_subcommand", None):
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
-        context.plugin_manager.invoke_pre_commands(plugin.name)
-        result = plugin.action(getattr(args, "_args", args))
-        context.plugin_manager.invoke_post_commands(plugin.name)
+        context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
+        result = plugin_subcommand.action(getattr(args, "_args", args))
+        context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
     elif name := getattr(args, "_executable", None):
         # run the subcommand from executables; legacy path
         deprecated.topic(
