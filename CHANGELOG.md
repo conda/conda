@@ -18,13 +18,15 @@
 * Add a new config option, `no_plugins`, a` --no-plugins` command line flag, and a `CONDA_NO_PLUGINS` environment variable that disables external plugins for built-in conda commands. (#12748)
 * Register plugins using their canonical/fully-qualified name instead of the easily spoofable entry point name. (#12869)
 * De-duplicate plugin and legacy subcommands in `conda --help`. (#12893)
+* Implement a 2-phase parser to better handle plugin disabling (via `--no-plugins`). (#12910)
+* Refactor subcommand parsing to use a greedy parser since `argparse.REMAINDER` has known issues (https://github.com/python/cpython/issues/61252). (#12910)
 
 ### Bug fixes
 
 * Use `requests.exceptions.JSONDecodeError` for ensuring compatibility with different `json` implementations used by requests. This fixes a bug that caused only the first of multiple given source URLs to be tried. This also raises the minimum required requests version to 2.27.0. (#12683)
 * Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""`. (#12715)
 * Fix erroneous `conda deactivate` behavior of unsetting preexisting environment variables that are identical to those set during `conda activate`. (#12769)
-* Correct third-party subcommands to receive _remaining_ arguments instead of a blanket `sys.argv[2:]` which broke `conda_cli` testing. (#12814)
+* Correct third-party subcommands to receive _remaining_ arguments instead of a blanket `sys.argv[2:]` which broke `conda_cli` testing. (#12814, #12910)
 
 ### Deprecations
 
