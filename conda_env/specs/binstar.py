@@ -1,20 +1,21 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import importlib
+"""Define binstar spec."""
+from __future__ import annotations
+
 import re
+from functools import cached_property
+from types import ModuleType
 
 from conda.exceptions import EnvironmentFileNotDownloaded
 from conda.models.version import normalized_version
 
-from .. import env
+from ..env import Environment, from_yaml
+
+ENVIRONMENT_TYPE = "env"
 
 
-ENVIRONMENT_TYPE = 'env'
-# TODO: isolate binstar related code into conda_env.utils.binstar
-
-
-class BinstarSpec(object):
+class BinstarSpec:
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
@@ -23,38 +24,29 @@ class BinstarSpec(object):
     :raises: EnvironmentFileNotDownloaded
     """
 
-    _environment = None
-    _username = None
-    _packagename = None
-    _package = None
-    _file_data = None
-    _binstar = None
     msg = None
 
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, name=None):
         self.name = name
-        self.quiet = False
 
-    def can_handle(self):
-        result = self._can_handle()
-        return result
-
-    def _can_handle(self):
+    def can_handle(self) -> bool:
         """
         Validates loader can process environment definition.
         :return: True or False
         """
         # TODO: log information about trying to find the package in binstar.org
         if self.valid_name():
-            if self.binstar is None:
-                self.msg = ("Anaconda Client is required to interact with anaconda.org or an "
-                            "Anaconda API. Please run `conda install anaconda-client -n base`.")
+            if not self.binstar:
+                self.msg = (
+                    "Anaconda Client is required to interact with anaconda.org or an "
+                    "Anaconda API. Please run `conda install anaconda-client -n base`."
+                )
                 return False
 
             return self.package is not None and self.valid_package()
         return False
 
-    def valid_name(self):
+    def valid_name(self) -> bool:
         """
         Validates name
         :return: True or False
@@ -67,73 +59,60 @@ class BinstarSpec(object):
             self.msg = f"Invalid name {self.name!r}, try the format: user/package"
         return False
 
-    def valid_package(self):
+    def valid_package(self) -> bool:
         """
         Returns True if package has an environment file
         :return: True or False
         """
         return len(self.file_data) > 0
 
-    @property
-    def binstar(self):
-        if self._binstar is None:
-            try:
-                binstar_utils = importlib.import_module("binstar_client.utils")
-                self._binstar = binstar_utils.get_server_api()
-            except (AttributeError, ModuleNotFoundError):
-                pass
-        return self._binstar
+    @cached_property
+    def binstar(self) -> ModuleType:
+        try:
+            from binstar_client.utils import get_server_api
 
-    @property
-    def file_data(self):
-        if self._file_data is None:
-            self._file_data = [data
-                               for data in self.package['files']
-                               if data['type'] == ENVIRONMENT_TYPE]
-        return self._file_data
+            return get_server_api()
+        except ImportError:
+            pass
 
-    @property
-    def environment(self):
-        """
-        :raises: EnvironmentFileNotDownloaded
-        """
-        if self._environment is None:
-            versions = [{'normalized': normalized_version(d['version']), 'original': d['version']}
-                        for d in self.file_data]
-            latest_version = max(versions, key=lambda x: x['normalized'])['original']
-            file_data = [data
-                         for data in self.package['files']
-                         if data['version'] == latest_version]
-            req = self.binstar.download(self.username, self.packagename, latest_version,
-                                        file_data[0]['basename'])
-            if req is None:
-                raise EnvironmentFileNotDownloaded(self.username, self.packagename)
-            self._environment = req.text
-        return env.from_yaml(self._environment)
+    @cached_property
+    def file_data(self) -> list[dict[str, str]]:
+        return [
+            data for data in self.package["files"] if data["type"] == ENVIRONMENT_TYPE
+        ]
 
-    @property
+    @cached_property
+    def environment(self) -> Environment:
+        versions = [
+            {"normalized": normalized_version(d["version"]), "original": d["version"]}
+            for d in self.file_data
+        ]
+        latest_version = max(versions, key=lambda x: x["normalized"])["original"]
+        file_data = [
+            data for data in self.package["files"] if data["version"] == latest_version
+        ]
+        req = self.binstar.download(
+            self.username, self.packagename, latest_version, file_data[0]["basename"]
+        )
+        if req is None:
+            raise EnvironmentFileNotDownloaded(self.username, self.packagename)
+        return from_yaml(req.text)
+
+    @cached_property
     def package(self):
-        if self._package is None:
-            try:
-                self._package = self.binstar.package(self.username, self.packagename)
-            except IndexError:
-                self.msg = "{} was not found on anaconda.org.\n"\
-                           "You may need to be logged in. Try running:\n"\
-                           "    anaconda login".format(self.name)
-        return self._package
+        try:
+            return self.binstar.package(self.username, self.packagename)
+        except (IndexError, AttributeError):
+            self.msg = (
+                "{} was not found on anaconda.org.\n"
+                "You may need to be logged in. Try running:\n"
+                "    anaconda login".format(self.name)
+            )
 
-    @property
-    def username(self):
-        if self._username is None:
-            self._username = self.parse()[0]
-        return self._username
+    @cached_property
+    def username(self) -> str:
+        return self.name.split("/", 1)[0]
 
-    @property
-    def packagename(self):
-        if self._packagename is None:
-            self._packagename = self.parse()[1]
-        return self._packagename
-
-    def parse(self):
-        """Parse environment definition handle"""
-        return self.name.split('/', 1)
+    @cached_property
+    def packagename(self) -> str:
+        return self.name.split("/", 1)[1]

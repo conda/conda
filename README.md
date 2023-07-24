@@ -1,15 +1,14 @@
 [conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-[ci-tests-badge]: https://github.com/conda/conda/actions/workflows/ci.yml/badge.svg
-[ci-images-badge]: https://github.com/conda/conda/actions/workflows/ci-images.yml/badge.svg
+[tests-badge]: https://github.com/conda/conda/actions/workflows/tests.yml/badge.svg
+[images-badge]: https://github.com/conda/conda/actions/workflows/images.yml/badge.svg
 [codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main.svg?label=coverage
 [release-badge]: https://img.shields.io/github/release/conda/conda.svg
 [gitpod]: https://gitpod.io/button/open-in-gitpod.svg
 
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
 
-
-[![CI Tests (GitHub Actions)][ci-tests-badge]](https://github.com/conda/conda/actions/workflows/ci.yml)
-[![CI Images (GitHub Actions)][ci-images-badge]](https://github.com/conda/conda/actions/workflows/ci-images.yml)
+[![Tests (GitHub Actions)][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml)
+[![Images (GitHub Actions)][images-badge]](https://github.com/conda/conda/actions/workflows/images.yml)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
 [![latest release version][release-badge]](https://github.com/conda/conda/releases)
 
@@ -58,27 +57,24 @@ In conda, an environment can be thought of as a completely separate installation
 Conda installs packages into environments efficiently using [hard links](https://en.wikipedia.org/wiki/Hard_link) by default when it is possible, so
 environments are space efficient, and take seconds to create.
 
-The default environment, which `conda` itself is installed into is called
-`base`. To create another environment, use the `conda create`
-command. For instance, to create an environment with the IPython notebook and
-NumPy 1.6, which is older than the version that comes with Anaconda by
-default, you would run:
+The default environment, which `conda` itself is installed into, is called `base`.
+To create another environment, use the `conda create` command.
+For instance, to create an environment with PyTorch, you would run:
 
 ```bash
-$ conda create -n numpy16 ipython-notebook numpy=1.6
+$ conda create --name ml-project pytorch
 ```
 
-This creates an environment called `numpy16` with the latest version of
-the IPython notebook, NumPy 1.6, and their dependencies.
+This creates an environment called `ml-project` with the latest version of PyTorch, and its dependencies.
 
-We can now activate this environment, use
+We can now activate this environment:
 
 ```bash
-$ conda activate numpy16
+$ conda activate ml-project
 ```
 
-This puts the bin directory of the `numpy16` environment in the front of the
-`PATH`, and sets it as the default environment for all subsequent conda commands.
+This puts the `bin` directory of the `ml-project` environment in the front of the `PATH`,
+and sets it as the default environment for all subsequent conda commands.
 
 To go back to the base environment, use
 
@@ -129,6 +125,7 @@ to add).
 - [Slack](https://conda.slack.com)
 - [Bug Reports/Feature Requests](https://github.com/conda/conda/issues)
 - [Installer/Package Issues](https://github.com/ContinuumIO/anaconda-issues/issues)
+- [Discourse](https://conda.discourse.group/)
 
 ## Contributing
 

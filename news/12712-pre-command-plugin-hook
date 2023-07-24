@@ -1,0 +1,7 @@
+### Enhancements
+
+* Add a new "pre_commands" hook allowing plugins to run code before a `conda` subcommand. (#12712, #12864)
+
+### Docs
+
+* Document how to use the new "pre_commands" plugin hook. (#12712)

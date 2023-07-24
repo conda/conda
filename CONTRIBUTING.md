@@ -63,12 +63,12 @@ Here are the steps you need to take to contribute to conda:
 4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
 5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
 
-### Issue triaging
+### Issue sorting
 
-Issue triaging is how we filter incoming issues and get them ready for active development.
-To see how this process works for this project, read "[The Triaging Process at conda][triaging]".
+Issue sorting is how we filter incoming issues and get them ready for active development.
+To see how this process works for this project, read "[The Issue Sorting Process at conda][sorting]".
 
-*The project maintainers are currently not seeking help with issue triaging, but this may change in the future*
+*The project maintainers are currently not seeking help with issue sorting, but this may change in the future*
 
 
 [conda cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
@@ -79,7 +79,7 @@ To see how this process works for this project, read "[The Triaging Process at c
 [anaconda-issues]: https://github.com/ContinuumIO/anaconda-issues/issues
 [anaconda-support]: https://anaconda.cloud/support-center
 [anaconda-bug-report]: https://anaconda.org/contact/report
-[triaging]: https://github.com/conda/infra/blob/main/TRIAGING.md
+[sorting]: https://github.com/conda/infra/blob/main/HOW_WE_USE_GITHUB.md
 [development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html
 
 ## Conda capitalization standards

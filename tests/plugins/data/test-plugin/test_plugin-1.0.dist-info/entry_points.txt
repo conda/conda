@@ -1,0 +1,4 @@
+[test_plugin]
+blocked=test_plugin.blocked
+importerror=test_plugin.importerror
+success=test_plugin.success

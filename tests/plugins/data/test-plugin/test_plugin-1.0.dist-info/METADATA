@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: conda-test-plugin
+Version: 1.0
+Summary: A test plugin
+Author-email: "Anaconda, Inc."
+Requires-Python: >=3.8

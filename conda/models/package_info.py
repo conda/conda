@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+"""(Legacy) Low-level implementation of a PackageRecord."""
 from logging import getLogger
 
-from .channel import Channel
-from .enums import NoarchType
-from .records import PackageRecord, PathsData
 from ..auxlib.entity import (
     ComposableField,
     Entity,
@@ -17,19 +12,23 @@ from ..auxlib.entity import (
     ListField,
     StringField,
 )
+from .channel import Channel
+from .enums import NoarchType
+from .records import PackageRecord, PathsData
 
 log = getLogger(__name__)
 
 
 class NoarchField(EnumField):
     def box(self, instance, instance_type, val):
-        return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
+        return super().box(instance, instance_type, NoarchType.coerce(val))
 
 
 class Noarch(Entity):
     type = NoarchField(NoarchType)
-    entry_points = ListField(str, required=False, nullable=True, default=None,
-                             default_in_dump=False)
+    entry_points = ListField(
+        str, required=False, nullable=True, default=None, default_in_dump=False
+    )
 
 
 class PreferredEnv(Entity):
@@ -42,12 +41,12 @@ class PackageMetadata(Entity):
     # from info/package_metadata.json
     package_metadata_version = IntegerField()
     noarch = ComposableField(Noarch, required=False, nullable=True)
-    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None,
-                                    default_in_dump=False)
+    preferred_env = ComposableField(
+        PreferredEnv, required=False, nullable=True, default=None, default_in_dump=False
+    )
 
 
 class PackageInfo(ImmutableEntity):
-
     # attributes external to the package tarball
     extracted_package_dir = StringField()
     package_tarball_full_path = StringField()
@@ -61,7 +60,9 @@ class PackageInfo(ImmutableEntity):
     paths_data = ComposableField(PathsData)
 
     def dist_str(self):
-        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
+        return "{}::{}-{}-{}".format(
+            self.channel.canonical_name, self.name, self.version, self.build
+        )
 
     @property
     def name(self):

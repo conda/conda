@@ -1,0 +1,14 @@
+# git revs to ignore when exploring the repo history with git blame
+# usage:
+#   * via args: `git blame --ignore-revs-file .git-blame-ignore-revs $file`
+#   * via settings `git config --local blame.ignoreRevsFile .git-blame-ignore-revs`
+#
+# useful:
+#   * mark skipped lines with "?": `git config --global blame.markIgnoredLines true`
+#   * mark lines added by skipped commit with "*": `git config --global blame.markUnblamableLines true`
+
+# pyupgrade generated (#11909)
+fc92ea3353cce71df24fac31ce333ec9f8cf7ba7
+
+# black & isort auto format (#12554)
+7679aed18153056f140e56da98011e27ebf4feb1
