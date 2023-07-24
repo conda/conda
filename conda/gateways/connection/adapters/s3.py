@@ -5,24 +5,20 @@ import json
 from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
 
-have_boto3 = have_boto = False
+boto3 = boto = None
 
 
 def _load_boto3():
     """
     Import boto3 on demand only to save startup time.
     """
-    global boto3, boto, have_boto3, have_boto
+    global boto3, boto
 
     try:
         import boto3
-
-        have_boto3 = True
     except ImportError:
         try:
             import boto
-
-            have_boto = True
         except ImportError:
             pass
 
@@ -46,12 +42,12 @@ class S3Adapter(BaseAdapter):
         resp.status_code = 200
         resp.url = request.url
 
-        if not have_boto3:
+        if not (boto3 or boto):
             _load_boto3()
 
-        if have_boto3:
+        if boto3:
             return self._send_boto3(boto3, resp, request)
-        elif have_boto:
+        elif boto:
             return self._send_boto(boto, resp, request)
         else:
             stderrlog.info(
