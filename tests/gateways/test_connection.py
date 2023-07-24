@@ -7,9 +7,9 @@ from unittest.mock import patch
 
 import pytest
 from requests import HTTPError
-from ruamel.yaml import YAML
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.base.context import reset_context
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
@@ -22,7 +22,6 @@ from conda.gateways.connection.session import (
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.testing.gateways.fixtures import MINIO_EXE
-from conda.testing.helpers import temp_context
 from conda.testing.integration import env_var, make_temp_env
 
 log = getLogger(__name__)
@@ -150,17 +149,12 @@ def test_session_manager_returns_default():
         ("http://localhost", ("defaults",), None),
     ),
 )
-def test_get_channel_name_from_url(url, channels, expected):
+def test_get_channel_name_from_url(url, channels, expected, monkeypatch):
     """
     Makes sure we return the correct value from the ``get_channel_name_from_url`` function.
     """
-    condarc_data = {"channels": channels}
-    yml = YAML()
-    condarc_stream = StringIO()
-    yml.dump(condarc_data, stream=condarc_stream)
-    condarc_stream.seek(0)
+    monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
+    reset_context()
+    channel_name = get_channel_name_from_url(url)
 
-    with temp_context(condarc_stream.read()):
-        channel_name = get_channel_name_from_url(url)
-
-        assert expected == channel_name
+    assert expected == channel_name
