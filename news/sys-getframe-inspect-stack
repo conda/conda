@@ -8,7 +8,8 @@
 
 ### Deprecations
 
-* Faster deprecations module.
+* Reduce startup delay from deprecations module by using `sys._getframe()`
+  instead of `inspect.stack()`. (#12919)
 
 ### Docs
 
