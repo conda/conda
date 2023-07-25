@@ -1360,7 +1360,9 @@ class UnlinkLinkTransaction:
                 unlink_prec, link_prec = change_report.updated_precs[namekey]
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
                 add_double(
-                    strip_global(namekey), left_str, f"{right_str} {link_prec.metadata}"
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec.metadata}",
                 )
 
         if change_report.superseded_precs:
@@ -1372,7 +1374,9 @@ class UnlinkLinkTransaction:
                 unlink_prec, link_prec = change_report.superseded_precs[namekey]
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
                 add_double(
-                    strip_global(namekey), left_str, f"{right_str} {link_prec.metadata}"
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec.metadata}",
                 )
 
         if change_report.downgraded_precs:
@@ -1381,7 +1385,9 @@ class UnlinkLinkTransaction:
                 unlink_prec, link_prec = change_report.downgraded_precs[namekey]
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
                 add_double(
-                    strip_global(namekey), left_str, f"{right_str} {link_prec.metadata}"
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {link_prec.metadata}",
                 )
         builder.append("")
         builder.append("")
