@@ -15,10 +15,6 @@ from typing import Callable, NamedTuple
 from ..core.solve import Solver
 
 
-def _not_implemented_configure_parser(parser: ArgumentParser) -> None:
-    raise NotImplementedError
-
-
 @dataclass
 class CondaSubcommand:
     """
@@ -39,9 +35,7 @@ class CondaSubcommand:
         [Namespace | tuple[str]],  # arguments
         int | None,  # return code
     ]
-    configure_parser: Callable[[ArgumentParser], None] = field(
-        default=_not_implemented_configure_parser
-    )
+    configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
 
 
 class CondaVirtualPackage(NamedTuple):

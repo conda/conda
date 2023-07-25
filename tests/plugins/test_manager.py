@@ -35,7 +35,7 @@ class VerboseSolverPlugin:
         )
 
 
-def test_load_no_plugins(plugin_manager):
+def test_load_without_plugins(plugin_manager):
     plugin_names = plugin_manager.load_plugins()
     assert plugin_names == 0
 
@@ -151,8 +151,7 @@ def test_get_canonical_name_instance(plugin_manager):
 @pytest.mark.parametrize("plugin", [this_module, VerboseSolverPlugin])
 def test_disable_external_plugins(plugin_manager, plugin: object):
     """
-    Run a test to ensure we can successfully disable externally registered plugins
-    with the --no-plugins flag
+    Run a test to ensure we can successfully disable externally registered plugins.
     """
     assert plugin_manager.load_plugins(plugin) == 1
     assert plugin_manager.get_plugins() == {plugin}
