@@ -1,17 +1,16 @@
 [//]: # (current developments)
 
-## 23.7.0 (2023-07-17)
+## 23.7.0 (2023-07-25)
 
 ### Enhancements
 
 * Add `conda.deprecations.DeprecationHandler.action` helper to deprecate `argparse.Action`s. (#12493)
-* Add support for FreeBSD. (#12647)
+* Add support for the FreeBSD operating system and register `freebsd-64` as a known subdirectory for FreeBSD on x86-64. (#12647)
 * Do not mock `$CONDA_PREFIX` when `--name` or `--prefix` is provided. (#12696)
 * Add support for `sha256` filters in the MatchSpec syntax (e.g. `*[sha256=f453db4ffe2271ec492a2913af4e61d4a6c118201f07de757df0eff769b65d2e]`). (#12654 via #12707)
-* Add a new "pre_commands" hook allowing plugins to run code before a `conda` subcommand. (#12712, #12864)
 * Add a new health check to `conda doctor` detecting altered packages in an environment by comparing expected and computed `sha256` checksums. (#12757)
-* Add a new "post_commands" hook allowing plugins to run code before a `conda` subcommand. (#12758, #12864)
-* Stop using `distutils` directly in favor of the vendored version in `setuptools` 60 and later. (#11136)
+* Add new `pre_commands` and `post_commands` plugin hooks allowing plugins to run code before and after `conda` subcommands. (#12712, #12758, #12864)
+* Stop using `distutils` directly in favor of the vendored version in `setuptools` 60 and later or standard library equivalents. (#11136)
 * Add a `CITATION.cff` file to the root of the repository to make it easier for users to cite conda. (#12781)
 * Add optional `CondaSubcommand.configure_parser` allowing third-party plugins to hook into conda's argument parser. (#12814)
 * Only display third-party subcommands in `conda --help` and not for every other subcommand. (#12814, #12740)
@@ -19,7 +18,7 @@
 * Register plugins using their canonical/fully-qualified name instead of the easily spoofable entry point name. (#12869)
 * De-duplicate plugin and legacy subcommands in `conda --help`. (#12893)
 * Implement a 2-phase parser to better handle plugin disabling (via `--no-plugins`). (#12910)
-* Refactor subcommand parsing to use a greedy parser since `argparse.REMAINDER` has known issues (https://github.com/python/cpython/issues/61252). (#12910)
+* Refactor subcommand parsing to use a greedy parser since `argparse.REMAINDER` has [known issues](https://github.com/python/cpython/issues/61252). (#12910)
 
 ### Bug fixes
 
@@ -39,8 +38,7 @@
 
 ### Docs
 
-* Document how to use the new "pre_commands" plugin hook. (#12712)
-* Document how to use the new "post_commands" plugin hook. (#12758)
+* Document how to use the new `pre_commands` and `post_commands` plugin hooks. (#12712, #12758)
 * Add docstrings to all public modules. (#12792)
 * Auto-generate API docs using `sphinx-autoapi`. (#12798)
 * Convert all manual redirects into config using `sphinx-reredirects`. (#12798)
