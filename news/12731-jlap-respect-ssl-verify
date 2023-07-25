@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Hide InsecureRequestWarning for jlap when CONDA_SSL_VERIFY=false, matching
+  non-jlap behavior. (#12731)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
