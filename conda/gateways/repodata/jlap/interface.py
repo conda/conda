@@ -7,6 +7,8 @@ import logging
 import os
 from pathlib import Path
 
+from conda.base.context import context
+from conda.gateways.connection.download import disable_ssl_verify_warning
 from conda.gateways.connection.session import CondaSession
 
 from .. import (
@@ -70,6 +72,9 @@ class JlapRepoInterface(RepoInterface):
         When repodata is not updated, it doesn't matter whether this function or
         the caller reads from a file.
         """
+        if not context.ssl_verify:
+            disable_ssl_verify_warning()
+
         session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
