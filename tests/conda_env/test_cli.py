@@ -799,15 +799,3 @@ def test_invalid_extensions(env_name_2: None):
     with Utf8NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
         with pytest.raises(EnvironmentFileExtensionNotValid):
             run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
-
-
-def test_json_option_both_ways(conda_cli):
-    stdout1, _, err1 = conda_cli("--json", "info")
-    stdout2, _, err2 = conda_cli("info", "--json")
-    assert not err1
-    assert not err2
-    result1_loaded = json.loads(stdout1)
-    result2_loaded = json.loads(stdout2)
-    assert "active_prefix" in result1_loaded
-    assert "active_prefix" in result2_loaded
-    assert result1_loaded == result2_loaded

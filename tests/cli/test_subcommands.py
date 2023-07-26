@@ -73,15 +73,17 @@ def test_info(conda_cli: CondaCLIFixture):
 
 
 def test_info_json(conda_cli: CondaCLIFixture):
-    out, err, code = conda_cli("info", "--json")
-    assert json.loads(out)
+    out1, err, code = conda_cli("info", "--json")
+    assert json.loads(out1)
     assert not err
     assert not code
 
-    out, err, code = conda_cli("--json", "info")
-    assert json.loads(out)
+    out2, err, code = conda_cli("--json", "info")
+    assert json.loads(out2)
     assert not err
     assert not code
+
+    assert out1 == out2
 
 
 def test_init(conda_cli: CondaCLIFixture):
