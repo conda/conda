@@ -49,7 +49,9 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     context.__init__(argparse_args=pre_args)
 
     parser = generate_parser(add_help=True)
+    debug, json = pre_args.debug, pre_args.json
     args = parser.parse_args(unknown, namespace=pre_args)
+    args.debug, args.json = debug, json
 
     context.__init__(argparse_args=args)
     init_loggers(context)
