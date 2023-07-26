@@ -191,6 +191,12 @@ class ArgumentParser(ArgumentParserBase):
         else:
             super()._check_value(action, value)
 
+    def parse_args(self, *args, override_args=None, **kwargs):
+        parsed_args = super().parse_args(*args, **kwargs)
+        for name, value in (override_args or {}).items():
+            setattr(parsed_args, name, value)
+        return parsed_args
+
 
 class _GreedySubParsersAction(argparse._SubParsersAction):
     """A custom subparser action to conditionally act as a greedy consumer.
