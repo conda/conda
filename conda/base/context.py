@@ -181,6 +181,7 @@ class Context(Configuration):
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
+    register_envs = ParameterLoader(PrimitiveParameter(True))
     default_python = ParameterLoader(
         PrimitiveParameter(
             default_python_default(),
@@ -1189,6 +1190,8 @@ class Context(Configuration):
                 # I don't think this documentation is correct any longer. # NOQA
                 "target_prefix_override",
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                "register_envs",
+                # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
         }
 
