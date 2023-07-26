@@ -104,6 +104,12 @@ def test_jlap_fetch_ssl(
 
     expected_exception = CondaSSLError if verify_ssl else RepodataOnDisk
 
+    # clear session cache to avoid leftover wrong-ssl-verify Session()
+    try:
+        del CondaSession._thread_local.session
+    except AttributeError:
+        pass
+
     state = {}
     with env_vars(
         {"CONDA_SSL_VERIFY": str(verify_ssl).lower()},
