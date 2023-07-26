@@ -14,7 +14,7 @@ from collections.abc import Iterable
 import pluggy
 
 from .types import (
-    CondaFetch,
+    CondaAuth,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -173,29 +173,35 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_fetch(self) -> Iterable[CondaFetch]:
+    def conda_auth(self) -> Iterable[CondaAuth]:
         """
-        Register conda fetch hook. This plugin hook replaces the
-        ``conda.gateways.connection.session.CondaSession`` class. The replacement
-        class should be compatible with ``requests.Session``.
+        Register conda auth hook. This plugin hook replaces the allows authors
+        to add new ``request.AuthBase`` subclasses which can then be used by individual
+        channels while authenticated to HTTP/HTTPS services.
 
         **Example:**
 
         .. code-block:: python
 
             from conda import plugins
-            from requests import Session
+            from requests.auth import AuthBase
 
 
-            class MyCustomSession(Session):
+            class CustomAuth(AuthBase):
                 def __init__(self, *args, **kwargs):
-                    self.custom_param = "custom-name"
+                    self.username = "user"
+                    self.password = "pass"
+
+                def __call__(self, request):
+                    request.headers["X-Username"] = self.username
+                    request.headers["X-Password"] = self.password
+                    return request
 
 
             @plugins.hookimpl
             def conda_fetch():
                 yield plugins.CondaFetch(
-                    name="my-custom-fetch",
-                    session_class=MyCustomSession,
+                    name="custom-auth",
+                    session_class=CustomAuth,
                 )
         """

@@ -9,9 +9,9 @@ from threading import local
 
 from ...auxlib.ish import dals
 from ...base.constants import (
+    AUTH_CHANNEL_SETTINGS_NAME,
     CHANNEL_SETTINGS_CHANNEL_NAME,
     CONDA_HOMEPAGE_URL,
-    FETCH_BACKEND_SETTINGS_NAME,
 )
 from ...base.context import context
 from ...common.url import (
@@ -98,15 +98,15 @@ def session_manager(url: str):
         if settings.get(CHANNEL_SETTINGS_CHANNEL_NAME) == channel_name:
             channel_settings = settings
 
-    session_type = channel_settings.get(FETCH_BACKEND_SETTINGS_NAME)
+    auth_type = channel_settings.get(AUTH_CHANNEL_SETTINGS_NAME)
 
     # Return default session object
-    if session_type is None:
+    if auth_type is None:
         return CondaSession()
 
-    session_class = context.plugin_manager.get_fetch_backend(session_type)
+    auth_class = context.plugin_manager.get_auth_backend(auth_type)
 
-    return session_class(channel_name=channel_name)
+    return CondaSession(auth=auth_class(channel_name))
 
 
 class CondaSessionType(type):
@@ -119,21 +119,22 @@ class CondaSessionType(type):
         dct["_thread_local"] = local()
         return super().__new__(mcs, name, bases, dct)
 
-    def __call__(cls):
+    def __call__(cls, **kwargs):
         try:
             return cls._thread_local.session
         except AttributeError:
-            session = cls._thread_local.session = super().__call__()
+            session = cls._thread_local.session = super().__call__(**kwargs)
             return session
 
 
-class CondaSessionBase(Session):
-    def __init__(self):
+class CondaSession(Session, metaclass=CondaSessionType):
+    def __init__(self, auth: AuthBase | None = None):
+        """
+        :param auth: Optionally provide ``requests.AuthBase`` compliant objects
+        """
         super().__init__()
 
-        self.auth = (
-            CondaHttpAuth()
-        )  # TODO: should this just be for certain protocol adapters?
+        self.auth = auth or CondaHttpAuth()
 
         self.proxies.update(context.proxy_servers)
 
@@ -168,13 +169,6 @@ class CondaSessionBase(Session):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
-
-
-class CondaSession(CondaSessionBase, metaclass=CondaSessionType):
-    """
-    Implementation of CondaSessionBase with an added metaclass for managing
-    object caching in a thread safe manner.
-    """
 
 
 class CondaHttpAuth(AuthBase):

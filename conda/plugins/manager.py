@@ -15,6 +15,7 @@ from importlib.metadata import distributions
 from inspect import getmodule, isclass
 
 import pluggy
+from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
 from ..base.context import context
@@ -22,7 +23,6 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import SessionType
 
 log = logging.getLogger(__name__)
 
@@ -202,21 +202,16 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def get_fetch_backend(self, name: str = None) -> type[SessionType]:
+    def get_auth_backend(self, name: str) -> type[AuthBase]:
         """
-        Get the session class with the given name (or fall back to the
+        Get the auth class with the given name (or fall back to the
         default CondaSession class).
         """
-        if name:
-            fetch_backends = self.get_hook_results("fetch")
-            matches = tuple(item for item in fetch_backends if item.name == name)
+        auth_backends = self.get_hook_results("auth")
+        matches = tuple(item for item in auth_backends if item.name == name)
 
-            if len(matches) > 0:
-                return matches[0].session_class
-
-        from ..gateways.connection.session import CondaSession
-
-        return CondaSession
+        if len(matches) > 0:
+            return matches[0].auth_class
 
     def invoke_pre_commands(self, command: str) -> None:
         """
