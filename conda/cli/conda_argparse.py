@@ -73,13 +73,11 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser.add_argument(
         "--debug",
         action="store_true",
-        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
         "--json",
         action="store_true",
-        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
@@ -192,6 +190,12 @@ class ArgumentParser(ArgumentParserBase):
                 super()._check_value(action, element)
         else:
             super()._check_value(action, value)
+
+    def parse_args(self, *args, override_args=None, **kwargs):
+        parsed_args = super().parse_args(*args, **kwargs)
+        for name, value in (override_args or {}).items():
+            setattr(parsed_args, name, value)
+        return parsed_args
 
 
 class _GreedySubParsersAction(argparse._SubParsersAction):
@@ -1746,17 +1750,13 @@ def add_parser_json(p):
     output_and_prompt_options.add_argument(
         "--debug",
         action="store_true",
-        # defer to pre parser but include in --help
-        dest=SUPPRESS,
-        default=SUPPRESS,
+        default=NULL,
         help=SUPPRESS,
     )
     output_and_prompt_options.add_argument(
         "--json",
         action="store_true",
-        # defer to pre parser but include in --help
-        dest=SUPPRESS,
-        default=SUPPRESS,
+        default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
     )
     output_and_prompt_options.add_argument(
