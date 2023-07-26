@@ -1,5 +1,18 @@
 [//]: # (current developments)
 
+## 23.7.1 (2023-07-26)
+
+### Bug fixes
+
+* Patch parsed args with pre_args to correctly parse `--json` and `--debug` arguments. (#12928, #12929)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
 ## 23.7.0 (2023-07-25)
 
 ### Enhancements
