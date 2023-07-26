@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Import boto3 only when s3 channels are used, saving startup time. (#12914)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Update `tests/cli/test_main_rename.py` to use latest fixtures. (#12517)
+* <news item>
