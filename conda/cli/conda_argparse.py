@@ -73,13 +73,11 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser.add_argument(
         "--debug",
         action="store_true",
-        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
         "--json",
         action="store_true",
-        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
@@ -1746,17 +1744,13 @@ def add_parser_json(p):
     output_and_prompt_options.add_argument(
         "--debug",
         action="store_true",
-        # defer to pre parser but include in --help
-        dest=SUPPRESS,
-        default=SUPPRESS,
+        default=NULL,
         help=SUPPRESS,
     )
     output_and_prompt_options.add_argument(
         "--json",
         action="store_true",
-        # defer to pre parser but include in --help
-        dest=SUPPRESS,
-        default=SUPPRESS,
+        default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
     )
     output_and_prompt_options.add_argument(
