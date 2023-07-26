@@ -41,6 +41,9 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     pre_parser = generate_pre_parser(add_help=False)
     pre_args, unknown = pre_parser.parse_known_args(args)
 
+    # the arguments that we want to pass to the main parser later on
+    populate_args = {"json": pre_args.json, "debug": pre_args.json}
+
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
         context.plugin_manager.disable_external_plugins()
@@ -48,7 +51,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     # reinitialize in case any of the entrypoints modified the context
     context.__init__(argparse_args=pre_args)
 
-    parser = generate_parser(add_help=True)
+    parser = generate_parser(add_help=True, populate_args=populate_args)
     args = parser.parse_args(unknown, namespace=pre_args)
 
     context.__init__(argparse_args=args)
