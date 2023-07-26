@@ -176,13 +176,12 @@ def find_builtin_commands(parser):
 
 
 class ArgumentParser(ArgumentParserBase):
-    def __init__(self, *args, add_help=True, populate_args=None, **kwargs):
+    def __init__(self, *args, add_help=True, **kwargs):
         kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
         super().__init__(*args, add_help=False, **kwargs)
 
         if add_help:
             add_parser_help(self)
-        self.populate_args = populate_args or {}
 
     def _check_value(self, action, value):
         # extend to properly handle when we accept multiple choices and the default is a list
@@ -192,9 +191,9 @@ class ArgumentParser(ArgumentParserBase):
         else:
             super()._check_value(action, value)
 
-    def parse_args(self, *args, **kwargs):
+    def parse_args(self, *args, override_args=None, **kwargs):
         parsed_args = super().parse_args(*args, **kwargs)
-        for name, value in self.populate_args.items():
+        for name, value in (override_args or {}).items():
             setattr(parsed_args, name, value)
         return parsed_args
 
