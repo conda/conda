@@ -10,7 +10,7 @@ from threading import local
 from ...auxlib.ish import dals
 from ...base.constants import (
     AUTH_CHANNEL_SETTINGS_NAME,
-    CHANNEL_SETTINGS_CHANNEL_NAME,
+    CHANNEL_CHANNEL_SETTINGS_NAME,
     CONDA_HOMEPAGE_URL,
 )
 from ...base.context import context
@@ -95,7 +95,7 @@ def session_manager(url: str):
 
     channel_settings = {}
     for settings in context.channel_settings:
-        if settings.get(CHANNEL_SETTINGS_CHANNEL_NAME) == channel_name:
+        if settings.get(CHANNEL_CHANNEL_SETTINGS_NAME) == channel_name:
             channel_settings = settings
 
     auth_type = channel_settings.get(AUTH_CHANNEL_SETTINGS_NAME)

@@ -332,4 +332,4 @@ AUTH_CHANNEL_SETTINGS_NAME = "auth"
 USERNAME_CHANNEL_SETTINGS_NAME = "username"
 
 #: Name we use to identify the channel name in ``channel_settings``
-CHANNEL_SETTINGS_CHANNEL_NAME = "channel"
+CHANNEL_CHANNEL_SETTINGS_NAME = "channel"

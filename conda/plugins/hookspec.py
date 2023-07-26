@@ -199,9 +199,9 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_fetch():
-                yield plugins.CondaFetch(
+            def conda_auth():
+                yield plugins.CondaAuth(
                     name="custom-auth",
-                    session_class=CustomAuth,
+                    auth_class=CustomAuth,
                 )
         """
