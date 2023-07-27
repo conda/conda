@@ -44,4 +44,5 @@ def conda_subcommands():
         summary="Display a health report for your environment.",
         action=execute,
         configure_parser=configure_parser,
+        inherit=False,
     )
