@@ -7,6 +7,8 @@ import logging
 import os
 from pathlib import Path
 
+from conda.base.context import context
+from conda.gateways.connection.download import disable_ssl_verify_warning
 from conda.gateways.connection.session import session_manager
 
 from .. import (
@@ -71,6 +73,9 @@ class JlapRepoInterface(RepoInterface):
         the caller reads from a file.
         """
         session = session_manager(self._url)
+
+        if not context.ssl_verify:
+            disable_ssl_verify_warning()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
 
