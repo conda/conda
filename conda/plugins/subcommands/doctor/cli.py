@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 
 from ....base.context import context
-from ....cli.conda_argparse import ArgumentParser, add_parser_help, add_parser_prefix
+from ....cli.conda_argparse import ArgumentParser, add_parser_prefix
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
 
@@ -20,13 +20,6 @@ def get_prefix(args: argparse.Namespace) -> str:
 
 
 def configure_parser(parser: ArgumentParser):
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Generate a detailed environment health report.",
-    )
-    add_parser_help(parser)
     add_parser_prefix(parser)
 
 
@@ -34,7 +27,7 @@ def execute(args: argparse.Namespace) -> None:
     """Run conda doctor subcommand."""
     from .health_checks import display_health_checks
 
-    display_health_checks(context.target_prefix, verbose=args.verbose)
+    display_health_checks(context.target_prefix, verbose=context.verbosity)
 
 
 @hookimpl
@@ -44,5 +37,4 @@ def conda_subcommands():
         summary="Display a health report for your environment.",
         action=execute,
         configure_parser=configure_parser,
-        inherit=False,
     )
