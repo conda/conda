@@ -9,7 +9,7 @@ Each type corresponds to the plugin hook for which it is used.
 from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, NamedTuple
 
 from ..core.solve import Solver
@@ -27,6 +27,7 @@ class CondaSubcommand:
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
     :param configure_parser: Callable that will be run when the subcommand parser is initialized.
+    :param inherit: Whether to inherit conda's default arguments.
     """
 
     name: str
@@ -35,7 +36,8 @@ class CondaSubcommand:
         [Namespace | tuple[str]],  # arguments
         int | None,  # return code
     ]
-    configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
+    configure_parser: Callable[[ArgumentParser], None] | None = None
+    inherit: bool = True
 
 
 class CondaVirtualPackage(NamedTuple):

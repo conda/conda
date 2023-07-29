@@ -30,19 +30,16 @@ def generate_parser(*args, **kwargs):
     return generate_parser(*args, **kwargs)
 
 
-def main_subshell(*args, post_parse_hook=None, **kwargs):
+def main_subshell(*argv, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
-    args = args or ["--help"]
+    argv = argv or ["--help"]
 
     pre_parser = generate_pre_parser(add_help=False)
-    pre_args, unknown = pre_parser.parse_known_args(args)
-
-    # the arguments that we want to pass to the main parser later on
-    override_args = {"json": pre_args.json, "debug": pre_args.debug}
+    pre_args, _ = pre_parser.parse_known_args(argv)
 
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
@@ -52,7 +49,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     context.__init__(argparse_args=pre_args)
 
     parser = generate_parser(add_help=True)
-    args = parser.parse_args(unknown, override_args=override_args, namespace=pre_args)
+    args = parser.parse_args(argv, namespace=pre_args)
 
     context.__init__(argparse_args=args)
     init_loggers(context)
@@ -68,7 +65,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         return exit_code.rc
 
 
-def main_sourced(shell, *args, **kwargs):
+def main_sourced(shell, *argv, **kwargs):
     """Entrypoint for the "sourced" invocation of CLI interface. E.g. `conda activate`."""
     shell = shell.replace("shell.", "", 1)
 
@@ -87,7 +84,7 @@ def main_sourced(shell, *args, **kwargs):
 
         raise CondaError("%s is not a supported shell." % shell)
 
-    activator = activator_cls(args)
+    activator = activator_cls(argv)
     print(activator.execute(), end="")
     return 0
 

@@ -70,22 +70,7 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         **kwargs,
     )
 
-    pre_parser.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    pre_parser.add_argument(
-        "--json",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    pre_parser.add_argument(
-        "--no-plugins",
-        action="store_true",
-        default=NULL,
-        help="Disable all plugins that are not built into conda.",
-    )
+    add_parser_inherited(pre_parser, group=False, suppress=False)
 
     return pre_parser
 
@@ -329,6 +314,10 @@ def configure_parser_plugins(sub_parsers) -> None:
             add_help=False,  # defer to subcommand's help processing
         )
 
+        if plugin_subcommand.inherit:
+            # subcommand plugins inherits arguments from conda
+            add_parser_inherited(parser, group=True, suppress=True)
+
         # case 1: plugin extends the parser
         if plugin_subcommand.configure_parser:
             plugin_subcommand.configure_parser(parser)
@@ -375,6 +364,8 @@ def configure_parser_plugins(sub_parsers) -> None:
             help=f"See `conda {name} --help`.",
             add_help=False,  # defer to subcommand's help processing
         )
+
+        # legacy plugins never inherit arguments from conda
 
         # case 3: legacy plugins are always greedy
         parser.greedy = True
@@ -451,7 +442,7 @@ def configure_parser_clean(sub_parsers):
         help="Remove log files.",
     )
 
-    add_output_and_prompt_options(p)
+    add_parser_inherited(p)
 
     p.set_defaults(func=".main_clean.execute")
 
@@ -464,7 +455,7 @@ def configure_parser_info(sub_parsers):
         description=help,
         help=help,
     )
-    add_parser_json(p)
+    add_parser_inherited(p)
     p.add_argument(
         "--offline",
         action="store_true",
@@ -593,7 +584,7 @@ def configure_parser_config(sub_parsers):
         help=help_,
         epilog=additional_descr,
     )
-    add_parser_json(p)
+    add_parser_inherited(p)
 
     # TODO: use argparse.FileType
     config_file_location_group = p.add_argument_group(
@@ -902,13 +893,7 @@ def configure_parser_init(sub_parsers):
             default=NULL,
         )
 
-    add_parser_json(p)
-    p.add_argument(
-        "-d",
-        "--dry-run",
-        action="store_true",
-        help="Only display what would have been done.",
-    )
+    add_parser_inherited(p)
     p.set_defaults(func=".main_init.execute")
 
 
@@ -1052,7 +1037,7 @@ def configure_parser_list(sub_parsers):
     )
     add_parser_help(p)
     add_parser_prefix(p)
-    add_parser_json(p)
+    add_parser_inherited(p)
     add_parser_show_channel_urls(p)
     p.add_argument(
         "--reverse",
@@ -1143,7 +1128,7 @@ def configure_parser_compare(sub_parsers):
         add_help=False,
     )
     add_parser_help(p)
-    add_parser_json(p)
+    add_parser_inherited(p)
     add_parser_prefix(p)
     p.add_argument(
         "file",
@@ -1282,7 +1267,7 @@ def configure_parser_remove(sub_parsers, aliases):
     add_parser_solver(solver_mode_options)
 
     add_parser_networking(p)
-    add_output_and_prompt_options(p)
+    add_parser_inherited(p)
 
     p.add_argument(
         "package_names",
@@ -1488,7 +1473,7 @@ def configure_parser_search(sub_parsers):
 
     add_parser_channels(p)
     add_parser_networking(p)
-    add_parser_json(p)
+    add_parser_inherited(p)
     p.set_defaults(func=".main_search.execute")
 
 
@@ -1628,14 +1613,7 @@ def configure_parser_rename(sub_parsers) -> None:
         action="store_true",
         default=False,
     )
-    p.add_argument(
-        "-d",
-        "--dry-run",
-        help="Only display what would have been done by the current command, arguments, "
-        "and other flags.",
-        action="store_true",
-        default=False,
-    )
+    add_parser_inherited(p)
     p.set_defaults(func=".main_rename.execute")
 
 
@@ -1653,7 +1631,11 @@ def add_parser_create_install_update(p, prefix_required=False):
     package_install_options = add_parser_package_install_options(p)
     add_parser_networking(p)
 
-    output_and_prompt_options = add_output_and_prompt_options(p)
+    add_parser_inherited(p)
+
+    output_and_prompt_options = p.add_argument_group(
+        "Output, Prompt, and Flow Control Options"
+    )
     output_and_prompt_options.add_argument(
         "--download-only",
         action="store_true",
@@ -1719,6 +1701,71 @@ def add_parser_help(p):
         "--help",
         action=_HelpAction,
         help="Show this help message and exit.",
+    )
+
+
+def add_parser_inherited(
+    parser: ArgumentParser, group: bool = True, suppress: bool = True
+) -> None:
+    inherited = (
+        parser.add_argument_group("inherited optional arguments") if group else parser
+    )
+    suppress_value = SUPPRESS if suppress else None
+
+    inherited.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show debug output.",
+        dest=suppress_value or None,
+        default=suppress_value or NULL,
+    )
+    inherited.add_argument(
+        "--json",
+        action="store_true",
+        help="Report all output as json. Suitable for using conda programmatically.",
+        dest=suppress_value or None,
+        default=suppress_value or NULL,
+    )
+    inherited.add_argument(
+        "-v",
+        "--verbose",
+        action=NullCountAction,
+        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
+        dest=suppress_value or "verbosity",
+        default=suppress_value or NULL,
+    )
+    inherited.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Do not display progress bar.",
+        dest=suppress_value or None,
+        default=suppress_value or NULL,
+    )
+    inherited.add_argument(
+        "-d",
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done.",
+        dest=suppress_value or None,
+        default=suppress_value or NULL,
+    )
+    inherited.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help=(
+            "Sets any confirmation values to 'yes' automatically. "
+            "Users will not be asked to confirm any adding, deleting, backups, etc."
+        ),
+        dest=suppress_value or None,
+        default=suppress_value or NULL,
+    )
+    inherited.add_argument(
+        "--no-plugins",
+        action="store_true",
+        default=NULL,
+        help="Disable all plugins that are not built into conda.",
     )
 
 
