@@ -47,7 +47,7 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.7.0
+    rev: v3.9.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -59,12 +59,12 @@ repos:
       # auto sort Python imports
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       # auto format Python codes
       - id: black
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.14.0
+    rev: 1.15.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs

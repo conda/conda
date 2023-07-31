@@ -57,6 +57,7 @@ from .constants import (
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
+    NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
@@ -193,7 +194,6 @@ class Context(Configuration):
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
-
     pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
     # multithreading in various places
@@ -444,6 +444,12 @@ class Context(Configuration):
         MapParameter(PrimitiveParameter("", element_type=str)),
         aliases=("conda-build", "conda_build"),
     )
+
+    ####################################################
+    #               Plugin Configuration               #
+    ####################################################
+
+    no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
 
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(argparse_args=argparse_args)
@@ -1193,6 +1199,7 @@ class Context(Configuration):
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
+            "Plugin Configuration": ("no_plugins",),
         }
 
     def get_descriptions(self):
@@ -1502,6 +1509,11 @@ class Context(Configuration):
             #     environments and inconsistent behavior. Use at your own risk.
             #     """
             # ),
+            no_plugins=dals(
+                """
+                Disable all currently-registered plugins, except built-in conda plugins.
+                """
+            ),
             non_admin_enabled=dals(
                 """
                 Allows completion of conda's create, install, update, and remove operations, for

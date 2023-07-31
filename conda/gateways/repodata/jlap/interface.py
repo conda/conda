@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 
+from conda.base.context import context
+from conda.gateways.connection.download import disable_ssl_verify_warning
 from conda.gateways.connection.session import CondaSession
 
 from .. import (
@@ -32,18 +33,11 @@ class JlapRepoInterface(RepoInterface):
         url: str,
         repodata_fn: str | None,
         *,
-        cache_path_json: str | Path,
-        cache_path_state: str | Path,
         cache: RepodataCache,
         **kwargs,
     ) -> None:
         log.debug("Using CondaRepoJLAP")
 
-        # TODO is there a better way to share these paths
-        self._cache_path_json = Path(cache_path_json)
-        self._cache_path_state = Path(cache_path_state)
-
-        # replaces self._cache_path_json/state
         self._cache = cache
 
         self._url = url
@@ -70,6 +64,9 @@ class JlapRepoInterface(RepoInterface):
         When repodata is not updated, it doesn't matter whether this function or
         the caller reads from a file.
         """
+        if not context.ssl_verify:
+            disable_ssl_verify_warning()
+
         session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"

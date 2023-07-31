@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Callable, ContextManager
 
@@ -57,11 +58,32 @@ def test_config(conda_cli: CondaCLIFixture):
     assert not code
 
 
+def test_doctor(conda_cli: CondaCLIFixture):
+    out, err, code = conda_cli("doctor")
+    assert out
+    assert not err
+    assert not code
+
+
 def test_info(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("info")
     assert out
     assert not err
     assert not code
+
+
+def test_info_json(conda_cli: CondaCLIFixture):
+    out1, err, code = conda_cli("info", "--json")
+    assert json.loads(out1)
+    assert not err
+    assert not code
+
+    out2, err, code = conda_cli("--json", "info")
+    assert json.loads(out2)
+    assert not err
+    assert not code
+
+    assert out1 == out2
 
 
 def test_init(conda_cli: CondaCLIFixture):
