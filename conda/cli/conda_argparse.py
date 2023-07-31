@@ -8,12 +8,7 @@ import os
 import sys
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
-from argparse import (
-    RawDescriptionHelpFormatter,
-    _CountAction,
-    _HelpAction,
-    _StoreAction,
-)
+from argparse import RawDescriptionHelpFormatter, _CountAction, _HelpAction
 from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
@@ -31,8 +26,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL
-from ..deprecations import deprecated
-from .find_commands import find_commands, find_executable
+from .find_commands import find_commands
 
 log = getLogger(__name__)
 
@@ -142,20 +136,6 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
         result = plugin_subcommand.action(getattr(args, "_args", args))
         context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
-    elif name := getattr(args, "_executable", None):
-        # run the subcommand from executables; legacy path
-        deprecated.topic(
-            "23.3",
-            "23.9",
-            topic="Loading conda subcommands via executables",
-            addendum="Use the plugin system instead.",
-        )
-        executable = find_executable(f"conda-{name}")
-        if not executable:
-            from ..exceptions import CommandNotFoundError
-
-            raise CommandNotFoundError(name)
-        return _exec([executable, *args._args], os.environ)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -1980,18 +1960,6 @@ def add_parser_solver(p):
         dest="solver",
         choices=solver_choices,
         help="Choose which solver backend to use.",
-        default=NULL,
-    )
-    group.add_argument(
-        "--experimental-solver",
-        action=deprecated.action(
-            "23.9",
-            "24.3",
-            _StoreAction,
-            addendum="Use `--solver` instead.",
-        ),
-        dest="solver",
-        choices=solver_choices,
         default=NULL,
     )
 
