@@ -5,7 +5,9 @@ import errno
 import functools
 import os
 import sys
+import threading
 from builtins import input  # noqa: F401
+from collections.abc import Hashable as _Hashable
 
 # necessary for conda-build
 from io import StringIO  # noqa: F401
@@ -24,12 +26,20 @@ from .common.compat import on_win  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
 from .core.package_cache_data import rm_fetched  # noqa: F401
 from .core.solve import Solver  # noqa: F401
+from .deprecations import deprecated
 from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
 from .gateways.disk.link import lchmod  # noqa: F401
+
+
+@deprecated("23.3", "24.3", addendum="Handled by CondaSession.")
+def handle_proxy_407(x, y):
+    pass
+
+
 from .misc import untracked, walk_prefix  # noqa: F401
 from .resolve import (  # noqa: F401
     MatchSpec,
@@ -132,6 +142,40 @@ class Completer:  # pragma: no cover
 
 class InstalledPackages:
     pass
+
+
+@deprecated("23.3", "24.3", addendum="Use `functools.lru_cache` instead.")
+class memoized:  # pragma: no cover
+    """Decorator. Caches a function's return value each time it is called.
+    If called later with the same arguments, the cached value is returned
+    (not reevaluated).
+    """
+
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+        self.lock = threading.Lock()
+
+    def __call__(self, *args, **kw):
+        newargs = []
+        for arg in args:
+            if isinstance(arg, list):
+                newargs.append(tuple(arg))
+            elif not isinstance(arg, _Hashable):
+                # uncacheable. a list, for instance.
+                # better to not cache than blow up.
+                return self.func(*args, **kw)
+            else:
+                newargs.append(arg)
+        newargs = tuple(newargs)
+        key = (newargs, frozenset(sorted(kw.items())))
+        with self.lock:
+            if key in self.cache:
+                return self.cache[key]
+            else:
+                value = self.func(*args, **kw)
+                self.cache[key] = value
+                return value
 
 
 from .core.prefix_data import delete_prefix_from_linked_data

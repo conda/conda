@@ -26,7 +26,8 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL
-from .find_commands import find_commands
+from ..deprecations import deprecated
+from .find_commands import find_commands, find_executable
 
 log = getLogger(__name__)
 
@@ -136,6 +137,20 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
         result = plugin_subcommand.action(getattr(args, "_args", args))
         context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
+    elif name := getattr(args, "_executable", None):
+        # run the subcommand from executables; legacy path
+        deprecated.topic(
+            "23.3",
+            "24.3",
+            topic="Loading conda subcommands via executables",
+            addendum="Use the plugin system instead.",
+        )
+        executable = find_executable(f"conda-{name}")
+        if not executable:
+            from ..exceptions import CommandNotFoundError
+
+            raise CommandNotFoundError(name)
+        return _exec([executable, *args._args], os.environ)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = args.func.rsplit(".", 1)
