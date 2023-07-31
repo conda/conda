@@ -720,6 +720,17 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
+    @deprecated(
+        "23.9",
+        "24.3",
+        addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
+    )
+    def conda_exe(self):
+        bin_dir = "Scripts" if on_win else "bin"
+        exe = "conda.exe" if on_win else "conda"
+        return join(self.conda_prefix, bin_dir, exe)
+
+    @property
     def av_data_dir(self):
         """Where critical artifact verification data (e.g., various public keys) can be found."""
         # TODO (AV): Find ways to make this user configurable?
