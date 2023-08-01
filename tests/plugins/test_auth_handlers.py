@@ -5,8 +5,8 @@ import re
 import pytest
 from requests.auth import HTTPBasicAuth
 
-from conda.exceptions import PluginError
 from conda import plugins
+from conda.exceptions import PluginError
 
 PLUGIN_NAME = "custom_auth"
 PLUGIN_NAME_ALT = "custom_auth_alt"
