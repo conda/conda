@@ -16,6 +16,7 @@ from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
+from conda.testing import CondaCLIFixture
 from conda_env.env import (
     VALID_KEYS,
     Environment,
@@ -26,7 +27,7 @@ from conda_env.env import (
 from tests.test_utils import is_prefix_activated_PATHwise
 
 from . import support_file
-from .utils import Commands, make_temp_envs_dir, run_command
+from .utils import make_temp_envs_dir
 
 
 class FakeStream:
@@ -363,7 +364,7 @@ def test_creates_file_on_save(tmp_path: Path):
     ),
 )
 @pytest.mark.integration
-def test_create_advanced_pip():
+def test_create_advanced_pip(conda_cli: CondaCLIFixture):
     with make_temp_envs_dir() as envs_dir:
         with env_vars(
             {
@@ -373,7 +374,7 @@ def test_create_advanced_pip():
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             env_name = str(uuid4())[:8]
-            run_command(Commands.CREATE, env_name, support_file("pip_argh.yml"))
+            conda_cli("env", "create", "--name", env_name, support_file("pip_argh.yml"))
             out_file = join(envs_dir, "test_env.yaml")
 
         # make sure that the export reconsiders the presence of pip interop being enabled
@@ -386,7 +387,7 @@ def test_create_advanced_pip():
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
-            run_command(Commands.EXPORT, env_name, out_file)
+            conda_cli("export", "--name", env_name, out_file)
             with open(out_file) as f:
                 d = yaml_round_trip_load(f)
             assert {"pip": ["argh==0.26.2"]} in d["dependencies"]
