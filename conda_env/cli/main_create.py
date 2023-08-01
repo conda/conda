@@ -78,7 +78,7 @@ def configure_parser(sub_parsers):
 
     p.add_argument(
         "remote_definition",
-        help="Remote environment definition / IPython notebook",
+        help="Remote environment definition in the form of protocol://path/to/file",
         action="store",
         default=None,
         nargs="?",

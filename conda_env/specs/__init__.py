@@ -13,6 +13,7 @@ from conda.exceptions import (
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 from .binstar import BinstarSpec
+from .remote import RemoteSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
@@ -44,7 +45,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
         raise EnvironmentFileNotFound(filename=filename)
 
 
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
+SpecTypes = Union[BinstarSpec, RemoteSpec, YamlFileSpec, RequirementsSpec]
 
 
 def detect(
@@ -60,7 +61,10 @@ def detect(
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
     if remote_definition is not None:
-        spec = BinstarSpec(name=remote_definition)
+        if "://" in remote_definition:
+            spec = RemoteSpec(uri=remote_definition)
+        else:
+            spec = BinstarSpec(name=remote_definition)
         if spec.can_handle():
             return spec
         else:

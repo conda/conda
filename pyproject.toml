@@ -35,6 +35,8 @@ dependencies = [
   "setuptools >=60.0.0",
   "toolz >=0.8.1",
   "tqdm >=4",
+  "fsspec",
+  "aiohttp"
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]
