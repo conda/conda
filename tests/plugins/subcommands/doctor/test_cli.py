@@ -8,7 +8,7 @@ from conda.testing import CondaCLIFixture, TmpEnvFixture
 def test_conda_doctor_happy_path(conda_cli: CondaCLIFixture):
     """Make sure that we are able to call the ``conda doctor`` command"""
 
-    out, err, code = conda_cli(f"doctor")
+    out, err, code = conda_cli("doctor")
 
     assert not err  # no error message
     assert not code  # successful exit code
@@ -17,7 +17,7 @@ def test_conda_doctor_happy_path(conda_cli: CondaCLIFixture):
 def test_conda_doctor_happy_path_verbose(conda_cli: CondaCLIFixture):
     """Make sure that we are able to run ``conda doctor`` command with the --verbose flag"""
 
-    out, err, code = conda_cli(f"doctor", "--verbose")
+    out, err, code = conda_cli("doctor", "--verbose")
 
     assert not err  # no error message
     assert not code  # successful exit code
