@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 23.7.2 (2023-07-27)
+
+### Bug fixes
+
+* Fix regression in parsing `--json` and `--debug` flags for executable plugins. (#12935, #12936)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 23.7.1 (2023-07-26)
 
 ### Bug fixes
