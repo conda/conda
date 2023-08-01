@@ -25,12 +25,8 @@ def test_conda_doctor_happy_path_verbose(conda_cli: CondaCLIFixture):
 
 def test_conda_doctor_happy_path_show_help(conda_cli: CondaCLIFixture):
     """Make sure that we are able to run ``conda doctor`` command with the --help flag"""
-    with pytest.raises(SystemExit):
-        out, err, code = conda_cli("doctor", "--help")
-
-        assert "Display a health report for your environment." in out
-        assert not err  # no error message
-        assert not code  # successful exit code
+    with pytest.raises(SystemExit, match="0"):  # 0 is the return code ¯\_(ツ)_/¯
+        conda_cli("doctor", "--help")
 
 
 def test_conda_doctor_with_test_environment(
