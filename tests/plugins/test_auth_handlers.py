@@ -6,8 +6,7 @@ import pytest
 from requests.auth import HTTPBasicAuth
 
 from conda.exceptions import PluginError
-from conda.plugins.hookspec import hookimpl
-from conda.plugins.types import CondaAuth
+from conda import plugins
 
 PLUGIN_NAME = "custom_auth"
 PLUGIN_NAME_ALT = "custom_auth_alt"
@@ -28,32 +27,32 @@ class CustomAltCondaAuth(HTTPBasicAuth):
 
 
 class CustomAuthPlugin:
-    @hookimpl
-    def conda_auth(self):
-        yield CondaAuth(auth_class=CustomCondaAuth, name=PLUGIN_NAME)
+    @plugins.hookimpl
+    def conda_auth_handlers(self):
+        yield plugins.CondaAuthHandler(handler=CustomCondaAuth, name=PLUGIN_NAME)
 
 
 class CustomAltAuthPlugin:
-    @hookimpl
-    def conda_auth(self):
-        yield CondaAuth(auth_class=CustomAltCondaAuth, name=PLUGIN_NAME_ALT)
+    @plugins.hookimpl
+    def conda_auth_handlers(self):
+        yield plugins.CondaAuthHandler(handler=CustomAltCondaAuth, name=PLUGIN_NAME_ALT)
 
 
-def test_get_auth_backend(plugin_manager):
+def test_get_auth_handler(plugin_manager):
     """
     Return the correct auth backend class or return ``None``
     """
     plugin = CustomAuthPlugin()
     plugin_manager.register(plugin)
 
-    auth_class = plugin_manager.get_auth_backend(PLUGIN_NAME)
-    assert auth_class is CustomCondaAuth
+    auth_handler_cls = plugin_manager.get_auth_handler(PLUGIN_NAME)
+    assert auth_handler_cls is CustomCondaAuth
 
-    auth_class = plugin_manager.get_auth_backend("DOES_NOT_EXIST")
-    assert auth_class is None
+    auth_handler_cls = plugin_manager.get_auth_handler("DOES_NOT_EXIST")
+    assert auth_handler_cls is None
 
 
-def test_get_auth_backend_multiple(plugin_manager):
+def test_get_auth_handler_multiple(plugin_manager):
     """
     Tests to make sure we can retrieve auth backends when there are multiple hooks registered.
     """
@@ -62,10 +61,10 @@ def test_get_auth_backend_multiple(plugin_manager):
     plugin_manager.register(plugin_one)
     plugin_manager.register(plugin_two)
 
-    auth_class = plugin_manager.get_auth_backend(PLUGIN_NAME)
+    auth_class = plugin_manager.get_auth_handler(PLUGIN_NAME)
     assert auth_class is CustomCondaAuth
 
-    auth_class = plugin_manager.get_auth_backend(PLUGIN_NAME_ALT)
+    auth_class = plugin_manager.get_auth_handler(PLUGIN_NAME_ALT)
     assert auth_class is CustomAltCondaAuth
 
 
@@ -77,6 +76,6 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(CustomAuthPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `auth` plugins found")
+        PluginError, match=re.escape("Conflicting `auth_handlers` plugins found")
     ):
-        plugin_manager.get_auth_backend(PLUGIN_NAME)
+        plugin_manager.get_auth_handler(PLUGIN_NAME)

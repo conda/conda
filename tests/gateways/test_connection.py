@@ -125,7 +125,7 @@ def test_session_manager_returns_default():
     url = "https://localhost/test"
     session_obj = session_manager(url)
 
-    assert type(session_obj) == CondaSession
+    assert type(session_obj) is CondaSession
 
 
 @pytest.mark.parametrize(

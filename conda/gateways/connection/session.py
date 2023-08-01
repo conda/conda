@@ -8,11 +8,7 @@ from logging import getLogger
 from threading import local
 
 from ...auxlib.ish import dals
-from ...base.constants import (
-    AUTH_CHANNEL_SETTINGS_NAME,
-    CHANNEL_CHANNEL_SETTINGS_NAME,
-    CONDA_HOMEPAGE_URL,
-)
+from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
 from ...common.url import (
     add_username_and_password,
@@ -68,19 +64,17 @@ class EnforceUnusedAdapter(BaseAdapter):
         raise NotImplementedError()
 
 
-@lru_cache(None)
 def get_channel_name_from_url(url: str) -> str | None:
     """
     Given a URL, determine the channel it belongs to and return its name.
     """
-    channel_objects = get_channel_objs(context)
-
-    for channel in channel_objects:
+    for channel in get_channel_objs(context):
         for base_url in channel.base_urls:
             if url.lower().startswith(base_url):
                 return channel.canonical_name
 
 
+@lru_cache(None)
 def session_manager(url: str):
     """
     Function that determines the correct Session object to be returned
@@ -95,18 +89,18 @@ def session_manager(url: str):
 
     channel_settings = {}
     for settings in context.channel_settings:
-        if settings.get(CHANNEL_CHANNEL_SETTINGS_NAME) == channel_name:
+        if settings.get("channel") == channel_name:
             channel_settings = settings
 
-    auth_type = channel_settings.get(AUTH_CHANNEL_SETTINGS_NAME)
+    auth_handler = channel_settings.get("auth", "").strip() or None
 
     # Return default session object
-    if auth_type is None:
+    if auth_handler is None:
         return CondaSession()
 
-    auth_class = context.plugin_manager.get_auth_backend(auth_type)
+    auth_handler_cls = context.plugin_manager.get_auth_handler(auth_handler)
 
-    return CondaSession(auth=auth_class(channel_name))
+    return CondaSession(auth=auth_handler_cls(channel_name))
 
 
 class CondaSessionType(type):
