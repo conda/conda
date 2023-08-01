@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from contextlib import contextmanager
 from tempfile import mkdtemp
 
+from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
 from conda_env.cli.main import do_call as do_call_conda_env
@@ -34,6 +35,7 @@ def make_temp_envs_dir():
         rm_rf(envs_dir)
 
 
+@deprecated("24.3", "24.9", addendum="Use `conda.testing.conda_cli` instead.")
 def run_command(command, env_name, *arguments):
     arguments = massage_arguments(arguments)
     args = [command, "-n", env_name, "-f"] + arguments
