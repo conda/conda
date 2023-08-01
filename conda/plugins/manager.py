@@ -203,16 +203,15 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def get_auth_backend(self, name: str) -> type[AuthBase]:
+    def get_auth_handler(self, name: str) -> type[AuthBase]:
         """
-        Get the auth class with the given name (or fall back to the
-        default CondaSession class).
+        Get the auth handler with the given name or None
         """
-        auth_backends = self.get_hook_results("auth")
-        matches = tuple(item for item in auth_backends if item.name == name)
+        auth_handlers = self.get_hook_results("auth_handlers")
+        matches = tuple(item for item in auth_handlers if item.name == name.strip())
 
         if len(matches) > 0:
-            return matches[0].auth_class
+            return matches[0].handler
 
     def invoke_pre_commands(self, command: str) -> None:
         """
