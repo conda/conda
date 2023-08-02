@@ -79,6 +79,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
+from conda.testing import CondaCLIFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
@@ -2344,72 +2345,32 @@ def test_bad_anaconda_token_infinite_loop(clear_package_cache: None):
         reset_context()
 
 
-def test_anaconda_token_with_private_package(clear_package_cache: None):
+@pytest.mark.skipif(
+    read_binstar_tokens(),
+    reason="binstar token found in global configuration",
+)
+def test_anaconda_token_with_private_package(
+    clear_package_cache: None,
+    conda_cli: CondaCLIFixture,
+):
     # TODO: should also write a test to use binstar_client to set the token,
     # then let conda load the token
+    package = "private-package"
 
-    # Step 0. xfail if a token is set, for example when testing locally
-    tokens = read_binstar_tokens()
-    if tokens:
-        pytest.xfail("binstar token found in global configuration")
+    # Step 1. Make sure without the token we don't see the package
+    channel_url = "https://conda.anaconda.org/conda-test"
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--channel", channel_url, package)
 
-    # Step 1. Make sure without the token we don't see the anyjson package
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        channel_url = "https://conda.anaconda.org/kalefranz"
-        payload, _, _ = run_command(
-            Commands.CONFIG, prefix, "--get", "channels", "--json"
-        )
-        default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
-        run_command(Commands.CONFIG, prefix, "--append", "channels", channel_url)
-        # config --append on an empty key pre-populates it with the hardcoded default value!
-        for channel in default_channels:
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
-        output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
-        print(output)
-        yml_obj = yaml_round_trip_load(output)
-        assert yml_obj["channels"] == [channel_url]
-
-        output, _, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "anyjson",
-            "--platform",
-            "linux-64",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json_loads(output)
-        assert json_obj["exception_name"] == "PackagesNotFoundError"
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        reset_context()
-
-    # Step 2. Now with the token make sure we can see the anyjson package
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
-        payload, _, _ = run_command(
-            Commands.CONFIG, prefix, "--get", "channels", "--json"
-        )
-        default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
-        run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-        for channel in default_channels:
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-
-        assert yml_obj["channels"] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
-
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH, prefix, "anyjson", "--platform", "linux-64", "--json"
-        )
-        json_obj = json_loads(stdout)
-        assert "anyjson" in json_obj
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    # Step 2. Now with the token make sure we can see the package
+    channel_url = "https://conda.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
+    stdout, _, _ = conda_cli(
+        "search",
+        *("--channel", channel_url),
+        package,
+        "--json",
+    )
+    assert package in json_loads(stdout)
 
 
 def test_use_index_cache(clear_package_cache: None):
