@@ -47,7 +47,7 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.9.0
+    rev: v3.10.1
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -70,7 +70,7 @@ repos:
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+    rev: 6.1.0
     hooks:
       # lint Python codes
       - id: flake8
