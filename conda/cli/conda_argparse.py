@@ -9,12 +9,12 @@ import sys
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
-    Namespace,
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
     _StoreAction,
 )
+from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
 from subprocess import Popen
@@ -32,7 +32,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
-from ..plugins.types import CommandHookTypes
+from .find_commands import find_commands, find_executable
 
 log = getLogger(__name__)
 
@@ -63,32 +63,50 @@ BUILTIN_COMMANDS = {
 }
 
 
-def generate_parser():
-    p = ArgumentParser(
+def generate_pre_parser(**kwargs) -> ArgumentParser:
+    pre_parser = ArgumentParser(
         description="conda is a tool for managing and deploying applications,"
         " environments and packages.",
+        **kwargs,
     )
-    p.add_argument(
+
+    pre_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    pre_parser.add_argument(
+        "--json",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    pre_parser.add_argument(
+        "--no-plugins",
+        action="store_true",
+        default=NULL,
+        help="Disable all plugins that are not built into conda.",
+    )
+
+    return pre_parser
+
+
+def generate_parser(**kwargs) -> ArgumentParser:
+    parser = generate_pre_parser(**kwargs)
+
+    parser.add_argument(
         "-V",
         "--version",
         action="version",
         version="conda %s" % __version__,
         help="Show the conda version number and exit.",
     )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    sub_parsers = p.add_subparsers(
-        metavar="command",
+
+    sub_parsers = parser.add_subparsers(
+        metavar="COMMAND",
+        title="commands",
+        description="The following built-in and plugins subcommands are available.",
         dest="cmd",
-        required=True,
+        action=_GreedySubParsersAction,
     )
 
     configure_parser_clean(sub_parsers)
@@ -99,56 +117,56 @@ def generate_parser():
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
+    configure_parser_notices(sub_parsers)
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers, aliases=["uninstall"])
     configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
-    configure_parser_notices(sub_parsers)
+    configure_parser_plugins(sub_parsers)
 
-    return p
+    return parser
 
 
-def do_call(arguments: argparse.Namespace, parser: ArgumentParser):
+def do_call(args: argparse.Namespace, parser: ArgumentParser):
     """
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    # First, check if this is a plugin subcommand; if this attribute is present then it is
-    if getattr(arguments, "plugin_subcommand", None):
-        _run_command_hooks("pre", arguments.plugin_subcommand.name, sys.argv[2:])
-        result = arguments.plugin_subcommand.action(sys.argv[2:])
-        _run_command_hooks("post", arguments.plugin_subcommand.name, sys.argv[2:])
+    # let's see if during the parsing phase it was discovered that the
+    # called command was in fact a plugin subcommand
+    if plugin_subcommand := getattr(args, "_plugin_subcommand", None):
+        # pass on the rest of the plugin specific args or fall back to
+        # the whole discovered arguments
+        context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
+        result = plugin_subcommand.action(getattr(args, "_args", args))
+        context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
+    elif name := getattr(args, "_executable", None):
+        # run the subcommand from executables; legacy path
+        deprecated.topic(
+            "23.3",
+            "23.9",
+            topic="Loading conda subcommands via executables",
+            addendum="Use the plugin system instead.",
+        )
+        executable = find_executable(f"conda-{name}")
+        if not executable:
+            from ..exceptions import CommandNotFoundError
 
-        return result
+            raise CommandNotFoundError(name)
+        return _exec([executable, *args._args], os.environ)
+    else:
+        # let's call the subcommand the old-fashioned way via the assigned func..
+        relative_mod, func_name = args.func.rsplit(".", 1)
+        # func_name should always be 'execute'
+        module = import_module(relative_mod, "conda.cli")
+        command = relative_mod.replace(".main_", "")
 
-    relative_mod, func_name = arguments.func.rsplit(".", 1)
-    # func_name should always be 'execute'
-    from importlib import import_module
-
-    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
-
-    command = relative_mod.replace(".main_", "")
-    _run_command_hooks("pre", command, arguments)
-    result = getattr(module, func_name)(arguments, parser)
-    _run_command_hooks("post", command, arguments)
-
+        context.plugin_manager.invoke_pre_commands(command)
+        result = getattr(module, func_name)(args, parser)
+        context.plugin_manager.invoke_post_commands(command)
     return result
-
-
-def _run_command_hooks(hook_type: CommandHookTypes, command: str, arguments) -> None:
-    """
-    Helper function used to gather applicable "pre" or "post" command hook functions
-    and then run them.
-
-    The values in *args are passed directly through to the "pre" or "post" command
-    hook function.
-    """
-    actions = context.plugin_manager.yield_command_hook_actions(hook_type, command)
-
-    for action in actions:
-        action(command, arguments)
 
 
 def find_builtin_commands(parser):
@@ -158,97 +176,12 @@ def find_builtin_commands(parser):
 
 
 class ArgumentParser(ArgumentParserBase):
-    def __init__(self, *args, **kwargs):
-        if not kwargs.get("formatter_class"):
-            kwargs["formatter_class"] = RawDescriptionHelpFormatter
-        if "add_help" not in kwargs:
-            add_custom_help = True
-            kwargs["add_help"] = False
-        else:
-            add_custom_help = False
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, add_help=True, **kwargs):
+        kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
+        super().__init__(*args, add_help=False, **kwargs)
 
-        if add_custom_help:
+        if add_help:
             add_parser_help(self)
-
-        if self.description:
-            self.description += "\n\nOptions:\n"
-
-        self._subcommands = context.plugin_manager.get_hook_results("subcommands")
-
-        if self._subcommands:
-            self.epilog = "conda commands available from other packages:" + "".join(
-                f"\n {subcommand.name} - {subcommand.summary}"
-                for subcommand in self._subcommands
-            )
-
-    def _get_action_from_name(self, name):
-        """Given a name, get the Action instance registered with this parser.
-        If only it were made available in the ArgumentError object. It is
-        passed as it's first arg...
-        """
-        container = self._actions
-        if name is None:
-            return None
-        for action in container:
-            if "/".join(action.option_strings) == name:
-                return action
-            elif action.metavar == name:
-                return action
-            elif action.dest == name:
-                return action
-
-    def error(self, message):
-        import re
-
-        from .find_commands import find_executable
-
-        exc = sys.exc_info()[1]
-        if exc:
-            # this is incredibly lame, but argparse stupidly does not expose
-            # reasonable hooks for customizing error handling
-            if hasattr(exc, "argument_name"):
-                argument = self._get_action_from_name(exc.argument_name)
-            else:
-                argument = None
-            if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'([-\w]*?)'", exc.message)
-                if m:
-                    cmd = m.group(1)
-                    if not cmd:
-                        self.print_help()
-                        sys.exit(0)
-                    else:
-                        # Run the subcommand from executables; legacy path
-                        deprecated.topic(
-                            "23.3",
-                            "23.9",
-                            topic="Loading conda subcommands via executables",
-                            addendum="Use the plugin system instead.",
-                        )
-                        executable = find_executable("conda-" + cmd)
-                        if not executable:
-                            from ..exceptions import CommandNotFoundError
-
-                            raise CommandNotFoundError(cmd)
-                        args = [find_executable("conda-" + cmd)]
-                        args.extend(sys.argv[2:])
-                        _exec(args, os.environ)
-
-        super().error(message)
-
-    def print_help(self):
-        super().print_help()
-
-        if sys.argv[1:] in ([], [""], ["help"], ["-h"], ["--help"]):
-            from .find_commands import find_commands
-
-            other_commands = find_commands()
-            if other_commands:
-                builder = [""]
-                builder.append("conda commands available from other packages (legacy):")
-                builder.extend("  %s" % cmd for cmd in sorted(other_commands))
-                print("\n".join(builder))
 
     def _check_value(self, action, value):
         # extend to properly handle when we accept multiple choices and the default is a list
@@ -258,36 +191,40 @@ class ArgumentParser(ArgumentParserBase):
         else:
             super()._check_value(action, value)
 
-    def parse_args(self, args=None, namespace=None):
-        """
-        We override this method to check if we are running from a known plugin subcommand.
-        If we are, we do not want to handle argument parsing as this is delegated to the plugin
-        subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
-        which is a ``conda.plugins.CondaSubcommand`` object.
-        """
-        # args default to the system args
-        if args is None:
-            args = sys.argv[1:]
+    def parse_args(self, *args, override_args=None, **kwargs):
+        parsed_args = super().parse_args(*args, **kwargs)
+        for name, value in (override_args or {}).items():
+            setattr(parsed_args, name, value)
+        return parsed_args
 
-        plugin_subcommand = None
-        if args:
-            name = args[0]
-            for subcommand in self._subcommands:
-                if subcommand.name == name:
-                    if name.lower() in BUILTIN_COMMANDS:
-                        error_message = dals(
-                            f"The plugin '{subcommand.name}: {subcommand.summary}' is trying "
-                            f"to override the built-in command {name}, which is not allowed. "
-                            "Please uninstall this plugin to stop seeing this error message"
-                        )
-                        log.error(error_message)
-                    else:
-                        plugin_subcommand = Namespace(plugin_subcommand=subcommand)
 
-        if plugin_subcommand is not None:
-            return plugin_subcommand
+class _GreedySubParsersAction(argparse._SubParsersAction):
+    """A custom subparser action to conditionally act as a greedy consumer.
 
-        return super().parse_args(args, namespace)
+    This is a workaround since argparse.REMAINDER does not work as expected,
+    see https://github.com/python/cpython/issues/61252.
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
+        parser = self._name_parser_map[values[0]]
+
+        # if the parser has a greedy=True attribute we want to consume all arguments
+        # i.e. all unknown args should be passed to the subcommand as is
+        if getattr(parser, "greedy", False):
+            try:
+                unknown = getattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
+                delattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
+            except AttributeError:
+                unknown = ()
+
+            # underscore prefixed indicating this is not a normal argparse argument
+            namespace._args = tuple(unknown)
+
+    def _get_subactions(self):
+        """Sort actions for subcommands to appear alphabetically in help blurb."""
+        return sorted(self._choices_actions, key=lambda action: action.dest)
 
 
 def _exec(executable_args, env_vars):
@@ -359,6 +296,90 @@ class ExtendConstAction(Action):
 # sub-parsers
 #
 # #############################################################################################
+
+
+def configure_parser_plugins(sub_parsers) -> None:
+    """
+    For each of the provided plugin-based subcommands, we'll create
+    a new subparser for an improved help printout and calling the
+    :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
+    with the newly created subcommand specific argument parser.
+    """
+    plugin_subcommands = context.plugin_manager.get_subcommands()
+    for name, plugin_subcommand in plugin_subcommands.items():
+        # if the name of the plugin-based subcommand overlaps a built-in
+        # subcommand, we print an error
+        if name in BUILTIN_COMMANDS:
+            log.error(
+                dals(
+                    f"""
+                    The plugin '{name}' is trying to override the built-in command
+                    with the same name, which is not allowed.
+
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
+            )
+            continue
+
+        parser = sub_parsers.add_parser(
+            name,
+            description=plugin_subcommand.summary,
+            help=plugin_subcommand.summary,
+            add_help=False,  # defer to subcommand's help processing
+        )
+
+        # case 1: plugin extends the parser
+        if plugin_subcommand.configure_parser:
+            plugin_subcommand.configure_parser(parser)
+
+            # attempt to add standard help processing, will fail if plugin defines their own
+            try:
+                add_parser_help(parser)
+            except argparse.ArgumentError:
+                pass
+
+        # case 2: plugin has their own parser, see _GreedySubParsersAction
+        else:
+            parser.greedy = True
+
+        # underscore prefixed indicating this is not a normal argparse argument
+        parser.set_defaults(_plugin_subcommand=plugin_subcommand)
+
+    # `conda env` subcommand is a first-party conda subcommand even though it uses the legacy
+    # subcommand framework, so `conda env` must still be allowed when plugins are disabled
+    legacy = (
+        ["env"]
+        if context.no_plugins
+        else set(find_commands()).difference(plugin_subcommands)
+    )
+    for name in legacy:
+        # if the name of the plugin-based subcommand overlaps a built-in
+        # subcommand, we print an error
+        if name in BUILTIN_COMMANDS:
+            log.error(
+                dals(
+                    f"""
+                    The (legacy) plugin '{name}' is trying to override the built-in command
+                    with the same name, which is not allowed.
+
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
+            )
+            continue
+
+        parser = sub_parsers.add_parser(
+            name,
+            description=f"See `conda {name} --help`.",
+            help=f"See `conda {name} --help`.",
+            add_help=False,  # defer to subcommand's help processing
+        )
+
+        # case 3: legacy plugins are always greedy
+        parser.greedy = True
+
+        parser.set_defaults(_executable=name)
 
 
 def configure_parser_clean(sub_parsers):
@@ -503,10 +524,11 @@ def configure_parser_info(sub_parsers):
 
 
 def configure_parser_config(sub_parsers):
+    help_ = "Modify configuration values in .condarc."
     descr = (
         dedent(
             """
-    Modify configuration values in .condarc.  This is modeled after the git
+    This is modeled after the git
     config command.  Writes to the user .condarc file (%s) by default. Use the
     --show-sources flag to display all identified configuration locations on
     your computer.
@@ -568,7 +590,7 @@ def configure_parser_config(sub_parsers):
     p = sub_parsers.add_parser(
         "config",
         description=descr,
-        help=descr,
+        help=help_,
         epilog=additional_descr,
     )
     add_parser_json(p)
@@ -891,7 +913,7 @@ def configure_parser_init(sub_parsers):
 
 
 def configure_parser_install(sub_parsers):
-    help = "Installs a list of packages into a specified conda environment."
+    help = "Install a list of packages into a specified conda environment."
     descr = dedent(
         help
         + """
@@ -1132,7 +1154,7 @@ def configure_parser_compare(sub_parsers):
 
 
 def configure_parser_package(sub_parsers):
-    descr = "Low-level conda package utility. (EXPERIMENTAL)"
+    descr = "Create low-level conda packages. (EXPERIMENTAL)"
     p = sub_parsers.add_parser(
         "package",
         description=descr,
@@ -1181,13 +1203,11 @@ def configure_parser_package(sub_parsers):
 
 
 def configure_parser_remove(sub_parsers, aliases):
-    help_ = (
-        "Remove a list of packages from a specified conda environment. "
-        "Use `--all` flag to remove all packages and the environment itself."
-    )
+    help_ = "Remove a list of packages from a specified conda environment. "
     descr = dals(
         f"""
         {help_}
+        "Use `--all` flag to remove all packages and the environment itself."
 
         This command will also remove any package that depends on any of the
         specified packages as well---unless a replacement can be found without
@@ -1359,13 +1379,9 @@ def configure_parser_run(sub_parsers):
 
 
 def configure_parser_search(sub_parsers):
-    help = "Search for packages and display associated information."
-    descr = (
-        help
-        + """The input is a MatchSpec, a query language for conda packages.
-    See examples below.
+    help = "Search for packages and display associated information using the MatchSpec format."
+    descr = f"""{help} MatchSpec is a query language for conda packages.
     """
-    )
 
     example = dedent(
         """
@@ -1403,7 +1419,7 @@ def configure_parser_search(sub_parsers):
     p = sub_parsers.add_parser(
         "search",
         description=descr,
-        help=descr,
+        help=help,
         epilog=example,
     )
     p.add_argument(
@@ -1477,7 +1493,7 @@ def configure_parser_search(sub_parsers):
 
 
 def configure_parser_update(sub_parsers, aliases):
-    help_ = "Updates conda packages to the latest compatible version."
+    help_ = "Update conda packages to the latest compatible version."
     descr = dals(
         f"""
         {help_}
@@ -1532,7 +1548,7 @@ def configure_parser_update(sub_parsers, aliases):
     p.set_defaults(func=".main_update.execute")
 
 
-NOTICES_HELP = "Retrieves latest channel notifications."
+NOTICES_HELP = "Retrieve latest channel notifications."
 NOTICES_DESCRIPTION = dals(
     f"""
     {NOTICES_HELP}
@@ -1567,7 +1583,7 @@ def configure_parser_notices(sub_parsers, name="notices"):
 
 
 def configure_parser_rename(sub_parsers) -> None:
-    help = "Renames an existing environment."
+    help = "Rename an existing environment."
     descr = dals(
         f"""
         {help}

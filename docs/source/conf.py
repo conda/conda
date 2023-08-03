@@ -145,6 +145,16 @@ autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
 
 
+def skip_log(app, what, name, obj, skip, options):
+    if what == "data" and name.split(".")[-1] == "log":
+        skip = True
+    return skip
+
+
+def setup(sphinx):
+    sphinx.connect("autoapi-skip-member", skip_log)
+
+
 # -- For sphinx_reredirects ------------------------------------------------
 
 redirects = {

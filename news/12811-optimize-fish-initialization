@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add support for FreeBSD. (#12647)
+* Improve speed of fish shell initialization. (#12811)
 
 ### Bug fixes
 

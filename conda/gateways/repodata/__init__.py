@@ -319,7 +319,7 @@ of the remote server.
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 
-If your current network has https://www.anaconda.com blocked, please file
+If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
 %s
@@ -805,8 +805,6 @@ class RepodataFetch:
         return self.repo_interface_cls(
             self.url_w_credentials,
             repodata_fn=self.repodata_fn,
-            cache_path_json=self.cache_path_json,
-            cache_path_state=self.cache_path_state,
             cache=self.repo_cache,
         )
 
