@@ -29,7 +29,7 @@ from uuid import uuid4
 
 import pytest
 import requests
-from pytest import MonkeyPatch
+from pytest import CaptureFixture, MonkeyPatch
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
@@ -2352,6 +2352,7 @@ def test_bad_anaconda_token_infinite_loop(clear_package_cache: None):
 def test_anaconda_token_with_private_package(
     clear_package_cache: None,
     conda_cli: CondaCLIFixture,
+    capsys: CaptureFixture,
 ):
     # TODO: should also write a test to use binstar_client to set the token,
     # then let conda load the token
@@ -2361,6 +2362,8 @@ def test_anaconda_token_with_private_package(
     channel_url = "https://conda-web.anaconda.org/conda-test"
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--channel", channel_url, package)
+    # flush stdout/stderr
+    capsys.readouterr()
 
     # Step 2. Now with the token make sure we can see the package
     channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
