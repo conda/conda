@@ -14,7 +14,7 @@ share an environment file.
 
 .. note::
    There are many options available for the commands described
-   on this page. For details, see :doc:`../../commands`.
+   on this page. For details, see :doc:`commands <../../commands/index>`.
 
 .. note::
    ``conda activate`` and ``conda deactivate`` only work on conda 4.6 and later versions.
