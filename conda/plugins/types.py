@@ -108,7 +108,7 @@ class CondaPostCommand(NamedTuple):
 
 class CondaAuthHandler(NamedTuple):
     """
-    Return type to use when the defining the conda fetch hook.
+    Return type to use when the defining the conda auth handlers hook.
 
     :param name: Name (e.g., ``basic-auth``). This name should be unique
                  and only one may be registered at a time.
