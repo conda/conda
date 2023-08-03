@@ -2358,12 +2358,12 @@ def test_anaconda_token_with_private_package(
     package = "private-package"
 
     # Step 1. Make sure without the token we don't see the package
-    channel_url = "https://conda.anaconda.org/conda-test"
+    channel_url = "https://conda-web.anaconda.org/conda-test"
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--channel", channel_url, package)
 
     # Step 2. Now with the token make sure we can see the package
-    channel_url = "https://conda.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
+    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
     stdout, _, _ = conda_cli(
         "search",
         *("--channel", channel_url),
