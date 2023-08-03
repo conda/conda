@@ -343,8 +343,8 @@ not global.
 
 .. note::
    When `installing Anaconda <http://docs.anaconda.com/anaconda/install.html>`_,
-   you have the option to “Add Anaconda to my PATH environment variable.” 
-   *This is not recommended* because it *appends* Anaconda to PATH. 
+   you have the option to “Add Anaconda to my PATH environment variable.”
+   *This is not recommended* because it *appends* Anaconda to PATH.
    When the installer appends to PATH, it does not call the activation scripts.
 
 .. note::
