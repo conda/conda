@@ -100,6 +100,9 @@ def session_manager(url: str):
 
     auth_handler_cls = context.plugin_manager.get_auth_handler(auth_handler)
 
+    if not auth_handler_cls:
+        return CondaSession()
+
     return CondaSession(auth=auth_handler_cls(channel_name))
 
 

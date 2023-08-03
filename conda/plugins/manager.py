@@ -203,7 +203,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return backend
 
-    def get_auth_handler(self, name: str) -> type[AuthBase]:
+    def get_auth_handler(self, name: str) -> type[AuthBase] | None:
         """
         Get the auth handler with the given name or None
         """
