@@ -343,19 +343,18 @@ not global.
 
 .. note::
    When `installing Anaconda <http://docs.anaconda.com/anaconda/install.html>`_,
-you have the option to “Add Anaconda
-to my PATH environment variable.” *This is not recommended* because
-it *appends* Anaconda to PATH. When the installer appends
-to PATH, it does not call the activation scripts.
+   you have the option to “Add Anaconda to my PATH environment variable.” 
+   *This is not recommended* because it *appends* Anaconda to PATH. 
+   When the installer appends to PATH, it does not call the activation scripts.
 
 .. note::
    On Windows, PATH is composed of two parts, the *system* PATH and the
-*user* PATH. The system PATH always comes first. When you install
-Anaconda for "Just Me", we add it to the *user* PATH. When you install
-for "All Users", we add it to the *system* PATH. In the former case,
-you can end up with system PATH values taking precedence over
-your entries. In the latter case, you do not. *We do not recommend*
-`multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`_.
+   *user* PATH. The system PATH always comes first. When you install
+   Anaconda for "Just Me", we add it to the *user* PATH. When you install
+   for "All Users", we add it to the *system* PATH. In the former case,
+   you can end up with system PATH values taking precedence over
+   your entries. In the latter case, you do not. *We do not recommend*
+   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`_.
 
 To activate an environment: ``conda activate myenv``
 
