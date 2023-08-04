@@ -41,7 +41,7 @@
     @ECHO Usage: %_SCRIPT% [options]
     @ECHO.
     @ECHO Options:
-    @ECHO   /P  VERSION  Python version for the env to activate. ^(default: 3.8^)
+    @ECHO   /P  VERSION  Python version for the env to activate. ^(default: 3.10^)
     @ECHO   /U           Force update packages. ^(default: update every 24 hours^)
     @ECHO   /D  PATH     Path to base env install, can also be defined in ~\.condarc.
     @ECHO                Path is appended with Windows. ^(default: devenv^)
@@ -54,7 +54,7 @@
 :ARGS_END
 
 @REM fallback to default values
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.8"
+@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
