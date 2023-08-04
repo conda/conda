@@ -29,8 +29,7 @@ from conda.gateways.disk.update import touch
 log = getLogger(__name__)
 
 
-def test_register_unregister_location_env(tmp_path: Path, monkeypatch):
-    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
+def test_register_unregister_location_env(tmp_path: Path):
     user_environments_txt_file = get_user_environments_txt_file()
     if (
         not os.path.exists(user_environments_txt_file)
@@ -45,7 +44,12 @@ def test_register_unregister_location_env(tmp_path: Path, monkeypatch):
     assert gascon_location not in list_all_known_prefixes()
 
     touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
-    register_env(gascon_location)
+    with env_var(
+        "CONDA_REGISTER_ENVS",
+        "true",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        register_env(gascon_location)
     assert gascon_location in yield_lines(user_environments_txt_file)
     assert (
         len(
