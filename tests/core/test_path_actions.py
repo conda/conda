@@ -9,7 +9,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from tlz.toolz import accumulate, concat
+from tlz import accumulate, concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
