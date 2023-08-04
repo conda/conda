@@ -61,3 +61,7 @@ def clear_cuda_version():
     from conda.plugins.virtual_packages import cuda
 
     cuda.cached_cuda_version.cache_clear()
+
+
+# Do not register environments created during tests
+MonkeyPatch().setenv("CONDA_REGISTER_ENVS", "false")
