@@ -29,7 +29,8 @@ from conda.gateways.disk.update import touch
 log = getLogger(__name__)
 
 
-def test_register_unregister_location_env(tmp_path: Path):
+def test_register_unregister_location_env(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
     user_environments_txt_file = get_user_environments_txt_file()
     if (
         not os.path.exists(user_environments_txt_file)
