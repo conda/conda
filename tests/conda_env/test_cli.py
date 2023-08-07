@@ -9,7 +9,6 @@ import pytest
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.common.io import captured
 from conda.common.serialize import yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import (
@@ -21,9 +20,6 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.testing import CondaCLIFixture
-from conda.utils import massage_arguments
-from conda_env.cli.main import create_parser
-from conda_env.cli.main import do_call as do_call_conda_env
 
 # Environment names we use during our tests
 TEST_ENV_NAME_1 = "env-1"
@@ -112,52 +108,6 @@ def escape_for_winpath(p):
         return p.replace("\\", "\\\\")
 
 
-class Commands:
-    ENV_CREATE = "create"
-    ENV_REMOVE = "remove"
-    ENV_EXPORT = "export"
-    ENV_UPDATE = "update"
-    ENV_CONFIG = "config"
-    LIST = "list"
-    CREATE = "create"
-    INFO = "info"
-    INSTALL = "install"
-
-
-def run_env_command(command, prefix, *arguments, use_prefix_flag: bool = False):
-    """
-        Run conda env commands
-    Args:
-        command: The command, create, remove, export
-        prefix: The prefix, for remove and create
-        *arguments: The extra arguments
-        use_prefix_flag: determines whether we use '-n' or '-p' to specify our environment
-    """
-
-    arguments = massage_arguments(arguments)
-    arguments.insert(0, command)
-
-    flag = "-p" if use_prefix_flag else "-n"
-
-    if command is Commands.ENV_EXPORT:
-        arguments[1:1] = [flag, prefix]
-    elif command is Commands.ENV_CREATE:
-        if prefix:
-            arguments[1:1] = [flag, prefix]
-    elif command is Commands.ENV_REMOVE:
-        arguments[1:1] = ["--yes", flag, prefix]
-    elif command is Commands.ENV_UPDATE:
-        arguments[1:1] = [flag, prefix]
-    p = create_parser()
-    args = p.parse_args(arguments)
-    context._set_argparse_args(args)
-
-    with captured() as c:
-        do_call_conda_env(args, p)
-
-    return c.stdout, c.stderr
-
-
 def create_env(content, filename="environment.yml"):
     with open(filename, "w") as fenv:
         fenv.write(content)
@@ -168,54 +118,56 @@ def remove_env_file(filename="environment.yml"):
 
 
 @pytest.fixture
-def env_name_1() -> None:
+def env_name_1(conda_cli: CondaCLIFixture) -> None:
     rm_rf("environment.yml")
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_1, "--yes")
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_42, "--yes")
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_PIP, "--yes")
     for env_nb in range(1, 6):
-        run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
+        conda_cli("env", "remove", "--name", f"envjson-{env_nb}", "--yes")
 
     yield
 
     rm_rf("environment.yml")
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_1)
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_42)
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_PIP)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_1, "--yes")
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_42, "--yes")
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_PIP, "--yes")
     for env_nb in range(1, 6):
-        run_env_command(Commands.ENV_REMOVE, f"envjson-{env_nb}")
+        conda_cli("env", "remove", "--name", f"envjson-{env_nb}", "--yes")
 
 
 @pytest.mark.integration
-def test_conda_env_create_no_file(env_name_1: None):
+def test_conda_env_create_no_file(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     Test `conda env create` without an environment.yml file
     Should fail
     """
     with pytest.raises(EnvironmentFileNotFound):
-        run_env_command(Commands.ENV_CREATE, None)
+        conda_cli("env", "create")
 
 
 @pytest.mark.integration
-def test_conda_env_create_no_existent_file(env_name_1: None):
+def test_conda_env_create_no_existent_file(
+    env_name_1: None, conda_cli: CondaCLIFixture
+):
     """
     Test `conda env create --file=not_a_file.txt` with a file that does not
     exist.
     """
     with pytest.raises(EnvironmentFileNotFound):
-        run_env_command(Commands.ENV_CREATE, None, "--file", "not_a_file.txt")
+        conda_cli("env", "create", "--file", "not_a_file.txt")
 
 
 @pytest.mark.integration
-def test_conda_env_create_no_existent_file_with_name(env_name_1: None):
+def test_conda_env_create_no_existent_file_with_name(
+    env_name_1: None, conda_cli: CondaCLIFixture
+):
     """
     Test `conda env create --file=not_a_file.txt` with a file that does not
     exist.
     """
     with pytest.raises(EnvironmentFileNotFound):
-        run_env_command(
-            Commands.ENV_CREATE, None, "--file", "not_a_file.txt", "-n" "foo"
-        )
+        conda_cli("env", "create", "--file", "not_a_file.txt", "--name", "foo")
 
 
 @pytest.mark.integration
@@ -225,12 +177,12 @@ def test_create_valid_remote_env(env_name_1: None, conda_cli: CondaCLIFixture):
 
     This tests the `remote_origin` command line argument.
     """
-    run_env_command(Commands.ENV_CREATE, None, "conda-test/env-42")
+    conda_cli("env", "create", "conda-test/env-42")
     assert env_is_created(TEST_ENV_NAME_42)
 
-    o, e = conda_cli("info", "--json")
+    stdout, _, _ = conda_cli("info", "--json")
 
-    parsed = json.loads(o)
+    parsed = json.loads(stdout)
     assert [env for env in parsed["envs"] if env.endswith(TEST_ENV_NAME_42)]
 
 
@@ -240,24 +192,23 @@ def test_create_valid_env(env_name_1: None, conda_cli: CondaCLIFixture):
     Creates an environment.yml file and
     creates and environment with it
     """
-
     create_env(ENVIRONMENT_1)
-    run_env_command(Commands.ENV_CREATE, None)
+    conda_cli("env", "create")
     assert env_is_created(TEST_ENV_NAME_1)
 
-    o, e = conda_cli("info", "--json")
-    parsed = json.loads(o)
+    stdout, _, _ = conda_cli("info", "--json")
+    parsed = json.loads(stdout)
     assert [env for env in parsed["envs"] if env.endswith(TEST_ENV_NAME_1)]
 
 
 @pytest.mark.integration
-def test_create_dry_run_yaml(env_name_1: None):
+def test_create_dry_run_yaml(env_name_1: None, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_1)
-    o, e = run_env_command(Commands.ENV_CREATE, None, "--dry-run")
+    stdout, _, _ = conda_cli("env", "create", "--dry-run")
     assert not env_is_created(TEST_ENV_NAME_1)
 
     # Find line where the YAML output starts (stdout might change if plugins involved)
-    lines = o.splitlines()
+    lines = stdout.splitlines()
     for lineno, line in enumerate(lines):
         if line.startswith("name:"):
             break
@@ -270,12 +221,12 @@ def test_create_dry_run_yaml(env_name_1: None):
 
 
 @pytest.mark.integration
-def test_create_dry_run_json(env_name_1: None):
+def test_create_dry_run_json(env_name_1: None, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_1)
-    o, e = run_env_command(Commands.ENV_CREATE, None, "--dry-run", "--json")
+    stdout, _, _ = conda_cli("env", "create", "--dry-run", "--json")
     assert not env_is_created(TEST_ENV_NAME_1)
 
-    output = json.loads(o)
+    output = json.loads(stdout)
     assert output.get("name") == "env-1"
     assert len(output["dependencies"])
 
@@ -286,69 +237,65 @@ def test_create_valid_env_with_variables(env_name_1: None, conda_cli: CondaCLIFi
     Creates an environment.yml file and
     creates and environment with it
     """
-
     create_env(ENVIRONMENT_1_WITH_VARIABLES)
-    run_env_command(Commands.ENV_CREATE, None)
+    conda_cli("env", "create")
     assert env_is_created(TEST_ENV_NAME_1)
 
-    o, e = run_env_command(
-        Commands.ENV_CONFIG,
-        TEST_ENV_NAME_1,
-        "vars",
-        "list",
+    stdout, _, _ = conda_cli(
+        *("env", "config", "vars", "list"),
+        *("--name", TEST_ENV_NAME_1),
         "--json",
-        "-n",
-        TEST_ENV_NAME_1,
     )
-    output_env_vars = json.loads(o)
+    output_env_vars = json.loads(stdout)
     assert output_env_vars == {
         "DUDE": "woah",
         "SWEET": "yaaa",
         "API_KEY": "AaBbCcDd===EeFf",
     }
 
-    o, e = conda_cli("info", "--json")
-    parsed = json.loads(o)
+    stdout, _, _ = conda_cli("info", "--json")
+    parsed = json.loads(stdout)
     assert [env for env in parsed["envs"] if env.endswith(TEST_ENV_NAME_1)]
 
 
 @pytest.mark.integration
-def test_conda_env_create_empty_file(env_name_1: None):
+def test_conda_env_create_empty_file(env_name_1: None, conda_cli: CondaCLIFixture):
     """Test `conda env create --file=file_name.yml` where file_name.yml is empty."""
     tmp_file = tempfile.NamedTemporaryFile(suffix=".yml", delete=False)
 
     with pytest.raises(SpecNotFound):
-        run_env_command(Commands.ENV_CREATE, None, "--file", tmp_file.name)
+        conda_cli("env", "create", "--file", tmp_file.name)
 
     tmp_file.close()
     os.unlink(tmp_file.name)
 
 
 @pytest.mark.integration
-def test_conda_env_create_http(env_name_1: None):
+def test_conda_env_create_http(env_name_1: None, conda_cli: CondaCLIFixture):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
-    run_env_command(
-        Commands.ENV_CREATE,
-        None,
-        "--file",
-        "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/simple.yml",
+    conda_cli(
+        *("env", "create"),
+        *(
+            "--file",
+            "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/simple.yml",
+        ),
     )
     try:
         assert env_is_created("nlp")
     finally:
-        run_env_command(Commands.ENV_REMOVE, "nlp")
+        conda_cli("env", "remove", "nlp", "--yes")
 
 
 @pytest.mark.integration
 def test_update(env_name_1: None, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_1)
-    run_env_command(Commands.ENV_CREATE, None)
+    conda_cli("env", "create")
     create_env(ENVIRONMENT_2)
 
-    run_env_command(Commands.ENV_UPDATE, TEST_ENV_NAME_1)
+    conda_cli("env", "update", "--name", TEST_ENV_NAME_1)
 
-    o, e = conda_cli("list", "--name", TEST_ENV_NAME_1, "flask", "--json")
-    parsed = json.loads(o)
+    stdout, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_1, "flask", "--json")
+    parsed = json.loads(stdout)
     assert parsed
 
 
@@ -363,31 +310,29 @@ def test_name(env_name_1: None, conda_cli: CondaCLIFixture):
 
     # It might be the case that you need to run this test more than once!
     try:
-        run_env_command(Commands.ENV_REMOVE, env_name)
+        conda_cli("env", "remove", "--name", env_name, "--yes")
     except:
         pass
 
     try:
-        run_env_command(Commands.ENV_CREATE, "environment.yml", "-n", env_name)
+        conda_cli("env", "create", "environment.yml", "--name", env_name, "--yes")
     except Exception as e:
         print(e)
 
-    o, e = conda_cli("info", "--json")
+    stdout, _, _ = conda_cli("info", "--json")
 
-    parsed = json.loads(o)
+    parsed = json.loads(stdout)
     assert [env for env in parsed["envs"] if env.endswith(env_name)]
 
 
 @pytest.mark.integration
-def test_create_valid_env_json_output(env_name_1: None):
+def test_create_valid_env_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     Creates an environment from an environment.yml file with conda packages (no pip)
     Check the json output
     """
     create_env(ENVIRONMENT_1)
-    stdout, stderr = run_env_command(
-        Commands.ENV_CREATE, "envjson-1", "--quiet", "--json"
-    )
+    stdout, _, _ = conda_cli("env", "create", "envjson-1", "--quiet", "--json", "--yes")
     output = json.loads(stdout)
     assert output["success"] is True
     assert len(output["actions"]["LINK"]) > 0
@@ -395,32 +340,30 @@ def test_create_valid_env_json_output(env_name_1: None):
 
 
 @pytest.mark.integration
-def test_create_valid_env_with_conda_and_pip_json_output(env_name_1: None):
+def test_create_valid_env_with_conda_and_pip_json_output(
+    env_name_1: None, conda_cli: CondaCLIFixture
+):
     """
     Creates an environment from an environment.yml file with conda and pip dependencies
     Check the json output
     """
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
-    stdout, stderr = run_env_command(
-        Commands.ENV_CREATE, "envjson-2", "--quiet", "--json"
-    )
+    stdout, _, _ = conda_cli("env", "create", "envjson-2", "--quiet", "--json", "--yes")
     output = json.loads(stdout)
     assert len(output["actions"]["LINK"]) > 0
     assert output["actions"]["PIP"][0].startswith("click")
 
 
 @pytest.mark.integration
-def test_update_env_json_output(env_name_1: None):
+def test_update_env_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     Update an environment by adding a conda package
     Check the json output
     """
     create_env(ENVIRONMENT_1)
-    run_env_command(Commands.ENV_CREATE, "envjson-3", "--json")
+    conda_cli("env", "create", "envjson-3", "--json", "--yes")
     create_env(ENVIRONMENT_2)
-    stdout, stderr = run_env_command(
-        Commands.ENV_UPDATE, "envjson-3", "--quiet", "--json"
-    )
+    stdout, _, _ = conda_cli("env", "update", "envjson-3", "--quiet", "--json", "--yes")
     output = json.loads(stdout)
     assert output["success"] is True
     assert len(output["actions"]["LINK"]) > 0
@@ -428,17 +371,15 @@ def test_update_env_json_output(env_name_1: None):
 
 
 @pytest.mark.integration
-def test_update_env_only_pip_json_output(env_name_1: None):
+def test_update_env_only_pip_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     Update an environment by adding only a pip package
     Check the json output
     """
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
-    run_env_command(Commands.ENV_CREATE, "envjson-4", "--json")
+    conda_cli("env", "create", "envjson-4", "--json", "--yes")
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS)
-    stdout, stderr = run_env_command(
-        Commands.ENV_UPDATE, "envjson-4", "--quiet", "--json"
-    )
+    stdout, _, _ = conda_cli("env", "update", "envjson-4", "--quiet", "--json", "--yes")
     output = json.loads(stdout)
     assert output["success"] is True
     # No conda actions (FETCH/LINK), only pip
@@ -449,95 +390,84 @@ def test_update_env_only_pip_json_output(env_name_1: None):
 
 
 @pytest.mark.integration
-def test_update_env_no_action_json_output(env_name_1: None):
+def test_update_env_no_action_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     Update an already up-to-date environment
     Check the json output
     """
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
-    run_env_command(Commands.ENV_CREATE, "envjson-5", "--json")
-    stdout, stderr = run_env_command(
-        Commands.ENV_UPDATE, "envjson-5", "--quiet", "--json"
-    )
+    conda_cli("env", "create", "envjson-5", "--json", "--yes")
+    stdout, _, _ = conda_cli("env", "update", "envjson-5", "--quiet", "--json", "--yes")
     output = json.loads(stdout)
     assert output["message"] == "All requested packages already installed."
 
 
 @pytest.mark.integration
-def test_remove_dry_run(env_name_1: None):
+def test_remove_dry_run(env_name_1: None, conda_cli: CondaCLIFixture):
     # Test for GH-10231
     create_env(ENVIRONMENT_1)
-    run_env_command(Commands.ENV_CREATE, None)
-    env_name = "env-1"
-    run_env_command(Commands.ENV_REMOVE, env_name, "--dry-run")
-    assert env_is_created(env_name)
+    conda_cli("env", "create")
+    conda_cli("env", "remove", "--name", "env-1", "--dry-run")
+    assert env_is_created("env-1")
 
 
 @pytest.mark.integration
-def test_set_unset_env_vars(env_name_1: None):
+def test_set_unset_env_vars(env_name_1: None, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_1)
-    run_env_command(Commands.ENV_CREATE, None)
+    conda_cli("env", "create")
     env_name = "env-1"
-    run_env_command(
-        Commands.ENV_CONFIG,
-        env_name,
-        "vars",
-        "set",
+    conda_cli(
+        *("env", "config", "vars", "set"),
+        *("--name", env_name),
         "DUDE=woah",
         "SWEET=yaaa",
         "API_KEY=AaBbCcDd===EeFf",
-        "-n",
-        env_name,
     )
-    o, e = run_env_command(
-        Commands.ENV_CONFIG, env_name, "vars", "list", "--json", "-n", env_name
+    stdout, _, _ = conda_cli(
+        *("env", "config", "vars", "list"),
+        *("--name", env_name),
+        "--json",
     )
-    output_env_vars = json.loads(o)
+    output_env_vars = json.loads(stdout)
     assert output_env_vars == {
         "DUDE": "woah",
         "SWEET": "yaaa",
         "API_KEY": "AaBbCcDd===EeFf",
     }
 
-    run_env_command(
-        Commands.ENV_CONFIG,
-        env_name,
-        "vars",
-        "unset",
+    conda_cli(
+        *("env", "config", "vars", "unset"),
+        *("--name", env_name),
         "DUDE",
         "SWEET",
         "API_KEY",
-        "-n",
-        env_name,
     )
-    o, e = run_env_command(
-        Commands.ENV_CONFIG, env_name, "vars", "list", "--json", "-n", env_name
+    stdout, _, _ = conda_cli(
+        *("env", "config", "vars", "list"),
+        *("--name", env_name),
+        "--json",
     )
-    output_env_vars = json.loads(o)
+    output_env_vars = json.loads(stdout)
     assert output_env_vars == {}
 
 
 @pytest.mark.integration
-def test_set_unset_env_vars_env_no_exist(env_name_1: None):
+def test_set_unset_env_vars_env_no_exist(env_name_1: None, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_1)
-    run_env_command(Commands.ENV_CREATE, None)
+    conda_cli("env", "create")
     env_name = "env-11"
     with pytest.raises(EnvironmentLocationNotFound):
-        run_env_command(
-            Commands.ENV_CONFIG,
-            env_name,
-            "vars",
-            "set",
+        conda_cli(
+            *("env", "config", "vars", "set"),
+            *("--name", env_name),
             "DUDE=woah",
             "SWEET=yaaa",
             "API_KEY=AaBbCcDd===EeFf",
-            "-n",
-            env_name,
         )
 
 
 @pytest.mark.integration
-def test_pip_error_is_propagated(env_name_1: None):
+def test_pip_error_is_propagated(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     Creates an environment from an environment.yml file with conda and incorrect pip dependencies
     The output must clearly show pip error.
@@ -545,7 +475,7 @@ def test_pip_error_is_propagated(env_name_1: None):
     """
     create_env(ENVIRONMENT_PYTHON_PIP_NONEXISTING)
     with pytest.raises(CondaEnvException, match="Pip failed"):
-        run_env_command(Commands.ENV_CREATE, TEST_ENV_NAME_PIP)
+        conda_cli("env", "create", "--name", TEST_ENV_NAME_PIP)
 
 
 def env_is_created(env_name):
@@ -567,159 +497,140 @@ def env_is_created(env_name):
 
 
 @pytest.fixture
-def env_name_2() -> None:
+def env_name_2(conda_cli: CondaCLIFixture) -> None:
     # It *can* happen that this does not remove the env directory and then
     # the CREATE fails. Keep your eyes out! We could use rm_rf, but do we
     # know which conda install we're talking about? Now? Forever? I'd feel
     # safer adding an `rm -rf` if we had a `Commands.ENV_NAME_TO_PREFIX` to
     # tell us which folder to remove.
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
 
     yield
 
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
 
 
 @pytest.mark.integration
 def test_env_export(env_name_2: None, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-
     conda_cli("create", "--name", TEST_ENV_NAME_2, "flask", "--yes")
     assert env_is_created(TEST_ENV_NAME_2)
 
-    (
-        snowflake,
-        e,
-    ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2)
+    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2)
 
     with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
-        env_yaml.write(snowflake)
+        env_yaml.write(stdout)
         env_yaml.flush()
         env_yaml.close()
 
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+        conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
         assert not env_is_created(TEST_ENV_NAME_2)
-        run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
+        conda_cli("env", "create", "--file", env_yaml.name, "--yes")
         assert env_is_created(TEST_ENV_NAME_2)
 
         # regression test for #6220
-        (
-            snowflake,
-            e,
-        ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--no-builds")
-        assert not e.strip()
-        env_description = yaml_safe_load(snowflake)
+        stdout, stderr, _ = conda_cli(
+            "env", "export", "--name", TEST_ENV_NAME_2, "--no-builds"
+        )
+        assert not stderr
+        env_description = yaml_safe_load(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
             assert spec_str.count("=") == 1
 
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
     assert not env_is_created(TEST_ENV_NAME_2)
 
 
 @pytest.mark.integration
 def test_env_export_with_variables(env_name_2: None, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-
     conda_cli("create", "--name", TEST_ENV_NAME_2, "flask", "--yes")
     assert env_is_created(TEST_ENV_NAME_2)
 
-    run_env_command(
-        Commands.ENV_CONFIG,
-        TEST_ENV_NAME_2,
-        "vars",
-        "set",
+    conda_cli(
+        *("env", "config", "vars", "set"),
+        *("--name", TEST_ENV_NAME_2),
         "DUDE=woah",
         "SWEET=yaaa",
-        "-n",
-        TEST_ENV_NAME_2,
     )
 
-    (
-        snowflake,
-        e,
-    ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2)
+    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2)
 
     with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
-        env_yaml.write(snowflake)
+        env_yaml.write(stdout)
         env_yaml.flush()
         env_yaml.close()
 
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+        conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
         assert not env_is_created(TEST_ENV_NAME_2)
-        run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
+        conda_cli("env", "create", "--file", env_yaml.name, "--yes")
         assert env_is_created(TEST_ENV_NAME_2)
 
-        snowflake, e = run_env_command(
-            Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--no-builds"
+        stdout, stderr, _ = conda_cli(
+            "env", "export", "--name", TEST_ENV_NAME_2, "--no-builds", "--yes"
         )
-        assert not e.strip()
-        env_description = yaml_safe_load(snowflake)
+        assert not stderr
+        env_description = yaml_safe_load(stdout)
         assert len(env_description["variables"])
         assert env_description["variables"].keys()
 
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
     assert not env_is_created(TEST_ENV_NAME_2)
 
 
 @pytest.mark.integration
 def test_env_export_json(env_name_2: None, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-
     conda_cli("create", "--name", TEST_ENV_NAME_2, "flask", "--yes")
     assert env_is_created(TEST_ENV_NAME_2)
 
-    (
-        snowflake,
-        e,
-    ) = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--json")
+    stdout, _, _ = conda_cli(
+        "env", "export", "--name", TEST_ENV_NAME_2, "--json", "--yes"
+    )
 
     with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_json:
-        env_json.write(snowflake)
+        env_json.write(stdout)
         env_json.flush()
         env_json.close()
 
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+        conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
         assert not env_is_created(TEST_ENV_NAME_2)
 
         # regression test for #6220
-        (
-            snowflake,
-            e,
-        ) = run_env_command(
-            Commands.ENV_EXPORT, TEST_ENV_NAME_2, "--no-builds", "--json"
+        stdout, stderr, _ = conda_cli(
+            "env", "export", "--name", TEST_ENV_NAME_2, "--no-builds", "--json"
         )
-        assert not e.strip()
+        assert not stderr
 
-        env_description = json.loads(snowflake)
+        env_description = json.loads(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
             assert spec_str.count("=") == 1
 
-    run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
     assert not env_is_created(TEST_ENV_NAME_2)
 
 
 @pytest.mark.integration
 def test_list(env_name_2: None, conda_cli: CondaCLIFixture):
     """Test conda list -e and conda create from txt."""
-
     conda_cli("create", "--name", TEST_ENV_NAME_2, "--yes")
     assert env_is_created(TEST_ENV_NAME_2)
 
-    snowflake, e = conda_cli("list", "--name", TEST_ENV_NAME_2, "--export")
+    stdout, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--export")
 
     with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
-        env_txt.write(snowflake)
+        env_txt.write(stdout)
         env_txt.flush()
         env_txt.close()
-        run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+        conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
         assert not env_is_created(TEST_ENV_NAME_2)
         conda_cli("create", "--name", TEST_ENV_NAME_2, "--file", env_txt.name)
         assert env_is_created(TEST_ENV_NAME_2)
 
-    snowflake2, e = conda_cli("list", "--name", TEST_ENV_NAME_2, "--export")
-    assert snowflake == snowflake2
+    stdout2, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--export")
+    assert stdout == stdout2
 
 
 @pytest.mark.integration
@@ -739,33 +650,33 @@ def test_export_multi_channel(env_name_2: None, conda_cli: CondaCLIFixture):
         "test_timestamp_sort",
         "--yes",
     )
-    snowflake, e = run_env_command(Commands.ENV_EXPORT, TEST_ENV_NAME_2)
-    assert "conda-test" in snowflake
+    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2)
+    assert "conda-test" in stdout
 
-    check1, e = conda_cli("list", "--name", TEST_ENV_NAME_2, "--explicit")
+    stdout1, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--explicit")
 
     with Utf8NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
-        env_yaml.write(snowflake)
+        env_yaml.write(stdout)
         env_yaml.flush()
         env_yaml.close()
-        o, e = run_env_command(Commands.ENV_REMOVE, TEST_ENV_NAME_2)
+        conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
         assert not env_is_created(TEST_ENV_NAME_2)
-        o, e = run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
+        conda_cli("env", "create", "--file", env_yaml.name, "--yes")
         assert env_is_created(TEST_ENV_NAME_2)
 
     # check explicit that we have same file
-    check2, e = conda_cli("list", "--name", TEST_ENV_NAME_2, "--explicit")
-    assert check1 == check2
+    stdout2, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--explicit")
+    assert stdout1 == stdout2
 
 
 @pytest.mark.integration
-def test_non_existent_file(env_name_2: None):
+def test_non_existent_file(env_name_2: None, conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentFileNotFound):
-        run_env_command(Commands.ENV_CREATE, None, "--file", "i_do_not_exist.yml")
+        conda_cli("env", "create", "--file", "i_do_not_exist.yml", "--yes")
 
 
 @pytest.mark.integration
-def test_invalid_extensions(env_name_2: None):
+def test_invalid_extensions(env_name_2: None, conda_cli: CondaCLIFixture):
     with Utf8NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
         with pytest.raises(EnvironmentFileExtensionNotValid):
-            run_env_command(Commands.ENV_CREATE, None, "--file", env_yaml.name)
+            conda_cli("env", "create", "--file", env_yaml.name, "--yes")
