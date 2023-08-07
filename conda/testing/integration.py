@@ -439,7 +439,7 @@ def package_is_installed(prefix, spec):
 
 def _package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix).query(spec))
+    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=True).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
             "Multiple packages installed.%s"

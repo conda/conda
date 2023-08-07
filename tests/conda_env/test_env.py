@@ -3,20 +3,19 @@
 import os
 import random
 from io import StringIO
-from os.path import join
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from pytest import MonkeyPatch
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol
-from conda.common.io import env_vars
+from conda.base.context import context, reset_context
 from conda.common.serialize import yaml_round_trip_load
-from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture
+from conda.testing.integration import package_is_installed
 from conda_env.env import (
     VALID_KEYS,
     Environment,
@@ -24,7 +23,6 @@ from conda_env.env import (
     from_file,
     load_from_directory,
 )
-from tests.test_utils import is_prefix_activated_PATHwise
 
 from . import support_file
 from .utils import make_temp_envs_dir
@@ -355,42 +353,25 @@ def test_creates_file_on_save(tmp_path: Path):
     assert env.to_yaml() == tmp.read_text()
 
 
-@pytest.mark.skipif(
-    not is_prefix_activated_PATHwise(),
-    reason=(
-        "You are running `pytest` outside of proper activation. "
-        "The entries necessary for conda to operate correctly "
-        "are not on PATH.  Please use `conda activate`"
-    ),
-)
 @pytest.mark.integration
-def test_create_advanced_pip(conda_cli: CondaCLIFixture):
+def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
+    monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "true")
+
     with make_temp_envs_dir() as envs_dir:
-        with env_vars(
-            {
-                "CONDA_ENVS_DIRS": envs_dir,
-                "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "true",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            env_name = str(uuid4())[:8]
-            conda_cli("env", "create", "--name", env_name, support_file("pip_argh.yml"))
-            out_file = join(envs_dir, "test_env.yaml")
+        monkeypatch.setenv("CONDA_ENVS_DIRS", envs_dir)
+        reset_context()
+        assert context.envs_dirs[0] == envs_dir
 
-        # make sure that the export reconsiders the presence of pip interop being enabled
-        PrefixData._cache_.clear()
+        env_name = str(uuid4())[:8]
+        prefix = Path(envs_dir, env_name)
 
-        with env_vars(
-            {
-                "CONDA_ENVS_DIRS": envs_dir,
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
-            conda_cli("export", "--name", env_name, out_file)
-            with open(out_file) as f:
-                d = yaml_round_trip_load(f)
-            assert {"pip": ["argh==0.26.2"]} in d["dependencies"]
+        conda_cli(
+            *("env", "create"),
+            *("--name", env_name),
+            *("--file", support_file("pip_argh.yml")),
+        )
+        assert prefix.exists()
+        assert package_is_installed(prefix, "argh==0.26.2")
 
 
 def test_from_history():

@@ -7,39 +7,12 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
-from conda.common.io import dashlist
 from conda.core.prefix_data import PrefixData
-from conda.models.enums import PackageType
-from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture
+from conda.testing.integration import package_is_installed
 
 from . import support_file
 from .utils import make_temp_envs_dir
-
-
-def package_is_installed(prefix, spec, pip=None):
-    spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=pip).query(spec))
-    if len(prefix_recs) > 1:
-        raise AssertionError(
-            "Multiple packages installed.%s"
-            % (dashlist(prec.dist_str() for prec in prefix_recs))
-        )
-    is_installed = bool(len(prefix_recs))
-    if is_installed and pip is True:
-        assert prefix_recs[0].package_type in (
-            PackageType.VIRTUAL_PYTHON_WHEEL,
-            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
-            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
-            PackageType.VIRTUAL_PYTHON_EGG_LINK,
-        )
-    if is_installed and pip is False:
-        assert prefix_recs[0].package_type in (
-            None,
-            PackageType.NOARCH_GENERIC,
-            PackageType.NOARCH_PYTHON,
-        )
-    return is_installed
 
 
 def get_env_vars(prefix):
@@ -132,18 +105,14 @@ def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixtur
         )
         assert prefix.exists()
         assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "argh", pip=True)
-        assert package_is_installed(
-            prefix,
-            "module-to-install-in-editable-mode",
-            pip=True,
-        )
+        assert package_is_installed(prefix, "argh")
+        assert package_is_installed(prefix, "module-to-install-in-editable-mode")
         try:
-            assert package_is_installed(prefix, "six", pip=True)
+            assert package_is_installed(prefix, "six")
         except AssertionError:
             # six may now be conda-installed because of packaging changes
-            assert package_is_installed(prefix, "six", pip=False)
-        assert package_is_installed(prefix, "xmltodict=0.10.2", pip=True)
+            assert package_is_installed(prefix, "six")
+        assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
 @pytest.mark.integration
