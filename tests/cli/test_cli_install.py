@@ -9,16 +9,6 @@ from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
-@pytest.fixture
-def prefix(tmpdir, conda_cli: CondaCLIFixture):
-    prefix = tmpdir.mkdir("cli_install_prefix")
-    test_env = tmpdir.mkdir("cli_install_test_env")
-    conda_cli("create", "--prefix", prefix, "python=3.9")
-    yield str(prefix), str(test_env)
-    rm_rf(prefix)
-    rm_rf(test_env)
-
-
 @pytest.mark.integration
 def test_pre_link_message(
     test_recipes_channel: None,

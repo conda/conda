@@ -18,6 +18,7 @@ from conda.base.constants import (
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.disk.create import mkdir_p
+from conda.gateways.logging import set_verbosity
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import make_temp_package_cache
 
@@ -317,6 +318,8 @@ def test_clean_all(
         assert_not_pkg(pkg, tars)
         assert not cache
 
+    set_verbosity(0)  # reset verbosity
+
 
 # conda clean --all --verbose
 @pytest.mark.parametrize("as_json", [True, False])
@@ -352,6 +355,8 @@ def test_clean_all_mock_lstat(
         assert_any_pkg(pkg, pkgs)
         assert_any_pkg(pkg, tars)
         assert cache
+
+    set_verbosity(0)  # reset verbosity
 
 
 # _get_size unittest, valid file
