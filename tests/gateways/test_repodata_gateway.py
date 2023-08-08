@@ -175,13 +175,18 @@ def test_coverage_repodata_state(tmp_path):
     # now these should be loaded through RepodataCache instead.
 
     # assert invalid state is equal to no state
-    state = RepodataState(
-        tmp_path / "garbage.json",
-        tmp_path / f"garbage{CACHE_STATE_SUFFIX}",
-        "repodata.json",
+    state = RepodataCache(
+        tmp_path,
+        "garbage.json",
     )
-    state.cache_path_state.write_text("not json")
-    assert dict(state.load()) == {}
+    state.load_state().cache_path_state.write_text("{}")
+
+    assert state.load_state().data == {}
+
+    # assert writing something loads same
+    state.cache_path_state.write_text('{"jim":"bob"}')
+
+    assert state.load_state().data == {"jim": "bob"}
 
 
 from conda.gateways.connection import (
@@ -313,52 +318,6 @@ def test_ssl_unavailable_error_message():
             raise SSLError()
     finally:
         del sys.modules["ssl"]
-
-
-def test_cache_json(tmp_path: Path):
-    """
-    Load and save standardized field names, from internal matches-legacy
-    underscore-prefixed field names. Assert state is only loaded if it matches
-    cached json.
-    """
-    cache_json = tmp_path / "cached.json"
-    cache_state = tmp_path / f"cached{CACHE_STATE_SUFFIX}"
-
-    cache_json.write_text("{}")
-
-    RepodataState(cache_json, cache_state, "repodata.json").save()
-
-    state = RepodataState(cache_json, cache_state, "repodata.json").load()
-
-    mod = "last modified time"
-
-    state = RepodataState(cache_json, cache_state, "repodata.json")
-    state.mod = mod  # this is the last-modified header not mtime_ns
-    state.cache_control = "cache control"
-    state.etag = '"unambiguous-etag"'
-    state.save()
-
-    on_disk_format = json.loads(cache_state.read_text())
-    print("disk format", on_disk_format)
-    assert on_disk_format[LAST_MODIFIED_KEY] == mod
-    assert on_disk_format[CACHE_CONTROL_KEY]
-    assert on_disk_format[ETAG_KEY]
-    assert isinstance(on_disk_format["size"], int)
-    assert isinstance(on_disk_format["mtime_ns"], int)
-
-    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state2.mod == mod
-    assert state2.cache_control
-    assert state2.etag
-
-    assert state2[LAST_MODIFIED_KEY] == state2.mod
-    assert state2[ETAG_KEY] == state2.etag
-    assert state2[CACHE_CONTROL_KEY] == state2.cache_control
-
-    cache_json.write_text("{ }")  # now invalid due to size
-
-    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state_invalid.get(LAST_MODIFIED_KEY) == ""
 
 
 @pytest.mark.parametrize("use_jlap", [True, False])

@@ -58,19 +58,15 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        with patch.object(
-            conda.core.subdir_data, "read_mod_and_etag"
-        ) as read_mod_and_etag:
-            read_mod_and_etag.return_value = {}
-            channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
+        channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
 
-            this_platform = context.subdir
-            index = get_index(channel_urls=channel_urls, prepend=False)
-            for dist, record in index.items():
-                assert platform_in_record(this_platform, record), (
-                    this_platform,
-                    record.url,
-                )
+        this_platform = context.subdir
+        index = get_index(channel_urls=channel_urls, prepend=False)
+        for dist, record in index.items():
+            assert platform_in_record(this_platform, record), (
+                this_platform,
+                record.url,
+            )
 
     # When unknown=True (which is implicitly engaged when context.offline is
     # True), there may be additional items in the cache that are included in
