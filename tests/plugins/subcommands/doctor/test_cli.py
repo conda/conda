@@ -14,10 +14,10 @@ def test_conda_doctor_happy_path(conda_cli: CondaCLIFixture):
     assert not code  # successful exit code
 
 
-def test_conda_doctor_happy_path_verbose(conda_cli: CondaCLIFixture):
-    """Make sure that we are able to run ``conda doctor`` command with the --verbose flag"""
+def test_conda_doctor_happy_path_details(conda_cli: CondaCLIFixture):
+    """Make sure that we are able to run ``conda doctor`` command with the --details flag"""
 
-    out, err, code = conda_cli("doctor", "--verbose")
+    out, err, code = conda_cli("doctor", "--details")
 
     assert not err  # no error message
     assert not code  # successful exit code

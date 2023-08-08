@@ -4,9 +4,15 @@
 from __future__ import annotations
 
 import argparse
+from argparse import _StoreTrueAction
 
 from ....base.context import context
-from ....cli.conda_argparse import ArgumentParser, add_parser_help, add_parser_prefix
+from ....cli.conda_argparse import (
+    ArgumentParser,
+    add_parser_details,
+    add_parser_help,
+    add_parser_prefix,
+)
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
 
@@ -23,9 +29,15 @@ def configure_parser(parser: ArgumentParser):
     parser.add_argument(
         "-v",
         "--verbose",
-        action="store_true",
-        help="Generate a detailed environment health report.",
+        dest="details",
+        action=deprecated.action(
+            "24.3",
+            "24.9",
+            _StoreTrueAction,
+            addendum="Use `--details` instead.",
+        ),
     )
+    add_parser_details(parser, "Generate a detailed environment health report.")
     add_parser_help(parser)
     add_parser_prefix(parser)
 
@@ -34,7 +46,7 @@ def execute(args: argparse.Namespace) -> None:
     """Run conda doctor subcommand."""
     from .health_checks import display_health_checks
 
-    display_health_checks(context.target_prefix, verbose=args.verbose)
+    display_health_checks(context.target_prefix, details=args.details)
 
 
 @hookimpl

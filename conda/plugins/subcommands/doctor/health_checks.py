@@ -7,8 +7,9 @@ import json
 from logging import getLogger
 from pathlib import Path
 
-from conda.exceptions import CondaError
-from conda.gateways.disk.read import compute_sum
+from ....deprecations import deprecated
+from ....exceptions import CondaError
+from ....gateways.disk.read import compute_sum
 
 logger = getLogger(__name__)
 
@@ -79,14 +80,15 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
-def display_health_checks(prefix: str, verbose: bool = False) -> None:
+@deprecated.argument("24.3", "24.9", "verbose", rename="details")
+def display_health_checks(prefix: str, details: bool = False) -> None:
     """Prints health report."""
     display_report_heading(prefix)
     print("1. Missing Files:\n")
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:
         for package_name, missing_files in missing_files.items():
-            if verbose:
+            if details:
                 delimiter = "\n  "
                 print(f"{package_name}:{delimiter}{delimiter.join(missing_files)}")
             else:
@@ -94,13 +96,13 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
     else:
         print(f"{OK_MARK} There are no packages with missing files.\n")
 
-    if verbose:
+    if details:
         print("")
     print("2. Altered Files:\n")
     altered_packages = find_altered_packages(prefix)
     if altered_packages:
         for package_name, altered_files in altered_packages.items():
-            if verbose:
+            if details:
                 delimiter = "\n  "
                 print(f"{package_name}:{delimiter}{delimiter.join(altered_files)}\n")
             else:
