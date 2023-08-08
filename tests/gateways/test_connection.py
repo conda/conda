@@ -123,6 +123,7 @@ def test_session_manager_returns_default():
     """
     url = "https://localhost/test"
     session_obj = session_manager(url)
+    session_manager.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -132,16 +133,17 @@ def test_session_manager_with_channel_settings(mocker):
     Tests to make sure the session_manager function works when ``channel_settings``
     have been set on the context object.
     """
-    mock_get_channel_name_from_url = mocker.patch(
-        "conda.gateways.connection.session.get_channel_name_from_url"
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        return_value="defaults",
     )
-    mock_get_channel_name_from_url.return_value = "defaults"
     mock_context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy_one"},)
 
     url = "https://localhost/test1"
 
     session_obj = session_manager(url)
+    session_manager.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -161,10 +163,10 @@ def test_session_manager_with_channel_settings_no_handler(mocker):
     have been set on the context objet. This test does not find a matching auth
     handler.
     """
-    mock_get_channel_name_from_url = mocker.patch(
-        "conda.gateways.connection.session.get_channel_name_from_url"
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        return_value="defaults",
     )
-    mock_get_channel_name_from_url.return_value = "defaults"
     mock_context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.plugin_manager.get_auth_handler.return_value = None
     mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy_two"},)
@@ -172,6 +174,7 @@ def test_session_manager_with_channel_settings_no_handler(mocker):
     url = "https://localhost/test2"
 
     session_obj = session_manager(url)
+    session_manager.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
