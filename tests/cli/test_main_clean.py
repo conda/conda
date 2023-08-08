@@ -255,9 +255,7 @@ def test_clean_logfiles(clear_cache):
 @pytest.mark.parametrize("details", [True, False])
 def test_clean_all(clear_cache, details: bool):
     pkg = "bzip2"
-    args = ("--yes", "--json")
-    if details:
-        args = (*args, "--details")
+    args = ["--details"] if details else []
 
     with make_temp_package_cache() as pkgs_dir:
         # pkg, tarball, & index cache doesn't exist ahead of time
@@ -273,7 +271,9 @@ def test_clean_all(clear_cache, details: bool):
             assert_any_pkg(pkg, tars)
             assert cache
 
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--all", *args)
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--all", "--yes", "--json", *args
+            )
             json.loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
@@ -284,8 +284,10 @@ def test_clean_all(clear_cache, details: bool):
             assert_not_pkg(pkg, tars)
             assert not cache
 
-            run_command(Commands.REMOVE, prefix, pkg, *args)
-            stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", *args)
+            run_command(Commands.REMOVE, prefix, pkg, "--yes", "--json")
+            stdout, _, _ = run_command(
+                Commands.CLEAN, "", "--packages", "--yes", "--json", *args
+            )
             json.loads(stdout)  # assert valid json
 
             # pkg is removed
@@ -309,9 +311,7 @@ def test_clean_all(clear_cache, details: bool):
 @pytest.mark.parametrize("as_json", [True, False])
 def test_clean_all_mock_lstat(clear_cache, mocker: MockerFixture, as_json: bool):
     pkg = "bzip2"
-    args = ("--yes", "--details")
-    if as_json:
-        args = (*args, "--json")
+    args = ["--json"] if as_json else []
 
     with make_temp_package_cache() as pkgs_dir, make_temp_env(pkg) as prefix:
         # pkg, tarball, & index cache exists
@@ -322,8 +322,10 @@ def test_clean_all_mock_lstat(clear_cache, mocker: MockerFixture, as_json: bool)
 
         mocker.patch("os.lstat", side_effect=OSError)
 
-        run_command(Commands.REMOVE, prefix, pkg, *args)
-        stdout, _, _ = run_command(Commands.CLEAN, "", "--packages", *args)
+        run_command(Commands.REMOVE, prefix, pkg, "--yes", *args)
+        stdout, _, _ = run_command(
+            Commands.CLEAN, "", "--packages", "--yes", "--details", *args
+        )
         assert "WARNING:" in stdout
         if as_json:
             json.loads(stdout)  # assert valid json
