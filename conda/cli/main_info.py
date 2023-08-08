@@ -341,13 +341,13 @@ def execute(args, parser):
 
     options = "envs", "system"
 
-    if args.all or context.json:
+    if args.details or context.json:
         for option in options:
             setattr(args, option, True)
     info_dict = get_info_dict(args.system)
 
     if (
-        args.all or all(not getattr(args, opt) for opt in options)
+        args.details or all(not getattr(args, opt) for opt in options)
     ) and not context.json:
         print(get_main_info_str(info_dict) + "\n")
 

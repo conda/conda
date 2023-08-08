@@ -42,7 +42,7 @@ def test_info():
     ):
         assert_in(name, conda_info_s_out)
 
-    conda_info_all_out, conda_info_all_err, rc = run_command(Commands.INFO, "--all")
+    conda_info_all_out, conda_info_all_err, rc = run_command(Commands.INFO, "--details")
     assert_equals(conda_info_all_err, "")
     assert_in(conda_info_out, conda_info_all_out)
     assert_in(conda_info_e_out, conda_info_all_out)
