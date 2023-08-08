@@ -761,7 +761,7 @@ class ProgressiveFetchExtract:
 
         if not context.verbosity and not context.quiet and not context.json:
             print(
-                "\nDownloading and Extracting Packages:", 
+                "\nDownloading and Extracting Packages:",
                 end="\n" if ProgressBar.interactive() else " ...working...",
             )
         else:
