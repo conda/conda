@@ -1,9 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import json
 from logging import getLogger
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pytest
 from requests import HTTPError
@@ -138,9 +137,9 @@ def test_session_manager_with_channel_settings(mocker):
     )
     mock_get_channel_name_from_url.return_value = "defaults"
     mock_context = mocker.patch("conda.gateways.connection.session.context")
-    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy"},)
+    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy_one"},)
 
-    url = "https://localhost/test"
+    url = "https://localhost/test1"
 
     session_obj = session_manager(url)
 
@@ -150,7 +149,10 @@ def test_session_manager_with_channel_settings(mocker):
     assert type(session_obj.auth) is not CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
-    assert call("dummy") in mock_context.plugin_manager.get_auth_handler.mock_calls
+    assert (
+        mocker.call("dummy_one")
+        in mock_context.plugin_manager.get_auth_handler.mock_calls
+    )
 
 
 def test_session_manager_with_channel_settings_no_handler(mocker):
@@ -165,9 +167,9 @@ def test_session_manager_with_channel_settings_no_handler(mocker):
     mock_get_channel_name_from_url.return_value = "defaults"
     mock_context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.plugin_manager.get_auth_handler.return_value = None
-    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy"},)
+    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy_two"},)
 
-    url = "https://localhost/test"
+    url = "https://localhost/test2"
 
     session_obj = session_manager(url)
 
@@ -177,7 +179,10 @@ def test_session_manager_with_channel_settings_no_handler(mocker):
     assert type(session_obj.auth) is CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
-    assert call("dummy") in mock_context.plugin_manager.get_auth_handler.mock_calls
+    assert (
+        mocker.call("dummy_two")
+        in mock_context.plugin_manager.get_auth_handler.mock_calls
+    )
 
 
 @pytest.mark.parametrize(

@@ -117,11 +117,19 @@ class CondaSessionType(type):
         return super().__new__(mcs, name, bases, dct)
 
     def __call__(cls, **kwargs):
+        storage_key = id(kwargs.get("auth"))
+
         try:
-            return cls._thread_local.session
+            return cls._thread_local.sessions[storage_key]
         except AttributeError:
-            session = cls._thread_local.session = super().__call__(**kwargs)
-            return session
+            session = super().__call__(**kwargs)
+            cls._thread_local.sessions = {storage_key: session}
+        except KeyError:
+            session = cls._thread_local.sessions[storage_key] = super().__call__(
+                **kwargs
+            )
+
+        return session
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
