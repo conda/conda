@@ -128,10 +128,10 @@ def test_session_manager_returns_default():
     assert type(session_obj) is CondaSession
 
 
-def test_session_manager_with_channel_settings(monkeypatch, mocker):
+def test_session_manager_with_channel_settings(mocker):
     """
     Tests to make sure the session_manager function works when ``channel_settings``
-    have been set on the channel obejct
+    have been set on the context object.
     """
     mock_get_channel_name_from_url = mocker.patch(
         "conda.gateways.connection.session.get_channel_name_from_url"
@@ -147,7 +147,34 @@ def test_session_manager_with_channel_settings(monkeypatch, mocker):
     assert type(session_obj) is CondaSession
 
     # For session objects with a custom auth handler it will not be set to CondaHttpAuth
-    assert session_obj.auth is not CondaHttpAuth
+    assert type(session_obj.auth) is not CondaHttpAuth
+
+    # Make sure we tried to retrieve our auth handler in this function
+    assert call("dummy") in mock_context.plugin_manager.get_auth_handler.mock_calls
+
+
+def test_session_manager_with_channel_settings_no_handler(mocker):
+    """
+    Tests to make sure the session_manager function works when ``channel_settings``
+    have been set on the context objet. This test does not find a matching auth
+    handler.
+    """
+    mock_get_channel_name_from_url = mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url"
+    )
+    mock_get_channel_name_from_url.return_value = "defaults"
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.plugin_manager.get_auth_handler.return_value = None
+    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy"},)
+
+    url = "https://localhost/test"
+
+    session_obj = session_manager(url)
+
+    assert type(session_obj) is CondaSession
+
+    # For sessions without a custom auth handler, this will be the default auth handler
+    assert type(session_obj.auth) is CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
     assert call("dummy") in mock_context.plugin_manager.get_auth_handler.mock_calls
