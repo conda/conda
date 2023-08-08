@@ -12,7 +12,7 @@ from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
-from functools import partial, wraps
+from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
 from itertools import cycle
 from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
@@ -473,33 +473,40 @@ class ProgressBar:
         if json:
             pass
         elif enabled:
-            bar_format = "{desc}{bar} | {percentage:3.0f}% "
-            try:
-                self.pbar = self._tqdm(
-                    desc=description,
-                    bar_format=bar_format,
-                    ascii=True,
-                    total=1,
-                    file=sys.stdout,
-                    position=position,
-                    leave=leave,
-                )
-            except OSError as e:
-                if e.errno in (EPIPE, ESHUTDOWN):
-                    self.enabled = False
-                else:
-                    raise
+            if self.interactive():
+                bar_format = "{desc}{bar} | {percentage:3.0f}% "
+                try:
+                    self.pbar = self._tqdm(
+                        desc=description,
+                        bar_format=bar_format,
+                        ascii=True,
+                        total=1,
+                        file=sys.stdout,
+                        position=position,
+                        leave=leave,
+                    )
+                except OSError as e:
+                    if e.errno in (EPIPE, ESHUTDOWN):
+                        self.enabled = False
+                    else:
+                        raise
+            else:
+                self.pbar = None
+                sys.stdout.write("%s ...working..." % description)
 
     def update_to(self, fraction):
         try:
-            if self.json and self.enabled:
-                with self.get_lock():
-                    sys.stdout.write(
-                        '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
-                        % (self.description, fraction)
-                    )
-            elif self.enabled:
-                self.pbar.update(fraction - self.pbar.n)
+            if self.enabled:
+                if self.json:
+                    with self.get_lock():
+                        sys.stdout.write(
+                            '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
+                            % (self.description, fraction)
+                        )
+                elif self.interactive():
+                    self.pbar.update(fraction - self.pbar.n)
+                elif fraction == 1:
+                    sys.stdout.write(" done\n")
         except OSError as e:
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
@@ -511,20 +518,23 @@ class ProgressBar:
 
     def refresh(self):
         """Force refresh i.e. once 100% has been reached"""
-        if self.enabled and not self.json:
+        if self.enabled and not self.json and self.interactive():
             self.pbar.refresh()
 
     @swallow_broken_pipe
     def close(self):
-        if self.enabled and self.json:
-            with self.get_lock():
-                sys.stdout.write(
-                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                    % self.description
-                )
-                sys.stdout.flush()
-        elif self.enabled:
-            self.pbar.close()
+        if self.enabled:
+            if self.json:
+                with self.get_lock():
+                    sys.stdout.write(
+                        '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                        % self.description
+                    )
+                    sys.stdout.flush()
+            elif self.interactive():
+                self.pbar.close()
+            else:
+                sys.stdout.write(" done\n")
 
     @staticmethod
     def _tqdm(*args, **kwargs):
@@ -532,6 +542,12 @@ class ProgressBar:
         from tqdm.auto import tqdm
 
         return tqdm(*args, **kwargs)
+
+    @lru_cache(maxsize=1)
+    @staticmethod
+    def interactive():
+        """Return True if we're running in a terminal."""
+        return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
