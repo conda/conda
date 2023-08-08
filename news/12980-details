@@ -1,0 +1,21 @@
+### Enhancements
+
+* Introducing `--details` argument for `conda info`, `conda clean`, and `conda doctor`. (#12980)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda info [-a|--all]` for deprecation in 24.9. Use `conda info [-D|--details]` instead. (#12980)
+* Mark `conda clean [-v|--verbose]` for deprecation in 24.9. Use `conda clean [-D|--details]` instead. (#12980)
+* Mark `conda doctor [-v|--verbose]` for deprecation in 24.9. Use `conda doctor [-D|--details]` instead. (#12980)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
