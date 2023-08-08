@@ -87,6 +87,7 @@ def session_manager(url: str):
     if channel_name is None:
         return CondaSession()
 
+    # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
         if settings.get("channel") == channel_name:

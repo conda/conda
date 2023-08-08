@@ -208,7 +208,9 @@ class CondaPluginManager(pluggy.PluginManager):
         Get the auth handler with the given name or None
         """
         auth_handlers = self.get_hook_results("auth_handlers")
-        matches = tuple(item for item in auth_handlers if item.name == name.strip())
+        matches = tuple(
+            item for item in auth_handlers if item.name.lower() == name.lower().strip()
+        )
 
         if len(matches) > 0:
             return matches[0].handler
