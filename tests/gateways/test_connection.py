@@ -1,9 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from io import StringIO
+import json
 from logging import getLogger
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 from requests import HTTPError
@@ -126,6 +126,31 @@ def test_session_manager_returns_default():
     session_obj = session_manager(url)
 
     assert type(session_obj) is CondaSession
+
+
+def test_session_manager_with_channel_settings(monkeypatch, mocker):
+    """
+    Tests to make sure the session_manager function works when ``channel_settings``
+    have been set on the channel obejct
+    """
+    mock_get_channel_name_from_url = mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url"
+    )
+    mock_get_channel_name_from_url.return_value = "defaults"
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy"},)
+
+    url = "https://localhost/test"
+
+    session_obj = session_manager(url)
+
+    assert type(session_obj) is CondaSession
+
+    # For session objects with a custom auth handler it will not be set to CondaHttpAuth
+    assert session_obj.auth is not CondaHttpAuth
+
+    # Make sure we tried to retrieve our auth handler in this function
+    assert call("dummy") in mock_context.plugin_manager.get_auth_handler.mock_calls
 
 
 @pytest.mark.parametrize(
