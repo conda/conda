@@ -18,6 +18,7 @@ from ..base.constants import (
     CONDA_TEMP_EXTENSIONS,
 )
 from ..base.context import context
+from ..deprecations import deprecated
 
 log = getLogger(__name__)
 _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
@@ -51,13 +52,14 @@ def _get_total_size(pkg_sizes: dict[str, dict[str, int]]) -> int:
     return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
 
 
-def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
+@deprecated.argument("24.3", "24.9", "verbosity")
+def _rm_rf(*parts: str, verbose: bool) -> None:
     from ..gateways.disk.delete import rm_rf
 
     path = join(*parts)
     try:
         if rm_rf(path):
-            if verbose and verbosity:
+            if verbose:
                 print(f"Removed {path}")
         elif verbose:
             print(f"WARNING: cannot remove, file permissions: {path}")
@@ -126,6 +128,7 @@ def find_pkgs() -> dict[str, Any]:
     }
 
 
+@deprecated.argument("24.3", "24.9", "verbosity", rename="details")
 def rm_pkgs(
     pkgs_dirs: dict[str, tuple[str]],
     warnings: list[str],
@@ -133,7 +136,7 @@ def rm_pkgs(
     pkg_sizes: dict[str, dict[str, int]],
     *,
     verbose: bool,
-    verbosity: bool,
+    details: bool,
     dry_run: bool,
     name: str,
 ) -> None:
@@ -150,7 +153,7 @@ def rm_pkgs(
         return
 
     if verbose:
-        if verbosity:
+        if details:
             print(f"Will remove the following {name}:")
             for pkgs_dir, pkgs in pkg_sizes.items():
                 print(f"  {pkgs_dir}")
@@ -172,7 +175,7 @@ def rm_pkgs(
 
     for pkgs_dir, pkgs in pkg_sizes.items():
         for pkg in pkgs:
-            _rm_rf(pkgs_dir, pkg, verbose=verbose, verbosity=verbosity)
+            _rm_rf(pkgs_dir, pkg, verbose=verbose and details)
 
 
 def find_index_cache() -> list[str]:
@@ -223,11 +226,12 @@ def find_logfiles() -> list[str]:
     return files
 
 
+@deprecated.argument("24.3", "24.9", "verbosity", rename="details")
 def rm_items(
     items: list[str],
     *,
     verbose: bool,
-    verbosity: bool,
+    details: bool,
     dry_run: bool,
     name: str,
 ) -> None:
@@ -239,7 +243,7 @@ def rm_items(
         return
 
     if verbose:
-        if verbosity:
+        if details:
             print(f"Will remove the following {name}:")
             for item in items:
                 print(f"  - {item}")
@@ -253,14 +257,14 @@ def rm_items(
         confirm_yn()
 
     for item in items:
-        _rm_rf(item, verbose=verbose, verbosity=verbosity)
+        _rm_rf(item, verbose=verbose and details)
 
 
 def _execute(args, parser):
     json_result = {"success": True}
     kwargs = {
         "verbose": not (context.json or context.quiet),
-        "verbosity": args.verbosity,
+        "details": args.details,
         "dry_run": args.dry_run,
     }
 

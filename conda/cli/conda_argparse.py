@@ -452,7 +452,8 @@ def configure_parser_clean(sub_parsers):
         help="Remove log files.",
     )
 
-    add_output_and_prompt_options(p)
+    grp = add_output_and_prompt_options(p)
+    add_parser_details(grp)
 
     p.set_defaults(func=".main_clean.execute")
 

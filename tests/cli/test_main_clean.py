@@ -251,13 +251,13 @@ def test_clean_logfiles(clear_cache):
         assert not _get_logfiles(pkgs_dir)
 
 
-# conda clean --all [--verbose]
-@pytest.mark.parametrize("verbose", [True, False])
-def test_clean_all(clear_cache, verbose: bool):
+# conda clean --all [--details]
+@pytest.mark.parametrize("details", [True, False])
+def test_clean_all(clear_cache, details: bool):
     pkg = "bzip2"
     args = ("--yes", "--json")
-    if verbose:
-        args = (*args, "--verbose")
+    if details:
+        args = (*args, "--details")
 
     with make_temp_package_cache() as pkgs_dir:
         # pkg, tarball, & index cache doesn't exist ahead of time
@@ -305,11 +305,11 @@ def test_clean_all(clear_cache, verbose: bool):
         assert not cache
 
 
-# conda clean --all --verbose
+# conda clean --all --details
 @pytest.mark.parametrize("as_json", [True, False])
 def test_clean_all_mock_lstat(clear_cache, mocker: MockerFixture, as_json: bool):
     pkg = "bzip2"
-    args = ("--yes", "--verbose")
+    args = ("--yes", "--details")
     if as_json:
         args = (*args, "--json")
 
