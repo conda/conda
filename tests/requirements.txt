@@ -12,6 +12,7 @@ conda-forge::flake8-docstrings
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
+conda-libmamba-solver >=23.7.0
 conda-package-handling >=1.3.0
 conda-verify
 coverage
