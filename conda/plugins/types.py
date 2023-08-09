@@ -106,6 +106,19 @@ class CondaPostCommand(NamedTuple):
     run_for: set[str]
 
 
+class ChannelAuthBase(AuthBase):
+    """
+    Base class that we require all plugin implementations to use to be compatible.
+
+    Authentication is tightly coupled with individual channel; therefore, an additional
+    ``channel_name`` property must be set on the ``requests.auth.AuthBase`` class.
+    """
+
+    def __init__(self, channel_name: str):
+        self.channel_name = channel_name
+        super().__init__()
+
+
 class CondaAuthHandler(NamedTuple):
     """
     Return type to use when the defining the conda auth handlers hook.
@@ -117,4 +130,4 @@ class CondaAuthHandler(NamedTuple):
     """
 
     name: str
-    handler: type[AuthBase]
+    handler: type[ChannelAuthBase]

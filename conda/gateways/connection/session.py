@@ -107,6 +107,18 @@ def session_manager(url: str):
     return CondaSession(auth=auth_handler_cls(channel_name))
 
 
+def get_session_storage_key(auth) -> str:
+    """
+    Function that determines which storage key to use for our CondaSession object caching
+    """
+    if auth is None:
+        return "default"
+
+    auth_type = type(auth)
+
+    return f"{auth_type.__module__}.{auth_type.__qualname__}::{auth.channel_name}"
+
+
 class CondaSessionType(type):
     """
     Takes advice from https://github.com/requests/requests/issues/1871#issuecomment-33327847
@@ -118,7 +130,7 @@ class CondaSessionType(type):
         return super().__new__(mcs, name, bases, dct)
 
     def __call__(cls, **kwargs):
-        storage_key = id(kwargs.get("auth"))
+        storage_key = get_session_storage_key(kwargs.get("auth"))
 
         try:
             return cls._thread_local.sessions[storage_key]

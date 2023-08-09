@@ -17,9 +17,11 @@ from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
     get_channel_name_from_url,
+    get_session_storage_key,
     session_manager,
 )
 from conda.gateways.disk.delete import rm_rf
+from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 from conda.testing.integration import env_var, make_temp_env
 
@@ -149,6 +151,56 @@ def test_session_manager_with_channel_settings(mocker):
 
     # For session objects with a custom auth handler it will not be set to CondaHttpAuth
     assert type(session_obj.auth) is not CondaHttpAuth
+
+    # Make sure we tried to retrieve our auth handler in this function
+    assert (
+        mocker.call("dummy_one")
+        in mock_context.plugin_manager.get_auth_handler.mock_calls
+    )
+
+
+def test_session_manager_with_channel_settings_multiple(mocker):
+    """
+    Tests to make sure the session_manager function works when ``channel_settings``
+    have been set on the context object and there exists more than one channel
+    configured using the same type of auth handler.
+
+    It's important that our cache keys are set up so that we do not return the
+    same CondaSession object for these two different channels.
+    """
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        side_effect=["channel_one", "channel_two"],
+    )
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.channel_settings = (
+        {"channel": "channel_one", "auth": "dummy_one"},
+        {"channel": "channel_two", "auth": "dummy_one"},
+    )
+    mock_context.plugin_manager.get_auth_handler.return_value = ChannelAuthBase
+
+    url_one = "https://localhost/test1"
+    url_two = "https://localhost/test2"
+
+    session_obj_one = session_manager(url_one)
+    session_obj_two = session_manager(url_two)
+
+    session_manager.cache_clear()  # ensuring cleanup
+
+    assert session_obj_one is not session_obj_two
+
+    storage_key_one = get_session_storage_key(session_obj_one.auth)
+    storage_key_two = get_session_storage_key(session_obj_two.auth)
+
+    assert storage_key_one in session_obj_one._thread_local.sessions
+    assert storage_key_two in session_obj_one._thread_local.sessions
+
+    assert type(session_obj_one) is CondaSession
+    assert type(session_obj_two) is CondaSession
+
+    # For session objects with a custom auth handler it will not be set to CondaHttpAuth
+    assert type(session_obj_one.auth) is not CondaHttpAuth
+    assert type(session_obj_two.auth) is not CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
     assert (
