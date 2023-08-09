@@ -543,8 +543,8 @@ class ProgressBar:
 
         return tqdm(*args, **kwargs)
 
-    @lru_cache(maxsize=1)
     @staticmethod
+    @lru_cache(maxsize=1)
     def interactive():
         """Return True if we're running in a terminal."""
         return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
