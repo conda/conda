@@ -24,4 +24,4 @@ EXAMPLE: To see help for the ``create`` command, in your terminal window or an A
    conda create -h
 
 .. note::
-   You can see the same command help in :doc:`../../commands`.
+   You can see the same command help in :doc:`commands <../../commands/index>`.

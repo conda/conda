@@ -18,6 +18,6 @@ installations of various packages. It can:
    letter of the option. So ``--name`` and ``--envs`` can be written as ``-n`` and ``-e`` respectively.
 
 For full usage of each command, including abbreviations, see
-:doc:`../../commands`. You can see the same information at the
+:doc:`commands <../../commands/index>`. You can see the same information at the
 command line by :doc:`viewing the command-line help
 <../tasks/view-command-line-help>`.

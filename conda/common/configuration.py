@@ -1577,7 +1577,7 @@ class Configuration(metaclass=ConfigurationType):
 
         description = self.get_descriptions().get(name, "")
         et = parameter._element_type
-        if type(et) == EnumMeta:
+        if type(et) == EnumMeta:  # noqa: E721
             et = [et]
         if not isiterable(et):
             et = [et]
