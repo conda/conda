@@ -13,6 +13,7 @@ from argparse import (
     _CountAction,
     _HelpAction,
     _StoreAction,
+    _StoreTrueAction,
 )
 from importlib import import_module
 from logging import getLogger
@@ -474,8 +475,13 @@ def configure_parser_info(sub_parsers):
     p.add_argument(
         "-a",
         "--all",
-        action="store_true",
-        help="Show all information.",
+        dest="verbosity",
+        action=deprecated.action(
+            "24.3",
+            "24.9",
+            _StoreTrueAction,
+            addendum="Use `--verbose` instead.",
+        ),
     )
     p.add_argument(
         "--base",
