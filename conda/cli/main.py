@@ -10,14 +10,14 @@ def init_loggers(context=None):
     from ..gateways.logging import initialize_logging, set_verbosity
 
     initialize_logging()
+
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
         for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
             getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context:
-        if context.verbosity:
-            set_verbosity(context.verbosity)
+    # set verbosity level, if none set default to no verbosity
+    set_verbosity(context and context.verbosity or 0)
 
 
 def generate_parser(*args, **kwargs):

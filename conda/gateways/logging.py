@@ -21,8 +21,13 @@ from .. import CondaError
 from ..common.io import _FORMATTER, attach_stderr_handler
 
 log = getLogger(__name__)
-TRACE = 5  # TRACE LOG LEVEL
-VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
+VERBOSITY_LEVELS = {
+    0: WARN,  # standard output
+    1: WARN,  # -v, detailed output
+    2: INFO,  # -vv, info logging
+    3: DEBUG,  # -vvv, debug logging
+    4: (TRACE := 5),  # -vvvv, trace logging
+}
 
 
 class TokenURLFilter(Filter):
@@ -207,15 +212,12 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
     conda_logger.addHandler(handler)
 
 
-def set_verbosity(verbosity_level):
+def set_verbosity(verbosity: int):
     try:
-        set_all_logger_level(VERBOSITY_LEVELS[verbosity_level])
-    except IndexError:
-        raise CondaError(
-            "Invalid verbosity level: %(verbosity_level)s",
-            verbosity_level=verbosity_level,
-        )
-    log.debug("verbosity set to %s", verbosity_level)
+        set_all_logger_level(VERBOSITY_LEVELS[verbosity])
+    except KeyError:
+        raise CondaError(f"Invalid verbosity level: {verbosity}")
+    log.debug(f"verbosity set to {verbosity}")
 
 
 def trace(self, message, *args, **kwargs):

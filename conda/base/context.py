@@ -955,7 +955,12 @@ class Context(Configuration):
 
     @property
     def verbosity(self):
-        return 2 if self.debug else self._verbosity
+        #                   0 = logging.WARN, standard output
+        #           -v    = 1 = logging.WARN, detailed output
+        #           -vv   = 2 = logging.INFO
+        # --debug = -vvv  = 3 = logging.DEBUG
+        #           -vvvv = 4 = logging.TRACE
+        return 3 if self.debug else self._verbosity
 
     @memoizedproperty
     def user_agent(self):
