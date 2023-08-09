@@ -955,8 +955,8 @@ class Context(Configuration):
 
     @property
     def verbosity(self):
-        #                   0 = logging.WARN, standard output
-        #           -v    = 1 = logging.WARN, detailed output
+        #                   0 = no logging, standard output
+        #           -v    = 1 = no logging, detailed output
         #           -vv   = 2 = logging.INFO
         # --debug = -vvv  = 3 = logging.DEBUG
         #           -vvvv = 4 = logging.TRACE
