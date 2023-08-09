@@ -1325,14 +1325,7 @@ def configure_parser_run(sub_parsers):
     )
 
     add_parser_prefix(p)
-    p.add_argument(
-        "-v",
-        "--verbose",
-        action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
-        dest="verbosity",
-        default=NULL,
-    )
+    add_parser_verbose(p)
 
     p.add_argument(
         "--dev",
@@ -1759,14 +1752,7 @@ def add_parser_json(p):
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
     )
-    output_and_prompt_options.add_argument(
-        "-v",
-        "--verbose",
-        action=NullCountAction,
-        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
-        dest="verbosity",
-        default=NULL,
-    )
+    add_parser_verbose(output_and_prompt_options)
     output_and_prompt_options.add_argument(
         "-q",
         "--quiet",
@@ -2075,4 +2061,18 @@ def add_parser_default_packages(p):
         "--no-default-packages",
         action="store_true",
         help="Ignore create_default_packages in the .condarc file.",
+    )
+
+
+def add_parser_verbose(parser):
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action=NullCountAction,
+        help=(
+            "Can be used multiple times. Once for detailed output, twice for INFO logging, "
+            "thrice for DEBUG logging, 4+ for TRACE logging."
+        ),
+        dest="verbosity",
+        default=NULL,
     )
