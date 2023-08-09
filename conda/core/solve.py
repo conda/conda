@@ -352,7 +352,7 @@ class Solver:
         if not ssc.r:
             with Spinner(
                 "Collecting package metadata (%s)" % self._repodata_fn,
-                (not context.verbosity and not context.quiet and not retrying),
+                context.verbosity < 2 and not context.quiet and not retrying,
                 context.json,
             ):
                 ssc = self._collect_all_metadata(ssc)
@@ -372,7 +372,7 @@ class Solver:
 
         with Spinner(
             "Solving environment",
-            not context.verbosity and not context.quiet,
+            context.verbosity < 2 and not context.quiet,
             context.json,
             fail_message=fail_message,
         ):

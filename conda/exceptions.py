@@ -1245,10 +1245,8 @@ def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
 
     rc = getattr(exc_val, "return_code", None)
-    if (
-        context.debug
-        or context.verbosity > 2
-        or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)
+    if context.verbosity >= 3 or (
+        not isinstance(exc_val, DryRunExit) and context.verbosity > 1
     ):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:

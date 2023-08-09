@@ -44,7 +44,7 @@ def any_subprocess(args, prefix, env=None, cwd=None):
         context.root_prefix,
         prefix,
         context.dev,
-        context.verbosity >= 2,
+        context.verbosity >= 3,
         args,
     )
     process = Popen(
