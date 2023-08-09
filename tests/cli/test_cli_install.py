@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 
+from conda.base.context import context
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.delete import rm_rf
 from conda.models.match_spec import MatchSpec
@@ -28,6 +29,10 @@ def test_pre_link_message(test_recipes_channel: None, mocker, prefix):
     assert "Lorem ipsum dolor sit amet" in stdout
 
 
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="conda-libmamba-solver does not use the Resolve interface"
+)
 @pytest.mark.integration
 def test_find_conflicts_called_once(mocker, prefix):
     prefix, test_env = prefix

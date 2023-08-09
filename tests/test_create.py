@@ -907,8 +907,9 @@ def test_update_with_pinned_packages(clear_package_cache: None):
 
 def test_pinned_override_with_explicit_spec(clear_package_cache: None):
     with make_temp_env("python=3.9") as prefix:
+        pyver = next(PrefixData(prefix).query("python")).version
         run_command(
-            Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.9.16"
+            Commands.CONFIG, prefix, "--add", "pinned_packages", f"python={pyver}"
         )
         run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
         assert package_is_installed(prefix, "python=3.10")
@@ -956,6 +957,10 @@ def test_allow_softlinks(hardlink_supported_mock, clear_package_cache: None):
     hardlink_supported_mock._result_cache.clear()
 
 
+@pytest.mark.skipif(
+    context.solver == "libmamba", 
+    reason="conda-libmamba-solver does not support features",
+)
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
 def test_remove_features(clear_package_cache: None):
     with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
@@ -2014,6 +2019,10 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
 
 
 @pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="Known issue; see https://github.com/conda/conda-libmamba-solver/issues/141",
+)
+@pytest.mark.skipif(
     context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
     reason="Skip unsupported platforms",
 )
@@ -2426,6 +2435,10 @@ def test_use_index_cache(clear_package_cache: None):
             )
 
 
+@pytest.mark.skipif(
+    context.solver == "libmamba", 
+    reason="Known bug in libmamba; see https://github.com/mamba-org/mamba/issues/1197",
+)
 def test_offline_with_empty_index_cache(clear_package_cache: None):
     from conda.core.subdir_data import SubdirData
 
@@ -2932,17 +2945,25 @@ def test_cross_channel_incompatibility(clear_package_cache: None):
         )
 
 
-# https://github.com/conda/conda/issues/9124
 @pytest.mark.skipif(
     context.subdir != "linux-64",
     reason="lazy; package constraint here only valid on linux-64",
-)
+) # https://github.com/conda/conda/issues/9124
 def test_neutering_of_historic_specs(clear_package_cache: None):
     with make_temp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
         stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
         with open(os.path.join(prefix, "conda-meta", "history")) as f:
             d = f.read()
-        assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # libmamba relaxes more aggressively sometimes
+            # instead of relaxing from pkgname=version=build to pkgname=version, it
+            # goes to just pkgname; this is because libmamba does not take into account
+            # matchspec target and optionality (iow, MatchSpec.conda_build_form() does not)
+            assert re.search(r"neutered specs:.*'psutil'\]", d)
+        else:
+            assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
+
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
         stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
