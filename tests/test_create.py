@@ -958,7 +958,7 @@ def test_allow_softlinks(hardlink_supported_mock, clear_package_cache: None):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
+    context.solver == "libmamba",
     reason="conda-libmamba-solver does not support features",
 )
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
@@ -2436,7 +2436,7 @@ def test_use_index_cache(clear_package_cache: None):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
+    context.solver == "libmamba",
     reason="Known bug in libmamba; see https://github.com/mamba-org/mamba/issues/1197",
 )
 def test_offline_with_empty_index_cache(clear_package_cache: None):
@@ -2948,7 +2948,7 @@ def test_cross_channel_incompatibility(clear_package_cache: None):
 @pytest.mark.skipif(
     context.subdir != "linux-64",
     reason="lazy; package constraint here only valid on linux-64",
-) # https://github.com/conda/conda/issues/9124
+)  # https://github.com/conda/conda/issues/9124
 def test_neutering_of_historic_specs(clear_package_cache: None):
     with make_temp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
         stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
