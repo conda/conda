@@ -80,8 +80,8 @@ def test_solve_1(tmpdir):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
-    reason="conda-libmamba-solver does not use the SSC object"
+    context.solver == "libmamba",
+    reason="conda-libmamba-solver does not use the SSC object",
 )
 def test_solve_2(tmpdir):
     specs = (MatchSpec("numpy"),)
@@ -158,8 +158,8 @@ def test_solve_2(tmpdir):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
-    reason="conda-libmamba-solver does not use the SSC object"
+    context.solver == "libmamba",
+    reason="conda-libmamba-solver does not use the SSC object",
 )
 def test_virtual_package_solver(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cudatoolkit"),)
@@ -281,15 +281,15 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
         possible_messages = [
-        dals(
-            """Encountered problems while solving:
+            dals(
+                """Encountered problems while solving:
   - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""
-        ),
-        dals(
-            """Encountered problems while solving:
+            ),
+            dals(
+                """Encountered problems while solving:
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
-        ),
-    ]
+            ),
+        ]
         exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
     else:
@@ -397,7 +397,7 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
+    context.solver == "libmamba",
     reason="conda-libmamba-solver does not support features",
 )
 def test_prune_1(tmpdir):
@@ -1105,8 +1105,8 @@ def test_update_all_1(tmpdir):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
-    reason="conda-libmamba-solver does not use the ._r (Resolve) object"
+    context.solver == "libmamba",
+    reason="conda-libmamba-solver does not use the ._r (Resolve) object",
 )
 def test_broken_install(tmpdir):
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
@@ -2167,14 +2167,12 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
         if context.solver == "libmamba":
             # LIBMAMBA ADJUSTMENT
             # We only check python was upgraded as expected, not the full solution
-            assert (
-                add_subdir("channel-4::python-2.7.14-h89e7a4a_22") 
-                in convert_to_dist_str(unlink_precs)
-            )
-            assert (
-                add_subdir("channel-4::python-3.6.4-hc3d631a_1") 
-                in convert_to_dist_str(link_precs)
-            )
+            assert add_subdir(
+                "channel-4::python-2.7.14-h89e7a4a_22"
+            ) in convert_to_dist_str(unlink_precs)
+            assert add_subdir(
+                "channel-4::python-3.6.4-hc3d631a_1"
+            ) in convert_to_dist_str(link_precs)
         else:
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
@@ -2207,9 +2205,9 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
         if context.solver == "libmamba":
             # LIBMAMBA ADJUSTMENT
             # We only check sqlite was upgraded as expected and python stays the same
-            assert add_subdir("channel-4::sqlite-3.21.0-h1bed415_2") in convert_to_dist_str(
-                unlink_precs
-            )
+            assert add_subdir(
+                "channel-4::sqlite-3.21.0-h1bed415_2"
+            ) in convert_to_dist_str(unlink_precs)
             sqlite = next(pkg for pkg in link_precs if pkg.name == "sqlite")
             # mamba chooses a different sqlite version (3.23 instead of 3.24)
             assert VersionOrder(sqlite.version) > VersionOrder("3.21")
@@ -2327,8 +2325,8 @@ def test_pinned_1(tmpdir):
         ) as solver:
             if context.solver == "libmamba":
                 # LIBMAMBA ADJUSTMENT
-                # Original tests checks for SpecsConfigurationConflictError 
-                # being raised but libmamba will fails with UnsatisfiableError 
+                # Original tests checks for SpecsConfigurationConflictError
+                # being raised but libmamba will fails with UnsatisfiableError
                 # instead. Hence, we check the error string.
                 with pytest.raises(UnsatisfiableError) as exc_info:
                     solver.solve_final_state(ignore_pinned=False)
@@ -2839,9 +2837,10 @@ def test_priority_1(tmpdir):
                 assert spec in convert_to_dist_str(final_state_4)
             assert "pandas" not in convert_to_dist_str(final_state_4)
 
+
 @pytest.mark.skipif(
-    context.solver == "libmamba", 
-    reason="conda-libmamba-solver does not support features"
+    context.solver == "libmamba",
+    reason="conda-libmamba-solver does not support features",
 )
 def test_features_solve_1(tmpdir):
     # in this test, channel-2 is a view of pkgs/free/linux-64
@@ -3208,7 +3207,10 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             # One more case of different wording for the same message. I think the essence is the same
             # (cannot update to python 2.7), even if python 2.6 is not mentioned.
             assert "Encountered problems while solving" in error_msg
-            assert "package scikit-learn-0.13" in error_msg and "requires python 2.7*" in error_msg
+            assert (
+                "package scikit-learn-0.13" in error_msg
+                and "requires python 2.7*" in error_msg
+            )
         else:
             assert (
                 "incompatible with the existing python installation in your environment:"

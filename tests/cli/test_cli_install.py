@@ -31,7 +31,7 @@ def test_pre_link_message(
 
 @pytest.mark.skipif(
     context.solver == "libmamba",
-    reason="conda-libmamba-solver does not use the Resolve interface"
+    reason="conda-libmamba-solver does not use the Resolve interface",
 )
 @pytest.mark.integration
 def test_find_conflicts_called_once(
