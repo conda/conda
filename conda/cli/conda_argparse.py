@@ -71,11 +71,7 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         **kwargs,
     )
 
-    pre_parser.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
+    add_parser_verbose(pre_parser)
     pre_parser.add_argument(
         "--json",
         action="store_true",
@@ -1747,12 +1743,6 @@ def add_parser_json(p):
         "Output, Prompt, and Flow Control Options"
     )
     output_and_prompt_options.add_argument(
-        "--debug",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,
-    )
-    output_and_prompt_options.add_argument(
         "--json",
         action="store_true",
         default=NULL,
@@ -2081,4 +2071,9 @@ def add_parser_verbose(parser):
         ),
         dest="verbosity",
         default=NULL,
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help=SUPPRESS,
     )
