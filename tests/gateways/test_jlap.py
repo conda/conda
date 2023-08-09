@@ -15,11 +15,11 @@ import pytest
 import requests
 import zstandard
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError, CondaSSLError
-from conda.gateways.connection.session import CondaSession
+from conda.gateways.connection.session import CondaSession, session_manager
 from conda.gateways.repodata import (
     CACHE_CONTROL_KEY,
     CACHE_STATE_SUFFIX,
@@ -85,7 +85,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
 
 @pytest.mark.parametrize("verify_ssl", [True, False])
 def test_jlap_fetch_ssl(
-    package_server_ssl: socket, tmp_path: Path, mocker, verify_ssl: bool
+    package_server_ssl: socket, tmp_path: Path, monkeypatch, verify_ssl: bool
 ):
     """Check that JlapRepoInterface doesn't raise exceptions."""
     host, port = package_server_ssl.getsockname()
@@ -106,23 +106,25 @@ def test_jlap_fetch_ssl(
 
     # clear session cache to avoid leftover wrong-ssl-verify Session()
     try:
-        del CondaSession._thread_local.session
+        CondaSession._thread_local.sessions = {}
     except AttributeError:
         pass
 
     state = {}
-    with env_vars(
-        {"CONDA_SSL_VERIFY": str(verify_ssl).lower()},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(expected_exception), pytest.warns() as record:
+    with pytest.raises(expected_exception), pytest.warns() as record:
+        monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl).lower())
+        reset_context()
         repo.repodata(state)
+
+    # Clear lru_cache from the `session_manager` function
+    session_manager.cache_clear()
 
     # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
     assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"
 
     # clear session cache to avoid leftover wrong-ssl-verify Session()
     try:
-        del CondaSession._thread_local.session
+        CondaSession._thread_local.sessions = {}
     except AttributeError:
         pass
 
