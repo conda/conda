@@ -588,7 +588,7 @@ def test_remove_youngest_descendant_nodes_with_specs(tmpdir):
     assert removed_nodes == order
 
 
-@pytest.xfail(context.solver == "libmamba", reason="Known failure; needs investigation")
+@pytest.mark.xfail(context.solver == "libmamba", reason="Known failure; needs investigation")
 def test_windows_sort_orders_1(tmpdir, monkeypatch):
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
