@@ -305,7 +305,7 @@ jobs:
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
         env:
-          CONDA_SOLVER: classic
+          CONDA_SOLVER: classic  # Remove once all installers ship conda-libmamba-solver
         with:
           activate-environment: conda-test-env
           miniconda-version: "latest"
@@ -315,7 +315,7 @@ jobs:
         name: Setup miniconda for conda-forge
         if: matrix.default-channel == 'conda-forge'
         env:
-          CONDA_SOLVER: classic
+          CONDA_SOLVER: classic  # Remove once all installers ship conda-libmamba-solver
         with:
           activate-environment: conda-test-env
           miniforge-version: latest
