@@ -294,20 +294,6 @@ class SubdirData(metaclass=SubdirDataType):
         for i in self._names_index[name]:
             yield self._package_records[i]
 
-    def _load_state(self):
-        """
-        Cache headers and additional data needed to keep track of the cache are
-        stored separately, instead of the previous "added to repodata.json"
-        arrangement.
-        """
-        return self.repo_cache.load_state()
-
-    def _save_state(self, state: RepodataState):
-        assert Path(state.cache_path_json) == Path(self.cache_path_json)
-        assert Path(state.cache_path_state) == Path(self.cache_path_state)
-        assert state.repodata_fn == self.repodata_fn
-        return state.save()
-
     def _load(self):
         """
         Try to load repodata. If e.g. we are downloading
