@@ -2077,7 +2077,7 @@ def add_parser_verbose(parser):
         action=NullCountAction,
         help=(
             "Can be used multiple times. Once for detailed output, twice for INFO logging, "
-            "thrice for DEBUG logging, 4+ for TRACE logging."
+            "thrice for DEBUG logging, four times for TRACE logging."
         ),
         dest="verbosity",
         default=NULL,

@@ -34,7 +34,7 @@ def execute(args: argparse.Namespace) -> None:
     """Run conda doctor subcommand."""
     from .health_checks import display_health_checks
 
-    display_health_checks(context.target_prefix, verbose=args.verbose)
+    display_health_checks(context.target_prefix, verbose=args.verbosity)
 
 
 @hookimpl

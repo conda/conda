@@ -216,7 +216,7 @@ def set_verbosity(verbosity: int):
     try:
         set_all_logger_level(VERBOSITY_LEVELS[verbosity])
     except KeyError:
-        raise CondaError(f"Invalid verbosity level: {verbosity}")
+        raise CondaError(f"Invalid verbosity level: {verbosity}") from None
     log.debug(f"verbosity set to {verbosity}")
 
 
