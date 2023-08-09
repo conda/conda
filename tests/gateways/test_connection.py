@@ -75,6 +75,9 @@ def test_s3_server(minio_s3_server):
 
     endpoint, bucket_name = minio_s3_server.server_url.rsplit("/", 1)
     channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"
+    print(f"{endpoint=}")
+    print(f"{bucket_name=}")
+    print(f"{channel_dir=}")
     minio_s3_server.populate_bucket(endpoint, bucket_name, channel_dir)
 
     # We patch the default kwargs values in boto3.session.Session.resource(...)
