@@ -22,8 +22,8 @@ from ..common.io import _FORMATTER, attach_stderr_handler
 
 log = getLogger(__name__)
 VERBOSITY_LEVELS = {
-    0: WARN,  # standard output
-    1: WARN,  # -v, detailed output
+    0: 100,  # standard output
+    1: 100,  # -v, detailed output
     2: INFO,  # -vv, info logging
     3: DEBUG,  # -vvv, debug logging
     4: (TRACE := 5),  # -vvvv, trace logging
