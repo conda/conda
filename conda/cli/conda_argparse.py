@@ -2076,4 +2076,5 @@ def add_parser_verbose(parser):
         "--debug",
         action="store_true",
         help=SUPPRESS,
+        default=NULL,
     )
