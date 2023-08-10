@@ -10,9 +10,10 @@ from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.core.package_cache_data import download
-from conda.core.subdir_data import fetch_repodata_remote_request
+from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
+from conda.models.channel import Channel
 
 
 @pytest.mark.integration
@@ -64,7 +65,7 @@ def test_fetchrepodate_connectionerror():
                 with pytest.raises(CondaHTTPError) as execinfo:
                     url = "http://240.0.0.0/channel/osx-64"
                     msg = "Connection error:"
-                    fetch_repodata_remote_request(url, None, None)
+                    SubdirData(Channel(url)).repo_fetch.fetch_latest_str()
                     assert msg in str(execinfo)
 
 

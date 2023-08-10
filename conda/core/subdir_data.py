@@ -530,33 +530,3 @@ def make_feature_record(feature_name):
         build_number=0,
         fn=pkg_name,
     )
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
-    "is pending deprecation and will be removed in the future. "
-    "Please use `conda.core.subdir_data.SubdirData` instead.",
-)
-def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
-    """
-    :param etag: cached etag header
-    :param mod_stamp: cached last-modified header
-    """
-    # this function should no longer be used by conda but is kept for API stability
-
-    subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
-
-    try:
-        cache_state = subdir._load_state()
-        cache_state.etag = etag
-        cache_state.mod = mod_stamp
-        raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
-    except RepodataIsEmpty:
-        if repodata_fn != REPODATA_FN:
-            raise  # is UnavailableInvalidChannel subclass
-        # the surrounding try/except/else will cache "{}"
-        raw_repodata_str = None
-
-    return raw_repodata_str
