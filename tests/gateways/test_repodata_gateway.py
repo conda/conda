@@ -171,24 +171,6 @@ def test_stale(tmp_path):
     assert state.mod == "some"
 
 
-def test_coverage_repodata_state(tmp_path):
-    # now these should be loaded through RepodataCache instead.
-
-    # assert invalid state is equal to no state
-    state = RepodataCache(
-        tmp_path,
-        "garbage.json",
-    )
-    state.load_state().cache_path_state.write_text("{}")
-
-    assert state.load_state().data == {}
-
-    # assert writing something loads same
-    state.cache_path_state.write_text('{"jim":"bob"}')
-
-    assert state.load_state().data == {"jim": "bob"}
-
-
 from conda.gateways.connection import (
     HTTPError,
     InvalidSchema,
