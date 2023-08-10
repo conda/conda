@@ -339,9 +339,39 @@ def test_repodata_fetch_formats(
         cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
     )
 
+    assert isinstance(fetch.cache_path_state, Path)  # coverage
+
     a, state = fetch.fetch_latest_parsed()
     b, state = fetch.fetch_latest_path()
 
     assert a == json.loads(b.read_text())
 
     assert isinstance(state, RepodataState)
+
+
+
+@pytest.mark.parametrize("use_index", ["false", "true"])
+def test_repodata_fetch_cached(use_index: str, tmp_path):
+    """
+    An empty cache should return an empty result instead of an error, when
+    CONDA_USE_INDEX is enabled.
+    """
+    with env_vars({"CONDA_USE_INDEX": use_index}):
+        # we always check for *and create* a writable cache dir before fetch
+        cache_path_base = tmp_path / "fetch_formats" / "yzzyx"
+        cache_path_base.parent.mkdir(exist_ok=True)
+
+        # due to the way we handle file:/// urls, this test will pass whether or
+        # not use_index is true or false. Will it exercise different code paths?
+        channel = Channel("file:///path/does/not/exist")
+
+        fetch = RepodataFetch(
+            cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
+        )
+
+        repodata, state = fetch.fetch_latest_parsed()
+
+        assert repodata == {}
+        for key in "mtime_ns", "size", "refresh_ns":
+            state.pop(key)
+        assert state == {}
