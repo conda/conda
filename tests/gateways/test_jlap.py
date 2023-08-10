@@ -83,6 +83,48 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     assert patched.call_count == 4
 
 
+
+def test_jlap_fetch_file(package_server: socket, tmp_path: Path, mocker):
+    """Check that JlapRepoInterface can fetch from a file:/// URL"""
+    base = f"file:///Users/dholth/prog/conda/repo"
+
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+
+    url = f"{base}/osx-64"
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache=cache,
+        cache_path_json=Path(tmp_path, "repodata.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
+    )
+
+    patched = mocker.patch(
+        "conda.gateways.repodata.jlap.fetch.download_and_hash",
+        wraps=fetch.download_and_hash,
+    )
+
+    state = {}
+    with pytest.raises(RepodataOnDisk):
+        repo.repodata(state)
+
+    # however it may make two requests - one to look for .json.zst, the second
+    # to look for .json
+    # assert patched.call_count == 2
+
+    # second will try to fetch (non-existent) .jlap, then fall back to .json
+    with pytest.raises(RepodataOnDisk):
+        repo.repodata(state)  # a 304?
+
+    with pytest.raises(RepodataOnDisk):
+        repo.repodata(state)
+
+    # we may be able to do better than this by setting "zst unavailable" sooner
+    assert patched.call_count == 3
+
+    # how do we test if jlap against file returns partial response?
+
+
 @pytest.mark.parametrize("verify_ssl", [True, False])
 def test_jlap_fetch_ssl(
     package_server_ssl: socket, tmp_path: Path, mocker, verify_ssl: bool
