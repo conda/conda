@@ -7,9 +7,14 @@ of authentication within conda. Registered auth handlers will be
 available to configure on a per channel basis via the ``channel_settings``
 configuration option in the ``.condarc`` file.
 
-Auth handlers are subclasses of the `requests.auth.AuthBase`_ class. Please
-read the request documentation on `Custom Authentication`_ for more information
-on how to use this class.
+Auth handlers are subclasses of the :class:`~conda.plugins.types.ChannelAuthBase` class,
+which is itself a subclass of `requests.auth.AuthBase`_.
+The :class:`~conda.plugins.types.ChannelAuthBase` class adds an additional ``channel_name``
+property to the `requests.auth.AuthBase`_ class. This is necessary for appropriate handling of
+channel based authentication in conda.
+
+For more information on how to implement your own auth handlers, please read the requests
+documentation on `Custom Authentication`_.
 
 
 .. autoapiclass:: conda.plugins.types.CondaAuthHandler
