@@ -331,7 +331,7 @@ def _get_index_r_base(
 
     packages = {subdir: {}, "noarch": {}}
     for key, pkg in all_packages.items():
-        if pkg["subdir"] == "noarch" or pkg.get("noarch"):
+        if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
             packages["noarch"][key] = pkg
         else:
             packages[subdir][key] = pkg
