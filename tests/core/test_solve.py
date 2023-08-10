@@ -3238,7 +3238,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             # Leaving a # TODO mark here so we can come revisit this in the future.
             assert "Encountered problems while solving" in error_msg
             assert (
-                "incompatible with the existing python installation in your environment:"
+                "package unsatisfiable-with-py26-1.0-0 requires scikit-learn 0.13"
                 in error_msg
             )
         else:
