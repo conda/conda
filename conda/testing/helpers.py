@@ -220,16 +220,24 @@ def add_feature_records_legacy(index):
         index[rec] = rec
 
 
-def _export_subdir_data_to_repodata(subdir_data, index):
+def _export_subdir_data_to_repodata(subdir_data: SubdirData, index, subdir=None):
     """
     This function is only temporary and meant to patch wrong / undesirable
     testing behaviour. It should end up being replaced with the new class-based,
     backend-agnostic solver tests.
     """
     state = subdir_data._internal_state
+    subdir = subdir or subdir_data.channel.subdir
     packages = {}
     for pkg in index:
         data = pkg.dump()
+        if getattr(pkg, "noarch", None):
+            if subdir == "noarch":
+                data["subdir"] = "noarch"
+                data["platform"] = data["arch"] = None
+            else:
+                # skip noarch packages incorrectly labeled with a platform specific subdir
+                continue
         if pkg.timestamp:
             data["timestamp"] = pkg.timestamp
         if "features" in data:
@@ -248,7 +256,7 @@ def _export_subdir_data_to_repodata(subdir_data, index):
         "_url": state["_url"],
         "_add_pip": state["_add_pip"],
         "info": {
-            "subdir": context.subdir,
+            "subdir": subdir,
         },
         "packages": packages,
     }
@@ -261,17 +269,17 @@ def _sync_channel_to_disk(channel, subdir_data, index):
     backend-agnostic solver tests.
     """
     base = Path(EXPORTED_CHANNELS_DIR) / channel.name
-    subdir = base / channel.platform
-    subdir.mkdir(parents=True, exist_ok=True)
-    with open(subdir / "repodata.json", "w") as f:
+    subdir_path = base / channel.platform
+    subdir_path.mkdir(parents=True, exist_ok=True)
+    with open(subdir_path / "repodata.json", "w") as f:
         json.dump(_export_subdir_data_to_repodata(subdir_data, index), f, indent=2)
         f.flush()
         os.fsync(f.fileno())
 
-    noarch = base / "noarch"
-    noarch.mkdir(parents=True, exist_ok=True)
-    with open(noarch / "repodata.json", "w") as f:
-        json.dump({}, f)
+    noarch_path = base / "noarch"
+    noarch_path.mkdir(parents=True, exist_ok=True)
+    with open(noarch_path / "repodata.json", "w") as f:
+        json.dump(_export_subdir_data_to_repodata(subdir_data, index, "noarch"), f, indent=2)
         f.flush()
         os.fsync(f.fileno())
 
@@ -311,129 +319,73 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-# this fixture appears to introduce a test-order dependency if cached
-def get_index_r_1(subdir=context.subdir):
-    with open(join(TEST_DATA_DIR, "index.json")) as fi:
-        packages = json.load(fi)
+def _get_index_r_base(json_filename, channel_name, subdir=context.subdir,):
+    with open(join(TEST_DATA_DIR, json_filename)) as fi:
+        all_packages = json.load(fi)
+    
+    packages = {subdir: {}, "noarch": {}}
+    for key, pkg in all_packages.items():
+        if pkg["subdir"] == "noarch" or pkg.get("noarch"):
+            packages["noarch"][key] = pkg
+        else:
+            packages[subdir][key] = pkg
+    
+    subdir_datas = []
+    channels = []
+    for subchannel, subchannel_pkgs in packages.items():
         repodata = {
             "info": {
-                "subdir": subdir,
+                "subdir": subchannel,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
-            "packages": packages,
+            "packages": subchannel_pkgs,
         }
 
-    channel = Channel("https://conda.anaconda.org/channel-1/%s" % subdir)
-    sd = SubdirData(channel)
-    with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        "false",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        channel = Channel(f"https://conda.anaconda.org/{channel_name}/{subchannel}")
+        channels.append(channel)
+        sd = SubdirData(channel)
+        subdir_datas.append(sd)
+        with env_var(
+            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+            "true",
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            sd._process_raw_repodata_str(json.dumps(repodata))
+        sd._loaded = True
+        SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        index = {prec: prec for prec in sd.iter_records()}
+        _patch_for_local_exports(channel_name, sd, channel, index)
 
-    index = {prec: prec for prec in sd.iter_records()}
-    add_feature_records_legacy(index)
-    r = Resolve(index, channels=(channel,))
+    # this is for the classic solver only, which is fine with a single collapsed index
+    index = {}
+    for sd in subdir_datas:
+        index.update({prec: prec for prec in sd.iter_records()})
+    r = Resolve(index, channels=(channels[0],))
 
-    _patch_for_local_exports("channel-1", sd, channel, index)
     return index, r
+
+
+# this fixture appears to introduce a test-order dependency if cached
+def get_index_r_1(subdir=context.subdir):
+    return _get_index_r_base("index.json", "channel-1", subdir=subdir)
 
 
 @lru_cache(maxsize=None)
 def get_index_r_2(subdir=context.subdir):
-    with open(join(TEST_DATA_DIR, "index2.json")) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
-
-    channel = Channel("https://conda.anaconda.org/channel-2/%s" % subdir)
-    sd = SubdirData(channel)
-    with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        "false",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
-
-    index = {prec: prec for prec in sd.iter_records()}
-    r = Resolve(index, channels=(channel,))
-
-    _patch_for_local_exports("channel-2", sd, channel, index)
-    return index, r
+    return _get_index_r_base("index2.json", "channel-2", subdir=subdir)
 
 
 @lru_cache(maxsize=None)
 def get_index_r_4(subdir=context.subdir):
-    with open(join(TEST_DATA_DIR, "index4.json")) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
+    return _get_index_r_base("index4.json", "channel-4", subdir=subdir)
 
-    channel = Channel("https://conda.anaconda.org/channel-4/%s" % subdir)
-    sd = SubdirData(channel)
-    with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        "false",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
-
-    index = {prec: prec for prec in sd.iter_records()}
-    r = Resolve(index, channels=(channel,))
-
-    _patch_for_local_exports("channel-4", sd, channel, index)
-    return index, r
 
 
 @lru_cache(maxsize=None)
 def get_index_r_5(subdir=context.subdir):
-    with open(join(TEST_DATA_DIR, "index5.json")) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
+    return _get_index_r_base("index5.json", "channel-5", subdir=subdir)
 
-    channel = Channel("https://conda.anaconda.org/channel-5/%s" % subdir)
-    sd = SubdirData(channel)
-    with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        "true",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
-
-    index = {prec: prec for prec in sd.iter_records()}
-    r = Resolve(index, channels=(channel,))
-
-    _patch_for_local_exports("channel-5", sd, channel, index)
-    return index, r
 
 
 @lru_cache(maxsize=None)
@@ -642,7 +594,7 @@ def get_solver_2(
             solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),),
-                (context.subdir,),
+                (context.subdir, "noarch"),
                 specs_to_add=specs_to_add,
                 specs_to_remove=specs_to_remove,
             )
@@ -673,7 +625,7 @@ def get_solver_4(
             solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),),
-                (context.subdir,),
+                (context.subdir, "noarch"),
                 specs_to_add=specs_to_add,
                 specs_to_remove=specs_to_remove,
             )
@@ -704,7 +656,7 @@ def get_solver_5(
             solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),),
-                (context.subdir,),
+                (context.subdir, "noarch"),
                 specs_to_add=specs_to_add,
                 specs_to_remove=specs_to_remove,
             )
