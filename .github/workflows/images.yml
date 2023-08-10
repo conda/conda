@@ -40,6 +40,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}-ci
+  # see https://github.com/conda/conda/pull/12524
+  MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
 
 jobs:
   linux:
