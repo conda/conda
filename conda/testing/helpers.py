@@ -354,7 +354,7 @@ def _get_index_r_base(
         subdir_datas.append(sd)
         with env_var(
             "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "true",
+            "false",
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
