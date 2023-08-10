@@ -278,7 +278,9 @@ def _sync_channel_to_disk(channel, subdir_data, index):
     noarch_path = base / "noarch"
     noarch_path.mkdir(parents=True, exist_ok=True)
     with open(noarch_path / "repodata.json", "w") as f:
-        json.dump(_export_subdir_data_to_repodata(subdir_data, index, "noarch"), f, indent=2)
+        json.dump(
+            _export_subdir_data_to_repodata(subdir_data, index, "noarch"), f, indent=2
+        )
         f.flush()
         os.fsync(f.fileno())
 
@@ -318,17 +320,21 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-def _get_index_r_base(json_filename, channel_name, subdir=context.subdir,):
+def _get_index_r_base(
+    json_filename,
+    channel_name,
+    subdir=context.subdir,
+):
     with open(join(TEST_DATA_DIR, json_filename)) as fi:
         all_packages = json.load(fi)
-    
+
     packages = {subdir: {}, "noarch": {}}
     for key, pkg in all_packages.items():
         if pkg["subdir"] == "noarch" or pkg.get("noarch"):
             packages["noarch"][key] = pkg
         else:
             packages[subdir][key] = pkg
-    
+
     subdir_datas = []
     channels = []
     for subchannel, subchannel_pkgs in packages.items():
@@ -380,11 +386,9 @@ def get_index_r_4(subdir=context.subdir):
     return _get_index_r_base("index4.json", "channel-4", subdir=subdir)
 
 
-
 @lru_cache(maxsize=None)
 def get_index_r_5(subdir=context.subdir):
     return _get_index_r_base("index5.json", "channel-5", subdir=subdir)
-
 
 
 @lru_cache(maxsize=None)
