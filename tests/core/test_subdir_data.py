@@ -244,9 +244,6 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         sd.reload()
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
-        # newly deprecated, run them anyway
-        sd._save_state(sd._load_state())
-
 
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     channel = Channel(url_path(join(CHANNEL_DIR, platform)))
@@ -347,10 +344,10 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
             )
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
-    sd = BadCacheSubdirData(channel=local_channel)
+    sd: SubdirData = BadCacheSubdirData(channel=local_channel)
 
     with pytest.raises(CondaError):
-        state = sd._load_state()
+        state = sd.repo_cache.load_state()
         # tortured way to get to old ValueError handler
         bad_cache.write_text("NOT JSON")
         sd._read_local_repodata(state)
