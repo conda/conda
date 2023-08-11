@@ -22,6 +22,9 @@ except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.gateways.repodata import (
+    get_cache_control_max_age,  # NOQA backwards compatibility alias
+)
+from conda.gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
@@ -32,7 +35,6 @@ from conda.gateways.repodata import (
     cache_fn_url,
     create_cache_dir,
     get_repo_interface,
-    get_cache_control_max_age,  # NOQA backwards compatibility alias
 )
 
 from ..auxlib.ish import dals

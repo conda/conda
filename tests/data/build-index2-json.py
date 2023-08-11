@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 from os.path import abspath, dirname, join
-from conda.core.subdir_data import SubdirData, Channel
+
+from conda.core.subdir_data import Channel, SubdirData
 
 DATA_DIR = abspath(join(dirname(__file__), "repodata"))
 

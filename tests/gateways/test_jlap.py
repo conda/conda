@@ -426,7 +426,7 @@ def test_jlap_coverage():
             return
 
     with pytest.raises(RepodataOnDisk):
-        JlapCoverMe("", "", cache=None).repodata({})    # type: ignore
+        JlapCoverMe("", "", cache=None).repodata({})  # type: ignore
 
 
 def test_jlap_errors(
