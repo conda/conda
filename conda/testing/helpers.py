@@ -696,7 +696,7 @@ def get_solver_aggregate_1(
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
                 ),
-                (context.subdir,),
+                (context.subdir, "noarch"),
                 specs_to_add=specs_to_add,
                 specs_to_remove=specs_to_remove,
             )
@@ -732,7 +732,7 @@ def get_solver_aggregate_2(
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
                 ),
-                (context.subdir,),
+                (context.subdir, "noarch"),
                 specs_to_add=specs_to_add,
                 specs_to_remove=specs_to_remove,
             )
