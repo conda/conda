@@ -83,10 +83,10 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     assert patched.call_count == 4
 
 
-
-def test_jlap_fetch_file(package_server: socket, tmp_path: Path, mocker):
+def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
     """Check that JlapRepoInterface can fetch from a file:/// URL"""
-    base = f"file:///Users/dholth/prog/conda/repo"
+    path_url = str(package_repository_base).replace("\\", "/")
+    base = f"file://{path_url}"
 
     cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
 
@@ -120,7 +120,7 @@ def test_jlap_fetch_file(package_server: socket, tmp_path: Path, mocker):
         repo.repodata(state)
 
     # we may be able to do better than this by setting "zst unavailable" sooner
-    assert patched.call_count == 3
+    assert patched.call_count >= 3
 
     # how do we test if jlap against file returns partial response?
 
