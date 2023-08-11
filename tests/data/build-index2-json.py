@@ -10,11 +10,10 @@ DATA_DIR = abspath(join(dirname(__file__), "repodata"))
 
 def save_data_source(url, name):
     sd = SubdirData(Channel(url))
-    raw_repodata_str, _state = sd.repo_fetch.fetch_latest_str()
-    json.loads(raw_repodata_str)
+    repodata, _state = sd.repo_fetch.fetch_latest_parsed()
     with open(join(DATA_DIR, name + ".json"), "w") as fh:
         json.dump(
-            json.loads(raw_repodata_str),
+            repodata,
             fh,
             indent=2,
             sort_keys=True,

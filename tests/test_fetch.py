@@ -65,7 +65,7 @@ def test_fetchrepodate_connectionerror():
                 with pytest.raises(CondaHTTPError) as execinfo:
                     url = "http://240.0.0.0/channel/osx-64"
                     msg = "Connection error:"
-                    SubdirData(Channel(url)).repo_fetch.fetch_latest_str()
+                    SubdirData(Channel(url)).repo_fetch.fetch_latest()
                     assert msg in str(execinfo)
 
 
