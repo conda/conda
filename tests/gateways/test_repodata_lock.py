@@ -12,6 +12,7 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.gateways.repodata import RepodataCache, lock
 
+
 def locker(cache: RepodataCache, qout, qin):
     print(f"Attempt to lock {cache.cache_path_state}")
     qout.put("ready")
@@ -50,7 +51,7 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         if use_lock:
-            assert context.no_lock = True
+            assert context.no_lock == True
 
         cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 

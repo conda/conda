@@ -1758,7 +1758,7 @@ class Context(Configuration):
                 """
                 Disable index cache lock (defaults to enabled).
                 """
-            )
+            ),
         )
 
 
