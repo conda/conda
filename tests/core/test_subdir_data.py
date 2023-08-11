@@ -15,6 +15,7 @@ from conda.core.index import get_index
 from conda.core.subdir_data import (
     SubdirData,
     cache_fn_url,
+    fetch_repodata_remote_request,
 )
 from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvalidChannel
 from conda.exports import url_path
@@ -147,6 +148,16 @@ def test_cache_fn_url_repo_anaconda_com():
 
     hash6 = cache_fn_url("https://repo.anaconda.com/pkgs/r/osx-64")
     assert hash4 != hash6
+
+
+def test_fetch_repodata_remote_request_invalid_arch():
+    # see https://github.com/conda/conda/issues/8150
+    url = "file:///fake/fake/fake/linux-64"
+    etag = None
+    mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
+    result = fetch_repodata_remote_request(url, etag, mod_stamp)
+    assert result is None
+
 
 def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
     # force this to False, because otherwise tests fail when run with old conda-build
