@@ -67,6 +67,7 @@ def _safe_toposort(data):
     dependencies, each subsequent set consists of items that depend upon
     items in the preceding sets.
     """
+
     # Special case empty input.
     if len(data) == 0:
         return
@@ -81,7 +82,7 @@ def _safe_toposort(data):
             log.debug(err.args[0])
 
             if not data:
-                return
+                return  # pragma: nocover
 
             yield pop_key(data)
 
