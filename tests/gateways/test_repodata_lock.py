@@ -8,10 +8,9 @@ import traceback
 
 import pytest
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.gateways.repodata import RepodataCache, lock
-
 
 def locker(cache: RepodataCache, qout, qin):
     print(f"Attempt to lock {cache.cache_path_state}")
@@ -47,9 +46,12 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
     multiprocessing.set_start_method("spawn", force=True)
 
     with env_vars(
-        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "lock" if use_lock else ""},
+        {"CONDA_PLATFORM": "osx-64", "CONDA_NO_LOCK": "" if use_lock else "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
+        if use_lock:
+            assert context.no_lock = True
+
         cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 
         qout = multiprocessing.Queue()  # put here, get in subprocess

@@ -396,6 +396,7 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    no_lock = ParameterLoader(PrimitiveParameter(False))
 
     ####################################################
     #               Solver Configuration               #
@@ -1096,6 +1097,7 @@ class Context(Configuration):
                 "repodata_threads",
                 "fetch_threads",
                 "experimental",
+                "no_lock",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1752,6 +1754,11 @@ class Context(Configuration):
                 List of experimental features to enable.
                 """
             ),
+            no_lock=dals(
+                """
+                Disable index cache lock (defaults to enabled).
+                """
+            )
         )
 
 
