@@ -349,26 +349,37 @@ def test_repodata_fetch_formats(
     assert isinstance(state, RepodataState)
 
 
-
+@pytest.mark.parametrize("use_network", [False, True])
 @pytest.mark.parametrize("use_index", ["false", "true"])
-def test_repodata_fetch_cached(use_index: str, tmp_path):
+def test_repodata_fetch_cached(
+    use_index: str, use_network: bool, package_server, tmp_path
+):
     """
     An empty cache should return an empty result instead of an error, when
     CONDA_USE_INDEX is enabled.
     """
+
+    # real network but 404, avoids socket timeouts
+    if use_network:
+        host, port = package_server.getsockname()
+        channel_url = f"http://{host}:{port}/notfound"
+    else:
+        channel_url = "file:///path/does/not/exist"
+
     with env_vars({"CONDA_USE_INDEX": use_index}):
         # we always check for *and create* a writable cache dir before fetch
-        cache_path_base = tmp_path / "fetch_formats" / "yzzyx"
+        cache_path_base = tmp_path / "fetch_cached"
         cache_path_base.parent.mkdir(exist_ok=True)
 
         # due to the way we handle file:/// urls, this test will pass whether or
         # not use_index is true or false. Will it exercise different code paths?
-        channel = Channel("file:///path/does/not/exist")
+        channel = Channel(channel_url)
 
         fetch = RepodataFetch(
             cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
         )
 
+        # strangely never throws unavailable exception?
         repodata, state = fetch.fetch_latest_parsed()
 
         assert repodata == {}
