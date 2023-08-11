@@ -1285,7 +1285,7 @@ def test_conda_downgrade(tmpdir):
             unlink_order = (
                 # no conda downgrade
             )
-            link_order = add_subdir_to_iter(("channel-2::itsdangerous-0.24-py_0",))
+            link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
