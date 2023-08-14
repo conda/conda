@@ -262,8 +262,8 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
         assert str(exc.value).strip() == dals(
             f"""The following specifications were found to be incompatible with your system:
 
-- feature:/{plat}::__cuda==8.0=0
-- cudatoolkit -> __cuda[version='>=10.0|>=9.0']
+  - feature:/{plat}::__cuda==8.0=0
+  - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed version is: 8.0"""
         )
@@ -296,9 +296,9 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
         assert str(exc.value).strip() == dals(
             """The following specifications were found to be incompatible with your system:
 
-    - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
+  - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-    Your installed version is: not available"""
+Your installed version is: not available"""
         )
 
 
