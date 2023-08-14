@@ -98,6 +98,8 @@ from conda.testing.integration import (
     tempdir,
     which_or_where,
 )
+from conda.testing.solver_helpers import parametrized_solver_fixture  # noqa
+
 
 log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
@@ -106,29 +108,6 @@ stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 # all tests in this file are integration tests
 pytestmark = pytest.mark.integration
-
-
-@pytest.fixture(params=["libmamba", "classic"], autouse=True)
-def solver_patch(request, monkeypatch):
-    """
-    Note that skips and xfails need to be done _inside_ the test body.
-    Decorators can't be used because they are evaluated before the
-    fixture has done its work!
-
-    So, instead of:
-
-        @pytest.mark.skipif(context.solver == "libmamba", reason="...")
-        def test_foo():
-            ...
-
-    Do:
-
-        def test_foo():
-            if context.solver == "libmamba":
-                pytest.skip("...")
-            ...
-    """
-    monkeypatch.setattr(context, "solver", request.param)
 
 
 @pytest.fixture
