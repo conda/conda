@@ -325,6 +325,7 @@ def _get_index_r_base(
     json_filename,
     channel_name,
     subdir=context.subdir,
+    add_pip=False,
 ):
     with open(join(TEST_DATA_DIR, json_filename)) as fi:
         all_packages = json.load(fi)
@@ -354,7 +355,7 @@ def _get_index_r_base(
         subdir_datas.append(sd)
         with env_var(
             "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
+            "true" if add_pip else "false",
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
@@ -388,8 +389,8 @@ def get_index_r_4(subdir=context.subdir):
 
 
 @lru_cache(maxsize=None)
-def get_index_r_5(subdir=context.subdir):
-    return _get_index_r_base("index5.json", "channel-5", subdir=subdir)
+def get_index_r_5(subdir=context.subdir, add_pip=False):
+    return _get_index_r_base("index5.json", "channel-5", subdir=subdir, add_pip=add_pip)
 
 
 @lru_cache(maxsize=None)
@@ -638,7 +639,12 @@ def get_solver_4(
 
 @contextmanager
 def get_solver_5(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
 ):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
@@ -646,12 +652,12 @@ def get_solver_5(
         rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
     }
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_5(context.subdir)
+    get_index_r_5(context.subdir, add_pip=add_pip)
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
     with patch.object(History, "get_requested_specs_map", return_value=spec_map):
         with env_var(
             "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
+            "true" if add_pip else "false",
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
