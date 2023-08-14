@@ -366,7 +366,7 @@ def _get_index_r_base(
     index = {}
     for sd in subdir_datas:
         index.update({prec: prec for prec in sd.iter_records()})
-    r = Resolve(index, channels=(channels[0],))
+    r = Resolve(index, channels=channels)
 
     return index, r
 
