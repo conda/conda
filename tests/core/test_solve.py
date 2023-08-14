@@ -35,6 +35,29 @@ from conda.testing.helpers import (
 )
 
 
+@pytest.fixture(params=["libmamba", "classic"], autouse=True)
+def solver_patch(request, monkeypatch):
+    """
+    Note that skips and xfails need to be done _inside_ the test body.
+    Decorators can't be used because they are evaluated before the
+    fixture has done its work!
+
+    So, instead of:
+
+        @pytest.mark.skipif(context.solver == "libmamba", reason="...")
+        def test_foo():
+            ...
+
+    Do:
+
+        def test_foo():
+            if context.solver == "libmamba":
+                pytest.skip("...")
+            ...
+    """
+    monkeypatch.setattr(context, "solver", request.param)
+
+
 def test_solve_1(tmpdir):
     specs = (MatchSpec("numpy"),)
 
@@ -79,11 +102,11 @@ def test_solve_1(tmpdir):
         assert convert_to_dist_str(final_state) == order
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="conda-libmamba-solver does not use the SSC object",
-)
 def test_solve_2(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver does not use the SSC object")
+        return
+
     specs = (MatchSpec("numpy"),)
 
     with get_solver_aggregate_1(tmpdir, specs) as solver:
@@ -157,11 +180,10 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="conda-libmamba-solver does not use the SSC object",
-)
 def test_virtual_package_solver(tmpdir, clear_cuda_version):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver does not use the SSC object")
+
     specs = (MatchSpec("cudatoolkit"),)
 
     with env_var("CONDA_OVERRIDE_CUDA", "10.0"):
@@ -396,11 +418,10 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="conda-libmamba-solver does not support features",
-)
 def test_prune_1(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver does not support features")
+
     specs = (
         MatchSpec("numpy=1.6"),
         MatchSpec("python=2.7.3"),
@@ -1104,11 +1125,10 @@ def test_update_all_1(tmpdir):
         assert convert_to_dist_str(final_state_2) == order
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="conda-libmamba-solver does not use the ._r (Resolve) object",
-)
 def test_broken_install(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver does not use the ._r (Resolve) object")
+
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -2838,11 +2858,10 @@ def test_priority_1(tmpdir):
             assert "pandas" not in convert_to_dist_str(final_state_4)
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="conda-libmamba-solver does not support features",
-)
 def test_features_solve_1(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver does not support features")
+
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
     # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
