@@ -108,6 +108,29 @@ stderr_log_level(TEST_LOG_LEVEL, "requests")
 pytestmark = pytest.mark.integration
 
 
+@pytest.fixture(params=["libmamba", "classic"], autouse=True)
+def solver_patch(request, monkeypatch):
+    """
+    Note that skips and xfails need to be done _inside_ the test body.
+    Decorators can't be used because they are evaluated before the
+    fixture has done its work!
+
+    So, instead of:
+
+        @pytest.mark.skipif(context.solver == "libmamba", reason="...")
+        def test_foo():
+            ...
+
+    Do:
+
+        def test_foo():
+            if context.solver == "libmamba":
+                pytest.skip("...")
+            ...
+    """
+    monkeypatch.setattr(context, "solver", request.param)
+
+
 @pytest.fixture
 def clear_package_cache() -> None:
     PackageCacheData.clear()
@@ -2019,14 +2042,15 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
 
 
 @pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="Known issue; see https://github.com/conda/conda-libmamba-solver/issues/141",
-)
-@pytest.mark.skipif(
     context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
     reason="Skip unsupported platforms",
 )
 def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
+    if context.solver == "libmamba":
+        pytest.skip(
+            "Known issue; see https://github.com/conda/conda-libmamba-solver/issues/141"
+        )
+
     with env_vars(
         {
             "CONDA_REPORT_ERRORS": "false",
@@ -2435,11 +2459,12 @@ def test_use_index_cache(clear_package_cache: None):
             )
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="Known bug in libmamba; see https://github.com/mamba-org/mamba/issues/1197",
-)
 def test_offline_with_empty_index_cache(clear_package_cache: None):
+    if context.solver == "libmamba":
+        pytest.skip(
+            "Known bug in libmamba; see https://github.com/mamba-org/mamba/issues/1197"
+        )
+
     from conda.core.subdir_data import SubdirData
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
