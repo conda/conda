@@ -33,29 +33,7 @@ from conda.testing.helpers import (
     get_solver_cuda,
     get_solver_must_unfreeze,
 )
-
-
-@pytest.fixture(params=["libmamba", "classic"], autouse=True)
-def solver_patch(request, monkeypatch):
-    """
-    Note that skips and xfails need to be done _inside_ the test body.
-    Decorators can't be used because they are evaluated before the
-    fixture has done its work!
-
-    So, instead of:
-
-        @pytest.mark.skipif(context.solver == "libmamba", reason="...")
-        def test_foo():
-            ...
-
-    Do:
-
-        def test_foo():
-            if context.solver == "libmamba":
-                pytest.skip("...")
-            ...
-    """
-    monkeypatch.setattr(context, "solver", request.param)
+from conda.testing.solver_helpers import parametrized_solver_fixture  # noqa
 
 
 def test_solve_1(tmpdir):
