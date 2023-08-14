@@ -563,7 +563,7 @@ def get_solver(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),),
                 (context.subdir,),
@@ -594,7 +594,7 @@ def get_solver_2(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),),
                 (context.subdir, "noarch"),
@@ -625,7 +625,7 @@ def get_solver_4(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),),
                 (context.subdir, "noarch"),
@@ -656,7 +656,7 @@ def get_solver_5(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),),
                 (context.subdir, "noarch"),
@@ -689,7 +689,7 @@ def get_solver_aggregate_1(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
@@ -725,7 +725,7 @@ def get_solver_aggregate_2(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
@@ -759,7 +759,7 @@ def get_solver_must_unfreeze(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-freeze"),),
                 (context.subdir,),
@@ -790,7 +790,7 @@ def get_solver_cuda(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = context.plugin_manager.get_cached_solver_backend()(
+            solver = context.plugin_manager.get_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),),
                 (context.subdir,),
@@ -814,4 +814,4 @@ def convert_to_dist_str(solution):
 
 @pytest.fixture()
 def solver_class():
-    return context.plugin_manager.get_cached_solver_backend()
+    return context.plugin_manager.get_solver_backend()
