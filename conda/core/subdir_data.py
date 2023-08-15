@@ -20,10 +20,10 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.gateways.repodata import (  # noqa: F401
+from conda.gateways.repodata import (
     get_cache_control_max_age,  # backwards compatibility alias
 )
-from conda.gateways.repodata import (
+from conda.gateways.repodata import (  # noqa: F401
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
