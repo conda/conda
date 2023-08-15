@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import pickle
-import re
 from collections import UserList, defaultdict
 from functools import partial
 from itertools import chain
@@ -21,8 +20,8 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.gateways.repodata import (
-    get_cache_control_max_age,  # NOQA backwards compatibility alias
+from conda.gateways.repodata import (  # noqa: F401
+    get_cache_control_max_age,  # backwards compatibility alias
 )
 from conda.gateways.repodata import (
     CACHE_STATE_SUFFIX,
