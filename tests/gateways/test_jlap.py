@@ -122,7 +122,7 @@ def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
     with pytest.raises(RepodataOnDisk):
         repo.repodata(state)
 
-    assert patched.call_count == 2 # for some reason it's 2?
+    assert patched.call_count == 2  # for some reason it's 2?
 
 
 @pytest.mark.parametrize("verify_ssl", [True, False])
