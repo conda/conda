@@ -21,9 +21,6 @@ except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.gateways.repodata import (
-    get_cache_control_max_age,  # backwards compatibility alias
-)
-from conda.gateways.repodata import (  # noqa: F401
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
@@ -33,8 +30,11 @@ from conda.gateways.repodata import (  # noqa: F401
     RepoInterface,
     cache_fn_url,
     create_cache_dir,
-    get_repo_interface,
 )
+from conda.gateways.repodata import (
+    get_cache_control_max_age as _get_cache_control_max_age,
+)
+from conda.gateways.repodata import get_repo_interface
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -56,6 +56,15 @@ log = getLogger(__name__)
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+
+
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.gateways.repodata.get_cache_control_max_age` instead.",
+)
+def get_cache_control_max_age(cache_control_value: str) -> int:
+    return _get_cache_control_max_age(cache_control_value)
 
 
 class SubdirDataType(type):
