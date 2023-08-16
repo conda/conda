@@ -31,7 +31,8 @@ def minio_s3_server(xprocess, tmp_path):
     class Minio:
         # The 'name' below will be the name of the S3 bucket containing
         # keys like `noarch/repodata.json`
-        name = "minio_s3_server"
+        # see https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+        name = "minio-s3-server"
         port = 9000
 
         def __init__(self):
