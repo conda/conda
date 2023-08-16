@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Improve speed of fish shell initialization. (#12811)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Add missing `conda env` CLI docs. (#12841)
+* <news item>
 
 ### Other
 

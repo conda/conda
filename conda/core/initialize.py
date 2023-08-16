@@ -1194,12 +1194,19 @@ def _config_fish_content(conda_prefix):
     # !! Contents within this block are managed by 'conda init' !!
     if test -f %(conda_exe)s
         eval %(conda_exe)s "shell.fish" "hook" $argv | source
+    else
+        if test -f "%(conda_prefix)s/etc/fish/conf.d/conda.fish"
+            . "%(conda_prefix)s/etc/fish/conf.d/conda.fish"
+        else
+            set -x PATH "%(conda_prefix)s/bin" $PATH
+        end
     end
     # <<< conda initialize <<<
     """
         )
         % {
             "conda_exe": conda_exe,
+            "conda_prefix": conda_prefix,
         }
     )
     return conda_initialize_content

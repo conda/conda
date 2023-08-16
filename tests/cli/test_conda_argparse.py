@@ -37,7 +37,7 @@ def test_list_through_python_api():
 
 def test_parser_basics():
     p = generate_parser()
-    with pytest.raises(CommandNotFoundError):
+    with pytest.raises(SystemExit, match="2"):
         p.parse_args(["blarg", "--flag"])
 
     args = p.parse_args(["install", "-vv"])

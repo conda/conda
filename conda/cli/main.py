@@ -33,25 +33,35 @@ def generate_parser(*args, **kwargs):
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
-    from .conda_argparse import generate_parser
+    from ..base.context import context
+    from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
 
-    p = generate_parser()
-    args = p.parse_args(args)
+    pre_parser = generate_pre_parser(add_help=False)
+    pre_args, _ = pre_parser.parse_known_args(args)
 
-    from ..base.context import context
+    # the arguments that we want to pass to the main parser later on
+    override_args = {"json": pre_args.json, "debug": pre_args.debug}
+
+    context.__init__(argparse_args=pre_args)
+    if context.no_plugins:
+        context.plugin_manager.disable_external_plugins()
+
+    # reinitialize in case any of the entrypoints modified the context
+    context.__init__(argparse_args=pre_args)
+
+    parser = generate_parser(add_help=True)
+    args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     context.__init__(argparse_args=args)
     init_loggers(context)
 
     # used with main_pip.py
     if post_parse_hook:
-        post_parse_hook(args, p)
+        post_parse_hook(args, parser)
 
-    from .conda_argparse import do_call
-
-    exit_code = do_call(args, p)
+    exit_code = do_call(args, parser)
     if isinstance(exit_code, int):
         return exit_code
     elif hasattr(exit_code, "rc"):

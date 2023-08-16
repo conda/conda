@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""` (#12715)
+* Default `--json` and `--debug` to `NULL` so as to not overriding `CONDA_JSON` and `CONDA_DEBUG` environment variables. (#12987)
 
 ### Deprecations
 

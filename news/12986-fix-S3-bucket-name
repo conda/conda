@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Add support for FreeBSD. (#12647)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Fix S3 bucket name. (#12989)
 
 ### Deprecations
 

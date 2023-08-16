@@ -19,11 +19,11 @@ def prefix(tmpdir):
 
 
 @pytest.mark.integration
-def test_pre_link_message(mocker, prefix, pre_link_messages_package):
+def test_pre_link_message(test_recipes_channel: None, mocker, prefix):
     prefix, _ = prefix
     mocker.patch("conda.cli.common.confirm_yn", return_value=True)
     stdout, _, _ = run_command(
-        Commands.INSTALL, prefix, pre_link_messages_package, "--use-local"
+        Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local"
     )
     assert "Lorem ipsum dolor sit amet" in stdout
 
