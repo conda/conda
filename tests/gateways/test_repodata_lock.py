@@ -48,7 +48,7 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
 
     vars = {"CONDA_PLATFORM": "osx-64"}
     if not use_lock:
-        vars["CONDA_NO_LOCK"] = "1" # sets option even if empty string
+        vars["CONDA_NO_LOCK"] = "1"  # sets option even if empty string
     with env_vars(
         vars,
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
