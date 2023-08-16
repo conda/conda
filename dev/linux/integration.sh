@@ -12,7 +12,7 @@ TEST_GROUP="${TEST_GROUP:-1}"
 # make sure all test requirements are installed
 sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt
 # TODO:  Remove before merge, temporary:
-sudo /opt/conda/bin/conda install -yq conda-canary/label/dev::menuinst=2 --no-deps
+sudo /opt/conda/bin/conda install -yq conda-canary/label/dev::menuinst --no-deps
 # /TODO
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info

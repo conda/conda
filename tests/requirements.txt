@@ -45,4 +45,4 @@ setuptools_scm  # needed for devenv version detection
 toolz >=0.8.1
 tqdm >=4
 werkzeug >=2.2
-jaimergp/label/menuinst_dev::menuinst  # temporary
+conda-canary/label/dev::menuinst  # temporary

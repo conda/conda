@@ -11,7 +11,7 @@ TEST_GROUP="${TEST_GROUP:-1}"
 # make sure all test requirements are installed
 sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt
 # TODO:  Remove before merge, temporary:
-sudo su root -c "/opt/conda/bin/conda install -yq jaimergp/label/menuinst_dev::menuinst=2 --no-deps"
+sudo /opt/conda/bin/conda install -yq conda-canary/label/dev::menuinst --no-deps
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
