@@ -20,6 +20,18 @@ def display_report_heading(prefix: str) -> None:
     print(f"Environment Health Report for: {Path(prefix)}\n")
 
 
+def check_envs_txt_file(prefix: str | Path) -> bool:
+    """Checks whether the environment is listed in the environments.txt file"""
+    home = Path.home()
+    envs_txt_file = home / ".conda" / "environments.txt"
+    with open(envs_txt_file) as f:
+        content = f.read()
+        if str(prefix) in content:
+            return True
+        else:
+            return False
+
+
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
     """Finds packages listed in conda-meta which have missing files."""
     packages_with_missing_files = {}
@@ -107,3 +119,9 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
                 print(f"{package_name}: {len(altered_files)}")
     else:
         print(f"{OK_MARK} There are no packages with altered files.\n")
+
+    print("3. Environment listed in environments.txt file:\n")
+    if check_envs_txt_file(prefix):
+        print("Yes\n")
+    else:
+        print("No\n")
