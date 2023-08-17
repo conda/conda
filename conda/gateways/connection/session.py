@@ -149,7 +149,7 @@ class CondaSessionType(type):
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-    def __init__(self, auth: AuthBase | None = None):
+    def __init__(self, auth: AuthBase | tuple[str, str] | None = None):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
