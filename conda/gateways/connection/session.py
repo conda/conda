@@ -114,6 +114,9 @@ def get_session_storage_key(auth) -> str:
     if auth is None:
         return "default"
 
+    if isinstance(auth, tuple):
+        return hash(auth)
+
     auth_type = type(auth)
 
     return f"{auth_type.__module__}.{auth_type.__qualname__}::{auth.channel_name}"
