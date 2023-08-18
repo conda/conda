@@ -532,16 +532,24 @@ class Solver:
             # these are things that we want to keep even if they're not explicitly specified.  This
             #     is to compensate for older installers not recording these appropriately for them
             #     to be preserved.
-            for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
-                             'console_shortcut', 'powershell_shortcut'):
-                if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
+            for pkg_name in (
+                "anaconda",
+                "conda",
+                "conda-build",
+                "python.app",
+                "console_shortcut",
+                "powershell_shortcut",
+            ):
+                if pkg_name not in ssc.specs_map and ssc.prefix_data.get(
+                    pkg_name, None
+                ):
                     ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
             # Add virtual packages so they are taken into account by the solver
             virtual_pkg_index = {}
             _supplement_index_with_system(virtual_pkg_index)
             virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
-            for virtual_pkgs_name in (virtual_pkgs):
+            for virtual_pkgs_name in virtual_pkgs:
                 if virtual_pkgs_name not in ssc.specs_map:
                     ssc.specs_map[virtual_pkgs_name] = MatchSpec(virtual_pkgs_name)
 
@@ -556,9 +564,11 @@ class Solver:
                 #    declaration that it is manually installed, much like the
                 #    history map. It may still be replaced if it is in conflict,
                 #    but it is not just an indirect dep that can be pruned.
-                if (not ssc.specs_from_history_map
-                        or MatchSpec(prec.name) in context.aggressive_update_packages
-                        or prec.subdir == 'pypi'):
+                if (
+                    not ssc.specs_from_history_map
+                    or MatchSpec(prec.name) in context.aggressive_update_packages
+                    or prec.subdir == "pypi"
+                ):
                     ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
 
             prepared_specs = {
@@ -734,11 +744,15 @@ class Solver:
             installed_specs = ()
         else:
             installed_specs = tuple(
-                chain.from_iterable(_.to_match_spec() for _ in ssc.prefix_data.iter_records())
+                chain.from_iterable(
+                    _.to_match_spec() for _ in ssc.prefix_data.iter_records()
+                )
             )
 
-        conflict_specs = ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
-        conflict_specs = set(_.name for _ in conflict_specs)
+        conflict_specs = (
+            ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
+        )
+        conflict_specs = {_.name for _ in conflict_specs}
 
         for pkg_name, spec in ssc.specs_map.items():
             matches_for_spec = tuple(

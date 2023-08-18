@@ -434,42 +434,50 @@ def test_update_prune_1(tmpdir):
     into account, since that stops it from removing packages that were removed
     from the environment specs.
     """
-    specs = MatchSpec("numpy"), MatchSpec("python=2.7.3"),
+    specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+    )
 
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order = add_subdir_to_iter((
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::numpy-1.7.1-py27_0',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
     # Here numpy is removed from the specs (but the old specs are kept as
     # history).
-    new_environment_specs = MatchSpec("python=2.7.3"),
+    new_environment_specs = (MatchSpec("python=2.7.3"),)
 
-    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
-                    history_specs=specs) as solver:
+    with get_solver(
+        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
 
         # Numpy should now be absent from the solved packages.
-        order = add_subdir_to_iter((
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
 
@@ -477,58 +485,66 @@ def test_update_prune_2(tmpdir):
     """Regression test: Ensure that update with prune is pruning dependencies
     of packages that are removed from environment as well.
     """
-    specs = MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
+    specs = (
+        MatchSpec("python=2.7.3"),
+        MatchSpec("accelerate"),
+    )
 
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order = add_subdir_to_iter((
-            'channel-1::libnvvm-1.0-p0',
-            'channel-1::mkl-rt-11.0-p0',
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::llvm-3.2-0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::bitarray-0.8.1-py27_0',
-            'channel-1::llvmpy-0.11.2-py27_0',
-            'channel-1::meta-0.4.2.dev-py27_0',
-            'channel-1::mkl-service-1.0.0-py27_p0',
-            'channel-1::numpy-1.7.1-py27_p0',
-            'channel-1::numba-0.8.1-np17py27_0',
-            'channel-1::numexpr-2.1-np17py27_p0',
-            'channel-1::scipy-0.12.0-np17py27_p0',
-            'channel-1::numbapro-0.11.0-np17py27_p0',
-            'channel-1::scikit-learn-0.13.1-np17py27_p0',
-            'channel-1::mkl-11.0-np17py27_p0',
-            'channel-1::accelerate-1.1.0-np17py27_p0',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::libnvvm-1.0-p0",
+                "channel-1::mkl-rt-11.0-p0",
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::bitarray-0.8.1-py27_0",
+                "channel-1::llvmpy-0.11.2-py27_0",
+                "channel-1::meta-0.4.2.dev-py27_0",
+                "channel-1::mkl-service-1.0.0-py27_p0",
+                "channel-1::numpy-1.7.1-py27_p0",
+                "channel-1::numba-0.8.1-np17py27_0",
+                "channel-1::numexpr-2.1-np17py27_p0",
+                "channel-1::scipy-0.12.0-np17py27_p0",
+                "channel-1::numbapro-0.11.0-np17py27_p0",
+                "channel-1::scikit-learn-0.13.1-np17py27_p0",
+                "channel-1::mkl-11.0-np17py27_p0",
+                "channel-1::accelerate-1.1.0-np17py27_p0",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
     # Here accelerate is removed from the specs (but the old specs are kept as
     # history). This should cause every dependency of accelerate to disappear
     # from the pruned package list.
-    new_environment_specs = MatchSpec("python=2.7.3"),
+    new_environment_specs = (MatchSpec("python=2.7.3"),)
 
-    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
-                    history_specs=specs) as solver:
+    with get_solver(
+        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
 
         # Every dependecy of accelerate should now be absent from the solved
         # packages.
-        order = add_subdir_to_iter((
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
 
@@ -536,60 +552,72 @@ def test_update_prune_3(tmpdir):
     """Ensure that update with prune is not removing packages that are still
     needed by remaining specs.
     """
-    specs = MatchSpec("numpy"), MatchSpec("python=2.7.3"), MatchSpec("accelerate"),
+    specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+        MatchSpec("accelerate"),
+    )
 
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order = add_subdir_to_iter((
-            'channel-1::libnvvm-1.0-p0',
-            'channel-1::mkl-rt-11.0-p0',
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::llvm-3.2-0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::bitarray-0.8.1-py27_0',
-            'channel-1::llvmpy-0.11.2-py27_0',
-            'channel-1::meta-0.4.2.dev-py27_0',
-            'channel-1::mkl-service-1.0.0-py27_p0',
-            'channel-1::numpy-1.7.1-py27_p0',
-            'channel-1::numba-0.8.1-np17py27_0',
-            'channel-1::numexpr-2.1-np17py27_p0',
-            'channel-1::scipy-0.12.0-np17py27_p0',
-            'channel-1::numbapro-0.11.0-np17py27_p0',
-            'channel-1::scikit-learn-0.13.1-np17py27_p0',
-            'channel-1::mkl-11.0-np17py27_p0',
-            'channel-1::accelerate-1.1.0-np17py27_p0',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::libnvvm-1.0-p0",
+                "channel-1::mkl-rt-11.0-p0",
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::bitarray-0.8.1-py27_0",
+                "channel-1::llvmpy-0.11.2-py27_0",
+                "channel-1::meta-0.4.2.dev-py27_0",
+                "channel-1::mkl-service-1.0.0-py27_p0",
+                "channel-1::numpy-1.7.1-py27_p0",
+                "channel-1::numba-0.8.1-np17py27_0",
+                "channel-1::numexpr-2.1-np17py27_p0",
+                "channel-1::scipy-0.12.0-np17py27_p0",
+                "channel-1::numbapro-0.11.0-np17py27_p0",
+                "channel-1::scikit-learn-0.13.1-np17py27_p0",
+                "channel-1::mkl-11.0-np17py27_p0",
+                "channel-1::accelerate-1.1.0-np17py27_p0",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
     # Here accelerate is removed from the specs (but the old specs are kept as
     # history). This should cause every dependency of accelerate to disappear
     # from the pruned package list, but numpy should be kept, because it is still
     # in the specs.
-    new_environment_specs = MatchSpec("numpy"), MatchSpec("python=2.7.3"),
+    new_environment_specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+    )
 
-    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
-                    history_specs=specs) as solver:
+    with get_solver(
+        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
 
         # Every dependecy of accelerate should now be absent from the solved packages,
         # but numpy should remain.
-        order = add_subdir_to_iter((
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::numpy-1.7.1-py27_0',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
 
@@ -598,66 +626,78 @@ def test_update_prune_4(tmpdir):
     into account, since that stops it from removing packages that were removed
     from the environment specs.
     """
-    specs = MatchSpec("numpy"), MatchSpec("python=2.7.3"),
+    specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+    )
 
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
-        order = add_subdir_to_iter((
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::numpy-1.7.1-py27_0',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
     # Here numpy is removed from the specs (but the old specs are kept as
     # history).
-    new_environment_specs = MatchSpec("python=2.7.3"),
+    new_environment_specs = (MatchSpec("python=2.7.3"),)
 
-    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
-                    history_specs=specs) as solver:
-        final_state_1 = solver.solve_final_state(prune=True, update_modifier=UpdateModifier.FREEZE_INSTALLED)
+    with get_solver(
+        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
+        final_state_1 = solver.solve_final_state(
+            prune=True, update_modifier=UpdateModifier.FREEZE_INSTALLED
+        )
         pprint(convert_to_dist_str(final_state_1))
 
         # Numpy should now be absent from the solved packages.
-        order = add_subdir_to_iter((
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-        ))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+            )
+        )
         assert convert_to_dist_str(final_state_1) == order
 
 
-@pytest.mark.parametrize('prune', [True, False])
+@pytest.mark.parametrize("prune", [True, False])
 def test_update_prune_5(tmpdir, prune, capsys):
-    """Regression test: Check that prefix data is not taken into account when solving on prune.
-    """
+    """Regression test: Check that prefix data is not taken into account when solving on prune."""
     # "Create" a conda env with specs that "pin" dependencies.
     specs = MatchSpec("python=2.7"), MatchSpec("numexpr==2.0.1=np17py27_p3")
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
 
     out, _ = capsys.readouterr()
-    assert 'Updating numexpr is constricted by' not in out
+    assert "Updating numexpr is constricted by" not in out
 
     # If prefix data is evaluated it will conflict with "pinned" dependencies of new specs.
-    new_environment_specs = MatchSpec("python=2.7"), MatchSpec("numexpr==2.0.1=np17py27_p2")
-    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
-                    history_specs=specs) as solver:
+    new_environment_specs = MatchSpec("python=2.7"), MatchSpec(
+        "numexpr==2.0.1=np17py27_p2"
+    )
+    with get_solver(
+        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
         solver.solve_final_state(prune=prune)
 
     out, _ = capsys.readouterr()
     solve_using_prefix_data = not prune
-    assert ('Updating numexpr is constricted by' in out) is solve_using_prefix_data
+    assert ("Updating numexpr is constricted by" in out) is solve_using_prefix_data
 
 
 def test_force_remove_1(tmpdir):
