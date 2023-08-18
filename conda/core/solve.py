@@ -524,10 +524,7 @@ class Solver:
     def _collect_all_metadata(self, ssc):
         if ssc.prune:
             # When pruning DO NOT consider history of already installed packages when solving.
-            prepared_specs = set(concatv(
-                self.specs_to_remove,
-                self.specs_to_add,
-            ))
+            prepared_specs = {*self.specs_to_remove, *self.specs_to_add}
         else:
             # add in historically-requested specs
             ssc.specs_map.update(ssc.specs_from_history_map)
@@ -564,11 +561,11 @@ class Solver:
                         or prec.subdir == 'pypi'):
                     ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
 
-            prepared_specs = set(concatv(
-                self.specs_to_remove,
-                self.specs_to_add,
-                ssc.specs_from_history_map.values(),
-            ))
+            prepared_specs = {
+                *self.specs_to_remove,
+                *self.specs_to_add,
+                *ssc.specs_from_history_map.values(),
+            }
 
         index, r = self._prepare(prepared_specs)
         ssc.set_repository_metadata(index, r)
@@ -736,9 +733,9 @@ class Solver:
             # Ignore installed specs on prune.
             installed_specs = ()
         else:
-            installed_specs = tuple(concatv(
-                (_.to_match_spec() for _ in ssc.prefix_data.iter_records())
-            ))
+            installed_specs = tuple(
+                chain.from_iterable(_.to_match_spec() for _ in ssc.prefix_data.iter_records())
+            )
 
         conflict_specs = ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
         conflict_specs = set(_.name for _ in conflict_specs)
@@ -1341,7 +1338,7 @@ class SolverStateContainer:
         self.r = None
 
         # Group 4. Mutable working containers
-        self.specs_map = odict()
+        self.specs_map = {}
         self.solution_precs = None
         self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
@@ -1374,7 +1371,7 @@ class SolverStateContainer:
             self.solution_precs = tuple(self.prefix_data.iter_records())
 
     def working_state_reset(self):
-        self.specs_map = odict()
+        self.specs_map = {}
         self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
