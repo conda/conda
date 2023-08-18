@@ -1,54 +1,39 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-"""
-Helpers for the tests
-"""
-from __future__ import absolute_import, division, print_function
-
-from contextlib import contextmanager
-from functools import lru_cache
+"""Collection of helper functions used in conda tests."""
 import json
 import os
-from os.path import dirname, join, abspath
 import re
-from conda.auxlib.compat import shlex_split_unicode
 import sys
-from tempfile import gettempdir, mkdtemp
-from uuid import uuid4
+from contextlib import contextmanager
+from functools import lru_cache
+from os.path import abspath, dirname, join
 from pathlib import Path
+from tempfile import gettempdir, mkdtemp
+from unittest.mock import patch
+from uuid import uuid4
 
-# Some modules import from this one so they don't
-# have to try/except all the time.
-try:
-    from unittest import mock  # noqa: F401
-    from unittest.mock import patch  # noqa: F401
-except ImportError:
-    import mock  # noqa: F401
-    from mock import patch  # noqa: F401
+import pytest
+
+from conda.auxlib.compat import shlex_split_unicode
+from conda.deprecations import deprecated
+from conda_env.cli import main as conda_env_cli
 
 from .. import cli
-from ..base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
-from ..common.io import argv, captured as common_io_captured, env_var
+from ..common.io import argv
+from ..common.io import captured as common_io_captured
+from ..common.io import env_var
 from ..core.prefix_data import PrefixData
-from ..core.solve import _get_solver_class
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..gateways.logging import initialize_logging
 from ..history import History
 from ..models.channel import Channel
-from ..models.records import PackageRecord
-from ..models.records import PrefixRecord
+from ..models.records import PackageRecord, PrefixRecord
 from ..resolve import Resolve
-
-from conda_env.cli import main as conda_env_cli
-
-
-import pytest
-
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(
@@ -90,7 +75,9 @@ def captured(disallow_stderr=True):
             raise Exception("Got stderr output: %s" % c.stderr)
 
 
-def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, **kwargs):
+def capture_json_with_argv(
+    command, disallow_stderr=True, ignore_stderr=False, **kwargs
+):
     stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
     if kwargs.get("relaxed"):
         match = re.match(r"\A.*?({.*})", stdout, re.DOTALL)
@@ -105,6 +92,11 @@ def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, *
         raise
 
 
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
+)
 @contextmanager
 def set_active_prefix(prefix: str) -> None:
     old_prefix = os.environ["CONDA_PREFIX"]
@@ -117,12 +109,12 @@ def set_active_prefix(prefix: str) -> None:
 
 
 def assert_equals(a, b, output=""):
-    output = "%r != %r" % (a.lower(), b.lower()) + "\n\n" + output
+    output = f"{a.lower()!r} != {b.lower()!r}" + "\n\n" + output
     assert a.lower() == b.lower(), output
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "%s %r should not be found in %r" % (
+    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
         output,
         a.lower(),
         b.lower(),
@@ -130,9 +122,12 @@ def assert_not_in(a, b, output=""):
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
+        output, a.lower(), b.lower()
+    )
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
@@ -145,7 +140,9 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
         main_func = cli.main
 
     # May want to do this to command:
-    with argv(encode_arguments(shlex_split_unicode(command))), captured(disallow_stderr) as c:
+    with argv(encode_arguments(shlex_split_unicode(command))), captured(
+        disallow_stderr
+    ) as c:
         initialize_logging()
         try:
             exit_code = main_func()
@@ -194,7 +191,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
     platform = repodata_info.get("platform")
     subdir = repodata_info.get("subdir")
     if not subdir:
-        subdir = "%s-%s" % (repodata_info["platform"], repodata_info["arch"])
+        subdir = "{}-{}".format(repodata_info["platform"], repodata_info["arch"])
     auth = channel.auth
     for fn, info in repodata["packages"].items():
         rec = PackageRecord.from_objects(
@@ -314,7 +311,7 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     subdir_data._mtime = float("inf")
 
 
-@lru_cache(maxsize=None)
+# this fixture appears to introduce a test-order dependency if cached
 def get_index_r_1(subdir=context.subdir):
     with open(join(TEST_DATA_DIR, "index.json")) as fi:
         packages = json.load(fi)
@@ -330,13 +327,15 @@ def get_index_r_1(subdir=context.subdir):
     channel = Channel("https://conda.anaconda.org/channel-1/%s" % subdir)
     sd = SubdirData(channel)
     with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+        "false",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
 
@@ -360,13 +359,15 @@ def get_index_r_2(subdir=context.subdir):
     channel = Channel("https://conda.anaconda.org/channel-2/%s" % subdir)
     sd = SubdirData(channel)
     with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+        "false",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-2", sd, channel, index)
@@ -389,13 +390,15 @@ def get_index_r_4(subdir=context.subdir):
     channel = Channel("https://conda.anaconda.org/channel-4/%s" % subdir)
     sd = SubdirData(channel)
     with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+        "false",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-4", sd, channel, index)
@@ -418,13 +421,15 @@ def get_index_r_5(subdir=context.subdir):
     channel = Channel("https://conda.anaconda.org/channel-5/%s" % subdir)
     sd = SubdirData(channel)
     with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+        "true",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-5", sd, channel, index)
@@ -516,13 +521,15 @@ def get_index_must_unfreeze(subdir=context.subdir):
     channel = Channel("https://conda.anaconda.org/channel-freeze/%s" % subdir)
     sd = SubdirData(channel)
     with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+        "false",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
     r = Resolve(index, channels=(channel,))
 
     _patch_for_local_exports("channel-freeze", sd, channel, index)
@@ -549,7 +556,7 @@ def get_index_cuda(subdir=context.subdir):
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {prec: prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd.iter_records()}
 
     add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
@@ -581,7 +588,9 @@ def record(
 
 
 @contextmanager
-def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver(
+    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {
@@ -599,7 +608,7 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),),
                 (context.subdir,),
@@ -610,7 +619,9 @@ def get_solver(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), h
 
 
 @contextmanager
-def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_2(
+    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {
@@ -628,7 +639,7 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),),
                 (context.subdir,),
@@ -639,7 +650,9 @@ def get_solver_2(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
 
 
 @contextmanager
-def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_4(
+    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {
@@ -657,7 +670,7 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),),
                 (context.subdir,),
@@ -668,7 +681,9 @@ def get_solver_4(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
 
 
 @contextmanager
-def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+def get_solver_5(
+    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
     pd._PrefixData__prefix_records = {
@@ -686,7 +701,7 @@ def get_solver_5(tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(),
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),),
                 (context.subdir,),
@@ -719,7 +734,7 @@ def get_solver_aggregate_1(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
@@ -755,7 +770,7 @@ def get_solver_aggregate_2(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (
                     Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
@@ -789,7 +804,7 @@ def get_solver_must_unfreeze(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-freeze"),),
                 (context.subdir,),
@@ -820,7 +835,7 @@ def get_solver_cuda(
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
             # get_index_r_*) to cover solver logics that need to load from disk instead of
             # hitting the SubdirData cache
-            solver = _get_solver_class()(
+            solver = context.plugin_manager.get_cached_solver_backend()(
                 tmpdir,
                 (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),),
                 (context.subdir,),
@@ -844,4 +859,4 @@ def convert_to_dist_str(solution):
 
 @pytest.fixture()
 def solver_class():
-    return _get_solver_class()
+    return context.plugin_manager.get_cached_solver_backend()

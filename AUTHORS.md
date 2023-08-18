@@ -4,6 +4,7 @@ Authors are sorted alphabetically.
 * ARF1
 * Aaron Meurer
 * Abheek Mathur
+* Adrian Freund
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
@@ -17,6 +18,7 @@ Authors are sorted alphabetically.
 * Almar Klein
 * Amelio Vazquez-Reina
 * Amir Mohammadi
+* Andrea Ghensi
 * Andreas Girgensohn
 * Andrew Achkar
 * Andrew Arendt
@@ -31,6 +33,7 @@ Authors are sorted alphabetically.
 * Anže Starič
 * ApurvaWavhal
 * Armin Burgmeier
+* Arqam Hussain
 * Attila Nagy
 * Aurelien Vallee
 * Avalon
@@ -61,6 +64,7 @@ Authors are sorted alphabetically.
 * Brian W. Hart
 * Bruno Oliveira
 * Bryan Van de Ven
+* Carlos H Brandt
 * Casper da Costa-Luis
 * Chawye Hsu
 * Cheng H. Lee
@@ -95,9 +99,11 @@ Authors are sorted alphabetically.
 * Daniel Hook
 * Daniel Wehner
 * Daniel Zeng
+* Dario Curreri
 * Darren Dale
 * Dave
 * Dave Hirschfeld
+* Dave Hogue
 * Dave Masino
 * David Froger
 * David Kent
@@ -116,9 +122,12 @@ Authors are sorted alphabetically.
 * Eli Rykoff
 * Eric Dill
 * Eric Prestat
+* Erik Sundell
 * Ernst Reissner
 * Eugene Van den Bulke
+* Evo
 * Faustin Carter
+* FelisNivalis
 * Flavio Martins
 * Florenz A. P. Hollebrandse
 * Floris Bruynooghe
@@ -128,6 +137,7 @@ Authors are sorted alphabetically.
 * Gabriel Reis
 * Geir Ove Myhr
 * George Hartzell
+* Gil Forsyth
 * Giles Cope
 * Gonzalo Peña-Castellanos
 * Greg Brener
@@ -142,6 +152,7 @@ Authors are sorted alphabetically.
 * Iain Gillis
 * Ian Stokes-Rees
 * Igor Igamberdiev
+* Ikko Eltociear Ashimine
 * Ilan Cosman
 * Ilan Schnell
 * Ilango Rajagopal
@@ -168,16 +179,20 @@ Authors are sorted alphabetically.
 * Jayson Messenger
 * Jeffrey Gill
 * Jeremy Liu
+* Jerimiah Willhite
 * Jesse Hamer
 * Jillian Rowe
 * Joe D
 * Joe Jevnik
 * Joel Hull
 * Joel Kim
+* Joel Tony
 * Johan Carlin
+* Johannes Köster
 * John Ayad
 * John Flavin
 * John Kirkham
+* Johnny Núñez Cano
 * Jonas Haag
 * Jonathan J. Helmus
 * Josh Mayer
@@ -190,9 +205,12 @@ Authors are sorted alphabetically.
 * Kai Tietz
 * Kale Franz
 * Kamil Kwiek
+* Kannan Jayachandran
 * Kara de la Marck
+* Katherine Abrikian
 * Katherine Kinnaman
 * Ken Odegard
+* Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
@@ -204,9 +222,11 @@ Authors are sorted alphabetically.
 * Lila Hickey
 * Lorcan Hamill
 * Lori A. Burns
+* Loïc Estève
 * Luc J. Bourhis
 * Luis Gutierrez
 * Maggie Mari
+* Mahe Iram Khan
 * Majid alDosari
 * Mak Sze Chun
 * Maksim Rakitin
@@ -216,10 +236,13 @@ Authors are sorted alphabetically.
 * Marcel Stimberg
 * Marcelo Duarte Trevisani
 * Marcin Wojdyr
+* Marco Esters
 * Marco Rossi
 * Marcos Vanetta
 * Marcus Caisey
 * Mario Juric
+* Mark Edzel Potane
+* Mark Harfouche
 * Mark Wiebe
 * Markus Gerstel
 * Marland Sitt
@@ -228,6 +251,7 @@ Authors are sorted alphabetically.
 * Martin Prüsse
 * Martin Raden
 * Matt Craig
+* Matt Kramer
 * Matthew Anderson
 * Matthew Dillon
 * Matthew Linebaugh
@@ -237,6 +261,7 @@ Authors are sorted alphabetically.
 * Matthieu Guillaumin
 * MatthieuDartiailh
 * Matti Picus
+* Maurice Meyer
 * Max Reeder
 * Maximilian Noethe
 * Maya Gilad
@@ -269,6 +294,7 @@ Authors are sorted alphabetically.
 * Nicholas Pierotti
 * Nick Eubank
 * Nikhil Dhandre
+* Nikhil Raverkar
 * Niklas Holm
 * Nir Ganani
 * Nitin Madnani
@@ -283,6 +309,7 @@ Authors are sorted alphabetically.
 * Patricio Hubmann
 * Patrick Snape
 * Paul Yim
+* Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
 * Peter Williams
@@ -291,6 +318,7 @@ Authors are sorted alphabetically.
 * Philippe Mathieu
 * Philippe Ombredanne
 * Pradipta Ghosh
+* Preston Moore
 * Rachel Rigdon
 * Rafael de Barros
 * Ralf Gommers
@@ -312,12 +340,15 @@ Authors are sorted alphabetically.
 * Sachin G Biradar
 * Sam Davis
 * Sam Nicholls
+* Samson Yeung
 * Samuel Debionne
 * Samuel Walters-Nevet
+* Sanskrati
 * Santi Villalba
 * Santiago Castro
 * Sarah Bird
 * Saranya Mahalingam
+* Satyam Vyas
 * Sauco Cano Navarro
 * Scott Evtuch
 * Sean Ross-Ross
@@ -325,12 +356,14 @@ Authors are sorted alphabetically.
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
+* Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
 * Simon McLaren
 * Skipper Seabold
 * Sophia Castellarin
 * Spencer Mathews
+* Srivas Venkatesh
 * Stan Seibert
 * Stanis Shkel
 * Stefaan Lippens
@@ -338,6 +371,7 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Robinson
 * Steve Palmroth
 * Steven Engler
 * Stijn Verstraeten
@@ -346,6 +380,7 @@ Authors are sorted alphabetically.
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
+* Thomas Lam
 * Thomas Wiecki
 * Théo Segonds
 * Tian Zhang
@@ -367,6 +402,7 @@ Authors are sorted alphabetically.
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
+* Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy
 * Wes Roach
@@ -375,6 +411,8 @@ Authors are sorted alphabetically.
 * Willy Chen
 * Winston Sebastian Pais
 * Wolfgang Ulmer
+* Xuehai Pan
+* Xylar Asay-Davis
 * Yaroslav Dmytryk
 * Yuval Reches
 * Yuvi Panda
@@ -382,6 +420,7 @@ Authors are sorted alphabetically.
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
+* dependabot[bot]
 * endolith
 * giumas
 * kanehira
@@ -394,4 +433,6 @@ Authors are sorted alphabetically.
 * saraneem
 * shadow_walker
 * ugurthemaster
+* wulmer
 * Øystein Idema Torget
+* İrem "Siren" Kuyucu

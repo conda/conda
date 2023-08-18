@@ -5,9 +5,7 @@ Writing Tests
 This section contains a series of guides and guidelines for writing tests
 in the ``conda`` repository.
 
-.. raw:: html
-
-   <hr>
+----
 
 Guides
 ======
@@ -23,9 +21,7 @@ of tests.
 
    integration-tests
 
-.. raw:: html
-
-   <hr>
+----
 
 General Guidelines
 ==================

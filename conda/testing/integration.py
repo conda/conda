@@ -1,42 +1,32 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 """
 These helpers were originally defined in tests/test_create.py,
 but were refactored here so downstream projects can benefit from
 them too.
 """
-from __future__ import unicode_literals
 
+import json
+import os
+import sys
 from contextlib import contextmanager
 from functools import lru_cache
-import json
 from logging import getLogger
-import os
-from os.path import (
-    dirname,
-    exists,
-    isdir,
-    join,
-    lexists,
-)
+from os.path import dirname, exists, isdir, join, lexists
 from random import sample
 from shutil import copyfile, rmtree
 from subprocess import check_output
-import sys
 from tempfile import gettempdir
 from uuid import uuid4
-
 
 import pytest
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser, init_loggers
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.cli.conda_argparse import do_call, generate_parser
+from conda.cli.main import init_loggers
 from conda.common.compat import encode_arguments, on_win
 from conda.common.io import (
     argv,
@@ -46,9 +36,10 @@ from conda.common.io import (
     env_var,
     stderr_log_level,
 )
-from conda.common.url import path_to_url, escape_channel_url
-from conda.core.prefix_data import PrefixData
+from conda.common.url import escape_channel_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
+from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -58,7 +49,6 @@ from conda.gateways.logging import DEBUG
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.utils import massage_arguments
-
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
@@ -133,7 +123,9 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
         random_unicode = "".join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))
     tmpdir_name = os.environ.get(
         "CONDA_TEST_TMPDIR_NAME",
-        (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode) if name is None else name,
+        (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode)
+        if name is None
+        else name,
     )
     prefix = join(tmpdir, tmpdir_name)
 
@@ -144,7 +136,7 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
 
     try:
         link(src, dst)
-    except (IOError, OSError):
+    except OSError:
         print(
             "\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
             "           not on the same FS as `sys.prefix`:\n           {}\n"
@@ -172,7 +164,9 @@ def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None)
     ntpath will fall over.
     """
     if not _temp_prefix:
-        _temp_prefix = _get_temp_prefix(name=name, use_restricted_unicode=use_restricted_unicode)
+        _temp_prefix = _get_temp_prefix(
+            name=name, use_restricted_unicode=use_restricted_unicode
+        )
     try:
         os.makedirs(_temp_prefix)
     except:
@@ -182,7 +176,9 @@ def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None)
 
 
 def FORCE_temp_prefix(name=None, use_restricted_unicode=False):
-    _temp_prefix = _get_temp_prefix(name=name, use_restricted_unicode=use_restricted_unicode)
+    _temp_prefix = _get_temp_prefix(
+        name=name, use_restricted_unicode=use_restricted_unicode
+    )
     rm_rf(_temp_prefix)
     os.makedirs(_temp_prefix)
     assert isdir(_temp_prefix)
@@ -203,6 +199,7 @@ class Commands:
     RUN = "run"
 
 
+@deprecated("23.9", "24.3", addendum="Use `monkeypatch.chdir` instead.")
 @contextmanager
 def temp_chdir(target_dir):
     curdir = os.getcwd()
@@ -215,8 +212,8 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
-
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
 
@@ -274,26 +271,23 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
     init_loggers(context)
-    cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
+    cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
-    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % " ".join(arguments), file=sys.stderr)
-    with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(TEST_LOG_LEVEL, "requests"):
+    print(
+        "\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % " ".join(arguments),
+        file=sys.stderr,
+    )
+    with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(
+        TEST_LOG_LEVEL, "requests"
+    ):
         arguments = encode_arguments(arguments)
-        is_run = arguments[0] == "run"
-        if is_run:
-            cap_args = (None, None)
         with argv(["python_api"] + arguments), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
                 result = do_call(args, p)
-        if is_run:
-            stdout = result.stdout
-            stderr = result.stderr
-            result = result.rc
-        else:
-            stdout = c.stdout
-            stderr = c.stderr
+        stdout = c.stdout
+        stderr = c.stderr
         print(stdout, file=sys.stdout)
         print(stderr, file=sys.stderr)
 
@@ -318,7 +312,7 @@ def make_temp_env(*packages, **kwargs):
             rm_rf(prefix)
     if not isdir(prefix):
         make_temp_prefix(name, use_restricted_unicode, prefix)
-    with disable_logger("fetch"), disable_logger("dotupdate"):
+    with disable_logger("fetch"):
         try:
             # try to clear any config that's been set by other tests
             # CAUTION :: This does not partake in the context stack management code
@@ -331,7 +325,9 @@ def make_temp_env(*packages, **kwargs):
             if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
                 rmtree(prefix, ignore_errors=True)
             else:
-                log.warning("CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {}".format(prefix))
+                log.warning(
+                    f"CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {prefix}"
+                )
 
 
 @contextmanager
@@ -342,7 +338,9 @@ def make_temp_package_cache():
     touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
 
     try:
-        with env_var("CONDA_PKGS_DIRS", pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var(
+            "CONDA_PKGS_DIRS", pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
             assert context.pkgs_dirs == (pkgs_dir,)
             yield pkgs_dir
     finally:
@@ -359,7 +357,9 @@ def make_temp_channel(packages):
     with make_temp_env(*package_reqs) as prefix:
         for package in packages:
             assert package_is_installed(prefix, package.replace("-", "="))
-        data = [p for p in PrefixData(prefix).iter_records() if p["name"] in package_names]
+        data = [
+            p for p in PrefixData(prefix).iter_records() if p["name"] in package_names
+        ]
         run_command(Commands.REMOVE, prefix, *package_names)
         for package in packages:
             assert not package_is_installed(prefix, package.replace("-", "="))
@@ -442,16 +442,23 @@ def _package_is_installed(prefix, spec):
     prefix_recs = tuple(PrefixData(prefix).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
-            "Multiple packages installed.%s" % (dashlist(prec.dist_str() for prec in prefix_recs))
+            "Multiple packages installed.%s"
+            % (dashlist(prec.dist_str() for prec in prefix_recs))
         )
     return bool(len(prefix_recs))
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="Use `conda.core.prefix_data.PrefixData().get()` instead.",
+)
 def get_conda_list_tuple(prefix, package_name):
     stdout, stderr, _ = run_command(Commands.LIST, prefix)
     stdout_lines = stdout.split("\n")
     package_line = next(
-        (line for line in stdout_lines if line.lower().startswith(package_name + " ")), None
+        (line for line in stdout_lines if line.lower().startswith(package_name + " ")),
+        None,
     )
     return package_line.split()
 

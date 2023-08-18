@@ -1,3 +1,4 @@
+---
 name: Add to Project
 
 on:
@@ -13,7 +14,9 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@v0.0.3
+      - uses: actions/add-to-project@v0.5.0
         with:
-          project-url: https://github.com/orgs/conda/projects/2
+          # issues are added to the Planning project
+          # PRs are added to the Review project
+          project-url: https://github.com/orgs/conda/projects/${{ github.event_name == 'issues' && 2 || 16 }}
           github-token: ${{ secrets.PROJECT_TOKEN }}

@@ -8,7 +8,7 @@ Managing packages
 
 .. note::
    There are many options available for the commands described
-   on this page. For details, see :doc:`../../commands`.
+   on this page. For details, see :doc:`commands <../../commands/index>`.
 
 
 Searching for packages

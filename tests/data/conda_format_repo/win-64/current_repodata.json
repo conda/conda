@@ -15,7 +15,7 @@
       "name": "vc",
       "sha256": "da965b3029878b7a3f2b39b0df6dc1bf84b1499816f18b705ecd12263fca7f47",
       "size": 5232,
-      "subdir": "win-32",
+      "subdir": "win-64",
       "timestamp": 1535587139401,
       "track_features": "vc14",
       "version": "14.1"

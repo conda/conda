@@ -41,7 +41,7 @@
     @ECHO Usage: %_SCRIPT% [options]
     @ECHO.
     @ECHO Options:
-    @ECHO   /P  VERSION  Python version for the env to activate. ^(default: 3.8^)
+    @ECHO   /P  VERSION  Python version for the env to activate. ^(default: 3.10^)
     @ECHO   /U           Force update packages. ^(default: update every 24 hours^)
     @ECHO   /D  PATH     Path to base env install, can also be defined in ~\.condarc.
     @ECHO                Path is appended with Windows. ^(default: devenv^)
@@ -54,7 +54,7 @@
 :ARGS_END
 
 @REM fallback to default values
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.8"
+@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
@@ -63,6 +63,8 @@
 @REM fallback to devenv in source default
 @IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
 @REM include OS
+@REM put miniconda installer in _DEVENV_BASE, for an empty install target
+@SET "_DEVENV_BASE=%_DEVENV%"
 @SET "_DEVENV=%_DEVENV%\Windows"
 @REM ensure exists
 @IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
@@ -97,9 +99,9 @@
 @IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
 
 @REM downloading miniconda
-@IF EXIST "%_DEVENV%\miniconda.exe" @GOTO DOWNLOADED
+@IF EXIST "%_DEVENV_BASE%\miniconda.exe" @GOTO DOWNLOADED
 @ECHO Downloading miniconda...
-@powershell.exe "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_DEVENV%\miniconda.exe' | Out-Null"
+@powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_DEVENV_BASE%\miniconda.exe' | Out-Null"
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to download miniconda 1>&2
     @EXIT /B 1
@@ -108,7 +110,7 @@
 
 @REM installing miniconda
 @ECHO Installing development environment...
-@START /wait "" "%_DEVENV%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
+@START /wait "" "%_DEVENV_BASE%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to install development environment 1>&2
     @EXIT /B 1

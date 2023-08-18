@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -27,12 +26,11 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
 
-from ._logic import Clauses as _Clauses, FALSE, TRUE
-
+from ._logic import FALSE, TRUE
+from ._logic import Clauses as _Clauses
 
 # TODO: We may want to turn the user-facing {TRUE,FALSE} values into an Enum and
 #       hide the _logic.{TRUE,FALSE} values as an implementation detail.
@@ -47,7 +45,7 @@ PyCryptoSatSolver = "pycryptosat"
 PySatSolver = "pysat"
 
 
-class Clauses(object):
+class Clauses:
     def __init__(self, m=0, sat_solver=PycoSatSolver):
         self.names = {}
         self.indices = {}
@@ -70,7 +68,7 @@ class Clauses(object):
     def _check_variable(self, variable):
         if 0 < abs(variable) <= self.m:
             return variable
-        raise ValueError("SAT variable out of bounds: {} (max_var: {})".format(variable, self.m))
+        raise ValueError(f"SAT variable out of bounds: {variable} (max_var: {self.m})")
 
     def _check_literal(self, literal):
         if literal in {TRUE, FALSE}:
@@ -86,7 +84,7 @@ class Clauses(object):
 
     def name_var(self, m, name):
         self._check_literal(m)
-        nname = '!' + name
+        nname = "!" + name
         self.names[name] = m
         self.names[nname] = -m
         if m not in {TRUE, FALSE} and m not in self.indices:
@@ -124,7 +122,7 @@ class Clauses(object):
         try:
             return self.names[name]
         except KeyError:
-            raise ValueError("Unregistered SAT variable name: {}".format(name))
+            raise ValueError(f"Unregistered SAT variable name: {name}")
 
     def _eval(self, func, args, no_literal_args, polarity, name):
         args = self._convert(args)
@@ -153,8 +151,7 @@ class Clauses(object):
         return self._eval(self._clauses.Xor, (f, g), (), polarity, name)
 
     def ITE(self, c, t, f, polarity=None, name=None):
-        """
-        if c then t else f
+        """If c Then t Else f.
 
         In this function, if any of c, t, or f are True and False the resulting
         expression is resolved.
@@ -168,10 +165,14 @@ class Clauses(object):
         return self._eval(self._clauses.Any, (list(vals),), (), polarity, name)
 
     def AtMostOne_NSQ(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.AtMostOne_NSQ, (list(vals),), (), polarity, name)
+        return self._eval(
+            self._clauses.AtMostOne_NSQ, (list(vals),), (), polarity, name
+        )
 
     def AtMostOne_BDD(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.AtMostOne_BDD, (list(vals),), (), polarity, name)
+        return self._eval(
+            self._clauses.AtMostOne_BDD, (list(vals),), (), polarity, name
+        )
 
     def AtMostOne(self, vals, polarity=None, name=None):
         vals = list(vals)
@@ -183,10 +184,14 @@ class Clauses(object):
         return self._eval(what, (vals,), (), polarity, name)
 
     def ExactlyOne_NSQ(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.ExactlyOne_NSQ, (list(vals),), (), polarity, name)
+        return self._eval(
+            self._clauses.ExactlyOne_NSQ, (list(vals),), (), polarity, name
+        )
 
     def ExactlyOne_BDD(self, vals, polarity=None, name=None):
-        return self._eval(self._clauses.ExactlyOne_BDD, (list(vals),), (), polarity, name)
+        return self._eval(
+            self._clauses.ExactlyOne_BDD, (list(vals),), (), polarity, name
+        )
 
     def ExactlyOne(self, vals, polarity=None, name=None):
         vals = list(vals)
@@ -205,7 +210,10 @@ class Clauses(object):
         coefficients = list(equation.values())
         return self._eval(
             self._clauses.LinearBound,
-            (named_literals,), (coefficients, lo, hi, preprocess), polarity, name,
+            (named_literals,),
+            (coefficients, lo, hi, preprocess),
+            polarity,
+            name,
         )
 
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
@@ -222,11 +230,17 @@ class Clauses(object):
             return set() if names else []
         if additional:
             additional = (tuple(self.names.get(c, c) for c in cc) for cc in additional)
-        solution = self._clauses.sat(additional=additional, includeIf=includeIf, limit=limit)
+        solution = self._clauses.sat(
+            additional=additional, includeIf=includeIf, limit=limit
+        )
         if solution is None:
             return None
         if names:
-            return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
+            return {
+                nm
+                for nm in (self.indices.get(s) for s in solution)
+                if nm and nm[0] != "!"
+            }
         return solution
 
     def itersolve(self, constraints=None, m=None):
@@ -279,8 +293,17 @@ def minimal_unsatisfiable_subset(clauses, sat, explicit_specs):
         # we succeeded, so we'll add the spec to our future constraints
         working_set = set(explicit_specs)
 
-    for spec in (set(clauses) - working_set):
-        if sat(working_set | {spec, }, True) is None:
+    for spec in set(clauses) - working_set:
+        if (
+            sat(
+                working_set
+                | {
+                    spec,
+                },
+                True,
+            )
+            is None
+        ):
             found_conflicts.add(spec)
         else:
             # we succeeded, so we'll add the spec to our future constraints
