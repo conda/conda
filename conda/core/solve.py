@@ -743,16 +743,14 @@ class Solver:
             # Ignore installed specs on prune.
             installed_specs = ()
         else:
-            installed_specs = tuple(
-                chain.from_iterable(
-                    _.to_match_spec() for _ in ssc.prefix_data.iter_records()
-                )
-            )
+            installed_specs = [
+                record.to_match_spec() for record in ssc.prefix_data.iter_records()
+            ]
 
         conflict_specs = (
             ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
         )
-        conflict_specs = {_.name for _ in conflict_specs}
+        conflict_specs = {spec.name for spec in conflict_specs}
 
         for pkg_name, spec in ssc.specs_map.items():
             matches_for_spec = tuple(

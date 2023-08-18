@@ -461,7 +461,10 @@ def test_update_prune_1(tmpdir):
     new_environment_specs = (MatchSpec("python=2.7.3"),)
 
     with get_solver(
-        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
@@ -527,7 +530,10 @@ def test_update_prune_2(tmpdir):
     new_environment_specs = (MatchSpec("python=2.7.3"),)
 
     with get_solver(
-        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
@@ -599,7 +605,10 @@ def test_update_prune_3(tmpdir):
     )
 
     with get_solver(
-        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
@@ -653,10 +662,14 @@ def test_update_prune_4(tmpdir):
     new_environment_specs = (MatchSpec("python=2.7.3"),)
 
     with get_solver(
-        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_1 = solver.solve_final_state(
-            prune=True, update_modifier=UpdateModifier.FREEZE_INSTALLED
+            prune=True,
+            update_modifier=UpdateModifier.FREEZE_INSTALLED,
         )
         pprint(convert_to_dist_str(final_state_1))
 
@@ -679,7 +692,10 @@ def test_update_prune_4(tmpdir):
 def test_update_prune_5(tmpdir, prune, capsys):
     """Regression test: Check that prefix data is not taken into account when solving on prune."""
     # "Create" a conda env with specs that "pin" dependencies.
-    specs = MatchSpec("python=2.7"), MatchSpec("numexpr==2.0.1=np17py27_p3")
+    specs = (
+        MatchSpec("python=2.7"),
+        MatchSpec("numexpr==2.0.1=np17py27_p3"),
+    )
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
 
@@ -687,11 +703,15 @@ def test_update_prune_5(tmpdir, prune, capsys):
     assert "Updating numexpr is constricted by" not in out
 
     # If prefix data is evaluated it will conflict with "pinned" dependencies of new specs.
-    new_environment_specs = MatchSpec("python=2.7"), MatchSpec(
-        "numexpr==2.0.1=np17py27_p2"
+    new_environment_specs = (
+        MatchSpec("python=2.7"),
+        MatchSpec("numexpr==2.0.1=np17py27_p2"),
     )
     with get_solver(
-        tmpdir, new_environment_specs, prefix_records=final_state_1, history_specs=specs
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         solver.solve_final_state(prune=prune)
 
