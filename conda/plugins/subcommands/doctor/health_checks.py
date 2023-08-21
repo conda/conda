@@ -7,12 +7,14 @@ import json
 from logging import getLogger
 from pathlib import Path
 
+from conda.core.envs_manager import get_user_environments_txt_file
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
 
 logger = getLogger(__name__)
 
 OK_MARK = "✅"
+X_MARK = "❌"
 
 
 def display_report_heading(prefix: str) -> None:
@@ -22,8 +24,7 @@ def display_report_heading(prefix: str) -> None:
 
 def check_envs_txt_file(prefix: str | Path) -> bool:
     """Checks whether the environment is listed in the environments.txt file"""
-    home = Path.home()
-    envs_txt_file = home / ".conda" / "environments.txt"
+    envs_txt_file = get_user_environments_txt_file()
     with open(envs_txt_file) as f:
         content = f.read()
         if str(prefix) in content:
@@ -116,12 +117,9 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
                 delimiter = "\n  "
                 print(f"{package_name}:{delimiter}{delimiter.join(altered_files)}\n")
             else:
-                print(f"{package_name}: {len(altered_files)}")
+                print(f"{package_name}: {len(altered_files)}\n")
     else:
         print(f"{OK_MARK} There are no packages with altered files.\n")
 
-    print("3. Environment listed in environments.txt file:\n")
-    if check_envs_txt_file(prefix):
-        print("Yes\n")
-    else:
-        print("No\n")
+    present = OK_MARK if check_envs_txt_file(prefix) else X_MARK
+    print(f"3. Environment listed in environments.txt file: {present}\n")
