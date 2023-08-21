@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* `update --prune` uses only the specs coming from `environment.yml` file and ignores the history specs. (#9614)
+* `conda env update --prune` uses only the specs coming from `environment.yml` file and ignores the history specs. (#9614)
 
 ### Deprecations
 
