@@ -16,6 +16,7 @@ from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
+from typing import Iterable
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -703,7 +704,7 @@ class ProgressiveFetchExtract:
         )
         return cache_action, extract_action
 
-    def __init__(self, link_prefs):
+    def __init__(self, link_prefs: Iterable[PackageRecord]):
         """
         Args:
             link_prefs (tuple[PackageRecord]):
@@ -712,7 +713,7 @@ class ProgressiveFetchExtract:
                 Here, "available" means the package tarball is both downloaded and extracted
                 to a package directory.
         """
-        self.link_precs = link_prefs
+        self.link_precs = tuple(link_prefs)
 
         log.debug(
             "instantiating ProgressiveFetchExtract with\n" "  %s\n",
