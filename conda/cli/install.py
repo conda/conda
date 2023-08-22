@@ -10,6 +10,7 @@ conda.cli.main_remove for the entry points into this module.
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
+from pathlib import Path
 
 from .. import CondaError
 from ..auxlib.ish import dals
@@ -30,8 +31,10 @@ from ..exceptions import (
     DryRunExit,
     EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
+    OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     TooManyArgumentsError,
     UnsatisfiableError,
@@ -41,7 +44,6 @@ from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
-from ..resolve import ResolvePackageNotFound
 from . import common
 from .common import check_non_admin
 from .python_api import Commands, run_command
@@ -156,6 +158,25 @@ def install(args, parser, command="install"):
     if newenv:
         check_prefix(prefix, json=context.json)
         if context.subdir != context._native_subdir():
+            # We will only allow a different subdir if it's specified by global
+            # configuration, environment variable or command line argument. IOW,
+            # prevent a non-base env configured for a non-native subdir from leaking
+            # its subdir to a newer env.
+            context_sources = context.collect_all()
+            for condarc_file in (".condarc", "condarc"):
+                active_env_config = Path(context.active_prefix, condarc_file)
+                if "subdir" in context_sources.get(active_env_config, ()):
+                    # In practice this never happens; the subdir info is not even
+                    # loaded from the active env for conda create :shrug:
+                    msg = dals(
+                        f"""
+                        Active environment configuration ({active_env_config}) is 
+                        implicitly requesting a non-native platform ({context.subdir}). 
+                        Please deactivate first or explicitly request the platform via 
+                        the --platform=[value] command line flag.
+                        """    
+                    )
+                    raise OperationNotAllowed(msg)
             log.info(
                 "Creating new environment for a non-native platform %s", context.subdir
             )
