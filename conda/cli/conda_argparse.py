@@ -73,11 +73,13 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser.add_argument(
         "--debug",
         action="store_true",
+        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
         "--json",
         action="store_true",
+        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
@@ -1845,7 +1847,12 @@ def add_parser_channels(p):
         action="append",
         choices=["jlap", "lock"],
         help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. ",
+        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+    )
+    channel_customization_options.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="Disable locking when reading, updating index (repodata.json) cache. ",
     )
     return channel_customization_options
 
