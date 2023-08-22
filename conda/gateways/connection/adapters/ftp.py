@@ -16,10 +16,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import cgi
 import ftplib
-import os
 from base64 import b64decode
+from email.message import EmailMessage
 from io import BytesIO, StringIO
 from logging import getLogger
 
@@ -56,7 +55,6 @@ class FTPAdapter(BaseAdapter):
         self.func_table = {
             "LIST": self.list,
             "RETR": self.retr,
-            "STOR": self.stor,
             "NLST": self.nlst,
             "GET": self.retr,
         }
@@ -129,29 +127,6 @@ class FTPAdapter(BaseAdapter):
 
         # Close the connection.
         self.conn.close()
-
-        return response
-
-    def stor(self, path, request):
-        """Executes the FTP STOR command on the given path."""
-        # First, get the file handle. We assume (bravely)
-        # that there is only one file to be sent to a given URL. We also
-        # assume that the filename is sent as part of the URL, not as part of
-        # the files argument. Both of these assumptions are rarely correct,
-        # but they are easy.
-        data = parse_multipart_files(request)
-
-        # Split into the path and the filename.
-        path, filename = os.path.split(path)
-
-        # Switch directories and upload the data.
-        self.conn.cwd(path)
-        code = self.conn.storbinary("STOR " + filename, data)
-
-        # Close the connection and build the response.
-        self.conn.close()
-
-        response = build_binary_response(request, BytesIO(), code)
 
         return response
 
@@ -270,8 +245,12 @@ def parse_multipart_files(request):
     """Given a prepared request, return a file-like object containing the
     original data. This is pretty hacky.
     """
+    # untested cgi -> EmailMessage replacement; unused code.
+
     # Start by grabbing the pdict.
-    _, pdict = cgi.parse_header(request.headers["Content-Type"])
+    msg = EmailMessage()
+    msg["content-type"] = request.headers["Content-Type"]
+    pdict = msg["content-type"].params
 
     # Now, wrap the multipart data in a BytesIO buffer. This is annoying.
     buf = BytesIO()
@@ -279,13 +258,14 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     # Parse the data. Simply take the first file.
-    data = cgi.parse_multipart(buf, pdict)
-    _, filedata = data.popitem()
+    data = EmailMessage()
+    data.set_content(buf)
+    filedata = next(data.iter_parts()).as_bytes()
     buf.close()
 
     # Get a BytesIO now, and write the file into it.
     buf = BytesIO()
-    buf.write("".join(filedata))
+    buf.write(filedata)
     buf.seek(0)
 
     return buf

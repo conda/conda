@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove reference to deprecated cgi module by removing ftp STOR support
+  (#13013)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
