@@ -46,7 +46,6 @@ from . import common
 from .common import check_non_admin
 from .python_api import Commands, run_command
 
-
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
@@ -157,7 +156,9 @@ def install(args, parser, command="install"):
     if newenv:
         check_prefix(prefix, json=context.json)
         if context.subdir != context._native_subdir():
-            log.info("Creating new environment for a non-native platform %s", context.subdir)
+            log.info(
+                "Creating new environment for a non-native platform %s", context.subdir
+            )
     else:
         if isdir(prefix):
             delete_trash(prefix)

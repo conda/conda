@@ -26,9 +26,9 @@ from ..auxlib.ish import dals
 from ..base.constants import (
     COMPATIBLE_SHELLS,
     CONDA_HOMEPAGE_URL,
+    KNOWN_SUBDIRS,
     DepsModifier,
     UpdateModifier,
-    KNOWN_SUBDIRS,
 )
 from ..base.context import context
 from ..common.constants import NULL
@@ -975,7 +975,9 @@ def configure_parser_install(sub_parsers):
         metavar="REVISION",
     )
 
-    solver_mode_options, package_install_options, _ = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
+        p
+    )
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
@@ -1529,7 +1531,9 @@ def configure_parser_update(sub_parsers, aliases):
         epilog=example,
         aliases=aliases,
     )
-    solver_mode_options, package_install_options, _ = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
+        p
+    )
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
@@ -2084,13 +2088,14 @@ def add_parser_default_packages(p):
 
 def add_parser_create_platform(p):
     p.add_argument(
-        "--subdir", "--platform",
+        "--subdir",
+        "--platform",
         default=NULL,
         dest="subdir",
         choices=[s for s in KNOWN_SUBDIRS if s != "noarch"],
         metavar="SUBDIR",
         help="Use packages built for this platform. "
-             "The new environment will be configured to remember this choice. "
-             "Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
-             "Defaults to the current (native) platform.",
+        "The new environment will be configured to remember this choice. "
+        "Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
+        "Defaults to the current (native) platform.",
     )

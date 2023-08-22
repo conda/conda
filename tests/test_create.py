@@ -2734,7 +2734,14 @@ def _check_create_xz_env_different_platform(prefix, platform):
     else:
         raise pytest.fail("Configuration does not include 'subdir' key!")
 
-    stdout, _, _ = run_command(Commands.INSTALL, prefix, "python", "--dry-run", "--json", use_exception_handler=True)
+    stdout, _, _ = run_command(
+        Commands.INSTALL,
+        prefix,
+        "python",
+        "--dry-run",
+        "--json",
+        use_exception_handler=True,
+    )
     result = json.loads(stdout)
     assert result["success"]
     python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
