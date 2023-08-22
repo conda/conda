@@ -281,6 +281,8 @@ class Solver:
                 the solved state of the environment.
 
         """
+        if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            update_modifier = NULL
         if update_modifier is NULL:
             update_modifier = context.update_modifier
         else:
@@ -520,54 +522,60 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
-        # add in historically-requested specs
-        ssc.specs_map.update(ssc.specs_from_history_map)
+        if ssc.prune:
+            # When pruning DO NOT consider history of already installed packages when solving.
+            prepared_specs = {*self.specs_to_remove, *self.specs_to_add}
+        else:
+            # add in historically-requested specs
+            ssc.specs_map.update(ssc.specs_from_history_map)
 
-        # these are things that we want to keep even if they're not explicitly specified.  This
-        #     is to compensate for older installers not recording these appropriately for them
-        #     to be preserved.
-        for pkg_name in (
-            "anaconda",
-            "conda",
-            "conda-build",
-            "python.app",
-            "console_shortcut",
-            "powershell_shortcut",
-        ):
-            if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
-                ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
-
-        # Add virtual packages so they are taken into account by the solver
-        virtual_pkg_index = {}
-        _supplement_index_with_system(virtual_pkg_index)
-        virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
-        for virtual_pkgs_name in virtual_pkgs:
-            if virtual_pkgs_name not in ssc.specs_map:
-                ssc.specs_map[virtual_pkgs_name] = MatchSpec(virtual_pkgs_name)
-
-        for prec in ssc.prefix_data.iter_records():
-            # first check: add everything if we have no history to work with.
-            #    This happens with "update --all", for example.
-            #
-            # second check: add in aggressively updated packages
-            #
-            # third check: add in foreign stuff (e.g. from pip) into the specs
-            #    map. We add it so that it can be left alone more. This is a
-            #    declaration that it is manually installed, much like the
-            #    history map. It may still be replaced if it is in conflict,
-            #    but it is not just an indirect dep that can be pruned.
-            if (
-                not ssc.specs_from_history_map
-                or MatchSpec(prec.name) in context.aggressive_update_packages
-                or prec.subdir == "pypi"
+            # these are things that we want to keep even if they're not explicitly specified.  This
+            #     is to compensate for older installers not recording these appropriately for them
+            #     to be preserved.
+            for pkg_name in (
+                "anaconda",
+                "conda",
+                "conda-build",
+                "python.app",
+                "console_shortcut",
+                "powershell_shortcut",
             ):
-                ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
+                if pkg_name not in ssc.specs_map and ssc.prefix_data.get(
+                    pkg_name, None
+                ):
+                    ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
-        prepared_specs = {
-            *self.specs_to_remove,
-            *self.specs_to_add,
-            *ssc.specs_from_history_map.values(),
-        }
+            # Add virtual packages so they are taken into account by the solver
+            virtual_pkg_index = {}
+            _supplement_index_with_system(virtual_pkg_index)
+            virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
+            for virtual_pkgs_name in virtual_pkgs:
+                if virtual_pkgs_name not in ssc.specs_map:
+                    ssc.specs_map[virtual_pkgs_name] = MatchSpec(virtual_pkgs_name)
+
+            for prec in ssc.prefix_data.iter_records():
+                # first check: add everything if we have no history to work with.
+                #    This happens with "update --all", for example.
+                #
+                # second check: add in aggressively updated packages
+                #
+                # third check: add in foreign stuff (e.g. from pip) into the specs
+                #    map. We add it so that it can be left alone more. This is a
+                #    declaration that it is manually installed, much like the
+                #    history map. It may still be replaced if it is in conflict,
+                #    but it is not just an indirect dep that can be pruned.
+                if (
+                    not ssc.specs_from_history_map
+                    or MatchSpec(prec.name) in context.aggressive_update_packages
+                    or prec.subdir == "pypi"
+                ):
+                    ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
+
+            prepared_specs = {
+                *self.specs_to_remove,
+                *self.specs_to_add,
+                *ssc.specs_from_history_map.values(),
+            }
 
         index, r = self._prepare(prepared_specs)
         ssc.set_repository_metadata(index, r)
@@ -731,17 +739,18 @@ class Solver:
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
         explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
+        if ssc.prune:
+            # Ignore installed specs on prune.
+            installed_specs = ()
+        else:
+            installed_specs = [
+                record.to_match_spec() for record in ssc.prefix_data.iter_records()
+            ]
 
         conflict_specs = (
-            ssc.r.get_conflicting_specs(
-                tuple(
-                    record.to_match_spec() for record in ssc.prefix_data.iter_records()
-                ),
-                self.specs_to_add,
-            )
-            or ()
+            ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
         )
-        conflict_specs = {_.name for _ in conflict_specs}
+        conflict_specs = {spec.name for spec in conflict_specs}
 
         for pkg_name, spec in ssc.specs_map.items():
             matches_for_spec = tuple(
@@ -1342,7 +1351,8 @@ class SolverStateContainer:
 
         # Group 4. Mutable working containers
         self.specs_map = {}
-        self.solution_precs = tuple(self.prefix_data.iter_records())
+        self.solution_precs = None
+        self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
@@ -1365,9 +1375,16 @@ class SolverStateContainer:
     def set_repository_metadata(self, index, r):
         self.index, self.r = index, r
 
+    def _init_solution_precs(self):
+        if self.prune:
+            # DO NOT add existing prefix data to solution on prune
+            self.solution_precs = tuple()
+        else:
+            self.solution_precs = tuple(self.prefix_data.iter_records())
+
     def working_state_reset(self):
         self.specs_map = {}
-        self.solution_precs = tuple(self.prefix_data.iter_records())
+        self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
