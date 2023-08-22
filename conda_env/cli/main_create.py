@@ -41,6 +41,10 @@ the name specified in the environment.yml file.
 Unless you are in the directory containing the environment definition
 file, use -f to specify the file path of the environment definition
 file you want to use.
+
+You can create conda environments from environment.yml files stored
+on the web using the FSSpec URIs of the format protocol://path/to/file.
+See the example below for how to specify a file stored on github.
 """
 
 example = """
@@ -48,6 +52,7 @@ examples:
     conda env create
     conda env create -n envname
     conda env create folder/envname
+    conda env create github://<org>:<repo>@<branch-or-sha>/path/to/environment.yml
     conda env create -f /path/to/environment.yml
     conda env create -f /path/to/requirements.txt -n envname
     conda env create -f /path/to/requirements.txt -p /home/user/envname
