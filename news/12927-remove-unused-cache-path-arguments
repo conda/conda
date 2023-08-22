@@ -16,4 +16,5 @@
 
 ### Other
 
-* Re-enable all conda_env tests and remove irrelevant tests. (#12813)
+* Remove unused cache_path arguments from RepoInterface/JlapRepoInterface;
+  replaced by cache object. (#12927)

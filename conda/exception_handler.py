@@ -179,9 +179,10 @@ class ExceptionHandler:
                     "",
                     "Example: conda --no-plugins install <package>",
                     "",
-                    "Alternatively, you can set the 'no_plugins' option to run the command",
-                    "without plugins enabled. You can do this by running:",
-                    "    $ conda config --set no_plugins true",
+                    "Alternatively, you can set the CONDA_NO_PLUGINS environment variable on",
+                    "the command line to run the command without plugins enabled.",
+                    "",
+                    "Example: CONDA_NO_PLUGINS=true conda install <package>",
                     "",
                 ]
             )

@@ -2670,7 +2670,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     )
 
     shell.sendline("conda" + install + f"-yq hdf5={HDF5_VERSION}")
-    shell.expect("Executing transaction: ...working... done.*\n", timeout=60)
+    shell.expect("Executing transaction: ...working... done.*\n", timeout=120)
     shell.assert_env_var("?", "0", use_exact=True)
 
     shell.sendline("h5stat --version")

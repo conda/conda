@@ -145,7 +145,7 @@ def test_display_health_checks(
 ):
     """Test that runs display_health_checks without missing or altered files."""
     prefix, bin_doctor, lib_doctor, package = env_ok
-    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
@@ -162,7 +162,7 @@ def test_display_health_checks_missing_files(
 ):
     """Test that runs display_health_checks with missing files"""
     prefix, bin_doctor, _, package = env_missing_files
-    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
@@ -181,7 +181,7 @@ def test_display_health_checks_altered_files(
 ):
     """Test that runs display_health_checks with altered files"""
     prefix, _, lib_doctor, package = env_altered_files
-    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()

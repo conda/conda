@@ -152,6 +152,11 @@ to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 
+.. note::
+   Any condarc files that exist in any of these special search path
+   directories need to end in a valid yaml extension (".yml" or ".yaml").
+
+
 Conflict merging strategy
 -------------------------
 When conflicts between configurations arise, the following strategies are employed:

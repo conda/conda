@@ -1,6 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import Callable
 
 import pytest
 from pytest import CaptureFixture
@@ -8,7 +11,9 @@ from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.auxlib.ish import dals
-from conda.cli.conda_argparse import BUILTIN_COMMANDS
+from conda.base.context import context
+from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
+from conda.exceptions import CommandNotFoundError
 from conda.plugins.types import CondaSubcommand
 from conda.testing import CondaCLIFixture
 
@@ -17,6 +22,7 @@ from conda.testing import CondaCLIFixture
 class SubcommandPlugin:
     name: str
     summary: str
+    configure_parser: Callable | None = None
 
     def custom_command(self, args):
         pass
@@ -27,6 +33,7 @@ class SubcommandPlugin:
             name=self.name,
             summary=self.summary,
             action=self.custom_command,
+            configure_parser=self.configure_parser,
         )
 
 
@@ -104,3 +111,77 @@ def test_cannot_override_builtin_commands(command, plugin_manager, mocker, conda
     ]
 
     assert mocked.mock_calls == []
+
+
+def test_parser_no_plugins(plugin_manager):
+    subcommand_plugin = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    parser = generate_parser()
+
+    with pytest.raises(SystemExit, match="2"):
+        parser.parse_args(["foobar"])
+
+    args = parser.parse_args(["custom"])
+    assert args.cmd == "custom"
+
+    plugin_manager.disable_external_plugins()
+
+    parser = generate_parser()
+
+    with pytest.raises(SystemExit, match="2"):
+        parser.parse_args(["foobar"])
+
+    with pytest.raises(SystemExit, match="2"):
+        args = parser.parse_args(["custom"])
+
+
+def test_custom_plugin_not_extend_parser(
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    subcommand_plugin = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    mocker.patch(
+        "conda.base.context.Context.plugin_manager",
+        return_value=plugin_manager,
+        new_callable=mocker.PropertyMock,
+    )
+    assert context.plugin_manager is plugin_manager
+
+    stdout, stderr, err = conda_cli("custom", "--help")
+    # configure_parser is undefined and action don't do anything, so this subcommand does not have any help text
+    assert not stdout
+    assert not stderr
+    assert not err
+
+
+def test_custom_plugin_extend_parser(
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    def configure_parser(subparser):
+        pass
+
+    subcommand_plugin = SubcommandPlugin(
+        name="custom",
+        summary="Summary.",
+        configure_parser=configure_parser,
+    )
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    mocker.patch(
+        "conda.base.context.Context.plugin_manager",
+        return_value=plugin_manager,
+        new_callable=mocker.PropertyMock,
+    )
+    assert context.plugin_manager is plugin_manager
+
+    with pytest.raises(SystemExit, match="0"):
+        conda_cli("custom", "--help")

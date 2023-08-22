@@ -14,7 +14,6 @@ from argparse import (
     _HelpAction,
     _StoreAction,
 )
-from functools import lru_cache
 from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
@@ -33,6 +32,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..deprecations import deprecated
+from .find_commands import find_commands, find_executable
 
 log = getLogger(__name__)
 
@@ -63,40 +63,52 @@ BUILTIN_COMMANDS = {
 }
 
 
-def generate_parser():
-    p = ArgumentParser(
+def generate_pre_parser(**kwargs) -> ArgumentParser:
+    pre_parser = ArgumentParser(
         description="conda is a tool for managing and deploying applications,"
         " environments and packages.",
+        **kwargs,
     )
-    p.add_argument(
+
+    pre_parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    pre_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    pre_parser.add_argument(
+        "--no-plugins",
+        action="store_true",
+        default=NULL,
+        help="Disable all plugins that are not built into conda.",
+    )
+
+    return pre_parser
+
+
+def generate_parser(**kwargs) -> ArgumentParser:
+    parser = generate_pre_parser(**kwargs)
+
+    parser.add_argument(
         "-V",
         "--version",
         action="version",
         version="conda %s" % __version__,
         help="Show the conda version number and exit.",
     )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--no-plugins",
-        action="store_true",
-        default=NULL,
-        help="Disable all plugins that are not built into conda.",
-    )
-    sub_parsers = p.add_subparsers(
+
+    sub_parsers = parser.add_subparsers(
         metavar="COMMAND",
         title="commands",
         description="The following built-in and plugins subcommands are available.",
         dest="cmd",
-        required=True,
+        action=_GreedySubParsersAction,
     )
 
     configure_parser_clean(sub_parsers)
@@ -114,9 +126,9 @@ def generate_parser():
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
-    configure_parser_plugins(sub_parsers, p.plugin_subcommands)
+    configure_parser_plugins(sub_parsers)
 
-    return p
+    return parser
 
 
 def do_call(args: argparse.Namespace, parser: ArgumentParser):
@@ -124,24 +136,28 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
-    # disable all external plugins if requested
-    if context.no_plugins:
-        context.plugin_manager.disable_external_plugins()
-
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
-    plugin_subcommand = getattr(args, "plugin_subcommand", None)
-
-    if plugin_subcommand:
+    if plugin_subcommand := getattr(args, "_plugin_subcommand", None):
         # pass on the rest of the plugin specific args or fall back to
         # the whole discovered arguments
-        try:
-            plugin_args = tuple(args.plugin_args)
-        except AttributeError:
-            plugin_args = args
         context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
-        result = plugin_subcommand.action(plugin_args)
+        result = plugin_subcommand.action(getattr(args, "_args", args))
         context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
+    elif name := getattr(args, "_executable", None):
+        # run the subcommand from executables; legacy path
+        deprecated.topic(
+            "23.3",
+            "23.9",
+            topic="Loading conda subcommands via executables",
+            addendum="Use the plugin system instead.",
+        )
+        executable = find_executable(f"conda-{name}")
+        if not executable:
+            from ..exceptions import CommandNotFoundError
+
+            raise CommandNotFoundError(name)
+        return _exec([executable, *args._args], os.environ)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         relative_mod, func_name = args.func.rsplit(".", 1)
@@ -162,96 +178,12 @@ def find_builtin_commands(parser):
 
 
 class ArgumentParser(ArgumentParserBase):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, add_help=True, **kwargs):
         kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
-        if "add_help" not in kwargs:
-            add_custom_help = True
-            kwargs["add_help"] = False
-        else:
-            add_custom_help = False
-        # Handle option conflicts gracefully
-        kwargs.setdefault("conflict_handler", "resolve")
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, add_help=False, **kwargs)
 
-        if add_custom_help:
+        if add_help:
             add_parser_help(self)
-
-    # FUTURE: Python 3.8+, replace with functools.cached_property
-    @property
-    @lru_cache(maxsize=None)
-    def plugin_subcommands(self):
-        return {
-            subcommand.name: subcommand
-            for subcommand in context.plugin_manager.get_hook_results("subcommands")
-        }
-
-    def _get_action_from_name(self, name):
-        """Given a name, get the Action instance registered with this parser.
-        If only it were made available in the ArgumentError object. It is
-        passed as it's first arg...
-        """
-        container = self._actions
-        if name is None:
-            return None
-        for action in container:
-            if "/".join(action.option_strings) == name:
-                return action
-            elif action.metavar == name:
-                return action
-            elif action.dest == name:
-                return action
-
-    def error(self, message):
-        import re
-
-        from .find_commands import find_executable
-
-        exc = sys.exc_info()[1]
-        if exc:
-            # this is incredibly lame, but argparse stupidly does not expose
-            # reasonable hooks for customizing error handling
-            if hasattr(exc, "argument_name"):
-                argument = self._get_action_from_name(exc.argument_name)
-            else:
-                argument = None
-            if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'([-\w]*?)'", exc.message)
-                if m:
-                    cmd = m.group(1)
-                    if not cmd:
-                        self.print_help()
-                        sys.exit(0)
-                    else:
-                        # Run the subcommand from executables; legacy path
-                        deprecated.topic(
-                            "23.3",
-                            "23.9",
-                            topic="Loading conda subcommands via executables",
-                            addendum="Use the plugin system instead.",
-                        )
-                        executable = find_executable("conda-" + cmd)
-                        if not executable:
-                            from ..exceptions import CommandNotFoundError
-
-                            raise CommandNotFoundError(cmd)
-                        args = [find_executable("conda-" + cmd)]
-                        args.extend(sys.argv[2:])
-                        _exec(args, os.environ)
-
-        super().error(message)
-
-    def print_help(self):
-        super().print_help()
-
-        if sys.argv[1:] in ([], [""], ["help"], ["-h"], ["--help"]):
-            from .find_commands import find_commands
-
-            other_commands = set(find_commands()).difference(self.plugin_subcommands)
-            if other_commands:
-                builder = [""]
-                builder.append("conda commands available from other packages (legacy):")
-                builder.extend("    %s" % cmd for cmd in sorted(other_commands))
-                print("\n".join(builder))
 
     def _check_value(self, action, value):
         # extend to properly handle when we accept multiple choices and the default is a list
@@ -261,37 +193,40 @@ class ArgumentParser(ArgumentParserBase):
         else:
             super()._check_value(action, value)
 
-    def parse_args(self, args=None, namespace=None):
-        """
-        We override this method to check if we are running from a known plugin subcommand.
-        If we are, we do not want to handle argument parsing as this is delegated to the plugin
-        subcommand. We instead return a ``Namespace`` object with ``plugin_subcommand`` defined,
-        which is a ``conda.plugins.CondaSubcommand`` object.
-        """
-        # args default to the system args
-        if args is None:
-            args = sys.argv[1:]
+    def parse_args(self, *args, override_args=None, **kwargs):
+        parsed_args = super().parse_args(*args, **kwargs)
+        for name, value in (override_args or {}).items():
+            setattr(parsed_args, name, value)
+        return parsed_args
 
-        namespace = super().parse_args(args=args, namespace=namespace)
 
-        # if the current run is not handled by argparse subparser with
-        # the conventional name of "cmd", we simply return the already parsed
-        # argparse namespace and hope the 3rd party library handles the rest
-        current_cmd = getattr(namespace, "cmd", None)
-        if current_cmd is None:
-            return namespace
+class _GreedySubParsersAction(argparse._SubParsersAction):
+    """A custom subparser action to conditionally act as a greedy consumer.
 
-        # alternatively if the current run is not handled by a plugin-based
-        # subcommand we move on, as well
-        plugin_subcommand = self.plugin_subcommands.get(current_cmd, None)
-        if plugin_subcommand is None:
-            return namespace
+    This is a workaround since argparse.REMAINDER does not work as expected,
+    see https://github.com/python/cpython/issues/61252.
+    """
 
-        # finally, we add the parsed plugin subcommand if available to the
-        # current namespace, so we can later refer to it
-        else:
-            namespace.plugin_subcommand = plugin_subcommand
-            return namespace
+    def __call__(self, parser, namespace, values, option_string=None):
+        super().__call__(parser, namespace, values, option_string)
+
+        parser = self._name_parser_map[values[0]]
+
+        # if the parser has a greedy=True attribute we want to consume all arguments
+        # i.e. all unknown args should be passed to the subcommand as is
+        if getattr(parser, "greedy", False):
+            try:
+                unknown = getattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
+                delattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
+            except AttributeError:
+                unknown = ()
+
+            # underscore prefixed indicating this is not a normal argparse argument
+            namespace._args = tuple(unknown)
+
+    def _get_subactions(self):
+        """Sort actions for subcommands to appear alphabetically in help blurb."""
+        return sorted(self._choices_actions, key=lambda action: action.dest)
 
 
 def _exec(executable_args, env_vars):
@@ -365,44 +300,88 @@ class ExtendConstAction(Action):
 # #############################################################################################
 
 
-def configure_parser_plugins(sub_parsers, plugin_subcommands) -> None:
+def configure_parser_plugins(sub_parsers) -> None:
     """
     For each of the provided plugin-based subcommands, we'll create
     a new subparser for an improved help printout and calling the
     :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
     with the newly created subcommand specific argument parser.
     """
-    for plugin_subcommand in plugin_subcommands.values():
+    plugin_subcommands = context.plugin_manager.get_subcommands()
+    for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
-        if plugin_subcommand.name.lower() in BUILTIN_COMMANDS:
-            error_message = dals(
-                f"""
-                The plugin '{plugin_subcommand.name}' is trying to override the built-in command
-                with the same name, which is not allowed.
+        if name in BUILTIN_COMMANDS:
+            log.error(
+                dals(
+                    f"""
+                    The plugin '{name}' is trying to override the built-in command
+                    with the same name, which is not allowed.
 
-                Please uninstall the plugin to stop seeing this error message.
-                """
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
             )
-            log.error(error_message)
             continue
 
         parser = sub_parsers.add_parser(
-            plugin_subcommand.name,
+            name,
             description=plugin_subcommand.summary,
             help=plugin_subcommand.summary,
-            formatter_class=RawDescriptionHelpFormatter,
+            add_help=False,  # defer to subcommand's help processing
         )
-        try:
+
+        # case 1: plugin extends the parser
+        if plugin_subcommand.configure_parser:
             plugin_subcommand.configure_parser(parser)
-        except NotImplementedError:
-            # we store all other arguments here, so we can pass them to the
-            # plugin subcommands later
-            parser.add_argument(
-                "plugin_args",
-                nargs=argparse.REMAINDER,  # everything remaining, after the subcommand name
-                help=argparse.SUPPRESS,  # to hide it from the help output
+
+            # attempt to add standard help processing, will fail if plugin defines their own
+            try:
+                add_parser_help(parser)
+            except argparse.ArgumentError:
+                pass
+
+        # case 2: plugin has their own parser, see _GreedySubParsersAction
+        else:
+            parser.greedy = True
+
+        # underscore prefixed indicating this is not a normal argparse argument
+        parser.set_defaults(_plugin_subcommand=plugin_subcommand)
+
+    # `conda env` subcommand is a first-party conda subcommand even though it uses the legacy
+    # subcommand framework, so `conda env` must still be allowed when plugins are disabled
+    legacy = (
+        ["env"]
+        if context.no_plugins
+        else set(find_commands()).difference(plugin_subcommands)
+    )
+    for name in legacy:
+        # if the name of the plugin-based subcommand overlaps a built-in
+        # subcommand, we print an error
+        if name in BUILTIN_COMMANDS:
+            log.error(
+                dals(
+                    f"""
+                    The (legacy) plugin '{name}' is trying to override the built-in command
+                    with the same name, which is not allowed.
+
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
             )
+            continue
+
+        parser = sub_parsers.add_parser(
+            name,
+            description=f"See `conda {name} --help`.",
+            help=f"See `conda {name} --help`.",
+            add_help=False,  # defer to subcommand's help processing
+        )
+
+        # case 3: legacy plugins are always greedy
+        parser.greedy = True
+
+        parser.set_defaults(_executable=name)
 
 
 def configure_parser_clean(sub_parsers):
@@ -1868,7 +1847,12 @@ def add_parser_channels(p):
         action="append",
         choices=["jlap", "lock"],
         help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. ",
+        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+    )
+    channel_customization_options.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="Disable locking when reading, updating index (repodata.json) cache. ",
     )
     return channel_customization_options
 

@@ -8,7 +8,8 @@
 
 ### Deprecations
 
-* Mark `conda.common.temporary_content_in_file` as pending deprecation. Use `tempfile` instead. (#12795)
+* Reduce startup delay from deprecations module by using `sys._getframe()`
+  instead of `inspect.stack()`. (#12919)
 
 ### Docs
 

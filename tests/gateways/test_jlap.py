@@ -18,7 +18,7 @@ import zstandard
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, CondaSSLError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
     CACHE_CONTROL_KEY,
@@ -81,6 +81,92 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
 
     # we may be able to do better than this by setting "zst unavailable" sooner
     assert patched.call_count == 4
+
+
+def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
+    """Check that JlapRepoInterface can fetch from a file:/// URL"""
+    base = package_repository_base.as_uri()
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+    url = f"{base}/osx-64"
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache=cache,
+        cache_path_json=Path(tmp_path, "repodata.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
+    )
+
+    test_jlap = make_test_jlap(
+        (package_repository_base / "osx-64" / "repodata.json").read_bytes(), 8
+    )
+    test_jlap.terminate()
+    test_jlap.write(package_repository_base / "osx-64" / "repodata.jlap")
+
+    patched = mocker.patch(
+        "conda.gateways.repodata.jlap.fetch.download_and_hash",
+        wraps=fetch.download_and_hash,
+    )
+
+    state = {}
+    with pytest.raises(RepodataOnDisk):
+        repo.repodata(state)
+
+    # however it may make two requests - one to look for .json.zst, the second
+    # to look for .json
+    # assert patched.call_count == 2
+
+    # second will try to fetch .jlap
+    with pytest.raises(RepodataOnDisk):
+        repo.repodata(state)  # a 304?
+
+    with pytest.raises(RepodataOnDisk):
+        repo.repodata(state)
+
+    assert patched.call_count == 2  # for some reason it's 2?
+
+
+@pytest.mark.parametrize("verify_ssl", [True, False])
+def test_jlap_fetch_ssl(
+    package_server_ssl: socket, tmp_path: Path, mocker, verify_ssl: bool
+):
+    """Check that JlapRepoInterface doesn't raise exceptions."""
+    host, port = package_server_ssl.getsockname()
+    base = f"https://{host}:{port}/test"
+
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+
+    url = f"{base}/osx-64"
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache=cache,
+        cache_path_json=Path(tmp_path, f"repodata_{verify_ssl}.json"),
+        cache_path_state=Path(tmp_path, f"repodata_{verify_ssl}{CACHE_STATE_SUFFIX}"),
+    )
+
+    expected_exception = CondaSSLError if verify_ssl else RepodataOnDisk
+
+    # clear session cache to avoid leftover wrong-ssl-verify Session()
+    try:
+        del CondaSession._thread_local.session
+    except AttributeError:
+        pass
+
+    state = {}
+    with env_vars(
+        {"CONDA_SSL_VERIFY": str(verify_ssl).lower()},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), pytest.raises(expected_exception), pytest.warns() as record:
+        repo.repodata(state)
+
+    # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
+    assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"
+
+    # clear session cache to avoid leftover wrong-ssl-verify Session()
+    try:
+        del CondaSession._thread_local.session
+    except AttributeError:
+        pass
 
 
 def test_download_and_hash(
@@ -234,6 +320,8 @@ def test_jlap_sought(
     package_repository_base: Path,
 ):
     """Test that we try to fetch the .jlap file."""
+    (package_repository_base / "osx-64" / "repodata.jlap").unlink(missing_ok=True)
+
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -370,6 +458,19 @@ def test_jlap_sought(
 
         patched = json.loads(sd.cache_path_json.read_text())
         assert len(patched["info"]) == 1  # patches not found in bad jlap file
+
+
+def test_jlap_coverage():
+    """
+    Force raise RepodataOnDisk() at end of JlapRepoInterface.repodata() function.
+    """
+
+    class JlapCoverMe(interface.JlapRepoInterface):
+        def repodata_parsed(self, state):
+            return
+
+    with pytest.raises(RepodataOnDisk):
+        JlapCoverMe("", "", cache=None).repodata({})  # type: ignore
 
 
 def test_jlap_errors(

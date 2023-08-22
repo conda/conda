@@ -10,7 +10,7 @@ from packaging.version import Version
 
 from conda import plugins
 from conda.core import solve
-from conda.exceptions import PluginError
+from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
 
 log = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class VerboseSolverPlugin:
         )
 
 
-def test_load_no_plugins(plugin_manager):
+def test_load_without_plugins(plugin_manager):
     plugin_names = plugin_manager.load_plugins()
     assert plugin_names == 0
 
@@ -126,6 +126,27 @@ def test_load_entrypoints_blocked(plugin_manager):
     assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
 
 
+def test_load_entrypoints_register_valueerror(plugin_manager):
+    """
+    Cover check when self.register() raises ValueError.
+    """
+
+    def raises_value_error(*args):
+        raise ValueError("bad plugin?")
+
+    plugin_manager.register = raises_value_error
+    with pytest.raises(PluginError):
+        plugin_manager.load_entrypoints("test_plugin", "success")
+
+
+def test_unknown_solver(plugin_manager):
+    """
+    Cover getting a solver that doesn't exist.
+    """
+    with pytest.raises(CondaValueError):
+        plugin_manager.get_solver_backend("p_equals_np")
+
+
 def test_get_canonical_name_object(plugin_manager):
     canonical_name = plugin_manager.get_canonical_name(object())
     assert re.match(r"<unknown_module>.object\[\d+\]", canonical_name), canonical_name
@@ -151,8 +172,7 @@ def test_get_canonical_name_instance(plugin_manager):
 @pytest.mark.parametrize("plugin", [this_module, VerboseSolverPlugin])
 def test_disable_external_plugins(plugin_manager, plugin: object):
     """
-    Run a test to ensure we can successfully disable externally registered plugins
-    with the --no-plugins flag
+    Run a test to ensure we can successfully disable externally registered plugins.
     """
     assert plugin_manager.load_plugins(plugin) == 1
     assert plugin_manager.get_plugins() == {plugin}
