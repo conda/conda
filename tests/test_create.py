@@ -2748,13 +2748,13 @@ def _check_create_xz_env_different_platform(prefix, platform):
     assert python["platform"] == platform
 
 
-def test_create_env_different_platform_cli_flag(self):
+def test_create_env_different_platform_cli_flag():
     platform = "linux-64" if on_mac else "osx-64"
     with make_temp_env("xz", "--platform", platform) as prefix:
         _check_create_xz_env_different_platform(prefix, platform)
 
 
-def test_create_env_different_platform_env_var(self):
+def test_create_env_different_platform_env_var():
     platform = "linux-64" if on_mac else "osx-64"
     with env_var("CONDA_SUBDIR", platform), make_temp_env("xz") as prefix:
         _check_create_xz_env_different_platform(prefix, platform)
