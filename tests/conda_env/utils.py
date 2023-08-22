@@ -44,3 +44,15 @@ def run_command(command, env_name, *arguments):
     args = p.parse_args(args)
 
     do_call_conda_env(args, p)
+
+
+def run_command_without_f(command, env_name, *arguments):
+    arguments = massage_arguments(arguments)
+    args = [command, "-n", env_name] + arguments
+
+    p = ArgumentParser()
+    sub_parsers = p.add_subparsers(metavar="command", dest="cmd")
+    parser_config[command](sub_parsers)
+    args = p.parse_args(args)
+
+    do_call_conda_env(args, p)

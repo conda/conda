@@ -17,7 +17,7 @@ from conda.testing.integration import run_command as run_conda_command
 from tests.test_utils import is_prefix_activated_PATHwise
 
 from . import support_file
-from .utils import Commands, make_temp_envs_dir, run_command
+from .utils import Commands, make_temp_envs_dir, run_command, run_command_without_f
 
 
 def package_is_installed(prefix, spec, pip=None):
@@ -323,3 +323,21 @@ def test_create_update_remote_env_file(support_file_server_port):
             # This ends up sticking around since there is no real way of knowing that an environment
             # variable _used_ to be in the variables dict, but isn't any more.
             assert env_vars["GETS_DELETED"] == "not_actually_removed_though"
+
+
+def test_create_from_github():
+    with make_temp_envs_dir() as envs_dir:
+        with env_var(
+            "CONDA_ENVS_DIRS", envs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
+            env_name = str(uuid4())[:8]
+            prefix = join(envs_dir, env_name)
+            python_path = join(prefix, PYTHON_BINARY)
+
+            run_command_without_f(
+                Commands.CREATE,
+                env_name,
+                "github://conda:conda@a1c4cf4/tests/conda_env/support/example/environment_pinned.yml",
+            )
+            assert exists(python_path)
+            assert package_is_installed(prefix, "flask=2.0.2")
