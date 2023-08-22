@@ -17,10 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import ftplib
+import os
 from base64 import b64decode
-from email.message import EmailMessage
 from io import BytesIO, StringIO
 from logging import getLogger
+
+from conda.deprecations import deprecated
 
 from ....common.url import urlparse
 from ....exceptions import AuthenticationError
@@ -55,6 +57,7 @@ class FTPAdapter(BaseAdapter):
         self.func_table = {
             "LIST": self.list,
             "RETR": self.retr,
+            "STOR": self.stor,
             "NLST": self.nlst,
             "GET": self.retr,
         }
@@ -127,6 +130,30 @@ class FTPAdapter(BaseAdapter):
 
         # Close the connection.
         self.conn.close()
+
+        return response
+
+    @deprecated("24.3", "24.9")
+    def stor(self, path, request):
+        """Executes the FTP STOR command on the given path."""
+        # First, get the file handle. We assume (bravely)
+        # that there is only one file to be sent to a given URL. We also
+        # assume that the filename is sent as part of the URL, not as part of
+        # the files argument. Both of these assumptions are rarely correct,
+        # but they are easy.
+        data = parse_multipart_files(request)
+
+        # Split into the path and the filename.
+        path, filename = os.path.split(path)
+
+        # Switch directories and upload the data.
+        self.conn.cwd(path)
+        code = self.conn.storbinary("STOR " + filename, data)
+
+        # Close the connection and build the response.
+        self.conn.close()
+
+        response = build_binary_response(request, BytesIO(), code)
 
         return response
 
@@ -241,16 +268,15 @@ def build_response(request, data, code, encoding):
     return response
 
 
+@deprecated("24.3", "24.9")
 def parse_multipart_files(request):
     """Given a prepared request, return a file-like object containing the
     original data. This is pretty hacky.
     """
-    # untested cgi -> EmailMessage replacement; unused code.
+    import cgi
 
     # Start by grabbing the pdict.
-    msg = EmailMessage()
-    msg["content-type"] = request.headers["Content-Type"]
-    pdict = msg["content-type"].params
+    _, pdict = cgi.parse_header(request.headers["Content-Type"])
 
     # Now, wrap the multipart data in a BytesIO buffer. This is annoying.
     buf = BytesIO()
@@ -258,14 +284,13 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     # Parse the data. Simply take the first file.
-    data = EmailMessage()
-    data.set_content(buf)
-    filedata = next(data.iter_parts()).as_bytes()
+    data = cgi.parse_multipart(buf, pdict)
+    _, filedata = data.popitem()
     buf.close()
 
     # Get a BytesIO now, and write the file into it.
     buf = BytesIO()
-    buf.write(filedata)
+    buf.write("".join(filedata))
     buf.seek(0)
 
     return buf
