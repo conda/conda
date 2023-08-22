@@ -464,21 +464,31 @@ def get_conda_list_tuple(prefix, package_name):
 
 
 def get_shortcut_dir():
-    assert on_win
     user_mode = "user" if exists(join(sys.prefix, ".nonadmin")) else "system"
-    try:
-        from menuinst.platforms.win_utils.knownfolders import dirs_src as win_locations
-
-        return win_locations[user_mode]["start"][0]
-    except ImportError:
+    if sys.platform == "win32":
         try:
-            from menuinst.win32 import dirs_src as win_locations
+            from menuinst.platforms.win_utils.knownfolders import dirs_src as win_locations
 
             return win_locations[user_mode]["start"][0]
         except ImportError:
             try:
-                from menuinst.win32 import dirs as win_locations
+                from menuinst.win32 import dirs_src as win_locations
 
-                return win_locations[user_mode]["start"]
+                return win_locations[user_mode]["start"][0]
             except ImportError:
-                raise
+                try:
+                    from menuinst.win32 import dirs as win_locations
+
+                    return win_locations[user_mode]["start"]
+                except ImportError:
+                    raise
+    elif sys.platform == "darwin":
+        if user_mode == "user":
+            return join(os.environ["HOME"], "Applications")
+        return "/Applications"
+    elif sys.platform == "linux":
+        if user_mode == "user":
+            return join(os.environ["HOME"], ".local", "share", "applications")
+        return "/usr/share/applications"
+    else:
+        raise NotImplementedError(sys.platform)
