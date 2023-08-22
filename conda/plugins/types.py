@@ -106,17 +106,26 @@ class CondaPostCommand(NamedTuple):
     run_for: set[str]
 
 
-class ChannelAuthBase(AuthBase):
+class ChannelNameMixin:
+    """
+    Class mixin to make all plugin implementations compatible, e.g. when they
+    use an existing (e.g. 3rd party) requests authentication handler.
+
+    Please use the concrete :class:`~conda.plugins.types.ChannelAuthBase`
+    in case you're creating an own implementation.
+    """
+    def __init__(self, channel_name: str, *args, **kwargs):
+        self.channel_name = channel_name
+        super().__init__(*args, **kwargs)
+
+
+class ChannelAuthBase(ChannelNameMixin, AuthBase):
     """
     Base class that we require all plugin implementations to use to be compatible.
 
-    Authentication is tightly coupled with individual channel; therefore, an additional
-    ``channel_name`` property must be set on the ``requests.auth.AuthBase`` class.
+    Authentication is tightly coupled with individual channels. Therefore, an additional
+    ``channel_name`` property must be set on the ``requests.auth.AuthBase`` based class.
     """
-
-    def __init__(self, channel_name: str):
-        self.channel_name = channel_name
-        super().__init__()
 
 
 class CondaAuthHandler(NamedTuple):
