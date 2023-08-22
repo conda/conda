@@ -8,7 +8,7 @@ import os
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
-from functools import partial
+from functools import lru_cache, partial
 from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
@@ -723,18 +723,12 @@ class ProgressiveFetchExtract:
             {}
         )  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
-        self._prepared = False
-        self._executed = False
-
     @time_recorder("fetch_extract_prepare")
-    def prepare(self):
-        if self._prepared:
-            return
-
+    @lru_cache(maxsize=None)  # only run once
+    def prepare(self) -> None:
         self.paired_actions.update(
             (prec, self.make_actions_for_record(prec)) for prec in self.link_precs
         )
-        self._prepared = True
 
     @property
     def cache_actions(self):
@@ -744,15 +738,13 @@ class ProgressiveFetchExtract:
     def extract_actions(self):
         return tuple(axns[1] for axns in self.paired_actions.values() if axns[1])
 
+    @lru_cache(maxsize=None)  # only run once
     def execute(self):
         """
         Run each action in self.paired_actions. Each action in cache_actions
         runs before its corresponding extract_actions.
         """
-        if self._executed:
-            return
-        if not self._prepared:
-            self.prepare()
+        self.prepare()
 
         assert not context.dry_run
 
@@ -853,8 +845,6 @@ class ProgressiveFetchExtract:
 
         if exceptions:
             raise CondaMultiError(exceptions)
-
-        self._executed = True
 
     @staticmethod
     def _progress_bar(prec_or_spec, position=None, leave=False):
