@@ -43,8 +43,12 @@ file, use -f to specify the file path of the environment definition
 file you want to use.
 
 You can create conda environments from environment.yml files stored
-on the web using the FSSpec URIs of the format protocol://path/to/file.
+on the web using FSSpec URIs(1) of the format protocol://path/to/file.
 See the example below for how to specify a file stored on github.
+
+(1) See these pages for built-in and third-party protocols
+https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 """
 
 example = """
