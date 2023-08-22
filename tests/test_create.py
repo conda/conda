@@ -1671,7 +1671,7 @@ def test_menuinst_v2(clear_package_cache: None, monkeypatch: MonkeyPatch):
     if sys.platform == "win32":
         assert (base_dir / "Package 1" / "A.lnk").is_file()
     elif sys.platform == "darwin":
-        assert (base_dir / "A.app").is_dir()
+        assert (base_dir / "A.app" / "Contents"/ "MacOS" / "a").is_file()
     elif sys.platform == "linux":
         assert (base_dir / "package-1_a.desktop").is_file()
     else:

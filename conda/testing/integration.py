@@ -476,19 +476,15 @@ def get_shortcut_dir():
 
                 return win_locations[user_mode]["start"][0]
             except ImportError:
-                try:
-                    from menuinst.win32 import dirs as win_locations
+                from menuinst.win32 import dirs as win_locations
 
-                    return win_locations[user_mode]["start"]
-                except ImportError:
-                    raise
-    elif sys.platform == "darwin":
+                return win_locations[user_mode]["start"]
+    if sys.platform == "darwin":
         if user_mode == "user":
             return join(os.environ["HOME"], "Applications")
         return "/Applications"
-    elif sys.platform == "linux":
+    if sys.platform == "linux":
         if user_mode == "user":
             return join(os.environ["HOME"], ".local", "share", "applications")
         return "/usr/share/applications"
-    else:
-        raise NotImplementedError(sys.platform)
+    raise NotImplementedError(sys.platform)
