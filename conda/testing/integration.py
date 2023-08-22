@@ -466,19 +466,19 @@ def get_conda_list_tuple(prefix, package_name):
 def get_shortcut_dir():
     user_mode = "user" if exists(join(sys.prefix, ".nonadmin")) else "system"
     if sys.platform == "win32":
-        try:
-            from menuinst.platforms.win_utils.knownfolders import dirs_src as win_locations
+        try:  # menuinst v2
+            from menuinst.platforms.win_utils.knownfolders import dirs_src
 
-            return win_locations[user_mode]["start"][0]
-        except ImportError:
+            return dirs_src[user_mode]["start"][0]
+        except ImportError:  # older menuinst versions; TODO: remove
             try:
-                from menuinst.win32 import dirs_src as win_locations
+                from menuinst.win32 import dirs_src
 
-                return win_locations[user_mode]["start"][0]
+                return dirs_src[user_mode]["start"][0]
             except ImportError:
-                from menuinst.win32 import dirs as win_locations
+                from menuinst.win32 import dirs
 
-                return win_locations[user_mode]["start"]
+                return dirs[user_mode]["start"]
     if sys.platform == "darwin":
         if user_mode == "user":
             return join(os.environ["HOME"], "Applications")
