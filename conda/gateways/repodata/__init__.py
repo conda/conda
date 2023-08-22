@@ -26,7 +26,6 @@ from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
-from ...deprecations import deprecated
 from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -375,50 +374,6 @@ class RepodataState(UserDict):
         # XXX may not be that useful/used compared to the full URL
         self.repodata_fn = repodata_fn
 
-    @deprecated("23.3", "23.9", addendum="use RepodataCache")
-    def load(self):
-        """
-        Cache headers and additional data needed to keep track of the cache are
-        stored separately, instead of the previous "added to repodata.json"
-        arrangement.
-        """
-        try:
-            state_path = self.cache_path_state
-            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
-            state = json.loads(state_path.read_text())
-            # json and state files should match
-            json_stat = self.cache_path_json.stat()
-            if not (
-                state.get("mtime_ns") == json_stat.st_mtime_ns
-                and state.get("size") == json_stat.st_size
-            ):
-                # clear mod, etag, cache_control to encourage re-download
-                state.update(
-                    {
-                        ETAG_KEY: "",
-                        LAST_MODIFIED_KEY: "",
-                        CACHE_CONTROL_KEY: "",
-                        "size": 0,
-                    }
-                )
-            self.update(state)  # allow all fields
-        except (json.JSONDecodeError, OSError):
-            log.debug("Could not load state", exc_info=True)
-            self.clear()
-        return self
-
-    @deprecated("23.3", "23.9", addendum="use RepodataCache")
-    def save(self):
-        """Must be called after writing cache_path_json, since mtime is in another file."""
-        serialized = dict(self)
-        json_stat = self.cache_path_json.stat()
-        serialized.update(
-            {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
-        )
-        return pathlib.Path(self.cache_path_state).write_text(
-            json.dumps(serialized, indent=True)
-        )
-
     @property
     def mod(self) -> str:
         """
@@ -624,7 +579,7 @@ class RepodataCache:
         """
         try:
             self.load(state_only=True)
-        except FileNotFoundError:
+        except FileNotFoundError:  # or JSONDecodeError?
             self.state.clear()
         return self.state
 
@@ -776,22 +731,14 @@ class RepodataFetch:
 
     @property
     def cache_path_json(self):
-        return Path(
-            str(self.cache_path_base)
-            + ("1" if context.use_only_tar_bz2 else "")
-            + ".json"
-        )
+        return self.repo_cache.cache_path_json
 
     @property
     def cache_path_state(self):
         """
         Out-of-band etag and other state needed by the RepoInterface.
         """
-        return Path(
-            str(self.cache_path_base)
-            + ("1" if context.use_only_tar_bz2 else "")
-            + CACHE_STATE_SUFFIX
-        )
+        return self.repo_cache.cache_path_state
 
     @property
     def repo_cache(self) -> RepodataCache:
@@ -891,8 +838,6 @@ class RepodataFetch:
                 self.url_w_repodata_fn,
             )
             cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the a separate file is invalid
-            # self._save_state(mod_etag_headers)
             _internal_state = self.read_cache()
             return _internal_state
         else:

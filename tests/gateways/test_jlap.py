@@ -416,6 +416,19 @@ def test_jlap_sought(
         assert len(patched["info"]) == 1  # patches not found in bad jlap file
 
 
+def test_jlap_coverage():
+    """
+    Force raise RepodataOnDisk() at end of JlapRepoInterface.repodata() function.
+    """
+
+    class JlapCoverMe(interface.JlapRepoInterface):
+        def repodata_parsed(self, state):
+            return
+
+    with pytest.raises(RepodataOnDisk):
+        JlapCoverMe("", "", cache=None).repodata({})  # type: ignore
+
+
 def test_jlap_errors(
     package_server: socket, tmp_path: Path, package_repository_base: Path, mocker
 ):

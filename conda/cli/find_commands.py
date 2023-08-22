@@ -58,6 +58,8 @@ def find_commands(include_others=True):
     else:
         dir_paths = []
 
+    dir_paths.extend(os.environ.get("PATH", "").split(os.pathsep))
+
     if on_win:
         pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)$")
     else:
