@@ -12,7 +12,7 @@ from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
-from functools import lru_cache, partial, wraps
+from functools import partial, wraps
 from io import BytesIO, StringIO
 from itertools import cycle
 from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
@@ -28,6 +28,7 @@ from .constants import NULL
 from .path import expand
 
 log = getLogger(__name__)
+IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 class DeltaSecondsFormatter(Formatter):
@@ -395,9 +396,7 @@ class Spinner:
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = (
-            enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
-        )
+        self.show_spin = enabled and not json and IS_INTERACTIVE
         self.fail_message = fail_message
 
     def start(self):
@@ -473,7 +472,7 @@ class ProgressBar:
         if json:
             pass
         elif enabled:
-            if self.interactive():
+            if IS_INTERACTIVE:
                 bar_format = "{desc}{bar} | {percentage:3.0f}% "
                 try:
                     self.pbar = self._tqdm(
@@ -503,7 +502,7 @@ class ProgressBar:
                             '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
                             % (self.description, fraction)
                         )
-                elif self.interactive():
+                elif IS_INTERACTIVE:
                     self.pbar.update(fraction - self.pbar.n)
                 elif fraction == 1:
                     sys.stdout.write(" done\n")
@@ -518,7 +517,7 @@ class ProgressBar:
 
     def refresh(self):
         """Force refresh i.e. once 100% has been reached"""
-        if self.enabled and not self.json and self.interactive():
+        if self.enabled and not self.json and IS_INTERACTIVE:
             self.pbar.refresh()
 
     @swallow_broken_pipe
@@ -531,7 +530,7 @@ class ProgressBar:
                         % self.description
                     )
                     sys.stdout.flush()
-            elif self.interactive():
+            elif IS_INTERACTIVE:
                 self.pbar.close()
             else:
                 sys.stdout.write(" done\n")
@@ -542,12 +541,6 @@ class ProgressBar:
         from tqdm.auto import tqdm
 
         return tqdm(*args, **kwargs)
-
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def interactive():
-        """Return True if we're running in a terminal."""
-        return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly

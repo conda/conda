@@ -30,7 +30,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL
-from ..common.io import ProgressBar, time_recorder
+from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -762,7 +762,7 @@ class ProgressiveFetchExtract:
         if not context.verbosity and not context.quiet and not context.json:
             print(
                 "\nDownloading and Extracting Packages:",
-                end="\n" if ProgressBar.interactive() else " ...working...",
+                end="\n" if IS_INTERACTIVE else " ...working...",
             )
         else:
             log.debug(
@@ -852,7 +852,7 @@ class ProgressiveFetchExtract:
             bar.close()
 
         if not context.verbosity and not context.quiet and not context.json:
-            if ProgressBar.interactive():
+            if IS_INTERACTIVE:
                 print("\r")  # move to column 0
             else:
                 print(" done")
@@ -876,7 +876,7 @@ class ProgressiveFetchExtract:
 
         progress_bar = ProgressBar(
             desc,
-            not context.verbosity and not context.quiet and ProgressBar.interactive(),
+            not context.verbosity and not context.quiet and IS_INTERACTIVE,
             context.json,
             position=position,
             leave=leave,
