@@ -8,6 +8,7 @@ import os
 import sys
 import warnings
 from collections import defaultdict
+from functools import lru_cache
 from itertools import chain
 from logging import getLogger
 from os.path import basename, dirname, isdir, join
@@ -63,7 +64,7 @@ from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
-from .package_cache_data import PackageCacheData
+from .package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
@@ -219,9 +220,6 @@ class UnlinkLinkTransaction:
                 "\n    ".join(prec.dist_str() for prec in stp.link_precs),
             )
 
-        self._pfe = None
-        self._prepared = False
-        self._verified = False
         # this can be CPU-bound.  Use ProcessPoolExecutor.
         self.verify_executor = (
             DummyExecutor()
@@ -237,27 +235,18 @@ class UnlinkLinkTransaction:
 
     @property
     def nothing_to_do(self):
-        return not any(
-            (stp.unlink_precs or stp.link_precs) for stp in self.prefix_setups.values()
-        ) and all(
+        return all(
             is_conda_environment(stp.target_prefix)
+            and not (stp.unlink_precs or stp.link_precs)
             for stp in self.prefix_setups.values()
         )
 
     def download_and_extract(self):
-        if self._pfe is None:
-            self._get_pfe()
-        if not self._pfe._executed:
-            self._pfe.execute()
+        self._pfe.execute()
 
+    @lru_cache(maxsize=None)  # only run once
     def prepare(self):
-        if self._pfe is None:
-            self._get_pfe()
-        if not self._pfe._executed:
-            self._pfe.execute()
-
-        if self._prepared:
-            return
+        self._pfe.execute()
 
         self.transaction_context = {}
 
@@ -278,17 +267,14 @@ class UnlinkLinkTransaction:
                 )
                 self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
-        self._prepared = True
-
     @time_recorder("unlink_link_prepare_and_verify")
+    @lru_cache(maxsize=None)  # only run once
     def verify(self):
-        if not self._prepared:
-            self.prepare()
+        self.prepare()
 
         assert not context.dry_run
 
         if context.safety_checks == SafetyChecks.disabled:
-            self._verified = True
             return
 
         with Spinner(
@@ -316,7 +302,6 @@ class UnlinkLinkTransaction:
         except CondaSystemExit:
             rm_rf(self.transaction_context["temp_dir"])
             raise
-        self._verified = True
 
     def _verify_pre_link_message(self, all_link_groups):
         flag_pre_link = False
@@ -339,8 +324,7 @@ class UnlinkLinkTransaction:
             confirm_yn()
 
     def execute(self):
-        if not self._verified:
-            self.verify()
+        self.verify()
 
         assert not context.dry_run
         try:
@@ -352,21 +336,16 @@ class UnlinkLinkTransaction:
         finally:
             rm_rf(self.transaction_context["temp_dir"])
 
-    def _get_pfe(self):
-        from .package_cache_data import ProgressiveFetchExtract
-
-        if self._pfe is not None:
-            pfe = self._pfe
-        elif not self.prefix_setups:
-            self._pfe = pfe = ProgressiveFetchExtract(())
-        else:
-            link_precs = set(
+    @property
+    @lru_cache(maxsize=None)
+    def _pfe(self) -> ProgressiveFetchExtract:
+        return ProgressiveFetchExtract(
+            set(
                 chain.from_iterable(
                     stp.link_precs for stp in self.prefix_setups.values()
                 )
             )
-            self._pfe = pfe = ProgressiveFetchExtract(link_precs)
-        return pfe
+        )
 
     @classmethod
     def _prepare(
@@ -1187,9 +1166,6 @@ class UnlinkLinkTransaction:
         # this code reverts json output for plan back to previous behavior
         #   relied on by Anaconda Navigator and nb_conda
         legacy_action_groups = []
-
-        if self._pfe is None:
-            self._get_pfe()
 
         for q, (prefix, setup) in enumerate(self.prefix_setups.items()):
             actions = defaultdict(list)
