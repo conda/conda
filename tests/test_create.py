@@ -1643,6 +1643,41 @@ def test_shortcut_absent_when_condarc_set(clear_package_cache: None):
             os.remove(shortcut_file)
 
 
+def test_menuinst_v2(clear_package_cache: None, monkeypatch: MonkeyPatch):
+    called = False
+    from menuinst import install
+
+    def mock_install(*args, **kwargs):
+        nonlocal called, install
+        called = True
+        return install(*args, **kwargs)
+
+    monkeypatch.setattr("menuinst.install", mock_install)
+    prefix = make_temp_prefix(str(uuid4())[:7])
+
+    Path(prefix).mkdir(parents=True, exist_ok=True)
+    Path(prefix).touch(".nonadmin")
+    out, err, _ = run_command(
+        Commands.CREATE,
+        prefix,
+        "jaimergp/label/menuinst-tests::package_1",
+        "--no-deps",
+    )
+    assert package_is_installed(prefix, "package_1")
+    assert Path(prefix, "Menu", "package_1.json").is_file()
+    assert called
+    assert "menuinst Exception" not in out + err
+    base_dir = Path(get_shortcut_dir())
+    if sys.platform == "win32":
+        assert (base_dir / "Package 1" / "A.lnk").is_file()
+    elif sys.platform == "darwin":
+        assert (base_dir / "A.app").is_dir()
+    elif sys.platform == "linux":
+        assert (base_dir / "package-1_a.desktop").is_file()
+    else:
+        raise NotImplementedError(sys.platform)
+
+
 def test_create_default_packages(clear_package_cache: None):
     # Regression test for #3453
     try:
