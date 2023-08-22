@@ -387,13 +387,15 @@ class Context(Configuration):
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
-    report_errors = ParameterLoader(PrimitiveParameter(None, element_type=(bool, NoneType)))
+    report_errors = ParameterLoader(
+        PrimitiveParameter(None, element_type=(bool, NoneType))
+    )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     shortcuts_only = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str)),
-        expandvars=True)
+        SequenceParameter(PrimitiveParameter("", element_type=str)), expandvars=True
+    )
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
@@ -1662,7 +1664,8 @@ class Context(Configuration):
             shortcuts_only=dals(
                 """
                 Create shortcuts only for the specified package names.
-                """),
+                """
+            ),
             show_channel_urls=dals(
                 """
                 Show channel URLs when displaying what is going to be downloaded.

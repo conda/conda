@@ -301,8 +301,8 @@ class PrefixGraph:
         # 2. Special case code for menuinst.
         #    Always link/unlink menuinst first/last in case a subsequent
         #    package tries to import it to create/remove a shortcut.
-        menuinst_node = next((node for node in graph if node.name == 'menuinst'), None)
-        python_node = next((node for node in graph if node.name == 'python'), None)
+        menuinst_node = next((node for node in graph if node.name == "menuinst"), None)
+        python_node = next((node for node in graph if node.name == "python"), None)
         if menuinst_node:
             # add menuinst as a parent if python is a parent and the node
             # isn't a parent of menuinst

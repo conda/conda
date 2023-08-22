@@ -81,6 +81,7 @@ from .portability import generate_shebang_for_entry_point
 
 if on_win:  # pragma: no cover
     import winreg
+
     try:
         from menuinst.platforms.win_utils.knownfolders import FOLDERID, get_folder_path
         from menuinst.platforms.win_utils.winshortcut import create_shortcut

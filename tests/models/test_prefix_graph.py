@@ -643,7 +643,10 @@ def test_windows_sort_orders_1(tmpdir):
     finally:
         conda.models.prefix_graph.on_win = old_on_win
 
-@pytest.mark.xfail(reason="We changed menuinst special casing outside windows; needs to be updated")
+
+@pytest.mark.xfail(
+    reason="We changed menuinst special casing outside windows; needs to be updated"
+)
 def test_windows_sort_orders_2(tmpdir):
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
