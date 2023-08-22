@@ -1,31 +1,49 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""
+Definition of specific return types for use when defining a conda plugin hook.
+
+Each type corresponds to the plugin hook for which it is used.
+
+"""
 from __future__ import annotations
 
+from argparse import ArgumentParser, Namespace
+from dataclasses import dataclass, field
 from typing import Callable, NamedTuple
+
 from ..core.solve import Solver
 
 
-class CondaSubcommand(NamedTuple):
+@dataclass
+class CondaSubcommand:
     """
-    A conda subcommand.
+    Return type to use when defining a conda subcommand plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_subcommands`.
 
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
+    :param configure_parser: Callable that will be run when the subcommand parser is initialized.
     """
 
     name: str
     summary: str
     action: Callable[
-        [list[str]],  # arguments
+        [Namespace | tuple[str]],  # arguments
         int | None,  # return code
     ]
+    configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
 
 
 class CondaVirtualPackage(NamedTuple):
     """
-    A conda virtual package.
+    Return type to use when defining a conda virtual package plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages`.
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
@@ -39,7 +57,10 @@ class CondaVirtualPackage(NamedTuple):
 
 class CondaSolver(NamedTuple):
     """
-    A conda solver.
+    Return type to use when defining a conda solver plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_solvers`.
 
     :param name: Solver name (e.g., ``custom-solver``).
     :param backend: Type that will be instantiated as the solver backend.
@@ -47,3 +68,37 @@ class CondaSolver(NamedTuple):
 
     name: str
     backend: type[Solver]
+
+
+class CondaPreCommand(NamedTuple):
+    """
+    Return type to use when defining a conda pre-command plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_commands`.
+
+    :param name: Pre-command name (e.g., ``custom_plugin_pre_commands``).
+    :param action: Callable which contains the code to be run.
+    :param run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
+    """
+
+    name: str
+    action: Callable[[str], None]
+    run_for: set[str]
+
+
+class CondaPostCommand(NamedTuple):
+    """
+    Return type to use when defining a conda post-command plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_commands`.
+
+    :param name: Post-command name (e.g., ``custom_plugin_post_commands``).
+    :param action: Callable which contains the code to be run.
+    :param run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
+    """
+
+    name: str
+    action: Callable[[str], None]
+    run_for: set[str]

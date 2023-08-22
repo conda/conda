@@ -8,16 +8,20 @@ on:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
     paths:
-      - 'Dockerfile'
       - '.github/workflows/images.yml'
+      - 'Dockerfile'
+      - 'dev/linux/install_miniconda.sh'
+      - 'dev/linux/setup.sh'
       - 'tests/requirements.txt'
 
   # NOTE: github.event context is push payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     paths:
-      - 'Dockerfile'
       - '.github/workflows/images.yml'
+      - 'Dockerfile'
+      - 'dev/linux/install_miniconda.sh'
+      - 'dev/linux/setup.sh'
       - 'tests/requirements.txt'
 
   # NOTE: github.event context is workflow_dispatch payload:
@@ -36,6 +40,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}-ci
+  # to pin MinIO version, see tests.yml for counterpart
+  # MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
 
 jobs:
   linux:
@@ -47,11 +53,13 @@ jobs:
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
-        python: ['3.8', '3.9', '3.10']
+        python: ['3.8', '3.9', '3.10', '3.11']
         channel: [defaults]
+        platforms: ['linux/amd64,linux/arm64,linux/ppc64le,linux/s390x']
         include:
-          - python: '3.10'  # same as miniforge
+          - python: '3.11'  # same as miniforge
             channel: conda-forge
+            platforms: 'linux/amd64,linux/arm64,linux/ppc64le'
     steps:
       - uses: actions/checkout@v3
 
@@ -65,7 +73,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: linux/amd64,linux/arm64,linux/ppc64le
+          platforms: ${{ matrix.platforms }}
 
       - name: Set up Docker Buildx
         id: buildx
@@ -93,5 +101,5 @@ jobs:
             default_channel=${{ matrix.channel }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64,linux/ppc64le
+          platforms: ${{ matrix.platforms }}
           push: ${{ github.ref == 'refs/heads/main' }}

@@ -1,23 +1,34 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda-env create`.
 
-from argparse import RawDescriptionHelpFormatter
+Creates new conda environments with the specified packages.
+"""
 import json
 import os
 import sys
 import textwrap
+from argparse import RawDescriptionHelpFormatter, _StoreTrueAction
 
 from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
-from conda.cli.conda_argparse import add_parser_default_packages, add_parser_json, \
-    add_parser_prefix, add_parser_networking, add_parser_solver, add_parser_create_platform
+from conda.cli.conda_argparse import (
+    add_output_and_prompt_options,
+    add_parser_create_platform,
+    add_parser_default_packages,
+    add_parser_networking,
+    add_parser_prefix,
+    add_parser_solver,
+)
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
-from conda.notices import notices
 from conda.misc import touch_nonadmin
-from .common import print_result, get_filename
+from conda.notices import notices
+
 from .. import specs
 from ..installers.base import InvalidInstaller, get_installer
+from .common import get_filename, print_result
 
 description = """
 Create an environment based on an environment definition file.
@@ -46,17 +57,18 @@ examples:
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
-        'create',
+        "create",
         formatter_class=RawDescriptionHelpFormatter,
         description=description,
         help=description,
         epilog=example,
     )
     p.add_argument(
-        '-f', '--file',
-        action='store',
-        help='Environment definition file (default: environment.yml)',
-        default='environment.yml',
+        "-f",
+        "--file",
+        action="store",
+        help="Environment definition file (default: environment.yml)",
+        default="environment.yml",
     )
 
     # Add name and prefix args
@@ -66,31 +78,28 @@ def configure_parser(sub_parsers):
     add_parser_networking(p)
 
     p.add_argument(
-        'remote_definition',
-        help='Remote environment definition / IPython notebook',
-        action='store',
+        "remote_definition",
+        help="Remote environment definition / IPython notebook",
+        action="store",
         default=None,
-        nargs='?'
+        nargs="?",
     )
     p.add_argument(
-        '--force',
-        help=('Force creation of environment (removing a previously-existing '
-              'environment of the same name).'),
-        action='store_true',
+        "--force",
+        dest="yes",
+        action=deprecated.action(
+            "23.9",
+            "24.3",
+            _StoreTrueAction,
+            addendum="Use `--yes` instead.",
+        ),
         default=False,
     )
-    p.add_argument(
-        '-d', '--dry-run',
-        help='Only display what can be done with the current command, arguments, '
-             'and other flags. Remove this flag to actually run the command.',
-        action='store_true',
-        default=False
-    )
     add_parser_default_packages(p)
-    add_parser_json(p)
     add_parser_create_platform(p)
+    add_output_and_prompt_options(p)
     add_parser_solver(p)
-    p.set_defaults(func='.main_create.execute')
+    p.set_defaults(func=".main_create.execute")
 
 
 @notices
@@ -110,7 +119,7 @@ def execute(args, parser):
 
     prefix = determine_target_prefix(context, args)
 
-    if args.force and prefix != context.root_prefix and os.path.exists(prefix):
+    if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 
@@ -120,10 +129,12 @@ def execute(args, parser):
 
     result = {"conda": None, "pip": None}
 
-    args_packages = context.create_default_packages if not args.no_default_packages else []
+    args_packages = (
+        context.create_default_packages if not args.no_default_packages else []
+    )
 
     if args.dry_run:
-        installer_type = 'conda'
+        installer_type = "conda"
         installer = get_installer(installer_type)
 
         pkg_specs = env.dependencies.get(installer_type, [])
@@ -133,7 +144,7 @@ def execute(args, parser):
         if args.json:
             print(json.dumps(solved_env.to_dict(), indent=2))
         else:
-            print(solved_env.to_yaml(), end='')
+            print(solved_env.to_yaml(), end="")
 
     else:
         if args_packages:
@@ -150,16 +161,23 @@ def execute(args, parser):
             for installer_type, pkg_specs in env.dependencies.items():
                 try:
                     installer = get_installer(installer_type)
-                    result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                    result[installer_type] = installer.install(
+                        prefix, pkg_specs, args, env
+                    )
                 except InvalidInstaller:
-                    sys.stderr.write(textwrap.dedent("""
+                    sys.stderr.write(
+                        textwrap.dedent(
+                            """
                         Unable to install package for {0}.
 
                         Please double check and ensure your dependencies file has
                         the correct spelling.  You might also try installing the
                         conda-env-{0} package to see if provides the required
                         installer.
-                        """).lstrip().format(installer_type)
+                        """
+                        )
+                        .lstrip()
+                        .format(installer_type)
                     )
                     return -1
 

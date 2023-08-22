@@ -106,9 +106,7 @@ aliases['conda'] = _conda_main
 
 
 def _list_dirs(path):
-    """
-    Generator that lists the directories in a given path.
-    """
+    """Generator that lists the directories in a given path."""
     import os
     for entry in os.scandir(path):
         if not entry.name.startswith('.') and entry.is_dir():
@@ -116,9 +114,7 @@ def _list_dirs(path):
 
 
 def _get_envs_unfiltered():
-    """
-    Grab a list of all conda env dirs from conda, allowing all warnings.
-    """
+    """Grab a list of all conda env dirs from conda, allowing all warnings."""
     import os
     import importlib
 
@@ -152,9 +148,7 @@ def _get_envs_unfiltered():
 
 
 def _get_envs():
-    """
-    Grab a list of all conda env dirs from conda, ignoring all warnings
-    """
+    """Grab a list of all conda env dirs from conda, ignoring all warnings."""
     import warnings
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -162,9 +156,7 @@ def _get_envs():
 
 
 def _conda_completer(prefix, line, start, end, ctx):
-    """
-    Completion for conda
-    """
+    """Completion for conda."""
     args = line.split(' ')
     possible = set()
     if len(args) == 0 or args[0] not in ['xonda', 'conda']:

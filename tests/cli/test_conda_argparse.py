@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
+import re
 from logging import getLogger
 
 import pytest
@@ -17,16 +16,28 @@ def test_list_through_python_api():
     with pytest.raises(EnvironmentLocationNotFound):
         run_command(Commands.LIST, "-p", "not-a-real-path")
 
-    stdout, stderr, rc = run_command(Commands.LIST, "-p", "not-a-real-path",
-                                         use_exception_handler=True)
+    stdout, stderr, rc = run_command(
+        Commands.LIST, "-p", "not-a-real-path", use_exception_handler=True
+    )
     assert rc == 1
     assert "Not a conda environment" in stderr
     assert not stdout
 
+    # cover argument variations
+    # mutually exclusive: --canonical, --export, --explicit, (default human readable)
+    args = [["--canonical"], ["--export"], ["--explicit", "--md5"], ["--full-name"]]
+    for json_revisions in [], ["--json"], ["-r"], ["-r", "--json"]:
+        for arg in args:
+            stdout, stderr, rc = run_command(
+                Commands.LIST, *(arg + json_revisions), use_exception_handler=True
+            )
+            if "--md5" in args:
+                assert re.search(r"#[0-9a-f]{32}", stdout)
+
 
 def test_parser_basics():
     p = generate_parser()
-    with pytest.raises(CommandNotFoundError):
+    with pytest.raises(SystemExit, match="2"):
         p.parse_args(["blarg", "--flag"])
 
     args = p.parse_args(["install", "-vv"])

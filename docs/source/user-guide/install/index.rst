@@ -58,7 +58,7 @@ Installing in silent mode
 
 You can use :ref:`silent installation <silent-mode-glossary>` of
 Miniconda or Anaconda for deployment or testing or building
-services such as Travis CI and AppVeyor.
+services, such as GitHub Actions.
 
 Follow the silent-mode instructions for your operating system:
 

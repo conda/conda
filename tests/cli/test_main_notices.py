@@ -8,17 +8,17 @@ from unittest import mock
 
 import pytest
 
-from conda.base.context import context
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
-from conda.cli import main_notices as notices
+from conda.base.context import context
 from conda.cli import conda_argparse
+from conda.cli import main_notices as notices
 from conda.notices import fetch
 from conda.testing.helpers import run_inprocess_conda_command as run
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
-    get_test_notices,
     get_notice_cache_filenames,
+    get_test_notices,
     offset_cache_file_mtime,
 )
 
@@ -71,7 +71,10 @@ def test_main_notices(
 
 
 def test_main_notices_reads_from_cache(
-    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_http_session_get,
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -99,7 +102,10 @@ def test_main_notices_reads_from_cache(
 
 
 def test_main_notices_reads_from_expired_cache(
-    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_http_session_get,
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -112,7 +118,9 @@ def test_main_notices_reads_from_expired_cache(
 
     messages = ("Test One", "Test Two")
     messages_different = ("With different value one", "With different value two")
-    created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=14)
+    created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+        days=14
+    )
     cache_files = get_notice_cache_filenames(context)
 
     # Cache first version of notices, with a cache date we know is expired
@@ -125,7 +133,9 @@ def test_main_notices_reads_from_expired_cache(
     # different messages
     messages_different_json = get_test_notices(messages_different)
     add_resp_to_mock(
-        notices_mock_http_session_get, status_code=200, messages_json=messages_different_json
+        notices_mock_http_session_get,
+        status_code=200,
+        messages_json=messages_different_json,
     )
 
     notices.execute(args, parser)
@@ -140,7 +150,10 @@ def test_main_notices_reads_from_expired_cache(
 
 
 def test_main_notices_handles_bad_expired_at_field(
-    capsys, conda_notices_args_n_parser, notices_cache_dir, notices_mock_http_session_get
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_http_session_get,
 ):
     """
     This test ensures that an incorrectly defined `notices.json` file doesn't completely break
@@ -202,13 +215,15 @@ def test_cache_names_appear_as_expected(
     notices_cache_dir,
     notices_mock_http_session_get,
 ):
-    """
-    This is a test to make sure the cache filenames appear as we expect them to.
-    """
-    with mock.patch("conda.notices.core.get_channel_name_and_urls") as get_channel_name_and_urls:
+    """This is a test to make sure the cache filenames appear as we expect them to."""
+    with mock.patch(
+        "conda.notices.core.get_channel_name_and_urls"
+    ) as get_channel_name_and_urls:
         channel_url = "http://localhost/notices.json"
         get_channel_name_and_urls.return_value = ((channel_url, "channel_name"),)
-        expected_cache_filename = f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
+        expected_cache_filename = (
+            f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
+        )
 
         args, parser = conda_notices_args_n_parser
         messages = ("Test One", "Test Two")
@@ -233,7 +248,9 @@ def test_cache_names_appear_as_expected(
         assert os.path.basename(cache_files[0]) == expected_cache_filename
 
 
-def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, notices_cache_dir):
+def test_notices_appear_once_when_running_decorated_commands(
+    tmpdir, env_one, notices_cache_dir
+):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
     that the channels are only appearing according to the specified interval in:
@@ -281,9 +298,7 @@ def test_notices_appear_once_when_running_decorated_commands(tmpdir, env_one, no
 
 
 def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
-    """
-    As a user, I want notices to be correctly retrieved from channels with s3 URLs.
-    """
+    """As a user, I want notices to be correctly retrieved from channels with s3 URLs."""
     s3_channel = "s3://conda-org"
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
@@ -312,18 +327,24 @@ def test_notices_does_not_interrupt_command_on_failure(
         "conda.notices.core.logger.error"
     ) as mock_logger:
         mock_open.side_effect = [PermissionError(error_message)]
-        _, _, exit_code = run(f"conda create -n {env_name} -y -c local --override-channels")
+        _, _, exit_code = run(
+            f"conda create -n {env_name} -y -c local --override-channels"
+        )
 
         assert exit_code is None
 
-        assert mock_logger.call_args == mock.call(f"Unable to open cache file: {error_message}")
+        assert mock_logger.call_args == mock.call(
+            f"Unable to open cache file: {error_message}"
+        )
 
     _, _, exit_code = run(f"conda env remove -n {env_name}")
 
     assert exit_code is None
 
 
-def test_notices_cannot_read_cache_files(notices_cache_dir, notices_mock_http_session_get):
+def test_notices_cannot_read_cache_files(
+    notices_cache_dir, notices_mock_http_session_get
+):
     """
     As a user, when I run `conda notices` and the cache file cannot be read or written, I want
     to see an error message.

@@ -85,24 +85,24 @@
    By default, it will use Miniconda-based, Python 3.9 installation configured for
    the `defaults` channel. You can customize this with two environment variables:
 
-   - `CONDA_DOCKER_PYTHON`: `major.minor` value; e.g. `3.10`.
+   - `CONDA_DOCKER_PYTHON`: `major.minor` value; e.g. `3.11`.
    - `CONDA_DOCKER_DEFAULT_CHANNEL`: either `defaults` or `conda-forge`
 
-   For example, if you need a conda-forge based 3.10 image:
+   For example, if you need a conda-forge based 3.11 image:
 
    **Bash (macOS, Linux, Windows)**
 
    ```bash
-   $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
+   $ CONDA_DOCKER_PYTHON=3.11 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
    # --- in some systems you might also need to re-supply the same values as CLI flags:
-   # CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.10 --build-arg default_channel=conda-forge
-   $ CONDA_DOCKER_PYTHON=3.10 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
+   # CONDA_DOCKER_PYTHON=3.11 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.11 --build-arg default_channel=conda-forge
+   $ CONDA_DOCKER_PYTHON=3.11 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
    ```
 
    **cmd.exe (Windows)**
 
    ```batch
-   > set CONDA_DOCKER_PYTHON=3.10
+   > set CONDA_DOCKER_PYTHON=3.11
    > set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge
    > docker compose build --no-cache
    > docker compose run interactive

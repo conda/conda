@@ -1,23 +1,20 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
 import sys
 from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
 from pathlib import Path
+from shutil import which
 from unittest.mock import patch
-
-from conda import utils, CondaError
-from conda.common.path import win_path_to_unix
-from conda.testing.helpers import assert_equals
-
-from conda.activate import CmdExeActivator, PosixActivator
-from conda.common.path import which
-from conda.common.compat import on_win
 
 import pytest
 
+from conda import CondaError, utils
+from conda.activate import CmdExeActivator, PosixActivator
+from conda.common.compat import on_win
+from conda.common.path import win_path_to_unix
+from conda.testing.helpers import assert_equals
 
 SOME_PREFIX = "/some/prefix"
 SOME_FILES = ["a", "b", "c"]
@@ -26,23 +23,28 @@ log = getLogger(__name__)
 
 def test_path_translations():
     paths = [
-        (r"z:\miniconda\Scripts\pip.exe",
-         "/z/miniconda/Scripts/pip.exe",
-         "/cygdrive/z/miniconda/Scripts/pip.exe"),
-        (r"z:\miniconda;z:\Documents (x86)\pip.exe;c:\test",
-         "/z/miniconda:/z/Documents (x86)/pip.exe:/c/test",
-         "/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/c/test"),
+        (
+            r"z:\miniconda\Scripts\pip.exe",
+            "/z/miniconda/Scripts/pip.exe",
+            "/cygdrive/z/miniconda/Scripts/pip.exe",
+        ),
+        (
+            r"z:\miniconda;z:\Documents (x86)\pip.exe;c:\test",
+            "/z/miniconda:/z/Documents (x86)/pip.exe:/c/test",
+            "/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/c/test",
+        ),
         # Failures:
         # (r"z:\miniconda\Scripts\pip.exe",
         #  "/z/miniconda/Scripts/pip.exe",
         #  "/cygdrive/z/miniconda/Scripts/pip.exe"),
-
         # ("z:\\miniconda\\",
         #  "/z/miniconda/",
         #  "/cygdrive/z/miniconda/"),
-        ("test dummy text /usr/bin;z:\\documents (x86)\\code\\conda\\tests\\envskhkzts\\test1;z:\\documents\\code\\conda\\tests\\envskhkzts\\test1\\cmd more dummy text",
-        "test dummy text /usr/bin:/z/documents (x86)/code/conda/tests/envskhkzts/test1:/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text",
-        "test dummy text /usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text"),
+        (
+            "test dummy text /usr/bin;z:\\documents (x86)\\code\\conda\\tests\\envskhkzts\\test1;z:\\documents\\code\\conda\\tests\\envskhkzts\\test1\\cmd more dummy text",
+            "test dummy text /usr/bin:/z/documents (x86)/code/conda/tests/envskhkzts/test1:/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text",
+            "test dummy text /usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text",
+        ),
     ]
     for windows_path, unix_path, cygwin_path in paths:
         assert win_path_to_unix(windows_path) == unix_path
@@ -60,20 +62,20 @@ def test_text_translations():
 
 
 def get_conda_prefixes_on_PATH():
-    '''
+    """
     :return: A tuple of:
                A list of conda prefixes found on PATH in the order in which they appear.
                A list of the suffixes that determine a conda prefix on this platform.
-    '''
+    """
 
     if on_win:
-        condapathlist = list(CmdExeActivator()._get_path_dirs(''))
+        condapathlist = list(CmdExeActivator()._get_path_dirs(""))
     else:
-        condapathlist = list(PosixActivator()._get_path_dirs(''))
-    pathlist=environ.get('PATH', '').split(pathsep)
-    pathlist=pathlist+pathlist
+        condapathlist = list(PosixActivator()._get_path_dirs(""))
+    pathlist = environ.get("PATH", "").split(pathsep)
+    pathlist = pathlist + pathlist
     conda_prefixes = []
-    for pei, _ in enumerate(pathlist[:-len(condapathlist)]):
+    for pei, _ in enumerate(pathlist[: -len(condapathlist)]):
         all_good = True
         for cei, ce in enumerate(condapathlist):
             if not pathlist[pei + cei].endswith(ce):
@@ -81,12 +83,12 @@ def get_conda_prefixes_on_PATH():
                 break
         if not all_good:
             continue
-        conda_prefixes.append(pathlist[pei][-len(condapathlist[0]):])
+        conda_prefixes.append(pathlist[pei][-len(condapathlist[0]) :])
     return conda_prefixes, condapathlist
 
 
 def get_prefix_containing_test_programs(test_programs=()):
-    '''
+    """
     This function returns the conda prefix of test_programs on PATH if:
 
     1. Conda's path entries are found on PATH in the correct order.
@@ -95,7 +97,7 @@ def get_prefix_containing_test_programs(test_programs=()):
        pushed env. and also when expected programs are not installed. It also detects
        mixed scenarios where different programs come from different prefixes which is
        never what we want.
-    '''
+    """
 
     prefixes, suffixes = get_conda_prefixes_on_PATH()
     for test_program in test_programs:
@@ -114,10 +116,16 @@ def get_prefix_containing_test_programs(test_programs=()):
                         found = True
                         break
                 if not found:
-                    log.warning("{} not found in any conda prefixes ({}) on PATH", test_program, prefixes)
+                    log.warning(
+                        "{} not found in any conda prefixes ({}) on PATH",
+                        test_program,
+                        prefixes,
+                    )
                     return None
-            if len(set(test_program_in_prefix))!=1:
-                log.warning(f"test_programs ({test_programs}) not all found in the same prefix")
+            if len(set(test_program_in_prefix)) != 1:
+                log.warning(
+                    f"test_programs ({test_programs}) not all found in the same prefix"
+                )
                 return None
             return prefixes[test_program_in_prefix[0]]
     return prefixes[0] if prefixes else None
@@ -136,6 +144,7 @@ mark_win_only = pytest.mark.skipif(not on_win, reason="Windows only")
 _posix_quotes = "'{}'".format
 _win_quotes = '"{}"'.format
 _quotes = _win_quotes if on_win else _posix_quotes
+
 
 @pytest.mark.parametrize(
     ["args", "expected"],
@@ -201,9 +210,7 @@ def test_quote_for_shell(args, expected):
 
 
 def test_ensure_dir(tmpdir):
-    """
-    Ensures that this decorator creates a directory
-    """
+    """Ensures that this decorator creates a directory."""
     new_dir = "test_dir"
 
     @utils.ensure_dir_exists
@@ -216,9 +223,7 @@ def test_ensure_dir(tmpdir):
 
 
 def test_ensure_dir_errors():
-    """
-    Test to ensure correct error handling
-    """
+    """Test to ensure correct error handling."""
     new_dir = "test_dir"
     exc_message = "Test!"
 
@@ -237,9 +242,7 @@ def test_ensure_dir_errors():
 
 
 def test_safe_open(tmpdir):
-    """
-    Ensures this context manager open and closes files appropriately
-    """
+    """Ensures this context manager open and closes files appropriately."""
     new_file = Path(tmpdir).joinpath("test.file")
     content = "test"
 
@@ -254,9 +257,7 @@ def test_safe_open(tmpdir):
 
 
 def test_safe_open_errors():
-    """
-    Test to ensure correct error handling
-    """
+    """Test to ensure correct error handling."""
     exc_message = "Test!"
 
     with patch("conda.utils.open") as mock_open:

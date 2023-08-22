@@ -12,7 +12,8 @@ build:
     pre_install:
       - git update-index --assume-unchanged docs/requirements.txt docs/source/conf.py
     pre_build:
-      - python docs/source/_ext/conda_umls.py
+      # Install conda so we can run conda commands (e.g., see configuration.rst)
+      - python -m pip install --no-deps --no-cache-dir --editable .
   apt_packages:
     # Needed for the UML graph Sphinx extension
     - graphviz
@@ -20,4 +21,10 @@ build:
 
 python:
   install:
-  - requirements: docs/requirements.txt
+    - requirements: docs/requirements.txt
+
+# Build PDF, ePub and zipped HTML
+formats:
+  - epub
+  - pdf
+  - htmlzip

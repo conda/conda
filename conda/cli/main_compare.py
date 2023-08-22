@@ -1,33 +1,43 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda compare`.
 
+Compare the packages in an environment with the packages listed in an environment file.
+"""
 import logging
 import os
 from os.path import abspath, expanduser, expandvars
 
-from .common import stdout_json
+from conda_env import specs
+
 from ..base.context import context
 from ..core.prefix_data import PrefixData
 from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import is_conda_environment
 from ..models.match_spec import MatchSpec
-from conda_env import specs
+from .common import stdout_json
 
 log = logging.getLogger(__name__)
+
 
 def get_packages(prefix):
     if not os.path.isdir(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
-    return sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
-                  key=lambda x: x.name)
+    return sorted(
+        PrefixData(prefix, pip_interop_enabled=True).iter_records(),
+        key=lambda x: x.name,
+    )
+
 
 def _get_name_tuple(pkg):
     return pkg.name, pkg
 
+
 def _to_str(pkg):
     return f"{pkg.name}=={pkg.version}={pkg.build}"
+
 
 def compare_packages(active_pkgs, specification_pkgs):
     output = []
@@ -39,18 +49,24 @@ def compare_packages(active_pkgs, specification_pkgs):
         if name in active_pkgs:
             if not pkg_spec.match(active_pkgs[name]):
                 ok = False
-                output.append("{} found but mismatch. Specification pkg: {}, Running pkg: {}"
-                              .format(name, pkg, _to_str(active_pkgs[name])))
+                output.append(
+                    "{} found but mismatch. Specification pkg: {}, Running pkg: {}".format(
+                        name, pkg, _to_str(active_pkgs[name])
+                    )
+                )
         else:
             ok = False
             output.append(f"{name} not found")
     if ok:
-        output.append("Success. All the packages in the \
+        output.append(
+            "Success. All the packages in the \
 specification file are present in the environment \
-with matching version and build string.")
+with matching version and build string."
+        )
     else:
         res = 1
     return res, output
+
 
 def execute(args, parser):
     prefix = context.target_prefix
@@ -74,16 +90,16 @@ def execute(args, parser):
 
     active_pkgs = dict(map(_get_name_tuple, get_packages(prefix)))
     specification_pkgs = []
-    if 'conda' in env.dependencies:
-        specification_pkgs = specification_pkgs + env.dependencies['conda']
-    if 'pip' in env.dependencies:
-        specification_pkgs = specification_pkgs + env.dependencies['pip']
+    if "conda" in env.dependencies:
+        specification_pkgs = specification_pkgs + env.dependencies["conda"]
+    if "pip" in env.dependencies:
+        specification_pkgs = specification_pkgs + env.dependencies["pip"]
 
     exitcode, output = compare_packages(active_pkgs, specification_pkgs)
 
     if context.json:
         stdout_json(output)
     else:
-        print('\n'.join(map(str, output)))
+        print("\n".join(map(str, output)))
 
     return exitcode

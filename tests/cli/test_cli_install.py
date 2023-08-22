@@ -1,12 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from conda.testing.integration import run_command, Commands
-
 import pytest
 
-from conda.models.match_spec import MatchSpec
 from conda.exceptions import UnsatisfiableError
 from conda.gateways.disk.delete import rm_rf
+from conda.models.match_spec import MatchSpec
+from conda.testing.integration import Commands, run_command
 
 
 @pytest.fixture
@@ -20,10 +19,12 @@ def prefix(tmpdir):
 
 
 @pytest.mark.integration
-def test_pre_link_message(mocker, prefix, pre_link_messages_package):
+def test_pre_link_message(test_recipes_channel: None, mocker, prefix):
     prefix, _ = prefix
     mocker.patch("conda.cli.common.confirm_yn", return_value=True)
-    stdout, _, _ = run_command(Commands.INSTALL, prefix, pre_link_messages_package, "--use-local")
+    stdout, _, _ = run_command(
+        Commands.INSTALL, prefix, "pre_link_messages_package", "--use-local"
+    )
     assert "Lorem ipsum dolor sit amet" in stdout
 
 
@@ -33,7 +34,10 @@ def test_find_conflicts_called_once(mocker, prefix):
     bad_deps = {
         "python": {
             (
-                (MatchSpec("statistics"), MatchSpec("python[version='>=2.7,<2.8.0a0']")),
+                (
+                    MatchSpec("statistics"),
+                    MatchSpec("python[version='>=2.7,<2.8.0a0']"),
+                ),
                 "python=3",
             )
         }

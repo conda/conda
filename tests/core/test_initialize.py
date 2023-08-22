@@ -1,16 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from distutils.sysconfig import get_python_lib
 import ntpath
 import os
-from os.path import abspath, dirname, isfile, join, realpath
 import sys
+from os.path import abspath, dirname, isfile, join, realpath
+from sysconfig import get_path
 
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
-from conda.base.context import context, reset_context, conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
 from conda.common.io import captured, env_var, env_vars
@@ -26,15 +26,16 @@ from conda.core.initialize import (
     install_conda_fish,
     install_conda_sh,
     install_conda_xsh,
+    install_condabin_conda_bat,
     make_entry_point,
     make_entry_point_exe,
     make_initialize_plan,
     make_install_plan,
-    install_condabin_conda_bat,
 )
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
+from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
 
 
@@ -56,7 +57,7 @@ def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
     assert python_version == "%s.%s.%s" % sys.version_info[:3]
-    assert site_packages_dir == get_python_lib()
+    assert site_packages_dir == get_path("platlib")
 
 
 def test_make_install_plan(verbose, mocker):
@@ -256,11 +257,17 @@ def test_make_install_plan(verbose, mocker):
             },
             {
                 "function": "install_activate",
-                "kwargs": {"conda_prefix": "/darwin", "target_path": "/darwin/bin/activate"},
+                "kwargs": {
+                    "conda_prefix": "/darwin",
+                    "target_path": "/darwin/bin/activate",
+                },
             },
             {
                 "function": "install_deactivate",
-                "kwargs": {"conda_prefix": "/darwin", "target_path": "/darwin/bin/deactivate"},
+                "kwargs": {
+                    "conda_prefix": "/darwin",
+                    "target_path": "/darwin/bin/deactivate",
+                },
             },
             {
                 "function": "install_conda_sh",
@@ -325,11 +332,19 @@ def test_make_initialize_plan_bash_zsh(verbose):
 def test_make_initialize_plan_cmd_exe(verbose):
     with tempdir() as conda_temp_prefix:
         plan = make_initialize_plan(
-            conda_temp_prefix, ("cmd.exe",), for_user=True, for_system=True, anaconda_prompt=True
+            conda_temp_prefix,
+            ("cmd.exe",),
+            for_user=True,
+            for_system=True,
+            anaconda_prompt=True,
         )
-        steps = tuple(step for step in plan if step["function"] == "init_cmd_exe_registry")
+        steps = tuple(
+            step for step in plan if step["function"] == "init_cmd_exe_registry"
+        )
         assert len(steps) == 2
-        steps = tuple(step for step in plan if step["function"] == "install_anaconda_prompt")
+        steps = tuple(
+            step for step in plan if step["function"] == "install_anaconda_prompt"
+        )
         assert len(steps) == 2
         steps = tuple(step for step in plan if step["function"] == "init_long_path")
         assert len(steps) == 1
@@ -342,7 +357,9 @@ def test_make_entry_point(verbose):
             conda_exe_path = join(conda_temp_prefix, "Scripts", "conda-script.py")
         else:
             conda_exe_path = join(conda_temp_prefix, "bin", "conda")
-        result = make_entry_point(conda_exe_path, conda_prefix, "conda.entry.point", "run")
+        result = make_entry_point(
+            conda_exe_path, conda_prefix, "conda.entry.point", "run"
+        )
         assert result == Result.MODIFIED
 
         with open(conda_exe_path) as fh:
@@ -372,8 +389,11 @@ def test_make_entry_point(verbose):
                 """
             )
 
-        result = make_entry_point(conda_exe_path, conda_prefix, "conda.entry.point", "run")
+        result = make_entry_point(
+            conda_exe_path, conda_prefix, "conda.entry.point", "run"
+        )
         assert result == Result.NO_CHANGE
+
 
 def test_make_entry_point_exe(verbose):
     with tempdir() as conda_temp_prefix:
@@ -403,12 +423,17 @@ def test_install_conda_sh(verbose):
         activator = PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
-        assert line0 == "export CONDA_EXE='%s'" % activator.path_conversion(context.conda_exe)
+        if on_win:
+            assert line0 == f'''export CONDA_EXE="$(cygpath '{context.conda_exe}')"'''
+        else:
+            assert line0 == f"export CONDA_EXE='{context.conda_exe}'"
         assert line1 == "export _CE_M=''"
         assert line2 == "export _CE_CONDA=''"
         assert line3.startswith("export CONDA_PYTHON_EXE=")
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.sh")) as fh:
+        with open(
+            join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.sh")
+        ) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -426,9 +451,13 @@ def test_install_conda_fish(verbose):
         with open(target_path) as fh:
             created_file_contents = fh.read()
 
-        first_line, second_line, third_line, fourth_line, remainder = created_file_contents.split(
-            "\n", 4
-        )
+        (
+            first_line,
+            second_line,
+            third_line,
+            fourth_line,
+            remainder,
+        ) = created_file_contents.split("\n", 4)
         if on_win:
             win_conda_exe = join(conda_prefix, "Scripts", "conda.exe")
             win_py_exe = join(conda_prefix, "python.exe")
@@ -437,14 +466,20 @@ def test_install_conda_fish(verbose):
             assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
             assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % win_py_exe
         else:
-            assert first_line == 'set -gx CONDA_EXE "%s"' % join(conda_prefix, "bin", "conda")
+            assert first_line == 'set -gx CONDA_EXE "%s"' % join(
+                conda_prefix, "bin", "conda"
+            )
             assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'set _CONDA_EXE "%s"' % join(conda_prefix, "bin", "conda")
+            assert third_line == 'set _CONDA_EXE "%s"' % join(
+                conda_prefix, "bin", "conda"
+            )
             assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % join(
                 conda_prefix, "bin", "python"
             )
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")) as fh:
+        with open(
+            join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
+        ) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -470,7 +505,9 @@ def test_install_conda_xsh(verbose):
                 join(conda_prefix, "Scripts", "conda.exe")
             )
         else:
-            assert first_line == '$CONDA_EXE = "%s"' % join(conda_prefix, "bin", "conda")
+            assert first_line == '$CONDA_EXE = "%s"' % join(
+                conda_prefix, "bin", "conda"
+            )
 
         with open(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
@@ -490,9 +527,13 @@ def test_install_conda_csh(verbose):
         with open(target_path) as fh:
             created_file_contents = fh.read()
 
-        first_line, second_line, third_line, fourth_line, remainder = created_file_contents.split(
-            "\n", 4
-        )
+        (
+            first_line,
+            second_line,
+            third_line,
+            fourth_line,
+            remainder,
+        ) = created_file_contents.split("\n", 4)
         if on_win:
             assert first_line == "setenv CONDA_EXE `cygpath %s`" % join(
                 conda_prefix, "Scripts", "conda.exe"
@@ -505,14 +546,20 @@ def test_install_conda_csh(verbose):
                 conda_prefix, "python.exe"
             )
         else:
-            assert first_line == 'setenv CONDA_EXE "%s"' % join(conda_prefix, "bin", "conda")
+            assert first_line == 'setenv CONDA_EXE "%s"' % join(
+                conda_prefix, "bin", "conda"
+            )
             assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'setenv _CONDA_EXE "%s"' % join(conda_prefix, "bin", "conda")
+            assert third_line == 'setenv _CONDA_EXE "%s"' % join(
+                conda_prefix, "bin", "conda"
+            )
             assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % join(
                 conda_prefix, "bin", "python"
             )
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")) as fh:
+        with open(
+            join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
+        ) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -615,7 +662,9 @@ def test_initialize_dev_bash(verbose):
             new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
             mkdir_p(dirname(new_py))
             create_link(
-                abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink
+                abspath(sys.executable),
+                new_py,
+                LinkType.hardlink if on_win else LinkType.softlink,
             )
             with captured() as c:
                 initialize_dev(
@@ -693,7 +742,9 @@ def test_initialize_dev_cmd_exe(verbose):
             new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
             mkdir_p(dirname(new_py))
             create_link(
-                abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink
+                abspath(sys.executable),
+                new_py,
+                LinkType.hardlink if on_win else LinkType.softlink,
             )
             with captured() as c:
                 initialize_dev(
@@ -967,7 +1018,9 @@ def test_init_cmd_exe_registry(verbose):
     try:
         target_path = r"HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun"
         conda_prefix = "c:\\Users\\Lars\\miniconda"
-        with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var(
+            "CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
             with captured() as c:
                 initialize.init_cmd_exe_registry(target_path, conda_prefix)
     finally:
@@ -985,9 +1038,13 @@ def test_init_cmd_exe_registry(verbose):
     try:
         target_path = r"HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun"
         conda_prefix = "c:\\Users\\Lars\\miniconda"
-        with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        with env_var(
+            "CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
             with captured() as c:
-                initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
+                initialize.init_cmd_exe_registry(
+                    target_path, conda_prefix, reverse=True
+                )
     finally:
         initialize._read_windows_registry = orig_read_windows_registry
         initialize.join = orig_join
@@ -1017,9 +1074,7 @@ def test_init_enable_long_path(verbose):
     initialize.join = ntpath.join
 
     try:
-        target_path = (
-            r"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled"
-        )
+        target_path = r"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled"
         assert initialize._read_windows_registry(target_path)[0] == 0
         initialize.init_long_path(target_path)
         assert initialize._read_windows_registry(target_path)[0] == 1
@@ -1037,8 +1092,20 @@ def test_init_sh_system(verbose):
         with open(target_path) as fh:
             content = fh.read().strip().splitlines()
         assert content[0] == "# >>> conda initialize >>>"
-        assert content[1] == "# !! Contents within this block are managed by 'conda init' !!"
+        assert (
+            content[1]
+            == "# !! Contents within this block are managed by 'conda init' !!"
+        )
         assert content[-1] == "# <<< conda initialize <<<"
 
         init_sh_system(target_path, conda_prefix, reverse=True)
         assert not isfile(target_path)
+
+
+def test_init_all(conda_cli: CondaCLIFixture):
+    # TODO: run this test without cygpath being available (on win)
+    stdout, stderr, err = conda_cli("init", "--all", "--dry-run")
+
+    assert stdout
+    assert not stderr
+    assert not err

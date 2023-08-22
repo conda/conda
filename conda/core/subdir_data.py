@@ -1,20 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Tools for managing a subdir's repodata.json."""
 from __future__ import annotations
 
 import json
 import pickle
-import re
-import warnings
 from collections import UserList, defaultdict
-from contextlib import closing
-from errno import EACCES, ENODEV, EPERM, EROFS
 from functools import partial
-from itertools import chain, islice
+from itertools import chain
 from logging import getLogger
-from mmap import ACCESS_READ, mmap
-from os.path import dirname, exists, isdir, join, splitext
+from os.path import exists, join, splitext
 from pathlib import Path
 from time import time
 
@@ -22,33 +17,34 @@ from genericpath import getmtime, isfile
 
 try:
     from boltons.setutils import IndexedSet
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
 from conda.gateways.repodata import (
+    CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
+    RepodataFetch,
     RepodataIsEmpty,
-    RepodataOnDisk,
     RepodataState,
     RepoInterface,
-    Response304ContentUnchanged,
     cache_fn_url,
+    create_cache_dir,
 )
+from conda.gateways.repodata import (
+    get_cache_control_max_age as _get_cache_control_max_age,
+)
+from conda.gateways.repodata import get_repo_interface
 
-from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.compat import ensure_unicode
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
-from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError, NotWritableError, UnavailableInvalidChannel
-from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
+from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
@@ -62,19 +58,13 @@ MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
 
-def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
-        try:
-            from conda.gateways.repodata.jlap.interface import JlapRepoInterface
-
-            return JlapRepoInterface
-        except ImportError as e:  # pragma: no cover
-            warnings.warn(
-                "Could not load the configured jlap repo interface. "
-                f"Is the required jsonpatch package installed?  {e}"
-            )
-
-    return CondaRepoInterface
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.gateways.repodata.get_cache_control_max_age` instead.",
+)
+def get_cache_control_max_age(cache_control_value: str) -> int:
+    return _get_cache_control_max_age(cache_control_value)
 
 
 class SubdirDataType(type):
@@ -104,9 +94,7 @@ class SubdirDataType(type):
 
 
 class PackageRecordList(UserList):
-    """
-    Lazily convert dicts to PackageRecord.
-    """
+    """Lazily convert dicts to PackageRecord."""
 
     def __getitem__(self, i):
         if isinstance(i, slice):
@@ -127,12 +115,16 @@ class SubdirData(metaclass=SubdirDataType):
         # This should only ever be needed during unit tests, when
         # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
         if exclude_file:
-            cls._cache_ = {k: v for k, v in cls._cache_.items() if not k[0].startswith("file://")}
+            cls._cache_ = {
+                k: v for k, v in cls._cache_.items() if not k[0].startswith("file://")
+            }
         else:
             cls._cache_.clear()
 
     @staticmethod
-    def query_all(package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN):
+    def query_all(
+        package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN
+    ):
         from .index import check_allowlist  # TODO: fix in-line import
 
         # ensure that this is not called by threaded code
@@ -156,17 +148,23 @@ class SubdirData(metaclass=SubdirDataType):
 
         def subdir_query(url):
             return tuple(
-                SubdirData(Channel(url), repodata_fn=repodata_fn).query(package_ref_or_match_spec)
+                SubdirData(Channel(url), repodata_fn=repodata_fn).query(
+                    package_ref_or_match_spec
+                )
             )
 
         # TODO test timing with ProcessPoolExecutor
         Executor = (
             DummyExecutor
             if context.debug or context.repodata_threads == 1
-            else partial(ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads)
+            else partial(
+                ThreadLimitedThreadPoolExecutor, max_workers=context.repodata_threads
+            )
         )
         with Executor() as executor:
-            result = tuple(chain.from_iterable(executor.map(subdir_query, channel_urls)))
+            result = tuple(
+                chain.from_iterable(executor.map(subdir_query, channel_urls))
+            )
         return result
 
     def query(self, package_ref_or_match_spec):
@@ -191,7 +189,9 @@ class SubdirData(metaclass=SubdirDataType):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface):
+    def __init__(
+        self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface
+    ):
         assert channel.subdir
         # metaclass __init__ asserts no package_filename
         if channel.package_filename:  # pragma: no cover
@@ -213,16 +213,25 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Changes as we mutate self.repodata_fn.
         """
-        return self.RepoInterface(
-            self.url_w_credentials,
-            self.repodata_fn,
-            cache_path_json=self.cache_path_json,
-            cache_path_state=self.cache_path_state,
-        )
+        return self.repo_fetch._repo
 
     @property
     def repo_cache(self) -> RepodataCache:
-        return RepodataCache(self.cache_path_base, self.repodata_fn)
+        return self.repo_fetch.repo_cache
+
+    @property
+    def repo_fetch(self) -> RepodataFetch:
+        """
+        Object to get repodata. Not cached since self.repodata_fn is mutable.
+
+        Replaces fetch_repodata_remote_request, self._repo, self.repo_cache.
+        """
+        return RepodataFetch(
+            Path(self.cache_path_base),
+            self.channel,
+            self.repodata_fn,
+            repo_interface_cls=self.RepoInterface,
+        )
 
     def reload(self):
         self._loaded = False
@@ -231,12 +240,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_base(self):
-        if not hasattr(self, "_cache_dir"):
-            # searches for writable directory; memoize per-instance.
-            self._cache_dir = create_cache_dir()
-        # self.repodata_fn may change
         return join(
-            self._cache_dir, splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0]
+            create_cache_dir(),
+            splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0],
         )
 
     @property
@@ -245,15 +251,17 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def cache_path_json(self):
-        return Path(self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json")
+        return Path(
+            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json"
+        )
 
     @property
     def cache_path_state(self):
-        """
-        Out-of-band etag and other state needed by the RepoInterface.
-        """
+        """Out-of-band etag and other state needed by the RepoInterface."""
         return Path(
-            self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".state.json"
+            self.cache_path_base
+            + ("1" if context.use_only_tar_bz2 else "")
+            + CACHE_STATE_SUFFIX
         )
 
     @property
@@ -296,136 +304,29 @@ class SubdirData(metaclass=SubdirDataType):
         for i in self._names_index[name]:
             yield self._package_records[i]
 
-    def _load_state(self):
-        """
-        Cache headers and additional data needed to keep track of the cache are
-        stored separately, instead of the previous "added to repodata.json"
-        arrangement.
-        """
-        return self.repo_cache.load_state()
-
-    def _save_state(self, state: RepodataState):
-        assert Path(state.cache_path_json) == Path(self.cache_path_json)
-        assert Path(state.cache_path_state) == Path(self.cache_path_state)
-        assert state.repodata_fn == self.repodata_fn
-        return state.save()
-
     def _load(self):
-        cache = self.repo_cache
-        cache.load_state()  # XXX should this succeed even if FileNotFound?
-
-        # XXX cache_path_json and cache_path_state must exist; just try loading
-        # it and fall back to this on error?
-        if not cache.cache_path_json.exists():
-            log.debug(
-                "No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json
-            )
-            if context.use_index_cache or (
-                context.offline and not self.url_w_subdir.startswith("file://")
-            ):
-                log.debug(
-                    "Using cached data for %s at %s forced. Returning empty repodata.",
-                    self.url_w_repodata_fn,
-                    self.cache_path_json,
-                )
-                return {
-                    "_package_records": (),
-                    "_names_index": defaultdict(list),
-                    "_track_features_index": defaultdict(list),  # Unused since early 2023
-                }
-
-        else:
-            if context.use_index_cache:
-                log.debug(
-                    "Using cached repodata for %s at %s because use_cache=True",
-                    self.url_w_repodata_fn,
-                    self.cache_path_json,
-                )
-
-                _internal_state = self._read_local_repodata(cache.state)
-                return _internal_state
-
-            stale = cache.stale()
-            if (not stale or context.offline) and not self.url_w_subdir.startswith("file://"):
-                timeout = cache.timeout()
-                log.debug(
-                    "Using cached repodata for %s at %s. Timeout in %d sec",
-                    self.url_w_repodata_fn,
-                    self.cache_path_json,
-                    timeout,
-                )
-                _internal_state = self._read_local_repodata(cache.state)
-                return _internal_state
-
-            log.debug(
-                "Local cache timed out for %s at %s", self.url_w_repodata_fn, self.cache_path_json
-            )
-
+        """
+        Try to load repodata. If e.g. we are downloading
+        `current_repodata.json`, fall back to `repodata.json` when the former is
+        unavailable.
+        """
         try:
-            try:
-                raw_repodata_str = self._repo.repodata(cache.state)  # type: ignore
-            except RepodataIsEmpty:
-                if self.repodata_fn != REPODATA_FN:
-                    raise  # is UnavailableInvalidChannel subclass
-                # the surrounding try/except/else will cache "{}"
-                raw_repodata_str = None
-            except RepodataOnDisk:
-                # used as a sentinel, not the raised exception object
-                raw_repodata_str = RepodataOnDisk
-
+            fetcher = self.repo_fetch
+            repodata, state = fetcher.fetch_latest_parsed()
+            return self._process_raw_repodata(repodata, state)
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
                 self.repodata_fn = REPODATA_FN
                 return self._load()
             else:
                 raise
-        except Response304ContentUnchanged:
-            log.debug(
-                "304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                self.url_w_repodata_fn,
-            )
-            cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the .state.json is invalid
-            # self._save_state(mod_etag_headers)
-            _internal_state = self._read_local_repodata(cache.state)
-            return _internal_state
-        else:
-            # uses isdir() like "exists"; mkdir_p always raises if the path
-            # exists
-            if not isdir(dirname(self.cache_path_json)):
-                mkdir_p(dirname(self.cache_path_json))
-            try:
-                if raw_repodata_str is RepodataOnDisk:
-                    # this is handled very similar to a 304. Can the cases be merged?
-                    # we may need to read_bytes() and compare a hash to the state, instead.
-                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata_str = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata_str)  # type: ignore
-                    stat = self.cache_path_json.stat()
-                    mtime_ns = stat.st_mtime_ns
-                    cache.state["mtime_ns"] = mtime_ns  # type: ignore
-                    cache.refresh()
-                elif isinstance(raw_repodata_str, (str, type(None))):
-                    # XXX skip this if self._repo already wrote the data
-                    # Can we pass this information in state or with a sentinel/special exception?
-                    cache.save(raw_repodata_str or "{}")
-                else:  # pragma: no cover
-                    # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata_str}"
-            except OSError as e:
-                if e.errno in (EACCES, EPERM, EROFS):
-                    raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
-                else:
-                    raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
-            self._internal_state = _internal_state
-            self._pickle_me()
-            return _internal_state
 
     def _pickle_me(self):
         try:
             log.debug(
-                "Saving pickled state for %s at %s", self.url_w_repodata_fn, self.cache_path_pickle
+                "Saving pickled state for %s at %s",
+                self.url_w_repodata_fn,
+                self.cache_path_pickle,
             )
             with open(self.cache_path_pickle, "wb") as fh:
                 pickle.dump(self._internal_state, fh, pickle.HIGHEST_PROTOCOL)
@@ -438,48 +339,34 @@ class SubdirData(metaclass=SubdirDataType):
         if _pickled_state:
             return _pickled_state
 
-        # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
-
-        cache = self.repo_cache
-
-        try:
-            raw_repodata_str = cache.load()
-        except ValueError as e:
-            # OSError (locked) may happen here
-            # ValueError: Expecting object: line 11750 column 6 (char 303397)
-            log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
-            message = dals(
-                """
-            An error occurred when loading cached repodata.  Executing
-            `conda clean --index-cache` will remove cached repodata files
-            so they can be downloaded again.
-            """
-            )
-            raise CondaError(message)
-        else:
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str, cache.state)
-            # taken care of by _process_raw_repodata():
-            assert self._internal_state is _internal_state
-            self._pickle_me()
-            return _internal_state
+        raw_repodata_str, state = self.repo_fetch.read_cache()
+        _internal_state = self._process_raw_repodata_str(raw_repodata_str, state)
+        # taken care of by _process_raw_repodata():
+        assert self._internal_state is _internal_state
+        self._pickle_me()
+        return _internal_state
 
     def _pickle_valid_checks(self, pickled_state, mod, etag):
-        """
-        Throw away the pickle if these don't all match.
-        """
+        """Throw away the pickle if these don't all match."""
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
-        yield "_add_pip", pickled_state.get("_add_pip"), context.add_pip_as_python_dependency
+        yield "_add_pip", pickled_state.get(
+            "_add_pip"
+        ), context.add_pip_as_python_dependency
         yield "_mod", pickled_state.get("_mod"), mod
         yield "_etag", pickled_state.get("_etag"), etag
-        yield "_pickle_version", pickled_state.get("_pickle_version"), REPODATA_PICKLE_VERSION
+        yield "_pickle_version", pickled_state.get(
+            "_pickle_version"
+        ), REPODATA_PICKLE_VERSION
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
     def _read_pickled(self, state: RepodataState):
         if not isinstance(state, RepodataState):
             state = RepodataState(
-                self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state
+                self.cache_path_json,
+                self.cache_path_state,
+                self.repodata_fn,
+                dict=state,
             )
 
         if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
@@ -514,17 +401,22 @@ class SubdirData(metaclass=SubdirDataType):
 
         return _pickled_state
 
-    def _process_raw_repodata_str(self, raw_repodata_str, state: RepodataState | None = None):
-        """
-        state contains information that was previously in-band in raw_repodata_str.
-        """
+    def _process_raw_repodata_str(
+        self,
+        raw_repodata_str,
+        state: RepodataState | None = None,
+    ):
+        """State contains information that was previously in-band in raw_repodata_str."""
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata, state: RepodataState | None):
+    def _process_raw_repodata(self, repodata: dict, state: RepodataState | None = None):
         if not isinstance(state, RepodataState):
             state = RepodataState(
-                self.cache_path_json, self.cache_path_state, self.repodata_fn, dict=state
+                self.cache_path_json,
+                self.cache_path_state,
+                self.repodata_fn,
+                dict=state,
             )
 
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
@@ -581,7 +473,9 @@ class SubdirData(metaclass=SubdirDataType):
 
         channel_url = self.url_w_credentials
         legacy_packages = repodata.get("packages", {})
-        conda_packages = {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
+        conda_packages = (
+            {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
+        )
 
         _tar_bz2 = CONDA_PACKAGE_EXTENSION_V1
         use_these_legacy_keys = set(legacy_packages.keys()) - {
@@ -593,7 +487,6 @@ class SubdirData(metaclass=SubdirDataType):
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-
                 # Verify metadata signature before anything else so run-time
                 # updates to the info dictionary performed below do not
                 # invalidate the signatures provided in metadata.json.
@@ -603,7 +496,9 @@ class SubdirData(metaclass=SubdirDataType):
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
                         info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
-                        info["legacy_bz2_size"] = legacy_packages[counterpart].get("size")
+                        info["legacy_bz2_size"] = legacy_packages[counterpart].get(
+                            "size"
+                        )
                 if (
                     add_pip
                     and info["name"] == "python"
@@ -613,7 +508,9 @@ class SubdirData(metaclass=SubdirDataType):
                 info.update(meta_in_common)
                 if info.get("record_version", 0) > 1:
                     log.debug(
-                        "Ignoring record_version %d from %s", info["record_version"], info["url"]
+                        "Ignoring record_version %d from %s",
+                        info["record_version"],
+                        info["url"],
                     )
                     continue
 
@@ -627,36 +524,6 @@ class SubdirData(metaclass=SubdirDataType):
 
         self._internal_state = _internal_state
         return _internal_state
-
-
-@deprecated("23.1", "23.5", addendum="Cache headers are now stored in a separate file.")
-def read_mod_and_etag(path):
-    # this function should no longer be used by conda but is kept for API
-    # stability. Was used to read inlined cache information from json; now
-    # stored in *.state.json
-    with open(path, "rb") as f:
-        try:
-            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = islice(re.finditer(REPODATA_HEADER_RE, m), 3)
-                result = dict(
-                    map(ensure_unicode, mo.groups()) for mo in match_objects  # type: ignore
-                )
-                return result
-        except (BufferError, ValueError):  # pragma: no cover
-            # BufferError: cannot close exported pointers exist
-            #   https://github.com/conda/conda/issues/4592
-            # ValueError: cannot mmap an empty file
-            return {}
-        except OSError as e:  # pragma: no cover
-            # OSError: [Errno 19] No such device
-            if e.errno == ENODEV:
-                return {}
-            raise
-
-
-def get_cache_control_max_age(cache_control_value):
-    max_age = re.search(r"max-age=(\d+)", cache_control_value)
-    return int(max_age.groups()[0]) if max_age else 0
 
 
 def make_feature_record(feature_name):
@@ -675,23 +542,24 @@ def make_feature_record(feature_name):
     )
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
+    "is pending deprecation and will be removed in the future. "
+    "Please use `conda.core.subdir_data.SubdirData` instead.",
+)
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     """
     :param etag: cached etag header
     :param mod_stamp: cached last-modified header
     """
     # this function should no longer be used by conda but is kept for API stability
-    warnings.warn(
-        "The `conda.core.subdir_data.fetch_repodata_remote_request` function "
-        "is pending deprecation and will be removed in the future. "
-        "Please use `conda.core.subdir_data.SubdirData` instead.",
-        PendingDeprecationWarning,
-    )
 
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        cache_state = subdir._load_state()
+        cache_state = subdir.repo_cache.load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
         raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
@@ -702,9 +570,3 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         raw_repodata_str = None
 
     return raw_repodata_str
-
-
-def create_cache_dir():
-    cache_dir = join(PackageCacheData.first_writable().pkgs_dir, "cache")
-    mkdir_p_sudo_safe(cache_dir)
-    return cache_dir

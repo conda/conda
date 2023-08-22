@@ -1,6 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Common Python package format utilities."""
+import platform
+import re
+import sys
+import warnings
 from collections import namedtuple
 from configparser import ConfigParser
 from csv import reader as csv_reader
@@ -9,37 +13,38 @@ from errno import ENOENT
 from io import StringIO
 from itertools import chain
 from logging import getLogger
-from os import name as os_name, scandir, strerror
+from os import name as os_name
+from os import scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
-import platform
 from posixpath import normpath as posix_normpath
-import re
-import sys
-import warnings
 
 from conda.common.iterators import groupby_to_dict as groupby
 
 from ... import CondaError
+from ..._vendor.frozendict import frozendict
+from ...auxlib.decorators import memoizedproperty
 from ..compat import open
 from ..path import (
-    get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
+    get_major_minor_version,
+    get_python_site_packages_short_path,
+    pyc_path,
+    win_path_ok,
 )
-from ...auxlib.decorators import memoizedproperty
-from ..._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
 # TODO: complete this list
 PYPI_TO_CONDA = {
-    'graphviz': 'python-graphviz',
+    "graphviz": "python-graphviz",
 }
 # TODO: complete this list
 PYPI_CONDA_DEPS = {
-    'graphviz': ['graphviz'],  # What version constraints?
+    "graphviz": ["graphviz"],  # What version constraints?
 }
 # This regex can process requirement including or not including name.
 # This is useful for parsing, for example, `Python-Version`
-PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
+PARTIAL_PYPI_SPEC_PATTERN = re.compile(
+    r"""
     # Text needs to be stripped and all extra spaces replaced by single spaces
     (?P<name>^[A-Z0-9][A-Z0-9._-]*)?
     \s?
@@ -47,9 +52,11 @@ PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
     \s?
     (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*+-]*) \s? \)? )?
     \s?
-''', re.VERBOSE | re.IGNORECASE)
-PY_FILE_RE = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
-PySpec = namedtuple('PySpec', ['name', 'extras', 'constraints', 'marker', 'url'])
+""",
+    re.VERBOSE | re.IGNORECASE,
+)
+PY_FILE_RE = re.compile(r"^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$")
+PySpec = namedtuple("PySpec", ["name", "extras", "constraints", "marker", "url"])
 
 
 class MetadataWarning(Warning):
@@ -59,32 +66,37 @@ class MetadataWarning(Warning):
 # Dist classes
 # -----------------------------------------------------------------------------
 class PythonDistribution:
-    """
-    Base object describing a python distribution based on path to anchor file.
-    """
-    MANIFEST_FILES = ()   # Only one is used, but many names available
+    """Base object describing a python distribution based on path to anchor file."""
+
+    MANIFEST_FILES = ()  # Only one is used, but many names available
     REQUIRES_FILES = ()  # Only one is used, but many names available
     MANDATORY_FILES = ()
-    ENTRY_POINTS_FILES = ('entry_points.txt', )
+    ENTRY_POINTS_FILES = ("entry_points.txt",)
 
     @staticmethod
     def init(prefix_path, anchor_file, python_version):
-        if anchor_file.endswith('.egg-link'):
+        if anchor_file.endswith(".egg-link"):
             return PythonEggLinkDistribution(prefix_path, anchor_file, python_version)
         elif ".dist-info" in anchor_file:
             return PythonInstalledDistribution(prefix_path, anchor_file, python_version)
         elif anchor_file.endswith(".egg-info"):
             anchor_full_path = join(prefix_path, win_path_ok(anchor_file))
             sp_reference = basename(anchor_file)
-            return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+            return PythonEggInfoDistribution(
+                anchor_full_path, python_version, sp_reference
+            )
         elif ".egg-info" in anchor_file:
             anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
             sp_reference = basename(dirname(anchor_file))
-            return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+            return PythonEggInfoDistribution(
+                anchor_full_path, python_version, sp_reference
+            )
         elif ".egg" in anchor_file:
             anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
             sp_reference = basename(dirname(anchor_file))
-            return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+            return PythonEggInfoDistribution(
+                anchor_full_path, python_version, sp_reference
+            )
         else:
             raise NotImplementedError()
 
@@ -116,7 +128,11 @@ class PythonDistribution:
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""
         if checksum:
-            assert checksum.startswith('sha256='), (self._metadata_dir_full_path, path, checksum)
+            assert checksum.startswith("sha256="), (
+                self._metadata_dir_full_path,
+                path,
+                checksum,
+            )
             checksum = checksum[7:]
         else:
             checksum = None
@@ -125,20 +141,18 @@ class PythonDistribution:
         return path, checksum, size
 
     @staticmethod
-    def _parse_requires_file_data(data, global_section='__global__'):
-        """
-        https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
-        """
+    def _parse_requires_file_data(data, global_section="__global__"):
+        # https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         requires = {}
-        lines = [line.strip() for line in data.split('\n') if line]
+        lines = [line.strip() for line in data.split("\n") if line]
 
-        if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
+        if lines and not (lines[0].startswith("[") and lines[0].endswith("]")):
             # Add dummy section for unsectioned items
             lines = [f"[{global_section}]"] + lines
 
         # Parse sections
         for line in lines:
-            if line.startswith('[') and line.endswith(']'):
+            if line.startswith("[") and line.endswith("]"):
                 section = line.strip()[1:-1]
                 requires[section] = []
                 continue
@@ -153,26 +167,24 @@ class PythonDistribution:
             if section == global_section:
                 # This is the global section (same as dist_requires)
                 reqs.extend(values)
-            elif section.startswith(':'):
+            elif section.startswith(":"):
                 # The section is used as a marker
                 # Example: ":python_version < '3'"
-                marker = section.replace(':', '; ')
-                new_values = [v+marker for v in values]
+                marker = section.replace(":", "; ")
+                new_values = [v + marker for v in values]
                 reqs.extend(new_values)
             else:
                 # The section is an extra, i.e. "docs", or "tests"...
                 extras.append(section)
                 marker = f'; extra == "{section}"'
-                new_values = [v+marker for v in values]
+                new_values = [v + marker for v in values]
                 reqs.extend(new_values)
 
         return frozenset(reqs), extras
 
     @staticmethod
     def _parse_entries_file_data(data):
-        """
-        https://setuptools.readthedocs.io/en/latest/formats.html#entry-points-txt-entry-point-plugin-metadata
-        """
+        # https://setuptools.readthedocs.io/en/latest/formats.html#entry-points-txt-entry-point-plugin-metadata
         # FIXME: Use pkg_resources which provides API for this?
         entries_data = {}
         config = ConfigParser()
@@ -188,9 +200,7 @@ class PythonDistribution:
         return entries_data
 
     def _load_requires_provides_file(self):
-        """
-        https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
-        """
+        # https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         # FIXME: Use pkg_resources which provides API for this?
         requires, extras = None, None
         for fname in self.REQUIRES_FILES:
@@ -231,7 +241,9 @@ class PythonDistribution:
         if manifest_full_path:
             python_version = self.python_version
             sp_dir = get_python_site_packages_short_path(python_version) + "/"
-            prepend_metadata_dirname = basename(manifest_full_path) == "installed-files.txt"
+            prepend_metadata_dirname = (
+                basename(manifest_full_path) == "installed-files.txt"
+            )
             if prepend_metadata_dirname:
                 path_prepender = basename(dirname(manifest_full_path)) + "/"
             else:
@@ -245,8 +257,11 @@ class PythonDistribution:
                     if len(row) == 3:
                         checksum, size = row[1:]
                         if checksum:
-                            assert checksum.startswith('sha256='), (self._metadata_dir_full_path,
-                                                                    cleaned_path, checksum)
+                            assert checksum.startswith("sha256="), (
+                                self._metadata_dir_full_path,
+                                cleaned_path,
+                                checksum,
+                            )
                             checksum = checksum[7:]
                         else:
                             checksum = None
@@ -258,7 +273,7 @@ class PythonDistribution:
                         records.append((cleaned_path, checksum, size))
                 return tuple(records)
 
-            csv_delimiter = ','
+            csv_delimiter = ","
             with open(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
@@ -267,10 +282,16 @@ class PythonDistribution:
 
             _pyc_path, _py_file_re = pyc_path, PY_FILE_RE
             py_ver_mm = get_major_minor_version(python_version, with_dot=False)
-            missing_pyc_files = (ff for ff in (
-                _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
-            ) if ff not in files_set)
-            records = sorted((*records, *((pf, None, None) for pf in missing_pyc_files)))
+            missing_pyc_files = (
+                ff
+                for ff in (
+                    _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
+                )
+                if ff not in files_set
+            )
+            records = sorted(
+                (*records, *((pf, None, None) for pf in missing_pyc_files))
+            )
             return records
 
         return []
@@ -313,11 +334,15 @@ class PythonDistribution:
 
         This includes normalizing fields, and evaluating environment markers.
         """
-        python_spec = "python %s.*" % ".".join(self.python_version.split('.')[:2])
+        python_spec = "python %s.*" % ".".join(self.python_version.split(".")[:2])
 
         def pyspec_to_norm_req(pyspec):
             conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
-            return f"{conda_name} {pyspec.constraints}" if pyspec.constraints else conda_name
+            return (
+                f"{conda_name} {pyspec.constraints}"
+                if pyspec.constraints
+                else conda_name
+            )
 
         reqs = self.get_dist_requirements()
         pyspecs = tuple(parse_specification(req) for req in reqs)
@@ -332,7 +357,9 @@ class PythonDistribution:
             for pyspec in chain.from_iterable(marker_groups.values())
             if interpret(pyspec.marker, execution_context)
         )
-        constrains = {pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints}
+        constrains = {
+            pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints
+        }
         depends.add(python_spec)
 
         return sorted(depends), sorted(constrains)
@@ -375,9 +402,10 @@ class PythonInstalledDistribution(PythonDistribution):
     -----
       - https://www.python.org/dev/peps/pep-0376/
     """
-    MANIFEST_FILES = ('RECORD',)
+
+    MANIFEST_FILES = ("RECORD",)
     REQUIRES_FILES = ()
-    MANDATORY_FILES = ('METADATA', )
+    MANDATORY_FILES = ("METADATA",)
     # FIXME: Do this check? Disabled for tests where only Metadata file is stored
     # MANDATORY_FILES = ('METADATA', 'RECORD', 'INSTALLER')
     ENTRY_POINTS_FILES = ()
@@ -398,10 +426,11 @@ class PythonEggInfoDistribution(PythonDistribution):
     -----
       - http://peak.telecommunity.com/DevCenter/EggFormats
     """
-    MANIFEST_FILES = ('installed-files.txt', 'SOURCES', 'SOURCES.txt')
-    REQUIRES_FILES = ('requires.txt', 'depends.txt')
+
+    MANIFEST_FILES = ("installed-files.txt", "SOURCES", "SOURCES.txt")
+    REQUIRES_FILES = ("requires.txt", "depends.txt")
     MANDATORY_FILES = ()
-    ENTRY_POINTS_FILES = ('entry_points.txt', )
+    ENTRY_POINTS_FILES = ("entry_points.txt",)
 
     def __init__(self, anchor_full_path, python_version, sp_reference):
         super().__init__(anchor_full_path, python_version)
@@ -410,12 +439,12 @@ class PythonEggInfoDistribution(PythonDistribution):
     @property
     def is_manageable(self):
         return (
-            self.manifest_full_path and basename(self.manifest_full_path) == "installed-files.txt"
+            self.manifest_full_path
+            and basename(self.manifest_full_path) == "installed-files.txt"
         )
 
 
 class PythonEggLinkDistribution(PythonEggInfoDistribution):
-
     is_manageable = False
 
     def __init__(self, prefix_path, anchor_file, python_version):
@@ -426,6 +455,7 @@ class PythonEggLinkDistribution(PythonEggInfoDistribution):
 
 # Python distribution/eggs metadata
 # -----------------------------------------------------------------------------
+
 
 class PythonDistributionMetadata:
     """
@@ -445,47 +475,52 @@ class PythonDistributionMetadata:
       - Metadata 1.1: https://www.python.org/dev/peps/pep-0314/
       - Metadata 1.0: https://www.python.org/dev/peps/pep-0241/
     """
-    FILE_NAMES = ('METADATA', 'PKG-INFO')
+
+    FILE_NAMES = ("METADATA", "PKG-INFO")
 
     # Python Packages Metadata 2.1
     # -----------------------------------------------------------------------------
-    SINGLE_USE_KEYS = frozendict((
-        ('Metadata-Version', 'metadata_version'),
-        ('Name', 'name'),
-        ('Version', 'version'),
-        # ('Summary', 'summary'),
-        # ('Description', 'description'),
-        # ('Description-Content-Type', 'description_content_type'),
-        # ('Keywords', 'keywords'),
-        # ('Home-page', 'home_page'),
-        # ('Download-URL', 'download_url'),
-        # ('Author', 'author'),
-        # ('Author-email', 'author_email'),
-        # ('Maintainer', 'maintainer'),
-        # ('Maintainer-email', 'maintainer_email'),
-        ('License', 'license'),
-        # # Deprecated
-        # ('Obsoleted-By', 'obsoleted_by'),  # Note: See 2.0
-        # ('Private-Version', 'private_version'),  # Note: See 2.0
-    ))
-    MULTIPLE_USE_KEYS = frozendict((
-        ('Platform', 'platform'),
-        ('Supported-Platform', 'supported_platform'),
-        # ('Classifier', 'classifier'),
-        ('Requires-Dist', 'requires_dist'),
-        ('Requires-External', 'requires_external'),
-        ('Requires-Python', 'requires_python'),
-        # ('Project-URL', 'project_url'),
-        ('Provides-Extra', 'provides_extra'),
-        # ('Provides-Dist', 'provides_dist'),
-        # ('Obsoletes-Dist', 'obsoletes_dist'),
-        # # Deprecated
-        # ('Extension', 'extension'),  # Note: See 2.0
-        # ('Obsoletes', 'obsoletes'),
-        # ('Provides', 'provides'),
-        ('Requires', 'requires'),
-        # ('Setup-Requires-Dist', 'setup_requires_dist'),  # Note: See 2.0
-    ))
+    SINGLE_USE_KEYS = frozendict(
+        (
+            ("Metadata-Version", "metadata_version"),
+            ("Name", "name"),
+            ("Version", "version"),
+            # ('Summary', 'summary'),
+            # ('Description', 'description'),
+            # ('Description-Content-Type', 'description_content_type'),
+            # ('Keywords', 'keywords'),
+            # ('Home-page', 'home_page'),
+            # ('Download-URL', 'download_url'),
+            # ('Author', 'author'),
+            # ('Author-email', 'author_email'),
+            # ('Maintainer', 'maintainer'),
+            # ('Maintainer-email', 'maintainer_email'),
+            ("License", "license"),
+            # # Deprecated
+            # ('Obsoleted-By', 'obsoleted_by'),  # Note: See 2.0
+            # ('Private-Version', 'private_version'),  # Note: See 2.0
+        )
+    )
+    MULTIPLE_USE_KEYS = frozendict(
+        (
+            ("Platform", "platform"),
+            ("Supported-Platform", "supported_platform"),
+            # ('Classifier', 'classifier'),
+            ("Requires-Dist", "requires_dist"),
+            ("Requires-External", "requires_external"),
+            ("Requires-Python", "requires_python"),
+            # ('Project-URL', 'project_url'),
+            ("Provides-Extra", "provides_extra"),
+            # ('Provides-Dist', 'provides_dist'),
+            # ('Obsoletes-Dist', 'obsoletes_dist'),
+            # # Deprecated
+            # ('Extension', 'extension'),  # Note: See 2.0
+            # ('Obsoletes', 'obsoletes'),
+            # ('Provides', 'provides'),
+            ("Requires", "requires"),
+            # ('Setup-Requires-Dist', 'setup_requires_dist'),  # Note: See 2.0
+        )
+    )
 
     def __init__(self, path):
         metadata_path = self._process_path(path, self.FILE_NAMES)
@@ -505,7 +540,7 @@ class PythonDistributionMetadata:
                         break
             elif isfile(path):
                 # '<pkg>.egg-info' file contains metadata directly
-                filenames = ['.egg-info']
+                filenames = [".egg-info"]
                 if metadata_filenames:
                     filenames.extend(metadata_filenames)
                 assert any(path.endswith(filename) for filename in filenames)
@@ -545,7 +580,6 @@ class PythonDistributionMetadata:
 
         if message:
             for key, value in message.items():
-
                 if key in cls.MULTIPLE_USE_KEYS:
                     new_key = cls.MULTIPLE_USE_KEYS[key]
                     if new_key not in new_data:
@@ -563,9 +597,7 @@ class PythonDistributionMetadata:
 
     @classmethod
     def _read_metadata(cls, fpath):
-        """
-        Read the original format which is stored as RFC-822 headers.
-        """
+        """Read the original format which is stored as RFC-822 headers."""
         data = {}
         if fpath and isfile(fpath):
             parser = HeaderParser()
@@ -627,7 +659,7 @@ class PythonDistributionMetadata:
 
         Return 'Requires' if 'Requires-Dist' is empty.
         """
-        return self._get_multiple_data(['requires_dist', 'requires'])
+        return self._get_multiple_data(["requires_dist", "requires"])
 
     def get_python_requirements(self):
         """
@@ -646,7 +678,7 @@ class PythonDistributionMetadata:
         frozenset(['>=3', '>2.6,!=3.0.*,!=3.1.*', '~=2.6',
                    '>=3; sys_platform == "win32"'])
         """
-        return self._get_multiple_data(['requires_python'])
+        return self._get_multiple_data(["requires_python"])
 
     def get_external_requirements(self):
         """
@@ -674,7 +706,7 @@ class PythonDistributionMetadata:
         -------
         frozenset(['C', 'libpng (>=1.5)', 'make; sys_platform != "win32"'])
         """
-        return self._get_multiple_data(['requires_external'])
+        return self._get_multiple_data(["requires_external"])
 
     def get_extra_provides(self):
         """
@@ -688,7 +720,7 @@ class PythonDistributionMetadata:
         -------
         frozenset(['pdf', 'doc', 'test'])
         """
-        return self._get_multiple_data(['provides_extra'])
+        return self._get_multiple_data(["provides_extra"])
 
     def get_dist_provides(self):
         """
@@ -724,7 +756,7 @@ class PythonDistributionMetadata:
 
         Return `Provides` in case `Provides-Dist` is empty.
         """
-        return self._get_multiple_data(['provides_dist', 'provides'])
+        return self._get_multiple_data(["provides_dist", "provides"])
 
     def get_dist_obsolete(self):
         """
@@ -756,8 +788,7 @@ class PythonDistributionMetadata:
         -----
         - [1] https://packaging.python.org/specifications/version-specifiers/
         """
-
-        return self._get_multiple_data(['obsoletes_dist', 'obsoletes'])
+        return self._get_multiple_data(["obsoletes_dist", "obsoletes"])
 
     def get_classifiers(self):
         """
@@ -771,38 +802,38 @@ class PythonDistributionMetadata:
         frozenset(['Development Status :: 4 - Beta',
                    "Environment :: Console (Text Based) ; os_name == "posix"])
         """
-        return self._get_multiple_data(['classifier'])
+        return self._get_multiple_data(["classifier"])
 
     @property
     def name(self):
-        return self._data.get('name')  # TODO: Check for existence?
+        return self._data.get("name")  # TODO: Check for existence?
 
     @property
     def version(self):
-        return self._data.get('version')  # TODO: Check for existence?
+        return self._data.get("version")  # TODO: Check for existence?
 
 
 # Helper functions
 # -----------------------------------------------------------------------------
 def norm_package_name(name):
-    return name.replace('.', '-').replace('_', '-').lower() if name else ''
+    return name.replace(".", "-").replace("_", "-").lower() if name else ""
 
 
 def pypi_name_to_conda_name(pypi_name):
-    return PYPI_TO_CONDA.get(pypi_name, pypi_name) if pypi_name else ''
+    return PYPI_TO_CONDA.get(pypi_name, pypi_name) if pypi_name else ""
 
 
 def norm_package_version(version):
     """Normalize a version by removing extra spaces and parentheses."""
     if version:
-        version = ','.join(v.strip() for v in version.split(',')).strip()
+        version = ",".join(v.strip() for v in version.split(",")).strip()
 
-        if version.startswith('(') and version.endswith(')'):
+        if version.startswith("(") and version.endswith(")"):
             version = version[1:-1]
 
-        version = ''.join(v for v in version if v.strip())
+        version = "".join(v for v in version if v.strip())
     else:
-        version = ''
+        version = ""
 
     return version
 
@@ -811,7 +842,7 @@ def split_spec(spec, sep):
     """Split a spec by separator and return stripped start and end parts."""
     parts = spec.rsplit(sep, 1)
     spec_start = parts[0].strip()
-    spec_end = ''
+    spec_end = ""
     if len(parts) == 2:
         spec_end = parts[-1].strip()
     return spec_start, spec_end
@@ -830,32 +861,32 @@ def parse_specification(spec):
     PySpec(name='requests', extras=['security'], constraints='>=3.3.0',
            marker='foo >= 2.7 or bar == 1', url=''])
     """
-    name, extras, const = spec, [], ''
+    name, extras, const = spec, [], ""
 
     # Remove excess whitespace
-    spec = ' '.join(p for p in spec.split(' ') if p).strip()
+    spec = " ".join(p for p in spec.split(" ") if p).strip()
 
     # Extract marker (Assumes that there can only be one ';' inside the spec)
-    spec, marker = split_spec(spec, ';')
+    spec, marker = split_spec(spec, ";")
 
     # Extract url (Assumes that there can only be one '@' inside the spec)
-    spec, url = split_spec(spec, '@')
+    spec, url = split_spec(spec, "@")
 
     # Find name, extras and constraints
     r = PARTIAL_PYPI_SPEC_PATTERN.match(spec)
     if r:
         # Normalize name
-        name = r.group('name')
+        name = r.group("name")
         name = norm_package_name(name)  # TODO: Do we want this or not?
 
         # Clean extras
-        extras = r.group('extras')
-        extras = [e.strip() for e in extras.split(',') if e] if extras else []
+        extras = r.group("extras")
+        extras = [e.strip() for e in extras.split(",") if e] if extras else []
 
         # Clean constraints
-        const = r.group('constraints')
-        const = ''.join(c for c in const.split(' ') if c).strip()
-        if const.startswith('(') and const.endswith(')'):
+        const = r.group("constraints")
+        const = "".join(c for c in const.split(" ") if c).strip()
+        if const.startswith("(") and const.endswith(")"):
             # Remove parens
             const = const[1:-1]
         const = const.replace("-", ".")
@@ -884,9 +915,9 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
             # FIXME: If it is a .egg file, we need to unzip the content to be
             # able. Do this once and leave the directory, and remove the egg
             # (which is a zip file in disguise?)
-        elif fname.endswith('.egg-link'):
+        elif fname.endswith(".egg-link"):
             anchor_file = f"{site_packages_dir}/{fname}"
-        elif fname.endswith('.pth'):
+        elif fname.endswith(".pth"):
             continue
         else:
             continue
@@ -898,9 +929,7 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
 
 
 def get_dist_file_from_egg_link(egg_link_file, prefix_path):
-    """
-    Return the egg info file path following an egg link.
-    """
+    """Return the egg info file path following an egg link."""
     egg_info_full_path = None
 
     egg_link_path = join(prefix_path, win_path_ok(egg_link_file))
@@ -912,13 +941,14 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
             egg_link_contents = fh.readlines()[0].strip()
     except UnicodeDecodeError:
         from locale import getpreferredencoding
+
         with open(egg_link_path, encoding=getpreferredencoding()) as fh:
             egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):
         egg_info_fnames = tuple(
-            name for name in
-            (entry.name for entry in scandir(egg_link_contents))
+            name
+            for name in (entry.name for entry in scandir(egg_link_contents))
             if name[-9:] == ".egg-info"
         )
     else:
@@ -927,11 +957,13 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     if egg_info_fnames:
         if len(egg_info_fnames) != 1:
             raise CondaError(
-                    "Expected exactly one `egg-info` directory in '{}', via egg-link '{}'."
-                    " Instead found: {}.  These are often left over from "
-                    "legacy operations that did not clean up correctly.  Please "
-                    "remove all but one of these.".format(egg_link_contents,
-                                                          egg_link_file, egg_info_fnames))
+                "Expected exactly one `egg-info` directory in '{}', via egg-link '{}'."
+                " Instead found: {}.  These are often left over from "
+                "legacy operations that did not clean up correctly.  Please "
+                "remove all but one of these.".format(
+                    egg_link_contents, egg_link_file, egg_info_fnames
+                )
+            )
 
         egg_info_full_path = join(egg_link_contents, egg_info_fnames[0])
 
@@ -942,7 +974,6 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
         raise OSError(ENOENT, strerror(ENOENT), egg_link_contents)
 
     return egg_info_full_path
-
 
 
 # See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
@@ -956,19 +987,20 @@ def parse_marker(marker_string):
     interpreted as a literal string, and a string not contained in quotes is a
     variable (such as os_name).
     """
+
     def marker_var(remaining):
         # either identifier, or literal string
         m = IDENTIFIER.match(remaining)
         if m:
             result = m.groups()[0]
-            remaining = remaining[m.end():]
+            remaining = remaining[m.end() :]
         elif not remaining:
-            raise SyntaxError('unexpected end of input')
+            raise SyntaxError("unexpected end of input")
         else:
             q = remaining[0]
-            if q not in '\'"':
-                raise SyntaxError('invalid expression: %s' % remaining)
-            oq = '\'"'.replace(q, '')
+            if q not in "'\"":
+                raise SyntaxError("invalid expression: %s" % remaining)
+            oq = "'\"".replace(q, "")
             remaining = remaining[1:]
             parts = [q]
             while remaining:
@@ -981,22 +1013,22 @@ def parse_marker(marker_string):
                 else:
                     m = STRING_CHUNK.match(remaining)
                     if not m:
-                        raise SyntaxError('error in string literal: %s' % remaining)
+                        raise SyntaxError("error in string literal: %s" % remaining)
                     parts.append(m.groups()[0])
-                    remaining = remaining[m.end():]
+                    remaining = remaining[m.end() :]
             else:
-                s = ''.join(parts)
-                raise SyntaxError('unterminated string: %s' % s)
+                s = "".join(parts)
+                raise SyntaxError("unterminated string: %s" % s)
             parts.append(q)
-            result = ''.join(parts)
+            result = "".join(parts)
             remaining = remaining[1:].lstrip()  # skip past closing quote
         return result, remaining
 
     def marker_expr(remaining):
-        if remaining and remaining[0] == '(':
+        if remaining and remaining[0] == "(":
             result, remaining = marker(remaining[1:].lstrip())
-            if remaining[0] != ')':
-                raise SyntaxError('unterminated parenthesis: %s' % remaining)
+            if remaining[0] != ")":
+                raise SyntaxError("unterminated parenthesis: %s" % remaining)
             remaining = remaining[1:].lstrip()
         else:
             lhs, remaining = marker_var(remaining)
@@ -1005,9 +1037,9 @@ def parse_marker(marker_string):
                 if not m:
                     break
                 op = m.groups()[0]
-                remaining = remaining[m.end():]
+                remaining = remaining[m.end() :]
                 rhs, remaining = marker_var(remaining)
-                lhs = {'op': op, 'lhs': lhs, 'rhs': rhs}
+                lhs = {"op": op, "lhs": lhs, "rhs": rhs}
             result = lhs
         return result, remaining
 
@@ -1017,9 +1049,9 @@ def parse_marker(marker_string):
             m = AND.match(remaining)
             if not m:
                 break
-            remaining = remaining[m.end():]
+            remaining = remaining[m.end() :]
             rhs, remaining = marker_expr(remaining)
-            lhs = {'op': 'and', 'lhs': lhs, 'rhs': rhs}
+            lhs = {"op": "and", "lhs": lhs, "rhs": rhs}
         return lhs, remaining
 
     def marker(remaining):
@@ -1028,9 +1060,9 @@ def parse_marker(marker_string):
             m = OR.match(remaining)
             if not m:
                 break
-            remaining = remaining[m.end():]
+            remaining = remaining[m.end() :]
             rhs, remaining = marker_and(remaining)
-            lhs = {'op': 'or', 'lhs': lhs, 'rhs': rhs}
+            lhs = {"op": "or", "lhs": lhs, "rhs": rhs}
         return lhs, remaining
 
     return marker(marker_string)
@@ -1043,40 +1075,38 @@ def parse_marker(marker_string):
 #
 # Requirement parsing code as per PEP 508
 #
-IDENTIFIER = re.compile(r'^([\w\.-]+)\s*')
-VERSION_IDENTIFIER = re.compile(r'^([\w\.*+-]+)\s*')
-COMPARE_OP = re.compile(r'^(<=?|>=?|={2,3}|[~!]=)\s*')
-MARKER_OP = re.compile(r'^((<=?)|(>=?)|={2,3}|[~!]=|in|not\s+in)\s*')
-OR = re.compile(r'^or\b\s*')
-AND = re.compile(r'^and\b\s*')
-NON_SPACE = re.compile(r'(\S+)\s*')
-STRING_CHUNK = re.compile(r'([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)')
+IDENTIFIER = re.compile(r"^([\w\.-]+)\s*")
+VERSION_IDENTIFIER = re.compile(r"^([\w\.*+-]+)\s*")
+COMPARE_OP = re.compile(r"^(<=?|>=?|={2,3}|[~!]=)\s*")
+MARKER_OP = re.compile(r"^((<=?)|(>=?)|={2,3}|[~!]=|in|not\s+in)\s*")
+OR = re.compile(r"^or\b\s*")
+AND = re.compile(r"^and\b\s*")
+NON_SPACE = re.compile(r"(\S+)\s*")
+STRING_CHUNK = re.compile(r"([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)")
 
 
 def _is_literal(o):
     if not isinstance(o, str) or not o:
         return False
-    return o[0] in '\'"'
+    return o[0] in "'\""
 
 
 class Evaluator:
-    """
-    This class is used to evaluate marker expressions.
-    """
+    """This class is used to evaluate marker expressions."""
 
     operations = {
-        '==': lambda x, y: x == y,
-        '===': lambda x, y: x == y,
-        '~=': lambda x, y: x == y or x > y,
-        '!=': lambda x, y: x != y,
-        '<': lambda x, y: x < y,
-        '<=': lambda x, y: x == y or x < y,
-        '>': lambda x, y: x > y,
-        '>=': lambda x, y: x == y or x > y,
-        'and': lambda x, y: x and y,
-        'or': lambda x, y: x or y,
-        'in': lambda x, y: x in y,
-        'not in': lambda x, y: x not in y,
+        "==": lambda x, y: x == y,
+        "===": lambda x, y: x == y,
+        "~=": lambda x, y: x == y or x > y,
+        "!=": lambda x, y: x != y,
+        "<": lambda x, y: x < y,
+        "<=": lambda x, y: x == y or x < y,
+        ">": lambda x, y: x > y,
+        ">=": lambda x, y: x == y or x > y,
+        "and": lambda x, y: x and y,
+        "or": lambda x, y: x or y,
+        "in": lambda x, y: x in y,
+        "not in": lambda x, y: x not in y,
     }
 
     def evaluate(self, expr, context):
@@ -1085,15 +1115,15 @@ class Evaluator:
         function in the specified context.
         """
         if isinstance(expr, str):
-            if expr[0] in '\'"':
+            if expr[0] in "'\"":
                 result = expr[1:-1]
             else:
                 if expr not in context:
-                    raise SyntaxError('unknown variable: %s' % expr)
+                    raise SyntaxError("unknown variable: %s" % expr)
                 result = context[expr]
         else:
             assert isinstance(expr, dict)
-            op = expr['op']
+            op = expr["op"]
             if op not in self.operations:
                 raise NotImplementedError("op not implemented: %s" % op)
             elhs = expr["lhs"]
@@ -1125,38 +1155,38 @@ def get_default_marker_context():
     def format_full_version(info):
         version = f"{info.major}.{info.minor}.{info.micro}"
         kind = info.releaselevel
-        if kind != 'final':
+        if kind != "final":
             version += kind[0] + str(info.serial)
         return version
 
-    if hasattr(sys, 'implementation'):
+    if hasattr(sys, "implementation"):
         implementation_version = format_full_version(sys.implementation.version)
         implementation_name = sys.implementation.name
     else:
-        implementation_version = '0'
-        implementation_name = ''
+        implementation_version = "0"
+        implementation_name = ""
 
     # TODO: we can't use this
     result = {
         # See: https://www.python.org/dev/peps/pep-0508/#environment-markers
-        'implementation_name': implementation_name,
-        'implementation_version': implementation_version,
-        'os_name': os_name,
-        'platform_machine': platform.machine(),
-        'platform_python_implementation': platform.python_implementation(),
-        'platform_release': platform.release(),
-        'platform_system': platform.system(),
-        'platform_version': platform.version(),
-        'python_full_version': platform.python_version(),
-        'python_version': '.'.join(platform.python_version().split('.')[:2]),
-        'sys_platform': sys.platform,
+        "implementation_name": implementation_name,
+        "implementation_version": implementation_version,
+        "os_name": os_name,
+        "platform_machine": platform.machine(),
+        "platform_python_implementation": platform.python_implementation(),
+        "platform_release": platform.release(),
+        "platform_system": platform.system(),
+        "platform_version": platform.version(),
+        "python_full_version": platform.python_version(),
+        "python_version": ".".join(platform.python_version().split(".")[:2]),
+        "sys_platform": sys.platform,
         # See: https://www.python.org/dev/peps/pep-0345/#environment-markers
-        'os.name': os_name,
-        'platform.python_implementation': platform.python_implementation(),
-        'platform.version': platform.version(),
-        'platform.machine': platform.machine(),
-        'sys.platform': sys.platform,
-        'extra': '',
+        "os.name": os_name,
+        "platform.python_implementation": platform.python_implementation(),
+        "platform.version": platform.version(),
+        "platform.machine": platform.machine(),
+        "sys.platform": sys.platform,
+        "extra": "",
     }
     return result
 

@@ -1,9 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-"""
-Handles all display/view logic
-"""
+"""Handles all display/view logic."""
 from typing import Sequence
 
 from .types import ChannelNotice
@@ -22,7 +19,9 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
         if current_channel != channel_notice.channel_name:
             print()
             channel_header = "Channel"
-            channel_header += f' "{channel_notice.channel_name}" has the following notices:'
+            channel_header += (
+                f' "{channel_notice.channel_name}" has the following notices:'
+            )
             print(channel_header)
             current_channel = channel_notice.channel_name
         print_notice_message(channel_notice)
@@ -30,9 +29,7 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
 
 
 def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
-    """
-    Prints a single channel notice
-    """
+    """Prints a single channel notice."""
     timestamp = f"{notice.created_at:%c}" if notice.created_at else ""
 
     level = f"[{notice.level}] -- {timestamp}"
@@ -43,9 +40,7 @@ def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
 def print_more_notices_message(
     total_notices: int, displayed_notices: int, viewed_notices: int
 ) -> None:
-    """
-    Conditionally shows a message informing users how many more message there are.
-    """
+    """Conditionally shows a message informing users how many more message there are."""
     notices_not_shown = total_notices - viewed_notices - displayed_notices
 
     if notices_not_shown > 0:

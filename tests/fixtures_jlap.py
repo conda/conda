@@ -18,7 +18,7 @@ from pathlib import Path
 
 import flask
 import pytest
-from werkzeug.serving import WSGIRequestHandler, make_server
+from werkzeug.serving import WSGIRequestHandler, generate_adhoc_ssl_context, make_server
 
 app = flask.Flask(__name__)
 
@@ -37,9 +37,7 @@ def shutdown():
 
 @app.route("/latency/<float:delay>")
 def latency(delay):
-    """
-    Set delay before each file response.
-    """
+    """Set delay before each file response."""
     global LATENCY
     LATENCY = delay
     return "OK"
@@ -60,10 +58,16 @@ class NoLoggingWSGIRequestHandler(WSGIRequestHandler):
         pass
 
 
-def make_server_with_socket(socket: socket.socket, base_: Path = base):
+def make_server_with_socket(socket: socket.socket, base_: Path = base, ssl=False):
     global server, base
     base = base_
     assert isinstance(socket.fileno(), int)
+    ssl_context = None
+
+    if ssl:
+        # openssl may fail when mixing defaults + conda-forge
+        ssl_context = generate_adhoc_ssl_context()
+
     server = make_server(
         "127.0.0.1",
         port=0,
@@ -71,14 +75,13 @@ def make_server_with_socket(socket: socket.socket, base_: Path = base):
         fd=socket.fileno(),
         threaded=True,
         request_handler=NoLoggingWSGIRequestHandler,
+        ssl_context=ssl_context,
     )
     server.serve_forever()
 
 
 def run_on_random_port():
-    """
-    Run in a new process to minimize interference with test.
-    """
+    """Run in a new process to minimize interference with test."""
     return next(_package_server())
 
 
@@ -98,10 +101,12 @@ def prepare_socket() -> socket.socket:
     return s
 
 
-def _package_server(cleanup=True, base: Path | None = None):
+def _package_server(cleanup=True, base: Path | None = None, ssl=False):
     socket = prepare_socket()
     context = multiprocessing.get_context("spawn")
-    process = context.Process(target=make_server_with_socket, args=(socket, base), daemon=True)
+    process = context.Process(
+        target=make_server_with_socket, args=(socket, base, ssl), daemon=True
+    )
     process.start()
     yield socket
     process.kill()
@@ -126,7 +131,11 @@ def package_server(package_repository_base):
     yield from _package_server(base=package_repository_base)
 
 
-if __name__ == "__main__":
+@pytest.fixture(scope="session")
+def package_server_ssl(package_repository_base):
+    yield from _package_server(base=package_repository_base, ssl=True)
 
+
+if __name__ == "__main__":
     print(run_on_random_port())
     time.sleep(60)

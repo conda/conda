@@ -4,7 +4,7 @@ set -o errtrace -o pipefail -o errexit
 
 apt-get update --fix-missing
 apt-get install -y --no-install-recommends \
-    tini wget build-essential bzip2 ca-certificates \
+    tini wget curl build-essential bzip2 ca-certificates \
     libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion \
     sudo htop less nano man grep
 apt-get clean
@@ -19,7 +19,8 @@ elif [ "${minioarch}" = "x86_64" ]; then
 elif [ "${minioarch}" = "ppc64el" ]; then
     minioarch=ppc64le
 fi
-wget --quiet https://dl.minio.io/server/minio/release/linux-${minioarch}/minio
+minio_release="${MINIO_RELEASE:-minio}" # use 'archive/XXXX' for older releases
+curl -sL -o minio "https://dl.minio.io/server/minio/release/linux-${minioarch}/${minio_release}"
 chmod +x minio
 sudo mv minio /usr/local/bin/minio
 

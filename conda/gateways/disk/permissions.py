@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Disk utility functions for modifying file and directory permissions."""
 from errno import EACCES, ENOENT, EPERM, EROFS
 from itertools import chain
 from logging import getLogger
@@ -8,9 +8,9 @@ from os import X_OK, access, chmod, lstat, walk
 from os.path import isdir, isfile, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
+from ...common.compat import on_win
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lchmod
-from ...common.compat import on_win
 
 log = getLogger(__name__)
 
@@ -28,7 +28,7 @@ def make_writable(path):
             log.debug("path cannot be made writable: %s", path)
         return True
     except Exception as e:
-        eno = getattr(e, 'errno', None)
+        eno = getattr(e, "errno", None)
         if eno in (ENOENT,):
             log.debug("tried to make writable, but didn't exist: %s", path)
             raise
@@ -74,7 +74,7 @@ def recursive_make_writable(path, max_tries=MAX_TRIES):
 def make_executable(path):
     if isfile(path):
         mode = lstat(path).st_mode
-        log.trace('chmod +x %s', path)
+        log.trace("chmod +x %s", path)
         chmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
     else:
         log.error("Cannot make path '%s' executable", path)
@@ -82,5 +82,5 @@ def make_executable(path):
 
 def is_executable(path):
     if isfile(path):  # for now, leave out `and not islink(path)`
-        return path.endswith(('.exe', '.bat')) if on_win else access(path, X_OK)
+        return path.endswith((".exe", ".bat")) if on_win else access(path, X_OK)
     return False

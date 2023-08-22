@@ -44,7 +44,7 @@ cleanup
 _SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
 
 # define default values
-_DEFAULT_PYTHON="3.8"
+_DEFAULT_PYTHON="3.10"
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64
@@ -126,7 +126,7 @@ while [ $# -gt 0 ]; do
 done
 
 # fallback to default values
-_PYTHON="${_PYTHON:-3.8}"
+_PYTHON="${_PYTHON:-3.10}"
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64

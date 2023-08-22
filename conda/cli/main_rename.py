@@ -1,12 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda rename`.
+
+Renames an existing environment by cloning it and then removing the original environment.
+"""
 from __future__ import annotations
 
-from functools import partial
 import os
+from functools import partial
 
-from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..base.constants import DRY_RUN_PREFIX
+from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..cli import common, install
 from ..common.path import expand, paths_equal
 from ..exceptions import CondaEnvException
@@ -46,15 +50,19 @@ def validate_destination(dest: str, force: bool = False) -> str:
 
 
 def execute(args, _):
-    """
-    Executes the command for renaming an existing environment
-    """
+    """Executes the command for renaming an existing environment."""
     source = validate_src(args.name, args.prefix)
     destination = validate_destination(args.destination, force=args.force)
 
     def clone_and_remove():
         actions: tuple[partial, ...] = (
-            partial(install.clone, source, destination, quiet=context.quiet, json=context.json),
+            partial(
+                install.clone,
+                source,
+                destination,
+                quiet=context.quiet,
+                json=context.json,
+            ),
             partial(rm_rf, source),
         )
 

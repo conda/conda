@@ -32,12 +32,16 @@ def run_test_server(directory: str) -> http.server.ThreadingHTTPServer:
             self.RequestHandlerClass(request, client_address, self, directory=directory)
 
     def start_server(queue):
-
-        with DualStackServer(("127.0.0.1", 0), http.server.SimpleHTTPRequestHandler) as httpd:
+        with DualStackServer(
+            ("127.0.0.1", 0), http.server.SimpleHTTPRequestHandler
+        ) as httpd:
             host, port = httpd.socket.getsockname()[:2]
             queue.put(httpd)
             url_host = f"[{host}]" if ":" in host else host
-            print(f"Serving HTTP on {host} port {port} " f"(http://{url_host}:{port}/) ...")
+            print(
+                f"Serving HTTP on {host} port {port} "
+                f"(http://{url_host}:{port}/) ..."
+            )
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:

@@ -18,7 +18,9 @@ def test_Utf8NamedTemporaryFile():
     try:
         with Utf8NamedTemporaryFile(delete=False) as tf:
             tf.write(
-                test_string.encode("utf-8") if hasattr(test_string, "encode") else test_string
+                test_string.encode("utf-8")
+                if hasattr(test_string, "encode")
+                else test_string
             )
             fname = tf.name
         with codecs.open(fname, mode="rb", encoding="utf-8") as fh:
@@ -85,7 +87,6 @@ def test_explicit_missing_cache_entries(mocker):
     from conda.core.package_cache_data import PackageCacheData
 
     with make_temp_env() as prefix:  # ensure writable env
-
         if len(PackageCacheData.get_all_extracted_entries()) == 0:
             # Package cache e.g. ./devenv/Darwin/x86_64/envs/devenv-3.9-c/pkgs/ can
             # be empty in certain cases (Noted in OSX with Python 3.9, when
@@ -136,7 +137,12 @@ def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
     # walk_prefix has windows_forward_slahes on by default, so we don't need
     # any special-casing there
 
-    answer = {"testfile1", "bin/testfile", "testdir1/testfile", "testdir1/testdir2/testfile"}
+    answer = {
+        "testfile1",
+        "bin/testfile",
+        "testdir1/testfile",
+        "testdir1/testdir2/testfile",
+    }
     if sys.platform != "darwin":
         answer.add("python.app")
 

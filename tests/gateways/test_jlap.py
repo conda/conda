@@ -5,6 +5,7 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
 import datetime
 import json
+import time
 from pathlib import Path
 from socket import socket
 from unittest.mock import Mock
@@ -17,13 +18,20 @@ import zstandard
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, CondaSSLError
 from conda.gateways.connection.session import CondaSession
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
+    CACHE_STATE_SUFFIX,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    URL_KEY,
     CondaRepoInterface,
+    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     Response304ContentUnchanged,
+    get_repo_interface,
 )
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
@@ -36,22 +44,24 @@ def test_server_available(package_server: socket):
 
 
 def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
-    """
-    Check that JlapRepoInterface doesn't raise exceptions.
-    """
+    """Check that JlapRepoInterface doesn't raise exceptions."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
+
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
 
     url = f"{base}/osx-64"
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     patched = mocker.patch(
-        "conda.gateways.repodata.jlap.fetch.download_and_hash", wraps=fetch.download_and_hash
+        "conda.gateways.repodata.jlap.fetch.download_and_hash",
+        wraps=fetch.download_and_hash,
     )
 
     state = {}
@@ -71,6 +81,50 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
 
     # we may be able to do better than this by setting "zst unavailable" sooner
     assert patched.call_count == 4
+
+
+@pytest.mark.parametrize("verify_ssl", [True, False])
+def test_jlap_fetch_ssl(
+    package_server_ssl: socket, tmp_path: Path, mocker, verify_ssl: bool
+):
+    """Check that JlapRepoInterface doesn't raise exceptions."""
+    host, port = package_server_ssl.getsockname()
+    base = f"https://{host}:{port}/test"
+
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+
+    url = f"{base}/osx-64"
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache=cache,
+        cache_path_json=Path(tmp_path, f"repodata_{verify_ssl}.json"),
+        cache_path_state=Path(tmp_path, f"repodata_{verify_ssl}{CACHE_STATE_SUFFIX}"),
+    )
+
+    expected_exception = CondaSSLError if verify_ssl else RepodataOnDisk
+
+    # clear session cache to avoid leftover wrong-ssl-verify Session()
+    try:
+        del CondaSession._thread_local.session
+    except AttributeError:
+        pass
+
+    state = {}
+    with env_vars(
+        {"CONDA_SSL_VERIFY": str(verify_ssl).lower()},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), pytest.raises(expected_exception), pytest.warns() as record:
+        repo.repodata(state)
+
+    # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
+    assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"
+
+    # clear session cache to avoid leftover wrong-ssl-verify Session()
+    try:
+        del CondaSession._thread_local.session
+    except AttributeError:
+        pass
 
 
 def test_download_and_hash(
@@ -97,7 +151,14 @@ def test_download_and_hash(
     destination = tmp_path / "repodata.json"
     url2 = base + "/osx-64/repodata.json"
     hasher2 = fetch.hash()
-    response = fetch.download_and_hash(hasher2, url2, destination, session, state)
+    response = fetch.download_and_hash(
+        hasher2,
+        url2,
+        destination,
+        session,
+        state,
+        dest_path=destination,
+    )
     print(response)
     print(state)
     t = destination.read_text()
@@ -142,9 +203,7 @@ def test_repodata_state(
     package_server: socket,
     use_jlap: bool,
 ):
-    """
-    Test that .state.json file works correctly.
-    """
+    """Test that cache metadata file works correctly."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -187,17 +246,21 @@ def test_repodata_state(
 
         # not all required depending on server response, but our test server
         # will include them
-        for field in ("mod", "etag", "cache_control", "size", "mtime_ns"):
+        for field in (
+            LAST_MODIFIED_KEY,
+            ETAG_KEY,
+            CACHE_CONTROL_KEY,
+            URL_KEY,
+            "size",
+            "mtime_ns",
+        ):
             assert field in state
             assert f"_{field}" not in state
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
 def test_jlap_flag(use_jlap):
-    """
-    Test that CONDA_EXPERIMENTAL is a comma-delimited list.
-    """
-
+    """Test that CONDA_EXPERIMENTAL is a comma-delimited list."""
     with env_vars(
         {"CONDA_EXPERIMENTAL": use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
@@ -205,15 +268,16 @@ def test_jlap_flag(use_jlap):
         expected = "jlap" in use_jlap.split(",")
         assert ("jlap" in context.experimental) is expected
 
+        expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
+        assert get_repo_interface() is expected_cls
+
 
 def test_jlap_sought(
     package_server: socket,
     tmp_path: Path,
     package_repository_base: Path,
 ):
-    """
-    Test that we try to fetch the .jlap file.
-    """
+    """Test that we try to fetch the .jlap file."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -340,6 +404,8 @@ def test_jlap_sought(
 
         # clear jlap_unavailable state flag, or it won't look (test this also)
         state = cache.load_state()
+        # avoid 304 to actually overwrite cached data
+        state.etag = ""
         assert fetch.JLAP_UNAVAILABLE not in state  # from previous portion of test
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
@@ -350,12 +416,23 @@ def test_jlap_sought(
         assert len(patched["info"]) == 1  # patches not found in bad jlap file
 
 
+def test_jlap_coverage():
+    """
+    Force raise RepodataOnDisk() at end of JlapRepoInterface.repodata() function.
+    """
+
+    class JlapCoverMe(interface.JlapRepoInterface):
+        def repodata_parsed(self, state):
+            return
+
+    with pytest.raises(RepodataOnDisk):
+        JlapCoverMe("", "", cache=None).repodata({})  # type: ignore
+
+
 def test_jlap_errors(
     package_server: socket, tmp_path: Path, package_repository_base: Path, mocker
 ):
-    """
-    Test that we handle 304 Not Modified responses, other errors.
-    """
+    """Test that we handle 304 Not Modified responses, other errors."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
@@ -420,12 +497,109 @@ def test_jlap_errors(
         with pytest.raises(RepodataOnDisk):
             sd._repo.repodata(state)  # type: ignore
 
+        # above call newly saves cache state, write a clean one again.
+        # clear any jlap failures
+        state.pop("has_jlap", None)
+        state.pop("jlap", None)
+        cache.cache_path_state.write_text(json.dumps(dict(state)))
+
         # force 304 not modified on the .jlap file (test server doesn't return 304
         # not modified on range requests)
         with mocker.patch.object(
             CondaSession, "get", return_value=Mock(status_code=304, headers={})
         ), pytest.raises(Response304ContentUnchanged):
             sd._repo.repodata(cache.load_state())  # type: ignore
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_jlap_cache_clock(
+    package_server: socket,
+    tmp_path: Path,
+    package_repository_base: Path,
+    mocker,
+    use_jlap: bool,
+):
+    """
+    Test that we add another "local_repodata_ttl" (an alternative to
+    "cache-control: max-age=x") seconds to the clock once the cache expires,
+    whether the response was "200" or "304 Not Modified".
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    now = time.time_ns()
+
+    # mock current time to avoid waiting for CONDA_LOCAL_REPODATA_TTL
+    mocker.patch("time.time_ns", return_value=now)
+    assert time.time_ns() == now
+
+    local_repodata_ttl = 30
+
+    with env_vars(
+        {
+            "CONDA_PLATFORM": "osx-64",
+            "CONDA_EXPERIMENTAL": "jlap" if use_jlap else "",
+            "CONDA_PKGS_DIRS": str(tmp_path),
+            "CONDA_LOCAL_REPODATA_TTL": local_repodata_ttl,
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears cache, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+        cache = sd.repo_cache
+
+        # normal full-fetch
+        sd.load()
+        assert cache.load_state()["refresh_ns"] == time.time_ns()
+
+        # now try to re-download or use cache
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+        test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
+        test_jlap.terminate()
+        test_jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+        test_jlap.write(test_jlap_path)
+
+        later0 = now + (local_repodata_ttl + 1) * int(1e9)
+        mocker.patch("time.time_ns", return_value=later0)
+
+        assert cache.stale()
+        sd.load()
+
+        later1 = now + (2 * local_repodata_ttl + 2) * int(1e9)
+        mocker.patch("time.time_ns", return_value=later1)
+
+        # force 304 not modified on the .jlap file (test server doesn't return 304
+        # not modified on range requests)
+        with mocker.patch.object(
+            CondaSession, "get", return_value=Mock(status_code=304, headers={})
+        ):
+            assert cache.stale()
+            sd.load()
+
+        assert cache.load_state()["refresh_ns"] == later1
+        assert not cache.stale()
+
+        later2 = now + ((3 * local_repodata_ttl + 3) * int(1e9))
+        mocker.patch("time.time_ns", return_value=later2)
+
+        assert cache.stale()
+        sd.load()
+
+        assert cache.load_state()["refresh_ns"] == later2
+
+        # check that non-expried cache avoids updating refresh_ns.
+        mocker.patch(
+            "time.time_ns", return_value=now + ((3 * local_repodata_ttl + 4) * int(1e9))
+        )
+
+        sd.load()
+        assert cache.load_state()["refresh_ns"] == later2
 
 
 def test_jlap_zst_not_404(mocker, package_server, tmp_path):
@@ -437,11 +611,13 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
     base = f"http://{host}:{port}/test"
 
     url = f"{base}/osx-64"
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
     repo = interface.JlapRepoInterface(
         url,
         repodata_fn="repodata.json",
+        cache=cache,
         cache_path_json=Path(tmp_path, "repodata.json"),
-        cache_path_state=Path(tmp_path, "repodata.state.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
     )
 
     def error(*args, **kwargs):
@@ -450,16 +626,16 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
 
         raise fetch.HTTPError(response=Response())
 
-    mocker.patch("conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error)
+    mocker.patch(
+        "conda.gateways.repodata.jlap.fetch.download_and_hash", side_effect=error
+    )
 
     with pytest.raises(CondaHTTPError, match="HTTP 405"):
         repo.repodata({})
 
 
 def test_jlap_core(tmp_path: Path):
-    """
-    Code paths not excercised by other tests.
-    """
+    """Code paths not excercised by other tests."""
     with pytest.raises(ValueError):
         # incorrect trailing hash
         core.JLAP.from_lines(
@@ -496,9 +672,7 @@ def test_jlap_core(tmp_path: Path):
 
 
 def make_test_jlap(original: bytes, changes=1):
-    """
-    :original: as bytes, to avoid any newline confusion.
-    """
+    """:original: as bytes, to avoid any newline confusion."""
 
     def jlap_lines():
         yield core.DEFAULT_IV.hex().encode("utf-8")
@@ -534,20 +708,8 @@ def make_test_jlap(original: bytes, changes=1):
     return j
 
 
-def test_jlap_get_place():
-    """
-    (probably soon to be removed) helper function to get cache filenames.
-    """
-    place = fetch.get_place("https://repo.anaconda.com/main/linux-64/current_repodata.json").name
-    assert ".c" in place
-    place2 = fetch.get_place("https://repo.anaconda.com/main/linux-64/repodata.json").name
-    assert ".c" not in place2
-
-
 def test_hashwriter():
-    """
-    Test that HashWriter closes its backing file in a context manager.
-    """
+    """Test that HashWriter closes its backing file in a context manager."""
     closed = False
 
     class backing:

@@ -1,7 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-
 try:
     from inspect import getfullargspec as getargspec
 except ImportError:
@@ -9,8 +7,14 @@ except ImportError:
 
 import pytest
 
-from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData, \
-    UpdateModifier
+from conda.api import (
+    DepsModifier,
+    PackageCacheData,
+    PrefixData,
+    Solver,
+    SubdirData,
+    UpdateModifier,
+)
 from conda.base.context import context
 from conda.common.compat import isiterable
 from conda.common.constants import NULL
@@ -30,7 +34,9 @@ def inspect_arguments(f, arguments):
     defaults = result[3] or ()
     default_val_first_idx = len(arg_names) - len(defaults)
     arg_values = [PositionalArgument] * default_val_first_idx + list(defaults)
-    for (recorded_name, recorded_value), (arg_name, arg_value) in zip(arguments.items(), zip(arg_names, arg_values)):
+    for (recorded_name, recorded_value), (arg_name, arg_value) in zip(
+        arguments.items(), zip(arg_names, arg_values)
+    ):
         print(recorded_name, arg_name)
         assert recorded_name == arg_name
         assert recorded_value == arg_value
@@ -96,7 +102,7 @@ def test_Solver_inputs_contract():
 
 @pytest.mark.integration
 def test_Solver_return_value_contract():
-    solver = Solver('/', (Channel('pkgs/main'),), specs_to_add=('openssl',))
+    solver = Solver("/", (Channel("pkgs/main"),), specs_to_add=("openssl",))
     solve_final_state_rv = solver.solve_final_state()
     assert isiterable(solve_final_state_rv)
     assert all(isinstance(pref, PackageRecord) for pref in solve_final_state_rv)
@@ -142,12 +148,12 @@ def test_SubdirData_contract():
 
 @pytest.mark.integration
 def test_SubdirData_return_value_contract():
-    sd = SubdirData(Channel('pkgs/main/linux-64'))
-    query_result = sd.query('openssl')
+    sd = SubdirData(Channel("pkgs/main/linux-64"))
+    query_result = sd.query("openssl")
     assert isinstance(query_result, tuple)
     assert all(isinstance(prec, PackageRecord) for prec in query_result)
 
-    query_all_result = sd.query_all('openssl', (Channel('pkgs/main'),), context.subdirs)
+    query_all_result = sd.query_all("openssl", (Channel("pkgs/main"),), context.subdirs)
     assert isinstance(query_all_result, tuple)
     assert all(isinstance(prec, PackageRecord) for prec in query_all_result)
 
@@ -205,11 +211,11 @@ def test_PackageCacheData_return_value_contract():
         get_result = pc.get(PackageRecord.from_objects(single_pcrec))
         assert isinstance(get_result, PackageCacheRecord)
 
-    query_result = pc.query('openssl')
+    query_result = pc.query("openssl")
     assert isinstance(query_result, tuple)
     assert all(isinstance(pcrec, PackageCacheRecord) for pcrec in query_result)
 
-    query_all_result = PackageCacheData.query_all('openssl')
+    query_all_result = PackageCacheData.query_all("openssl")
     assert isinstance(query_all_result, tuple)
     assert all(isinstance(pcrec, PackageCacheRecord) for pcrec in query_all_result)
 
@@ -263,13 +269,15 @@ def test_PrefixData_return_value_contract():
     get_result = pd.get(PackageRecord.from_objects(single_prefix_rec))
     assert isinstance(get_result, PrefixRecord)
 
-    query_result = pd.query('openssl')
+    query_result = pd.query("openssl")
     assert isinstance(query_result, tuple)
     assert all(isinstance(prefix_rec, PrefixRecord) for prefix_rec in query_result)
 
     iter_records_result = pd.iter_records()
     assert isiterable(iter_records_result)
-    assert all(isinstance(prefix_rec, PrefixRecord) for prefix_rec in iter_records_result)
+    assert all(
+        isinstance(prefix_rec, PrefixRecord) for prefix_rec in iter_records_result
+    )
 
     is_writable_result = pd.is_writable
     assert is_writable_result is True or is_writable_result is False

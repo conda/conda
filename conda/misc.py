@@ -1,16 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-# this module contains miscellaneous stuff which eventually could be moved
-# into other places
-
-
-from collections import defaultdict
+"""Miscellaneous utility functions."""
 import os
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 import re
 import shutil
 import sys
+from collections import defaultdict
+from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
 from .common.compat import on_win, open
@@ -21,11 +17,11 @@ from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
 from .exceptions import (
+    CondaExitZero,
     DisallowedPackageError,
     DryRunExit,
     PackagesNotFoundError,
     ParseError,
-    CondaExitZero,
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
@@ -54,7 +50,9 @@ url_pat = re.compile(
 )
 
 
-def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, index=None):
+def explicit(
+    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
+):
     actions = defaultdict(list)
     actions["PREFIX"] = prefix
 
@@ -104,13 +102,17 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     )
 
     # Assert that every spec has a PackageCacheRecord
-    specs_with_missing_pcrecs = [str(spec) for spec, pcrec in specs_pcrecs if pcrec is None]
+    specs_with_missing_pcrecs = [
+        str(spec) for spec, pcrec in specs_pcrecs if pcrec is None
+    ]
     if specs_with_missing_pcrecs:
         if len(specs_with_missing_pcrecs) == len(specs_pcrecs):
             raise AssertionError("No package cache records found")
         else:
             missing_precs_list = ", ".join(specs_with_missing_pcrecs)
-            raise AssertionError(f"Missing package cache records for: {missing_precs_list}")
+            raise AssertionError(
+                f"Missing package cache records for: {missing_precs_list}"
+            )
 
     precs_to_remove = []
     prefix_data = PrefixData(prefix)
@@ -140,16 +142,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
 
 def rel_path(prefix, path, windows_forward_slashes=True):
-    res = path[len(prefix) + 1:]
+    res = path[len(prefix) + 1 :]
     if on_win and windows_forward_slashes:
         res = res.replace("\\", "/")
     return res
 
 
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
-    """
-    Return the set of all files in a given prefix directory.
-    """
+    """Return the set of all files in a given prefix directory."""
     res = set()
     prefix = abspath(prefix)
     ignore = {
@@ -193,9 +193,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
 
 
 def untracked(prefix, exclude_self_build=False):
-    """
-    Return (the set) of all untracked files for a given prefix.
-    """
+    """Return (the set) of all untracked files for a given prefix."""
     conda_files = conda_installed_files(prefix, exclude_self_build)
     return {
         path
@@ -211,9 +209,7 @@ def untracked(prefix, exclude_self_build=False):
 
 
 def touch_nonadmin(prefix):
-    """
-    Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
-    """
+    """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
     if on_win and exists(join(context.root_prefix, ".nonadmin")):
         if not isdir(prefix):
             os.makedirs(prefix)
@@ -222,9 +218,7 @@ def touch_nonadmin(prefix):
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
-    """
-    clone existing prefix1 into new prefix2
-    """
+    """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
 
     # Discard conda, conda-env and any package that depends on them
@@ -252,10 +246,17 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     if filter:
         if not quiet:
             fh = sys.stderr if context.json else sys.stdout
-            print("The following packages cannot be cloned out of the root environment:", file=fh)
+            print(
+                "The following packages cannot be cloned out of the root environment:",
+                file=fh,
+            )
             for prec in filter.values():
                 print(" - " + prec.dist_str(), file=fh)
-        drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec["name"] not in filter}
+        drecs = {
+            prec
+            for prec in PrefixData(prefix1).iter_records()
+            if prec["name"] not in filter
+        }
     else:
         drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
@@ -331,6 +332,11 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         shutil.copystat(src, dst)
 
     actions = explicit(
-        urls, prefix2, verbose=not quiet, index=index, force_extract=False, index_args=index_args
+        urls,
+        prefix2,
+        verbose=not quiet,
+        index=index,
+        force_extract=False,
+        index_args=index_args,
     )
     return actions, untracked_files

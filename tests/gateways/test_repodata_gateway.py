@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import sys
 import time
 from pathlib import Path
+from socket import socket
 
 import pytest
 
+from conda.base.constants import REPODATA_FN
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_vars
 from conda.exceptions import (
@@ -23,19 +26,30 @@ from conda.exceptions import (
     ProxyError,
     UnavailableInvalidChannel,
 )
-from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
 from conda.gateways.repodata import (
+    CACHE_CONTROL_KEY,
+    CACHE_STATE_SUFFIX,
+    ETAG_KEY,
+    LAST_MODIFIED_KEY,
+    CondaRepoInterface,
     RepodataCache,
+    RepodataFetch,
     RepodataIsEmpty,
     RepodataState,
     conda_http_errors,
 )
+from conda.gateways.repodata.jlap.interface import JlapRepoInterface
+from conda.models.channel import Channel
 
 
 def test_save(tmp_path):
-    """
-    Check regular cache save, load operations.
-    """
+    """Check regular cache save, load operations."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "lockme", "repodata.json")
     cache.save(TEST_DATA)
@@ -48,7 +62,7 @@ def test_save(tmp_path):
 
     time.sleep(0.1)  # may be necessary on Windows for time.time_ns() to advance
 
-    # update last-checked-timestamp in .state.json
+    # update last-checked-timestamp in metadata file
     cache.refresh()
 
     # repodata.json's mtime should be equal
@@ -59,7 +73,7 @@ def test_save(tmp_path):
 
     assert state2 != state
 
-    # force reload repodata, .state.json from disk
+    # force reload repodata, metadata file from disk
     cache.load()
     state3 = dict(cache.state)
 
@@ -67,22 +81,22 @@ def test_save(tmp_path):
 
 
 def test_stale(tmp_path):
-    """
-    RepodataCache should understand cache-control and modified time versus now.
-    """
+    """RepodataCache should understand cache-control and modified time versus now."""
     TEST_DATA = "{}"
     cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
-    MOD = "Thu, 26 Jan 2023 19:34:01 GMT"
-    cache.state.mod = MOD
-    CACHE_CONTROL = "public, max-age=30"
-    cache.state.cache_control = CACHE_CONTROL
-    ETAG = '"etag"'
-    cache.state.etag = ETAG
+    last_modified = "Thu, 26 Jan 2023 19:34:01 GMT"
+    cache.state.mod = last_modified
+    cache_control = "public, max-age=30"
+    cache.state.cache_control = cache_control
+    etag = '"unambiguous-etag"'
+    cache.state.etag = etag
     cache.save(TEST_DATA)
 
     cache.load()
     assert not cache.stale()
-    assert 29 < cache.timeout() < 30.1  # time difference between record and save timestamp
+    assert (
+        29 < cache.timeout() < 30.1
+    )  # time difference between record and save timestamp
 
     # backdate
     cache.state["refresh_ns"] = time.time_ns() - (60 * 10**9)  # type: ignore
@@ -105,15 +119,15 @@ def test_stale(tmp_path):
         context.local_repodata_ttl = original_ttl
 
     # since state's mtime_ns matches repodata.json stat(), these will be preserved
-    assert cache.state.mod == MOD
-    assert cache.state.cache_control == CACHE_CONTROL
-    assert cache.state.etag == ETAG
+    assert cache.state.mod == last_modified
+    assert cache.state.cache_control == cache_control
+    assert cache.state.etag == etag
 
     # XXX rewrite state without replacing repodata.json, assert still stale...
 
     # mismatched mtime empties cache headers
     state = dict(cache.state)
-    assert state["etag"]
+    assert state[ETAG_KEY]
     assert cache.state.etag
     state["mtime_ns"] = 0
     cache.cache_path_state.write_text(json.dumps(state))
@@ -121,25 +135,56 @@ def test_stale(tmp_path):
     assert not cache.state.mod
     assert not cache.state.etag
 
+    # if we don't match stat then load_state will clear the test "mod" value
+    json_stat = cache.cache_path_json.stat()
 
-def test_coverage_repodata_state(tmp_path):
-    # now these should be loaded through RepodataCache instead.
+    # check type problems
+    json_types = (None, True, False, 0, 0.5, math.nan, {}, "a string")
+    for example in json_types:
+        cache.state["cache_control"] = example
+        cache.stale()
 
-    # assert invalid state is equal to no state
-    state = RepodataState(
-        tmp_path / "garbage.json", tmp_path / "garbage.state.json", "repodata.json"
+        # change wrongly-typed mod to empty string
+        cache.cache_path_state.write_text(
+            json.dumps(
+                {
+                    "mod": example,
+                    "mtime_ns": json_stat.st_mtime_ns,
+                    "size": json_stat.st_size,
+                }
+            )
+        )
+        state = cache.load_state()
+        assert state.mod == "" or isinstance(example, str)
+
+    # preserve correct mod
+    cache.cache_path_state.write_text(
+        json.dumps(
+            {
+                "mod": "some",
+                "mtime_ns": json_stat.st_mtime_ns,
+                "size": json_stat.st_size,
+            }
+        )
     )
-    state.cache_path_state.write_text("not json")
-    assert dict(state.load()) == {}
+    state = cache.load_state()
+    assert state.mod == "some"
 
 
-from conda.gateways.connection import HTTPError, InvalidSchema, RequestsProxyError, SSLError
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
 from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
 
 
 def test_repodata_state_has_format():
     # wrong has_zst format
-    state = RepodataState("", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}})
+    state = RepodataState(
+        "", "", "", dict={"has_zst": {"last_checked": "Tuesday", "value": 0}}
+    )
     value, dt = state.has_format("zst")
     assert value is False
     assert isinstance(dt, datetime.datetime)
@@ -257,47 +302,87 @@ def test_ssl_unavailable_error_message():
         del sys.modules["ssl"]
 
 
-def test_cache_json(tmp_path: Path):
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_fetch_formats(
+    package_server: socket,
+    use_jlap: bool,
+    tmp_path: Path,
+    temp_package_cache: Path,
+    package_repository_base: Path,
+):
     """
-    Load and save standardized field names, from internal matches-legacy
-    underscore-prefixed field names. Assert state is only loaded if it matches
-    cached json.
+    Test that repodata fetch can return parsed or Path.
     """
-    cache_json = tmp_path / "cached.json"
-    cache_state = tmp_path / "cached.state.json"
+    assert temp_package_cache.exists()
 
-    cache_json.write_text("{}")
+    # Remove leftover test data.
+    jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+    if jlap_path.exists():
+        jlap_path.unlink()
 
-    RepodataState(cache_json, cache_state, "repodata.json").save()
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
 
-    state = RepodataState(cache_json, cache_state, "repodata.json").load()
+    if use_jlap:
+        repo_cls = JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
 
-    mod = "last modified time"
+    # we always check for *and create* a writable cache dir before fetch
+    cache_path_base = tmp_path / "fetch_formats" / "xyzzy"
+    cache_path_base.parent.mkdir(exist_ok=True)
 
-    state = RepodataState(cache_json, cache_state, "repodata.json")
-    state.mod = mod  # this is the last-modified header not mtime_ns
-    state.cache_control = "cache control"
-    state.etag = "etag"
-    state.save()
+    channel = Channel(channel_url)
 
-    on_disk_format = json.loads(cache_state.read_text())
-    print("disk format", on_disk_format)
-    assert on_disk_format["mod"] == mod
-    assert on_disk_format["cache_control"]
-    assert on_disk_format["etag"]
-    assert isinstance(on_disk_format["size"], int)
-    assert isinstance(on_disk_format["mtime_ns"], int)
+    fetch = RepodataFetch(
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
+    )
 
-    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state2.mod == mod
-    assert state2.cache_control
-    assert state2.etag
+    assert isinstance(fetch.cache_path_state, Path)  # coverage
 
-    assert state2["mod"] == state2.mod
-    assert state2["etag"] == state2.etag
-    assert state2["cache_control"] == state2.cache_control
+    a, state = fetch.fetch_latest_parsed()
+    b, state = fetch.fetch_latest_path()
 
-    cache_json.write_text("{ }")  # now invalid due to size
+    assert a == json.loads(b.read_text())
 
-    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state_invalid.get("mod") == ""
+    assert isinstance(state, RepodataState)
+
+
+@pytest.mark.parametrize("use_network", [False, True])
+@pytest.mark.parametrize("use_index", ["false", "true"])
+def test_repodata_fetch_cached(
+    use_index: str, use_network: bool, package_server, tmp_path
+):
+    """
+    An empty cache should return an empty result instead of an error, when
+    CONDA_USE_INDEX is enabled.
+    """
+
+    # real network but 404, avoids socket timeouts
+    if use_network:
+        host, port = package_server.getsockname()
+        channel_url = f"http://{host}:{port}/notfound"
+    else:
+        channel_url = "file:///path/does/not/exist"
+
+    with env_vars({"CONDA_USE_INDEX": use_index}):
+        # we always check for *and create* a writable cache dir before fetch
+        cache_path_base = tmp_path / "fetch_cached"
+        cache_path_base.parent.mkdir(exist_ok=True)
+
+        # due to the way we handle file:/// urls, this test will pass whether or
+        # not use_index is true or false. Will it exercise different code paths?
+        channel = Channel(channel_url)
+
+        fetch = RepodataFetch(
+            cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
+        )
+
+        # strangely never throws unavailable exception?
+        repodata, state = fetch.fetch_latest_parsed()
+
+        assert repodata == {}
+        for key in "mtime_ns", "size", "refresh_ns":
+            state.pop(key)
+        assert state == {}

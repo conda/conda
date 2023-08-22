@@ -19,7 +19,7 @@ Standard specification
     (Optional) Can either be a channel name or URL. Channel names may include letters, numbers, dashes, and underscores.
 
 **subdir**
-    (Optional) A subdirectory of a channel. Many subdirs are used for architectures, but this is not required. Must have a channel and backslash preceeding it. For example: ``main/noarch``
+    (Optional) A subdirectory of a channel. Many subdirs are used for architectures, but this is not required. Must have a channel and backslash preceding it. For example: ``main/noarch``
 
 **name**
     (Required) Package name. May include the ``*`` wildcard. For example, ``*py*`` returns all packages that have "py" in their names, such as "numpy", "pytorch", "python", etc.
@@ -39,6 +39,11 @@ example image. The search below will return the same list of packages as the sta
 .. code-block:: none
 
    $ conda search "numpy[channel=conda-forge, subdir=linux-64, version=1.17.*, build=py38*]"
+
+This notation supports the following key-value pairs:
+
+.. program-output:: python -c 'import conda.models.match_spec as M; print("-", "\n- ".join([f"{field:20} # validated via {M._implementors.get(field, M.ExactStrMatch).__name__}" for field in sorted(M.MatchSpec.FIELD_NAMES)]))'
+   :shell:
 
 Key-value pair notation can be used at the same time as standard notation.
 

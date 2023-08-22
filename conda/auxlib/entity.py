@@ -241,10 +241,11 @@ from enum import Enum
 from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
+from pathlib import Path
 
 try:
     from boltons.timeutils import isoparse
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.boltons.timeutils import isoparse
 
 from . import NULL
@@ -962,4 +963,6 @@ class EntityEncoder(JSONEncoder):
             return obj.as_json()
         elif isinstance(obj, Enum):
             return obj.value
+        elif isinstance(obj, Path):
+            return str(obj)
         return JSONEncoder.default(self, obj)

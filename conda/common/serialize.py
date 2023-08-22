@@ -1,9 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-from io import StringIO
+"""YAML and JSON serialization and deserialization functions."""
 import functools
 import json
+from io import StringIO
 from logging import getLogger
 
 from ..auxlib.entity import EntityEncoder
@@ -14,7 +14,9 @@ except ImportError:
     try:
         import ruamel_yaml as yaml
     except ImportError:
-        raise ImportError("No yaml library available. To proceed, conda install ruamel.yaml")
+        raise ImportError(
+            "No yaml library available. To proceed, conda install ruamel.yaml"
+        )
 
 log = getLogger(__name__)
 
@@ -52,7 +54,7 @@ def yaml_safe_load(string):
 
 
 def yaml_round_trip_dump(object, stream=None):
-    """dump object to string or stream"""
+    """Dump object to string or stream."""
     ostream = stream or StringIO()
     _yaml_round_trip().dump(object, ostream)
     if not stream:
@@ -60,7 +62,7 @@ def yaml_round_trip_dump(object, stream=None):
 
 
 def yaml_safe_dump(object, stream=None):
-    """dump object to string or stream"""
+    """Dump object to string or stream."""
     ostream = stream or StringIO()
     _yaml_safe().dump(object, ostream)
     if not stream:
@@ -72,4 +74,6 @@ def json_load(string):
 
 
 def json_dump(object):
-    return json.dumps(object, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder)
+    return json.dumps(
+        object, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder
+    )

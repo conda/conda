@@ -64,6 +64,7 @@ Authors are sorted alphabetically.
 * Brian W. Hart
 * Bruno Oliveira
 * Bryan Van de Ven
+* Carlos H Brandt
 * Casper da Costa-Luis
 * Chawye Hsu
 * Cheng H. Lee
@@ -102,6 +103,7 @@ Authors are sorted alphabetically.
 * Darren Dale
 * Dave
 * Dave Hirschfeld
+* Dave Hogue
 * Dave Masino
 * David Froger
 * David Kent
@@ -123,6 +125,7 @@ Authors are sorted alphabetically.
 * Erik Sundell
 * Ernst Reissner
 * Eugene Van den Bulke
+* Evo
 * Faustin Carter
 * FelisNivalis
 * Flavio Martins
@@ -185,9 +188,11 @@ Authors are sorted alphabetically.
 * Joel Kim
 * Joel Tony
 * Johan Carlin
+* Johannes Köster
 * John Ayad
 * John Flavin
 * John Kirkham
+* Johnny Núñez Cano
 * Jonas Haag
 * Jonathan J. Helmus
 * Josh Mayer
@@ -202,8 +207,10 @@ Authors are sorted alphabetically.
 * Kamil Kwiek
 * Kannan Jayachandran
 * Kara de la Marck
+* Katherine Abrikian
 * Katherine Kinnaman
 * Ken Odegard
+* Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
@@ -215,6 +222,7 @@ Authors are sorted alphabetically.
 * Lila Hickey
 * Lorcan Hamill
 * Lori A. Burns
+* Loïc Estève
 * Luc J. Bourhis
 * Luis Gutierrez
 * Maggie Mari
@@ -228,10 +236,12 @@ Authors are sorted alphabetically.
 * Marcel Stimberg
 * Marcelo Duarte Trevisani
 * Marcin Wojdyr
+* Marco Esters
 * Marco Rossi
 * Marcos Vanetta
 * Marcus Caisey
 * Mario Juric
+* Mark Edzel Potane
 * Mark Harfouche
 * Mark Wiebe
 * Markus Gerstel
@@ -241,6 +251,7 @@ Authors are sorted alphabetically.
 * Martin Prüsse
 * Martin Raden
 * Matt Craig
+* Matt Kramer
 * Matthew Anderson
 * Matthew Dillon
 * Matthew Linebaugh
@@ -250,6 +261,7 @@ Authors are sorted alphabetically.
 * Matthieu Guillaumin
 * MatthieuDartiailh
 * Matti Picus
+* Maurice Meyer
 * Max Reeder
 * Maximilian Noethe
 * Maya Gilad
@@ -368,6 +380,7 @@ Authors are sorted alphabetically.
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
+* Thomas Lam
 * Thomas Wiecki
 * Théo Segonds
 * Tian Zhang
@@ -389,6 +402,7 @@ Authors are sorted alphabetically.
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
+* Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy
 * Wes Roach
@@ -421,3 +435,4 @@ Authors are sorted alphabetically.
 * ugurthemaster
 * wulmer
 * Øystein Idema Torget
+* İrem "Siren" Kuyucu

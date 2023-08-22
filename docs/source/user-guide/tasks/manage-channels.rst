@@ -55,13 +55,13 @@ channelA::numpy-1.13_1 > channelA::numpy-1.12.1_1 > channelA::numpy-1.12.1_0 > c
 To make conda install the newest version
 of a package in any listed channel:
 
-* Add ``channel_priority: false`` to your ``.condarc`` file.
+* Add ``channel_priority: disabled`` to your ``.condarc`` file.
 
   OR
 
 * Run the equivalent command::
 
-    conda config --set channel_priority false
+    conda config --set channel_priority disabled
 
 Conda then sorts as follows:
 
