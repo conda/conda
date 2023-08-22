@@ -68,11 +68,13 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser.add_argument(
         "--debug",
         action="store_true",
+        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(
         "--json",
         action="store_true",
+        default=NULL,
         help=SUPPRESS,
     )
     pre_parser.add_argument(

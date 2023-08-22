@@ -579,7 +579,7 @@ class RepodataCache:
         """
         try:
             self.load(state_only=True)
-        except FileNotFoundError:
+        except FileNotFoundError:  # or JSONDecodeError?
             self.state.clear()
         return self.state
 
@@ -731,22 +731,14 @@ class RepodataFetch:
 
     @property
     def cache_path_json(self):
-        return Path(
-            str(self.cache_path_base)
-            + ("1" if context.use_only_tar_bz2 else "")
-            + ".json"
-        )
+        return self.repo_cache.cache_path_json
 
     @property
     def cache_path_state(self):
         """
         Out-of-band etag and other state needed by the RepoInterface.
         """
-        return Path(
-            str(self.cache_path_base)
-            + ("1" if context.use_only_tar_bz2 else "")
-            + CACHE_STATE_SUFFIX
-        )
+        return self.repo_cache.cache_path_state
 
     @property
     def repo_cache(self) -> RepodataCache:
@@ -846,8 +838,6 @@ class RepodataFetch:
                 self.url_w_repodata_fn,
             )
             cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the a separate file is invalid
-            # self._save_state(mod_etag_headers)
             _internal_state = self.read_cache()
             return _internal_state
         else:

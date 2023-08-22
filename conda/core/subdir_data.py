@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import pickle
-import re
 from collections import UserList, defaultdict
 from functools import partial
 from itertools import chain
@@ -31,8 +30,11 @@ from conda.gateways.repodata import (
     RepoInterface,
     cache_fn_url,
     create_cache_dir,
-    get_repo_interface,
 )
+from conda.gateways.repodata import (
+    get_cache_control_max_age as _get_cache_control_max_age,
+)
+from conda.gateways.repodata import get_repo_interface
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -54,6 +56,15 @@ log = getLogger(__name__)
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+
+
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.gateways.repodata.get_cache_control_max_age` instead.",
+)
+def get_cache_control_max_age(cache_control_value: str) -> int:
+    return _get_cache_control_max_age(cache_control_value)
 
 
 class SubdirDataType(type):
@@ -293,20 +304,6 @@ class SubdirData(metaclass=SubdirDataType):
         for i in self._names_index[name]:
             yield self._package_records[i]
 
-    def _load_state(self):
-        """
-        Cache headers and additional data needed to keep track of the cache are
-        stored separately, instead of the previous "added to repodata.json"
-        arrangement.
-        """
-        return self.repo_cache.load_state()
-
-    def _save_state(self, state: RepodataState):
-        assert Path(state.cache_path_json) == Path(self.cache_path_json)
-        assert Path(state.cache_path_state) == Path(self.cache_path_state)
-        assert state.repodata_fn == self.repodata_fn
-        return state.save()
-
     def _load(self):
         """
         Try to load repodata. If e.g. we are downloading
@@ -529,11 +526,6 @@ class SubdirData(metaclass=SubdirDataType):
         return _internal_state
 
 
-def get_cache_control_max_age(cache_control_value: str):
-    max_age = re.search(r"max-age=(\d+)", cache_control_value)
-    return int(max_age.groups()[0]) if max_age else 0
-
-
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = "%s@" % feature_name
@@ -567,7 +559,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        cache_state = subdir._load_state()
+        cache_state = subdir.repo_cache.load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
         raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore

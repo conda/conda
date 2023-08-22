@@ -27,7 +27,7 @@ jobs:
           # (default: secrets.GITHUB_TOKEN)
           token: ${{ secrets.CLA_ACTION_TOKEN }}
           # [required]
-          # Label to apply to contributor's PR once CLA is singed
+          # Label to apply to contributor's PR once CLA is signed
           label: cla-signed
 
           # [required]

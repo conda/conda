@@ -35,7 +35,7 @@ repos:
       - id: check-merge-conflict
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.3
+    rev: v1.5.4
     hooks:
       # auto inject license blurb
       - id: insert-license
@@ -64,7 +64,7 @@ repos:
       # auto format Python codes
       - id: black
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.15.0
+    rev: 1.16.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
