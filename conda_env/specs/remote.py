@@ -25,6 +25,9 @@ class RemoteSpec:
 
     def can_handle(self) -> bool:
         """Determine if the requested protocol is installed"""
+        if self.uri is None:
+            self.msg = "Can't process without a uri"
+            return False
         protocol, _ = split_protocol(self.uri)
         if protocol not in available_protocols():
             self.msg = (
