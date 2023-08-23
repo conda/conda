@@ -8,7 +8,8 @@ build:
   script:
     # since this is a noarch package we don't care that this is unix
     - mkdir -p ${PREFIX}/bin
-    - echo "test" > ${PREFIX}/bin/file
+    - touch ${PREFIX}/bin/tiny_exe
+    - chmod +x ${PREFIX}/bin/tiny_exe
 
 
 about:
