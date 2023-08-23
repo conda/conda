@@ -6,6 +6,7 @@ import json
 import os
 import platform
 import sys
+from dataclasses import dataclass
 from functools import lru_cache
 from itertools import chain
 from logging import getLogger
@@ -3234,55 +3235,50 @@ def test_activate_deactivate_modify_path(test_recipes_channel: None, shell, pref
     assert original_path == os.environ.get("PATH")
 
 
+@dataclass
 class _Env:
-    def __init__(self, prefix=None, paths=None):
-        self.prefix = Path(prefix) if prefix else None
-
-        if not paths:
-            if on_win:
-                path = self.prefix / "Library" / "bin" / "tiny_exe.exe"
-            else:
-                path = self.prefix / "bin" / "tiny_exe"
-
-            paths = (path,) if path.exists() else ()
-        self.paths = paths
+    prefix: Path | None = None
+    paths: Iterable[Path] = ()
 
 
 @pytest.fixture
 def create_stackable_envs(
-    test_recipes_channel: None, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
+    test_recipes_channel: None,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
 ) -> Iterable[tuple[str, dict[str, _Env]]]:
-    package = "private-package"
-    exe = "tiny_exe"
-
-    # generate stackable environments, two with package and one without package
+    package = "tiny_package"
+    exe = "tiny"
     which = f"{'where' if on_win else 'which -a'} {exe}"
 
-    with tmp_env(package, "--use-local") as sys, tmp_env(
-        package, "--use-local"
-    ) as base, tmp_env(package, "--use-local") as haspkg, tmp_env() as notpkg:
-        monkeypatch.setenv(
-            "PATH",
-            os.pathsep.join(
-                (os.environ["PATH"], str(Path(sys, "Script" if on_win else "bin")))
-            ),
-        )
+    # generate stackable environments, three with package and one without package
+    with tmp_env(package, "--use-local") as sys:
+        with tmp_env(package, "--use-local") as base:
+            with tmp_env(package, "--use-local") as haspkg:
+                with tmp_env() as notpkg:
+                    monkeypatch.setenv(
+                        "PATH",
+                        os.pathsep.join(
+                            (
+                                os.environ["PATH"],
+                                str(Path(sys, "Script" if on_win else "bin")),
+                            )
+                        ),
+                    )
 
-        yield which, {
-            "sys": _Env(
-                paths=_run_command(
-                    *("conda deactivate" for _ in range(5)),
-                    "conda config --set auto_activate_base false",
-                    which,
-                )
-            ),
-            "base": _Env(prefix=base),
-            "has": _Env(prefix=haspkg),
-            "not": _Env(prefix=notpkg),
-        }
+                    with monkeypatch.context() as monkey:
+                        monkey.setenv("CONDA_AUTO_ACTIVATE_BASE", "false")
+                        sys_paths = _run_command(which)
+
+                    yield which, {
+                        "sys": _Env(paths=sys_paths),
+                        "base": _Env(prefix=base, paths=[base / "bin" / exe]),
+                        "has": _Env(prefix=haspkg, paths=[haspkg / "bin" / exe]),
+                        "not": _Env(prefix=notpkg),
+                    }
 
 
-def _run_command(*lines):
+def _run_command(*lines: str) -> list[Path]:
     # create a custom run command since this is specific to the shell integration
     if on_win:
         join = " && ".join
@@ -3290,9 +3286,15 @@ def _run_command(*lines):
     else:
         join = "\n".join
         source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
-    script = join((source, *lines))
+    script = join(
+        (
+            source,
+            *("conda deactivate" for _ in range(5)),
+            *lines,
+        )
+    )
     output = check_output(script, shell=True).decode().splitlines()
-    return [Path(path) for path in filter(None, output)]
+    return list(map(Path, filter(None, output)))
 
 
 # see https://github.com/conda/conda/pull/11257#issuecomment-1050531320
@@ -3349,11 +3351,12 @@ def test_stacking(
     stack: list[str],
     run: str,
     expected: list[str],
+    monkeypatch: MonkeyPatch,
 ):
+    monkeypatch.setenv("CONDA_AUTO_STACK", str(auto_stack))
+
     which, envs = create_stackable_envs
     assert _run_command(
-        *("conda deactivate" for _ in range(5)),
-        f"conda config --set auto_stack {auto_stack}",
         *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
         f'conda run -p "{envs[run.strip()].prefix}" {which}',
     ) == list(chain.from_iterable(envs[env.strip()].paths for env in expected))
