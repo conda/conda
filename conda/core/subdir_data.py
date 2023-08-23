@@ -509,8 +509,8 @@ class SubdirData(metaclass=SubdirDataType):
             for fn, info in group:
                 _package_records.info[fn] = info
 
-                # Must modify info past this point for signature verification to
-                # work.
+                # Must not modify info past this point for signature
+                # verification to work.
                 additional_info = {}
 
                 if copy_legacy_md5:
