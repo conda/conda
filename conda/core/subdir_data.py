@@ -104,6 +104,8 @@ class PackageRecordList(UserList):
 
     def __getitem__(self, i):
         if isinstance(i, slice):
+            # does conda slice?
+            raise NotImplemented()
             sliced = self.__class__(self.data[i])
             sliced.signatures = self.signatures
             sliced.info = self.info
@@ -115,7 +117,7 @@ class PackageRecordList(UserList):
                 # updates to the info dictionary performed below do not
                 # invalidate the signatures provided in metadata.json.
                 fn = record["fn"]
-                info = self.info[fn]
+                info = self.info.pop(fn)
                 # TODO add an if enabled: before the function call.
                 signature_verification(info, fn, self.signatures)
                 record = PackageRecord(**{**info, **record})
