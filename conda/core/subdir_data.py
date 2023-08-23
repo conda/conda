@@ -96,13 +96,26 @@ class SubdirDataType(type):
 class PackageRecordList(UserList):
     """Lazily convert dicts to PackageRecord."""
 
+    signatures: dict  # signature information from repodata.json
+    info: dict  # Unchanged individual record for signature verification indexed by filename.
+
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return self.__class__(self.data[i])
+            sliced = self.__class__(self.data[i])
+            sliced.signatures = self.signatures
+            sliced.info = self.info
+            return sliced
         else:
             record = self.data[i]
             if not isinstance(record, PackageRecord):
-                record = PackageRecord(**record)
+                # Verify metadata signature before anything else so run-time
+                # updates to the info dictionary performed below do not
+                # invalidate the signatures provided in metadata.json.
+                fn = record["fn"]
+                info = self.info[fn]
+                # TODO add an if enabled: before the function call.
+                signature_verification(info, record, self.signatures)
+                record = PackageRecord(**{**info, **record})
                 self.data[i] = record
             return record
 
@@ -438,6 +451,7 @@ class SubdirData(metaclass=SubdirDataType):
             "fn": self.repodata_fn,
             "_package_records": _package_records,
             "_names_index": _names_index,
+            "_signatures": signatures,
             "_track_features_index": _track_features_index,
             "_etag": state.get("_etag"),
             "_mod": state.get("_mod"),
@@ -482,43 +496,46 @@ class SubdirData(metaclass=SubdirDataType):
             k[:-6] + _tar_bz2 for k in conda_packages.keys()
         }
 
+        _package_records.signatures = signatures
+
         for group, copy_legacy_md5 in (
             (conda_packages.items(), True),
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-                # Verify metadata signature before anything else so run-time
-                # updates to the info dictionary performed below do not
-                # invalidate the signatures provided in metadata.json.
-                signature_verification(info, fn, signatures)
+                _package_records.info["fn"] = info
+
+                # Must modify info past this point for signature verification to
+                # work.
+                additional_info = {}
 
                 if copy_legacy_md5:
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
-                        info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
-                        info["legacy_bz2_size"] = legacy_packages[counterpart].get(
+                        additional_info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
+                        additional_info["legacy_bz2_size"] = legacy_packages[counterpart].get(
                             "size"
                         )
                 if (
                     add_pip
-                    and info["name"] == "python"
-                    and info["version"].startswith(("2.", "3."))
+                    and additional_info["name"] == "python"
+                    and additional_info["version"].startswith(("2.", "3."))
                 ):
-                    info["depends"].append("pip")
-                info.update(meta_in_common)
+                    additional_info["depends"] = info["depends"]  + "pip"
+                additional_info.update(meta_in_common)
                 if info.get("record_version", 0) > 1:
+                    # XXX ? so we don't add it to _package_records?
                     log.debug(
                         "Ignoring record_version %d from %s",
-                        info["record_version"],
-                        info["url"],
+                        additional_info["record_version"],
+                        additional_info["url"],
                     )
                     continue
 
                 # lazy
-                # package_record = PackageRecord(**info)
-                info["fn"] = fn
-                info["url"] = join_url(channel_url, fn)
-                _package_records.append(info)
+                additional_info["fn"] = fn
+                additional_info["url"] = join_url(channel_url, fn)
+                _package_records.append(additional_info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)
 
