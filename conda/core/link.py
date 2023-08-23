@@ -267,8 +267,8 @@ class UnlinkLinkTransaction:
                 )
                 self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
-    @time_recorder("unlink_link_prepare_and_verify")
     @lru_cache(maxsize=None)  # only run once
+    @time_recorder("unlink_link_prepare_and_verify")
     def verify(self):
         self.prepare()
 
@@ -1426,6 +1426,13 @@ class UnlinkLinkTransaction:
             fetch_precs,
         )
         return change_report
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls._pfe.fget.cache_clear()  # type: ignore[attr-defined]
+        ProgressiveFetchExtract.cache_clear()
+        cls.prepare.cache_clear()
+        cls.verify.cache_clear()
 
 
 def run_script(

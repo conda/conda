@@ -724,8 +724,8 @@ class ProgressiveFetchExtract:
             {}
         )  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
-    @time_recorder("fetch_extract_prepare")
     @lru_cache(maxsize=None)  # only run once
+    @time_recorder("fetch_extract_prepare")
     def prepare(self) -> None:
         self.paired_actions.update(
             (prec, self.make_actions_for_record(prec)) for prec in self.link_precs
@@ -874,6 +874,11 @@ class ProgressiveFetchExtract:
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.prepare.cache_clear()
+        cls.execute.cache_clear()
 
 
 def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):

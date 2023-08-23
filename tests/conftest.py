@@ -35,9 +35,11 @@ def test_recipes_channel(monkeypatch: MonkeyPatch) -> None:
 
 @pytest.fixture
 def clear_cache():
+    from conda.core.link import UnlinkLinkTransaction
     from conda.core.subdir_data import SubdirData
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
+    UnlinkLinkTransaction.cache_clear()
 
 
 @pytest.fixture(scope="session")
