@@ -206,7 +206,11 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
 
         sd = SubdirData(channel)
         sd.load()
-        assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
+
+        # this line was to cover _package_records slices, now unsupported
+        # assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
+        with pytest.raises(NotImplementedError):
+            sd._package_records[1:]
 
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
