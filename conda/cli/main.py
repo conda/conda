@@ -51,7 +51,12 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     pre_args, _ = pre_parser.parse_known_args(args)
 
     # the arguments that we want to pass to the main parser later on
-    override_args = {"json": pre_args.json, "debug": pre_args.debug}
+    override_args = {
+        "json": pre_args.json,
+        "debug": pre_args.debug,
+        "trace": pre_args.trace,
+        "verbosity": pre_args.verbosity,
+    }
 
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:

@@ -379,8 +379,8 @@ class Context(Configuration):
     always_yes = ParameterLoader(
         PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=("yes",)
     )
-    _debug = ParameterLoader(PrimitiveParameter(False))
-    _trace = ParameterLoader(PrimitiveParameter(False))
+    _debug = ParameterLoader(PrimitiveParameter(False), aliases=["debug"])
+    _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
@@ -958,22 +958,22 @@ class Context(Configuration):
     @property
     def trace(self) -> bool:
         """Alias for context.verbosity >=4."""
-        return self._trace or self._verbosity >= 4
+        return self.verbosity >= 4
 
     @property
     def debug(self) -> bool:
         """Alias for context.verbosity >=3."""
-        return self._debug or self._verbosity >= 3
+        return self.verbosity >= 3
 
     @property
     def info(self) -> bool:
         """Alias for context.verbosity >=2."""
-        return self._verbosity >= 2
+        return self.verbosity >= 2
 
     @property
     def verbose(self) -> bool:
         """Alias for context.verbosity >=1."""
-        return self._verbosity >= 1
+        return self.verbosity >= 1
 
     @property
     def verbosity(self) -> int:
