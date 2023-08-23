@@ -229,13 +229,16 @@ class _SignatureVerification:
                 f"Invalid JSON returned from {signing_data_url}/{filename}"
             )
 
-    def __call__(self, info, fn, signatures):
+    def __call__(self, info, fn, signatures, deepcopy=True):
         if not self.enabled or fn not in signatures:
             return
 
         # create a signable envelope (a dict with the info and signatures)
-        envelope = wrap_as_signable(info)
-        envelope["signatures"] = signatures[fn]
+        # envelope = wrap_as_signable(info)
+        envelope = {
+            "signatures": signatures[fn],
+            "signed": info,
+        }  # like wrap_as_signable without now-unnecessary deepcopy()
 
         try:
             verify_delegation("pkg_mgr", envelope, self.key_mgr)
