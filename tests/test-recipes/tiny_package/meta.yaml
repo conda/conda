@@ -1,0 +1,14 @@
+package:
+  name: tiny_package
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p ${PREFIX}/bin
+    - touch ${PREFIX}/bin/tiny
+    - chmod +x ${PREFIX}/bin/tiny
+
+about:
+  summary: A noarch package with a tiny executable
