@@ -170,11 +170,11 @@ def install(args, parser, command="install"):
                     # loaded from the active env for conda create :shrug:
                     msg = dals(
                         f"""
-                        Active environment configuration ({active_env_config}) is 
-                        implicitly requesting a non-native platform ({context.subdir}). 
-                        Please deactivate first or explicitly request the platform via 
+                        Active environment configuration ({active_env_config}) is
+                        implicitly requesting a non-native platform ({context.subdir}).
+                        Please deactivate first or explicitly request the platform via
                         the --platform=[value] command line flag.
-                        """    
+                        """
                     )
                     raise OperationNotAllowed(msg)
             log.info(
