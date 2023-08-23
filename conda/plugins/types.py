@@ -114,6 +114,7 @@ class ChannelNameMixin:
     Please use the concrete :class:`~conda.plugins.types.ChannelAuthBase`
     in case you're creating an own implementation.
     """
+
     def __init__(self, channel_name: str, *args, **kwargs):
         self.channel_name = channel_name
         super().__init__(*args, **kwargs)
