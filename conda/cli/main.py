@@ -5,19 +5,20 @@ import sys
 
 
 def init_loggers(context=None):
-    from logging import CRITICAL, getLogger
+    import logging
 
-    from ..gateways.logging import initialize_logging, set_verbosity
+    from ..base.context import context
+    from ..gateways.logging import initialize_logging, set_log_level
 
     initialize_logging()
 
-    if context and context.json:
-        # Silence logging info to avoid interfering with JSON output
+    # silence logging info to avoid interfering with JSON output
+    if context.json:
         for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            getLogger(logger).setLevel(CRITICAL + 1)
+            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
 
-    # set verbosity level, if none set default to no verbosity
-    set_verbosity(context and context.verbosity or 0)
+    # set log_level
+    set_log_level(context.log_level)
 
 
 def generate_parser(*args, **kwargs):

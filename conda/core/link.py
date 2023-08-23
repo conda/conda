@@ -263,7 +263,7 @@ class UnlinkLinkTransaction:
 
         with Spinner(
             "Preparing transaction",
-            context.verbosity < 2 and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             for stp in self.prefix_setups.values():
@@ -293,7 +293,7 @@ class UnlinkLinkTransaction:
 
         with Spinner(
             "Verifying transaction",
-            context.verbosity < 2 and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
@@ -844,7 +844,7 @@ class UnlinkLinkTransaction:
             exceptions = []
             with Spinner(
                 "Executing transaction",
-                context.verbosity < 2 and not context.quiet,
+                not context.verbose and not context.quiet,
                 context.json,
             ):
                 # Execute unlink actions
@@ -954,7 +954,7 @@ class UnlinkLinkTransaction:
                 if context.rollback_enabled:
                     with Spinner(
                         "Rolling back transaction",
-                        context.verbosity < 2 and not context.quiet,
+                        not context.verbose and not context.quiet,
                         context.json,
                     ):
                         reverse_actions = reversed(tuple(all_action_groups))

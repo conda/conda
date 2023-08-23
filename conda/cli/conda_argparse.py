@@ -2079,3 +2079,9 @@ def add_parser_verbose(parser):
         help=SUPPRESS,
         default=NULL,
     )
+    parser.add_argument(
+        "--trace",
+        action="store_true",
+        help=SUPPRESS,
+        default=NULL,
+    )

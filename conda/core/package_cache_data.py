@@ -759,7 +759,7 @@ class ProgressiveFetchExtract:
         if not self.paired_actions:
             return
 
-        if context.verbosity < 2 and not context.quiet and not context.json:
+        if not context.verbose and not context.quiet and not context.json:
             print("\nDownloading and Extracting Packages")
         else:
             log.debug(
@@ -848,7 +848,7 @@ class ProgressiveFetchExtract:
         for bar in progress_bars.values():
             bar.close()
 
-        if context.verbosity < 2 and not context.quiet and not context.json:
+        if not context.verbose and not context.quiet and not context.json:
             print("\r")  # move to column 0
 
         if exceptions:
@@ -870,7 +870,7 @@ class ProgressiveFetchExtract:
 
         progress_bar = ProgressBar(
             desc,
-            context.verbosity < 2 and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
             position=position,
             leave=leave,

@@ -29,7 +29,7 @@ def execute(args, parser):
     if args.envs:
         with Spinner(
             "Searching environments for %s" % spec,
-            context.verbosity < 2 and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             prefix_matches = query_all_prefixes(spec)
@@ -82,7 +82,7 @@ def execute(args, parser):
 
     with Spinner(
         "Loading channels",
-        context.verbosity < 2 and not context.quiet,
+        not context.verbose and not context.quiet,
         context.json,
     ):
         spec_channel = spec.get_exact_value("channel")
