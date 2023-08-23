@@ -292,10 +292,9 @@ class CommandNotFoundError(CondaError):
             "render",
             "skeleton",
         }
-        from .base.context import context
         from .cli.main import init_loggers
 
-        init_loggers(context)
+        init_loggers()
         if command in activate_commands:
             # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = [

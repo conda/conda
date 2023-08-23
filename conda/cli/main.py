@@ -3,8 +3,16 @@
 """Entry point for all conda subcommands."""
 import sys
 
+from ..deprecations import deprecated
 
-def init_loggers(context=None):
+
+@deprecated.argument(
+    "24.3",
+    "24.9",
+    "context",
+    addendum="The context is a global state, no need to pass it around.",
+)
+def init_loggers():
     import logging
 
     from ..base.context import context
@@ -56,7 +64,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     context.__init__(argparse_args=args)
-    init_loggers(context)
+    init_loggers()
 
     # used with main_pip.py
     if post_parse_hook:
@@ -77,7 +85,7 @@ def main_sourced(shell, *args, **kwargs):
     from ..base.context import context
 
     context.__init__()
-    init_loggers(context)
+    init_loggers()
 
     from ..activate import _build_activator_cls
 

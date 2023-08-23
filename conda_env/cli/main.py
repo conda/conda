@@ -65,7 +65,7 @@ def main():
     args = parser.parse_args()
     os.environ["CONDA_AUTO_UPDATE_CONDA"] = "false"
     context.__init__(argparse_args=args)
-    init_loggers(context)
+    init_loggers()
     return conda_exception_handler(do_call, args, parser)
 
 
