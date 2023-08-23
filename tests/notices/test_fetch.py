@@ -10,11 +10,11 @@ from conda.testing.notices.helpers import add_resp_to_mock
 
 
 def test_get_channel_notice_response_timeout_error(
-    notices_cache_dir, notices_mock_fetch_session_manager
+    notices_cache_dir, notices_mock_fetch_get_session
 ):
     """Tests the timeout error case for the get_channel_notice_response function."""
     with patch("conda.notices.fetch.logger") as mock_logger:
-        notices_mock_fetch_session_manager().get.side_effect = (
+        notices_mock_fetch_get_session().get.side_effect = (
             requests.exceptions.Timeout
         )
 
@@ -26,13 +26,13 @@ def test_get_channel_notice_response_timeout_error(
 
 
 def test_get_channel_notice_response_malformed_json(
-    notices_cache_dir, notices_mock_fetch_session_manager
+    notices_cache_dir, notices_mock_fetch_get_session
 ):
     """Tests malformed json error case for the get_channel_notice_response function."""
     messages = ("hello", "hello 2")
     with patch("conda.notices.fetch.logger") as mock_logger:
         add_resp_to_mock(
-            notices_mock_fetch_session_manager, 200, messages, raise_exc=True
+            notices_mock_fetch_get_session, 200, messages, raise_exc=True
         )
 
         channel_notice_set = retrieve_notices()

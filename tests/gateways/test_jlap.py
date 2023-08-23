@@ -19,7 +19,7 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_con
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError, CondaSSLError
-from conda.gateways.connection.session import CondaSession, session_manager
+from conda.gateways.connection.session import CondaSession, get_session
 from conda.gateways.repodata import (
     CACHE_CONTROL_KEY,
     CACHE_STATE_SUFFIX,
@@ -116,8 +116,8 @@ def test_jlap_fetch_ssl(
         reset_context()
         repo.repodata(state)
 
-    # Clear lru_cache from the `session_manager` function
-    session_manager.cache_clear()
+    # Clear lru_cache from the `get_session` function
+    get_session.cache_clear()
 
     # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
     assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"

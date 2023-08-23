@@ -18,7 +18,7 @@ from conda.gateways.connection.session import (
     CondaSession,
     get_channel_name_from_url,
     get_session_storage_key,
-    session_manager,
+    get_session,
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import ChannelAuthBase
@@ -120,21 +120,21 @@ def test_s3_server(minio_s3_server):
                     pass
 
 
-def test_session_manager_returns_default():
+def test_get_session_returns_default():
     """
     Tests to make sure that our session manager returns a regular
     CondaSession object when no other session classes are registered.
     """
     url = "https://localhost/test"
-    session_obj = session_manager(url)
-    session_manager.cache_clear()  # ensuring cleanup
+    session_obj = get_session(url)
+    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
 
-def test_session_manager_with_channel_settings(mocker):
+def test_get_session_with_channel_settings(mocker):
     """
-    Tests to make sure the session_manager function works when ``channel_settings``
+    Tests to make sure the get_session function works when ``channel_settings``
     have been set on the context object.
     """
     mocker.patch(
@@ -146,8 +146,8 @@ def test_session_manager_with_channel_settings(mocker):
 
     url = "https://localhost/test1"
 
-    session_obj = session_manager(url)
-    session_manager.cache_clear()  # ensuring cleanup
+    session_obj = get_session(url)
+    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -161,9 +161,9 @@ def test_session_manager_with_channel_settings(mocker):
     )
 
 
-def test_session_manager_with_channel_settings_multiple(mocker):
+def test_get_session_with_channel_settings_multiple(mocker):
     """
-    Tests to make sure the session_manager function works when ``channel_settings``
+    Tests to make sure the get_session function works when ``channel_settings``
     have been set on the context object and there exists more than one channel
     configured using the same type of auth handler.
 
@@ -184,10 +184,10 @@ def test_session_manager_with_channel_settings_multiple(mocker):
     url_one = "https://localhost/test1"
     url_two = "https://localhost/test2"
 
-    session_obj_one = session_manager(url_one)
-    session_obj_two = session_manager(url_two)
+    session_obj_one = get_session(url_one)
+    session_obj_two = get_session(url_two)
 
-    session_manager.cache_clear()  # ensuring cleanup
+    get_session.cache_clear()  # ensuring cleanup
 
     assert session_obj_one is not session_obj_two
 
@@ -211,9 +211,9 @@ def test_session_manager_with_channel_settings_multiple(mocker):
     )
 
 
-def test_session_manager_with_channel_settings_no_handler(mocker):
+def test_get_session_with_channel_settings_no_handler(mocker):
     """
-    Tests to make sure the session_manager function works when ``channel_settings``
+    Tests to make sure the get_session function works when ``channel_settings``
     have been set on the context objet. This test does not find a matching auth
     handler.
     """
@@ -227,8 +227,8 @@ def test_session_manager_with_channel_settings_no_handler(mocker):
 
     url = "https://localhost/test2"
 
-    session_obj = session_manager(url)
-    session_manager.cache_clear()  # ensuring cleanup
+    session_obj = get_session(url)
+    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 

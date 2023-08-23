@@ -26,7 +26,7 @@ except ImportError:
 from ..base.context import context
 from ..common.url import join_url
 from ..gateways.connection import HTTPError, InsecureRequestWarning
-from ..gateways.connection.session import session_manager
+from ..gateways.connection.session import get_session
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 log = getLogger(__name__)
@@ -174,7 +174,7 @@ class _SignatureVerification:
     def _fetch_channel_signing_data(
         self, signing_data_url, filename, etag=None, mod_stamp=None
     ):
-        session = session_manager(signing_data_url)
+        session = get_session(signing_data_url)
 
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)

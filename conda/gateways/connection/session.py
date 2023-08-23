@@ -71,8 +71,8 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-@lru_cache(None)
-def session_manager(url: str):
+@lru_cache(maxsize=None)
+def get_session(url: str):
     """
     Function that determines the correct Session object to be returned
     based on the URL that is passed in.

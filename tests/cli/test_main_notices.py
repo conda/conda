@@ -42,7 +42,7 @@ def test_main_notices(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_fetch_session_manager,
+    notices_mock_fetch_get_session,
 ):
     """
     Test the full working path through the code. We vary the test based on the status code
@@ -54,7 +54,7 @@ def test_main_notices(
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_fetch_session_manager, status_code, messages_json)
+    add_resp_to_mock(notices_mock_fetch_get_session, status_code, messages_json)
 
     notices.execute(args, parser)
 
@@ -74,7 +74,7 @@ def test_main_notices_reads_from_cache(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_fetch_session_manager,
+    notices_mock_fetch_get_session,
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -105,7 +105,7 @@ def test_main_notices_reads_from_expired_cache(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_fetch_session_manager,
+    notices_mock_fetch_get_session,
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -133,7 +133,7 @@ def test_main_notices_reads_from_expired_cache(
     # different messages
     messages_different_json = get_test_notices(messages_different)
     add_resp_to_mock(
-        notices_mock_fetch_session_manager,
+        notices_mock_fetch_get_session,
         status_code=200,
         messages_json=messages_different_json,
     )
@@ -153,7 +153,7 @@ def test_main_notices_handles_bad_expired_at_field(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_fetch_session_manager,
+    notices_mock_fetch_get_session,
 ):
     """
     This test ensures that an incorrectly defined `notices.json` file doesn't completely break
@@ -177,7 +177,7 @@ def test_main_notices_handles_bad_expired_at_field(
         ]
     }
     add_resp_to_mock(
-        notices_mock_fetch_session_manager,
+        notices_mock_fetch_get_session,
         status_code=200,
         messages_json=bad_notices_json,
     )
@@ -215,7 +215,7 @@ def test_cache_names_appear_as_expected(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_fetch_session_manager,
+    notices_mock_fetch_get_session,
 ):
     """This is a test to make sure the cache filenames appear as we expect them to."""
     with mock.patch(
@@ -230,7 +230,7 @@ def test_cache_names_appear_as_expected(
         args, parser = conda_notices_args_n_parser
         messages = ("Test One", "Test Two")
         messages_json = get_test_notices(messages)
-        add_resp_to_mock(notices_mock_fetch_session_manager, 200, messages_json)
+        add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
         notices.execute(args, parser)
 
@@ -300,25 +300,25 @@ def test_notices_appear_once_when_running_decorated_commands(
 
 
 def test_notices_work_with_s3_channel(
-    notices_cache_dir, notices_mock_fetch_session_manager
+    notices_cache_dir, notices_mock_fetch_get_session
 ):
     """As a user, I want notices to be correctly retrieved from channels with s3 URLs."""
     s3_channel = "s3://conda-org"
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_fetch_session_manager, 200, messages_json)
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
     run(f"conda notices -c {s3_channel} --override-channels")
 
-    notices_mock_fetch_session_manager().get.assert_called_once()
-    args, kwargs = notices_mock_fetch_session_manager().get.call_args
+    notices_mock_fetch_get_session().get.assert_called_once()
+    args, kwargs = notices_mock_fetch_get_session().get.call_args
 
     arg_1, *_ = args
     assert arg_1 == "s3://conda-org/notices.json"
 
 
 def test_notices_does_not_interrupt_command_on_failure(
-    notices_cache_dir, notices_mock_fetch_session_manager
+    notices_cache_dir, notices_mock_fetch_get_session
 ):
     """
     As a user, when I run conda in an environment where notice cache files might not be readable or
@@ -347,7 +347,7 @@ def test_notices_does_not_interrupt_command_on_failure(
 
 
 def test_notices_cannot_read_cache_files(
-    notices_cache_dir, notices_mock_fetch_session_manager
+    notices_cache_dir, notices_mock_fetch_get_session
 ):
     """
     As a user, when I run `conda notices` and the cache file cannot be read or written, I want
