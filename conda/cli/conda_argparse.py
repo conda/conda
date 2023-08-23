@@ -8,12 +8,7 @@ import os
 import sys
 from argparse import REMAINDER, SUPPRESS, Action
 from argparse import ArgumentParser as ArgumentParserBase
-from argparse import (
-    RawDescriptionHelpFormatter,
-    _CountAction,
-    _HelpAction,
-    _StoreAction,
-)
+from argparse import RawDescriptionHelpFormatter, _CountAction, _HelpAction
 from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
@@ -148,7 +143,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # run the subcommand from executables; legacy path
         deprecated.topic(
             "23.3",
-            "23.9",
+            "24.3",
             topic="Loading conda subcommands via executables",
             addendum="Use the plugin system instead.",
         )
@@ -1987,18 +1982,6 @@ def add_parser_solver(p):
         dest="solver",
         choices=solver_choices,
         help="Choose which solver backend to use.",
-        default=NULL,
-    )
-    group.add_argument(
-        "--experimental-solver",
-        action=deprecated.action(
-            "23.9",
-            "24.3",
-            _StoreAction,
-            addendum="Use `--solver` instead.",
-        ),
-        dest="solver",
-        choices=solver_choices,
         default=NULL,
     )
 

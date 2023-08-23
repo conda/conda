@@ -85,15 +85,6 @@ drop = [
   '^boltons/(cache|debug|depr|dict|easter|eco|exc|file|format|func|gc|io|iter|json|list|math|mbox|named|path|queue|socket|stats|str|table|tb||type|url)utils\.py',
   "boltons/txurl_notes.md",
   "cpuinfo/__main__.py",
-  "tlz/",
-  '^toolz/(_signatures|functoolz)\.py',
-  "toolz/curried",
-  "toolz/sandbox",
-  "toolz/tests",
-  '^tqdm/.*(gui|notebook|pandas)\.py',
-  '^tqdm/(_dist_ver|rich|keras|tk|dask)\.py',
-  '^tqdm/(completion\.sh|tqdm\.1)',
-  "tqdm/contrib",
 ]
 substitute = []
 
@@ -104,8 +95,6 @@ boltons = []
 cpuinfo = []
 distro = []
 frozendict = []
-toolz = []
-tqdm = []
 
 [tool.vendoring.license.fallback-urls]
 appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt" # MIT
@@ -113,5 +102,3 @@ boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE" # B
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE" # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE" # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt" # LGPL
-toolz = "https://raw.githubusercontent.com/pytoolz/toolz/master/LICENSE.txt" # BSD
-tqdm = "https://raw.githubusercontent.com/tqdm/tqdm/master/LICENCE" # MPL, MIT
