@@ -12,7 +12,6 @@ from argparse import (
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
-    _StoreAction,
     _StoreTrueAction,
 )
 from importlib import import_module
@@ -144,7 +143,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # run the subcommand from executables; legacy path
         deprecated.topic(
             "23.3",
-            "23.9",
+            "24.3",
             topic="Loading conda subcommands via executables",
             addendum="Use the plugin system instead.",
         )
@@ -1828,7 +1827,12 @@ def add_parser_channels(p):
         action="append",
         choices=["jlap", "lock"],
         help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. ",
+        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+    )
+    channel_customization_options.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="Disable locking when reading, updating index (repodata.json) cache. ",
     )
     return channel_customization_options
 
@@ -1963,18 +1967,6 @@ def add_parser_solver(p):
         dest="solver",
         choices=solver_choices,
         help="Choose which solver backend to use.",
-        default=NULL,
-    )
-    group.add_argument(
-        "--experimental-solver",
-        action=deprecated.action(
-            "23.9",
-            "24.3",
-            _StoreAction,
-            addendum="Use `--solver` instead.",
-        ),
-        dest="solver",
-        choices=solver_choices,
         default=NULL,
     )
 
