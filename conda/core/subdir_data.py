@@ -53,7 +53,7 @@ from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
 
-REPODATA_PICKLE_VERSION = 30
+REPODATA_PICKLE_VERSION = 32
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
@@ -99,6 +99,9 @@ class PackageRecordList(UserList):
     signatures: dict  # signature information from repodata.json
     info: dict  # Unchanged individual record for signature verification indexed by filename.
 
+    def __init__(self, initlist=None):
+        super().__init__(initlist)
+
     def __getitem__(self, i):
         if isinstance(i, slice):
             sliced = self.__class__(self.data[i])
@@ -114,7 +117,7 @@ class PackageRecordList(UserList):
                 fn = record["fn"]
                 info = self.info[fn]
                 # TODO add an if enabled: before the function call.
-                signature_verification(info, record, self.signatures)
+                signature_verification(info, fn, self.signatures)
                 record = PackageRecord(**{**info, **record})
                 self.data[i] = record
             return record
@@ -497,13 +500,14 @@ class SubdirData(metaclass=SubdirDataType):
         }
 
         _package_records.signatures = signatures
+        _package_records.info = {}
 
         for group, copy_legacy_md5 in (
             (conda_packages.items(), True),
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-                _package_records.info["fn"] = info
+                _package_records.info[fn] = info
 
                 # Must modify info past this point for signature verification to
                 # work.
@@ -512,16 +516,19 @@ class SubdirData(metaclass=SubdirDataType):
                 if copy_legacy_md5:
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
-                        additional_info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
-                        additional_info["legacy_bz2_size"] = legacy_packages[counterpart].get(
-                            "size"
-                        )
+                        additional_info["legacy_bz2_md5"] = legacy_packages[
+                            counterpart
+                        ].get("md5")
+                        additional_info["legacy_bz2_size"] = legacy_packages[
+                            counterpart
+                        ].get("size")
                 if (
                     add_pip
-                    and additional_info["name"] == "python"
-                    and additional_info["version"].startswith(("2.", "3."))
+                    and info["name"] == "python"
+                    and info["version"].startswith(("2.", "3."))
                 ):
-                    additional_info["depends"] = info["depends"]  + "pip"
+                    # copy list, don't modify
+                    additional_info["depends"] = info["depends"] + ["pip"]
                 additional_info.update(meta_in_common)
                 if info.get("record_version", 0) > 1:
                     # XXX ? so we don't add it to _package_records?
@@ -532,7 +539,7 @@ class SubdirData(metaclass=SubdirDataType):
                     )
                     continue
 
-                # lazy
+                # _package_records creates slow PackageRecord object on demand
                 additional_info["fn"] = fn
                 additional_info["url"] = join_url(channel_url, fn)
                 _package_records.append(additional_info)
