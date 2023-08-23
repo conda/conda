@@ -105,7 +105,7 @@ class PackageRecordList(UserList):
     def __getitem__(self, i):
         if isinstance(i, slice):
             # does conda slice?
-            raise NotImplemented()
+            raise NotImplementedError()
             sliced = self.__class__(self.data[i])
             sliced.signatures = self.signatures
             sliced.info = self.info
