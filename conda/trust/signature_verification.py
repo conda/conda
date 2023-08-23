@@ -229,7 +229,7 @@ class _SignatureVerification:
                 f"Invalid JSON returned from {signing_data_url}/{filename}"
             )
 
-    def __call__(self, info, fn, signatures, deepcopy=True):
+    def __call__(self, info, fn, signatures):
         if not self.enabled or fn not in signatures:
             return
 
