@@ -2726,13 +2726,11 @@ def test_multiline_run_command(clear_package_cache: None):
 
 def _check_create_xz_env_different_platform(prefix, platform):
     assert exists(join(prefix, "bin", "xz"))
+    # make sure we read the config from PREFIX/.condarc
+    prefix_condarc = Path(prefix, ".condarc")
+    reset_context([prefix_condarc])
     config_sources = context.collect_all()
-    for config in config_sources.values():
-        if "subdir" in config:
-            assert config["subdir"] == platform
-            break
-    else:
-        raise pytest.fail("Configuration does not include 'subdir' key!")
+    assert config_sources[prefix_condarc]["subdir"] == platform
 
     stdout, _, _ = run_command(
         Commands.INSTALL,
