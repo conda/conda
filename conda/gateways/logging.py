@@ -22,13 +22,15 @@ from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
 
 log = getLogger(__name__)
-VERBOSITY_LEVELS = {
+
+_VERBOSITY_LEVELS = {
     0: WARN,  # standard output
     1: WARN,  # -v, detailed output
     2: INFO,  # -vv, info logging
     3: DEBUG,  # -vvv, debug logging
     4: (TRACE := 5),  # -vvvv, trace logging
 }
+deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 
 
 class TokenURLFilter(Filter):
@@ -220,7 +222,7 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
 )
 def set_verbosity(verbosity: int):
     try:
-        set_log_level(VERBOSITY_LEVELS[verbosity])
+        set_log_level(_VERBOSITY_LEVELS[verbosity])
     except KeyError:
         raise CondaError(f"Invalid verbosity level: {verbosity}") from None
 
