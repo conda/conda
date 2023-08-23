@@ -48,9 +48,7 @@ def test_display_notices_happy_path(
         assert message not in captured.out
 
 
-def test_notices_decorator(
-    capsys, notices_cache_dir, notices_mock_fetch_get_session
-):
+def test_notices_decorator(capsys, notices_cache_dir, notices_mock_fetch_get_session):
     """
     Create a dummy function to wrap with our notices decorator and test it with
     two test messages.

@@ -17,8 +17,8 @@ from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
     get_channel_name_from_url,
-    get_session_storage_key,
     get_session,
+    get_session_storage_key,
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import ChannelAuthBase
