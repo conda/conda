@@ -260,7 +260,7 @@ def test_session_manager_with_channel_settings_no_handler(mocker):
             ("defaults", "http://localhost"),
             "http://localhost",
         ),
-        ("http://localhost", ("defaults",), None),
+        ("http://localhost", ("defaults",), "http://localhost"),
     ),
 )
 def test_get_channel_name_from_url(url, channels, expected, monkeypatch):

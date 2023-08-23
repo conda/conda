@@ -17,7 +17,7 @@ from ...common.url import (
     urlparse,
 )
 from ...exceptions import ProxyError
-from ...models.channel import get_channel_objs
+from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
@@ -68,10 +68,7 @@ def get_channel_name_from_url(url: str) -> str | None:
     """
     Given a URL, determine the channel it belongs to and return its name.
     """
-    for channel in get_channel_objs(context):
-        for base_url in channel.base_urls:
-            if url.lower().startswith(base_url):
-                return channel.canonical_name
+    return Channel.from_url(url).canonical_name
 
 
 @lru_cache(None)
