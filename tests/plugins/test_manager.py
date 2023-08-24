@@ -10,7 +10,7 @@ from packaging.version import Version
 
 from conda import plugins
 from conda.core import solve
-from conda.exceptions import PluginError
+from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
 
 log = logging.getLogger(__name__)
@@ -124,6 +124,27 @@ def test_load_entrypoints_blocked(plugin_manager):
     else:
         assert plugin_manager.get_plugins() == {None}
     assert plugin_manager.list_name_plugin() == [("test_plugin.blocked", None)]
+
+
+def test_load_entrypoints_register_valueerror(plugin_manager):
+    """
+    Cover check when self.register() raises ValueError.
+    """
+
+    def raises_value_error(*args):
+        raise ValueError("bad plugin?")
+
+    plugin_manager.register = raises_value_error
+    with pytest.raises(PluginError):
+        plugin_manager.load_entrypoints("test_plugin", "success")
+
+
+def test_unknown_solver(plugin_manager):
+    """
+    Cover getting a solver that doesn't exist.
+    """
+    with pytest.raises(CondaValueError):
+        plugin_manager.get_solver_backend("p_equals_np")
 
 
 def test_get_canonical_name_object(plugin_manager):

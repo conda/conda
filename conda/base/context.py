@@ -396,6 +396,7 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    no_lock = ParameterLoader(PrimitiveParameter(False))
 
     ####################################################
     #               Solver Configuration               #
@@ -408,11 +409,6 @@ class Context(Configuration):
         PrimitiveParameter(DEFAULT_SOLVER),
         aliases=("experimental_solver",),
     )
-
-    @property
-    @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
-    def experimental_solver(self):
-        return self.solver
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -552,15 +548,6 @@ class Context(Configuration):
             return m
         else:
             return _arch_names[self.bits]
-
-    @property
-    @deprecated(
-        "23.3",
-        "23.9",
-        addendum="It's meaningless and any special meaning it may have held is now void.",
-    )
-    def conda_private(self):
-        return False
 
     @property
     def platform(self):
@@ -1062,19 +1049,6 @@ class Context(Configuration):
         info = _get_cpu_info()
         return info["flags"]
 
-    @memoizedproperty
-    @deprecated(
-        "23.3",
-        "23.9",
-        addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
-        stack=+1,
-    )
-    def cuda_version(self) -> str | None:
-        """Retrieves the current cuda version."""
-        from conda.plugins.virtual_packages import cuda
-
-        return cuda.cuda_version()
-
     @property
     def category_map(self):
         return {
@@ -1096,6 +1070,7 @@ class Context(Configuration):
                 "repodata_threads",
                 "fetch_threads",
                 "experimental",
+                "no_lock",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1752,6 +1727,11 @@ class Context(Configuration):
                 List of experimental features to enable.
                 """
             ),
+            no_lock=dals(
+                """
+                Disable index cache lock (defaults to enabled).
+                """
+            ),
         )
 
 
@@ -2003,14 +1983,6 @@ def _first_writable_envs_dir():
     from ..exceptions import NoWritableEnvsDirError
 
     raise NoWritableEnvsDirError(context.envs_dirs)
-
-
-# backward compatibility for conda-build
-@deprecated(
-    "23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead."
-)
-def get_prefix(ctx, args, search=True):  # pragma: no cover
-    return determine_target_prefix(ctx or context, args)
 
 
 try:

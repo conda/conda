@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 23.7.3 (2023-08-21)
+
+### Bug fixes
+
+* Fix regression for supporting conda executable plugins installed into non-base environments. (#13006)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 23.7.2 (2023-07-27)
 
 ### Bug fixes
