@@ -2026,7 +2026,7 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
 )
 def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
     if context.solver == "libmamba":
-        pytest.skip(
+        pytest.xfail(
             "Known issue; see https://github.com/conda/conda-libmamba-solver/issues/141"
         )
 
@@ -2440,7 +2440,7 @@ def test_use_index_cache(clear_package_cache: None):
 
 def test_offline_with_empty_index_cache(clear_package_cache: None):
     if context.solver == "libmamba":
-        pytest.skip(
+        pytest.xfail(
             "Known bug in libmamba; see https://github.com/mamba-org/mamba/issues/1197"
         )
 
