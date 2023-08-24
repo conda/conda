@@ -274,7 +274,7 @@ state as-is. If not, we proceed for the full solve.
 ## Details of `Solver.solve_final_state()`
 
 ```{admonition} Note
-From here on, the document only covers the classic solver logic. The `libmamba` solver has
+From here on, the document only covers the classic solver logic (which uses `pycosat`). The `libmamba` solver has
 a different approach and is not documented here. Please refer to
 [its documentation](https://conda.github.io/conda-libmamba-solver/) for more information.
 ```
