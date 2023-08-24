@@ -3252,15 +3252,7 @@ def create_stackable_envs(
 
     with tmp_env(package) as sys, tmp_env(package) as base:
         with tmp_env(package) as haspkg, tmp_env() as notpkg:
-            monkeypatch.setenv(
-                "PATH",
-                os.pathsep.join(
-                    (
-                        os.environ["PATH"],
-                        str(sys / "bin"),
-                    )
-                ),
-            )
+            monkeypatch.setenv("PATH", str(sys / "bin"), prepend=os.pathsep)
             sys_paths = _run_command(which)
 
             yield which, {
