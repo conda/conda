@@ -30,7 +30,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL
-from ..common.io import ProgressBar, time_recorder
+from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -760,7 +760,10 @@ class ProgressiveFetchExtract:
             return
 
         if not context.verbosity and not context.quiet and not context.json:
-            print("\nDownloading and Extracting Packages")
+            print(
+                "\nDownloading and Extracting Packages:",
+                end="\n" if IS_INTERACTIVE else " ...working...",
+            )
         else:
             log.debug(
                 "prepared package cache actions:\n"
@@ -849,7 +852,10 @@ class ProgressiveFetchExtract:
             bar.close()
 
         if not context.verbosity and not context.quiet and not context.json:
-            print("\r")  # move to column 0
+            if IS_INTERACTIVE:
+                print("\r")  # move to column 0
+            else:
+                print(" done")
 
         if exceptions:
             raise CondaMultiError(exceptions)
@@ -857,7 +863,7 @@ class ProgressiveFetchExtract:
         self._executed = True
 
     @staticmethod
-    def _progress_bar(prec_or_spec, position=None, leave=False):
+    def _progress_bar(prec_or_spec, position=None, leave=False) -> ProgressBar:
         desc = ""
         if prec_or_spec.name and prec_or_spec.version:
             desc = "{}-{}".format(prec_or_spec.name or "", prec_or_spec.version or "")
@@ -870,7 +876,7 @@ class ProgressiveFetchExtract:
 
         progress_bar = ProgressBar(
             desc,
-            not context.verbosity and not context.quiet,
+            not context.verbosity and not context.quiet and IS_INTERACTIVE,
             context.json,
             position=position,
             leave=leave,

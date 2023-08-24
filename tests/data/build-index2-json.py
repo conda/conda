@@ -3,17 +3,17 @@
 import json
 from os.path import abspath, dirname, join
 
-from conda.core.subdir_data import fetch_repodata_remote_request
+from conda.core.subdir_data import Channel, SubdirData
 
 DATA_DIR = abspath(join(dirname(__file__), "repodata"))
 
 
 def save_data_source(url, name):
-    raw_repodata_str = fetch_repodata_remote_request(url, None, None)
-    json.loads(raw_repodata_str)
+    sd = SubdirData(Channel(url))
+    repodata, _state = sd.repo_fetch.fetch_latest_parsed()
     with open(join(DATA_DIR, name + ".json"), "w") as fh:
         json.dump(
-            json.loads(raw_repodata_str),
+            repodata,
             fh,
             indent=2,
             sort_keys=True,
