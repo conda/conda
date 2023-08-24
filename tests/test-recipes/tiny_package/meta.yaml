@@ -6,6 +6,7 @@ build:
   number: 0
   noarch: generic
   script:
+    # since this is a noarch package we don't care that this is unix
     - mkdir -p ${PREFIX}/bin
     - touch ${PREFIX}/bin/tiny
     - chmod +x ${PREFIX}/bin/tiny
