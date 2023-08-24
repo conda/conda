@@ -3257,7 +3257,7 @@ def create_stackable_envs(
                 os.pathsep.join(
                     (
                         os.environ["PATH"],
-                        str(sys if on_win else sys / "bin"),
+                        str(sys / "bin"),
                     )
                 ),
             )
@@ -3279,8 +3279,13 @@ def _run_command(*lines: str):
     else:
         join = "\n".join
         source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
-    script = join((source, *(["conda deactivate"] * 5), *lines))
+
+    marker = uuid4().hex
+    script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
     output = check_output(script, shell=True).decode().splitlines()
+    output = list(map(str.strip, output))
+    output = output[output.index(marker) + 1 :]  # trim setup output
+
     return [Path(path) for path in filter(None, output)]
 
 
