@@ -3235,50 +3235,43 @@ def test_activate_deactivate_modify_path(test_recipes_channel: None, shell, pref
     assert original_path == os.environ.get("PATH")
 
 
-@dataclass
-class _Env:
-    prefix: Path | None = None
-    paths: Iterable[Path] = ()
-
-
 @pytest.fixture
 def create_stackable_envs(
     test_recipes_channel: None,
     tmp_env: TmpEnvFixture,
     monkeypatch: MonkeyPatch,
-) -> Iterable[tuple[str, dict[str, _Env]]]:
-    package = "tiny_package"
-    exe = "tiny"
+):
+    # generate stackable environments, three with package and one without package
+    package, exe = "local::tiny_package", "tiny"
     which = f"{'where' if on_win else 'which -a'} {exe}"
 
-    # generate stackable environments, three with package and one without package
-    with tmp_env(package, "--use-local") as sys:
-        with tmp_env(package, "--use-local") as base:
-            with tmp_env(package, "--use-local") as haspkg:
-                with tmp_env() as notpkg:
-                    monkeypatch.setenv(
-                        "PATH",
-                        os.pathsep.join(
-                            (
-                                os.environ["PATH"],
-                                str(Path(sys, "Script" if on_win else "bin")),
-                            )
-                        ),
+    @dataclass
+    class Env:
+        prefix: Path | None = None
+        paths: Iterable[Path] = ()
+
+    with tmp_env(package) as sys, tmp_env(package) as base:
+        with tmp_env(package) as haspkg, tmp_env() as notpkg:
+            monkeypatch.setenv(
+                "PATH",
+                os.pathsep.join(
+                    (
+                        os.environ["PATH"],
+                        str(sys if on_win else sys / "bin"),
                     )
+                ),
+            )
+            sys_paths = _run_command(which)
 
-                    with monkeypatch.context() as monkey:
-                        monkey.setenv("CONDA_AUTO_ACTIVATE_BASE", "false")
-                        sys_paths = _run_command(which)
-
-                    yield which, {
-                        "sys": _Env(paths=sys_paths),
-                        "base": _Env(prefix=base, paths=[base / "bin" / exe]),
-                        "has": _Env(prefix=haspkg, paths=[haspkg / "bin" / exe]),
-                        "not": _Env(prefix=notpkg),
-                    }
+            yield which, {
+                "sys": Env(paths=sys_paths),
+                "base": Env(prefix=base, paths=[base / "bin" / exe]),
+                "has": Env(prefix=haspkg, paths=[haspkg / "bin" / exe]),
+                "not": Env(prefix=notpkg),
+            }
 
 
-def _run_command(*lines: str) -> list[Path]:
+def _run_command(*lines: str):
     # create a custom run command since this is specific to the shell integration
     if on_win:
         join = " && ".join
@@ -3286,15 +3279,9 @@ def _run_command(*lines: str) -> list[Path]:
     else:
         join = "\n".join
         source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
-    script = join(
-        (
-            source,
-            *("conda deactivate" for _ in range(5)),
-            *lines,
-        )
-    )
+    script = join((source, *(["conda deactivate"] * 5), *lines))
     output = check_output(script, shell=True).decode().splitlines()
-    return list(map(Path, filter(None, output)))
+    return [Path(path) for path in filter(None, output)]
 
 
 # see https://github.com/conda/conda/pull/11257#issuecomment-1050531320
@@ -3303,60 +3290,49 @@ def _run_command(*lines: str) -> list[Path]:
     ("auto_stack", "stack", "run", "expected"),
     [
         # no environments activated
-        (0, [], "base", ["base", "sys"]),
-        (0, [], "has", ["has", "sys"]),
-        (0, [], "not", ["sys"]),
+        (0, "", "base", "base,sys"),
+        (0, "", "has", "has,sys"),
+        (0, "", "not", "sys"),
         # one environment activated, no stacking
-        (0, ["base"], "base", ["base", "sys"]),
-        (0, ["base"], "has", ["has", "sys"]),
-        (0, ["base"], "not", ["sys"]),
-        (0, ["has"], "base", ["base", "sys"]),
-        (0, ["has"], "has", ["has", "sys"]),
-        (0, ["has"], "not", ["sys"]),
-        (0, ["not"], "base", ["base", "sys"]),
-        (0, ["not"], "has", ["has", "sys"]),
-        (0, ["not"], "not", ["sys"]),
+        (0, "base", "base", "base,sys"),
+        (0, "base", "has", "has,sys"),
+        (0, "base", "not", "sys"),
+        (0, "has", "base", "base,sys"),
+        (0, "has", "has", "has,sys"),
+        (0, "has", "not", "sys"),
+        (0, "not", "base", "base,sys"),
+        (0, "not", "has", "has,sys"),
+        (0, "not", "not", "sys"),
         # one environment activated, stacking allowed
-        (5, ["base"], "base", ["base", "sys"]),
-        (5, ["base"], "has", ["has", "base", "sys"]),
-        (5, ["base"], "not", ["base", "sys"]),
-        (5, ["has"], "base", ["base", "has", "sys"]),
-        (5, ["has"], "has", ["has", "sys"]),
-        (5, ["has"], "not", ["has", "sys"]),
-        (5, ["not"], "base", ["base", "sys"]),
-        (5, ["not"], "has", ["has", "sys"]),
-        (5, ["not"], "not", ["sys"]),
+        (5, "base", "base", "base,sys"),
+        (5, "base", "has", "has,base,sys"),
+        (5, "base", "not", "base,sys"),
+        (5, "has", "base", "base,has,sys"),
+        (5, "has", "has", "has,sys"),
+        (5, "has", "not", "has,sys"),
+        (5, "not", "base", "base,sys"),
+        (5, "not", "has", "has,sys"),
+        (5, "not", "not", "sys"),
         # two environments activated, stacking allowed
-        (
-            5,
-            ["base", "has"],
-            "base",
-            ["base", "has", "sys"] if on_win else ["base", "has", "base", "sys"],
-        ),
-        (5, ["base", "has"], "has", ["has", "base", "sys"]),
-        (5, ["base", "has"], "not", ["has", "base", "sys"]),
-        (
-            5,
-            ["base", "not"],
-            "base",
-            ["base", "sys"] if on_win else ["base", "base", "sys"],
-        ),
-        (5, ["base", "not"], "has", ["has", "base", "sys"]),
-        (5, ["base", "not"], "not", ["base", "sys"]),
+        (5, "base,has", "base", "base,has,sys" if on_win else "base,has,base,sys"),
+        (5, "base,has", "has", "has,base,sys"),
+        (5, "base,has", "not", "has,base,sys"),
+        (5, "base,not", "base", "base,sys" if on_win else "base,base,sys"),
+        (5, "base,not", "has", "has,base,sys"),
+        (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(
-    create_stackable_envs: tuple[str, dict[str, _Env]],
-    auto_stack: int,
-    stack: list[str],
-    run: str,
-    expected: list[str],
-    monkeypatch: MonkeyPatch,
-):
+def test_stacking(create_stackable_envs, auto_stack, stack, run, expected, monkeypatch):
     monkeypatch.setenv("CONDA_AUTO_STACK", str(auto_stack))
 
     which, envs = create_stackable_envs
-    assert _run_command(
-        *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
-        f'conda run -p "{envs[run.strip()].prefix}" {which}',
-    ) == list(chain.from_iterable(envs[env.strip()].paths for env in expected))
+    stack = filter(None, stack.split(","))
+    expected = filter(None, expected.split(","))
+    expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
+    assert (
+        _run_command(
+            *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
+            f'conda run -p "{envs[run.strip()].prefix}" {which}',
+        )
+        == expected
+    )
