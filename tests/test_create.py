@@ -2356,7 +2356,7 @@ def test_anaconda_token_with_private_package(
 ):
     # TODO: should also write a test to use binstar_client to set the token,
     # then let conda load the token
-    package = "private-package"
+    package = "tiny_package"
 
     # Step 1. Make sure without the token we don't see the package
     channel_url = "https://conda-web.anaconda.org/conda-test"
