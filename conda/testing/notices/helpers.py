@@ -60,7 +60,7 @@ def add_resp_to_mock(
         yield MockResponse(status_code, messages_json, raise_exc=raise_exc)
 
     chn = chain(one_200(), forever_404())
-    mock_session.side_effect = tuple(next(chn) for _ in range(100))
+    mock_session().get.side_effect = tuple(next(chn) for _ in range(100))
 
 
 def create_notice_cache_files(
