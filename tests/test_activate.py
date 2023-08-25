@@ -3252,7 +3252,6 @@ def create_stackable_envs():
             self.paths = paths
 
     sys = _run_command(
-        *("conda deactivate" for _ in range(5)),
         "conda config --set auto_activate_base false",
         which,
     )
@@ -3276,8 +3275,13 @@ def _run_command(*lines):
     else:
         join = "\n".join
         source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
-    script = join((source, *lines))
+
+    marker = uuid4().hex
+    script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
     output = check_output(script, shell=True).decode().splitlines()
+    output = list(map(str.strip, output))
+    output = output[output.index(marker) + 1 :]  # trim setup output
+
     return [Path(path) for path in filter(None, output)]
 
 
@@ -3326,7 +3330,6 @@ def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
     expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
     assert (
         _run_command(
-            *("conda deactivate" for _ in range(5)),
             f"conda config --set auto_stack {auto_stack}",
             *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
             f'conda run -p "{envs[run.strip()].prefix}" {which}',
