@@ -1387,10 +1387,31 @@ def get_pinned_specs(prefix):
     else:
         from_file = ()
 
-    return tuple(
-        MatchSpec(spec, optional=True)
-        for spec in (*context.pinned_packages, *from_file)
-    )
+    prefix_data = None
+    pins = []
+    for spec in (*context.pinned_packages, *from_file):
+        match_spec = MatchSpec(spec, optional=True)
+        pins.append(match_spec)
+        if match_spec.name and not any(
+            v for k, v in match_spec._match_components.items()
+            if k not in ("name", "target", "optional")
+        ): # spec is a name-only spec
+            if not prefix_data:
+                prefix_data = PrefixData(prefix)
+            msg = (
+                "Pinned spec %s is a bare-name spec. "
+                "This behaviour is under-specified and subject to change."
+            )
+            log.warn(msg, match_spec)
+            installed = prefix_data.get(match_spec.name, None)
+            if installed:
+                log.warning(
+                    "If you meant to pin to the currently installed version, "
+                    "consider using %s",
+                    installed.to_match_spec(),
+                )
+            
+    return tuple(pins)
 
 
 def diff_for_unlink_link_precs(

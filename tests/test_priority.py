@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import sys
+
 import pytest
 from pytest import MonkeyPatch
 
@@ -28,7 +30,7 @@ def test_reorder_channel_priority(
 
     # set pinned package
     if pinned_package:
-        monkeypatch.setenv("CONDA_PINNED_PACKAGES", f"defaults::{package1}")
+        monkeypatch.setenv("CONDA_PINNED_PACKAGES", f"{package1}")
 
     # create environment with package1 and package2
     with tmp_env(
@@ -40,7 +42,7 @@ def test_reorder_channel_priority(
         assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
 
         # update --all
-        conda_cli(
+        out, err, _ = conda_cli(
             "update",
             f"--prefix={prefix}",
             "--override-channels",
@@ -48,6 +50,8 @@ def test_reorder_channel_priority(
             "--all",
             "--yes",
         )
+        print(out)
+        print(err, file=sys.stderr)
 
         # check pinned package is unchanged but unpinned packages are updated from conda-forge
         PrefixData._cache_.clear()
