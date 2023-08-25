@@ -70,7 +70,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
 def install(*args, **kwargs):
     with Spinner(
         "Installing pip dependencies",
-        not context.verbosity and not context.quiet,
+        not context.verbose and not context.quiet,
         context.json,
     ):
         return _pip_install_via_requirements(*args, **kwargs)

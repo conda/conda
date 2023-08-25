@@ -124,6 +124,10 @@
   description: related to an experimental feature
   color: "86C579"
   aliases: []
+- name: tag::update
+  description: related to an upgrade issue
+  color: "86C579"
+  aliases: []
 
 # Deprecated
 - name: priority-high

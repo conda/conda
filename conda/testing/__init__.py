@@ -193,7 +193,7 @@ class CondaCLIFixture:
 
             # initialize context and loggers
             context.__init__(argparse_args=args)
-            init_loggers(context)
+            init_loggers()
 
             # run command
             code = do_call(args, parser)

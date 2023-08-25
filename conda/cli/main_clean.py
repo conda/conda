@@ -51,18 +51,18 @@ def _get_total_size(pkg_sizes: dict[str, dict[str, int]]) -> int:
     return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
 
 
-def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
+def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
     from ..gateways.disk.delete import rm_rf
 
     path = join(*parts)
     try:
         if rm_rf(path):
-            if verbose and verbosity:
+            if not quiet and verbose:
                 print(f"Removed {path}")
-        elif verbose:
+        elif not quiet:
             print(f"WARNING: cannot remove, file permissions: {path}")
     except OSError as e:
-        if verbose:
+        if not quiet:
             print(f"WARNING: cannot remove, file permissions: {path}\n{e!r}")
         else:
             log.info("%r", e)
@@ -132,25 +132,25 @@ def rm_pkgs(
     total_size: int,
     pkg_sizes: dict[str, dict[str, int]],
     *,
+    quiet: bool,
     verbose: bool,
-    verbosity: bool,
     dry_run: bool,
     name: str,
 ) -> None:
     from ..utils import human_bytes
     from .common import confirm_yn
 
-    if verbose and warnings:
+    if not quiet and warnings:
         for warning in warnings:
             print(warning)
 
     if not any(pkgs for pkgs in pkg_sizes.values()):
-        if verbose:
+        if not quiet:
             print(f"There are no unused {name} to remove.")
         return
 
-    if verbose:
-        if verbosity:
+    if not quiet:
+        if verbose:
             print(f"Will remove the following {name}:")
             for pkgs_dir, pkgs in pkg_sizes.items():
                 print(f"  {pkgs_dir}")
@@ -172,7 +172,7 @@ def rm_pkgs(
 
     for pkgs_dir, pkgs in pkg_sizes.items():
         for pkg in pkgs:
-            _rm_rf(pkgs_dir, pkg, verbose=verbose, verbosity=verbosity)
+            _rm_rf(pkgs_dir, pkg, quiet=quiet, verbose=verbose)
 
 
 def find_index_cache() -> list[str]:
@@ -226,20 +226,20 @@ def find_logfiles() -> list[str]:
 def rm_items(
     items: list[str],
     *,
+    quiet: bool,
     verbose: bool,
-    verbosity: bool,
     dry_run: bool,
     name: str,
 ) -> None:
     from .common import confirm_yn
 
     if not items:
-        if verbose:
+        if not quiet:
             print(f"There are no {name} to remove.")
         return
 
-    if verbose:
-        if verbosity:
+    if not quiet:
+        if verbose:
             print(f"Will remove the following {name}:")
             for item in items:
                 print(f"  - {item}")
@@ -253,15 +253,15 @@ def rm_items(
         confirm_yn()
 
     for item in items:
-        _rm_rf(item, verbose=verbose, verbosity=verbosity)
+        _rm_rf(item, quiet=quiet, verbose=verbose)
 
 
 def _execute(args, parser):
     json_result = {"success": True}
     kwargs = {
-        "verbose": not (context.json or context.quiet),
-        "verbosity": args.verbosity,
-        "dry_run": args.dry_run,
+        "quiet": context.json or context.quiet,
+        "verbose": context.verbose,
+        "dry_run": context.dry_run,
     }
 
     if args.force_pkgs_dirs:

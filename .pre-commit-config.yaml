@@ -35,7 +35,7 @@ repos:
       - id: check-merge-conflict
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.5.4
     hooks:
       # auto inject license blurb
       - id: insert-license
@@ -47,7 +47,7 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.9.0
+    rev: v3.10.1
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -64,13 +64,13 @@ repos:
       # auto format Python codes
       - id: black
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.15.0
+    rev: 1.16.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+    rev: 6.1.0
     hooks:
       # lint Python codes
       - id: flake8
