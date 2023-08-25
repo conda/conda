@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Inject a new detailed output verbosity level (i.e., the old debug level `-vv` is now `-vvv`). (#12985, #12977, #12420)
+* Inject a new detailed output verbosity level (i.e., the old debug level `-vv` is now `-vvv`). (#12985, #12977, #12420, #13036)
 
 ### Bug fixes
 
