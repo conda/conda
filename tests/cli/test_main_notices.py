@@ -217,9 +217,14 @@ def test_cache_names_appear_as_expected(
     conda_notices_args_n_parser,
     notices_cache_dir,
     notices_mock_fetch_get_session,
+    mocker: MockerFixture,
 ):
     """This is a test to make sure the cache filenames appear as we expect them to."""
     channel_url = "http://localhost/notices.json"
+    mocker.patch(
+        "conda.notices.core.get_channel_name_and_urls",
+        return_value=[(channel_url, "channel_name")],
+    )
 
     expected_cache_filename = f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
 
