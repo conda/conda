@@ -28,7 +28,7 @@ def test_reorder_channel_priority(
 
     # set pinned package
     if pinned_package:
-        monkeypatch.setenv("CONDA_PINNED_PACKAGES", package1)
+        monkeypatch.setenv("CONDA_PINNED_PACKAGES", f"defaults::{package1}")
 
     # create environment with package1 and package2
     with tmp_env(
