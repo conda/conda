@@ -71,7 +71,7 @@ def assert_not_pkg(name, contents):
 
 
 # conda clean --force-pkgs-dirs
-def test_clean_force_pkgs_dirs(clear_cache):
+def test_clean_force_pkgs_dirs():
     pkg = "bzip2"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -92,7 +92,7 @@ def test_clean_force_pkgs_dirs(clear_cache):
 
 
 # conda clean --packages
-def test_clean_and_packages(clear_cache):
+def test_clean_and_packages():
     pkg = "bzip2"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -126,7 +126,7 @@ def test_clean_and_packages(clear_cache):
 
 
 # conda clean --tarballs
-def test_clean_tarballs(clear_cache):
+def test_clean_tarballs():
     pkg = "bzip2"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -151,7 +151,7 @@ def test_clean_tarballs(clear_cache):
 
 
 # conda clean --index-cache
-def test_clean_index_cache(clear_cache):
+def test_clean_index_cache():
     pkg = "bzip2"
 
     with make_temp_package_cache():
@@ -175,7 +175,7 @@ def test_clean_index_cache(clear_cache):
 
 
 # conda clean --tempfiles
-def test_clean_tempfiles(clear_cache):
+def test_clean_tempfiles():
     """Tempfiles are either suffixed with .c~ or .trash.
 
     .c~ is used to indicate that conda is actively using that file. If the conda process is
@@ -215,7 +215,7 @@ def test_clean_tempfiles(clear_cache):
 
 
 # conda clean --logfiles
-def test_clean_logfiles(clear_cache):
+def test_clean_logfiles():
     """Logfiles are found in pkgs_dir/.logs.
 
     Since these log files were uniquely created during the experimental
@@ -253,7 +253,7 @@ def test_clean_logfiles(clear_cache):
 
 # conda clean --all [--verbose]
 @pytest.mark.parametrize("verbose", [True, False])
-def test_clean_all(clear_cache, verbose: bool):
+def test_clean_all(verbose: bool):
     pkg = "bzip2"
     args = ("--yes", "--json")
     if verbose:
@@ -307,7 +307,7 @@ def test_clean_all(clear_cache, verbose: bool):
 
 # conda clean --all --verbose
 @pytest.mark.parametrize("as_json", [True, False])
-def test_clean_all_mock_lstat(clear_cache, mocker: MockerFixture, as_json: bool):
+def test_clean_all_mock_lstat(mocker: MockerFixture, as_json: bool):
     pkg = "bzip2"
     args = ("--yes", "--verbose")
     if as_json:

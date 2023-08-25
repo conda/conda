@@ -33,13 +33,15 @@ def test_recipes_channel(monkeypatch: MonkeyPatch) -> None:
     assert context.bld_path == TEST_RECIPES_CHANNEL
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def clear_cache():
     from conda.core.link import UnlinkLinkTransaction
+    from conda.core.package_cache_data import PackageCacheData
     from conda.core.subdir_data import SubdirData
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
     UnlinkLinkTransaction.cache_clear()
+    PackageCacheData.clear()
 
 
 @pytest.fixture(scope="session")
