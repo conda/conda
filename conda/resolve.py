@@ -1,25 +1,42 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+"""Low-level SAT solver wrapper/interface for the classic solver.
 
-from collections import defaultdict, OrderedDict, deque
+See conda.core.solver.Solver for the high-level API.
+"""
+from __future__ import annotations
+
 import copy
+import itertools
+from collections import defaultdict, deque
+from functools import lru_cache
 from logging import DEBUG, getLogger
 
-from .auxlib.decorators import memoize, memoizemethod
+from tqdm import tqdm
+
+from conda.common.iterators import groupby_to_dict as groupby
+
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
-from ._vendor.toolz import concat, groupby
-from ._vendor.tqdm import tqdm
-from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY, SatSolverChoice
+from .auxlib.decorators import memoizemethod
+from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
-from .common.logic import (Clauses, PycoSatSolver, PyCryptoSatSolver, PySatSolver, TRUE,
-                           minimal_unsatisfiable_subset)
+from .common.logic import (
+    TRUE,
+    Clauses,
+    PycoSatSolver,
+    PyCryptoSatSolver,
+    PySatSolver,
+    minimal_unsatisfiable_subset,
+)
 from .common.toposort import toposort
-from .exceptions import (CondaDependencyError, InvalidSpec, ResolvePackageNotFound,
-                         UnsatisfiableError)
+from .exceptions import (
+    CondaDependencyError,
+    InvalidSpec,
+    ResolvePackageNotFound,
+    UnsatisfiableError,
+)
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
@@ -27,7 +44,7 @@ from .models.records import PackageRecord
 from .models.version import VersionOrder
 
 log = getLogger(__name__)
-stdoutlog = getLogger('conda.stdoutlog')
+stdoutlog = getLogger("conda.stdoutlog")
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
@@ -40,7 +57,7 @@ _sat_solvers = {
 }
 
 
-@memoize
+@lru_cache(maxsize=None)
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):
         c = Clauses(sat_solver=sat_solver)
@@ -48,34 +65,42 @@ def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
         c.Require(c.And, *required)
         solution = set(c.sat())
         if not required.issubset(solution):
-            raise RuntimeError("Wrong SAT solution: {}. Required: {}".format(solution, required))
+            raise RuntimeError(f"Wrong SAT solution: {solution}. Required: {required}")
 
     sat_solver = _sat_solvers[sat_solver_choice]
     try:
         try_out_solver(sat_solver)
     except Exception as e:
-        log.warning("Could not run SAT solver through interface '%s'.", sat_solver_choice)
+        log.warning(
+            "Could not run SAT solver through interface '%s'.", sat_solver_choice
+        )
         log.debug("SAT interface error due to: %s", e, exc_info=True)
     else:
         log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
         return sat_solver
-    for solver_choice, sat_solver in _sat_solvers.items():
+    for sat_solver in _sat_solvers.values():
         try:
             try_out_solver(sat_solver)
         except Exception as e:
-            log.debug("Attempted SAT interface '%s' but unavailable due to: %s",
-                      sat_solver_choice, e)
+            log.debug(
+                "Attempted SAT interface '%s' but unavailable due to: %s",
+                sat_solver_choice,
+                e,
+            )
         else:
             log.debug("Falling back to SAT solver interface '%s'.", sat_solver_choice)
             return sat_solver
-    raise CondaDependencyError("Cannot run solver. No functioning SAT implementations available.")
+    raise CondaDependencyError(
+        "Cannot run solver. No functioning SAT implementations available."
+    )
 
 
 def exactness_and_number_of_deps(resolve_obj, ms):
     """Sorting key to emphasize packages that have more strict
     requirements. More strict means the reduced index can be reduced
     more, so we want to consider these more constrained deps earlier in
-    reducing the index."""
+    reducing the index.
+    """
     if ms.strictness == 3:
         prec = resolve_obj.find_matches(ms)
         value = 3
@@ -87,17 +112,18 @@ def exactness_and_number_of_deps(resolve_obj, ms):
     return value
 
 
-class Resolve(object):
-
+class Resolve:
     def __init__(self, index, processed=False, channels=()):
         self.index = index
 
         self.channels = channels
-        self._channel_priorities_map = self._make_channel_priorities(channels) if channels else {}
+        self._channel_priorities_map = (
+            self._make_channel_priorities(channels) if channels else {}
+        )
         self._channel_priority = context.channel_priority
         self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
-        groups = groupby("name", index.values())
+        groups = groupby(lambda x: x.name, index.values())
         trackers = defaultdict(list)
 
         for name in groups:
@@ -110,16 +136,22 @@ class Resolve(object):
                 for feature_name in prec.track_features:
                     trackers[feature_name].append(prec)
 
-        self.groups = groups  # Dict[package_name, List[PackageRecord]]
-        self.trackers = trackers  # Dict[track_feature, Set[PackageRecord]]
-        self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
-        self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
+        self.groups = groups  # dict[package_name, list[PackageRecord]]
+        self.trackers = trackers  # dict[track_feature, set[PackageRecord]]
+        self._cached_find_matches = {}  # dict[MatchSpec, set[PackageRecord]]
+        self.ms_depends_ = {}  # dict[PackageRecord, list[MatchSpec]]
         self._reduced_index_cache = {}
         self._pool_cache = {}
         self._strict_channel_cache = {}
 
-        self._system_precs = {_ for _ in index if (
-            hasattr(_, 'package_type') and _.package_type == PackageType.VIRTUAL_SYSTEM)}
+        self._system_precs = {
+            _
+            for _ in index
+            if (
+                hasattr(_, "package_type")
+                and _.package_type == PackageType.VIRTUAL_SYSTEM
+            )
+        }
 
         # sorting these in reverse order is effectively prioritizing
         # constraint behavior from newer packages. It is applying broadening
@@ -130,15 +162,16 @@ class Resolve(object):
             self.groups[name] = sorted(group, key=self.version_key, reverse=True)
 
     def __hash__(self):
-        return (super(Resolve, self).__hash__() ^
-                hash(frozenset(self.channels)) ^
-                hash(frozendict(self._channel_priorities_map)) ^
-                hash(self._channel_priority) ^
-                hash(self._solver_ignore_timestamps) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.groups.items())) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.trackers.items())) ^
-                hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
-                )
+        return (
+            super().__hash__()
+            ^ hash(frozenset(self.channels))
+            ^ hash(frozendict(self._channel_priorities_map))
+            ^ hash(self._channel_priority)
+            ^ hash(self._solver_ignore_timestamps)
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.groups.items()))
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.trackers.items()))
+            ^ hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
+        )
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -149,7 +182,9 @@ class Resolve(object):
         else:
             filter.clear()
 
-        filter.update({make_feature_record(fstr): False for fstr in self.trackers.keys()})
+        filter.update(
+            {make_feature_record(fstr): False for fstr in self.trackers.keys()}
+        )
         if features:
             filter.update({make_feature_record(fstr): True for fstr in features})
         return filter
@@ -170,12 +205,16 @@ class Resolve(object):
             If filter is supplied and update is True, it will be updated with the
             search results.
         """
+
         def v_(spec):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return (optional and ms.optional
-                    or any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
+            return (
+                optional
+                and ms.optional
+                or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
+            )
 
         def v_fkey_(prec):
             val = filter.get(prec)
@@ -201,8 +240,10 @@ class Resolve(object):
 
         @memoizemethod
         def is_valid_spec(_spec):
-            return optional and _spec.optional or any(
-                is_valid_prec(_prec) for _prec in self.find_matches(_spec)
+            return (
+                optional
+                and _spec.optional
+                or any(is_valid_prec(_prec) for _prec in self.find_matches(_spec))
             )
 
         def is_valid_prec(prec):
@@ -210,11 +251,15 @@ class Resolve(object):
             if val is None:
                 filter_out[prec] = False
                 try:
-                    has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
+                    has_valid_deps = all(
+                        is_valid_spec(ms) for ms in self.ms_depends(prec)
+                    )
                 except InvalidSpec:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
-                    val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"
+                    val = filter_out[prec] = (
+                        False if has_valid_deps else "invalid depends specs"
+                    )
             return not val
 
         return is_valid(spec_or_prec)
@@ -234,6 +279,7 @@ class Resolve(object):
         Returns:
             A tuple of tuples, empty if the MatchSpec is valid.
         """
+
         def chains_(spec, names):
             if spec.name in names:
                 return
@@ -273,60 +319,86 @@ class Resolve(object):
         bad_deps = []
         feature_names = set()
         for ms in specs:
-            _feature_names = ms.get_exact_value('track_features')
+            _feature_names = ms.get_exact_value("track_features")
             if _feature_names:
                 feature_names.update(_feature_names)
             else:
                 non_tf_specs.append(ms)
-        bad_deps.extend((spec, ) for spec in non_tf_specs if (not spec.optional and
-                                                              not self.find_matches(spec)))
+        bad_deps.extend(
+            (spec,)
+            for spec in non_tf_specs
+            if (not spec.optional and not self.find_matches(spec))
+        )
         if bad_deps:
             raise ResolvePackageNotFound(bad_deps)
         return tuple(non_tf_specs), feature_names
 
-    def _classify_bad_deps(self, bad_deps, specs_to_add, history_specs, strict_channel_priority):
-        classes = {'python': set(),
-                   'request_conflict_with_history': set(),
-                   'direct': set(),
-                   'virtual_package': set(),
-                   }
-        specs_to_add = set(MatchSpec(_) for _ in specs_to_add or [])
-        history_specs = set(MatchSpec(_) for _ in history_specs or [])
+    def _classify_bad_deps(
+        self, bad_deps, specs_to_add, history_specs, strict_channel_priority
+    ):
+        classes = {
+            "python": set(),
+            "request_conflict_with_history": set(),
+            "direct": set(),
+            "virtual_package": set(),
+        }
+        specs_to_add = {MatchSpec(_) for _ in specs_to_add or []}
+        history_specs = {MatchSpec(_) for _ in history_specs or []}
         for chain in bad_deps:
             # sometimes chains come in as strings
-            if len(chain) > 1 and chain[-1].name == 'python' and \
-                    not any(_.name == 'python' for _ in specs_to_add) and \
-                    any(_[0] for _ in bad_deps if _[0].name == 'python'):
-                python_first_specs = [_[0] for _ in bad_deps if _[0].name == 'python']
+            if (
+                len(chain) > 1
+                and chain[-1].name == "python"
+                and not any(_.name == "python" for _ in specs_to_add)
+                and any(_[0] for _ in bad_deps if _[0].name == "python")
+            ):
+                python_first_specs = [_[0] for _ in bad_deps if _[0].name == "python"]
                 if python_first_specs:
                     python_spec = python_first_specs[0]
-                    if not (set(self.find_matches(python_spec)) &
-                            set(self.find_matches(chain[-1]))):
-                        classes['python'].add((tuple([chain[0], chain[-1]]),
-                                               str(MatchSpec(python_spec, target=None))))
-            elif chain[-1].name.startswith('__'):
+                    if not (
+                        set(self.find_matches(python_spec))
+                        & set(self.find_matches(chain[-1]))
+                    ):
+                        classes["python"].add(
+                            (
+                                tuple([chain[0], chain[-1]]),
+                                str(MatchSpec(python_spec, target=None)),
+                            )
+                        )
+            elif chain[-1].name.startswith("__"):
                 version = [_ for _ in self._system_precs if _.name == chain[-1].name]
-                virtual_package_version = version[0].version if version else "not available"
-                classes['virtual_package'].add((tuple(chain), virtual_package_version))
+                virtual_package_version = (
+                    version[0].version if version else "not available"
+                )
+                classes["virtual_package"].add((tuple(chain), virtual_package_version))
             elif chain[0] in specs_to_add:
                 match = False
                 for spec in history_specs:
                     if spec.name == chain[-1].name:
-                        classes['request_conflict_with_history'].add((
-                            tuple(chain), str(MatchSpec(spec, target=None))))
+                        classes["request_conflict_with_history"].add(
+                            (tuple(chain), str(MatchSpec(spec, target=None)))
+                        )
                         match = True
 
                 if not match:
-                    classes['direct'].add((tuple(chain), str(MatchSpec(chain[0], target=None))))
+                    classes["direct"].add(
+                        (tuple(chain), str(MatchSpec(chain[0], target=None)))
+                    )
             else:
-                if len(chain) > 1 or any(len(c) >= 1 and c[0] == chain[0] for c in bad_deps):
-                    classes['direct'].add((tuple(chain),
-                                           str(MatchSpec(chain[0], target=None))))
+                if len(chain) > 1 or any(
+                    len(c) >= 1 and c[0] == chain[0] for c in bad_deps
+                ):
+                    classes["direct"].add(
+                        (tuple(chain), str(MatchSpec(chain[0], target=None)))
+                    )
 
-        if classes['python']:
+        if classes["python"]:
             # filter out plain single-entry python conflicts.  The python section explains these.
-            classes['direct'] = [_ for _ in classes['direct']
-                                 if _[1].startswith('python ') or len(_[0]) > 1]
+            classes["direct"] = [
+                _
+                for _ in classes["direct"]
+                if _[1].startswith("python ") or len(_[0]) > 1
+            ]
         return classes
 
     def find_matches_with_strict(self, ms, strict_channel_priority):
@@ -339,15 +411,19 @@ class Resolve(object):
     def find_conflicts(self, specs, specs_to_add=None, history_specs=None):
         if context.unsatisfiable_hints:
             if not context.json:
-                print("\nFound conflicts! Looking for incompatible packages.\n"
-                      "This can take several minutes.  Press CTRL-C to abort.")
+                print(
+                    "\nFound conflicts! Looking for incompatible packages.\n"
+                    "This can take several minutes.  Press CTRL-C to abort."
+                )
             bad_deps = self.build_conflict_map(specs, specs_to_add, history_specs)
         else:
             bad_deps = {}
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
         raise UnsatisfiableError(bad_deps, strict=strict_channel_priority)
 
-    def breadth_first_search_for_dep_graph(self, root_spec, target_name, dep_graph, num_targets=1):
+    def breadth_first_search_for_dep_graph(
+        self, root_spec, target_name, dep_graph, num_targets=1
+    ):
         """Return shorted path from root_spec to target_name"""
         queue = []
         queue.append([root_spec])
@@ -368,8 +444,9 @@ class Resolve(object):
                 else:
                     target_paths.append(path)
 
-                found_all_targets = len(target_paths) == num_targets and \
-                    any(len(_) != len(path) for _ in queue)
+                found_all_targets = len(target_paths) == num_targets and any(
+                    len(_) != len(path) for _ in queue
+                )
                 if len(queue) == 0 or found_all_targets:
                     return target_paths
             sub_graph = dep_graph
@@ -442,21 +519,25 @@ class Resolve(object):
 
         specs = set(specs) | (specs_to_add or set())
         # Remove virtual packages
-        specs = set([spec for spec in specs if not spec.name.startswith('__')])
+        specs = {spec for spec in specs if not spec.name.startswith("__")}
         if len(specs) == 1:
             matches = self.find_matches(next(iter(specs)))
             if len(matches) == 1:
                 specs = set(self.ms_depends(matches[0]))
         specs.update({_.to_match_spec() for _ in self._system_precs})
         for spec in specs:
-            self._get_package_pool((spec, ))
+            self._get_package_pool((spec,))
 
         dep_graph = {}
         dep_list = {}
-        with tqdm(total=len(specs), desc="Building graph of deps",
-                  leave=False, disable=context.json) as t:
+        with tqdm(
+            total=len(specs),
+            desc="Building graph of deps",
+            leave=False,
+            disable=context.json,
+        ) as t:
             for spec in specs:
-                t.set_description("Examining {}".format(spec))
+                t.set_description(f"Examining {spec}")
                 t.update()
                 dep_graph_for_spec, all_deps_for_spec = self.build_graph_of_deps(spec)
                 dep_graph.update(dep_graph_for_spec)
@@ -484,16 +565,23 @@ class Resolve(object):
             elif k.startswith("__") and any(s for s in set_v if s.name != k):
                 conflicting_pkgs_pkgs[set_v] = [k]
 
-        with tqdm(total=len(specs), desc="Determining conflicts",
-                  leave=False, disable=context.json) as t:
+        with tqdm(
+            total=len(specs),
+            desc="Determining conflicts",
+            leave=False,
+            disable=context.json,
+        ) as t:
             for roots, nodes in conflicting_pkgs_pkgs.items():
-                t.set_description("Examining conflict for {}".format(
-                    " ".join(_.name for _ in roots)))
+                t.set_description(
+                    "Examining conflict for {}".format(" ".join(_.name for _ in roots))
+                )
                 t.update()
                 lroots = [_ for _ in roots]
                 current_shortest_chain = []
                 shortest_node = None
-                requested_spec_unsat = frozenset(nodes).intersection(set(_.name for _ in roots))
+                requested_spec_unsat = frozenset(nodes).intersection(
+                    {_.name for _ in roots}
+                )
                 if requested_spec_unsat:
                     chains.append([_ for _ in roots if _.name in requested_spec_unsat])
                     shortest_node = chains[-1][0]
@@ -502,26 +590,31 @@ class Resolve(object):
                             search_node = shortest_node.name
                             num_occurances = dep_list[search_node].count(root)
                             c = self.breadth_first_search_for_dep_graph(
-                                root, search_node, dep_graph, num_occurances)
+                                root, search_node, dep_graph, num_occurances
+                            )
                             chains.extend(c)
                 else:
                     for node in nodes:
                         num_occurances = dep_list[node].count(lroots[0])
                         chain = self.breadth_first_search_for_dep_graph(
-                            lroots[0], node, dep_graph, num_occurances)
+                            lroots[0], node, dep_graph, num_occurances
+                        )
                         chains.extend(chain)
-                        if len(current_shortest_chain) == 0 or \
-                                len(chain) < len(current_shortest_chain):
+                        if len(current_shortest_chain) == 0 or len(chain) < len(
+                            current_shortest_chain
+                        ):
                             current_shortest_chain = chain
                             shortest_node = node
                     for root in lroots[1:]:
                         num_occurances = dep_list[shortest_node].count(root)
                         c = self.breadth_first_search_for_dep_graph(
-                            root, shortest_node, dep_graph, num_occurances)
+                            root, shortest_node, dep_graph, num_occurances
+                        )
                         chains.extend(c)
 
-        bad_deps = self._classify_bad_deps(chains, specs_to_add, history_specs,
-                                           strict_channel_priority)
+        bad_deps = self._classify_bad_deps(
+            chains, specs_to_add, history_specs, strict_channel_priority
+        )
         return bad_deps
 
     def _get_strict_channel(self, package_name):
@@ -530,15 +623,24 @@ class Resolve(object):
             channel_name = self._strict_channel_cache[package_name]
         except KeyError:
             if package_name in self.groups:
-                all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
-                by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
-                highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
-                channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
+                all_channel_names = {
+                    prec.channel.name for prec in self.groups[package_name]
+                }
+                by_cp = {
+                    self._channel_priorities_map.get(cn, 1): cn
+                    for cn in all_channel_names
+                }
+                highest_priority = sorted(by_cp)[
+                    0
+                ]  # highest priority is the lowest number
+                channel_name = self._strict_channel_cache[package_name] = by_cp[
+                    highest_priority
+                ]
         return channel_name
 
     @memoizemethod
     def _broader(self, ms, specs_by_name):
-        """prevent introduction of matchspecs that broaden our selection of choices"""
+        """Prevent introduction of matchspecs that broaden our selection of choices."""
         if not specs_by_name:
             return False
         return ms.strictness < specs_by_name[0].strictness
@@ -555,7 +657,9 @@ class Resolve(object):
         return pool
 
     @time_recorder(module_name=__name__)
-    def get_reduced_index(self, explicit_specs, sort_by_exactness=True, exit_on_conflict=False):
+    def get_reduced_index(
+        self, explicit_specs, sort_by_exactness=True, exit_on_conflict=False
+    ):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
 
@@ -566,27 +670,35 @@ class Resolve(object):
             return self._reduced_index_cache[cache_key]
 
         if log.isEnabledFor(DEBUG):
-            log.debug('Retrieving packages for: %s', dashlist(
-                sorted(str(s) for s in explicit_specs)))
+            log.debug(
+                "Retrieving packages for: %s",
+                dashlist(sorted(str(s) for s in explicit_specs)),
+            )
 
         explicit_specs, features = self.verify_specs(explicit_specs)
-        filter_out = {prec: False if val else "feature not enabled"
-                      for prec, val in self.default_filter(features).items()}
+        filter_out = {
+            prec: False if val else "feature not enabled"
+            for prec, val in self.default_filter(features).items()
+        }
         snames = set()
         top_level_spec = None
         cp_filter_applied = set()  # values are package names
         if sort_by_exactness:
             # prioritize specs that are more exact.  Exact specs will evaluate to 3,
             #    constrained specs will evaluate to 2, and name only will be 1
-            explicit_specs = sorted(list(explicit_specs), key=lambda x: (
-                exactness_and_number_of_deps(self, x), x.dist_str()), reverse=True)
+            explicit_specs = sorted(
+                list(explicit_specs),
+                key=lambda x: (exactness_and_number_of_deps(self, x), x.dist_str()),
+                reverse=True,
+            )
         # tuple because it needs to be hashable
         explicit_specs = tuple(explicit_specs)
 
         explicit_spec_package_pool = {}
         for s in explicit_specs:
             explicit_spec_package_pool[s.name] = explicit_spec_package_pool.get(
-                s.name, set()) | set(self.find_matches(s))
+                s.name, set()
+            ) | set(self.find_matches(s))
 
         def filter_group(_specs):
             # all _specs should be for the same package name
@@ -608,15 +720,20 @@ class Resolve(object):
                 if not filter_out.setdefault(prec, False):
                     nold += 1
                     if (not self.match_any(_specs, prec)) or (
-                            explicit_spec_package_pool.get(name) and
-                            prec not in explicit_spec_package_pool[name]):
-                        filter_out[prec] = "incompatible with required spec %s" % top_level_spec
+                        explicit_spec_package_pool.get(name)
+                        and prec not in explicit_spec_package_pool[name]
+                    ):
+                        filter_out[prec] = (
+                            "incompatible with required spec %s" % top_level_spec
+                        )
                         continue
                     unsatisfiable_dep_specs = set()
                     for ms in self.ms_depends(prec):
                         if not ms.optional and not any(
-                                 rec for rec in self.find_matches(ms)
-                                if not filter_out.get(rec, False)):
+                            rec
+                            for rec in self.find_matches(ms)
+                            if not filter_out.get(rec, False)
+                        ):
                             unsatisfiable_dep_specs.add(ms)
                     if unsatisfiable_dep_specs:
                         filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(
@@ -628,7 +745,7 @@ class Resolve(object):
 
             reduced = nnew < nold
             if reduced:
-                log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
+                log.debug("%s: pruned from %d -> %d" % (name, nold, nnew))
             if any(ms.optional for ms in _specs):
                 return reduced
             elif nnew == 0:
@@ -643,15 +760,21 @@ class Resolve(object):
             if reduced or name not in snames:
                 snames.add(name)
 
-                _dep_specs = groupby(lambda s: s.name, (
-                    dep_spec
-                    for prec in group if not filter_out.get(prec, False)
-                    for dep_spec in self.ms_depends(prec) if not dep_spec.optional
-                ))
+                _dep_specs = groupby(
+                    lambda s: s.name,
+                    (
+                        dep_spec
+                        for prec in group
+                        if not filter_out.get(prec, False)
+                        for dep_spec in self.ms_depends(prec)
+                        if not dep_spec.optional
+                    ),
+                )
                 _dep_specs.pop("*", None)  # discard track_features specs
 
-                for deps_name, deps in sorted(_dep_specs.items(),
-                                              key=lambda x: any(_.optional for _ in x[1])):
+                for deps_name, deps in sorted(
+                    _dep_specs.items(), key=lambda x: any(_.optional for _ in x[1])
+                ):
                     if len(deps) >= nnew:
                         res = filter_group(set(deps))
                         if res:
@@ -682,20 +805,26 @@ class Resolve(object):
             return {}
 
         # Determine all valid packages in the dependency graph
-        reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        specs_by_name_seed = OrderedDict()
+        reduced_index2 = {
+            prec: prec for prec in (make_feature_record(fstr) for fstr in features)
+        }
+        specs_by_name_seed = {}
         for s in explicit_specs:
-            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, list()) + [s]
+            specs_by_name_seed[s.name] = specs_by_name_seed.get(s.name, []) + [s]
         for explicit_spec in explicit_specs:
             add_these_precs2 = tuple(
-                prec for prec in self.find_matches(explicit_spec)
-                if prec not in reduced_index2 and self.valid2(prec, filter_out))
+                prec
+                for prec in self.find_matches(explicit_spec)
+                if prec not in reduced_index2 and self.valid2(prec, filter_out)
+            )
 
             if strict_channel_priority and add_these_precs2:
                 strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
 
                 add_these_precs2 = tuple(
-                    prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
+                    prec
+                    for prec in add_these_precs2
+                    if prec.channel.name == strict_channel_name
                 )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
 
@@ -709,26 +838,31 @@ class Resolve(object):
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
-                    specs = specs_by_name.get(dep.name, list())
-                    if dep not in specs and (not specs or dep.strictness >= specs[0].strictness):
+                    specs = specs_by_name.get(dep.name, [])
+                    if dep not in specs and (
+                        not specs or dep.strictness >= specs[0].strictness
+                    ):
                         specs.insert(0, dep)
                     specs_by_name[dep.name] = specs
 
-                while(dep_specs):
+                while dep_specs:
                     # used for debugging
                     # size_index = len(reduced_index2)
                     # specs_added = []
                     ms = dep_specs.pop()
                     seen_specs.add(ms)
-                    for dep_pkg in (_ for _ in self.find_matches(ms) if _ not in reduced_index2):
+                    for dep_pkg in (
+                        _ for _ in self.find_matches(ms) if _ not in reduced_index2
+                    ):
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
                         # expand the reduced index if not using strict channel priority,
                         #    or if using it and this package is in the appropriate channel
-                        if (not strict_channel_priority or
-                                (self._get_strict_channel(dep_pkg.name) ==
-                                 dep_pkg.channel.name)):
+                        if not strict_channel_priority or (
+                            self._get_strict_channel(dep_pkg.name)
+                            == dep_pkg.channel.name
+                        ):
                             reduced_index2[dep_pkg] = dep_pkg
 
                             # recurse to deps of this dep
@@ -742,8 +876,13 @@ class Resolve(object):
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if ('track_features' not in new_ms and not self._broader(
-                                        new_ms, tuple(specs_by_name.get(new_ms.name, tuple())))):
+                                if (
+                                    "track_features" not in new_ms
+                                    and not self._broader(
+                                        new_ms,
+                                        tuple(specs_by_name.get(new_ms.name, ())),
+                                    )
+                                ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
                                     #     specs_added.append(new_ms)
@@ -764,18 +903,17 @@ class Resolve(object):
     def match_any(self, mss, prec):
         return any(ms.match(prec) for ms in mss)
 
-    def find_matches(self, spec):
-        # type: (MatchSpec) -> Set[PackageRecord]
+    def find_matches(self, spec: MatchSpec) -> tuple[PackageRecord]:
         res = self._cached_find_matches.get(spec, None)
         if res is not None:
             return res
 
-        spec_name = spec.get_exact_value('name')
+        spec_name = spec.get_exact_value("name")
         if spec_name:
             candidate_precs = self.groups.get(spec_name, ())
-        elif spec.get_exact_value('track_features'):
-            feature_names = spec.get_exact_value('track_features')
-            candidate_precs = concat(
+        elif spec.get_exact_value("track_features"):
+            feature_names = spec.get_exact_value("track_features")
+            candidate_precs = itertools.chain.from_iterable(
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
@@ -785,8 +923,7 @@ class Resolve(object):
         self._cached_find_matches[spec] = res
         return res
 
-    def ms_depends(self, prec):
-        # type: (PackageRecord) -> List[MatchSpec]
+    def ms_depends(self, prec: PackageRecord) -> list[MatchSpec]:
         deps = self.ms_depends_.get(prec)
         if deps is None:
             deps = [MatchSpec(d) for d in prec.combined_depends]
@@ -796,12 +933,14 @@ class Resolve(object):
 
     def version_key(self, prec, vtype=None):
         channel = prec.channel
-        channel_priority = self._channel_priorities_map.get(channel.name, 1)  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
+        channel_priority = self._channel_priorities_map.get(
+            channel.name, 1
+        )  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
-        version_comparator = VersionOrder(prec.get('version', ''))
-        build_number = prec.get('build_number', 0)
-        build_string = prec.get('build')
-        noarch = - int(prec.subdir == 'noarch')
+        version_comparator = VersionOrder(prec.get("version", ""))
+        build_number = prec.get("build_number", 0)
+        build_string = prec.get("build")
+        noarch = -int(prec.subdir == "noarch")
         if self._channel_priority != ChannelPriority.DISABLED:
             vkey = [valid, -channel_priority, version_comparator, build_number, noarch]
         else:
@@ -809,20 +948,26 @@ class Resolve(object):
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
-            vkey.extend((prec.get('timestamp', 0), build_string))
+            vkey.extend((prec.get("timestamp", 0), build_string))
         return vkey
 
     @staticmethod
     def _make_channel_priorities(channels):
         priorities_map = {}
-        for priority_counter, chn in enumerate(concat(
-            (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-            for c in (Channel(c) for c in channels)
-        )):
+        for priority_counter, chn in enumerate(
+            itertools.chain.from_iterable(
+                (Channel(cc) for cc in c._channels)
+                if isinstance(c, MultiChannel)
+                else (c,)
+                for c in (Channel(c) for c in channels)
+            )
+        ):
             channel_name = chn.name
             if channel_name in priorities_map:
                 continue
-            priorities_map[channel_name] = min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
+            priorities_map[channel_name] = min(
+                priority_counter, MAX_CHANNEL_PRIORITY - 1
+            )
         return priorities_map
 
     def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
@@ -839,13 +984,13 @@ class Resolve(object):
         if isinstance(val, PackageRecord):
             return val.dist_str()
         elif isinstance(val, MatchSpec):
-            return '@s@' + str(val) + ('?' if val.optional else '')
+            return "@s@" + str(val) + ("?" if val.optional else "")
         else:
             raise NotImplementedError()
 
     @staticmethod
     def to_feature_metric_id(prec_dist_str, feat):
-        return '@fm@%s@%s' % (prec_dist_str, feat)
+        return f"@fm@{prec_dist_str}@{feat}"
 
     def push_MatchSpec(self, C, spec):
         spec = MatchSpec(spec)
@@ -856,10 +1001,12 @@ class Resolve(object):
             return sat_name
 
         simple = spec._is_single()
-        nm = spec.get_exact_value('name')
-        tf = frozenset(_tf for _tf in (
-            f.strip() for f in spec.get_exact_value('track_features') or ()
-        ) if _tf)
+        nm = spec.get_exact_value("name")
+        tf = frozenset(
+            _tf
+            for _tf in (f.strip() for f in spec.get_exact_value("track_features") or ())
+            if _tf
+        )
 
         if nm:
             tgroup = libs = self.groups.get(nm, [])
@@ -882,7 +1029,7 @@ class Resolve(object):
             sat_names = [self.to_sat_name(prec) for prec in libs]
             if spec.optional:
                 ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
-                sat_names.append('!' + self.to_sat_name(ms2))
+                sat_names.append("!" + self.to_sat_name(ms2))
             m = C.Any(sat_names)
         C.name_var(m, sat_name)
         return sat_name
@@ -907,11 +1054,13 @@ class Resolve(object):
             nkey = C.Not(self.to_sat_name(prec))
             for ms in self.ms_depends(prec):
                 # Virtual packages can't be installed, we ignore them
-                if not ms.name.startswith('__'):
+                if not ms.name.startswith("__"):
                     C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         if log.isEnabledFor(DEBUG):
-            log.debug("gen_clauses returning with clause count: %d", C.get_clause_count())
+            log.debug(
+                "gen_clauses returning with clause count: %d", C.get_clause_count()
+            )
         return C
 
     def generate_spec_constraints(self, C, specs):
@@ -919,22 +1068,29 @@ class Resolve(object):
         if log.isEnabledFor(DEBUG):
             log.debug(
                 "generate_spec_constraints returning with clause count: %d",
-                C.get_clause_count())
+                C.get_clause_count(),
+            )
         return result
 
     def generate_feature_count(self, C):
-        result = {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
-                  for name in self.trackers.keys()}
+        result = {
+            self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
+            for name in self.trackers.keys()
+        }
         if log.isEnabledFor(DEBUG):
             log.debug(
-                "generate_feature_count returning with clause count: %d", C.get_clause_count())
+                "generate_feature_count returning with clause count: %d",
+                C.get_clause_count(),
+            )
         return result
 
     def generate_update_count(self, C, specs):
-        return {'!'+ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)}
+        return {
+            "!" + ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)
+        }
 
     def generate_feature_metric(self, C):
-        eq = {}  # a C.minimize() objective: Dict[varname, coeff]
+        eq = {}  # a C.minimize() objective: dict[varname, coeff]
         # Given a pair (prec, feature), assign a "1" score IF:
         # - The prec is installed
         # - The prec does NOT require the feature
@@ -944,16 +1100,23 @@ class Resolve(object):
             prec_feats = {self.to_sat_name(prec): set(prec.features) for prec in group}
             active_feats = set.union(*prec_feats.values()).intersection(self.trackers)
             for feat in active_feats:
-                clause_id_for_feature = self.push_MatchSpec(C, MatchSpec(track_features=feat))
+                clause_id_for_feature = self.push_MatchSpec(
+                    C, MatchSpec(track_features=feat)
+                )
                 for prec_sat_name, features in prec_feats.items():
                     if feat not in features:
-                        feature_metric_id = self.to_feature_metric_id(prec_sat_name, feat)
-                        C.name_var(C.And(prec_sat_name, clause_id_for_feature), feature_metric_id)
+                        feature_metric_id = self.to_feature_metric_id(
+                            prec_sat_name, feat
+                        )
+                        C.name_var(
+                            C.And(prec_sat_name, clause_id_for_feature),
+                            feature_metric_id,
+                        )
                         eq[feature_metric_id] = 1
         return eq
 
     def generate_removal_count(self, C, specs):
-        return {'!'+self.push_MatchSpec(C, ms.name): 1 for ms in specs}
+        return {"!" + self.push_MatchSpec(C, ms.name): 1 for ms in specs}
 
     def generate_install_count(self, C, specs):
         return {self.push_MatchSpec(C, ms.name): 1 for ms in specs if ms.optional}
@@ -963,14 +1126,14 @@ class Resolve(object):
 
     def generate_version_metrics(self, C, specs, include0=False):
         # each of these are weights saying how well packages match the specs
-        #    format for each: a C.minimize() objective: Dict[varname, coeff]
+        #    format for each: a C.minimize() objective: dict[varname, coeff]
         eqc = {}  # channel
         eqv = {}  # version
         eqb = {}  # build number
         eqa = {}  # arch/noarch
         eqt = {}  # timestamp
 
-        sdict = {}  # Dict[package_name, PackageRecord]
+        sdict = {}  # dict[package_name, PackageRecord]
 
         for s in specs:
             s = MatchSpec(s)  # needed for testing
@@ -1028,14 +1191,16 @@ class Resolve(object):
 
         return eqc, eqv, eqb, eqa, eqt
 
-    def dependency_sort(self, must_have):
-        # type: (Dict[package_name, PackageRecord]) -> List[PackageRecord]
+    def dependency_sort(
+        self,
+        must_have: dict[str, PackageRecord],
+    ) -> list[PackageRecord]:
         assert isinstance(must_have, dict)
 
-        digraph = {}  # Dict[package_name, Set[dependent_package_names]]
+        digraph = {}  # dict[str, set[dependent_package_names]]
         for package_name, prec in must_have.items():
             if prec in self.index:
-                digraph[package_name] = set(ms.name for ms in self.ms_depends(prec))
+                digraph[package_name] = {ms.name for ms in self.ms_depends(prec)}
 
         # There are currently at least three special cases to be aware of.
         # 1. The `toposort()` function, called below, contains special case code to remove
@@ -1049,11 +1214,11 @@ class Resolve(object):
         #    is going to be updated during an operation, the unlink / link order matters.
         #    See issue #6057.
 
-        if on_win and 'conda' in digraph:
+        if on_win and "conda" in digraph:
             for package_name, dist in must_have.items():
                 record = self.index.get(prec)
-                if hasattr(record, 'noarch') and record.noarch == NoarchType.python:
-                    digraph[package_name].add('conda')
+                if hasattr(record, "noarch") and record.noarch == NoarchType.python:
+                    digraph[package_name].add("conda")
 
         sorted_keys = toposort(digraph)
         must_have = must_have.copy()
@@ -1065,15 +1230,15 @@ class Resolve(object):
         return result
 
     def environment_is_consistent(self, installed):
-        log.debug('Checking if the current environment is consistent')
+        log.debug("Checking if the current environment is consistent")
         if not installed:
             return None, []
-        sat_name_map = {}  # Dict[sat_name, PackageRecord]
+        sat_name_map = {}  # dict[sat_name, PackageRecord]
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
+        r2 = Resolve({prec: prec for prec in installed}, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -1104,28 +1269,31 @@ class Resolve(object):
             r2 = Resolve(self.index, True, channels=self.channels)
             C = r2.gen_clauses()
             # This first result is just a single unsatisfiable core. There may be several.
-            final_unsat_specs = tuple(minimal_unsatisfiable_subset(specs, sat=mysat,
-                                                                   explicit_specs=explicit_specs))
+            final_unsat_specs = tuple(
+                minimal_unsatisfiable_subset(
+                    specs, sat=mysat, explicit_specs=explicit_specs
+                )
+            )
         else:
             final_unsat_specs = None
         return final_unsat_specs
 
     def bad_installed(self, installed, new_specs):
-        log.debug('Checking if the current environment is consistent')
+        log.debug("Checking if the current environment is consistent")
         if not installed:
             return None, []
-        sat_name_map = {}  # Dict[sat_name, PackageRecord]
+        sat_name_map = {}  # dict[sat_name, PackageRecord]
         specs = []
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
-            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
+            specs.append(MatchSpec(f"{prec.name} {prec.version} {prec.build}"))
         new_index = {prec: prec for prec in sat_name_map.values()}
         name_map = {p.name: p for p in new_index}
-        if 'python' in name_map and 'pip' not in name_map:
-            python_prec = new_index[name_map['python']]
-            if 'pip' in python_prec.depends:
+        if "python" in name_map and "pip" not in name_map:
+            python_prec = new_index[name_map["python"]]
+            if "pip" in python_prec.depends:
                 # strip pip dependency from python if not installed in environment
-                new_deps = [d for d in python_prec.depends if d != 'pip']
+                new_deps = [d for d in python_prec.depends if d != "pip"]
                 python_prec.depends = new_deps
         r2 = Resolve(new_index, True, channels=self.channels)
         C = r2.gen_clauses()
@@ -1133,31 +1301,40 @@ class Resolve(object):
         solution = C.sat(constraints)
         limit = xtra = None
         if not solution or xtra:
+
             def get_(name, snames):
                 if name not in snames:
                     snames.add(name)
                     for fn in self.groups.get(name, []):
                         for ms in self.ms_depends(fn):
                             get_(ms.name, snames)
+
             # New addition: find the largest set of installed packages that
             # are consistent with each other, and include those in the
             # list of packages to maintain consistency with
             snames = set()
             eq_optional_c = r2.generate_removal_count(C, specs)
             solution, _ = C.minimize(eq_optional_c, C.sat())
-            snames.update(sat_name_map[sat_name]['name']
-                          for sat_name in (C.from_index(s) for s in solution)
-                          if sat_name and sat_name[0] != '!' and '@' not in sat_name)
+            snames.update(
+                sat_name_map[sat_name]["name"]
+                for sat_name in (C.from_index(s) for s in solution)
+                if sat_name and sat_name[0] != "!" and "@" not in sat_name
+            )
             # Existing behavior: keep all specs and their dependencies
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
             if len(snames) < len(sat_name_map):
                 limit = snames
-                xtra = [rec for sat_name, rec in sat_name_map.items()
-                        if rec['name'] not in snames]
-                log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
+                xtra = [
+                    rec
+                    for sat_name, rec in sat_name_map.items()
+                    if rec["name"] not in snames
+                ]
+                log.debug(
+                    "Limiting solver to the following packages: %s", ", ".join(limit)
+                )
         if xtra:
-            log.debug('Packages to be preserved: %s', xtra)
+            log.debug("Packages to be preserved: %s", xtra)
         return limit, xtra
 
     def restore_bad(self, pkgs, preserve):
@@ -1168,7 +1345,7 @@ class Resolve(object):
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
-        log.debug('Checking satisfiability of current install')
+        log.debug("Checking satisfiability of current install")
         limit, preserve = self.bad_installed(installed, specs)
         for prec in installed:
             if prec not in self.index:
@@ -1184,8 +1361,9 @@ class Resolve(object):
                 # TODO: fix target here
                 spec = MatchSpec(name=name, target=prec.dist_str())
             else:
-                spec = MatchSpec(name=name, version=version,
-                                 build=build, channel=schannel)
+                spec = MatchSpec(
+                    name=name, version=version, build=build, channel=schannel
+                )
             specs.insert(0, spec)
         return tuple(specs), preserve
 
@@ -1209,10 +1387,10 @@ class Resolve(object):
             # these matches will never match an actual package. Combined with
             # optional=True, this has the effect of forcing their removal.
             if s._is_single():
-                nspecs.append(MatchSpec(s, version='@', optional=True))
+                nspecs.append(MatchSpec(s, version="@", optional=True))
             else:
                 nspecs.append(MatchSpec(s, optional=True))
-        snames = set(s.name for s in nspecs if s.name)
+        snames = {s.name for s in nspecs if s.name}
         limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for prec in installed:
@@ -1223,10 +1401,14 @@ class Resolve(object):
                 preserve.append(prec)
             else:
                 # TODO: fix target here
-                nspecs.append(MatchSpec(name=nm,
-                                        version='>='+ver if ver else None,
-                                        optional=True,
-                                        target=prec.dist_str()))
+                nspecs.append(
+                    MatchSpec(
+                        name=nm,
+                        version=">=" + ver if ver else None,
+                        optional=True,
+                        target=prec.dist_str(),
+                    )
+                )
         return nspecs, preserve
 
     def remove(self, specs, installed):
@@ -1236,29 +1418,36 @@ class Resolve(object):
         return pkgs
 
     @time_recorder(module_name=__name__)
-    def solve(self, specs, returnall=False, _remove=False, specs_to_add=None, history_specs=None,
-              should_retry_solve=False):
-        # type: (List[str], bool) -> List[PackageRecord]
-
+    def solve(
+        self,
+        specs: list,
+        returnall: bool = False,
+        _remove=False,
+        specs_to_add=None,
+        history_specs=None,
+        should_retry_solve=False,
+    ) -> list[PackageRecord]:
         if specs and not isinstance(specs[0], MatchSpec):
             specs = tuple(MatchSpec(_) for _ in specs)
 
         specs = set(specs)
         if log.isEnabledFor(DEBUG):
-            dlist = dashlist(str(
-                '%i: %s target=%s optional=%s' % (i, s, s.target, s.optional))
-                for i, s in enumerate(specs))
-            log.debug('Solving for: %s', dlist)
+            dlist = dashlist(
+                str("%i: %s target=%s optional=%s" % (i, s, s.target, s.optional))
+                for i, s in enumerate(specs)
+            )
+            log.debug("Solving for: %s", dlist)
 
         if not specs:
-            return tuple()
+            return ()
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
 
         reduced_index = self.get_reduced_index(
-            specs, exit_on_conflict=not context.unsatisfiable_hints)
+            specs, exit_on_conflict=not context.unsatisfiable_hints
+        )
         if not reduced_index:
             # something is intrinsically unsatisfiable - either not found or
             # not the right version
@@ -1273,7 +1462,9 @@ class Resolve(object):
             if not_found_packages:
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
-                raise UnsatisfiableError([[d] for d in wrong_version_packages], chains=False)
+                raise UnsatisfiableError(
+                    [[d] for d in wrong_version_packages], chains=False
+                )
             if should_retry_solve:
                 # We don't want to call find_conflicts until our last try.
                 # This jumps back out to conda/cli/install.py, where the
@@ -1291,11 +1482,14 @@ class Resolve(object):
 
         # Return a solution of packages
         def clean(sol):
-            return [q for q in (C.from_index(s) for s in sol)
-                    if q and q[0] != '!' and '@' not in q]
+            return [
+                q
+                for q in (C.from_index(s) for s in sol)
+                if q and q[0] != "!" and "@" not in q
+            ]
 
         def is_converged(solution):
-            """ Determine if the SAT problem has converged to a single solution.
+            """Determine if the SAT problem has converged to a single solution.
 
             This is determined by testing for a SAT solution with the current
             clause set and a clause in which at least one of the packages in
@@ -1334,30 +1528,32 @@ class Resolve(object):
         speca.extend(MatchSpec(s) for s in specm)
 
         if log.isEnabledFor(DEBUG):
-            log.debug('Requested specs: %s', dashlist(sorted(str(s) for s in specr)))
-            log.debug('Optional specs: %s', dashlist(sorted(str(s) for s in speco)))
-            log.debug('All other specs: %s', dashlist(sorted(str(s) for s in speca)))
-            log.debug('missing specs: %s', dashlist(sorted(str(s) for s in specm)))
+            log.debug("Requested specs: %s", dashlist(sorted(str(s) for s in specr)))
+            log.debug("Optional specs: %s", dashlist(sorted(str(s) for s in speco)))
+            log.debug("All other specs: %s", dashlist(sorted(str(s) for s in speca)))
+            log.debug("missing specs: %s", dashlist(sorted(str(s) for s in specm)))
 
         # Removed packages: minimize count
         log.debug("Solve: minimize removed packages")
         if _remove:
             eq_optional_c = r2.generate_removal_count(C, speco)
             solution, obj7 = C.minimize(eq_optional_c, solution)
-            log.debug('Package removal metric: %d', obj7)
+            log.debug("Package removal metric: %d", obj7)
 
         # Requested packages: maximize versions
         log.debug("Solve: maximize versions of requested packages")
-        eq_req_c, eq_req_v, eq_req_b, eq_req_a, eq_req_t = r2.generate_version_metrics(C, specr)
+        eq_req_c, eq_req_v, eq_req_b, eq_req_a, eq_req_t = r2.generate_version_metrics(
+            C, specr
+        )
         solution, obj3a = C.minimize(eq_req_c, solution)
         solution, obj3 = C.minimize(eq_req_v, solution)
-        log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
+        log.debug("Initial package channel/version metric: %d/%d", obj3a, obj3)
 
         # Track features: minimize feature count
         log.debug("Solve: minimize track_feature count")
         eq_feature_count = r2.generate_feature_count(C)
         solution, obj1 = C.minimize(eq_feature_count, solution)
-        log.debug('Track feature count: %d', obj1)
+        log.debug("Track feature count: %d", obj1)
 
         # Featured packages: minimize number of featureless packages
         # installed when a featured alternative is feasible.
@@ -1368,55 +1564,62 @@ class Resolve(object):
         # considered "featureless."
         eq_feature_metric = r2.generate_feature_metric(C)
         solution, obj2 = C.minimize(eq_feature_metric, solution)
-        log.debug('Package misfeature count: %d', obj2)
+        log.debug("Package misfeature count: %d", obj2)
 
         # Requested packages: maximize builds
         log.debug("Solve: maximize build numbers of requested packages")
         solution, obj4 = C.minimize(eq_req_b, solution)
-        log.debug('Initial package build metric: %d', obj4)
+        log.debug("Initial package build metric: %d", obj4)
 
         # prefer arch packages where available for requested specs
         log.debug("Solve: prefer arch over noarch for requested packages")
         solution, noarch_obj = C.minimize(eq_req_a, solution)
-        log.debug('Noarch metric: %d', noarch_obj)
+        log.debug("Noarch metric: %d", noarch_obj)
 
         # Optional installations: minimize count
         if not _remove:
             log.debug("Solve: minimize number of optional installations")
             eq_optional_install = r2.generate_install_count(C, speco)
             solution, obj49 = C.minimize(eq_optional_install, solution)
-            log.debug('Optional package install metric: %d', obj49)
+            log.debug("Optional package install metric: %d", obj49)
 
         # Dependencies: minimize the number of packages that need upgrading
         log.debug("Solve: minimize number of necessary upgrades")
         eq_u = r2.generate_update_count(C, speca)
         solution, obj50 = C.minimize(eq_u, solution)
-        log.debug('Dependency update count: %d', obj50)
+        log.debug("Dependency update count: %d", obj50)
 
         # Remaining packages: maximize versions, then builds
-        log.debug("Solve: maximize versions and builds of indirect dependencies.  "
-                  "Prefer arch over noarch where equivalent.")
+        log.debug(
+            "Solve: maximize versions and builds of indirect dependencies.  "
+            "Prefer arch over noarch where equivalent."
+        )
         eq_c, eq_v, eq_b, eq_a, eq_t = r2.generate_version_metrics(C, speca)
         solution, obj5a = C.minimize(eq_c, solution)
         solution, obj5 = C.minimize(eq_v, solution)
         solution, obj6 = C.minimize(eq_b, solution)
         solution, obj6a = C.minimize(eq_a, solution)
-        log.debug('Additional package channel/version/build/noarch metrics: %d/%d/%d/%d',
-                  obj5a, obj5, obj6, obj6a)
+        log.debug(
+            "Additional package channel/version/build/noarch metrics: %d/%d/%d/%d",
+            obj5a,
+            obj5,
+            obj6,
+            obj6a,
+        )
 
         # Prune unnecessary packages
         log.debug("Solve: prune unnecessary packages")
         eq_c = r2.generate_package_count(C, specm)
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
-        log.debug('Weak dependency count: %d', obj7)
+        log.debug("Weak dependency count: %d", obj7)
 
         if not is_converged(solution):
             # Maximize timestamps
             eq_t.update(eq_req_t)
             solution, obj6t = C.minimize(eq_t, solution)
-            log.debug('Timestamp metric: %d', obj6t)
+            log.debug("Timestamp metric: %d", obj6t)
 
-        log.debug('Looking for alternate solutions')
+        log.debug("Looking for alternate solutions")
         nsol = 1
         psolutions = []
         psolution = clean(solution)
@@ -1428,7 +1631,7 @@ class Resolve(object):
                 break
             nsol += 1
             if nsol > 10:
-                log.debug('Too many solutions; terminating')
+                log.debug("Too many solutions; terminating")
                 break
             psolution = clean(solution)
             psolutions.append(psolution)
@@ -1439,11 +1642,14 @@ class Resolve(object):
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
                 stdoutlog.info(
-                    '\nWarning: %s possible package resolutions '
-                    '(only showing differing packages):%s%s' %
-                    ('>10' if nsol > 10 else nsol,
-                     dashlist(', '.join(diff) for diff in diffs),
-                     '\n  ... and others' if nsol > 10 else ''))
+                    "\nWarning: %s possible package resolutions "
+                    "(only showing differing packages):%s%s"
+                    % (
+                        ">10" if nsol > 10 else nsol,
+                        dashlist(", ".join(diff) for diff in diffs),
+                        "\n  ... and others" if nsol > 10 else "",
+                    )
+                )
 
         # def stripfeat(sol):
         #     return sol.split('[')[0]
@@ -1459,4 +1665,6 @@ class Resolve(object):
             #         for psol in psolutions]
 
             # return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
-        return sorted((new_index[sat_name] for sat_name in psolutions[0]), key=lambda x: x.name)
+        return sorted(
+            (new_index[sat_name] for sat_name in psolutions[0]), key=lambda x: x.name
+        )

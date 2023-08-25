@@ -11,10 +11,7 @@ coverage:
         informational: true
 
 ignore:
-  - conda_env/.*
   - conda/_vendor/.*
-  - conda/console.py
-  - conda/cli/activate.py
   - conda/cli/main_package.py
   - conda/exports.py
   - conda/gateways/connection/adapters/ftp.py

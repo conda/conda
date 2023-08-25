@@ -1,6 +1,30 @@
 version: 2
 
+# Set the version of Python and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.10"
+  jobs:
+    post_checkout:
+      # Unshallow the git clone to make sure we can identify the version
+      - git fetch --unshallow
+    pre_install:
+      - git update-index --assume-unchanged docs/requirements.txt docs/source/conf.py
+    pre_build:
+      # Install conda so we can run conda commands (e.g., see configuration.rst)
+      - python -m pip install --no-deps --no-cache-dir --editable .
+  apt_packages:
+    # Needed for the UML graph Sphinx extension
+    - graphviz
+    - default-jre
+
 python:
-  version: "3"
   install:
-  - requirements: docs/requirements.txt
+    - requirements: docs/requirements.txt
+
+# Build PDF, ePub and zipped HTML
+formats:
+  - epub
+  - pdf
+  - htmlzip

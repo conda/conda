@@ -9,7 +9,7 @@ no upstream files or other users are affected by
 the installation.
 
 You can make conda and any number of packages available to a
-group of 1 or more users, while preventing these users
+group of one or more users, while preventing these users
 from installing unwanted packages with conda:
 
 #. Install conda and the allowed packages, if any, in a
@@ -37,7 +37,6 @@ also be used in a system ``.condarc`` file.
 For information about settings in the ``.condarc`` file,
 see :doc:`use-condarc`.
 
-
 .. _admin-inst:
 
 Example administrator-controlled installation
@@ -49,7 +48,6 @@ configuration file, and determine what happens when the user
 attempts to access a file from a blocked channel. It then
 describes how the user must modify their configuration file to
 access the channels allowed by the administrator.
-
 
 System configuration file
 -------------------------
@@ -70,26 +68,29 @@ System configuration file
       cat /tmp/miniconda/.condarc
 
    The following administrative ``.condarc`` file
-   sets ``allow_other_channels`` to ``False``, and it specifies
-   that users may download packages only from the ``admin``
-   channel:
+   uses the ``#!final`` flag to specify the channels,
+   default channels, and channel_alias available to the user.
 
    .. code-block:: bash
 
      $ cat /tmp/miniconda/.condarc
-     allow_other_channels : false
-     channel_alias: https://conda.anaconda.org/
-     channels:
+
+     channels:                                   #!final
        - admin
 
-   .. note::
-      The admin channel can also be expressed as
-      https://conda.anaconda.org/admin/
+     channel_alias: https://conda.anaconda.org/  #!final
 
-   Because ``allow_other_channels`` is ``False`` and the
-   channel defaults are not explicitly specified, users are
-   disallowed from downloading packages from the default
-   channels. You can check this in the next procedure.
+The ``#!final`` flag is very similar to the ``!important``
+rule in CSS; any parameter within the ``.condarc`` that is
+trailed by the ``#!final`` cannot be overwritten by any other
+``.condarc`` source. For more information on this flag, see the
+`Anaconda Blog <https://www.anaconda.com/blog/conda-configuration-engine-power-users>`_
+on the subject.
+
+Because the ``#!final`` flag has been used and the channel
+defaults are not explicitly specified, users are disallowed
+from downloading packages from the default channels. You can
+check this in the next procedure.
 
 .. _admin-inst-user:
 

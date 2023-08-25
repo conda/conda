@@ -4,7 +4,7 @@ Cheat sheet
 
 See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` PDF
 (1 MB) for a single-page summary of the most important
-information about using conda (link points always to the latest version).
+information about using conda (link always points to the latest version).
 
 Versions
 ========
@@ -15,6 +15,8 @@ Versions
     version as well, to keep the URL of the conda cheetsheet the same.
     Thank you!
 
-- :download:`conda 4.12.x <cheatsheets/conda-4.12.pdf>` (latest)
+- :download:`conda 4.14.x <cheatsheets/conda-4.14.pdf>` (latest)
+
+- :download:`conda 4.12.x <cheatsheets/conda-4.12.pdf>`
 
 - :download:`conda 4.6.x <cheatsheets/conda-4.6.pdf>`

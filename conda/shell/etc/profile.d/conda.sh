@@ -1,31 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
-__add_sys_prefix_to_path() {
-    # In dev-mode CONDA_EXE is python.exe and on Windows
-    # it is in a different relative location to condabin.
-    if [ -n "${_CE_CONDA}" ] && [ -n "${WINDIR+x}" ]; then
-        SYSP=$(\dirname "${CONDA_EXE}")
-    else
-        SYSP=$(\dirname "${CONDA_EXE}")
-        SYSP=$(\dirname "${SYSP}")
-    fi
-
-    if [ -n "${WINDIR+x}" ]; then
-        PATH="${SYSP}/bin:${PATH}"
-        PATH="${SYSP}/Scripts:${PATH}"
-        PATH="${SYSP}/Library/bin:${PATH}"
-        PATH="${SYSP}/Library/usr/bin:${PATH}"
-        PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
-        PATH="${SYSP}:${PATH}"
-    else
-        PATH="${SYSP}/bin:${PATH}"
-    fi
-    \export PATH
-}
-
 __conda_exe() (
-    __add_sys_prefix_to_path
     "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
 )
 

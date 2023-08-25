@@ -4,12 +4,15 @@ Developer guide
 
 .. toctree::
    :maxdepth: 2
+   :titlesonly:
 
+   architecture
    contributing
    development-environment
+   deep-dives/index
+   writing-tests/index
+   deprecations
    releasing
-   ../architecture
-   deep-dive-install
-   deep-dive-activation
-   deep-dive-context
-   deep-dive-solvers
+   plugins/index
+   specs/index
+   api

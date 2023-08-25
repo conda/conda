@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-
+"""Collection of pytest fixtures used in conda.notices tests."""
 from pathlib import Path
-
 from unittest import mock
+
 import pytest
 
 from conda.base.constants import NOTICES_CACHE_SUBDIR
@@ -26,9 +25,10 @@ def notices_cache_dir(tmpdir):
 
 
 @pytest.fixture(scope="function")
-def notices_mock_http_session_get():
-    with mock.patch("conda.gateways.connection.session.CondaSession.get") as session_get:
-        yield session_get
+def notices_mock_fetch_get_session():
+    with mock.patch("conda.notices.fetch.get_session") as mock_get_session:
+        mock_get_session.return_value = mock.MagicMock()
+        yield mock_get_session
 
 
 @pytest.fixture(scope="function")

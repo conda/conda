@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
 """Common collection classes."""
-from __future__ import print_function, division, absolute_import
 from functools import reduce
-try:
-    from collections.abc import Mapping, Set
-except ImportError:
-    from collections import Mapping, Set
+from collections.abc import Mapping, Set
 
 from .compat import isiterable
 from .._vendor.frozendict import frozendict
@@ -43,11 +38,11 @@ class AttrDict(dict):
         (2, 2)
     """
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 
-def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
+def first(seq, key=bool, default=None, apply=lambda x: x):
     """Give the first value that satisfies the key test.
 
     Args:
@@ -84,7 +79,7 @@ def firstitem(map, key=lambda k, v: bool(k), default=None, apply=lambda k, v: (k
     return next((apply(k, v) for k, v in map if key(k, v)), default)
 
 
-def last(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
+def last(seq, key=bool, default=None, apply=lambda x: x):
     return next((apply(x) for x in reversed(seq) if key(x)), default)
 
 

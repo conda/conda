@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -10,23 +9,26 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 from collections import defaultdict
 from logging import getLogger
-import sys
 
-from ._vendor.boltons.setutils import IndexedSet
-from ._vendor.toolz import concatv
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:  # pragma: no cover
+    from ._vendor.boltons.setutils import IndexedSet
+
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, stack_context_default
 from .common.io import dashlist, env_vars, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
+from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -41,50 +43,57 @@ log = getLogger(__name__)
 
 # TODO: Remove conda/plan.py.  This module should be almost completely deprecated now.
 
+
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
-    print(fmt % ('package', 'build'))
-    print(fmt % ('-' * 27, '-' * 17))
+    print(fmt % ("package", "build"))
+    print(fmt % ("-" * 27, "-" * 17))
     for prec, extra in dists_extras:
-        line = fmt % (prec.name + '-' + prec.version, prec.build)
+        line = fmt % (prec.name + "-" + prec.version, prec.build)
         if extra:
             line += extra
         print(line)
 
 
-def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()):
+def display_actions(
+    actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()
+):
     prefix = actions.get("PREFIX")
-    builder = ['', '## Package Plan ##\n']
+    builder = ["", "## Package Plan ##\n"]
     if prefix:
-        builder.append('  environment location: %s' % prefix)
-        builder.append('')
+        builder.append("  environment location: %s" % prefix)
+        builder.append("")
     if specs_to_remove:
-        builder.append('  removed specs: %s'
-                       % dashlist(sorted(str(s) for s in specs_to_remove), indent=4))
-        builder.append('')
+        builder.append(
+            "  removed specs: %s"
+            % dashlist(sorted(str(s) for s in specs_to_remove), indent=4)
+        )
+        builder.append("")
     if specs_to_add:
-        builder.append('  added / updated specs: %s'
-                       % dashlist(sorted(str(s) for s in specs_to_add), indent=4))
-        builder.append('')
-    print('\n'.join(builder))
+        builder.append(
+            "  added / updated specs: %s"
+            % dashlist(sorted(str(s) for s in specs_to_add), indent=4)
+        )
+        builder.append("")
+    print("\n".join(builder))
 
     if show_channel_urls is None:
         show_channel_urls = context.show_channel_urls
 
     def channel_str(rec):
-        if rec.get('schannel'):
-            return rec['schannel']
-        if rec.get('url'):
-            return Channel(rec['url']).canonical_name
-        if rec.get('channel'):
-            return Channel(rec['channel']).canonical_name
+        if rec.get("schannel"):
+            return rec["schannel"]
+        if rec.get("url"):
+            return Channel(rec["url"]).canonical_name
+        if rec.get("channel"):
+            return Channel(rec["channel"]).canonical_name
         return UNKNOWN_CHANNEL
 
     def channel_filt(s):
         if show_channel_urls is False:
-            return ''
+            return ""
         if show_channel_urls is None and s == DEFAULTS_CHANNEL_NAME:
-            return ''
+            return ""
         return s
 
     if actions.get(FETCH):
@@ -93,40 +102,44 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         disp_lst = []
         for prec in actions[FETCH]:
             assert isinstance(prec, PackageRecord)
-            extra = '%15s' % human_bytes(prec['size'])
+            extra = "%15s" % human_bytes(prec["size"])
             schannel = channel_filt(prec.channel.canonical_name)
             if schannel:
-                extra += '  ' + schannel
+                extra += "  " + schannel
             disp_lst.append((prec, extra))
         print_dists(disp_lst)
 
         if index and len(actions[FETCH]) > 1:
-            num_bytes = sum(prec['size'] for prec in actions[FETCH])
-            print(' ' * 4 + '-' * 60)
+            num_bytes = sum(prec["size"] for prec in actions[FETCH])
+            print(" " * 4 + "-" * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
     # package -> [oldver-oldbuild, newver-newbuild]
-    packages = defaultdict(lambda: list(('', '')))
-    features = defaultdict(lambda: list(('', '')))
-    channels = defaultdict(lambda: list(('', '')))
+    packages = defaultdict(lambda: list(("", "")))
+    features = defaultdict(lambda: list(("", "")))
+    channels = defaultdict(lambda: list(("", "")))
     records = defaultdict(lambda: list((None, None)))
     linktypes = {}
 
     for prec in actions.get(LINK, []):
         assert isinstance(prec, PackageRecord)
-        pkg = prec['name']
+        pkg = prec["name"]
         channels[pkg][1] = channel_str(prec)
-        packages[pkg][1] = prec['version'] + '-' + prec['build']
+        packages[pkg][1] = prec["version"] + "-" + prec["build"]
         records[pkg][1] = prec
-        linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
-        features[pkg][1] = ','.join(prec.get('features') or ())
+        linktypes[
+            pkg
+        ] = (
+            LinkType.hardlink
+        )  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
+        features[pkg][1] = ",".join(prec.get("features") or ())
     for prec in actions.get(UNLINK, []):
         assert isinstance(prec, PackageRecord)
-        pkg = prec['name']
+        pkg = prec["name"]
         channels[pkg][0] = channel_str(prec)
-        packages[pkg][0] = prec['version'] + '-' + prec['build']
+        packages[pkg][0] = prec["version"] + "-" + prec["build"]
         records[pkg][0] = prec
-        features[pkg][0] = ','.join(prec.get('features') or ())
+        features[pkg][0] = ",".join(prec.get("features") or ())
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
@@ -154,34 +167,34 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         for pkg in packages:
             # That's right. I'm using old-style string formatting to generate a
             # string with new-style string formatting.
-            oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
+            oldfmt[pkg] = f"{{pkg:<{maxpkg}}} {{vers[0]:<{maxoldver}}}"
             if maxoldchannels:
-                oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
+                oldfmt[pkg] += " {channels[0]:<%s}" % maxoldchannels
             if features[pkg][0]:
-                oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
+                oldfmt[pkg] += " [{features[0]:<%s}]" % maxoldfeatures
 
             lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
-            lt = '' if lt == LinkType.hardlink else (' (%s)' % lt)
+            lt = "" if lt == LinkType.hardlink else (" (%s)" % lt)
             if pkg in removed or pkg in new:
                 oldfmt[pkg] += lt
                 continue
 
-            newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
+            newfmt[pkg] = "{vers[1]:<%s}" % maxnewver
             if maxnewchannels:
-                newfmt[pkg] += ' {channels[1]:<%s}' % maxnewchannels
+                newfmt[pkg] += " {channels[1]:<%s}" % maxnewchannels
             if features[pkg][1]:
-                newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
+                newfmt[pkg] += " [{features[1]:<%s}]" % maxnewfeatures
             newfmt[pkg] += lt
 
             P0 = records[pkg][0]
             P1 = records[pkg][1]
-            pri0 = P0.get('priority')
-            pri1 = P1.get('priority')
+            pri0 = P0.get("priority")
+            pri1 = P1.get("priority")
             if pri0 is None or pri1 is None:
                 pri0 = pri1 = 1
             try:
-                if str(P1.version) == 'custom':
-                    newver = str(P0.version) != 'custom'
+                if str(P1.version) == "custom":
+                    newver = str(P0.version) != "custom"
                     oldver = not newver
                 else:
                     # <= here means that unchanged packages will be put in updated
@@ -194,7 +207,11 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
                 oldver = P0.version > P1.version
             oldbld = P0.build_number > P1.build_number
             newbld = P0.build_number < P1.build_number
-            if context.channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
+            if (
+                context.channel_priority
+                and pri1 < pri0
+                and (oldver or not newver and not newbld)
+            ):
                 channeled.add(pkg)
             elif newver:
                 updated.add(pkg)
@@ -207,13 +224,14 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
             else:
                 downgraded.add(pkg)
 
-    arrow = ' --> '
-    lead = ' ' * 4
+    arrow = " --> "
+    lead = " " * 4
 
     def format(s, pkg):
         chans = [channel_filt(c) for c in channels[pkg]]
-        return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
-                               channels=chans, features=features[pkg])
+        return lead + s.format(
+            pkg=pkg + ":", vers=packages[pkg], channels=chans, features=features[pkg]
+        )
 
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
@@ -232,7 +250,9 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if channeled:
-        print("\nThe following packages will be SUPERSEDED by a higher-priority channel:\n")
+        print(
+            "\nThe following packages will be SUPERSEDED by a higher-priority channel:\n"
+        )
         for pkg in sorted(channeled):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
@@ -243,9 +263,9 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
 
     if empty and actions.get(SYMLINK_CONDA):
         print("\nThe following empty environments will be CREATED:\n")
-        print(actions['PREFIX'])
+        print(actions["PREFIX"])
 
-    print('')
+    print()
 
 
 def add_unlink(actions, dist):
@@ -266,7 +286,9 @@ def _get_best_prec_match(precs):
     assert precs
     for chn in context.channels:
         channel_matcher = ChannelMatch(chn)
-        prec_matches = tuple(prec for prec in precs if channel_matcher.match(prec.channel.name))
+        prec_matches = tuple(
+            prec for prec in precs if channel_matcher.match(prec.channel.name)
+        )
         if prec_matches:
             break
     else:
@@ -285,7 +307,9 @@ def revert_actions(prefix, revision=-1, index=None):
     # TODO: This is wrong!!!!!!!!!!
     user_requested_specs = h.get_requested_specs_map().values()
     try:
-        target_state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
+        target_state = {
+            MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)
+        }
     except IndexError:
         raise CondaIndexError("no such revision: %d" % revision)
 
@@ -314,6 +338,7 @@ def revert_actions(prefix, revision=-1, index=None):
 
 # ---------------------------- Backwards compat for conda-build --------------------------
 
+
 @time_recorder("execute_actions")
 def execute_actions(actions, index, verbose=False):  # pragma: no cover
     plan = _plan_from_actions(actions, index)
@@ -323,16 +348,16 @@ def execute_actions(actions, index, verbose=False):  # pragma: no cover
 def _plan_from_actions(actions, index):  # pragma: no cover
     from .instructions import ACTION_CODES, PREFIX, PRINT, PROGRESS, PROGRESS_COMMANDS
 
-    if 'op_order' in actions and actions['op_order']:
-        op_order = actions['op_order']
+    if "op_order" in actions and actions["op_order"]:
+        op_order = actions["op_order"]
     else:
         op_order = ACTION_CODES
 
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
-    plan = [('PREFIX', '%s' % prefix)]
+    plan = [("PREFIX", "%s" % prefix)]
 
-    unlink_link_transaction = actions.get('UNLINKLINKTRANSACTION')
+    unlink_link_transaction = actions.get("UNLINKLINKTRANSACTION")
     if unlink_link_transaction:
         raise RuntimeError()
         # progressive_fetch_extract = actions.get('PROGRESSIVEFETCHEXTRACT')
@@ -341,25 +366,27 @@ def _plan_from_actions(actions, index):  # pragma: no cover
         # plan.append((UNLINKLINKTRANSACTION, unlink_link_transaction))
         # return plan
 
-    axn = actions.get('ACTION') or None
-    specs = actions.get('SPECS', [])
+    axn = actions.get("ACTION") or None
+    specs = actions.get("SPECS", [])
 
-    log.debug("Adding plans for operations: {0}".format(op_order))
+    log.debug(f"Adding plans for operations: {op_order}")
     for op in op_order:
         if op not in actions:
-            log.trace("action {0} not in actions".format(op))
+            log.trace(f"action {op} not in actions")
             continue
         if not actions[op]:
-            log.trace("action {0} has None value".format(op))
+            log.trace(f"action {op} has None value")
             continue
-        if '_' not in op:
-            plan.append((PRINT, '%sing packages ...' % op.capitalize()))
-        elif op.startswith('RM_'):
-            plan.append((PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
+        if "_" not in op:
+            plan.append((PRINT, "%sing packages ..." % op.capitalize()))
+        elif op.startswith("RM_"):
+            plan.append(
+                (PRINT, "Pruning %s packages from the cache ..." % op[3:].lower())
+            )
         if op in PROGRESS_COMMANDS:
-            plan.append((PROGRESS, '%d' % len(actions[op])))
+            plan.append((PROGRESS, "%d" % len(actions[op])))
         for arg in actions[op]:
-            log.debug("appending value {0} for action {1}".format(arg, op))
+            log.debug(f"appending value {arg} for action {op}")
             plan.append((op, arg))
 
     plan = _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
@@ -369,13 +396,21 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 
 def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: no cover
     from os.path import isdir
-    from .models.dist import Dist
-    from ._vendor.toolz.itertoolz import groupby
-    from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
-    from .core.package_cache_data import ProgressiveFetchExtract
+
     from .core.link import PrefixSetup, UnlinkLinkTransaction
+    from .core.package_cache_data import ProgressiveFetchExtract
+    from .instructions import (
+        LINK,
+        PROGRESSIVEFETCHEXTRACT,
+        UNLINK,
+        UNLINKLINKTRANSACTION,
+    )
+    from .models.dist import Dist
+
     # this is only used for conda-build at this point
-    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
+    first_unlink_link_idx = next(
+        (q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1
+    )
     if first_unlink_link_idx >= 0:
         grouped_instructions = groupby(lambda x: x[0], plan)
         unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
@@ -395,9 +430,11 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
         pfe.prepare()
 
         stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs, ())
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
+        plan.insert(
+            first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp))
+        )
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
-    elif axn in ('INSTALL', 'CREATE'):
+    elif axn in ("INSTALL", "CREATE"):
         plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), (), specs)))
 
     return plan
@@ -405,6 +442,7 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
 
 def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     from .common.compat import on_win
+
     if not on_win:
         return unlink_dists, link_dists
 
@@ -412,43 +450,62 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # package tries to import it to create/remove a shortcut
 
     # unlink
-    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
+    menuinst_idx = next(
+        (q for q, d in enumerate(unlink_dists) if d.name == "menuinst"), None
+    )
     if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
+        unlink_dists = (
+            *unlink_dists[:menuinst_idx],
+            *unlink_dists[menuinst_idx + 1 :],
+            *unlink_dists[menuinst_idx : menuinst_idx + 1],
+        )
 
     # link
-    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
+    menuinst_idx = next(
+        (q for q, d in enumerate(link_dists) if d.name == "menuinst"), None
+    )
     if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
+        link_dists = (
+            *link_dists[menuinst_idx : menuinst_idx + 1],
+            *link_dists[:menuinst_idx],
+            *link_dists[menuinst_idx + 1 :],
+        )
 
     return unlink_dists, link_dists
 
 
 @time_recorder("install_actions")
-def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False,
-                    minimal_hint=False):  # pragma: no cover
+def install_actions(
+    prefix,
+    index,
+    specs,
+    force=False,
+    only_names=None,
+    always_copy=False,
+    pinned=True,
+    update_deps=True,
+    prune=False,
+    channel_priority_map=None,
+    is_update=False,
+    minimal_hint=False,
+):  # pragma: no cover
     # this is for conda-build
-    with env_vars({
-        'CONDA_ALLOW_NON_CHANNEL_URLS': 'true',
-        'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
-    }, stack_callback=stack_context_default):
+    with env_vars(
+        {
+            "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
+            "CONDA_SOLVER_IGNORE_TIMESTAMPS": "false",
+        },
+        stack_callback=stack_context_default,
+    ):
         from os.path import basename
-        from ._vendor.boltons.setutils import IndexedSet
-        from .core.solve import _get_solver_class
+
         from .models.channel import Channel
         from .models.dist import Dist
+
         if channel_priority_map:
-            channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
+            channel_names = IndexedSet(
+                Channel(url).canonical_name for url in channel_priority_map
+            )
             channels = IndexedSet(Channel(cn) for cn in channel_names)
             subdirs = IndexedSet(basename(url) for url in channel_priority_map)
         else:
@@ -456,50 +513,75 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
             if LAST_CHANNEL_URLS:
                 channel_priority_map = prioritize_channels(LAST_CHANNEL_URLS)
                 channels = IndexedSet(Channel(url) for url in channel_priority_map)
-                subdirs = IndexedSet(
-                    subdir for subdir in (c.subdir for c in channels) if subdir
-                ) or context.subdirs
+                subdirs = (
+                    IndexedSet(
+                        subdir for subdir in (c.subdir for c in channels) if subdir
+                    )
+                    or context.subdirs
+                )
             else:
                 channels = subdirs = None
 
         specs = tuple(MatchSpec(spec) for spec in specs)
 
         from .core.prefix_data import PrefixData
+
         PrefixData._cache_.clear()
 
-        solver = _get_solver_class()(prefix, channels, subdirs, specs_to_add=specs)
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
         if index:
             solver._index = {prec: prec for prec in index.values()}
         txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
         prefix_setup = txn.prefix_setups[prefix]
         actions = get_blank_actions(prefix)
-        actions['UNLINK'].extend(Dist(prec) for prec in prefix_setup.unlink_precs)
-        actions['LINK'].extend(Dist(prec) for prec in prefix_setup.link_precs)
+        actions["UNLINK"].extend(Dist(prec) for prec in prefix_setup.unlink_precs)
+        actions["LINK"].extend(Dist(prec) for prec in prefix_setup.link_precs)
         return actions
 
 
 def get_blank_actions(prefix):  # pragma: no cover
     from collections import defaultdict
-    from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
-                               RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
+
+    from .instructions import (
+        CHECK_EXTRACT,
+        CHECK_FETCH,
+        EXTRACT,
+        FETCH,
+        LINK,
+        PREFIX,
+        RM_EXTRACTED,
+        RM_FETCHED,
+        SYMLINK_CONDA,
+        UNLINK,
+    )
+
     actions = defaultdict(list)
     actions[PREFIX] = prefix
-    actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
-                           RM_EXTRACTED, EXTRACT,
-                           UNLINK, LINK, SYMLINK_CONDA)
+    actions["op_order"] = (
+        CHECK_FETCH,
+        RM_FETCHED,
+        FETCH,
+        CHECK_EXTRACT,
+        RM_EXTRACTED,
+        EXTRACT,
+        UNLINK,
+        LINK,
+        SYMLINK_CONDA,
+    )
     return actions
 
 
 @time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
-    """
-    Deprecated: This should `conda.instructions.execute_instructions` instead
-    """
+    """Deprecated: This should `conda.instructions.execute_instructions` instead."""
     plan = _update_old_plan(old_plan)
     execute_instructions(plan, index, verbose)
 
 
-def execute_instructions(plan, index=None, verbose=False, _commands=None):  # pragma: no cover
+def execute_instructions(
+    plan, index=None, verbose=False, _commands=None
+):  # pragma: no cover
     """Execute the instructions in the plan
 
     :param plan: A list of (instruction, arg) tuples
@@ -508,34 +590,35 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):  # pr
     :param _commands: (For testing only) dict mapping an instruction to executable if None
     then the default commands will be used
     """
-    from .instructions import commands, PROGRESS_COMMANDS
     from .base.context import context
+    from .instructions import PROGRESS_COMMANDS, commands
     from .models.dist import Dist
+
     if _commands is None:
         _commands = commands
 
     log.debug("executing plan %s", plan)
 
-    state = {'i': None, 'prefix': context.root_prefix, 'index': index}
+    state = {"i": None, "prefix": context.root_prefix, "index": index}
 
     for instruction, arg in plan:
+        log.debug(" %s(%r)", instruction, arg)
 
-        log.debug(' %s(%r)', instruction, arg)
-
-        if state['i'] is not None and instruction in PROGRESS_COMMANDS:
-            state['i'] += 1
-            getLogger('progress.update').info((Dist(arg).dist_name,
-                                               state['i'] - 1))
+        if state["i"] is not None and instruction in PROGRESS_COMMANDS:
+            state["i"] += 1
+            getLogger("progress.update").info((Dist(arg).dist_name, state["i"] - 1))
         cmd = _commands[instruction]
 
         if callable(cmd):
             cmd(state, arg)
 
-        if (state['i'] is not None and instruction in PROGRESS_COMMANDS
-                and state['maxval'] == state['i']):
-
-            state['i'] = None
-            getLogger('progress.stop').info(None)
+        if (
+            state["i"] is not None
+            and instruction in PROGRESS_COMMANDS
+            and state["maxval"] == state["i"]
+        ):
+            state["i"] = None
+            getLogger("progress.stop").info(None)
 
 
 def _update_old_plan(old_plan):  # pragma: no cover
@@ -545,19 +628,22 @@ def _update_old_plan(old_plan):  # pragma: no cover
     """
     plan = []
     for line in old_plan:
-        if line.startswith('#'):
+        if line.startswith("#"):
             continue
-        if ' ' not in line:
+        if " " not in line:
             from .exceptions import ArgumentError
-            raise ArgumentError("The instruction '%s' takes at least"
-                                " one argument" % line)
 
-        instruction, arg = line.split(' ', 1)
+            raise ArgumentError(
+                "The instruction '%s' takes at least" " one argument" % line
+            )
+
+        instruction, arg = line.split(" ", 1)
         plan.append((instruction, arg))
     return plan
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # for testing new revert_actions() only
     from pprint import pprint
+
     pprint(dict(revert_actions(sys.prefix, int(sys.argv[1]))))

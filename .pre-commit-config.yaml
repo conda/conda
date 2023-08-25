@@ -1,10 +1,12 @@
 # disable autofixing PRs, commenting "pre-commit.ci autofix" on a pull request triggers a autofix
 ci:
-    autofix_prs: false
+  autofix_prs: false
 # generally speaking we ignore all vendored code as well as tests data
+# ignore patches/diffs since slight reformatting can break them
 exclude: |
   (?x)^(
     conda/_vendor |
+    conda/auxlib |
     tests/data/(
       conda_format_repo |
       env_metadata/.+ |
@@ -13,11 +15,13 @@ exclude: |
       tar_traversal |
       corrupt
     ) |
+    .*\.(patch|diff) |
     tools/vendoring/patches
   )/
 repos:
+  # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -29,38 +33,46 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
-      - id: fix-encoding-pragma
-        exclude: ^conda/auxlib/
-  - repo: https://github.com/akaihola/darker
-    rev: 1.5.0
-    hooks:
-      - id: darker
-        additional_dependencies: [black==21.9b0]
-  - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
-    hooks:
-      - id: blacken-docs
-        additional_dependencies: [black==21.9b0]
-  - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
-    hooks:
-      - id: flake8
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.14.4
-    hooks:
-      - id: pylint
-        args: [--exit-zero]
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.4
-    hooks:
-      - id: bandit
-        args: [--exit-zero]
-        # ignore all tests, not just tests data
-        exclude: ^tests/
+  # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.2.0
+    rev: v1.5.4
     hooks:
+      # auto inject license blurb
       - id: insert-license
         files: \.py$
-        args: [--license-filepath, .github/disclaimer.txt]
-        exclude: ^conda/auxlib/
+        exclude: |
+          (?x)^(
+            conda/gateways/connection/adapters/ftp.py |  # Apache 2.0
+            conda/gateways/disk/link.py  # MIT
+          )$
+        args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.10.1
+    hooks:
+      # upgrade standard Python codes
+      - id: pyupgrade
+        args: [--py38-plus]
+        exclude: ^conda/exports.py
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      # auto sort Python imports
+      - id: isort
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      # auto format Python codes
+      - id: black
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.16.0
+    hooks:
+      # auto format Python codes within docstrings
+      - id: blacken-docs
+        additional_dependencies: [black]
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      # lint Python codes
+      - id: flake8
+        args: [--docstring-convention=pep257]
+        additional_dependencies: [flake8-docstrings]

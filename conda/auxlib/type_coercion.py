@@ -1,14 +1,11 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 from itertools import chain
 from re import IGNORECASE, compile
 
 from enum import Enum
 
-from .compat import NoneType, integer_types, isiterable
+from .compat import NoneType, isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
@@ -17,8 +14,8 @@ __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
 NULL_STRINGS = ("none", "~", "null", "\0")
-BOOL_COERCEABLE_TYPES = (*integer_types, bool, float, complex, list, set, dict, tuple)
-NUMBER_TYPES = (*integer_types, float, complex)
+BOOL_COERCEABLE_TYPES = (int, bool, float, complex, list, set, dict, tuple)
+NUMBER_TYPES = (int, float, complex)
 NUMBER_TYPES_SET = {*NUMBER_TYPES}
 STRING_TYPES_SET = {str}
 
@@ -29,10 +26,10 @@ class TypeCoercionError(AuxlibError, ValueError):
 
     def __init__(self, value, msg, *args, **kwargs):
         self.value = value
-        super(TypeCoercionError, self).__init__(msg, *args, **kwargs)
+        super().__init__(msg, *args, **kwargs)
 
 
-class _Regex(object):
+class _Regex:
 
     @memoizedproperty
     def BOOLEAN_TRUE(self):
@@ -123,7 +120,7 @@ def numberify(value):
     candidate = _REGEX.convert_number(value)
     if candidate is not NO_MATCH:
         return candidate
-    raise TypeCoercionError(value, "Cannot convert {0} to a number.".format(value))
+    raise TypeCoercionError(value, f"Cannot convert {value} to a number.")
 
 
 def boolify(value, nullable=False, return_string=False):
@@ -191,7 +188,7 @@ def typify(value, type_hint=None):
 
     Args:
         value (Any): Usually a string, not a sequence
-        type_hint (type or Tuple[type]):
+        type_hint (type or tuple[type]):
 
     Examples:
         >>> typify('32')

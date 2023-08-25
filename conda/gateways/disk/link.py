@@ -1,15 +1,18 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-# Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
-#   which is MIT licensed by Jason R. Coombs.
-# https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Copyright (C) 2012 Anaconda, Inc & Jason R. Coombs
+# SPDX-License-Identifier: BSD-3-Clause, MIT
+"""Disk utility functions for symlinking files and folders.
 
+Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
+which is MIT licensed by Jason R. Coombs.
+
+https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
+"""
+import sys
 from logging import getLogger
 from os import chmod as os_chmod
-from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
-import sys
+from os.path import abspath, isdir
+from os.path import islink as os_islink
+from os.path import lexists as os_lexists
 
 from ...common.compat import on_win
 from ...exceptions import CondaOSError, ParseError
@@ -17,13 +20,15 @@ from ...exceptions import CondaOSError, ParseError
 __all__ = ("islink", "lchmod", "lexists", "link", "readlink", "symlink")
 
 log = getLogger(__name__)
-PYPY = sys.implementation.name == 'pypy'
+PYPY = sys.implementation.name == "pypy"
 
 
 try:
     from os import lchmod as os_lchmod
+
     lchmod = os_lchmod
-except ImportError:
+except ImportError:  # pragma: no cover
+
     def lchmod(path, mode):
         # On systems that don't allow permissions on symbolic links, skip
         # links entirely.
@@ -33,34 +38,38 @@ except ImportError:
 
 if not on_win:  # pragma: win no cover
     from os import link, symlink
+
     link = link
     symlink = symlink
 
 else:  # pragma: unix no cover
     from ctypes import windll, wintypes
+
     CreateHardLink = windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
-    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                               wintypes.LPVOID]
+    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPVOID]
     try:
         CreateSymbolicLink = windll.kernel32.CreateSymbolicLinkW
         CreateSymbolicLink.restype = wintypes.BOOL
-        CreateSymbolicLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                                       wintypes.DWORD]
+        CreateSymbolicLink.argtypes = [
+            wintypes.LPCWSTR,
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+        ]
     except AttributeError:
         CreateSymbolicLink = None
 
     def win_hard_link(src, dst):
         """Equivalent to os.link, using the win32 CreateHardLink call."""
         if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed\n  src: %s\n  dst: %s' % (src, dst))
+            raise CondaOSError(f"win32 hard link failed\n  src: {src}\n  dst: {dst}")
 
     def win_soft_link(src, dst):
         """Equivalent to os.symlink, using the win32 CreateSymbolicLink call."""
         if CreateSymbolicLink is None:
-            raise CondaOSError('win32 soft link not supported')
+            raise CondaOSError("win32 soft link not supported")
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed\n  src: %s\n  dst: %s' % (src, dst))
+            raise CondaOSError(f"win32 soft link failed\n  src: {src}\n  dst: {dst}")
 
     link = win_hard_link
     symlink = win_soft_link
@@ -68,19 +77,18 @@ else:  # pragma: unix no cover
 
 if not (on_win and PYPY):
     from os import readlink
+
     islink = os_islink
     lexists = os_lexists
     readlink = readlink
 
 else:  # pragma: no cover
-    from ctypes import (POINTER, Structure, byref, c_uint64, cast, windll,
-                        wintypes)
+    import builtins
     import inspect
+    import sys
+    from ctypes import POINTER, Structure, byref, c_uint64, cast, windll, wintypes
     from os import getcwd
     from os.path import isfile
-    import sys
-    from ...auxlib._vendor import six
-    builtins = six.moves.builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""
@@ -104,14 +112,14 @@ else:  # pragma: no cover
 
     class WIN32_FIND_DATA(Structure):
         _fields_ = [
-            ('file_attributes', wintypes.DWORD),
-            ('creation_time', wintypes.FILETIME),
-            ('last_access_time', wintypes.FILETIME),
-            ('last_write_time', wintypes.FILETIME),
-            ('file_size_words', wintypes.DWORD*2),
-            ('reserved', wintypes.DWORD*2),
-            ('filename', wintypes.WCHAR*MAX_PATH),
-            ('alternate_filename', wintypes.WCHAR*14),
+            ("file_attributes", wintypes.DWORD),
+            ("creation_time", wintypes.FILETIME),
+            ("last_access_time", wintypes.FILETIME),
+            ("last_write_time", wintypes.FILETIME),
+            ("file_size_words", wintypes.DWORD * 2),
+            ("reserved", wintypes.DWORD * 2),
+            ("filename", wintypes.WCHAR * MAX_PATH),
+            ("alternate_filename", wintypes.WCHAR * 14),
         ]
 
         @property
@@ -132,7 +140,7 @@ else:  # pragma: no cover
 
     def handle_nonzero_success(result):
         if result == 0:
-            raise WindowsError()
+            raise OSError()
 
     def format_system_message(errno):
         """
@@ -177,7 +185,7 @@ else:  # pragma: no cover
                 value = windll.kernel32.GetLastError()
             strerror = format_system_message(value)
             args = 0, strerror, None, value
-            super(WindowsError, self).__init__(*args)
+            super().__init__(*args)
 
         @property
         def message(self):
@@ -191,7 +199,7 @@ else:  # pragma: no cover
             return self.message
 
         def __repr__(self):
-            return '{self.__class__.__name__}({self.winerror})'.format(**vars())
+            return "{self.__class__.__name__}({self.winerror})".format(**vars())
 
     def _is_symlink(find_data):
         return find_data.reserved[0] == IO_REPARSE_TAG_SYMLINK
@@ -204,32 +212,31 @@ else:  # pragma: no cover
         See http://msdn.microsoft.com/en-us/library/aa365247%28v=vs.85%29.aspx for
         details.
         """  # NOQA
-        if path.startswith('\\\\?\\'):
+        if path.startswith("\\\\?\\"):
             return path
         path = abspath(path)
-        if not path[1] == ':':
+        if not path[1] == ":":
             # python doesn't include the drive letter, but \\?\ requires it
             path = getcwd()[:2] + path
-        return '\\\\?\\' + path
+        return "\\\\?\\" + path
 
     def local_format(string):
-        """
-        format the string using variables in the caller's local namespace.
-        >>> a = 3
-        >>> local_format("{a:5}")
-        '    3'
+        """Format the string using variables in the caller's local namespace.
+
+        .. code-block:: pycon
+            >>> a = 3
+            >>> local_format("{a:5}")
+            '    3'
         """
         context = inspect.currentframe().f_back.f_locals
         return string.format_map(context)
 
     def is_symlink(path):
-        """
-        Assuming path is a reparse point, determine if it's a symlink.
-        """
+        """Assuming path is a reparse point, determine if it's a symlink."""
         path = _patch_path(path)
         try:
             return _is_symlink(next(find_files(path)))
-        except WindowsError as orig_error:  # NOQA
+        except OSError as orig_error:  # NOQA
             tmpl = "Error accessing {path}: {orig_error.message}"
             raise builtins.WindowsError(local_format(tmpl))
 
@@ -249,7 +256,7 @@ else:  # pragma: no cover
         handle = FindFirstFile(spec, byref(fd))
         while True:
             if handle == INVALID_HANDLE_VALUE:
-                raise WindowsError()
+                raise OSError()
             yield fd
             fd = WIN32_FIND_DATA()
             res = FindNextFile(handle, byref(fd))
@@ -270,25 +277,25 @@ else:  # pragma: no cover
         be determined.
         """
         res = GetFileAttributes(path)
-        return (
-            res != INVALID_FILE_ATTRIBUTES
-            and bool(res & FILE_ATTRIBUTE_REPARSE_POINT)
+        return res != INVALID_FILE_ATTRIBUTES and bool(
+            res & FILE_ATTRIBUTE_REPARSE_POINT
         )
 
     OPEN_EXISTING = 3
     FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
     FILE_FLAG_BACKUP_SEMANTICS = 0x2000000
-    FSCTL_GET_REPARSE_POINT = 0x900a8
+    FSCTL_GET_REPARSE_POINT = 0x900A8
     LPDWORD = POINTER(wintypes.DWORD)
     LPOVERLAPPED = wintypes.LPVOID
     # VOLUME_NAME_DOS = 0
 
     class SECURITY_ATTRIBUTES(Structure):
         _fields_ = (
-            ('length', wintypes.DWORD),
-            ('p_security_descriptor', wintypes.LPVOID),
-            ('inherit_handle', wintypes.BOOLEAN),
+            ("length", wintypes.DWORD),
+            ("p_security_descriptor", wintypes.LPVOID),
+            ("inherit_handle", wintypes.BOOLEAN),
         )
+
     LPSECURITY_ATTRIBUTES = POINTER(SECURITY_ATTRIBUTES)
 
     CreateFile = windll.kernel32.CreateFileW
@@ -307,19 +314,19 @@ else:  # pragma: no cover
     CloseHandle.argtypes = (wintypes.HANDLE,)
     CloseHandle.restype = wintypes.BOOLEAN
 
-    from ctypes import Array, create_string_buffer, c_byte, c_ulong, c_ushort, sizeof
+    from ctypes import Array, c_byte, c_ulong, c_ushort, create_string_buffer, sizeof
 
     class REPARSE_DATA_BUFFER(Structure):
         _fields_ = [
-            ('tag', c_ulong),
-            ('data_length', c_ushort),
-            ('reserved', c_ushort),
-            ('substitute_name_offset', c_ushort),
-            ('substitute_name_length', c_ushort),
-            ('print_name_offset', c_ushort),
-            ('print_name_length', c_ushort),
-            ('flags', c_ulong),
-            ('path_buffer', c_byte * 1),
+            ("tag", c_ulong),
+            ("data_length", c_ushort),
+            ("reserved", c_ushort),
+            ("substitute_name_offset", c_ushort),
+            ("substitute_name_length", c_ushort),
+            ("print_name_offset", c_ushort),
+            ("print_name_length", c_ushort),
+            ("flags", c_ulong),
+            ("path_buffer", c_byte * 1),
         ]
 
         def get_print_name(self):
@@ -335,16 +342,22 @@ else:  # pragma: no cover
             return cast(data, POINTER(arr_typ)).contents.value
 
     def readlink(link):
-        """
+        """Return a string representing the path to which the symbolic link points.
+
         readlink(link) -> target
-        Return a string representing the path to which the symbolic link points.
         """
-        handle = CreateFile(link, 0, 0, None, OPEN_EXISTING,
-                            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-                            None)
+        handle = CreateFile(
+            link,
+            0,
+            0,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+            None,
+        )
 
         if handle == INVALID_HANDLE_VALUE:
-            raise WindowsError()
+            raise OSError()
 
         res = reparse_DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 10240)
 
@@ -370,7 +383,9 @@ else:  # pragma: no cover
     ]
     DeviceIoControl.restype = wintypes.BOOL
 
-    def reparse_DeviceIoControl(device, io_control_code, in_buffer, out_buffer, overlapped=None):
+    def reparse_DeviceIoControl(
+        device, io_control_code, in_buffer, out_buffer, overlapped=None
+    ):
         if overlapped is not None:
             raise NotImplementedError("overlapped handles not yet supported")
 
@@ -386,12 +401,14 @@ else:  # pragma: no cover
         res = DeviceIoControl(
             device,
             io_control_code,
-            in_buffer, in_buffer_size,
-            out_buffer, out_buffer_size,
+            in_buffer,
+            in_buffer_size,
+            out_buffer,
+            out_buffer_size,
             returned_bytes,
             overlapped,
         )
 
         handle_nonzero_success(res)
         handle_nonzero_success(returned_bytes)
-        return out_buffer[:returned_bytes.value]
+        return out_buffer[: returned_bytes.value]

@@ -63,6 +63,7 @@ LOG=${2}/${TESTDIR_LOG_FNAME_BIT}-${PYVER}${JOBS//=/-}.$(date +%Y-%m-%d.%H%M%S).
 
 CONDA_TEST_SAVE_TEMPS=1 \
   pytest \
+    --cov=conda \
     ${JOBS} \
     -vvv \
     --durations=0 \

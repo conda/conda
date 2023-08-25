@@ -14,34 +14,21 @@
 # * https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
 # built-in arg set via `docker build --platform $TARGETPLATFORM ...` or TARGETPLATFORM=BUILDPLATFORM
-FROM --platform=$TARGETPLATFORM debian:buster-slim AS buildbase
+FROM --platform=$TARGETPLATFORM debian:stable-slim AS buildbase
 
 # built-in arg set by `docker build --platform linux/$TARGETARCH ...`
 ARG TARGETARCH
 ARG CONDA_VERSION=latest
+ARG default_channel=defaults
 
 WORKDIR /tmp
 
 RUN apt-get update && apt-get install -y wget
 
-RUN if [ "${TARGETARCH}" = "amd64" ]; then \
-        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh"; \
-    elif [ "${TARGETARCH}" = "s390x" ]; then \
-        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-s390x.sh"; \
-    elif [ "${TARGETARCH}" = "arm64" ]; then \
-        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-aarch64.sh"; \
-    elif [ "${TARGETARCH}" = "ppc64le" ]; then \
-        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-ppc64le.sh"; \
-    else \
-        echo "Not supported target architecture: ${TARGETARCH}"; \
-        exit 1; \
-    fi && \
-    wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda clean --all --yes
+COPY dev/linux/install_miniconda.sh /tmp
+RUN bash /tmp/install_miniconda.sh
 
-FROM --platform=$TARGETPLATFORM debian:buster-slim
+FROM --platform=$TARGETPLATFORM debian:stable-slim
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
@@ -56,7 +43,7 @@ ARG python_version=3.9
 COPY ./tests/requirements.txt /tmp
 
 # conda and test dependencies
-RUN /opt/conda/bin/conda install --update-all -y -c defaults \
+RUN /opt/conda/bin/conda install --update-all -y \
     python=$python_version \
     --file /tmp/requirements.txt && \
     /opt/conda/bin/conda clean --all --yes
