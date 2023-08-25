@@ -1,18 +1,28 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from argparse import RawDescriptionHelpFormatter
+"""CLI implementation for `conda-env update`.
+
+Updates the conda environments with the specified packages.
+"""
 import os
 import sys
 import textwrap
+from argparse import RawDescriptionHelpFormatter
 
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.base.context import context, determine_target_prefix
+from conda.cli.conda_argparse import (
+    add_parser_json,
+    add_parser_prefix,
+    add_parser_solver,
+)
 from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
-from .common import get_prefix, print_result, get_filename
-from .. import exceptions, specs as install_specs
-from ..exceptions import CondaEnvException
+from conda.notices import notices
+
+from .. import specs as install_specs
 from ..installers.base import InvalidInstaller, get_installer
+from .common import get_filename, print_result
 
 description = """
 Update the current environment based on environment file
@@ -30,7 +40,7 @@ examples:
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
-        'update',
+        "update",
         formatter_class=RawDescriptionHelpFormatter,
         description=description,
         help=description,
@@ -38,50 +48,54 @@ def configure_parser(sub_parsers):
     )
     add_parser_prefix(p)
     p.add_argument(
-        '-f', '--file',
-        action='store',
-        help='environment definition (default: environment.yml)',
-        default='environment.yml',
+        "-f",
+        "--file",
+        action="store",
+        help="environment definition (default: environment.yml)",
+        default="environment.yml",
     )
     p.add_argument(
-        '--prune',
-        action='store_true',
+        "--prune",
+        action="store_true",
         default=False,
-        help='remove installed packages not defined in environment.yml',
+        help="remove installed packages not defined in environment.yml",
     )
     p.add_argument(
-        'remote_definition',
-        help='remote environment definition / IPython notebook',
-        action='store',
+        "remote_definition",
+        help="remote environment definition / IPython notebook",
+        action="store",
         default=None,
-        nargs='?'
+        nargs="?",
     )
     add_parser_json(p)
-    p.set_defaults(func='.main_update.execute')
+    add_parser_solver(p)
+    p.set_defaults(func=".main_update.execute")
 
 
+@notices
 def execute(args, parser):
-    name = args.remote_definition or args.name
-
-    try:
-        spec = install_specs.detect(name=name, filename=get_filename(args.file),
-                                    directory=os.getcwd())
-        env = spec.environment
-    except exceptions.SpecNotFound:
-        raise
+    spec = install_specs.detect(
+        name=args.name,
+        filename=get_filename(args.file),
+        directory=os.getcwd(),
+        remote_definition=args.remote_definition,
+    )
+    env = spec.environment
 
     if not (args.name or args.prefix):
         if not env.name:
             # Note, this is a hack fofr get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
-            name = os.environ.get('CONDA_DEFAULT_ENV', False)
+            name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
                 msg = "Unable to determine environment\n\n"
-                msg += textwrap.dedent("""
+                msg += textwrap.dedent(
+                    """
                     Please re-run this command with one of the following options:
 
                     * Provide an environment name via --name or -n
-                    * Re-run this command inside an activated conda environment.""").lstrip()
+                    * Re-run this command inside an activated conda environment."""
+                ).lstrip()
                 # TODO Add json support
                 raise CondaEnvException(msg)
 
@@ -90,7 +104,7 @@ def execute(args, parser):
         # be specified.
         args.name = env.name
 
-    prefix = get_prefix(args, search=False)
+    prefix = determine_target_prefix(context, args)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
@@ -107,14 +121,19 @@ def execute(args, parser):
         try:
             installers[installer_type] = get_installer(installer_type)
         except InvalidInstaller:
-            sys.stderr.write(textwrap.dedent("""
+            sys.stderr.write(
+                textwrap.dedent(
+                    """
                 Unable to install package for {0}.
 
                 Please double check and ensure you dependencies file has
                 the correct spelling.  You might also try installing the
                 conda-env-{0} package to see if provides the required
                 installer.
-                """).lstrip().format(installer_type)
+                """
+                )
+                .lstrip()
+                .format(installer_type)
             )
             return -1
 

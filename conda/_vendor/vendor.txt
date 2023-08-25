@@ -1,0 +1,5 @@
+boltons==21.0.0
+appdirs==1.2.0
+py-cpuinfo==9.0.0
+distro==1.0.4
+frozendict==1.2

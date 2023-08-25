@@ -1,38 +1,34 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+"""Common I/O utilities."""
+import json
+import logging
+import os
+import signal
+import sys
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Executor, Future, _base, as_completed  # NOQA
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
 from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
-import sys
-if sys.version_info[0] > 2:
-    # Not used at present.
-    from io import BytesIO
+from io import BytesIO, StringIO
 from itertools import cycle
-import json
-import logging  # lgtm [py/import-and-import-from]
-from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
-import os
+from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-import signal
-from threading import Event, Thread, Lock
+from threading import Event, Lock, RLock, Thread
 from time import sleep, time
 
-from .compat import StringIO, iteritems, on_win, encode_environment
-from .constants import NULL
-from .path import expand
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
-from .._vendor.tqdm import tqdm
+from .compat import encode_environment, on_win
+from .constants import NULL
+from .path import expand
 
 log = getLogger(__name__)
+IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 class DeltaSecondsFormatter(Formatter):
@@ -46,9 +42,10 @@ class DeltaSecondsFormatter(Formatter):
         Like `relativeCreated`, time relative to the initialization of the
         `logging` module but conveniently scaled to seconds as a `float` value.
     """
+
     def __init__(self, fmt=None, datefmt=None):
         self.prev_time = time()
-        super(DeltaSecondsFormatter, self).__init__(fmt=fmt, datefmt=datefmt)
+        super().__init__(fmt=fmt, datefmt=datefmt)
 
     def format(self, record):
         now = time()
@@ -56,10 +53,10 @@ class DeltaSecondsFormatter(Formatter):
         self.prev_time = max(self.prev_time, now)
         record.delta_secs = now - prev_time
         record.relative_created_secs = record.relativeCreated / 1000
-        return super(DeltaSecondsFormatter, self).format(record)
+        return super().format(record)
 
 
-if boolify(os.environ.get('CONDA_TIMED_LOGGING')):
+if boolify(os.environ.get("CONDA_TIMED_LOGGING")):
     _FORMATTER = DeltaSecondsFormatter(
         "%(relative_created_secs) 7.2f %(delta_secs) 7.2f "
         "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
@@ -71,10 +68,10 @@ else:
 
 
 def dashlist(iterable, indent=2):
-    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
+    return "".join("\n" + " " * indent + "- " + str(x) for x in iterable)
 
 
-class ContextDecorator(object):
+class ContextDecorator:
     """Base class for a context manager class (implementing __enter__() and __exit__()) that also
     makes it a decorator.
     """
@@ -86,6 +83,7 @@ class ContextDecorator(object):
         def decorated(*args, **kwds):
             with self:
                 return f(*args, **kwds)
+
         return decorated
 
 
@@ -97,10 +95,12 @@ class SwallowBrokenPipe(ContextDecorator):
         pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if (exc_val
-                and isinstance(exc_val, EnvironmentError)
-                and getattr(exc_val, 'errno', None)
-                and exc_val.errno in (EPIPE, ESHUTDOWN)):
+        if (
+            exc_val
+            and isinstance(exc_val, EnvironmentError)
+            and getattr(exc_val, "errno", None)
+            and exc_val.errno in (EPIPE, ESHUTDOWN)
+        ):
             return True
 
 
@@ -112,19 +112,19 @@ class CaptureTarget(Enum):
 
     Used similarly like the constants PIPE, STDOUT for stdlib's subprocess.Popen.
     """
+
     STRING = -1
     STDOUT = -2
 
 
 @contextmanager
 def env_vars(var_map=None, callback=None, stack_callback=None):
-
     if var_map is None:
         var_map = {}
 
     new_var_map = encode_environment(var_map)
     saved_vars = {}
-    for name, value in iteritems(new_var_map):
+    for name, value in new_var_map.items():
         saved_vars[name] = os.environ.get(name, NULL)
         os.environ[name] = value
     try:
@@ -134,7 +134,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
             stack_callback(True)
         yield
     finally:
-        for name, value in iteritems(saved_vars):
+        for name, value in saved_vars.items():
             if value is NULL:
                 del os.environ[name]
             else:
@@ -144,10 +144,11 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
         if stack_callback:
             stack_callback(False)
 
+
 @contextmanager
 def env_var(name, value, callback=None, stack_callback=None):
     # Maybe, but in env_vars, not here:
-    #    from conda.compat import ensure_fs_path_encoding
+    #    from conda.common.compat import ensure_fs_path_encoding
     #    d = dict({name: ensure_fs_path_encoding(value)})
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
@@ -162,7 +163,7 @@ def env_unmodified(callback=None):
 
 @contextmanager
 def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
-    """Capture outputs of sys.stdout and sys.stderr.
+    r"""Capture outputs of sys.stdout and sys.stderr.
 
     If stdout is STRING, capture sys.stdout as a string,
     if stdout is None, do not capture sys.stdout, leaving it untouched,
@@ -170,6 +171,14 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
     Behave correspondingly for stderr with the exception that if stderr is STDOUT,
     redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
+
+    .. code-block:: pycon
+        >>> from conda.common.io import captured
+        >>> with captured() as c:
+        ...     print("hello world!")
+        ...
+        >>> c.stdout
+        'hello world!\n'
 
     Args:
         stdout: capture target for sys.stdout, one of STRING, None, or file-like object
@@ -179,45 +188,30 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         CapturedText: has attributes stdout, stderr which are either strings, None or the
             corresponding file-like function argument.
     """
-    # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
-    # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
-    # """
-    # Context manager to capture the printed output of the code in the with block
-    #
-    # Bind the context manager to a variable using `as` and the result will be
-    # in the stdout property.
-    #
-    # >>> from conda.common.io import captured
-    # >>> with captured() as c:
-    # ...     print('hello world!')
-    # ...
-    # >>> c.stdout
-    # 'hello world!\n'
-    # """
+
     def write_wrapper(self, to_write):
+        # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
+        # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
         # This may have to deal with a *lot* of text.
-        if hasattr(self, 'mode') and 'b' in self.mode:
+        if hasattr(self, "mode") and "b" in self.mode:
             wanted = bytes
-        elif sys.version_info[0] == 3 and isinstance(self, BytesIO):
+        elif isinstance(self, BytesIO):
             wanted = bytes
         else:
-            # ignore flake8 on this because it finds an error on py3 even though it is guarded
-            if sys.version_info[0] == 2:
-                wanted = unicode  # NOQA
-            else:
-                wanted = str
+            wanted = str
         if not isinstance(to_write, wanted):
-            if hasattr(to_write, 'decode'):
-                decoded = to_write.decode('utf-8')
+            if hasattr(to_write, "decode"):
+                decoded = to_write.decode("utf-8")
                 self.old_write(decoded)
-            elif hasattr(to_write, 'encode'):
-                b = to_write.encode('utf-8')
+            elif hasattr(to_write, "encode"):
+                b = to_write.encode("utf-8")
                 self.old_write(b)
         else:
             self.old_write(to_write)
 
-    class CapturedText(object):
+    class CapturedText:
         pass
+
     # sys.stdout.write(u'unicode out')
     # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
     # sys.stdout.write(str('str out'))
@@ -243,7 +237,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         if errfile is not None:
             sys.stderr = errfile
     c = CapturedText()
-    log.info("overtaking stderr and stdout")
+    log.debug("overtaking stderr and stdout")
     try:
         yield c
     finally:
@@ -258,7 +252,7 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
         else:
             c.stderr = errfile
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
-        log.info("stderr and stdout yielding back")
+        log.debug("stderr and stdout yielding back")
 
 
 @contextmanager
@@ -301,9 +295,14 @@ def disable_logger(logger_name):
 @contextmanager
 def stderr_log_level(level, logger_name=None):
     logr = getLogger(logger_name)
-    _hndlrs, _lvl, _dsbld, _prpgt = logr.handlers, logr.level, logr.disabled, logr.propagate
+    _hndlrs, _lvl, _dsbld, _prpgt = (
+        logr.handlers,
+        logr.level,
+        logr.disabled,
+        logr.propagate,
+    )
     handler = StreamHandler(sys.stderr)
-    handler.name = 'stderr'
+    handler.name = "stderr"
     handler.setLevel(level)
     handler.setFormatter(_FORMATTER)
     with _logger_lock():
@@ -319,16 +318,19 @@ def stderr_log_level(level, logger_name=None):
             logr.propagate = _prpgt
 
 
-def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatter=None):
+def attach_stderr_handler(
+    level=WARN, logger_name=None, propagate=False, formatter=None
+):
     # get old stderr logger
     logr = getLogger(logger_name)
-    old_stderr_handler = next((handler for handler in logr.handlers if handler.name == 'stderr'),
-                              None)
+    old_stderr_handler = next(
+        (handler for handler in logr.handlers if handler.name == "stderr"), None
+    )
 
     # create new stderr logger
     new_stderr_handler = StreamHandler(sys.stderr)
-    new_stderr_handler.name = 'stderr'
-    new_stderr_handler.setLevel(NOTSET)
+    new_stderr_handler.name = "stderr"
+    new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
 
     # do the switch
@@ -336,15 +338,14 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(level)
+        logr.setLevel(NOTSET)
         logr.propagate = propagate
 
 
-def timeout(timeout_secs, func, *args, **kwargs):
+def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
     """Enforce a maximum time for a callable to complete.
     Not yet implemented on Windows.
     """
-    default_return = kwargs.pop('default_return', None)
     if on_win:
         # Why does Windows have to be so difficult all the time? Kind of gets old.
         # Guess we'll bypass Windows timeouts for now.
@@ -353,6 +354,7 @@ def timeout(timeout_secs, func, *args, **kwargs):
         except KeyboardInterrupt:  # pragma: no cover
             return default_return
     else:
+
         class TimeoutException(Exception):
             pass
 
@@ -366,11 +368,11 @@ def timeout(timeout_secs, func, *args, **kwargs):
             ret = func(*args, **kwargs)
             signal.alarm(0)
             return ret
-        except (TimeoutException,  KeyboardInterrupt):  # pragma: no cover
+        except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
 
 
-class Spinner(object):
+class Spinner:
     """
     Args:
         message (str):
@@ -383,7 +385,7 @@ class Spinner(object):
     """
 
     # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-    spinner_cycle = cycle('/-\\|')
+    spinner_cycle = cycle("/-\\|")
 
     def __init__(self, message, enabled=True, json=False, fail_message="failed\n"):
         self.message = message
@@ -394,7 +396,7 @@ class Spinner(object):
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.show_spin = enabled and not json and IS_INTERACTIVE
         self.fail_message = fail_message
 
     def start(self):
@@ -413,11 +415,11 @@ class Spinner(object):
     def _start_spinning(self):
         try:
             while not self._stop_running.is_set():
-                self.fh.write(next(self.spinner_cycle) + ' ')
+                self.fh.write(next(self.spinner_cycle) + " ")
                 self.fh.flush()
                 sleep(0.10)
-                self.fh.write('\b' * self._indicator_length)
-        except EnvironmentError as e:
+                self.fh.write("\b" * self._indicator_length)
+        except OSError as e:
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.stop()
             else:
@@ -441,9 +443,17 @@ class Spinner(object):
                 sys.stdout.flush()
 
 
-class ProgressBar(object):
+class ProgressBar:
+    @classmethod
+    def get_lock(cls):
+        # Used only for --json (our own sys.stdout.write/flush calls).
+        if not hasattr(cls, "_lock"):
+            cls._lock = RLock()
+        return cls._lock
 
-    def __init__(self, description, enabled=True, json=False):
+    def __init__(
+        self, description, enabled=True, json=False, position=None, leave=True
+    ):
         """
         Args:
             description (str):
@@ -462,24 +472,41 @@ class ProgressBar(object):
         if json:
             pass
         elif enabled:
-            bar_format = "{desc}{bar} | {percentage:3.0f}% "
-            try:
-                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1,
-                                 file=sys.stdout)
-            except EnvironmentError as e:
-                if e.errno in (EPIPE, ESHUTDOWN):
-                    self.enabled = False
-                else:
-                    raise
+            if IS_INTERACTIVE:
+                bar_format = "{desc}{bar} | {percentage:3.0f}% "
+                try:
+                    self.pbar = self._tqdm(
+                        desc=description,
+                        bar_format=bar_format,
+                        ascii=True,
+                        total=1,
+                        file=sys.stdout,
+                        position=position,
+                        leave=leave,
+                    )
+                except OSError as e:
+                    if e.errno in (EPIPE, ESHUTDOWN):
+                        self.enabled = False
+                    else:
+                        raise
+            else:
+                self.pbar = None
+                sys.stdout.write("%s ...working..." % description)
 
     def update_to(self, fraction):
         try:
-            if self.json and self.enabled:
-                sys.stdout.write('{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
-                                 % (self.description, fraction))
-            elif self.enabled:
-                self.pbar.update(fraction - self.pbar.n)
-        except EnvironmentError as e:
+            if self.enabled:
+                if self.json:
+                    with self.get_lock():
+                        sys.stdout.write(
+                            '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
+                            % (self.description, fraction)
+                        )
+                elif IS_INTERACTIVE:
+                    self.pbar.update(fraction - self.pbar.n)
+                elif fraction == 1:
+                    sys.stdout.write(" done\n")
+        except OSError as e:
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
             else:
@@ -488,14 +515,32 @@ class ProgressBar(object):
     def finish(self):
         self.update_to(1)
 
+    def refresh(self):
+        """Force refresh i.e. once 100% has been reached"""
+        if self.enabled and not self.json and IS_INTERACTIVE:
+            self.pbar.refresh()
+
     @swallow_broken_pipe
     def close(self):
-        if self.enabled and self.json:
-            sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                             % self.description)
-            sys.stdout.flush()
-        elif self.enabled:
-            self.pbar.close()
+        if self.enabled:
+            if self.json:
+                with self.get_lock():
+                    sys.stdout.write(
+                        '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                        % self.description
+                    )
+                    sys.stdout.flush()
+            elif IS_INTERACTIVE:
+                self.pbar.close()
+            else:
+                sys.stdout.write(" done\n")
+
+    @staticmethod
+    def _tqdm(*args, **kwargs):
+        """Deferred import so it doesn't hit the `conda activate` paths."""
+        from tqdm.auto import tqdm
+
+        return tqdm(*args, **kwargs)
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
@@ -507,7 +552,7 @@ class DummyExecutor(Executor):
     def submit(self, fn, *args, **kwargs):
         with self._shutdownLock:
             if self._shutdown:
-                raise RuntimeError('cannot schedule new futures after shutdown')
+                raise RuntimeError("cannot schedule new futures after shutdown")
 
             f = Future()
             try:
@@ -530,9 +575,8 @@ class DummyExecutor(Executor):
 
 
 class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
-
     def __init__(self, max_workers=10):
-        super(ThreadLimitedThreadPoolExecutor, self).__init__(max_workers)
+        super().__init__(max_workers)
 
     def submit(self, fn, *args, **kwargs):
         """
@@ -550,7 +594,7 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
         """
         with self._shutdown_lock:
             if self._shutdown:
-                raise RuntimeError('cannot schedule new futures after shutdown')
+                raise RuntimeError("cannot schedule new futures after shutdown")
 
             f = _base.Future()
             w = _WorkItem(f, fn, args, kwargs)
@@ -572,9 +616,12 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 
 as_completed = as_completed
 
+
 def get_instrumentation_record_file():
-    default_record_file = join('~', '.conda', 'instrumentation-record.csv')
-    return expand(os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file))
+    default_record_file = join("~", ".conda", "instrumentation-record.csv")
+    return expand(
+        os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file)
+    )
 
 
 class time_recorder(ContextDecorator):  # pragma: no cover
@@ -589,20 +636,20 @@ class time_recorder(ContextDecorator):  # pragma: no cover
 
     def _set_entry_name(self, f):
         if self.entry_name is None:
-            if hasattr(f, '__qualname__'):
+            if hasattr(f, "__qualname__"):
                 entry_name = f.__qualname__
             else:
-                entry_name = ':' + f.__name__
+                entry_name = ":" + f.__name__
             if self.module_name:
-                entry_name = '.'.join((self.module_name, entry_name))
+                entry_name = ".".join((self.module_name, entry_name))
             self.entry_name = entry_name
 
     def __call__(self, f):
         self._set_entry_name(f)
-        return super(time_recorder, self).__call__(f)
+        return super().__call__(f)
 
     def __enter__(self):
-        enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
+        enabled = os.environ.get("CONDA_INSTRUMENTATION_ENABLED")
         if enabled and boolify(enabled):
             self.start_time = time()
         return self
@@ -615,21 +662,21 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             self.total_call_num[entry_name] += 1
             self.total_run_time[entry_name] += run_time
             self._ensure_dir()
-            with open(self.record_file, 'a') as fh:
-                fh.write("%s,%f\n" % (entry_name, run_time))
+            with open(self.record_file, "a") as fh:
+                fh.write(f"{entry_name},{run_time:f}\n")
             # total_call_num = self.total_call_num[entry_name]
             # total_run_time = self.total_run_time[entry_name]
             # log.debug('%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
 
     @classmethod
     def log_totals(cls):
-        enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
+        enabled = os.environ.get("CONDA_INSTRUMENTATION_ENABLED")
         if not (enabled and boolify(enabled)):
             return
-        log.info('=== time_recorder total time and calls ===')
+        log.info("=== time_recorder total time and calls ===")
         for entry_name in sorted(cls.total_run_time.keys()):
             log.info(
-                'TOTAL %9.3f % 9d %s',
+                "TOTAL %9.3f % 9d %s",
                 cls.total_run_time[entry_name],
                 cls.total_call_num[entry_name],
                 entry_name,
@@ -652,7 +699,7 @@ def print_instrumentation_data():  # pragma: no cover
 
     with open(record_file) as fh:
         for line in fh:
-            entry_name, total_time = line.strip().split(',')
+            entry_name, total_time = line.strip().split(",")
             grouped_data[entry_name].append(float(total_time))
 
     for entry_name in sorted(grouped_data):
@@ -661,12 +708,12 @@ def print_instrumentation_data():  # pragma: no cover
         total_time = sum(all_times)
         average_time = total_time / counts
         final_data[entry_name] = {
-            'counts': counts,
-            'total_time': total_time,
-            'average_time': average_time,
+            "counts": counts,
+            "total_time": total_time,
+            "average_time": average_time,
         }
 
-    print(json.dumps(final_data, sort_keys=True, indent=2, separators=(',', ': ')))
+    print(json.dumps(final_data, sort_keys=True, indent=2, separators=(",", ": ")))
 
 
 if __name__ == "__main__":

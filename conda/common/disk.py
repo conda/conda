@@ -1,12 +1,14 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+"""Common disk utilities."""
 from contextlib import contextmanager
 from os import unlink
-from ..auxlib.compat import Utf8NamedTemporaryFile
 
+from ..auxlib.compat import Utf8NamedTemporaryFile
+from ..deprecations import deprecated
+
+
+@deprecated("24.3", "24.9", addendum="Use `tempfile` instead.")
 @contextmanager
 def temporary_content_in_file(content, suffix=""):
     # content returns temporary file path with contents

@@ -1,22 +1,27 @@
 All of the people who have made at least one contribution to conda.
 Authors are sorted alphabetically.
 
-* ARF
 * ARF1
 * Aaron Meurer
+* Abheek Mathur
+* Adrian Freund
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
 * Albert Kottke
+* Alberto Gobbi
 * Alex Alvarez
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
 * Amir Mohammadi
+* Andrea Ghensi
 * Andreas Girgensohn
 * Andrew Achkar
+* Andrew Arendt
 * Andrew M. Farrell
 * Andy R. Terrel
 * Angela Gloyna
@@ -28,19 +33,26 @@ Authors are sorted alphabetically.
 * Anže Starič
 * ApurvaWavhal
 * Armin Burgmeier
+* Arqam Hussain
+* Attila Nagy
 * Aurelien Vallee
+* Avalon
 * Bas Nijholt
 * Bastian Zimmermann
 * Ben Bodenmiller
 * Ben Mares
 * Benedikt Wildenhain
 * Benjamin Bertrand
+* Benjamin Fischer
 * Benjamin Wilhelm
 * Benjamin Zaitlen
 * Bernardo da Eira Duarte
+* Bernd Jünger
 * Berton Earnshaw
+* Bianca Henderson
 * Billy Keyes
 * Blake Nicholson
+* Bocong Sui
 * Bojan Delic
 * Brad Nemanich
 * Brad S
@@ -52,7 +64,9 @@ Authors are sorted alphabetically.
 * Brian W. Hart
 * Bruno Oliveira
 * Bryan Van de Ven
+* Carlos H Brandt
 * Casper da Costa-Luis
+* Chawye Hsu
 * Cheng H. Lee
 * Chris Burr
 * Chris Granade
@@ -65,38 +79,57 @@ Authors are sorted alphabetically.
 * Christoph Stich
 * Christopher Barber
 * Christopher Granade
+* Christopher Howard
+* Christopher J. Wright
+* Christos Panopoulos
 * ColemanTom
 * Colin Brislawn
+* Conda Bot
 * Cong
 * Connor Martin
+* Crystal Soja
+* Daekwon Yun
 * Dainese Hsiao
 * Dan Blanchard
+* Dan Dascalescu
+* Dan Lovell
 * Dan Meador
 * Daniel Bast
+* Daniel Holth
+* Daniel Hook
 * Daniel Wehner
 * Daniel Zeng
+* Dario Curreri
 * Darren Dale
 * Dave
 * Dave Hirschfeld
+* Dave Hogue
 * Dave Masino
 * David Froger
 * David Kent
 * David Li
 * David Mertz
 * David Warde-Farley
+* Deepyaman Datta
 * Dennis George
 * Derek Ludwig
 * Diogo de Campos
 * Duncan Macleod
 * Dylan Morroll
 * Dylan Orzel
+* Dzianis Shpektarau
 * Ed Reed
 * Eli Rykoff
 * Eric Dill
 * Eric Prestat
+* Erik Sundell
 * Ernst Reissner
 * Eugene Van den Bulke
+* Evo
+* Faustin Carter
+* FelisNivalis
 * Flavio Martins
+* Florenz A. P. Hollebrandse
 * Floris Bruynooghe
 * Forrest Waters
 * Frederic Bastien
@@ -104,11 +137,13 @@ Authors are sorted alphabetically.
 * Gabriel Reis
 * Geir Ove Myhr
 * George Hartzell
+* Gil Forsyth
 * Giles Cope
 * Gonzalo Peña-Castellanos
 * Greg Brener
 * Gregor Kržmanc
 * Guilherme Quentel Melo
+* Guo Ci
 * Hamza Sheikh
 * Havoc Pennington
 * Henning Schroder
@@ -116,6 +151,8 @@ Authors are sorted alphabetically.
 * Hugo Buddelmeijer
 * Iain Gillis
 * Ian Stokes-Rees
+* Igor Igamberdiev
+* Ikko Eltociear Ashimine
 * Ilan Cosman
 * Ilan Schnell
 * Ilango Rajagopal
@@ -138,33 +175,46 @@ Authors are sorted alphabetically.
 * Jannis Leidel
 * Jason Grout
 * Jason Vestuto
+* Javier Rovegno
 * Jayson Messenger
 * Jeffrey Gill
 * Jeremy Liu
+* Jerimiah Willhite
 * Jesse Hamer
 * Jillian Rowe
 * Joe D
 * Joe Jevnik
+* Joel Hull
 * Joel Kim
+* Joel Tony
 * Johan Carlin
+* Johannes Köster
 * John Ayad
+* John Flavin
 * John Kirkham
+* Johnny Núñez Cano
 * Jonas Haag
 * Jonathan J. Helmus
 * Josh Mayer
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
 * Julien Schueller
+* Justus Schwabedal
 * Justyn Harriman
 * Kahlil Hodgson
 * Kai Tietz
 * Kale Franz
 * Kamil Kwiek
+* Kannan Jayachandran
 * Kara de la Marck
+* Katherine Abrikian
+* Katherine Kinnaman
 * Ken Odegard
+* Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
+* Kian-Meng Ang
 * Korijn van Golen
 * Kurt Wheeler
 * Kyle Gerard Felker
@@ -172,19 +222,27 @@ Authors are sorted alphabetically.
 * Lila Hickey
 * Lorcan Hamill
 * Lori A. Burns
+* Loïc Estève
 * Luc J. Bourhis
 * Luis Gutierrez
 * Maggie Mari
+* Mahe Iram Khan
+* Majid alDosari
+* Mak Sze Chun
 * Maksim Rakitin
+* Mandeep Bhutani
 * Mansour Moufid
 * Marcel Bargull
 * Marcel Stimberg
 * Marcelo Duarte Trevisani
 * Marcin Wojdyr
+* Marco Esters
 * Marco Rossi
 * Marcos Vanetta
 * Marcus Caisey
 * Mario Juric
+* Mark Edzel Potane
+* Mark Harfouche
 * Mark Wiebe
 * Markus Gerstel
 * Marland Sitt
@@ -193,19 +251,26 @@ Authors are sorted alphabetically.
 * Martin Prüsse
 * Martin Raden
 * Matt Craig
+* Matt Kramer
+* Matthew Anderson
 * Matthew Dillon
+* Matthew Linebaugh
 * Matthew R. Becker
 * Matthew Rocklin
 * Matthew Wardrop
 * Matthieu Guillaumin
 * MatthieuDartiailh
 * Matti Picus
+* Maurice Meyer
 * Max Reeder
 * Maximilian Noethe
+* Maya Gilad
 * Meixu Song
 * Mervin Fansler
+* Michael Albert
 * Michael C. Grant
 * Michael Heilman
+* Michael Kincaid
 * Michael Marchetti
 * Michael Sarahan
 * Michael Wild
@@ -220,12 +285,16 @@ Authors are sorted alphabetically.
 * Morgan Parry
 * Morten Enemark Lund
 * Murray Read
+* NaincyKumariKnoldus
 * Nate Coraor
+* Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
+* Ni Huang
 * Nicholas Pierotti
 * Nick Eubank
 * Nikhil Dhandre
+* Nikhil Raverkar
 * Niklas Holm
 * Nir Ganani
 * Nitin Madnani
@@ -239,13 +308,17 @@ Authors are sorted alphabetically.
 * Orion Poplawski
 * Patricio Hubmann
 * Patrick Snape
+* Paul Yim
+* Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
 * Peter Williams
 * Phil Elson
+* Philip Thomas
 * Philippe Mathieu
 * Philippe Ombredanne
 * Pradipta Ghosh
+* Preston Moore
 * Rachel Rigdon
 * Rafael de Barros
 * Ralf Gommers
@@ -255,7 +328,7 @@ Authors are sorted alphabetically.
 * Ray Donnelly
 * Remi Rampin
 * Riccardo Vianello
-* Rich
+* Rich Lewis
 * Richard Gowers
 * Robert Johansson
 * Roger Erens
@@ -266,16 +339,31 @@ Authors are sorted alphabetically.
 * Saad Parwaiz
 * Sachin G Biradar
 * Sam Davis
+* Sam Nicholls
+* Samson Yeung
 * Samuel Debionne
+* Samuel Walters-Nevet
+* Sanskrati
+* Santi Villalba
 * Santiago Castro
 * Sarah Bird
 * Saranya Mahalingam
+* Satyam Vyas
+* Sauco Cano Navarro
 * Scott Evtuch
+* Sean Ross-Ross
 * Sebastien Awwad
 * Shannon Green
+* Shaun Thompson
 * Shaun Walbridge
+* Shaun Walbridge
+* Sidhant Bansal
+* Simon Li
+* Simon McLaren
 * Skipper Seabold
 * Sophia Castellarin
+* Spencer Mathews
+* Srivas Venkatesh
 * Stan Seibert
 * Stanis Shkel
 * Stefaan Lippens
@@ -283,22 +371,29 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Robinson
 * Steve Palmroth
 * Steven Engler
+* Stijn Verstraeten
 * Stuart Berg
 * Tadeu Manoel
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
+* Thomas Lam
 * Thomas Wiecki
 * Théo Segonds
 * Tian Zhang
+* Tianchen Zhong
 * Tim Gates
+* Tim Hoffmann
 * Tim Hopper
 * Tim Snyder
 * Tobias Megies
+* Tom Hu
 * Tom Saleeba
 * Travis E. Oliphant
+* Travis Hathaway
 * Travis Swicegood
 * Trent Nelson
 * Troy Powell
@@ -307,69 +402,37 @@ Authors are sorted alphabetically.
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
+* Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy
 * Wes Roach
 * Wes Turner
+* Will Warner
 * Willy Chen
 * Winston Sebastian Pais
 * Wolfgang Ulmer
+* Xuehai Pan
+* Xylar Asay-Davis
 * Yaroslav Dmytryk
 * Yuval Reches
+* Yuvi Panda
 * Zach Heaton
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
-* albertmichaelj
-* bgobbi
-* blindgaenger
-* bryanv@continuum.io
-* christopher
-* codepage949
-* csoja
-* dan-hook
-* distro-bot@anaconda.com
-* dlovell
-* electronwill
+* dependabot[bot]
 * endolith
-* faph
 * giumas
-* guoci
-* immerrr
-* ivigamberdiev
-* jakirkham
-* joel.hull@continuum.io
-* jrovegno
-* jusjusjus
 * kanehira
-* lambdalisue
 * lexual
-* majidaldo
-* makbigc
-* mandeep
-* matta9001
-* mayagilad
 * mcopes73
-* mkincaid
-* mlline00
-* nh3
 * oinizan
 * ovz
 * peter1000
-* psthomas
-* rulerofthehuns
-* santi
+* pre-commit CI
 * saraneem
-* saucoide
 * shadow_walker
-* sidhant007
-* soapy1
-* spalmrot-tic
-* srossross
-* stinos
-* tester
-* tianchen zhong
-* twinssbc
 * ugurthemaster
-* unknown
+* wulmer
 * Øystein Idema Torget
+* İrem "Siren" Kuyucu

@@ -25,5 +25,5 @@ One workflow to resolve this on macOS is:
   Export this to any folder of your choosing.
 * Convert this certificate with OpenSSL: ``openssl x509 -inform der -in /path/to/your/certificate.cer -out /path/to/converted/certificate.pem``
 * For a quick check, set your shell to acknowledge the certificate: ``export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.pem``
-* To set this permanently, open your shell profile (.bshrs or e.g. .zshrc) and add this line: ``export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.pem.``
+* To set this permanently, open your shell profile (e.g. ``.bashrc`` or ``.zshrc``) and add this line: ``export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.pem.``
   Now exit your terminal/shell and reopen. Check again.

@@ -1,27 +1,30 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
+"""Disk utility functions for modifying existing files or directories."""
+from __future__ import annotations
 
-from errno import EINVAL, EXDEV, EPERM
-from logging import getLogger
 import os
-from os.path import dirname, isdir, split, basename, join, exists
 import re
+import tempfile
+from contextlib import contextmanager
+from errno import EINVAL, EPERM, EXDEV
+from logging import getLogger
+from os.path import basename, dirname, exists, isdir, join, split
 from shutil import move
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
-from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
-from .delete import rm_rf
-from .link import lexists
+from ...base.constants import DRY_RUN_PREFIX
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import expand
 from ...exceptions import NotWritableError
+from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
+from .delete import rm_rf
+from .link import lexists
 
 log = getLogger(__name__)
 
-SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
+SHEBANG_REGEX = re.compile(rb"^(#!((?:\\ |[^ \n\r])+)(.*))")
 
 
 class CancelOperation(Exception):
@@ -34,7 +37,7 @@ def update_file_in_place_as_binary(file_full_path, callback):
     # this method updates the file in-place, without releasing the file lock
     fh = None
     try:
-        fh = exp_backoff_fn(open, file_full_path, 'rb+')
+        fh = exp_backoff_fn(open, file_full_path, "rb+")
         log.trace("in-place update path locked for %s", file_full_path)
         data = fh.read()
         fh.seek(0)
@@ -57,26 +60,40 @@ def rename(source_path, destination_path, force=False):
         log.trace("renaming %s => %s", source_path, destination_path)
         try:
             os.rename(source_path, destination_path)
-        except EnvironmentError as e:
-            if (on_win and dirname(source_path) == dirname(destination_path)
-                    and os.path.isfile(source_path)):
+        except OSError as e:
+            if (
+                on_win
+                and dirname(source_path) == dirname(destination_path)
+                and os.path.isfile(source_path)
+            ):
                 condabin_dir = join(context.conda_prefix, "condabin")
-                rename_script = join(condabin_dir, 'rename_tmp.bat')
+                rename_script = join(condabin_dir, "rename_tmp.bat")
                 if exists(rename_script):
                     _dirname, _src_fn = split(source_path)
                     _dest_fn = basename(destination_path)
-                    p = Popen(['cmd.exe', '/C', rename_script, _dirname,
-                               _src_fn, _dest_fn], stdout=PIPE, stderr=PIPE)
+                    p = Popen(
+                        ["cmd.exe", "/C", rename_script, _dirname, _src_fn, _dest_fn],
+                        stdout=PIPE,
+                        stderr=PIPE,
+                    )
                     stdout, stderr = p.communicate()
                 else:
-                    log.debug("{} is missing.  Conda was not installed correctly or has been "
-                              "corrupted.  Please file an issue on the conda github repo."
-                              .format(rename_script))
+                    log.debug(
+                        "{} is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo.".format(
+                            rename_script
+                        )
+                    )
             elif e.errno in (EINVAL, EXDEV, EPERM):
                 # https://github.com/conda/conda/issues/6811
                 # https://github.com/conda/conda/issues/6711
-                log.trace("Could not rename %s => %s due to errno [%s]. Falling back"
-                          " to copy/unlink", source_path, destination_path, e.errno)
+                log.trace(
+                    "Could not rename %s => %s due to errno [%s]. Falling back"
+                    " to copy/unlink",
+                    source_path,
+                    destination_path,
+                    e.errno,
+                )
                 # https://github.com/moby/moby/issues/25409#issuecomment-238537855
                 # shutil.move() falls back to copy+unlink
                 move(source_path, destination_path)
@@ -84,6 +101,33 @@ def rename(source_path, destination_path, force=False):
                 raise
     else:
         log.trace("cannot rename; source path does not exist '%s'", source_path)
+
+
+@contextmanager
+def rename_context(source: str, destination: str | None = None, dry_run: bool = False):
+    """
+    Used for removing a directory when there are dependent actions (i.e. you need to ensure
+    other actions succeed before removing it).
+
+    Example:
+        with rename_context(directory):
+            # Do dependent actions here
+    """
+    if destination is None:
+        destination = tempfile.mkdtemp()
+
+    if dry_run:
+        print(f"{DRY_RUN_PREFIX} rename_context {source} > {destination}")
+        yield
+        return
+
+    try:
+        rename(source, destination, force=True)
+        yield
+    except Exception as exc:
+        # Error occurred, roll back change
+        rename(destination, source, force=True)
+        raise exc
 
 
 def backoff_rename(source_path, destination_path, force=False):
@@ -111,7 +155,7 @@ def touch(path, mkdir=False, sudo_safe=False):
                     mkdir_p(dirpath)
             else:
                 assert isdir(dirname(path))
-            with open(path, 'a'):
+            with open(path, "a"):
                 pass
             # This chown call causes a false positive PermissionError to be
             # raised (similar to #7109) when called in an environment which
@@ -123,5 +167,5 @@ def touch(path, mkdir=False, sudo_safe=False):
             #     log.trace("chowning %s:%s %s", uid, gid, path)
             #     os.chown(path, uid, gid)
             return False
-    except (IOError, OSError) as e:
+    except OSError as e:
         raise NotWritableError(path, e.errno, caused_by=e)

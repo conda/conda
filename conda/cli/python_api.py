@@ -1,18 +1,19 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+"""Wrapper for running conda CLI commands as a Python API."""
 from logging import getLogger
 
-from .conda_argparse import do_call
-from ..common.compat import encode_arguments
-from .main import generate_parser
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
+from ..common.compat import encode_arguments
 from ..common.io import CaptureTarget, argv, captured
+from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
+from .conda_argparse import do_call
+from .main import generate_parser
+
+deprecated.module("24.3", "24.9", addendum="Use `conda.testing.conda_cli` instead.")
 
 log = getLogger(__name__)
 
@@ -23,16 +24,17 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
-    HELP = "help"
     LIST = "list"
     REMOVE = "remove"
     SEARCH = "search"
     UPDATE = "update"
     RUN = "run"
+    NOTICES = "notices"
 
 
 STRING = CaptureTarget.STRING
 STDOUT = CaptureTarget.STDOUT
+
 
 # Note, a deviated copy of this code appears in tests/test_create.py
 def run_command(command, *arguments, **kwargs):
@@ -52,7 +54,7 @@ def run_command(command, *arguments, **kwargs):
     Keyword Args:
         use_exception_handler: defaults to False. False will let the code calling
           `run_command` handle all exceptions.  True won't raise when an exception
-          has occured, and instead give a non-zero return code
+          has occurred, and instead give a non-zero return code
         search_path: an optional non-standard search path for configuration information
           that overrides the default SEARCH_PATH
         stdout: Define capture behavior for stream sys.stdout. Defaults to STRING.
@@ -74,13 +76,13 @@ def run_command(command, *arguments, **kwargs):
         >>> run_command(Commands.CREATE, ["-n", "newenv", "python=3", "flask"], search_path=())
     """
     initialize_std_loggers()
-    use_exception_handler = kwargs.pop('use_exception_handler', False)
-    configuration_search_path = kwargs.pop('search_path', SEARCH_PATH)
-    stdout = kwargs.pop('stdout', STRING)
-    stderr = kwargs.pop('stderr', STRING)
+    use_exception_handler = kwargs.pop("use_exception_handler", False)
+    configuration_search_path = kwargs.pop("search_path", SEARCH_PATH)
+    stdout = kwargs.pop("stdout", STRING)
+    stderr = kwargs.pop("stderr", STRING)
     p = generate_parser()
 
-    if len(arguments) > 0 and isinstance(arguments[0], list):
+    if arguments and isinstance(arguments[0], list):
         arguments = arguments[0]
 
     arguments = list(arguments)
@@ -94,15 +96,18 @@ def run_command(command, *arguments, **kwargs):
     )
 
     from subprocess import list2cmdline
+
     log.debug("executing command >>>  conda %s", list2cmdline(arguments))
 
-    is_run = arguments[0] == 'run'
+    is_run = arguments[0] == "run"
     if is_run:
         cap_args = (None, None)
     else:
         cap_args = (stdout, stderr)
     try:
-        with argv(['python_api'] + encode_arguments(arguments)), captured(*cap_args) as c:
+        with argv(["python_api"] + encode_arguments(arguments)), captured(
+            *cap_args
+        ) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
@@ -119,5 +124,7 @@ def run_command(command, *arguments, **kwargs):
         e.stdout, e.stderr = stdout, stderr
         raise e
     return_code = result or 0
-    log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", stdout, stderr, return_code)
+    log.debug(
+        "\n  stdout: %s\n  stderr: %s\n  return_code: %s", stdout, stderr, return_code
+    )
     return stdout, stderr, return_code

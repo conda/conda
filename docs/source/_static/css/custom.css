@@ -1,5 +1,12 @@
 @import url("theme.css");
 
+section {
+    max-width: 80ch;
+}
+p {
+  max-width: 80ch;
+}
+
 .wy-nav-content {
     padding: 1.618em 3.236em;
     height: 100%;

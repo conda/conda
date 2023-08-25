@@ -1,15 +1,17 @@
 name: Review builds
 
 on:
+  # NOTE: github.event context is pull_request payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
     types:
       - labeled
 
 jobs:
   build:
-    if: |
-      github.event_name == 'pull_request' &&
-      github.event.label.name == 'build::review'
+    if: >-
+      !github.event.repository.fork
+      && github.event.label.name == 'build::review'
     strategy:
       matrix:
         include:
@@ -21,9 +23,8 @@ jobs:
             subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
-
       - name: Remove build label
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.CANARY_ACTION_TOKEN }}
           script: |
@@ -45,19 +46,19 @@ jobs:
 
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@v22.1.2
+        uses: conda/actions/canary-release@v23.7.0
         with:
-          package-name: conda
+          package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
-          anaconda-org-label: '${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }}'
-          anaconda-org-token: ${{ secrets.ANACONDA_ORG_TOKEN }}
-          comment-headline: 'Review build status'
+          anaconda-org-label: ${{ github.repository_owner }}-${{ github.event.repository.name }}-pr-${{ github.event.number }}
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          comment-headline: Review build status
           comment-token: ${{ secrets.CANARY_ACTION_TOKEN }}

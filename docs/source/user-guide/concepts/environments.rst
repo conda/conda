@@ -1,3 +1,5 @@
+.. _concepts-conda-environments:
+
 ==================
 Conda environments
 ==================

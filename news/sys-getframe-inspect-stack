@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Reduce startup delay from deprecations module by using `sys._getframe()`
+  instead of `inspect.stack()`. (#12919)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -1,34 +1,39 @@
+---
 name: Sync Labels
 
 on:
+  # NOTE: github.event is workflow_dispatch payload:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
     inputs:
       dryrun:
-        description: "dryrun: Preview changes to labels without editing them (true|false)"
+        description: 'dryrun: Preview changes to labels without editing them (true|false)'
         required: true
-        default: "true"
+        type: boolean
+        default: true
 
 jobs:
   sync:
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     env:
       GLOBAL: https://raw.githubusercontent.com/conda/infra/main/.github/global.yml
       LOCAL: .github/labels.yml
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: has_local
-        uses: andstor/file-existence-action@v1.0.1
+        uses: andstor/file-existence-action@v2.0.0
         with:
           files: ${{ env.LOCAL }}
       - name: Global Only
-        uses: EndBug/label-sync@v2.1.0
+        uses: EndBug/label-sync@v2.3.2
         if: steps.has_local.outputs.files_exists == 'false'
         with:
           config-file: ${{ env.GLOBAL }}
           delete-other-labels: true
           dry-run: ${{ github.event.inputs.dryrun }}
       - name: Global & Local
-        uses: EndBug/label-sync@v2.1.0
+        uses: EndBug/label-sync@v2.3.2
         if: steps.has_local.outputs.files_exists == 'true'
         with:
           config-file: |

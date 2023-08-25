@@ -69,7 +69,7 @@
 
 # Plugins
 - name: plugins
-  description: pertains to a plugin
+  description: pertains to a plugin/subcommand
   color: "386BAF"
   aliases: [tag-plugins]
 - name: plugins::env
@@ -88,6 +88,12 @@
   description: pertains to conda-config
   color: "386BAF"
   aliases: [tag-config]
+- name: plugins::activate
+  description: pertains to conda-activate or conda-deactivate
+  color: "386BAF"
+- name: plugins::init
+  description: pertains to conda-init
+  color: "386BAF"
 
 # Tags
 - name: tag::ssl
@@ -114,11 +120,16 @@
   description: related to shared/multi-user installs
   color: "86C579"
   aliases: []
+- name: tag::experimental
+  description: related to an experimental feature
+  color: "86C579"
+  aliases: []
+- name: tag::update
+  description: related to an upgrade issue
+  color: "86C579"
+  aliases: []
 
 # Deprecated
-- name: epic
-  description: "[deprecated] use milestones"
-  color: "888888"
 - name: priority-high
   description: "[deprecated] use severity::*"
   color: "888888"

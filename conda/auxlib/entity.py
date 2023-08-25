@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This module provides serializable, validatable, type-enforcing domain objects and data
 transfer objects. It has many of the same motivations as the python
@@ -235,24 +234,24 @@ Chapter X: The del and null Weeds
 
 
 """
-from __future__ import absolute_import, division, print_function
 
-try:
-    from collections.abc import Mapping, Sequence
-except ImportError:
-    from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from enum import Enum
 from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
+from pathlib import Path
 
-from enum import Enum
+try:
+    from boltons.timeutils import isoparse
+except ImportError:  # pragma: no cover
+    from .._vendor.boltons.timeutils import isoparse
 
 from . import NULL
-from ._vendor.boltons.timeutils import isoparse
-from .collection import AttrDict, frozendict, make_immutable
-from .compat import (integer_types, isiterable, iteritems, itervalues, odict, string_types,
-                     text_type, with_metaclass)
+from .._vendor.frozendict import frozendict
+from .collection import AttrDict, make_immutable
+from .compat import isiterable, odict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
@@ -279,10 +278,10 @@ Current deficiencies to schematics:
   - name = StringType(serialize_when_none=False)
   - more flexible validation error messages
   - field validation can depend on other fields
-  - 'roles' containing blacklists for .dump() and .json()
+  - 'roles' containing denylists for .dump() and .json()
     __roles__ = {
-        EntityRole.registered_name: Blacklist('field1', 'field2'),
-        EntityRole.another_registered_name: Whitelist('field3', 'field4'),
+        EntityRole.registered_name: Denylist('field1', 'field2'),
+        EntityRole.another_registered_name: Allowlist('field3', 'field4'),
     }
 
 
@@ -352,11 +351,11 @@ Behaviors:
 """
 
 
-class Field(object):
+class Field:
     """
     Fields are doing something very similar to boxing and unboxing
     of c#/java primitives.  __set__ should take a "primitive" or "raw" value and create a "boxed"
-    or "programatically useable" value of it.  While __get__ should return the boxed value,
+    or "programmatically usable" value of it.  While __get__ should return the boxed value,
     dump in turn should unbox the value into a primitive or raw value.
 
     Arguments:
@@ -414,17 +413,17 @@ class Field(object):
             raise AttributeError("The name attribute has not been set for this field.")
         except KeyError:
             if self.default is NULL:
-                raise AttributeError("A value for {0} has not been set".format(self.name))
+                raise AttributeError(f"A value for {self.name} has not been set")
             else:
                 val = maybecall(self.default)  # default *can* be a callable
         if val is None and not self.nullable:
             # means the "tricky edge case" was activated in __delete__
-            raise AttributeError("The {0} field has been deleted.".format(self.name))
+            raise AttributeError(f"The {self.name} field has been deleted.")
         return self.unbox(instance, instance_type, val)
 
     def __set__(self, instance, val):
         if self.immutable and instance._initd:
-            raise AttributeError("The {0} field is immutable.".format(self.name))
+            raise AttributeError(f"The {self.name} field is immutable.")
         # validate will raise an exception if invalid
         # validate will return False if the value should be removed
         instance.__dict__[self.name] = self.validate(
@@ -434,10 +433,9 @@ class Field(object):
 
     def __delete__(self, instance):
         if self.immutable and instance._initd:
-            raise AttributeError("The {0} field is immutable.".format(self.name))
+            raise AttributeError(f"The {self.name} field is immutable.")
         elif self.required:
-            raise AttributeError("The {0} field is required and cannot be deleted."
-                                 .format(self.name))
+            raise AttributeError(f"The {self.name} field is required and cannot be deleted.")
         elif not self.nullable:
             # tricky edge case
             # given a field Field(default='some value', required=False, nullable=False)
@@ -519,21 +517,21 @@ BoolField = BooleanField
 
 
 class IntegerField(Field):
-    _type = integer_types
+    _type = int
 
 
 IntField = IntegerField
 
 
 class NumberField(Field):
-    _type = integer_types + (float, complex)
+    _type = (int, float, complex)
 
 
 class StringField(Field):
-    _type = string_types
+    _type = str
 
     def box(self, instance, instance_type, val):
-        return text_type(val) if isinstance(val, NumberField._type) else val
+        return str(val) if isinstance(val, NumberField._type) else val
 
 
 class DateField(Field):
@@ -541,7 +539,7 @@ class DateField(Field):
 
     def box(self, instance, instance_type, val):
         try:
-            return isoparse(val) if isinstance(val, string_types) else val
+            return isoparse(val) if isinstance(val, str) else val
         except ValueError as e:
             raise ValidationError(val, msg=e)
 
@@ -556,8 +554,9 @@ class EnumField(Field):
         if not issubclass(enum_class, Enum):
             raise ValidationError(None, msg="enum_class must be an instance of Enum")
         self._type = enum_class
-        super(EnumField, self).__init__(default, required, validation,
-                                        in_dump, default_in_dump, nullable, immutable, aliases)
+        super().__init__(
+            default, required, validation, in_dump, default_in_dump, nullable, immutable, aliases
+        )
 
     def box(self, instance, instance_type, val):
         if val is None:
@@ -583,15 +582,17 @@ class ListField(Field):
     def __init__(self, element_type, default=NULL, required=True, validation=None,
                  in_dump=True, default_in_dump=True, nullable=False, immutable=False, aliases=()):
         self._element_type = element_type
-        super(ListField, self).__init__(default, required, validation,
-                                        in_dump, default_in_dump, nullable, immutable, aliases)
+        super().__init__(
+            default, required, validation, in_dump, default_in_dump, nullable, immutable, aliases
+        )
 
     def box(self, instance, instance_type, val):
         if val is None:
             return None
-        elif isinstance(val, string_types):
-            raise ValidationError("Attempted to assign a string to ListField {0}"
-                                  "".format(self.name))
+        elif isinstance(val, str):
+            raise ValidationError(
+                "Attempted to assign a string to ListField {}" "".format(self.name)
+            )
         elif isiterable(val):
             et = self._element_type
             if isinstance(et, type) and issubclass(et, Entity):
@@ -599,8 +600,9 @@ class ListField(Field):
             else:
                 return make_immutable(val) if self.immutable else self._type(val)
         else:
-            raise ValidationError(val, msg="Cannot assign a non-iterable value to "
-                                           "{0}".format(self.name))
+            raise ValidationError(
+                val, msg="Cannot assign a non-iterable value to " "{}".format(self.name)
+            )
 
     def unbox(self, instance, instance_type, val):
         return self._type() if val is None and not self.nullable else val
@@ -612,7 +614,7 @@ class ListField(Field):
             return val
 
     def validate(self, instance, val):
-        val = super(ListField, self).validate(instance, val)
+        val = super().validate(instance, val)
         if val:
             et = self._element_type
             self._type(Raise(ValidationError(self.name, el, et)) for el in val
@@ -627,10 +629,20 @@ class MutableListField(ListField):
 class MapField(Field):
     _type = frozendict
 
-    def __init__(self, default=NULL, required=True, validation=None,
-                 in_dump=True, default_in_dump=True, nullable=False, immutable=True, aliases=()):
-        super(MapField, self).__init__(default, required, validation, in_dump, default_in_dump,
-                                       nullable, immutable, aliases)
+    def __init__(
+        self,
+        default=NULL,
+        required=True,
+        validation=None,
+        in_dump=True,
+        default_in_dump=True,
+        nullable=False,
+        immutable=True,
+        aliases=(),
+    ):
+        super().__init__(
+            default, required, validation, in_dump, default_in_dump, nullable, immutable, aliases
+        )
 
     def box(self, instance, instance_type, val):
         # TODO: really need to make this recursive to make any lists or maps immutable
@@ -639,12 +651,14 @@ class MapField(Field):
         elif isiterable(val):
             val = make_immutable(val)
             if not isinstance(val, Mapping):
-                raise ValidationError(val, msg="Cannot assign a non-iterable value to "
-                                               "{0}".format(self.name))
+                raise ValidationError(
+                    val, msg="Cannot assign a non-iterable value to " "{}".format(self.name)
+                )
             return val
         else:
-            raise ValidationError(val, msg="Cannot assign a non-iterable value to "
-                                           "{0}".format(self.name))
+            raise ValidationError(
+                val, msg="Cannot assign a non-iterable value to " "{}".format(self.name)
+            )
 
 
 class ComposableField(Field):
@@ -652,9 +666,9 @@ class ComposableField(Field):
     def __init__(self, field_class, default=NULL, required=True, validation=None,
                  in_dump=True, default_in_dump=True, nullable=False, immutable=False, aliases=()):
         self._type = field_class
-        super(ComposableField, self).__init__(default, required, validation,
-                                              in_dump, default_in_dump, nullable, immutable,
-                                              aliases)
+        super().__init__(
+            default, required, validation, in_dump, default_in_dump, nullable, immutable, aliases
+        )
 
     def box(self, instance, instance_type, val):
         if val is None:
@@ -673,7 +687,7 @@ class ComposableField(Field):
                 return val if isinstance(val, self._type) else self._type(**val)
             elif isinstance(val, Mapping):
                 return self._type(**val)
-            elif isinstance(val, Sequence) and not isinstance(val, string_types):
+            elif isinstance(val, Sequence) and not isinstance(val, str):
                 return self._type(*val)
             else:
                 return self._type(val)
@@ -695,28 +709,33 @@ class EntityType(type):
     def __new__(mcs, name, bases, dct):
         # if we're about to mask a field that's already been created with something that's
         #  not a field, then assign it to an alternate variable name
-        non_field_keys = (key for key, value in iteritems(dct)
-                          if not isinstance(value, Field) and not key.startswith('__'))
+        non_field_keys = (
+            key
+            for key, value in dct.items()
+            if not isinstance(value, Field) and not key.startswith("__")
+        )
         entity_subclasses = EntityType.__get_entity_subclasses(bases)
         if entity_subclasses:
             keys_to_override = [key for key in non_field_keys
                                 if any(isinstance(base.__dict__.get(key), Field)
                                        for base in entity_subclasses)]
-            dct[KEY_OVERRIDES_MAP] = dict((key, dct.pop(key)) for key in keys_to_override)
+            dct[KEY_OVERRIDES_MAP] = {key: dct.pop(key) for key in keys_to_override}
         else:
-            dct[KEY_OVERRIDES_MAP] = dict()
+            dct[KEY_OVERRIDES_MAP] = {}
 
-        return super(EntityType, mcs).__new__(mcs, name, bases, dct)
+        return super().__new__(mcs, name, bases, dct)
 
     def __init__(cls, name, bases, attr):
-        super(EntityType, cls).__init__(name, bases, attr)
+        super().__init__(name, bases, attr)
 
         fields = odict()
         _field_sort_key = lambda x: x[1]._order_helper
         for clz in reversed(type.mro(cls)):
-            clz_fields = ((name, field.set_name(name))
-                          for name, field in iteritems(clz.__dict__)
-                          if isinstance(field, Field))
+            clz_fields = (
+                (name, field.set_name(name))
+                for name, field in clz.__dict__.items()
+                if isinstance(field, Field)
+            )
             fields.update(sorted(clz_fields, key=_field_sort_key))
 
         cls.__fields__ = frozendict(fields)
@@ -724,8 +743,8 @@ class EntityType(type):
             cls.__register__()
 
     def __call__(cls, *args, **kwargs):
-        instance = super(EntityType, cls).__call__(*args, **kwargs)
-        setattr(instance, '_{0}__initd'.format(cls.__name__), True)
+        instance = super().__call__(*args, **kwargs)
+        setattr(instance, f"_{cls.__name__}__initd", True)
         return instance
 
     @property
@@ -733,13 +752,12 @@ class EntityType(type):
         return cls.__fields__.keys()
 
 
-@with_metaclass(EntityType)
-class Entity(object):
+class Entity(metaclass=EntityType):
     __fields__ = odict()
     _lazy_validate = False
 
     def __init__(self, **kwargs):
-        for key, field in iteritems(self.__fields__):
+        for key, field in self.__fields__.items():
             try:
                 setattr(self, key, kwargs[key])
             except KeyError:
@@ -750,9 +768,11 @@ class Entity(object):
                     # handle case of fields inherited from subclass but overrode on class object
                     setattr(self, key, getattr(self, KEY_OVERRIDES_MAP)[key])
                 elif field.required and field.default is NULL:
-                    raise ValidationError(key, msg="{0} requires a {1} field. Instantiated with "
-                                                   "{2}".format(self.__class__.__name__,
-                                                                key, kwargs))
+                    raise ValidationError(
+                        key,
+                        msg="{} requires a {} field. Instantiated with "
+                        "{}".format(self.__class__.__name__, key, kwargs),
+                    )
             except ValidationError:
                 if kwargs[key] is not None or field.required:
                     raise
@@ -761,10 +781,10 @@ class Entity(object):
 
     @classmethod
     def from_objects(cls, *objects, **override_fields):
-        init_vars = dict()
+        init_vars = {}
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
-        for key, field in iteritems(cls.__fields__):
+        for key, field in cls.__fields__.items():
             try:
                 init_vars[key] = find_or_raise(key, search_maps, field._aliases)
             except AttributeError:
@@ -783,9 +803,10 @@ class Entity(object):
     def validate(self):
         # TODO: here, validate should only have to determine if the required keys are set
         try:
-            reduce(lambda _, name: getattr(self, name),
-                   (name for name, field in iteritems(self.__fields__) if field.required)
-                   )
+            reduce(
+                lambda _, name: getattr(self, name),
+                (name for name, field in self.__fields__.items() if field.required),
+            )
         except TypeError as e:
             if str(e) == "reduce() of empty sequence with no initial value":
                 pass
@@ -813,10 +834,10 @@ class Entity(object):
             field = self.__fields__.get(key)
             return field._order_helper if field is not None else -1
 
-        kwarg_str = ", ".join("{0}={1}".format(key, _val(key))
-                              for key in sorted(self.__dict__, key=_sort_helper)
-                              if _valid(key))
-        return "{0}({1})".format(self.__class__.__name__, kwarg_str)
+        kwarg_str = ", ".join(
+            f"{key}={_val(key)}" for key in sorted(self.__dict__, key=_sort_helper) if _valid(key)
+        )
+        return f"{self.__class__.__name__}({kwarg_str})"
 
     @classmethod
     def __register__(cls):
@@ -837,9 +858,10 @@ class Entity(object):
 
     @classmethod
     def __dump_fields(cls):
-        if '__dump_fields_cache' not in cls.__dict__:
-            cls.__dump_fields_cache = tuple(field for field in itervalues(cls.__fields__)
-                                            if field.in_dump)
+        if "__dump_fields_cache" not in cls.__dict__:
+            cls.__dump_fields_cache = tuple(
+                field for field in cls.__fields__.values() if field.in_dump
+            )
         return cls.__dump_fields_cache
 
     def __eq__(self, other):
@@ -854,25 +876,25 @@ class Entity(object):
 
     @property
     def _initd(self):
-        return getattr(self, '_{0}__initd'.format(self.__class__.__name__), None)
+        return getattr(self, f"_{self.__class__.__name__}__initd", None)
 
 
 class ImmutableEntity(Entity):
 
     def __setattr__(self, attribute, value):
         if self._initd:
-            raise AttributeError("Assignment not allowed. {0} is immutable."
-                                 .format(self.__class__.__name__))
-        super(ImmutableEntity, self).__setattr__(attribute, value)
+            raise AttributeError(
+                f"Assignment not allowed. {self.__class__.__name__} is immutable."
+            )
+        super().__setattr__(attribute, value)
 
     def __delattr__(self, item):
         if self._initd:
-            raise AttributeError("Deletion not allowed. {0} is immutable."
-                                 .format(self.__class__.__name__))
-        super(ImmutableEntity, self).__delattr__(item)
+            raise AttributeError(f"Deletion not allowed. {self.__class__.__name__} is immutable.")
+        super().__delattr__(item)
 
 
-class DictSafeMixin(object):
+class DictSafeMixin:
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -900,13 +922,10 @@ class DictSafeMixin(object):
             if key in self:
                 yield key
 
-    def iteritems(self):
+    def items(self):
         for key in self.__fields__:
             if key in self:
                 yield key, getattr(self, key)
-
-    def items(self):
-        return self.iteritems()
 
     def copy(self):
         return self.__class__(**self.dump())
@@ -921,11 +940,11 @@ class DictSafeMixin(object):
         # If E present and lacks .keys() method, does:     for (k, v) in E: D[k] = v
         # In either case, this is followed by: for k in F: D[k] = F[k]
         if E is not None:
-            if hasattr(E, 'keys'):
-                for k in E:
-                    self[k] = E[k]
-            else:
-                for k, v in iteritems(E):
+            try:
+                for k, v in E.items():
+                    self[k] = v
+            except AttributeError:
+                for k, v in E:
                     self[k] = v
         for k in F:
             self[k] = F[k]
@@ -944,4 +963,6 @@ class EntityEncoder(JSONEncoder):
             return obj.as_json()
         elif isinstance(obj, Enum):
             return obj.value
+        elif isinstance(obj, Path):
+            return str(obj)
         return JSONEncoder.default(self, obj)

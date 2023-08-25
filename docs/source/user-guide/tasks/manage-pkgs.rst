@@ -8,7 +8,7 @@ Managing packages
 
 .. note::
    There are many options available for the commands described
-   on this page. For details, see :doc:`../../commands`.
+   on this page. For details, see :doc:`commands <../../commands/index>`.
 
 
 Searching for packages
@@ -309,8 +309,7 @@ Use the terminal or an Anaconda Prompt for the following steps.
 
 .. note::
    Conda updates to the highest version in its series, so
-   Python 2.7 updates to the highest available in the 2.x series and
-   3.6 updates to the highest available in the 3.x series.
+   Python 3.8 updates to the highest available in the 3.x series.
 
 To update the Anaconda metapackage:
 

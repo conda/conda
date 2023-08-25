@@ -1,0 +1,9 @@
+
+name: nlp
+channels:
+  - https://localhost/t/${CONDA_TOKEN}/stable
+  - https://localhost/t/${OTHER_KEY}/stable
+  - conda-forge
+  - defaults
+dependencies:
+  - nltk

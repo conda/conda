@@ -1,66 +1,74 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+"""Common URL utilities."""
 import codecs
-from getpass import getpass
-from os.path import abspath, expanduser
 import re
 import socket
+from collections import namedtuple
+from functools import lru_cache
+from getpass import getpass
+from os.path import abspath, expanduser
+from urllib.parse import (  # noqa: F401
+    ParseResult,
+    quote,
+    quote_plus,
+    unquote,
+    unquote_plus,
+)
+from urllib.parse import urlparse as _urlparse
+from urllib.parse import urlunparse as _urlunparse  # noqa: F401
 
-from .compat import input, on_win
+from .compat import on_win
 from .path import split_filename, strip_pkg_extension
-from ..auxlib.decorators import memoize
-from .._vendor.urllib3.exceptions import LocationParseError
-from .._vendor.urllib3.util.url import Url, parse_url
-
-try:  # pragma: py2 no cover
-    # Python 3
-    from urllib.parse import (quote, quote_plus, unquote, unquote_plus)
-except ImportError:  # pragma: py3 no cover
-    # Python 2
-    from urllib import (quote, quote_plus, unquote, unquote_plus)  # NOQA
 
 
 def hex_octal_to_int(ho):
-    ho = ord(ho)
-    o0 = ord('0')
-    o9 = ord('9')
-    oA = ord('A')
-    oF = ord('F')
-    res = ho - o0 if ho >= o0 and ho <= o9 else (ho - oA + 10) if ho >= oA and ho <= oF else None
+    ho = ord(ho.upper())
+    o0 = ord("0")
+    o9 = ord("9")
+    oA = ord("A")
+    oF = ord("F")
+    res = (
+        ho - o0
+        if ho >= o0 and ho <= o9
+        else (ho - oA + 10)
+        if ho >= oA and ho <= oF
+        else None
+    )
     return res
 
 
-@memoize
+@lru_cache(maxsize=None)
 def percent_decode(path):
-
     # This is not fast so avoid when we can.
-    if '%' not in path:
+    if "%" not in path:
         return path
     ranges = []
-    for m in re.finditer(r'(%[0-9A-F]{2})', path):
+    for m in re.finditer(r"(%[0-9A-F]{2})", path, flags=re.IGNORECASE):
         ranges.append((m.start(), m.end()))
     if not len(ranges):
         return path
 
     # Sorry! Correctness is more important than speed at the moment.
     # Should use a map + lambda eventually.
-    result = b''
+    result = b""
     skips = 0
     for i, c in enumerate(path):
         if skips > 0:
             skips -= 1
             continue
-        c = c.encode('ascii')
+        c = c.encode("ascii")
         emit = c
-        if c == b'%':
+        if c == b"%":
             for r in ranges:
                 if i == r[0]:
                     import struct
+
                     emit = struct.pack(
-                        "B", hex_octal_to_int(path[i+1])*16 + hex_octal_to_int(path[i+2]))
+                        "B",
+                        hex_octal_to_int(path[i + 1]) * 16
+                        + hex_octal_to_int(path[i + 2]),
+                    )
                     skips = 2
                     break
         if emit:
@@ -68,7 +76,7 @@ def percent_decode(path):
     return codecs.utf_8_decode(result)[0]
 
 
-file_scheme = 'file://'
+file_scheme = "file://"
 
 # Keeping this around for now, need to combine with the same function in conda/common/path.py
 """
@@ -82,17 +90,19 @@ def url_to_path(url):
 """
 
 
-@memoize
+@lru_cache(maxsize=None)
 def path_to_url(path):
     if not path:
-        raise ValueError('Not allowed: %r' % path)
+        raise ValueError("Not allowed: %r" % path)
     if path.startswith(file_scheme):
         try:
-            path.decode('ascii')
+            path.decode("ascii")
         except UnicodeDecodeError:
-            raise ValueError('Non-ascii not allowed for things claiming to be URLs: %r' % path)
+            raise ValueError(
+                "Non-ascii not allowed for things claiming to be URLs: %r" % path
+            )
         return path
-    path = abspath(expanduser(path)).replace('\\', '/')
+    path = abspath(expanduser(path)).replace("\\", "/")
     # We do not use urljoin here because we want to take our own
     # *very* explicit control of how paths get encoded into URLs.
     #   We should not follow any RFCs on how to encode and decode
@@ -107,27 +117,124 @@ def path_to_url(path):
     # for `file://` URLs.
     #
     percent_encode_chars = "!'()*-._/\\:"
-    percent_encode = lambda s: "".join(["%%%02X" % ord(c), c]
-                                       [c < "{" and c.isalnum() or c in percent_encode_chars]
-                                       for c in s)
+    percent_encode = lambda s: "".join(
+        ["%%%02X" % ord(c), c][c < "{" and c.isalnum() or c in percent_encode_chars]
+        for c in s
+    )
     if any(ord(char) >= 128 for char in path):
-        path = percent_encode(path.decode('unicode-escape')
-                              if hasattr(path, 'decode')
-                              else bytes(path, "utf-8").decode('unicode-escape'))
+        path = percent_encode(
+            path.decode("unicode-escape")
+            if hasattr(path, "decode")
+            else bytes(path, "utf-8").decode("unicode-escape")
+        )
 
     # https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-    if len(path) > 1 and path[1] == ':':
-        path = file_scheme + '/' + path
+    if len(path) > 1 and path[1] == ":":
+        path = file_scheme + "/" + path
     else:
         path = file_scheme + path
     return path
 
 
-@memoize
-def urlparse(url):
-    if on_win and url.startswith('file:'):
-        url.replace('\\', '/')
-    return parse_url(url)
+url_attrs = (
+    "scheme",
+    "path",
+    "query",
+    "fragment",
+    "username",
+    "password",
+    "hostname",
+    "port",
+)
+
+
+class Url(namedtuple("Url", url_attrs)):
+    """
+    Object used to represent a Url. The string representation of this object is a url string.
+
+    This object was inspired by the urllib3 implementation as it gives you a way to construct
+    URLs from various parts. The motivation behind this object was making something that is
+    interoperable with built the `urllib.parse.urlparse` function and has more features than
+    the built-in `ParseResult` object.
+    """
+
+    def __new__(
+        cls,
+        scheme=None,
+        path=None,
+        query=None,
+        fragment=None,
+        username=None,
+        password=None,
+        hostname=None,
+        port=None,
+    ):
+        if path and not path.startswith("/"):
+            path = "/" + path
+        if scheme:
+            scheme = scheme.lower()
+        if hostname:
+            hostname = hostname.lower()
+        return super().__new__(
+            cls, scheme, path, query, fragment, username, password, hostname, port
+        )
+
+    @property
+    def auth(self):
+        if self.username and self.password:
+            return f"{self.username}:{self.password}"
+        elif self.username:
+            return self.username
+
+    @property
+    def netloc(self):
+        if self.port:
+            return f"{self.hostname}:{self.port}"
+        return self.hostname
+
+    def __str__(self):
+        scheme, path, query, fragment, username, password, hostname, port = self
+        url = ""
+
+        if scheme:
+            url += f"{scheme}://"
+        if password and username:
+            url += f"{username}:{password}@"
+        if hostname:
+            url += hostname
+        if port:
+            url += f":{port}"
+        if path:
+            url += path
+        if query:
+            url += f"?{query}"
+        if fragment:
+            url += f"#{fragment}"
+
+        return url
+
+    def as_dict(self) -> dict:
+        """Provide a public interface for namedtuple's _asdict"""
+        return self._asdict()
+
+    def replace(self, **kwargs) -> "Url":
+        """Provide a public interface for namedtuple's _replace"""
+        return self._replace(**kwargs)
+
+    @classmethod
+    def from_parse_result(cls, parse_result: ParseResult) -> "Url":
+        values = {fld: getattr(parse_result, fld, "") for fld in url_attrs}
+        return cls(**values)
+
+
+@lru_cache(maxsize=None)
+def urlparse(url: str) -> Url:
+    if on_win and url.startswith("file:"):
+        url.replace("\\", "/")
+    # Allows us to pass in strings like 'example.com:8080/path/1'.
+    if not has_scheme(url):
+        url = "//" + url
+    return Url.from_parse_result(_urlparse(url))
 
 
 def url_to_s3_info(url):
@@ -137,9 +244,9 @@ def url_to_s3_info(url):
         >>> url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
         ('bucket-name.bucket', '/here/is/the/key')
     """
-    parsed_url = parse_url(url)
-    assert parsed_url.scheme == 's3', "You can only use s3: urls (not %r)" % url
-    bucket, key = parsed_url.host, parsed_url.path
+    parsed_url = urlparse(url)
+    assert parsed_url.scheme == "s3", "You can only use s3: urls (not %r)" % url
+    bucket, key = parsed_url.hostname, parsed_url.path
     return bucket, key
 
 
@@ -154,8 +261,8 @@ def is_url(url):
     if not url:
         return False
     try:
-        return urlparse(url).scheme is not None
-    except LocationParseError:
+        return urlparse(url).scheme != ""
+    except ValueError:
         return False
 
 
@@ -169,9 +276,9 @@ def is_ipv4_address(string_ip):
     """
     try:
         socket.inet_aton(string_ip)
-    except socket.error:
+    except OSError:
         return False
-    return string_ip.count('.') == 3
+    return string_ip.count(".") == 3
 
 
 def is_ipv6_address(string_ip):
@@ -183,32 +290,10 @@ def is_ipv6_address(string_ip):
         [False, False]
     """
     try:
-        inet_pton = socket.inet_pton
-    except AttributeError:
-        return is_ipv6_address_win_py27(string_ip)
-    try:
-        inet_pton(socket.AF_INET6, string_ip)
-    except socket.error:
+        socket.inet_pton(socket.AF_INET6, string_ip)
+    except OSError:
         return False
     return True
-
-
-def is_ipv6_address_win_py27(string_ip):
-    """
-    Examples:
-        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
-        [True, True]
-        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
-        [False, False]
-    """
-    # python 2.7 on windows does not have socket.inet_pton
-    return bool(re.match(r""  # lgtm [py/regex/unmatchable-dollar]
-                         r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
-                         r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
-                         r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
-                         r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
-                         string_ip,
-                         flags=re.DOTALL | re.IGNORECASE))
 
 
 def is_ip_address(string_ip):
@@ -225,15 +310,15 @@ def is_ip_address(string_ip):
 
 
 def join(*args):
-    start = '/' if not args[0] or args[0].startswith('/') else ''
-    return start + '/'.join(y for y in (x.strip('/') for x in args if x) if y)
+    start = "/" if not args[0] or args[0].startswith("/") else ""
+    return start + "/".join(y for y in (x.strip("/") for x in args if x) if y)
 
 
 join_url = join
 
 
 def has_scheme(value):
-    return re.match(r'[a-z][a-z0-9]{0,11}://', value)
+    return re.match(r"[a-z][a-z0-9]{0,11}://", value)
 
 
 def strip_scheme(url):
@@ -244,7 +329,7 @@ def strip_scheme(url):
         >>> strip_scheme("s3://some.bucket/plus/a/path.ext")
         'some.bucket/plus/a/path.ext'
     """
-    return url.split('://', 1)[-1]
+    return url.split("://", 1)[-1]
 
 
 def mask_anaconda_token(url):
@@ -268,10 +353,10 @@ def split_anaconda_token(url):
         >>> split_anaconda_token("https://10.2.3.4:8080/conda/t/tk-123-45")
         (u'https://10.2.3.4:8080/conda', u'tk-123-45')
     """
-    _token_match = re.search(r'/t/([a-zA-Z0-9-]*)', url)
+    _token_match = re.search(r"/t/([a-zA-Z0-9-]*)", url)
     token = _token_match.groups()[0] if _token_match else None
-    cleaned_url = url.replace('/t/' + token, '', 1) if token is not None else url
-    return cleaned_url.rstrip('/'), token
+    cleaned_url = url.replace("/t/" + token, "", 1) if token is not None else url
+    return cleaned_url.rstrip("/"), token
 
 
 def split_platform(known_subdirs, url):
@@ -285,13 +370,15 @@ def split_platform(known_subdirs, url):
     """
     _platform_match = _split_platform_re(known_subdirs).search(url)
     platform = _platform_match.groups()[0] if _platform_match else None
-    cleaned_url = url.replace('/' + platform, '', 1) if platform is not None else url
-    return cleaned_url.rstrip('/'), platform
+    cleaned_url = url.replace("/" + platform, "", 1) if platform is not None else url
+    return cleaned_url.rstrip("/"), platform
 
 
-@memoize
+@lru_cache(maxsize=None)
 def _split_platform_re(known_subdirs):
-    _platform_match_regex = r'/(%s)(?:/|$)' % r'|'.join(r'%s' % d for d in known_subdirs)
+    _platform_match_regex = r"/(%s)(?:/|$)" % r"|".join(
+        r"%s" % d for d in known_subdirs
+    )
     return re.compile(_platform_match_regex, re.IGNORECASE)
 
 
@@ -299,7 +386,7 @@ def has_platform(url, known_subdirs):
     url_no_package_name, _ = split_filename(url)
     if not url_no_package_name:
         return None
-    maybe_a_platform = url_no_package_name.rsplit('/', 1)[-1]
+    maybe_a_platform = url_no_package_name.rsplit("/", 1)[-1]
     return maybe_a_platform in known_subdirs and maybe_a_platform or None
 
 
@@ -315,9 +402,14 @@ def split_scheme_auth_token(url):
         return None, None, None, None
     cleaned_url, token = split_anaconda_token(url)
     url_parts = urlparse(cleaned_url)
-    remainder_url = Url(host=url_parts.host, port=url_parts.port, path=url_parts.path,
-                        query=url_parts.query).url
-    return remainder_url, url_parts.scheme, url_parts.auth, token
+    remainder_url = Url(
+        hostname=url_parts.hostname,
+        port=url_parts.port,
+        path=url_parts.path,
+        query=url_parts.query,
+    )
+
+    return str(remainder_url), url_parts.scheme, url_parts.auth, token
 
 
 def split_conda_url_easy_parts(known_subdirs, url):
@@ -325,30 +417,48 @@ def split_conda_url_easy_parts(known_subdirs, url):
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
     _, ext = strip_pkg_extension(cleaned_url)
-    cleaned_url, package_filename = cleaned_url.rsplit('/', 1) if ext else (cleaned_url, None)
+    cleaned_url, package_filename = (
+        cleaned_url.rsplit("/", 1)
+        if ext and "/" in cleaned_url
+        else (cleaned_url, None)
+    )
 
     # TODO: split out namespace using regex
-
     url_parts = urlparse(cleaned_url)
 
-    return (url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host,
-            url_parts.port, url_parts.path, url_parts.query)
+    return (
+        url_parts.scheme,
+        url_parts.auth,
+        token,
+        platform,
+        package_filename,
+        url_parts.hostname,
+        url_parts.port,
+        url_parts.path,
+        url_parts.query,
+    )
 
 
-@memoize
+@lru_cache(maxsize=None)
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
     passwd = getpass("Password: ")
     return username, passwd
 
 
-def add_username_and_password(url, username, password):
-    url_parts = parse_url(url)._asdict()
-    url_parts['auth'] = username + ':' + quote(password, '')
-    return Url(**url_parts).url
+def add_username_and_password(url: str, username: str, password: str) -> str:
+    """
+    Inserts `username` and `password` into provided `url`
+
+    >>> add_username_and_password('https://anaconda.org', 'TestUser', 'Password')
+    'https://TestUser:Password@anaconda.org'
+    """
+    url = urlparse(url)
+    url_with_auth = url.replace(username=username, password=quote(password, safe=""))
+    return str(url_with_auth)
 
 
-def maybe_add_auth(url, auth, force=False):
+def maybe_add_auth(url: str, auth: str, force=False) -> str:
     """Add auth if the url doesn't currently have it.
 
     By default, does not replace auth if it already exists.  Setting ``force`` to ``True``
@@ -362,24 +472,30 @@ def maybe_add_auth(url, auth, force=False):
     """
     if not auth:
         return url
-    url_parts = urlparse(url)._asdict()
-    if url_parts['auth'] and not force:
+
+    url_parts = urlparse(url)
+    if url_parts.username and url_parts.password and not force:
         return url
-    url_parts['auth'] = auth
-    return Url(**url_parts).url
+
+    auth_parts = auth.split(":")
+    if len(auth_parts) > 1:
+        url_parts = url_parts.replace(username=auth_parts[0], password=auth_parts[1])
+
+    return str(url_parts)
 
 
 def maybe_unquote(url):
     return unquote_plus(remove_auth(url)) if url else url
 
 
-def remove_auth(url):
-    url_parts = parse_url(url)._asdict()
-    if url_parts['auth']:
-        del url_parts['auth']
-    return Url(**url_parts).url
+def remove_auth(url: str) -> str:
+    """Remove embedded authentication from URL.
 
+    .. code-block:: pycon
+        >>> remove_auth("https://user:password@anaconda.com")
+        'https://anaconda.com'
+    """
+    url = urlparse(url)
+    url_no_auth = url.replace(username="", password="")
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+    return str(url_no_auth)

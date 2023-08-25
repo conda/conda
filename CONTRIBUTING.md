@@ -1,298 +1,111 @@
 # Contributing to Conda
 
-## New Issues
+Thank you for your interest in improving conda! Below, we describe how our
+development process works and how you can be a part of it.
 
-If your issue is a bug report or feature request for:
+*Already know how to contribute and need help setting up your development environment?
+[Read the development environment guide here][development-environment]*
 
-* **a specific conda package**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
-* **anaconda.org**: please file it at <https://anaconda.org/contact/report>
-* **repo.anaconda.com**: please file it at <https://github.com/ContinuumIO/anaconda-issues/issues>
-* **commands under `conda build`**: please file it at <https://github.com/conda/conda-build/issues>
-* **commands under `conda env` and all other conda commands**: please file it at <https://github.com/conda/conda/issues>
+## Hosted on GitHub
+
+All development currently takes place on [GitHub][github]. This means we make extensive
+use of the project management tools they provide such as [issues](https://github.com/conda/conda/issues)
+and [projects](https://github.com/orgs/conda/projects).
 
 ## Code of Conduct
 
-The conda organization adheres to the [NumFOCUS Code of Conduct](https://www.numfocus.org/code-of-conduct).
-
-## Development Environment
-
-0. [Signup for a GitHub account][github signup] (if you haven't already) and
-   [install Git on your system][install git].
-1. Fork the conda repository to your personal GitHub account by clicking the
-   "Fork" button on https://github.com/conda/conda and follow GitHub's
-   instructions.
-2. Clone the repo you just forked on GitHub to your local machine. Configure
-   your repo to point to both "upstream" (the main conda repo) and your fork
-   ("origin"). For detailed directions, see below:
-
-   **Bash (macOS, Linux, Windows)**
-
-   ```bash
-   # choose the repository location
-   # warning: not the location of an existing conda installation!
-   $ CONDA_PROJECT_ROOT="$HOME/conda"
-
-   # clone the project
-   # replace `your-username` with your actual GitHub username
-   $ git clone git@github.com:your-username/conda "$CONDA_PROJECT_ROOT"
-   $ cd "$CONDA_PROJECT_ROOT"
-
-   # set the `upstream` as the the main repository
-   $ git remote add upstream git@github.com:conda/conda
-   ```
-
-   **cmd.exe (Windows)**
-
-   ```batch
-   # choose the repository location
-   # warning: not the location of an existing conda installation!
-   > set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
-
-   # clone the project
-   # replace `your-username` with your actual GitHub username
-   > git clone git@github.com:your-username/conda "%CONDA_PROJECT_ROOT%"
-   > cd "%CONDA_PROJECT_ROOT%"
-
-   # set the `upstream` as the main repository
-   > git remote add upstream git@github.com:conda/conda
-   ```
-
-3. One option is to create a local development environment and activate that environment
-
-   **Bash (macOS, Linux, Windows)**
-
-   ```bash
-   $ source ./dev/start
-   ```
-
-   **cmd.exe (Windows)**
-
-   ```batch
-   > .\dev\start.bat
-   ```
-
-   This command will create a project-specific base environment (see `devenv`
-   in your repo directory after running this command). If the base environment
-   already exists this command will simply activate the already-created
-   `devenv` environment.
-
-   To be sure that the conda code being interpreted is the code in the project
-   directory, look at the value of `conda location:` in the output of
-   `conda info --all`.
-
-4. Alternatively, for Linux development only, you can use the same Docker
-   image the CI pipelines use. Note that you can run this from all three
-   operating systems! We are using `docker compose`, which provides three
-   actions for you:
-
-   - `unit-tests`: Run all unit tests.
-   - `integration-tests`: Run all integration tests.
-   - `interactive`: You are dropped in a pre-initialized Bash session,
-     where you can run all your `pytest` commands as required.
-
-   Use them with `docker compose run <action>`. For example:
-
-
-   **Any shell (macOS, Linux, Windows)**
-
-   ```bash
-   $ docker compose run unit-tests
-   ```
-
-   This builds the same Docker image as used in continuous
-   integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
-   and starts `bash` with the conda development mode already enabled.
-   By default, it will use Python 3.9 installation.
-
-   If you need a different Python version, set a `CONDA_DOCKER_PYTHON`
-   environment variable like this to rebuild the image. You might need
-   to add `--no-cache` to make sure the image is rebuilt.
-
-   **Bash (macOS, Linux, Windows)**
-
-   ```bash
-   $ CONDA_DOCKER_PYTHON=3.8 docker compose build --no-cache unit-tests
-   ```
-
-   **cmd.exe (Windows)**
-
-   ```batch
-   > set CONDA_DOCKER_PYTHON=3.8 && docker compose build --no-cache unit-tests && set "CONDA_DOCKER_PYTHON="
-   ```
-
-   The next time you run `docker compose run <task>` you will use the new image.
-   If you want to revert to the version you were previously using, you need to rebuild
-   the image again.
-
->  The `conda` repository will be mounted to `/opt/conda-src`, so all changes
-   done in your editor will be reflected live while the Docker container is
-   running.
-
-## Static Code Analysis
-
-This project is configured with [pre-commit](https://pre-commit.com/) to
-automatically run linting and other static code analysis on every commit.
-Running these tools prior to the PR/code review process helps in two ways:
-
-1. it helps *you* by automating the nitpicky process of identifying and
-   correcting code style/quality issues
-2. it helps *us* where during code review we can focus on the substance of
-   your contribution
-
-Feel free to read up on everything pre-commit related in their
-[docs](https://pre-commit.com/#quick-start) but we've included the gist of
-what you need to get started below:
-
-**Bash (macOS, Linux, Windows)**
-
-```bash
-# reuse the development environment created above
-$ source ./dev/start
-# or start the Docker image in interactive mode
-# $ docker compose run interactive
-
-# install pre-commit hooks for conda
-$ cd "$CONDA_PROJECT_ROOT"
-$ pre-commit install
-
-# manually running pre-commit on current changes
-# note: by default pre-commit only runs on staged files
-$ pre-commit run
-
-# automatically running pre-commit during commit
-$ git commit
-```
-
-**cmd.exe (Windows)**
-
-```batch
-:: reuse the development environment created above
-> .\dev\start.bat
-:: or start the Docker image in interactive mode
-:: > docker compose run interactive
-
-:: install pre-commit hooks for conda
-> cd "%CONDA_PROJECT_ROOT%"
-> pre-commit install
-
-:: manually running pre-commit on current changes
-:: note: by default pre-commit only runs on staged files
-> pre-commit run
-
-:: automatically running pre-commit during commit
-> git commit
-```
-
-Beware that some of the tools run by pre-commit can potentially modify the
-code (see [black](https://github.com/psf/black),
-[blacken-docs](https://github.com/asottile/blacken-docs), and
-[darker](https://github.com/akaihola/darker)). If pre-commit detects that any
-files were modified it will terminate the commit giving you the opportunity to
-review the code before committing again.
-
-Strictly speaking using pre-commit on your local machine for commits is
-optional (if you don't install pre-commit you will still be able to commit
-normally). But once you open a PR to contribue your changes, pre-commit will
-be automatically run at which point any errors that occur will need to be
-addressed prior to proceeding.
-
-## Testing
-
-We use pytest to run our test suite. Please consult pytest's
-[docs](https://docs.pytest.org/en/6.2.x/usage.html) for detailed instructions
-but generally speaking all you need is the following:
-
-**Bash (macOS, Linux, Windows)**
-
-```bash
-# reuse the development environment created above
-$ source ./dev/start
-# or start the Docker image in interactive mode
-# $ docker compose run interactive
-
-# run conda's unit tests using GNU make
-$ make unit
-
-# or alternately with pytest
-$ pytest -m "not integration" conda tests
-
-# or you can use pytest to focus on one specific test
-$ pytest tests/test_create.py -k create_install_update_remove_smoketest
-```
-
-**cmd.exe (Windows)**
-
-```batch
-:: reuse the development environment created above
-> .\dev\start.bat
-:: or start the Docker image in interactive mode
-:: > docker compose run interactive
-
-:: run conda's unit tests with pytest
-> pytest -m "not integration" conda tests
-
-:: or you can use pytest to focus on one specific test
-> pytest tests\test_create.py -k create_install_update_remove_smoketest
-```
-
-Note: Some integration tests require you build a package with conda-build beforehand.
-This is taking care of if you run `docker compose run integration-tests`, but you need
-to do it manually in other modes:
-
-**Bash (macOS, Linux, Windows)**
-
-```bash
-$ conda install conda-build
-$ conda-build tests/test-recipes/activate_deactivate_package
-```
-
-Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.
-
+When you decide to contribute to this project, it is important to adhere to our
+code of conduct, which is currently the [NumFOCUS Code of Conduct](https://www.numfocus.org/code-of-conduct).
+Please read it carefully.
 
 ## Conda Contributor License Agreement
 
-In case you're new to CLAs, this is rather standard procedure for larger
-projects. [Django](https://www.djangoproject.com/foundation/cla/) and
+To begin contributing to this repository, you need to sign the Conda
+Contributor License Agreement (CLA). In case you're new to CLAs, this
+is a rather standard procedure for larger projects.
+[Django](https://www.djangoproject.com/foundation/cla/) and
 [Python](https://www.python.org/psf/contrib/contrib-form/) for example
 both use similar agreements.
 
-Note: New contributors are required to complete the [Conda Contributor License Agreement][1].
+[Click here to sign the Conda Contributor License Agreement][conda cla].
 
-For pull requests to be merged, contributors to GitHub pull requests need to
-have signed the [Conda Contributor License Agreement][1], so Anaconda, Inc.
-has it on file. A record of prior signatories is kept in a [separate repo in
-conda's GitHub][2] organization.
+A record of prior signatories is kept in a [separate repo in conda's GitHub][clabot] organization.
 
-[1]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
-[2]: https://github.com/conda/clabot-config/blob/master/.clabot
+## Ways to contribute
+
+Below are all the ways you can get involved in with conda.
+
+### Bug reports and feature requests
+
+Bug reports and feature requests are always welcome. To file a new issue,
+[head to the issue form](https://github.com/conda/conda/issues/new/choose).
+
+It should be noted that `conda-build` issues need to be filed separately at
+[its issue tracker](https://github.com/conda/conda-build/issues).
+
+For all other types of issues, please head to [Anaconda.org's "Report a Bug" page][anaconda-bug-report].
+For even more information and documentation on everything related to Anaconda, head to the
+[Support Center at Anaconda Nucleus][anaconda-support].
+
+Before submitting an issue via any of these channels, make sure to document it
+as well as possible and follow the submission guidelines (this makes everyone's job a lot easier!).
+
+### Contributing your changes to conda
+
+Here are the steps you need to take to contribute to conda:
+
+1. [Signup for a GitHub account][github signup] (if you haven't already) and
+   [install Git on your system][install git].
+2. Sign the [Conda Contributor License Agreement][conda cla].
+3. Fork the conda repository to your personal GitHub account by clicking the
+   "Fork" button on [https://github.com/conda/conda](https://github.com/conda/conda) and follow GitHub's
+   instructions.
+4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
+5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
+
+### Issue sorting
+
+Issue sorting is how we filter incoming issues and get them ready for active development.
+To see how this process works for this project, read "[The Issue Sorting Process at conda][sorting]".
+
+*The project maintainers are currently not seeking help with issue sorting, but this may change in the future*
+
+
+[conda cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
+[clabot]: https://github.com/conda/infra/blob/main/.clabot
 [install git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 [github signup]: https://github.com/signup
+[github]: https://github.com/
+[anaconda-issues]: https://github.com/ContinuumIO/anaconda-issues/issues
+[anaconda-support]: https://anaconda.cloud/support-center
+[anaconda-bug-report]: https://anaconda.org/contact/report
+[sorting]: https://github.com/conda/infra/blob/main/HOW_WE_USE_GITHUB.md
+[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html
 
-## Releasing
+## Conda capitalization standards
 
-Conda releases may be performed via the [rever command](https://regro.github.io/rever-docs/).
-Rever is configured to perform the activities for a typical conda-build release.
-To cut a release, simply run `rever <X.Y.Z>` where `<X.Y.Z>` is the
-release number that you want bump to. For example, `rever 1.2.3`.
+1. Conda should be written in lowercase, whether in reference to the tool, ecosystem, packages, or organization.
+2. References to the conda command should use code formatting (i.e. `conda`).
+3. If the use of conda is not a command and if conda is at the beginning of a sentence, conda should be uppercase.
 
-However, it is always good idea to make sure that the you have permissions
-everywhere to actually perform the release. So it is customary to run
-`rever check` before the release, just to make sure.
+### Examples
 
-The standard workflow is thus:
+#### In sentences
 
-```bash
-$ rever check
-$ rever 1.2.3
-```
+Beginning a sentence:
 
-If for some reason a release fails partway through, or you want to claw back a
-release that you have made, rever allows you to undo activities. If you find yourself
-in this pickle, you can pass the `--undo` option a comma-separated list of
-activities you'd like to undo. For example:
+- Conda is an open-source package and environment management system.
+- `conda install` can be used to install packages.
 
-```bash
-$ rever --undo tag,changelog,authors 1.2.3
-```
+Conda in the middle of a sentence:
 
-Happy releasing!
+- If a newer version of conda is available, you can use `conda update conda` to update to that version.
+- You can find conda packages within conda channels. The `conda` command can search these channels.
+
+#### In titles and headers
+
+Titles and headers should use the same capitalization and formmating standards as sentences.
+
+#### In links
+
+Links should use the same capitalization conventions as sentences. Because the conda docs currently use reStructuredText (RST) as a markup language, and [RST does not support nested inline markup](https://docutils.sourceforge.io/FAQ.html#is-nested-inline-markup-possible), documentation writers should avoid using code backtick formatting inside links.

@@ -4,7 +4,7 @@
 build/
 dist/
 docs/_build
-docs/source/umls/*.puml
+docs/source/dev-guide/umls/*.puml
 .cache/
 .idea/
 ve/
@@ -13,7 +13,6 @@ MANIFEST
 coverage.xml
 .tox/
 junit.xml
-.version
 tmpfile.rc
 .DS_Store
 .coverage*
@@ -24,7 +23,6 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
-env/
 dev-init.bat
 devenv/
 Miniconda*.sh
@@ -36,6 +34,7 @@ conda.tmp/
 *.iml
 *.ipr
 *.iws
+test-report.xml
 
 # Rever
 rever/

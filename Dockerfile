@@ -1,17 +1,34 @@
-FROM --platform=linux/amd64 debian:buster-slim AS buildbase
+# This a Dockerfile with multi-platform support, build (pull/run) it via:
+# * Setup qemu for non-native platforms (to be done once):
+#       `docker run --privileged --rm tonistiigi/binfmt --install all`
+# * Setup buildx as default docker builder (to be done once):
+#       `docker buildx install`
+# * Build with without `--platform ...` arg (TARGETPLATFORM=BUILDPLATFORM):
+#       `docker build .`
+# * Build a single platform image:
+#       `docker build --platform linux/amd64 .`
+# * Build a multi-platform image:
+#       `docker build --platform linux/amd64,linux/arm64 .`
+# See also:
+# * https://docs.docker.com/buildx/working-with-buildx/
+# * https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
-ARG MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+# built-in arg set via `docker build --platform $TARGETPLATFORM ...` or TARGETPLATFORM=BUILDPLATFORM
+FROM --platform=$TARGETPLATFORM debian:stable-slim AS buildbase
+
+# built-in arg set by `docker build --platform linux/$TARGETARCH ...`
+ARG TARGETARCH
+ARG CONDA_VERSION=latest
+ARG default_channel=defaults
 
 WORKDIR /tmp
 
 RUN apt-get update && apt-get install -y wget
 
-RUN wget --quiet $MINICONDA_URL -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda clean --all --yes
+COPY dev/linux/install_miniconda.sh /tmp
+RUN bash /tmp/install_miniconda.sh
 
-FROM --platform=linux/amd64 debian:buster-slim
+FROM --platform=$TARGETPLATFORM debian:stable-slim
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
@@ -26,10 +43,13 @@ ARG python_version=3.9
 COPY ./tests/requirements.txt /tmp
 
 # conda and test dependencies
-RUN /opt/conda/bin/conda install --update-all -y -c defaults \
+RUN /opt/conda/bin/conda install --update-all -y \
     python=$python_version \
     --file /tmp/requirements.txt && \
     /opt/conda/bin/conda clean --all --yes
+
+# Make /opt/conda world-writable to allow hardlinks during tests
+RUN chmod -R o+w /opt/conda/pkgs/*-*-*
 
 USER test_user
 
