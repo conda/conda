@@ -292,10 +292,9 @@ class CommandNotFoundError(CondaError):
             "render",
             "skeleton",
         }
-        from .base.context import context
         from .cli.main import init_loggers
 
-        init_loggers(context)
+        init_loggers()
         if command in activate_commands:
             # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = [
@@ -1245,11 +1244,7 @@ def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
 
     rc = getattr(exc_val, "return_code", None)
-    if (
-        context.debug
-        or context.verbosity > 2
-        or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)
-    ):
+    if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
         if isinstance(exc_val, DryRunExit):
