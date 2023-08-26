@@ -61,3 +61,9 @@ def clear_cuda_version():
     from conda.plugins.virtual_packages import cuda
 
     cuda.cached_cuda_version.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def do_not_register_envs(monkeypatch):
+    """Do not register environments created during tests"""
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "false")
