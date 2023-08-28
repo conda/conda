@@ -33,7 +33,8 @@ from conda.testing.helpers import (
     get_solver_cuda,
     get_solver_must_unfreeze,
 )
-from conda.testing.solver_helpers import parametrized_solver_fixture  # noqa
+
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 def test_solve_1(tmpdir):

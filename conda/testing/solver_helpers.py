@@ -24,7 +24,7 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@pytest.fixture(params=["libmamba", "classic"], autouse=True)
+@pytest.fixture(params=["libmamba", "classic"])
 def parametrized_solver_fixture(request, monkeypatch):
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
@@ -48,10 +48,6 @@ def parametrized_solver_fixture(request, monkeypatch):
                 pytest.skip("...")
             ...
     """
-    mod_name = request.node.module.__name__.split(".")[-1]
-    if mod_name not in ("test_solve", "test_create"):
-        raise ValueError("This fixture can only be used in test_solve and test_create.")
-
     monkeypatch.setattr(context, "solver", request.param)
     monkeypatch.setattr(
         context.plugin_manager,
