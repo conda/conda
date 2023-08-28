@@ -8,6 +8,7 @@ from logging import getLogger
 from os.path import isdir
 
 from ..base.context import context
+from ..common.compat import on_win
 from ..common.path import paths_equal
 from ..exceptions import CondaValueError
 from ..gateways.disk.delete import rm_rf
@@ -21,10 +22,11 @@ log = getLogger(__name__)
 
 @notices
 def execute(args, parser):
-    if ":" in context.target_prefix:
-        raise CondaValueError(
-            "Cannot create a conda environment with a ':' in the prefix. Aborting."
-        )
+    if not on_win:
+        if ":" in context.target_prefix:
+            raise CondaValueError(
+                "Cannot create a conda environment with a ':' in the prefix. Aborting."
+            )
 
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
