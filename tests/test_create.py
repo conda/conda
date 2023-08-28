@@ -98,8 +98,6 @@ from conda.testing.integration import (
     tempdir,
     which_or_where,
 )
-from conda.testing.solver_helpers import parametrized_solver_fixture  # noqa
-
 
 log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
@@ -107,7 +105,10 @@ stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 
 # all tests in this file are integration tests
-pytestmark = pytest.mark.integration
+pytestmark = (
+    pytest.mark.integration, 
+    pytest.mark.usefixtures("parametrized_solver_fixture"),
+)
 
 
 @pytest.fixture
