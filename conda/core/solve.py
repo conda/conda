@@ -1393,9 +1393,10 @@ def get_pinned_specs(prefix):
         match_spec = MatchSpec(spec, optional=True)
         pins.append(match_spec)
         if match_spec.name and not any(
-            v for k, v in match_spec._match_components.items()
+            v
+            for k, v in match_spec._match_components.items()
             if k not in ("name", "target", "optional")
-        ): # spec is a name-only spec
+        ):  # spec is a name-only spec
             if not prefix_data:
                 prefix_data = PrefixData(prefix)
             msg = (
@@ -1410,7 +1411,7 @@ def get_pinned_specs(prefix):
                     "consider using %s",
                     installed.to_match_spec(),
                 )
-            
+
     return tuple(pins)
 
 
