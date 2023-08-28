@@ -3,6 +3,9 @@
 import json
 from os.path import isdir
 
+from pytest import MonkeyPatch
+
+from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.testing import CondaCLIFixture
 
@@ -96,12 +99,16 @@ def test_info_json(conda_cli: CondaCLIFixture):
 
 
 # DEPRECATED: conda info PACKAGE --json
-def test_info_conda_json(conda_cli: CondaCLIFixture):
+def test_info_conda_json(conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch):
     stdout, _, _ = conda_cli("info", "conda", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, dict)
     assert "conda" in parsed
     assert isinstance(parsed["conda"], list)
+
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
+    # assert context.channels == ("defaults",)
 
     stdout, _, _ = conda_cli(
         "info",
