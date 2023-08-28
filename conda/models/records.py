@@ -422,14 +422,7 @@ class PackageRecord(DictSafeMixin, Entity):
     @property
     def metadata(self) -> str:
         # join all metadatas after filtering out noops
-        return " ".join(
-            filter(
-                None,
-                [
-                    signature_verification(self),
-                ],
-            )
-        )
+        return " ".join([meta for meta in [signature_verification(self)] if meta])
 
 
 class Md5Field(StringField):
