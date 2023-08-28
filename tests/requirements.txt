@@ -4,11 +4,12 @@
 anaconda-client
 beautifulsoup4
 boltons >=23.0.0
-boto3  # also need the `minio` server, installed manually in CI
+boto3
 chardet
 conda
 conda-content-trust
 conda-forge::flake8-docstrings
+conda-forge::minio-server
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
