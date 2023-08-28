@@ -10,6 +10,7 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing.integration import Commands
@@ -256,6 +257,7 @@ def test_create_update_remote_env_file(
         assert env_vars["GETS_DELETED"] == "not_actually_removed_though"
 
 
+@pytest.mark.skipif(on_win, reason="Test is invalid on Windows")
 def test_fail_to_create_env_in_dir_with_colon(tmp_path: Path):
     # Add a directory with a colon
     colon_dir = tmp_path / "fake:dir"
