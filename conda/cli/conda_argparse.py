@@ -191,7 +191,8 @@ class ArgumentParser(ArgumentParserBase):
     def parse_args(self, *args, override_args=None, **kwargs):
         parsed_args = super().parse_args(*args, **kwargs)
         for name, value in (override_args or {}).items():
-            setattr(parsed_args, name, value)
+            if value is not NULL and getattr(parsed_args, name, NULL) is NULL:
+                setattr(parsed_args, name, value)
         return parsed_args
 
 
