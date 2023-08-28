@@ -21,6 +21,11 @@ log = getLogger(__name__)
 
 @notices
 def execute(args, parser):
+    if ":" in context.target_prefix:
+        raise CondaValueError(
+            "Cannot create a conda environment with a ':' in the prefix. Aborting."
+        )
+
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
