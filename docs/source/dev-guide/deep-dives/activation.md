@@ -126,7 +126,7 @@ obtain the required shell code and then it `eval`s it. In some shells with no `e
 a temporary script is written and sourced or called. The final effect is the same.
 
 Ok, but what is that shell code doing? Mainly setting your `PATH` correctly so the executables of
-your `base` enviroment can be found (like `python`). It also sets some extra variables to keep
+your `base` environment can be found (like `python`). It also sets some extra variables to keep
 a reference to the path of the currently active environment, the shell prompt modifiers and
 other information for `conda` internals.
 

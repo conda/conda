@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.base.context import context, locate_prefix_by_name
@@ -66,7 +67,9 @@ def test_rename_by_path_success(
     conda_cli: CondaCLIFixture,
     env_one: str,
     path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
 ):
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
     prefix = path_factory()
     conda_cli("rename", "--name", env_one, prefix)
 
