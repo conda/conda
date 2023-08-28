@@ -105,10 +105,10 @@ stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 
 # all tests in this file are integration tests
-pytestmark = (
+pytestmark = [
     pytest.mark.integration, 
     pytest.mark.usefixtures("parametrized_solver_fixture"),
-)
+]
 
 
 @pytest.fixture
