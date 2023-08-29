@@ -75,4 +75,4 @@ repos:
       # lint Python codes
       - id: flake8
         args: [--docstring-convention=pep257]
-        additional_dependencies: [flake8-docstrings]
+        additional_dependencies: [flake8-docstrings, flake8-pyproject]
