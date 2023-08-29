@@ -22,10 +22,9 @@ log = getLogger(__name__)
 
 @notices
 def execute(args, parser):
-    if not on_win:
-        if ":" in context.target_prefix:
+    if os.pathsep in context.target_prefix:
             raise CondaValueError(
-                "Cannot create a conda environment with a ':' in the prefix. Aborting."
+                f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
             )
 
     if is_conda_environment(context.target_prefix):
