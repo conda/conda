@@ -22,10 +22,9 @@ class ExceptionHandler:
     def write_out(self, *content):
         from logging import getLogger
 
-        from .base.context import context
         from .cli.main import init_loggers
 
-        init_loggers(context)
+        init_loggers()
         getLogger("conda.stderr").info("\n".join(content))
 
     @property

@@ -13,7 +13,6 @@ from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
@@ -74,17 +73,6 @@ def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
 
         raise CondaSystemExit("Exiting.")
     return True
-
-
-@deprecated("23.3", "23.9")
-def ensure_name_or_prefix(args, command):
-    if not (args.name or args.prefix):
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(
-            "either -n NAME or -p PREFIX option required,\n"
-            'try "conda %s -h" for more details' % command
-        )
 
 
 def is_active_prefix(prefix: str) -> bool:

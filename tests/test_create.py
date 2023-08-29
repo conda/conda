@@ -126,12 +126,14 @@ def test_install_python2_and_search(clear_package_cache: None):
         "conda.core.envs_manager.get_user_environments_txt_file",
         return_value=environment_txt,
     ) as _:
-        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-            with env_var(
-                "CONDA_ALLOW_NON_CHANNEL_URLS",
-                "true",
-                stack_callback=conda_tests_ctxt_mgmt_def_pol,
-            ):
+        with env_vars(
+            {
+                "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
+                "CONDA_REGISTER_ENVS": "true",
+            },
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
                 assert exists(join(prefix, PYTHON_BINARY))
                 assert package_is_installed(prefix, "python=2")
                 run_command(

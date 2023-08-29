@@ -63,8 +63,12 @@ def test_rename_by_name_success(
 
 
 def test_rename_by_path_success(
-    conda_cli: CondaCLIFixture, env_one: str, path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture,
+    env_one: str,
+    path_factory: PathFactoryFixture,
+    monkeypatch,
 ):
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
     prefix = path_factory()
     conda_cli("rename", "--name", env_one, prefix)
 
