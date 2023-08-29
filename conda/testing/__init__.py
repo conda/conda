@@ -178,6 +178,9 @@ class CondaCLIFixture:
         :return: Command results
         :rtype: tuple[stdout, stdout, exitcode]
         """
+        # clear output
+        self.capsys.readouterr()
+
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
