@@ -3,8 +3,6 @@
 from os import environ
 from pathlib import Path
 from uuid import uuid4
-from conda.testing import CondaCLIFixture
-from conda.testing.integration import package_is_installed
 
 import pytest
 from pytest import MonkeyPatch
@@ -13,8 +11,8 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
-from conda.testing.integration import Commands
-from conda.testing.integration import run_command
+from conda.testing import CondaCLIFixture
+from conda.testing.integration import Commands, package_is_installed, run_command
 
 from . import support_file
 from .utils import make_temp_envs_dir
