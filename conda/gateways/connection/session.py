@@ -170,6 +170,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 backoff_factor=context.remote_backoff_factor,
                 status_forcelist=[413, 429, 500, 503],
                 raise_on_status=False,
+                respect_retry_after_header=False,
             )
             http_adapter = HTTPAdapter(max_retries=retry)
             self.mount("http://", http_adapter)
