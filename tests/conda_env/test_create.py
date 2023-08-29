@@ -263,9 +263,6 @@ def test_fail_to_create_env_in_dir_with_colon(tmp_path: Path):
     colon_dir = tmp_path / "fake:dir"
     colon_dir.mkdir()
 
-    # Set CONDA_ENVS_DIRS to point to the colon dir
-    environ["CONDA_ENVS_DIRS"] = str(colon_dir)
-
     with pytest.raises(
         CondaValueError,
         match="Cannot create a conda environment with a ':' in the prefix.",
