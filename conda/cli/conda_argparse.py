@@ -2074,7 +2074,7 @@ def add_parser_platform(parser):
         "Defaults to the current (native) platform.",
     )
 
-      
+
 def add_parser_verbose(parser):
     parser.add_argument(
         "-v",

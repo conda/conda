@@ -14,9 +14,9 @@ from conda.base.context import context, determine_target_prefix
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import (
     add_output_and_prompt_options,
-    add_parser_platform,
     add_parser_default_packages,
     add_parser_networking,
+    add_parser_platform,
     add_parser_prefix,
     add_parser_solver,
 )

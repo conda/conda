@@ -10,7 +10,6 @@ conda.cli.main_remove for the entry points into this module.
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
-from pathlib import Path
 
 from .. import CondaError
 from ..auxlib.ish import dals
