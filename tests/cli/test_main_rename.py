@@ -2,19 +2,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import uuid
 from pathlib import Path
 from typing import Iterable
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.base.context import context, locate_prefix_by_name
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import CondaEnvException, CondaError, EnvironmentNameNotFound
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
-from conda.testing.helpers import set_active_prefix
 
 
 @pytest.fixture
@@ -53,7 +52,9 @@ def env_two(conda_cli: CondaCLIFixture) -> Iterable[str]:
 
 
 def test_rename_by_name_success(
-    conda_cli: CondaCLIFixture, env_one: str, env_rename: str
+    conda_cli: CondaCLIFixture,
+    env_one: str,
+    env_rename: str,
 ):
     conda_cli("rename", "--name", env_one, env_rename)
 
@@ -66,7 +67,7 @@ def test_rename_by_path_success(
     conda_cli: CondaCLIFixture,
     env_one: str,
     path_factory: PathFactoryFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
     prefix = path_factory()
@@ -78,7 +79,8 @@ def test_rename_by_path_success(
 
 
 def test_rename_by_name_name_already_exists_error(
-    conda_cli: CondaCLIFixture, env_one: str
+    conda_cli: CondaCLIFixture,
+    env_one: str,
 ):
     """Test to ensure that we do not rename if the name already exists"""
     with pytest.raises(
@@ -91,7 +93,9 @@ def test_rename_by_name_name_already_exists_error(
 
 
 def test_rename_by_path_path_already_exists_error(
-    conda_cli: CondaCLIFixture, env_one: str, tmp_path: Path
+    conda_cli: CondaCLIFixture,
+    env_one: str,
+    tmp_path: Path,
 ):
     """Test to ensure that we do not rename if the path already exists"""
     with pytest.raises(
@@ -107,7 +111,8 @@ def test_rename_by_path_path_already_exists_error(
 def test_cannot_rename_base_env_by_name(conda_cli: CondaCLIFixture, env_rename: str):
     """Test to ensure that we cannot rename the base env invoked by name"""
     with pytest.raises(
-        CondaEnvException, match="The 'base' environment cannot be renamed"
+        CondaEnvException,
+        match="The 'base' environment cannot be renamed",
     ):
         conda_cli("rename", "--name", "base", env_rename)
 
@@ -119,7 +124,8 @@ def test_cannot_rename_base_env_by_name(conda_cli: CondaCLIFixture, env_rename: 
 def test_cannot_rename_base_env_by_path(conda_cli: CondaCLIFixture, env_rename: str):
     """Test to ensure that we cannot rename the base env invoked by path"""
     with pytest.raises(
-        CondaEnvException, match="The 'base' environment cannot be renamed"
+        CondaEnvException,
+        match="The 'base' environment cannot be renamed",
     ):
         conda_cli("rename", "--prefix", context.root_prefix, env_rename)
 
@@ -163,7 +169,10 @@ def test_rename_with_force(conda_cli: CondaCLIFixture, env_one: str, env_two: st
 
 
 def test_rename_with_force_with_errors(
-    conda_cli: CondaCLIFixture, env_one: str, env_two: str, mocker: MockerFixture
+    conda_cli: CondaCLIFixture,
+    env_one: str,
+    env_two: str,
+    mocker: MockerFixture,
 ):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
@@ -210,7 +219,10 @@ def test_rename_with_dry_run(conda_cli: CondaCLIFixture, env_one: str, env_renam
     Without this flag, it would actually execute all the actions.
     """
     stdout, stderr, err = conda_cli(
-        "rename", "--name", env_one, env_rename, "--dry-run"
+        "rename",
+        *("--name", env_one),
+        env_rename,
+        "--dry-run",
     )
 
     assert locate_prefix_by_name(env_one)
@@ -224,7 +236,9 @@ def test_rename_with_dry_run(conda_cli: CondaCLIFixture, env_one: str, env_renam
 
 
 def test_rename_with_force_and_dry_run(
-    conda_cli: CondaCLIFixture, env_one: str, env_rename: str
+    conda_cli: CondaCLIFixture,
+    env_one: str,
+    env_rename: str,
 ):
     """
     Runs a test where we specify the --force and --dry-run flags to forcefully rename
@@ -232,7 +246,11 @@ def test_rename_with_force_and_dry_run(
     changes occur.
     """
     stdout, stderr, err = conda_cli(
-        "rename", "--name", env_one, env_rename, "--force", "--dry-run"
+        "rename",
+        *("--name", env_one),
+        env_rename,
+        "--force",
+        "--dry-run",
     )
 
     assert locate_prefix_by_name(env_one)

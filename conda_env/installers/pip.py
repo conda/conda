@@ -34,6 +34,8 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
     else:
         try:
             pip_workdir = op.dirname(op.abspath(args.file))
+            if not os.access(pip_workdir, os.W_OK):
+                pip_workdir = None
         except AttributeError:
             pip_workdir = None
     requirements = None

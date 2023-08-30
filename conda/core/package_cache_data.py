@@ -193,7 +193,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 return package_cache
             elif i_wri is None:
                 # means package cache directory doesn't exist, need to try to create it
-                created = create_package_cache_directory(package_cache.pkgs_dir)
+                try:
+                    created = create_package_cache_directory(package_cache.pkgs_dir)
+                except NotWritableError:
+                    continue
                 if created:
                     package_cache.__is_writable = True
                     return package_cache
