@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Configure conda to ignore "Retry-After" header to avoid the scenarios when this value is very large and causes conda to hang indefinitely.
+* Configure conda to ignore "Retry-After" header to avoid the scenarios when this value is very large and causes conda to hang indefinitely. (#13050)
 
 ### Deprecations
 
