@@ -50,7 +50,7 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
-    if os.pathsep in context.target_prefix:
+    if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
         )
