@@ -79,12 +79,11 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
-    Commands,
     cp_or_copy,
     env_or_set,
     get_shortcut_dir,
@@ -94,7 +93,6 @@ from conda.testing.integration import (
     make_temp_prefix,
     package_is_installed,
     reload_config,
-    run_command,
     tempdir,
     which_or_where,
 )
@@ -113,59 +111,44 @@ def clear_package_cache() -> None:
     PackageCacheData.clear()
 
 
-@pytest.mark.skipif(
-    context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
-    reason="Skip unsupported platforms",
-)
-def test_install_python2_and_search(clear_package_cache: None, mocker: MockerFixture):
-    with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
-        log.warning(f"Creating empty temporary environment txt file {env_txt}")
-        environment_txt = env_txt.name
-
+def test_install_and_search(
+    clear_package_cache: None,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+):
+    environment_txt = path_factory(suffix=".txt")
+    environment_txt.touch()
     mocker.patch(
         "conda.core.envs_manager.get_user_environments_txt_file",
         return_value=environment_txt,
     )
 
-    with env_vars(
-        {
-            "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
-            "CONDA_REGISTER_ENVS": "true",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, "python=2")
-            run_command(
-                Commands.CONFIG,
-                prefix,
-                "--add",
-                "channels",
-                "https://repo.continuum.io/pkgs/not-a-channel",
-            )
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "true")
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
+    # regression test for #4513
+    not_a_channel = "https://repo.continuum.io/pkgs/not-a-channel"
+    monkeypatch.setenv("CONDA_CHANNELS", f"{not_a_channel},defaults")
+    reset_context()
+    assert context.allow_non_channel_urls
+    assert context.register_envs
+    assert not_a_channel == context.channels[0]
 
-            # regression test for #4513
-            run_command(
-                Commands.CONFIG,
-                prefix,
-                "--add",
-                "channels",
-                "https://repo.continuum.io/pkgs/not-a-channel",
-            )
-            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--json")
-            packages = json.loads(stdout)
-            assert len(packages) == 1
+    with tmp_env("zlib") as prefix:
+        assert package_is_installed(prefix, "zlib")
 
-            stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "python", "--json", "--envs"
-            )
-            envs_result = json.loads(stdout)
-            assert any(match["location"] == prefix for match in envs_result)
+        stdout, stderr, _ = conda_cli("search", "zlib", "--json")
+        packages = json.loads(stdout)
+        assert len(packages) == 1
 
-            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--envs")
-            assert prefix in stdout
-    os.unlink(environment_txt)
+        stdout, stderr, _ = conda_cli("search", "zlib", "--json", "--envs")
+        envs_result = json.loads(stdout)
+        assert any(prefix.samefile(match["location"]) for match in envs_result)
+
+        stdout, stderr, _ = conda_cli("search", "zlib", "--envs")
+        assert str(prefix) in stdout
 
 
 def test_run_preserves_arguments(clear_package_cache: None):
