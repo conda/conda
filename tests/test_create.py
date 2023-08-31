@@ -151,20 +151,18 @@ def test_install_and_search(
         assert str(prefix) in stdout
 
 
-def test_run_preserves_arguments(clear_package_cache: None):
-    with make_temp_env("python=3") as prefix:
-        echo_args_py = os.path.join(prefix, "echo-args.py")
-        with open(echo_args_py, "w") as echo_args:
-            echo_args.write("import sys\n")
-            echo_args.write("for arg in sys.argv[1:]: print(arg)\n")
+def test_run_preserves_arguments(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python=3") as prefix:
+        script = prefix / "echo-args.py"
+        script.write_text("import sys\nfor arg in sys.argv[1:]: print(arg)\n")
         # If 'two two' were 'two' this test would pass.
         args = ("one", "two two", "three")
-        output, _, _ = run_command(Commands.RUN, prefix, "python", echo_args_py, *args)
-        os.unlink(echo_args_py)
-        lines = output.split("\n")
-        for i, line in enumerate(lines):
-            if i < len(args):
-                assert args[i] == line.replace("\r", "")
+        stdout, _, _ = conda_cli("run", f"--prefix={prefix}", "python", script, *args)
+        assert args == tuple(stdout.strip().splitlines())
 
 
 def test_create_install_update_remove_smoketest(clear_package_cache: None):
