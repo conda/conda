@@ -256,7 +256,9 @@ def test_create_update_remote_env_file(
 
 
 @pytest.mark.skipif(on_win, reason="Test is invalid on Windows")
-def test_fail_to_create_env_in_dir_with_colon(tmp_path: Path, conda_cli: CondaCLIFixture):
+def test_fail_to_create_env_in_dir_with_colon(
+    tmp_path: Path, conda_cli: CondaCLIFixture
+):
     # Add a directory with a colon
     colon_dir = tmp_path / "fake:dir"
     colon_dir.mkdir()
