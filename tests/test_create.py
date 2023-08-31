@@ -217,21 +217,25 @@ def test_create_install_update_remove_smoketest(
         assert package_is_installed(prefix, package2)
 
 
-def test_install_broken_post_install_keeps_existing_folders(clear_package_cache: None):
+def test_install_broken_post_install_keeps_existing_folders(
+    test_recipes_channel: None,
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     # regression test for https://github.com/conda/conda/issues/8258
-    with make_temp_env("python=3.5") as prefix:
-        assert exists(join(prefix, BIN_DIRECTORY))
-        assert package_is_installed(prefix, "python=3")
+    with tmp_env("curl") as prefix:
+        assert (prefix / BIN_DIRECTORY).exists()
+        assert package_is_installed(prefix, "curl")
 
-        run_command(
-            Commands.INSTALL,
-            prefix,
-            "-c",
-            "conda-test",
-            "failing_post_link",
-            use_exception_handler=True,
-        )
-        assert exists(join(prefix, BIN_DIRECTORY))
+        with pytest.raises(CondaMultiError, match="failing post-link"):
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                "local::failing_post_link_package",
+                "--yes",
+            )
+        assert (prefix / BIN_DIRECTORY).exists()
 
 
 def test_safety_checks(clear_package_cache: None):

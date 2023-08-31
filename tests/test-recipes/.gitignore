@@ -1,0 +1,7 @@
+!*.tar.bz2
+!*.json.bz2
+current_repodata.json*
+index.html
+repodata_from_packages.json*
+channeldata.json
+osx-arm64/
