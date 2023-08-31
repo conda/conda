@@ -70,7 +70,7 @@ except ImportError:
 
 
 def lock(fd):
-    if "jlap" in context.experimental or "lock" in context.experimental:
-        # locking required for jlap
+    if not context.no_lock:
+        # locking required for jlap, now default for all
         return _lock_impl(fd)
     return _lock_noop(fd)

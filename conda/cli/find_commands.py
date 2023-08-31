@@ -58,6 +58,8 @@ def find_commands(include_others=True):
     else:
         dir_paths = []
 
+    dir_paths.extend(os.environ.get("PATH", "").split(os.pathsep))
+
     if on_win:
         pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)$")
     else:
@@ -68,9 +70,7 @@ def find_commands(include_others=True):
         if not isdir(dir_path):
             continue
         for fn in os.listdir(dir_path):
-            if not isfile(join(dir_path, fn)):
-                continue
             m = pat.match(fn)
-            if m:
+            if m and isfile(join(dir_path, fn)):
                 res.add(m.group(1))
     return tuple(sorted(res))

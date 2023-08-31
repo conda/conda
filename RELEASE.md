@@ -15,12 +15,12 @@
 # Release Process
 
 > **Note:**
-> Throughout this document are references to the version number as `YY.M.0`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
+> Throughout this document are references to the version number as `YY.M.[$patch_number]`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
 
 ## 1. Open the release issue and cut a release branch. (do this ~1 week prior to release)
 
 > **Note:**
-> The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
+> The new release branch should adhere to the naming convention of `YY.M.x` (make sure to put the `.x` at the end!). In the case of patch/hotfix releases, however, do NOT cut a new release branch; instead, use the previously-cut release branch with the appropriate `YY.M.x` version numbers.
 
 Use the issue template below to create the release issue. After creating the release issue, pin it for easy access.
 
@@ -30,7 +30,7 @@ Use the issue template below to create the release issue. After creating the rel
 ```markdown
 ### Summary
 
-Placeholder for `{{ repo.name }} YY.M.0` release.
+Placeholder for `{{ repo.name }} YY.M.x` release.
 
 | Pilot | <pilot> |
 |---|---|
@@ -75,9 +75,8 @@ Placeholder for `{{ repo.name }} YY.M.0` release.
 ```
 </details>
 
-
 > **Note:**
-> The new release branch should adhere to the naming convention of `YY.M.x`.
+> The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
 
 ## 2. Alert various parties of the upcoming release. (do this ~1 week prior to release)
 
@@ -117,7 +116,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Create a versioned branch, this is where rever will make its changes:
 
     ```bash
-    (rever) $ git checkout -b changelog-YY.M.0
+    (rever) $ git checkout -b changelog-YY.M.[$patch_number]
     ```
 
 2. Run `rever --activities authors`:
@@ -145,7 +144,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - Here's a sample run where we undo the commit made by rever in order to commit the changes to `.authors.yml` separately:
 
         ```bash
-        (rever) $ rever --activities authors --force YY.M.0
+        (rever) $ rever --activities authors --force YY.M.[$patch_number]
 
         # changes were made to .authors.yml as per the prior bullet
         (rever) $ git diff --name-only HEAD HEAD~1
@@ -274,8 +273,8 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.0
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.0
+        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.[$patch_number]
+        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.[$patch_number]
         ```
 
 7. Since rever does not include stats on first-time contributors, we will need to add this manually.
@@ -296,15 +295,15 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.0
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.0
+        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.[$patch_number]
+        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.[$patch_number]
         + 93fdf029fd4cf235872c12cab12a1f7e8f95a755 Add first-time contributions
         ```
 
 8. Push this versioned branch.
 
     ```bash
-    (rever) $ git push -u upstream changelog-YY.M.0
+    (rever) $ git push -u upstream changelog-YY.M.[$patch_number]
     ```
 
 9. Open the Release PR targing the `YY.M.x` branch.
@@ -331,7 +330,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
     | Field | Value |
     |---|---|
-    | Choose a tag | `YY.M.0` |
+    | Choose a tag | `YY.M.[$patch_number]` |
     | Target | `YY.M.x` |
     | Body | copy/paste blurb from `CHANGELOG.md` |
 
@@ -362,14 +361,14 @@ To publish the release, go to the project's release page (e.g., https://github.c
 
 1. From the main "< > Code" page of the repository, select the drop down menu next to the `main` branch button and then select "View all branches" at the very bottom.
 
-2. Find the applicable `YY.MM.x` branch and click the "New pull request" button.
+2. Find the applicable `YY.M.x` branch and click the "New pull request" button.
 
-3. "Base" should point to `main` while "Compare" should point to `YY.MM.x`.
+3. "Base" should point to `main` while "Compare" should point to `YY.M.x`.
 
 4. Ensure that all of the commits being pulled in look accurate, then select "Create pull request".
 
 > **Note:**
-> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `YY.M.0` and `main` branches.
+> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `YY.M.x` and `main` branches.
 
 5. Review and merge the pull request the same as any code change pull request.
 
@@ -378,11 +377,11 @@ To publish the release, go to the project's release page (e.g., https://github.c
 
 </details>
 
-## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.M.0`.
+## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.M.[$patch_number]`.
 
 > **Note:**
 > Conda-forge's PRs will be auto-created via the `regro-cf-autotick-bot`. Follow the instructions below if any changes need to be made to the recipe that were not automatically added (these instructions are only necessary for anyone who is _not_ a conda-forge feedstock maintainer, since maintainers can push changes directly to the autotick branch):
-> - Create a new branch based off of autotick's branch (autotick's branches usually use the `regro-cf-autotick-bot:XX.YY.0_[short hash]` syntax)
+> - Create a new branch based off of autotick's branch (autotick's branches usually use the `regro-cf-autotick-bot:XX.YY.[$patch_number]_[short hash]` syntax)
 > - Add any changes via commits to that new branch
 > - Open a new PR and push it against the `main` branch
 >

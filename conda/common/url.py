@@ -18,7 +18,6 @@ from urllib.parse import (  # noqa: F401
 from urllib.parse import urlparse as _urlparse
 from urllib.parse import urlunparse as _urlunparse  # noqa: F401
 
-from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
@@ -500,33 +499,3 @@ def remove_auth(url: str) -> str:
     url_no_auth = url.replace(username="", password="")
 
     return str(url_no_auth)
-
-
-@deprecated("23.3", "23.9", addendum="This function now lives in conda-libmamba-solve.")
-def escape_channel_url(channel):
-    if channel.startswith("file:"):
-        if "%" in channel:  # it's escaped already
-            return channel
-        if on_win:
-            channel = channel.replace("\\", "/")
-    parts = urlparse(channel)
-    if parts.scheme:
-        components = parts.path.split("/")
-        if on_win:
-            if parts.netloc and len(parts.netloc) == 2 and parts.netloc[1] == ":":
-                # with absolute paths (e.g. C:/something), C:, D:, etc might get parsed as netloc
-                path = "/".join([parts.netloc] + [quote(p) for p in components])
-                parts = parts.replace(netloc="")
-            else:
-                path = "/".join(components[:2] + [quote(p) for p in components[2:]])
-        else:
-            path = "/".join([quote(p) for p in components])
-        parts = parts.replace(path=path)
-        return str(parts)
-    return channel
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

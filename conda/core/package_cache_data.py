@@ -30,7 +30,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL
-from ..common.io import ProgressBar, time_recorder
+from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -193,7 +193,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 return package_cache
             elif i_wri is None:
                 # means package cache directory doesn't exist, need to try to create it
-                created = create_package_cache_directory(package_cache.pkgs_dir)
+                try:
+                    created = create_package_cache_directory(package_cache.pkgs_dir)
+                except NotWritableError:
+                    continue
                 if created:
                     package_cache.__is_writable = True
                     return package_cache
@@ -759,8 +762,11 @@ class ProgressiveFetchExtract:
         if not self.paired_actions:
             return
 
-        if not context.verbosity and not context.quiet and not context.json:
-            print("\nDownloading and Extracting Packages")
+        if not context.verbose and not context.quiet and not context.json:
+            print(
+                "\nDownloading and Extracting Packages:",
+                end="\n" if IS_INTERACTIVE else " ...working...",
+            )
         else:
             log.debug(
                 "prepared package cache actions:\n"
@@ -848,8 +854,11 @@ class ProgressiveFetchExtract:
         for bar in progress_bars.values():
             bar.close()
 
-        if not context.verbosity and not context.quiet and not context.json:
-            print("\r")  # move to column 0
+        if not context.verbose and not context.quiet and not context.json:
+            if IS_INTERACTIVE:
+                print("\r")  # move to column 0
+            else:
+                print(" done")
 
         if exceptions:
             raise CondaMultiError(exceptions)
@@ -857,7 +866,7 @@ class ProgressiveFetchExtract:
         self._executed = True
 
     @staticmethod
-    def _progress_bar(prec_or_spec, position=None, leave=False):
+    def _progress_bar(prec_or_spec, position=None, leave=False) -> ProgressBar:
         desc = ""
         if prec_or_spec.name and prec_or_spec.version:
             desc = "{}-{}".format(prec_or_spec.name or "", prec_or_spec.version or "")
@@ -870,7 +879,7 @@ class ProgressiveFetchExtract:
 
         progress_bar = ProgressBar(
             desc,
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet and IS_INTERACTIVE,
             context.json,
             position=position,
             leave=leave,
