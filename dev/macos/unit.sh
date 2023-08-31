@@ -7,4 +7,9 @@ TEST_GROUP="${TEST_GROUP:-1}"
 
 eval "$(sudo python -m conda init bash --dev)"
 conda info
-python -m pytest --cov=conda --store-durations --durations-path=./tools/durations/${OS}.json --splitting-algorithm=least_duration -m "not integration" -v --splits ${TEST_SPLITS} --group=${TEST_GROUP}
+python -m pytest \
+    --cov=conda \
+    --durations-path=./tools/durations/${OS}.json \
+    -m "not integration" \
+    --splits=${TEST_SPLITS} \
+    --group=${TEST_GROUP}

@@ -14,4 +14,7 @@ sudo rm -rf /opt/conda/pkgs/*-*-*
 # put temporary files on same filesystem
 export TMP=$HOME/pytesttmp
 mkdir -p "$TMP"
-python -m pytest --cov=conda --basetemp="$TMP" -k test_DepsModifier_contract
+python -m pytest \
+    --cov=conda \
+    --basetemp="$TMP" \
+    -k test_DepsModifier_contract
