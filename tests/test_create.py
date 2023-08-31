@@ -238,59 +238,71 @@ def test_install_broken_post_install_keeps_existing_folders(
         assert (prefix / BIN_DIRECTORY).exists()
 
 
-def test_safety_checks(clear_package_cache: None):
+def test_safety_checks(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+):
     # This test uses https://anaconda.org/conda-test/spiffy-test-app/0.5/download/noarch/spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2
     # which is a modification of https://anaconda.org/conda-test/spiffy-test-app/1.0/download/noarch/spiffy-test-app-1.0-pyh6afabb7_0.tar.bz2
     # as documented in info/README within that package.
     # I also had to fix the post-link script in the package by adding quotation marks to handle
     # spaces in path names.
+    message1 = dals(
+        """
+        The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
+        has an incorrect size.
+          reported size: 32 bytes
+          actual size: 16 bytes
+        """
+    )
+    message2 = "has a sha256 mismatch."
 
-    with make_temp_env() as prefix:
-        with open(join(prefix, "condarc"), "a") as fh:
-            fh.write("safety_checks: enabled\n")
-            fh.write("extra_safety_checks: true\n")
-        reload_config(prefix)
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_SAFETY_CHECKS", "enabled")
+        monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+        reset_context()
         assert context.safety_checks is SafetyChecks.enabled
+        assert context.extra_safety_checks
 
-        with pytest.raises(CondaMultiError) as exc:
-            run_command(
-                Commands.INSTALL, prefix, "-c", "conda-test", "spiffy-test-app=0.5"
+        with pytest.raises(CondaMultiError, match=rf"(?s){message1}.+{message2}"):
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                "conda-test::spiffy-test-app=0.5",
+                "--yes",
             )
 
-        error_message = str(exc.value)
-        message1 = dals(
-            """
-            The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
-            has an incorrect size.
-              reported size: 32 bytes
-              actual size: 16 bytes
-            """
-        )
-        message2 = "has a sha256 mismatch."
-        assert message1 in error_message
-        assert message2 in error_message
-
-        with open(join(prefix, "condarc"), "w") as fh:
-            fh.write("safety_checks: warn\n")
-            fh.write("extra_safety_checks: true\n")
-        reload_config(prefix)
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_SAFETY_CHECKS", "warn")
+        monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+        reset_context()
         assert context.safety_checks is SafetyChecks.warn
+        assert context.extra_safety_checks
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "-c", "conda-test", "spiffy-test-app=0.5"
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "conda-test::spiffy-test-app=0.5",
+            "--yes",
         )
         assert message1 in stderr
         assert message2 in stderr
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
-    with make_temp_env() as prefix:
-        with open(join(prefix, "condarc"), "a") as fh:
-            fh.write("safety_checks: disabled\n")
-        reload_config(prefix)
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_SAFETY_CHECKS", "disabled")
+        monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "false")
+        reset_context()
         assert context.safety_checks is SafetyChecks.disabled
+        assert not context.extra_safety_checks
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "-c", "conda-test", "spiffy-test-app=0.5"
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "conda-test::spiffy-test-app=0.5",
+            "--yes",
         )
         assert message1 not in stderr
         assert message2 not in stderr
