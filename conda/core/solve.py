@@ -36,6 +36,7 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
+from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
@@ -54,7 +55,6 @@ class Solver:
       * :meth:`solve_final_state`
       * :meth:`solve_for_diff`
       * :meth:`solve_for_transaction`
-
     """
 
     def __init__(
@@ -135,17 +135,26 @@ class Solver:
             # is in the commented out get_install_transaction() function below. Exercised at
             # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
-        else:
-            unlink_precs, link_precs = self.solve_for_diff(
-                update_modifier,
-                deps_modifier,
-                prune,
-                ignore_pinned,
-                force_remove,
-                force_reinstall,
-                should_retry_solve,
-            )
-            stp = PrefixSetup(
+
+        unlink_precs, link_precs = self.solve_for_diff(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+            should_retry_solve,
+        )
+        # TODO: Only explicitly requested remove and update specs are being included in
+        #   History right now. Do we need to include other categories from the solve?
+
+        # plugins run any post-solve processes here before performing the transaction
+        for pre_solve in context.plugin_manager.get_hook_results("post_solve"):
+            pre_solve.action(unlink_precs, link_precs)
+
+        self._notify_conda_outdated(link_precs)
+        return UnlinkLinkTransaction(
+            PrefixSetup(
                 self.prefix,
                 unlink_precs,
                 link_precs,
@@ -153,11 +162,7 @@ class Solver:
                 self.specs_to_add,
                 self.neutered_specs,
             )
-            # TODO: Only explicitly requested remove and update specs are being included in
-            #   History right now. Do we need to include other categories from the solve?
-
-            self._notify_conda_outdated(link_precs)
-            return UnlinkLinkTransaction(stp)
+        )
 
     def solve_for_diff(
         self,
@@ -168,7 +173,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -1394,8 +1399,11 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(
-    prefix, final_precs, specs_to_add=(), force_reinstall=NULL
-):
+    prefix,
+    final_precs,
+    specs_to_add=(),
+    force_reinstall=NULL,
+) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
         assert hasattr(
@@ -1446,4 +1454,4 @@ def diff_for_unlink_link_precs(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
     link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return unlink_precs, link_precs
+    return tuple(unlink_precs), tuple(link_precs)

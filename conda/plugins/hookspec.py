@@ -16,6 +16,7 @@ import pluggy
 from .types import (
     CondaAuthHandler,
     CondaPostCommand,
+    CondaPostSolve,
     CondaPreCommand,
     CondaSolver,
     CondaSubcommand,
@@ -207,4 +208,28 @@ class CondaSpecs:
                     name="environment-header-auth",
                     auth_handler=EnvironmentHeaderAuth,
                 )
+        """
+
+    @_hookspec
+    def conda_post_solves(self) -> Iterable[CondaPostSolve]:
+        """
+        Register post-solve functions in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           def example_post_solve():
+               print("post-solve action")
+
+
+           @plugins.hookimpl
+           def conda_post_solves():
+               yield CondaPostSolve(
+                   name="example-post-solve",
+                   action=example_post_solve,
+               )
         """

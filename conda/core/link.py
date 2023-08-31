@@ -163,11 +163,11 @@ def match_specs_to_dists(packages_info_to_link, specs):
 
 class PrefixSetup(NamedTuple):
     target_prefix: str
-    unlink_precs: Iterable[PackageRecord]
-    link_precs: Iterable[PackageRecord]
-    remove_specs: Iterable[MatchSpec]
-    update_specs: Iterable[MatchSpec]
-    neutered_specs: Iterable[MatchSpec]
+    unlink_precs: tuple[PackageRecord, ...]
+    link_precs: tuple[PackageRecord, ...]
+    remove_specs: tuple[MatchSpec, ...]
+    update_specs: tuple[MatchSpec, ...]
+    neutered_specs: tuple[MatchSpec, ...]
 
 
 class ActionGroup(NamedTuple):
