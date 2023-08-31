@@ -24,12 +24,12 @@ from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
-from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 import requests
 from pytest import CaptureFixture, MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
@@ -117,57 +117,54 @@ def clear_package_cache() -> None:
     context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
     reason="Skip unsupported platforms",
 )
-def test_install_python2_and_search(clear_package_cache: None):
+def test_install_python2_and_search(clear_package_cache: None, mocker: MockerFixture):
     with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
         log.warning(f"Creating empty temporary environment txt file {env_txt}")
         environment_txt = env_txt.name
 
-    with patch(
+    mocker.patch(
         "conda.core.envs_manager.get_user_environments_txt_file",
         return_value=environment_txt,
-    ) as _:
-        with env_vars(
-            {
-                "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
-                "CONDA_REGISTER_ENVS": "true",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-                assert exists(join(prefix, PYTHON_BINARY))
-                assert package_is_installed(prefix, "python=2")
-                run_command(
-                    Commands.CONFIG,
-                    prefix,
-                    "--add",
-                    "channels",
-                    "https://repo.continuum.io/pkgs/not-a-channel",
-                )
+    )
 
-                # regression test for #4513
-                run_command(
-                    Commands.CONFIG,
-                    prefix,
-                    "--add",
-                    "channels",
-                    "https://repo.continuum.io/pkgs/not-a-channel",
-                )
-                stdout, stderr, _ = run_command(
-                    Commands.SEARCH, prefix, "python", "--json"
-                )
-                packages = json.loads(stdout)
-                assert len(packages) == 1
+    with env_vars(
+        {
+            "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
+            "CONDA_REGISTER_ENVS": "true",
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert package_is_installed(prefix, "python=2")
+            run_command(
+                Commands.CONFIG,
+                prefix,
+                "--add",
+                "channels",
+                "https://repo.continuum.io/pkgs/not-a-channel",
+            )
 
-                stdout, stderr, _ = run_command(
-                    Commands.SEARCH, prefix, "python", "--json", "--envs"
-                )
-                envs_result = json.loads(stdout)
-                assert any(match["location"] == prefix for match in envs_result)
+            # regression test for #4513
+            run_command(
+                Commands.CONFIG,
+                prefix,
+                "--add",
+                "channels",
+                "https://repo.continuum.io/pkgs/not-a-channel",
+            )
+            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--json")
+            packages = json.loads(stdout)
+            assert len(packages) == 1
 
-                stdout, stderr, _ = run_command(
-                    Commands.SEARCH, prefix, "python", "--envs"
-                )
-                assert prefix in stdout
+            stdout, stderr, _ = run_command(
+                Commands.SEARCH, prefix, "python", "--json", "--envs"
+            )
+            envs_result = json.loads(stdout)
+            assert any(match["location"] == prefix for match in envs_result)
+
+            stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "python", "--envs")
+            assert prefix in stdout
     os.unlink(environment_txt)
 
 
@@ -936,8 +933,12 @@ def test_remove_all(clear_package_cache: None):
 @pytest.mark.skipif(
     on_win, reason="windows usually doesn't support symlinks out-of-the box"
 )
-@patch("conda.core.link.hardlink_supported", side_effect=lambda x, y: False)
-def test_allow_softlinks(hardlink_supported_mock, clear_package_cache: None):
+def test_allow_softlinks(clear_package_cache: None, mocker: MockerFixture):
+    hardlink_supported_mock = mocker.patch(
+        "conda.core.link.hardlink_supported",
+        side_effect=lambda x, y: False,
+    )
+
     hardlink_supported_mock._result_cache.clear()
     with env_var(
         "CONDA_ALLOW_SOFTLINKS",
@@ -2378,7 +2379,7 @@ def test_anaconda_token_with_private_package(
     assert package in json_loads(stdout)
 
 
-def test_use_index_cache(clear_package_cache: None):
+def test_use_index_cache(clear_package_cache: None, mocker: MockerFixture):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
 
@@ -2393,42 +2394,52 @@ def test_use_index_cache(clear_package_cache: None):
 
         # Then, populate the index cache.
         orig_get = CondaSession.get
-        with patch.object(CondaSession, "get", autospec=True) as mock_method:
 
-            def side_effect(self, url, **kwargs):
-                # Make sure that we don't use the cache because of the
-                # corresponding HTTP header. This test is supposed to test
-                # whether the --use-index-cache causes the cache to be used.
-                result = orig_get(self, url, **kwargs)
-                for header in ("Etag", "Last-Modified", "Cache-Control"):
-                    if header in result.headers:
-                        del result.headers[header]
-                return result
+        def side_effect(self, url, **kwargs):
+            # Make sure that we don't use the cache because of the
+            # corresponding HTTP header. This test is supposed to test
+            # whether the --use-index-cache causes the cache to be used.
+            result = orig_get(self, url, **kwargs)
+            for header in ("Etag", "Last-Modified", "Cache-Control"):
+                if header in result.headers:
+                    del result.headers[header]
+            return result
 
-            SubdirData.clear_cached_local_channel_data(exclude_file=False)
-            mock_method.side_effect = side_effect
-            stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "flask", "--info", "--json"
-            )
-            assert mock_method.called
+        mock_method = mocker.patch.object(
+            CondaSession,
+            "get",
+            autospec=True,
+            side_effect=side_effect,
+        )
+
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+        stdout, stderr, _ = run_command(
+            Commands.SEARCH, prefix, "flask", "--info", "--json"
+        )
+        assert mock_method.called
 
         # Next run with --use-index-cache and make sure it actually hits the cache
         # and does not go out fetching index data remotely.
-        with patch.object(CondaSession, "get", autospec=True) as mock_method:
+        def side_effect(self, url, **kwargs):
+            if url.endswith("/repodata.json") or url.endswith("/repodata.json.bz2"):
+                raise AssertionError("Index cache was not hit")
+            else:
+                return orig_get(self, url, **kwargs)
 
-            def side_effect(self, url, **kwargs):
-                if url.endswith("/repodata.json") or url.endswith("/repodata.json.bz2"):
-                    raise AssertionError("Index cache was not hit")
-                else:
-                    return orig_get(self, url, **kwargs)
-
-            mock_method.side_effect = side_effect
-            run_command(
-                Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache"
-            )
+        mock_method = mocker.patch.object(
+            CondaSession,
+            "get",
+            autospec=True,
+            side_effect=side_effect,
+        )
+        run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
+        assert mock_method.called
 
 
-def test_offline_with_empty_index_cache(clear_package_cache: None):
+def test_offline_with_empty_index_cache(
+    clear_package_cache: None, mocker: MockerFixture
+):
     from conda.core.subdir_data import SubdirData
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
@@ -2465,40 +2476,42 @@ def test_offline_with_empty_index_cache(clear_package_cache: None):
                             result_dict["local_channel_seen"] = True
                         return orig_get(self, url, **kwargs)
 
-                    with patch.object(
-                        CondaSession, "get", autospec=True
-                    ) as mock_method:
-                        mock_method.side_effect = side_effect
+                    mock_method = mocker.patch.object(
+                        CondaSession,
+                        "get",
+                        autospec=True,
+                        side_effect=side_effect,
+                    )
 
-                        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+                    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
-                        # This first install passes because flask and its dependencies are in the
-                        # package cache.
-                        assert not package_is_installed(prefix, "flask")
+                    # This first install passes because flask and its dependencies are in the
+                    # package cache.
+                    assert not package_is_installed(prefix, "flask")
+                    run_command(
+                        Commands.INSTALL,
+                        prefix,
+                        "-c",
+                        channel,
+                        "flask",
+                        "--offline",
+                    )
+                    assert package_is_installed(prefix, "flask")
+
+                    # The mock should have been called with our local channel URL though.
+                    assert result_dict.get("local_channel_seen")
+
+                    # Fails because pytz cannot be found in available channels.
+                    with pytest.raises(PackagesNotFoundError):
                         run_command(
                             Commands.INSTALL,
                             prefix,
                             "-c",
                             channel,
-                            "flask",
+                            "pytz",
                             "--offline",
                         )
-                        assert package_is_installed(prefix, "flask")
-
-                        # The mock should have been called with our local channel URL though.
-                        assert result_dict.get("local_channel_seen")
-
-                        # Fails because pytz cannot be found in available channels.
-                        with pytest.raises(PackagesNotFoundError):
-                            run_command(
-                                Commands.INSTALL,
-                                prefix,
-                                "-c",
-                                channel,
-                                "pytz",
-                                "--offline",
-                            )
-                        assert not package_is_installed(prefix, "pytz")
+                    assert not package_is_installed(prefix, "pytz")
     finally:
         SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
@@ -2658,28 +2671,33 @@ def test_force_remove(clear_package_cache: None):
     run_command(Commands.REMOVE, prefix, "--all")
 
 
-def test_download_only_flag(clear_package_cache: None):
+def test_download_only_flag(clear_package_cache: None, mocker: MockerFixture):
     from conda.core.link import UnlinkLinkTransaction
 
-    with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
-        with make_temp_env("openssl", "--download-only", use_exception_handler=True):
-            assert mock_method.call_count == 0
-        with make_temp_env("openssl", use_exception_handler=True):
-            assert mock_method.call_count == 1
+    mock_method = mocker.patch.object(UnlinkLinkTransaction, "execute")
+    with make_temp_env("openssl", "--download-only", use_exception_handler=True):
+        assert mock_method.call_count == 0
+    with make_temp_env("openssl", use_exception_handler=True):
+        assert mock_method.call_count == 1
 
 
-def test_transactional_rollback_simple(clear_package_cache: None):
+def test_transactional_rollback_simple(
+    clear_package_cache: None, mocker: MockerFixture
+):
     from conda.core.path_actions import CreatePrefixRecordAction
 
-    with patch.object(CreatePrefixRecordAction, "execute") as mock_method:
-        with make_temp_env() as prefix:
-            mock_method.side_effect = KeyError("Bang bang!!")
-            with pytest.raises(CondaMultiError):
-                run_command(Commands.INSTALL, prefix, "openssl")
-            assert not package_is_installed(prefix, "openssl")
+    mocker.patch.object(
+        CreatePrefixRecordAction, "execute", side_effect=KeyError("Bang bang!!")
+    )
+    with make_temp_env() as prefix:
+        with pytest.raises(CondaMultiError):
+            run_command(Commands.INSTALL, prefix, "openssl")
+        assert not package_is_installed(prefix, "openssl")
 
 
-def test_transactional_rollback_upgrade_downgrade(clear_package_cache: None):
+def test_transactional_rollback_upgrade_downgrade(
+    clear_package_cache: None, mocker: MockerFixture
+):
     with make_temp_env("python=3.8", no_capture=True) as prefix:
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "python=3")
@@ -2689,11 +2707,12 @@ def test_transactional_rollback_upgrade_downgrade(clear_package_cache: None):
 
         from conda.core.path_actions import CreatePrefixRecordAction
 
-        with patch.object(CreatePrefixRecordAction, "execute") as mock_method:
-            mock_method.side_effect = KeyError("Bang bang!!")
-            with pytest.raises(CondaMultiError):
-                run_command(Commands.INSTALL, prefix, "flask=2.0.1")
-            assert package_is_installed(prefix, "flask=2.1.3")
+        mocker.patch.object(
+            CreatePrefixRecordAction, "execute", side_effect=KeyError("Bang bang!!")
+        )
+        with pytest.raises(CondaMultiError):
+            run_command(Commands.INSTALL, prefix, "flask=2.0.1")
+        assert package_is_installed(prefix, "flask=2.1.3")
 
 
 def test_directory_not_a_conda_environment(clear_package_cache: None):
@@ -2807,19 +2826,20 @@ def test_conda_downgrade(clear_package_cache: None):
 
 
 @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
-def test_run_script_called(clear_package_cache: None):
+def test_run_script_called(clear_package_cache: None, mocker: MockerFixture):
     import conda.core.link
 
-    with patch.object(conda.core.link, "subprocess_call") as rs:
-        rs.return_value = Response(None, None, 0)
-        with make_temp_env(
-            "-c",
-            "http://repo.anaconda.com/pkgs/free",
-            "openssl=1.0.2j",
-            "--no-deps",
-        ) as prefix:
-            assert package_is_installed(prefix, "openssl")
-            assert rs.call_count == 1
+    rs = mocker.patch.object(
+        conda.core.link, "subprocess_call", return_value=Response(None, None, 0)
+    )
+    with make_temp_env(
+        "-c",
+        "http://repo.anaconda.com/pkgs/free",
+        "openssl=1.0.2j",
+        "--no-deps",
+    ) as prefix:
+        assert package_is_installed(prefix, "openssl")
+        assert rs.call_count == 1
 
 
 @pytest.mark.xfail(on_mac, reason="known broken; see #11127")
