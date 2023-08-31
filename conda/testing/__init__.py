@@ -31,6 +31,7 @@ from pytest import CaptureFixture
 from conda.base.context import context, reset_context
 from conda.cli.main import init_loggers
 from conda.common.compat import on_win
+from conda.core.prefix_data import PrefixData
 
 from ..deprecations import deprecated
 
@@ -213,6 +214,9 @@ class CondaCLIFixture:
 
         # restore to prior state
         reset_context()
+
+        # clear prefix cache
+        PrefixData._cache_.clear()
 
         return out, err, code
 

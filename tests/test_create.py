@@ -165,36 +165,56 @@ def test_run_preserves_arguments(
         assert args == tuple(stdout.strip().splitlines())
 
 
-def test_create_install_update_remove_smoketest(clear_package_cache: None):
-    with make_temp_env("python=3.9") as prefix:
-        assert exists(join(prefix, PYTHON_BINARY))
-        assert package_is_installed(prefix, "python=3")
+def test_create_install_update_remove_smoketest(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    # use "cheap" packages with no dependencies
+    package1_pinned = "zlib=1.2.11"
+    package1 = "zlib"
+    package2 = "ca-certificates"
 
-        run_command(Commands.INSTALL, prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+    with tmp_env(package2) as prefix:
+        assert not package_is_installed(prefix, package1)
+        assert package_is_installed(prefix, package2)
 
-        run_command(Commands.INSTALL, prefix, "--force-reinstall", "flask=2.0.1")
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+        stdout, stderr, err = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            package1_pinned,
+            "--yes",
+        )
+        assert package_is_installed(prefix, package1_pinned)
+        assert package_is_installed(prefix, package2)
 
-        run_command(Commands.UPDATE, prefix, "flask")
-        assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--force-reinstall",
+            package1_pinned,
+            "--yes",
+        )
+        assert package_is_installed(prefix, package1_pinned)
+        assert package_is_installed(prefix, package2)
 
-        run_command(Commands.REMOVE, prefix, "flask")
-        assert not package_is_installed(prefix, "flask=0.*")
-        assert package_is_installed(prefix, "python=3")
+        conda_cli("update", f"--prefix={prefix}", package1, "--yes")
+        assert not package_is_installed(prefix, package1_pinned)
+        assert package_is_installed(prefix, package1)
+        assert package_is_installed(prefix, package2)
 
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--revisions")
+        conda_cli("remove", f"--prefix={prefix}", package1, "--yes")
+        assert not package_is_installed(prefix, package1)
+        assert package_is_installed(prefix, package2)
+
+        stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--revisions")
         assert not stderr
         assert " (rev 4)\n" in stdout
         assert " (rev 5)\n" not in stdout
 
-        run_command(Commands.INSTALL, prefix, "--revision", "0")
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        conda_cli("install", f"--prefix={prefix}", "--revision", "0", "--yes")
+        assert not package_is_installed(prefix, package1)
+        assert package_is_installed(prefix, package2)
 
 
 def test_install_broken_post_install_keeps_existing_folders(clear_package_cache: None):
