@@ -1,7 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Defines the offline transport adapter which is automatically used when
-context.offline is True."""
+"""
+Defines the offline transport adapter which is automatically used when
+context.offline is True.
+"""
 from .. import BaseAdapter
 from ....auxlib.ish import dals
 
