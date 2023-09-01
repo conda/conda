@@ -170,7 +170,7 @@ def conda_check_versions_aligned():
 class CondaCLIFixture:
     capsys: CaptureFixture
 
-    def __call__(self, *argv: str) -> tuple[str, str, int]:
+    def __call__(self, *argv: str | os.PathLike) -> tuple[str, str, int]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`

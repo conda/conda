@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from os import PathLike, walk
+from os import walk
 from os.path import basename, exists, isdir, join
+from pathlib import Path
 from shutil import copy
 
 import pytest
+from pytest_mock import MockerFixture
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,
@@ -69,10 +71,10 @@ def assert_not_pkg(name, contents):
 
 # conda clean --force-pkgs-dirs
 def test_clean_force_pkgs_dirs(
-    clear_cache,
+    clear_cache: None,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     pkg = "bzip2"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -92,10 +94,10 @@ def test_clean_force_pkgs_dirs(
 
 # conda clean --packages
 def test_clean_and_packages(
-    clear_cache,
+    clear_cache: None,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     pkg = "bzip2"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -126,10 +128,10 @@ def test_clean_and_packages(
 
 # conda clean --tarballs
 def test_clean_tarballs(
-    clear_cache,
+    clear_cache: None,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     pkg = "bzip2"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -153,10 +155,10 @@ def test_clean_tarballs(
 
 # conda clean --index-cache
 def test_clean_index_cache(
-    clear_cache,
+    clear_cache: None,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     pkg = "bzip2"
 
     with make_temp_package_cache():
@@ -179,10 +181,10 @@ def test_clean_index_cache(
 
 # conda clean --tempfiles
 def test_clean_tempfiles(
-    clear_cache,
+    clear_cache: None,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     """Tempfiles are either suffixed with .c~ or .trash.
 
     .c~ is used to indicate that conda is actively using that file. If the conda process is
@@ -223,10 +225,10 @@ def test_clean_tempfiles(
 
 # conda clean --logfiles
 def test_clean_logfiles(
-    clear_cache,
+    clear_cache: None,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     """Logfiles are found in pkgs_dir/.logs.
 
     Since these log files were uniquely created during the experimental
@@ -263,13 +265,13 @@ def test_clean_logfiles(
 # conda clean --all [--verbose]
 @pytest.mark.parametrize("verbose", [True, False])
 def test_clean_all(
-    clear_cache,
+    clear_cache: None,
     verbose: bool,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     pkg = "bzip2"
-    args = ("--yes", "--json")
+    args: tuple[str, ...] = ("--yes", "--json")
     if verbose:
         args = (*args, "--verbose")
 
@@ -324,14 +326,14 @@ def test_clean_all(
 # conda clean --all --verbose
 @pytest.mark.parametrize("as_json", [True, False])
 def test_clean_all_mock_lstat(
-    clear_cache,
+    clear_cache: None,
     mocker: MockerFixture,
     as_json: bool,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
+) -> None:
     pkg = "bzip2"
-    args = ("--yes", "--verbose")
+    args: tuple[str, ...] = ("--yes", "--verbose")
     if as_json:
         args = (*args, "--json")
 
@@ -342,9 +344,10 @@ def test_clean_all_mock_lstat(
         assert_any_pkg(pkg, tars)
         assert cache
 
+        conda_cli("remove", "--prefix", prefix, pkg, *args)
+
         mocker.patch("os.lstat", side_effect=OSError)
 
-        conda_cli("remove", "--prefix", prefix, pkg, *args)
         stdout, _, _ = conda_cli("clean", "--packages", *args)
         assert "WARNING:" in stdout
         if as_json:
@@ -360,8 +363,8 @@ def test_clean_all_mock_lstat(
 
 
 # _get_size unittest, valid file
-def test_get_size(tmp_path: Path):
-    warnings = []
+def test_get_size(tmp_path: Path) -> None:
+    warnings: list[str] = []
     path = tmp_path / "file"
     path.write_text("hello")
     assert _get_size(path, warnings=warnings)
@@ -369,14 +372,14 @@ def test_get_size(tmp_path: Path):
 
 
 # _get_size unittest, invalid file
-def test_get_size_None():
+def test_get_size_None() -> None:
     with pytest.raises(OSError):
         _get_size("not-a-file", warnings=None)
 
 
 # _get_size unittest, invalid file and collect warnings
-def test_get_size_list():
-    warnings = []
+def test_get_size_list() -> None:
+    warnings: list[str] = []
     with pytest.raises(NotImplementedError):
         _get_size("not-a-file", warnings=warnings)
     assert warnings

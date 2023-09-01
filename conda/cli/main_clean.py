@@ -23,7 +23,7 @@ log = getLogger(__name__)
 _EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
 
 
-def _get_size(*parts: str, warnings: list[str] | None) -> int:
+def _get_size(*parts: str | os.PathLike, warnings: list[str] | None) -> int:
     path = join(*parts)
     try:
         stat = os.lstat(path)

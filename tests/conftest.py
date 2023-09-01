@@ -1,13 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import subprocess
 from pathlib import Path
 
 import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
-from conda.testing import conda_cli, path_factory, tmp_env
+from conda.testing import conda_cli, path_factory, tmp_env  # noqa: F401
 
 from . import http_test_server
 from .fixtures_jlap import (  # NOQA
