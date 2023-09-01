@@ -23,7 +23,7 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import CondaSubcommand
+from .types import CondaSubcommand, CondaVirtualPackage
 
 log = logging.getLogger(__name__)
 
@@ -250,6 +250,24 @@ class CondaPluginManager(pluggy.PluginManager):
             subcommand.name.lower(): subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
+
+    def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
+        registered = {}
+        for package in self.get_hook_results("virtual_packages"):
+            if package.name is None:
+                continue
+
+            if package.name in registered:
+                raise PluginError(
+                    "Conflicting virtual package entries found for the "
+                    f"`{package.name}` key. Multiple conda plugins "
+                    "are registering this virtual package via the "
+                    "`conda_virtual_packages` hook, please make sure "
+                    "you don't have any incompatible plugins installed."
+                )
+            registered[package.name] = package
+
+        return tuple(registered.values())
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
