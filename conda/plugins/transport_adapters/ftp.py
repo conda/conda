@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """A FTP transport adapter"""
-from .. import CondaTransportAdapter, hookimpl
 from ...gateways.connection.adapters.ftp import FTPAdapter
+from .. import CondaTransportAdapter, hookimpl
 
 
 @hookimpl
