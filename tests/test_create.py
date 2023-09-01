@@ -507,33 +507,37 @@ def test_noarch_python_package_without_entry_points(
         assert not (prefix / pyc_file).is_file()
 
 
-def test_noarch_python_package_reinstall_on_pyver_change(clear_package_cache: None):
-    with make_temp_env(
-        "-c",
-        "conda-test",
-        "itsdangerous=0.24",
-        "python=3",
-        use_restricted_unicode=on_win,
-    ) as prefix:
+def test_noarch_python_package_reinstall_on_pyver_change(
+    clear_package_cache: None,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
+    if on_mac:
+        monkeypatch.setenv("CONDA_SUBDIR", "osx-64")
+        reset_context()
+        assert context.subdir == "osx-64"
+
+    with tmp_env("conda-test::itsdangerous=0.24", "python=3") as prefix:
+        assert package_is_installed(prefix, "python=3")
         py_ver = get_python_version_for_prefix(prefix)
-        assert py_ver.startswith("3")
         sp_dir = get_python_site_packages_short_path(py_ver)
-        py_file = sp_dir + "/itsdangerous.py"
-        pyc_file_py3 = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file_py3))
+        py3_file = sp_dir + "/itsdangerous.py"
+        py3c_file = pyc_path(py3_file, py_ver)
+        assert (prefix / py3_file).is_file()
+        assert (prefix / py3c_file).is_file()
 
-        run_command(Commands.INSTALL, prefix, "python=2")
-        assert not isfile(join(prefix, pyc_file_py3))  # python3 pyc file should be gone
-
+        conda_cli("install", f"--prefix={prefix}", "python=2", "--yes")
+        assert not package_is_installed(prefix, "python=3")
+        assert not (prefix / py3_file).is_file()
+        assert not (prefix / py3c_file).is_file()
+        assert package_is_installed(prefix, "python=2")
         py_ver = get_python_version_for_prefix(prefix)
-        assert py_ver.startswith("2")
         sp_dir = get_python_site_packages_short_path(py_ver)
-        py_file = sp_dir + "/itsdangerous.py"
-        pyc_file_py2 = pyc_path(py_file, py_ver).replace("/", os.sep)
-
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file_py2))
+        py2_file = sp_dir + "/itsdangerous.py"
+        py2c_file = pyc_path(py2_file, py_ver)
+        assert (prefix / py2_file).is_file()
+        assert (prefix / py2c_file).is_file()
 
 
 def test_noarch_generic_package(clear_package_cache: None):
