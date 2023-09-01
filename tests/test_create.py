@@ -581,27 +581,28 @@ def test_override_channels(
     assert parsed["flask"][0]["noarch"] == "python"
 
 
-def test_create_empty_env(clear_package_cache: None):
-    with make_temp_env() as prefix:
-        assert exists(join(prefix, "conda-meta/history"))
+def test_create_empty_env(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
+    with tmp_env() as prefix:
+        assert (prefix / "conda-meta/history").exists()
 
-        list_output = run_command(Commands.LIST, prefix)
-        stdout = list_output[0]
-        stderr = list_output[1]
-        assert stdout == dals(
-            f"""
-            # packages in environment at {prefix}:
-            #
-            # Name                    Version                   Build  Channel
-            """
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        assert stdout == (
+            f"# packages in environment at {prefix}:\n"
+            "#\n"
+            "# Name                    Version                   Build  Channel\n"
         )
         assert not stderr
+        assert not err
 
-        revision_output = run_command(Commands.LIST, prefix, "--revisions")
-        stdout = revision_output[0]
-        stderr = revision_output[1]
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}", "--revisions")
+        assert "(rev 0)" in stdout
+        assert "(rev 1)" not in stdout
         assert not stderr
-        assert isinstance(stdout, str)
+        assert not err
 
 
 @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
