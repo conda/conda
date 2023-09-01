@@ -82,14 +82,15 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         count = 0
         for plugin in plugins:
-            # only use the canonical name after this point
-            canonical = self.get_canonical_name(plugin)
-
             try:
-                self.register(plugin, canonical)
+                # register plugin
+                # extracts canonical name from plugin, checks for duplicates,
+                # and if blocked
+                self.register(plugin)
             except ValueError as err:
                 raise PluginError(
-                    f"Error while loading first-party conda plugin: {canonical} ({err})"
+                    f"Error while loading first-party conda plugin: "
+                    f"{self.get_canonical_name(plugin)} ({err})"
                 )
 
             count += 1
@@ -125,18 +126,15 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                # only use the canonical name after this point
-                canonical = self.get_canonical_name(plugin)
-
-                # skip plugin if already registered or blocked
-                if self.get_plugin(canonical) or self.is_blocked(canonical):
-                    continue
-
                 try:
-                    self.register(plugin, canonical)
+                    # register plugin
+                    # extracts canonical name from plugin, checks for duplicates,
+                    # and if blocked
+                    self.register(plugin)
                 except ValueError as err:
                     raise PluginError(
-                        f"Error while loading third-party conda plugin: {canonical} ({err})"
+                        f"Error while loading third-party conda plugin: "
+                        f"{self.get_canonical_name(plugin)} ({err})"
                     )
 
                 count += 1
@@ -182,10 +180,24 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = sorted(
-            (item for items in hook() for item in items),
-            key=lambda item: item.name,
-        )
+        plugins = [item for items in hook() for item in items]
+
+        # Check for invalid names
+        invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
+        if invalid:
+            raise PluginError(
+                dals(
+                    f"""
+                    Invalid plugin names found:
+
+                    {', '.join([str(plugin) for plugin in invalid])}
+
+                    Please report this issue to the plugin author(s).
+                    """
+                )
+            )
+        plugins = sorted(plugins, key=lambda plugin: plugin.name)
+
         # Check for conflicts
         seen = set()
         conflicts = [
@@ -291,14 +303,7 @@ class CondaPluginManager(pluggy.PluginManager):
         }
 
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
-        registered = {}
-        for package in self.get_hook_results("virtual_packages"):
-            if package.name is None:
-                continue
-
-            registered[package.name] = package
-
-        return tuple(registered.values())
+        return tuple(self.get_hook_results("virtual_packages"))
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
