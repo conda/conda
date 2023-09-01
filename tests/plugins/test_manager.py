@@ -194,3 +194,10 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
+
+
+def test_get_virtual_packages(plugin_manager: CondaPluginManager):
+    plugin_manager.load_plugins(virtual_packages.archspec)
+    assert {"archspec"} == {
+        package.name for package in plugin_manager.get_virtual_packages()
+    }
