@@ -201,3 +201,9 @@ def test_get_virtual_packages(plugin_manager: CondaPluginManager):
     assert {"archspec"} == {
         package.name for package in plugin_manager.get_virtual_packages()
     }
+
+
+def test_get_solvers(plugin_manager: CondaPluginManager):
+    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
+    assert plugin_manager.get_solvers() == {"verbose-classic": VerboseSolver}
