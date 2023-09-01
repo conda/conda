@@ -32,7 +32,6 @@ from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaMultiError
-from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
@@ -434,14 +433,19 @@ def test_json_create_install_update_remove(
     assert package_is_installed(prefix, "python=3")
 
 
-def test_not_writable_env_raises_EnvironmentNotWritableError(clear_package_cache: None):
-    with make_temp_env() as prefix:
-        make_read_only(join(prefix, PREFIX_MAGIC_FILE))
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "openssl", use_exception_handler=True
-        )
-        assert "EnvironmentNotWritableError" in stderr
-        assert prefix in stderr
+def test_not_writable_env_raises_error(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
+    with tmp_env() as prefix:
+        make_read_only(prefix / PREFIX_MAGIC_FILE)
+
+        with pytest.raises(
+            CondaMultiError,
+            match="The current user does not have write permissions to the target environment.",
+        ):
+            conda_cli("install", f"--prefix={prefix}", "openssl", "--yes")
 
 
 def test_conda_update_package_not_installed(clear_package_cache: None):
