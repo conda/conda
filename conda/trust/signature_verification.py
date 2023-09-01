@@ -236,14 +236,21 @@ class _SignatureVerification:
             repodata_fn=repodata_fn,
         ).repo_fetch.fetch_latest_parsed()
 
+        # short-circuit if no signatures are defined
         if "signatures" not in repodata:
-            raise SignatureError("no signatures found in repodata")
+            record.metadata.add(
+                f"(no signatures found for {record.channel.canonical_name})"
+            )
+            return
         signatures = repodata["signatures"]
 
+        # short-circuit if no signature is defined for this package
         if record.fn not in signatures:
-            raise SignatureError(f"no signature found for {record.fn}")
+            record.metadata.add(f"(no signatures found for {repodata.fn})")
+            return
         signature = signatures[record.fn]
 
+        # extract metadata to be verified
         if record.fn.endswith(CONDA_PACKAGE_EXTENSION_V1):
             info = repodata["packages"][record.fn]
         elif record.fn.endswith(CONDA_PACKAGE_EXTENSION_V2):
