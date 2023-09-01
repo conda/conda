@@ -464,7 +464,7 @@ def test_noarch_python_package_with_entry_points(
     conda_cli: CondaCLIFixture,
 ) -> None:
     # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
-    with tmp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
+    with tmp_env("conda-test::flask", "jinja2<3.1") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/flask/__init__.py"
@@ -487,20 +487,24 @@ def test_noarch_python_package_with_entry_points(
         assert not exe_path.is_file()
 
 
-def test_noarch_python_package_without_entry_points(clear_package_cache: None):
+def test_noarch_python_package_without_entry_points(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
     # regression test for #4546
-    with make_temp_env("-c", "conda-test", "itsdangerous") as prefix:
+    with tmp_env("conda-test::itsdangerous") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous.py"
-        pyc_file = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file))
+        pyc_file = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file).is_file()
 
-        run_command(Commands.REMOVE, prefix, "itsdangerous")
+        conda_cli("remove", f"--prefix={prefix}", "itsdangerous", "--yes")
 
-        assert not isfile(join(prefix, py_file))
-        assert not isfile(join(prefix, pyc_file))
+        assert not (prefix / py_file).is_file()
+        assert not (prefix / pyc_file).is_file()
 
 
 def test_noarch_python_package_reinstall_on_pyver_change(clear_package_cache: None):
