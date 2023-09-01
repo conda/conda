@@ -216,11 +216,39 @@ class CondaSpecs:
     @_hookspec
     def conda_transport_adapters(self) -> Iterable[CondaTransportAdapter]:
         """
-        Register a conda auth handler derived from the requests API.
+        Register a conda transport adapter derived from the requests API.
 
-        This plugin hook allows attaching requests auth handler subclasses,
-        e.g. when authenticating requests against individual channels hosted
-        at HTTP/HTTPS services.
+        This plugin hook allows attaching requests transport adapter subclasses,
+        e.g. when through which to requesting files from channels.
+
+        **Example:**
+
+        .. code-block:: python
+
+
+            import os
+            from conda import plugins
+            from requests.adapters import HTTPAdapter
+
+
+            class DebugHTTPAdapter(HTTPAdapter):
+                def send(self, request, *args, **kwargs):
+                    print(f"Requesting: {request.url}")
+                    response = super().send(request, *args, **kwargs)
+                    print(f"Response: {response}")
+                    return response
+
+                def close(self):
+                    print("Closing connection: {self}")
+
+
+            @plugins.hookimpl
+            def conda_transport_adapters():
+                yield plugins.CondaTransportAdapter(
+                    name="http-debug",
+                    prefix="http+debug://",
+                    adapter=DebugHTTPAdapter,
+                )
         """
 
     @_hookspec
