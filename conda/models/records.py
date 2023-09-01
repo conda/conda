@@ -12,7 +12,10 @@ Object inheritance:
    :top-classes: conda.models.records.PackageRecord
    :parts: 1
 """
+from __future__ import annotations
+
 from os.path import basename, join
+from typing import Tuple
 
 try:
     from boltons.timeutils import dt_to_timestamp, isoparse
@@ -420,7 +423,7 @@ class PackageRecord(DictSafeMixin, Entity):
         self.metadata = set()
 
 
-PackageRecordSequence = tuple[PackageRecord, ...]
+PackageRecordSequence = Tuple[PackageRecord, ...]
 
 
 class Md5Field(StringField):

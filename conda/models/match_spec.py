@@ -16,6 +16,7 @@ from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
+from typing import FrozenSet
 
 from conda.common.iterators import groupby_to_dict as groupby
 
@@ -531,7 +532,7 @@ class MatchSpec(metaclass=MatchSpecType):
         )
 
 
-MatchSpecSequence = frozenset[MatchSpec]
+MatchSpecSequence = FrozenSet[MatchSpec]
 
 
 def _parse_version_plus_build(v_plus_b):
