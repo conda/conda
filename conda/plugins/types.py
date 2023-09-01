@@ -16,7 +16,7 @@ from requests.auth import AuthBase
 
 from ..core.solve import Solver
 from ..models.match_spec import MatchSpecSequence
-from ..models.records import PackageRecord
+from ..models.records import PackageRecordSequence
 
 
 @dataclass
@@ -174,4 +174,4 @@ class CondaPostSolve:
     """
 
     name: str
-    action: Callable[[str, tuple[PackageRecord], tuple[PackageRecord]], None]
+    action: Callable[[str, PackageRecordSequence, PackageRecordSequence], None]
