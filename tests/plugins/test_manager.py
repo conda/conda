@@ -68,9 +68,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     assert hook_result[0].name == "archspec"
 
     # loading an unknown hook result should raise an error
-    with pytest.raises(
-        PluginError, match=re.escape("Could not find requested `unknown` plugins")
-    ):
+    with pytest.raises(PluginError, match="Could not find requested `unknown` plugins"):
         plugin_manager.get_hook_results("unknown")
 
     # let's double-check the validation of conflicting plugins works
@@ -81,7 +79,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `virtual_packages` plugins found")
+        PluginError, match="Conflicting `virtual_packages` plugins found"
     ):
         plugin_manager.get_hook_results(name)
 
