@@ -230,8 +230,11 @@ class _SignatureVerification:
                 f"Invalid JSON returned from {signing_data_url}/{filename}"
             )
 
-    def verify(self, record: PackageRecord):
-        repodata, _ = SubdirData(record.channel).repo_fetch.fetch_latest_parsed()
+    def verify(self, repodata_fn: str, record: PackageRecord):
+        repodata, _ = SubdirData(
+            record.channel,
+            repodata_fn=repodata_fn,
+        ).repo_fetch.fetch_latest_parsed()
 
         if "signatures" not in repodata:
             raise SignatureError("no signatures found in repodata")
@@ -263,6 +266,7 @@ class _SignatureVerification:
 
     def __call__(
         self,
+        repodata_fn: str,
         unlink_precs: tuple[PackageRecord, ...],
         link_precs: tuple[PackageRecord, ...],
     ) -> None:
@@ -270,7 +274,7 @@ class _SignatureVerification:
             return
 
         for prec in link_precs:
-            self.verify(prec)
+            self.verify(repodata_fn, prec)
 
 
 # singleton for caching

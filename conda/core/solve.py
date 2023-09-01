@@ -7,6 +7,7 @@ from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 from textwrap import dedent
+from typing import Iterable
 
 from genericpath import exists
 
@@ -59,12 +60,12 @@ class Solver:
 
     def __init__(
         self,
-        prefix,
-        channels,
-        subdirs=(),
-        specs_to_add=(),
-        specs_to_remove=(),
-        repodata_fn=REPODATA_FN,
+        prefix: str,
+        channels: Iterable[Channel],
+        subdirs: Iterable[str] = (),
+        specs_to_add: Iterable[MatchSpec] = (),
+        specs_to_remove: Iterable[MatchSpec] = (),
+        repodata_fn: str = REPODATA_FN,
         command=NULL,
     ):
         """
@@ -150,7 +151,7 @@ class Solver:
 
         # plugins run any post-solve processes here before performing the transaction
         for post_solve in context.plugin_manager.get_hook_results("post_solves"):
-            post_solve.action(unlink_precs, link_precs)
+            post_solve.action(self._repodata_fn, unlink_precs, link_precs)
 
         self._notify_conda_outdated(link_precs)
         return UnlinkLinkTransaction(

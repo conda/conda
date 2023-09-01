@@ -222,7 +222,11 @@ class CondaSpecs:
            from conda import plugins
 
 
-           def example_post_solve():
+           def example_post_solve(
+               repodata_fn: str,
+               unlink_precs: tuple[PackageRecord, ...],
+               link_precs: tuple[PackageRecord, ...],
+           ):
                print("post-solve action")
 
 

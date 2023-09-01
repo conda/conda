@@ -157,4 +157,4 @@ class CondaPostSolve:
     """
 
     name: str
-    action: Callable[[tuple[PackageRecord], tuple[PackageRecord]], None]
+    action: Callable[[str, tuple[PackageRecord], tuple[PackageRecord]], None]
