@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from os import environ
 from pathlib import Path
 from uuid import uuid4
 
@@ -7,9 +8,11 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaValueError
 from conda.testing import CondaCLIFixture
-from conda.testing.integration import package_is_installed
+from conda.testing.integration import Commands, package_is_installed, run_command
 
 from . import support_file
 from .utils import make_temp_envs_dir
@@ -250,3 +253,18 @@ def test_create_update_remote_env_file(
         # This ends up sticking around since there is no real way of knowing that an environment
         # variable _used_ to be in the variables dict, but isn't any more.
         assert env_vars["GETS_DELETED"] == "not_actually_removed_though"
+
+
+@pytest.mark.skipif(on_win, reason="Test is invalid on Windows")
+def test_fail_to_create_env_in_dir_with_colon(
+    tmp_path: Path, conda_cli: CondaCLIFixture
+):
+    # Add a directory with a colon
+    colon_dir = tmp_path / "fake:dir"
+    colon_dir.mkdir()
+
+    with pytest.raises(
+        CondaValueError,
+        match="Cannot create a conda environment with ':' in the prefix.",
+    ):
+        conda_cli("create", f"--prefix={colon_dir}/tester")

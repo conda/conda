@@ -36,5 +36,8 @@ conda.tmp/
 *.iws
 test-report.xml
 
+# default pytest duration files
+.test_durations
+
 # Rever
 rever/
