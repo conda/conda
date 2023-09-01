@@ -529,6 +529,9 @@ class MatchSpec(metaclass=MatchSpecType):
         )
 
 
+MatchSpecSequence = frozenset[MatchSpec]
+
+
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
     Examples:

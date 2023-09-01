@@ -18,6 +18,7 @@ from .types import (
     CondaPostCommand,
     CondaPostSolve,
     CondaPreCommand,
+    CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -208,6 +209,37 @@ class CondaSpecs:
                     name="environment-header-auth",
                     auth_handler=EnvironmentHeaderAuth,
                 )
+        """
+
+    @_hookspec
+    def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
+        """
+        Register pre-solve functions in conda that are used in the
+        general solver API, before the solver processes the package specs in
+        search of a solution.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.models.match_spec import MatchSpecSequence
+
+
+           def example_pre_solve(
+               specs_to_add: MatchSpecSequence,
+               specs_to_remove: MatchSpecSequence,
+           ):
+               print(f"Adding {len(specs_to_add)} packages")
+               print(f"Removing {len(specs_to_remove)} packages")
+
+
+           @plugins.hookimpl
+           def conda_pre_solves():
+               yield plugins.CondaPreSolve(
+                   name="example-pre-solve",
+                   action=example_pre_solve,
+               )
         """
 
     @_hookspec

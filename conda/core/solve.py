@@ -139,6 +139,12 @@ class Solver:
             # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
 
+        # run pre-solve processes here before solving for a solution
+        context.plugin_manager.invoke_pre_solves(
+            self.specs_to_add,
+            self.specs_to_remove,
+        )
+
         unlink_precs, link_precs = self.solve_for_diff(
             update_modifier,
             deps_modifier,
@@ -153,7 +159,9 @@ class Solver:
 
         # run post-solve processes here before performing the transaction
         context.plugin_manager.invoke_post_solves(
-            self._repodata_fn, unlink_precs, link_precs
+            self._repodata_fn,
+            unlink_precs,
+            link_precs,
         )
 
         self._notify_conda_outdated(link_precs)

@@ -15,6 +15,7 @@ from typing import Callable, NamedTuple
 from requests.auth import AuthBase
 
 from ..core.solve import Solver
+from ..models.match_spec import MatchSpecSequence
 from ..models.records import PackageRecord
 
 
@@ -142,6 +143,22 @@ class CondaAuthHandler(NamedTuple):
 
     name: str
     handler: type[ChannelAuthBase]
+
+
+@dataclass
+class CondaPreSolve:
+    """
+    Return type to use when defining a conda pre-solve plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_solves`.
+
+    :param name: Pre-solve name (e.g., ``custom_plugin_pre_solve``).
+    :param action: Callable which contains the code to be run.
+    """
+
+    name: str
+    action: Callable[[MatchSpecSequence, MatchSpecSequence], None]
 
 
 @dataclass

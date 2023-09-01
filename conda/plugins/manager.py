@@ -21,6 +21,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
+from ..models.match_spec import MatchSpecSequence
 from ..models.records import PackageRecordSequence
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -249,6 +250,20 @@ class CondaPluginManager(pluggy.PluginManager):
             subcommand.name.lower(): subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
+
+    def invoke_pre_solves(
+        self,
+        specs_to_add: MatchSpecSequence,
+        specs_to_remove: MatchSpecSequence,
+    ) -> None:
+        """
+        Invokes ``CondaPreSolve.action`` functions registered with ``conda_pre_solves``.
+
+        :param specs_to_add:
+        :param specs_to_remove:
+        """
+        for hook in self.get_hook_results("pre_solves"):
+            hook.action(specs_to_add, specs_to_remove)
 
     def invoke_post_solves(
         self,
