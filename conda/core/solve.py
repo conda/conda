@@ -26,7 +26,6 @@ from ..base.context import context
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..deprecations import deprecated
 from ..exceptions import (
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
@@ -45,20 +44,6 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
 log = getLogger(__name__)
-
-
-@deprecated(
-    "23.3",
-    "23.9",
-    addendum="Use `conda.base.context.plugin_manager.get_cached_solver_backend` instead.",
-)
-def _get_solver_class(key=None):
-    """
-    Load the correct solver backend.
-
-    See ``context.solver`` for more details.
-    """
-    return context.plugin_manager.get_cached_solver_backend(key or context.solver)
 
 
 class Solver:
@@ -354,7 +339,7 @@ class Solver:
         if not ssc.r:
             with Spinner(
                 "Collecting package metadata (%s)" % self._repodata_fn,
-                (not context.verbosity and not context.quiet and not retrying),
+                not context.verbose and not context.quiet and not retrying,
                 context.json,
             ):
                 ssc = self._collect_all_metadata(ssc)
@@ -374,7 +359,7 @@ class Solver:
 
         with Spinner(
             "Solving environment",
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
             fail_message=fail_message,
         ):

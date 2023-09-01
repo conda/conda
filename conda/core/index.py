@@ -13,7 +13,6 @@ except ImportError:  # pragma: no cover
 
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..deprecations import deprecated
 from ..exceptions import ChannelNotAllowed, InvalidSpec, PluginError
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
@@ -25,11 +24,6 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
 
 log = getLogger(__name__)
-
-
-@deprecated("23.3", "23.9", addendum="Use `conda.core.index.check_allowlist` instead.")
-def check_whitelist(channel_urls):
-    return check_allowlist(channel_urls)
 
 
 def check_allowlist(channel_urls):

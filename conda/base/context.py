@@ -7,6 +7,7 @@ into one global stateful object to be used across all of conda.
 """
 from __future__ import annotations
 
+import logging
 import os
 import platform
 import struct
@@ -15,7 +16,6 @@ from contextlib import contextmanager
 from errno import ENOENT
 from functools import lru_cache
 from itertools import chain
-from logging import getLogger
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
@@ -45,6 +45,7 @@ from ..common.iterators import unique
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
+from ..gateways.logging import TRACE
 from .constants import (
     APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -81,7 +82,7 @@ except OSError as e:
     else:
         raise
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 _platform_map = {
     "freebsd13": "freebsd",
@@ -182,6 +183,7 @@ class Context(Configuration):
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
+    register_envs = ParameterLoader(PrimitiveParameter(True))
     default_python = ParameterLoader(
         PrimitiveParameter(
             default_python_default(),
@@ -378,7 +380,8 @@ class Context(Configuration):
     always_yes = ParameterLoader(
         PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=("yes",)
     )
-    debug = ParameterLoader(PrimitiveParameter(False))
+    _debug = ParameterLoader(PrimitiveParameter(False), aliases=["debug"])
+    _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
@@ -409,11 +412,6 @@ class Context(Configuration):
         PrimitiveParameter(DEFAULT_SOLVER),
         aliases=("experimental_solver",),
     )
-
-    @property
-    @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
-    def experimental_solver(self):
-        return self.solver
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -553,15 +551,6 @@ class Context(Configuration):
             return m
         else:
             return _arch_names[self.bits]
-
-    @property
-    @deprecated(
-        "23.3",
-        "23.9",
-        addendum="It's meaningless and any special meaning it may have held is now void.",
-    )
-    def conda_private(self):
-        return False
 
     @property
     def platform(self):
@@ -955,8 +944,61 @@ class Context(Configuration):
         return self.anaconda_upload
 
     @property
-    def verbosity(self):
-        return 2 if self.debug else self._verbosity
+    def trace(self) -> bool:
+        """Alias for context.verbosity >=4."""
+        return self.verbosity >= 4
+
+    @property
+    def debug(self) -> bool:
+        """Alias for context.verbosity >=3."""
+        return self.verbosity >= 3
+
+    @property
+    def info(self) -> bool:
+        """Alias for context.verbosity >=2."""
+        return self.verbosity >= 2
+
+    @property
+    def verbose(self) -> bool:
+        """Alias for context.verbosity >=1."""
+        return self.verbosity >= 1
+
+    @property
+    def verbosity(self) -> int:
+        """Verbosity level.
+
+        For cleaner and readable code it is preferable to use the following alias properties:
+            context.trace
+            context.debug
+            context.info
+            context.verbose
+            context.log_level
+        """
+        #                   0 → logging.WARNING, standard output
+        #           -v    = 1 → logging.WARNING, detailed output
+        #           -vv   = 2 → logging.INFO
+        # --debug = -vvv  = 3 → logging.DEBUG
+        # --trace = -vvvv = 4 → conda.gateways.logging.TRACE
+        if self._trace:
+            return 4
+        elif self._debug:
+            return 3
+        else:
+            return self._verbosity
+
+    @property
+    def log_level(self) -> int:
+        """Map context.verbosity to logging level."""
+        if 4 < self.verbosity:
+            return logging.NOTSET  # 0
+        elif 3 < self.verbosity <= 4:
+            return TRACE  # 5
+        elif 2 < self.verbosity <= 3:
+            return logging.DEBUG  # 10
+        elif 1 < self.verbosity <= 2:
+            return logging.INFO  # 20
+        else:
+            return logging.WARNING  # 30
 
     @memoizedproperty
     def user_agent(self):
@@ -1062,19 +1104,6 @@ class Context(Configuration):
         # DANGER: This is rather slow
         info = _get_cpu_info()
         return info["flags"]
-
-    @memoizedproperty
-    @deprecated(
-        "23.3",
-        "23.9",
-        addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
-        stack=+1,
-    )
-    def cuda_version(self) -> str | None:
-        """Retrieves the current cuda version."""
-        from conda.plugins.virtual_packages import cuda
-
-        return cuda.cuda_version()
 
     @property
     def category_map(self):
@@ -1183,6 +1212,7 @@ class Context(Configuration):
                 "add_pip_as_python_dependency",
                 "channel_settings",
                 "debug",
+                "trace",
                 "dev",
                 "default_python",
                 "enable_private_envs",
@@ -1197,6 +1227,8 @@ class Context(Configuration):
                 # I don't think this documentation is correct any longer. # NOQA
                 "target_prefix_override",
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                "register_envs",
+                # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -2010,14 +2042,6 @@ def _first_writable_envs_dir():
     from ..exceptions import NoWritableEnvsDirError
 
     raise NoWritableEnvsDirError(context.envs_dirs)
-
-
-# backward compatibility for conda-build
-@deprecated(
-    "23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead."
-)
-def get_prefix(ctx, args, search=True):  # pragma: no cover
-    return determine_target_prefix(ctx or context, args)
 
 
 try:

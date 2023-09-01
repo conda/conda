@@ -4,16 +4,17 @@ import datetime
 import glob
 import hashlib
 import os
-from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
+from conda.exceptions import CondaError, PackagesNotFoundError
 from conda.notices import fetch
-from conda.testing.helpers import run_inprocess_conda_command as run
+from conda.testing import CondaCLIFixture
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -24,16 +25,16 @@ from conda.testing.notices.helpers import (
 
 
 @pytest.fixture
-def env_one(notices_cache_dir):
+def env_one(notices_cache_dir, conda_cli: CondaCLIFixture):
     env_name = "env-one"
 
     # Setup
-    run(f"conda create -n {env_name} -y --offline")
+    conda_cli("create", "--name", env_name, "--yes", "--offline")
 
     yield env_name
 
     # Teardown
-    run(f"conda remove --all -y -n {env_name}", disallow_stderr=False)
+    conda_cli("remove", "--name", env_name, "--yes", "--all")
 
 
 @pytest.mark.parametrize("status_code", (200, 404))
@@ -42,7 +43,7 @@ def test_main_notices(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_get_session,
 ):
     """
     Test the full working path through the code. We vary the test based on the status code
@@ -54,7 +55,7 @@ def test_main_notices(
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_http_session_get, status_code, messages_json)
+    add_resp_to_mock(notices_mock_fetch_get_session, status_code, messages_json)
 
     notices.execute(args, parser)
 
@@ -74,7 +75,7 @@ def test_main_notices_reads_from_cache(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_get_session,
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -105,7 +106,7 @@ def test_main_notices_reads_from_expired_cache(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_get_session,
 ):
     """
     Test the full working path through the code when reading from cache instead of making
@@ -133,7 +134,7 @@ def test_main_notices_reads_from_expired_cache(
     # different messages
     messages_different_json = get_test_notices(messages_different)
     add_resp_to_mock(
-        notices_mock_http_session_get,
+        notices_mock_fetch_get_session,
         status_code=200,
         messages_json=messages_different_json,
     )
@@ -153,7 +154,7 @@ def test_main_notices_handles_bad_expired_at_field(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_get_session,
 ):
     """
     This test ensures that an incorrectly defined `notices.json` file doesn't completely break
@@ -177,7 +178,9 @@ def test_main_notices_handles_bad_expired_at_field(
         ]
     }
     add_resp_to_mock(
-        notices_mock_http_session_get, status_code=200, messages_json=bad_notices_json
+        notices_mock_fetch_get_session,
+        status_code=200,
+        messages_json=bad_notices_json,
     )
 
     create_notice_cache_files(notices_cache_dir, [cache_file], [bad_notices_json])
@@ -213,43 +216,47 @@ def test_cache_names_appear_as_expected(
     capsys,
     conda_notices_args_n_parser,
     notices_cache_dir,
-    notices_mock_http_session_get,
+    notices_mock_fetch_get_session,
+    mocker: MockerFixture,
 ):
     """This is a test to make sure the cache filenames appear as we expect them to."""
-    with mock.patch(
-        "conda.notices.core.get_channel_name_and_urls"
-    ) as get_channel_name_and_urls:
-        channel_url = "http://localhost/notices.json"
-        get_channel_name_and_urls.return_value = ((channel_url, "channel_name"),)
-        expected_cache_filename = (
-            f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
-        )
+    channel_url = "http://localhost/notices.json"
+    mocker.patch(
+        "conda.notices.core.get_channel_name_and_urls",
+        return_value=[(channel_url, "channel_name")],
+    )
 
-        args, parser = conda_notices_args_n_parser
-        messages = ("Test One", "Test Two")
-        messages_json = get_test_notices(messages)
-        add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+    expected_cache_filename = f"{hashlib.sha256(channel_url.encode()).hexdigest()}.json"
 
-        notices.execute(args, parser)
+    args, parser = conda_notices_args_n_parser
+    messages = ("Test One", "Test Two")
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
-        captured = capsys.readouterr()
+    notices.execute(args, parser)
 
-        # Test to make sure everything looks normal for our notices output
-        assert captured.err == ""
-        assert "Retrieving" in captured.out
+    captured = capsys.readouterr()
 
-        for message in messages:
-            assert message in captured.out
+    # Test to make sure everything looks normal for our notices output
+    assert captured.err == ""
+    assert "Retrieving" in captured.out
 
-        # Test to make sure the cache files are showing up as we expect them to
-        cache_files = glob.glob(f"{notices_cache_dir}/*.json")
+    for message in messages:
+        assert message in captured.out
 
-        assert len(cache_files) == 1
-        assert os.path.basename(cache_files[0]) == expected_cache_filename
+    # Test to make sure the cache files are showing up as we expect them to
+    cache_files = glob.glob(f"{notices_cache_dir}/*.json")
+
+    assert len(cache_files) == 1
+    assert os.path.basename(cache_files[0]) == expected_cache_filename
 
 
 def test_notices_appear_once_when_running_decorated_commands(
-    tmpdir, env_one, notices_cache_dir
+    tmpdir,
+    env_one,
+    notices_cache_dir,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
@@ -266,55 +273,79 @@ def test_notices_appear_once_when_running_decorated_commands(
     """
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
-    with mock.patch(
+    fetch_mock = mocker.patch(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
-    ) as fetch_mock:
-        # First run of install; notices should be retrieved; it's okay that this function fails
-        # to install anything.
-        run(
-            f"conda install -n {env_one} -c local --override-channels -y does_not_exist",
-            disallow_stderr=False,
+    )
+
+    # First run of install; notices should be retrieved; it's okay that this function fails
+    # to install anything.
+    with pytest.raises(
+        PackagesNotFoundError,
+        match="The following packages are missing from the target environment",
+    ):
+        conda_cli(
+            "install",
+            *("--name", env_one),
+            *("--channel", "local"),
+            "--override-channels",
+            "--yes",
+            "does_not_exist",
         )
 
-        # make sure our fetch function was called correctly
-        fetch_mock.assert_called_once()
-        args, kwargs = fetch_mock.call_args
+    # make sure our fetch function was called correctly
+    fetch_mock.assert_called_once()
+    args, kwargs = fetch_mock.call_args
 
-        # If we did this correctly, args should be an empty list because our local channel has not
-        # been initialized. This causes no network traffic because there are no URLs to fetch which
-        # is what we want.
-        assert args == ([],)
+    # If we did this correctly, args should be an empty list because our local channel has not
+    # been initialized. This causes no network traffic because there are no URLs to fetch which
+    # is what we want.
+    assert args == ([],)
 
-        # Reset our mock for another call to "conda install"
-        fetch_mock.reset_mock()
+    # Reset our mock for another call to "conda install"
+    fetch_mock.reset_mock()
 
-        # Second run of install; notices should not be retrieved
-        run(
-            f"conda install -n {env_one} -c local --override-channels -y does_not_exist",
-            disallow_stderr=False,
+    # Second run of install; notices should not be retrieved; also okay that this fails.
+    with pytest.raises(
+        PackagesNotFoundError,
+        match="The following packages are missing from the target environment",
+    ):
+        conda_cli(
+            "install",
+            *("--name", env_one),
+            *("--channel", "local"),
+            "--override-channels",
+            "--yes",
+            "does_not_exist",
         )
 
-        fetch_mock.assert_not_called()
+    fetch_mock.assert_not_called()
 
 
-def test_notices_work_with_s3_channel(notices_cache_dir, notices_mock_http_session_get):
+def test_notices_work_with_s3_channel(
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    conda_cli: CondaCLIFixture,
+):
     """As a user, I want notices to be correctly retrieved from channels with s3 URLs."""
     s3_channel = "s3://conda-org"
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_http_session_get, 200, messages_json)
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
-    run(f"conda notices -c {s3_channel} --override-channels")
+    conda_cli("notices", "--channel", s3_channel, "--override-channels")
 
-    notices_mock_http_session_get.assert_called_once()
-    args, kwargs = notices_mock_http_session_get.call_args
+    notices_mock_fetch_get_session().get.assert_called_once()
+    args, kwargs = notices_mock_fetch_get_session().get.call_args
 
     arg_1, *_ = args
     assert arg_1 == "s3://conda-org/notices.json"
 
 
 def test_notices_does_not_interrupt_command_on_failure(
-    notices_cache_dir, notices_mock_http_session_get
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
     """
     As a user, when I run conda in an environment where notice cache files might not be readable or
@@ -323,27 +354,33 @@ def test_notices_does_not_interrupt_command_on_failure(
     env_name = "testenv"
     error_message = "Can't touch this"
 
-    with mock.patch("conda.notices.cache.open") as mock_open, mock.patch(
-        "conda.notices.core.logger.error"
-    ) as mock_logger:
-        mock_open.side_effect = [PermissionError(error_message)]
-        _, _, exit_code = run(
-            f"conda create -n {env_name} -y -c local --override-channels"
-        )
+    mocker.patch("conda.notices.cache.open", side_effect=PermissionError(error_message))
+    mock_logger = mocker.patch("conda.notices.core.logger.error")
 
-        assert exit_code is None
+    _, _, exit_code = conda_cli(
+        "create",
+        *("--name", env_name),
+        "--yes",
+        *("--channel", "local"),
+        "--override-channels",
+    )
 
-        assert mock_logger.call_args == mock.call(
-            f"Unable to open cache file: {error_message}"
-        )
+    assert exit_code is None
 
-    _, _, exit_code = run(f"conda env remove -n {env_name}")
+    assert mock_logger.call_args == mocker.call(
+        f"Unable to open cache file: {error_message}"
+    )
+
+    _, _, exit_code = conda_cli("env", "remove", "--name", env_name)
 
     assert exit_code is None
 
 
 def test_notices_cannot_read_cache_files(
-    notices_cache_dir, notices_mock_http_session_get
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
     """
     As a user, when I run `conda notices` and the cache file cannot be read or written, I want
@@ -351,11 +388,9 @@ def test_notices_cannot_read_cache_files(
     """
     error_message = "Can't touch this"
 
-    with mock.patch("conda.notices.cache.open") as mock_open:
-        mock_open.side_effect = [PermissionError(error_message)]
-        out, err, exit_code = run(
-            "conda notices -c local --override-channels", disallow_stderr=False
-        )
+    mocker.patch("conda.notices.cache.open", side_effect=PermissionError(error_message))
 
-        assert f"Unable to retrieve notices: {error_message}" in err
-        assert exit_code == 1
+    with pytest.raises(
+        CondaError, match=f"Unable to retrieve notices: {error_message}"
+    ):
+        conda_cli("notices", "--channel", "local", "--override-channels")

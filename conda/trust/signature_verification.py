@@ -26,7 +26,7 @@ except ImportError:
 from ..base.context import context
 from ..common.url import join_url
 from ..gateways.connection import HTTPError, InsecureRequestWarning
-from ..gateways.connection.session import CondaSession
+from ..gateways.connection.session import get_session
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 log = getLogger(__name__)
@@ -171,15 +171,11 @@ class _SignatureVerification:
 
         return trusted
 
-    # FUTURE: Python 3.8+, replace with functools.cached_property
-    @property
-    @lru_cache(maxsize=None)
-    def session(self):
-        return CondaSession()
-
     def _fetch_channel_signing_data(
         self, signing_data_url, filename, etag=None, mod_stamp=None
     ):
+        session = get_session(signing_data_url)
+
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -192,29 +188,31 @@ class _SignatureVerification:
         if mod_stamp:
             headers["If-Modified-Since"] = mod_stamp
 
+        saved_token_setting = context.add_anaconda_token
         try:
-            # The `auth` argument below looks a bit weird, but passing `None` seems
-            # insufficient for suppressing modifying the URL to add an Anaconda
-            # server token; for whatever reason, we must pass an actual callable in
-            # order to suppress the HTTP auth behavior configured in the session.
+            # Assume trust metadata is intended to be "generally available",
+            # and specifically, _not_ protected by a conda/binstar token.
+            # Seems reasonable, since we (probably) don't want the headaches of
+            # dealing with protected, per-channel trust metadata.
             #
-            # TODO: Figure how to handle authn for obtaining trust metadata,
-            # independently of the authn used to access package repositories.
-            resp = self.session.get(
+            # Note: Setting `auth=None` here does allow trust metadata to be
+            # protected using standard HTTP basic auth mechanisms, with the
+            # login information being provided in the user's netrc file.
+            context.add_anaconda_token = False
+            resp = session.get(
                 join_url(signing_data_url, filename),
                 headers=headers,
-                proxies=self.session.proxies,
-                auth=lambda r: r,
+                proxies=session.proxies,
+                auth=None,
                 timeout=(
                     context.remote_connect_timeout_secs,
                     context.remote_read_timeout_secs,
                 ),
             )
-
+            # TODO: maybe add more sensible error handling
             resp.raise_for_status()
-        except:
-            # TODO: more sensible error handling
-            raise
+        finally:
+            context.add_anaconda_token = saved_token_setting
 
         # In certain cases (e.g., using `-c` access anaconda.org channels), the
         # `CondaSession.get()` retry logic combined with the remote server's
