@@ -213,7 +213,9 @@ class CondaSpecs:
     @_hookspec
     def conda_post_solves(self) -> Iterable[CondaPostSolve]:
         """
-        Register post-solve functions in conda.
+        Register post-solve functions in conda that are used in the
+        general solver API, after the solver has provided the package
+        records to add or remove from the conda environment.
 
         **Example:**
 

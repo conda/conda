@@ -1,6 +1,8 @@
 ### Enhancements
 
-* Rework signature verification from pre-solve to post-solve process. (#11545)
+* Verify signatures on to-be-installed packages instead of on all packages. (#11545)
+
+* Add a new `post-solves` plugin hook. (#11545)
 
 ### Bug fixes
 
