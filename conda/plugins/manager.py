@@ -168,6 +168,13 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
+    def get_solvers(self) -> dict[str, type[Solver]]:
+        """Return a mapping from solver name to solver class."""
+        return {
+            solver.name.lower(): solver.backend
+            for solver in self.get_hook_results("solvers")
+        }
+
     def get_solver_backend(self, name: str | None = None) -> type[Solver]:
         """
         Get the solver backend with the given name (or fall back to the
@@ -184,12 +191,7 @@ class CondaPluginManager(pluggy.PluginManager):
             name = context.solver
         name = name.lower()
 
-        # Build a mapping between a lower cased backend name and
-        # solver backend class provided by the installed plugins.
-        solvers_mapping = {
-            solver.name.lower(): solver.backend
-            for solver in self.get_hook_results("solvers")
-        }
+        solvers_mapping = self.get_solvers()
 
         # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
