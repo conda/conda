@@ -86,14 +86,14 @@ class CondaPluginManager(pluggy.PluginManager):
                 # register plugin
                 # extracts canonical name from plugin, checks for duplicates,
                 # and if blocked
-                self.register(plugin)
+                if self.register(plugin):
+                    # successfully registered a plugin
+                    count += 1
             except ValueError as err:
                 raise PluginError(
                     f"Error while loading first-party conda plugin: "
                     f"{self.get_canonical_name(plugin)} ({err})"
                 )
-
-            count += 1
         return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
@@ -130,14 +130,14 @@ class CondaPluginManager(pluggy.PluginManager):
                     # register plugin
                     # extracts canonical name from plugin, checks for duplicates,
                     # and if blocked
-                    self.register(plugin)
+                    if self.register(plugin):
+                        # successfully registered a plugin
+                        count += 1
                 except ValueError as err:
                     raise PluginError(
                         f"Error while loading third-party conda plugin: "
                         f"{self.get_canonical_name(plugin)} ({err})"
                     )
-
-                count += 1
         return count
 
     @overload

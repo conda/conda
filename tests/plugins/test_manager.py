@@ -40,6 +40,22 @@ class VerboseSolverPlugin:
         yield VerboseCondaSolver
 
 
+DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
+NoNameVirtualPackage = plugins.CondaVirtualPackage(None, None, None)
+
+
+class DummyVirtualPackagePlugin:
+    @plugins.hookimpl
+    def conda_virtual_packages(*args):
+        yield DummyVirtualPackage
+
+
+class NoNameVirtualPackagePlugin:
+    @plugins.hookimpl
+    def conda_virtual_packages(*args):
+        yield NoNameVirtualPackage
+
+
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
     plugin_names = plugin_manager.load_plugins()
     assert plugin_names == 0
@@ -198,10 +214,14 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
 
 
 def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(virtual_packages.archspec)
-    assert {"archspec"} == {
-        package.name for package in plugin_manager.get_virtual_packages()
-    }
+    plugin_manager.load_plugins(DummyVirtualPackagePlugin)
+    assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
+
+
+def test_get_virtual_packages_no_name(plugin_manager: CondaPluginManager):
+    plugin_manager.load_plugins(NoNameVirtualPackagePlugin)
+    with pytest.raises(PluginError, match="Invalid plugin names"):
+        plugin_manager.get_virtual_packages()
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):
