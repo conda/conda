@@ -13,6 +13,7 @@ import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
+from typing import Literal, overload
 
 import pluggy
 from requests.auth import AuthBase
@@ -23,7 +24,14 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import CondaSubcommand, CondaVirtualPackage
+from .types import (
+    CondaAuthHandler,
+    CondaPostCommand,
+    CondaPreCommand,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +142,37 @@ class CondaPluginManager(pluggy.PluginManager):
                 count += 1
         return count
 
-    def get_hook_results(self, name: str) -> list:
+    @overload
+    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["virtual_packages"]
+    ) -> list[CondaVirtualPackage]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_commands"]
+    ) -> list[CondaPostCommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["auth_handlers"]
+    ) -> list[CondaAuthHandler]:
+        ...
+
+    def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -168,11 +206,11 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
-    def get_solvers(self) -> dict[str, type[Solver]]:
+    def get_solvers(self) -> dict[str, CondaSolver]:
         """Return a mapping from solver name to solver class."""
         return {
-            solver.name.lower(): solver.backend
-            for solver in self.get_hook_results("solvers")
+            solver_plugin.name.lower(): solver_plugin
+            for solver_plugin in self.get_hook_results("solvers")
         }
 
     def get_solver_backend(self, name: str | None = None) -> type[Solver]:
@@ -195,15 +233,15 @@ class CondaPluginManager(pluggy.PluginManager):
 
         # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
-        backend = solvers_mapping.get(name, None)
-        if backend is None:
+        solver_plugin = solvers_mapping.get(name, None)
+        if solver_plugin is None:
             raise CondaValueError(
                 f"You have chosen a non-default solver backend ({name}) "
                 f"but it was not recognized. Choose one of: "
-                f"{', '.join(solvers_mapping.keys())}"
+                f"{', '.join(solvers_mapping)}"
             )
 
-        return backend
+        return solver_plugin.backend
 
     def get_auth_handler(self, name: str) -> type[AuthBase] | None:
         """

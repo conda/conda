@@ -28,13 +28,16 @@ class VerboseSolver(solve.Solver):
         return super().solve_final_state(*args, **kwargs)
 
 
+VerboseCondaSolver = plugins.CondaSolver(
+    name="verbose-classic",
+    backend=VerboseSolver,
+)
+
+
 class VerboseSolverPlugin:
     @plugins.hookimpl
     def conda_solvers(*args):
-        yield plugins.CondaSolver(
-            name="verbose-classic",
-            backend=VerboseSolver,
-        )
+        yield VerboseCondaSolver
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
@@ -204,4 +207,4 @@ def test_get_virtual_packages(plugin_manager: CondaPluginManager):
 def test_get_solvers(plugin_manager: CondaPluginManager):
     plugin_manager.load_plugins(VerboseSolverPlugin)
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
-    assert plugin_manager.get_solvers() == {"verbose-classic": VerboseSolver}
+    assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
