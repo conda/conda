@@ -220,19 +220,21 @@ class CondaSpecs:
         .. code-block:: python
 
            from conda import plugins
+           from conda.models.records import PackageRecordSequence
 
 
            def example_post_solve(
                repodata_fn: str,
-               unlink_precs: tuple[PackageRecord, ...],
-               link_precs: tuple[PackageRecord, ...],
+               unlink_precs: PackageRecordSequence,
+               link_precs: PackageRecordSequence,
            ):
-               print("post-solve action")
+               print(f"Uninstalling {len(unlink_precs)} packages")
+               print(f"Installing {len(link_precs)} packages")
 
 
            @plugins.hookimpl
            def conda_post_solves():
-               yield CondaPostSolve(
+               yield plugins.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
                )

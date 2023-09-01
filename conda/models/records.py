@@ -429,6 +429,9 @@ class PackageRecord(DictSafeMixin, Entity):
         return Metadata()
 
 
+PackageRecordSequence = tuple[PackageRecord, ...]
+
+
 class Md5Field(StringField):
     def __init__(self):
         super().__init__(required=False, nullable=True)
