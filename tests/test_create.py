@@ -540,9 +540,12 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert (prefix / py2c_file).is_file()
 
 
-def test_noarch_generic_package(clear_package_cache: None):
-    with make_temp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
-        assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
+def test_noarch_generic_package(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+) -> None:
+    with tmp_env("conda-test::font-ttf-inconsolata") as prefix:
+        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
 def test_override_channels(clear_package_cache: None):
