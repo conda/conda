@@ -548,32 +548,37 @@ def test_noarch_generic_package(
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
-def test_override_channels(clear_package_cache: None):
-    with pytest.raises(OperationNotAllowed):
-        with env_var(
-            "CONDA_OVERRIDE_CHANNELS_ENABLED",
-            "no",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with make_temp_env("--override-channels", "python") as prefix:
-                assert prefix
+def test_override_channels(
+    clear_package_cache: None,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
+    with monkeypatch.context() as monkeycontext:
+        monkeycontext.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "no")
+        reset_context()
+        assert not context.override_channels_enabled
+
+        with pytest.raises(OperationNotAllowed):
+            with tmp_env("--override-channels", "python"):
+                pass
 
     with pytest.raises(ArgumentError):
-        with make_temp_env("--override-channels", "python") as prefix:
-            assert prefix
+        with tmp_env("--override-channels", "python"):
+            pass
 
-    stdout, stderr, _ = run_command(
-        Commands.SEARCH,
-        None,
+    stdout, stderr, err = conda_cli(
+        "search",
         "--override-channels",
-        "-c",
-        "conda-test",
+        "--channel=conda-test",
         "flask",
         "--json",
     )
+    parsed = json.loads(stdout)
     assert not stderr
-    assert len(json.loads(stdout)["flask"]) < 3
-    assert json.loads(stdout)["flask"][0]["noarch"] == "python"
+    assert not err
+    assert len(parsed["flask"]) < 3
+    assert parsed["flask"][0]["noarch"] == "python"
 
 
 def test_create_empty_env(clear_package_cache: None):
