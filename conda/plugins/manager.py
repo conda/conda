@@ -216,6 +216,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         if len(matches) > 0:
             return matches[0].handler
+        return None
 
     def invoke_pre_commands(self, command: str) -> None:
         """
