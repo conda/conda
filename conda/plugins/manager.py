@@ -279,7 +279,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
-        post_solves,
+        *post_solves.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
