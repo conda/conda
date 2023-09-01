@@ -296,14 +296,6 @@ class CondaPluginManager(pluggy.PluginManager):
             if package.name is None:
                 continue
 
-            if package.name in registered:
-                raise PluginError(
-                    "Conflicting virtual package entries found for the "
-                    f"`{package.name}` key. Multiple conda plugins "
-                    "are registering this virtual package via the "
-                    "`conda_virtual_packages` hook, please make sure "
-                    "you don't have any incompatible plugins installed."
-                )
             registered[package.name] = package
 
         return tuple(registered.values())
