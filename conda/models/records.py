@@ -12,7 +12,7 @@ Object inheritance:
    :top-classes: conda.models.records.PackageRecord
    :parts: 1
 """
-
+from functools import lru_cache
 from os.path import basename, join
 
 try:
@@ -34,7 +34,6 @@ from ..auxlib.entity import (
 from ..base.context import context
 from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
-from ..trust.signature_verification import signature_verification
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .match_spec import MatchSpec
@@ -245,6 +244,11 @@ class PathsData(Entity):
     paths = ListField(PathData)
 
 
+class Metadata(set):
+    def __str__(self) -> str:
+        return " ".join(self)
+
+
 class PackageRecord(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
@@ -420,9 +424,9 @@ class PackageRecord(DictSafeMixin, Entity):
         )
 
     @property
-    def metadata(self) -> str:
-        # join all metadatas after filtering out noops
-        return " ".join([meta for meta in [signature_verification(self)] if meta])
+    @lru_cache(maxsize=None)
+    def metadata(self) -> Metadata:
+        return Metadata()
 
 
 class Md5Field(StringField):

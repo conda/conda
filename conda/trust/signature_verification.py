@@ -23,10 +23,13 @@ except ImportError:
         pass
 
 
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
 from ..common.url import join_url
+from ..core.subdir_data import SubdirData
 from ..gateways.connection import HTTPError, InsecureRequestWarning
 from ..gateways.connection.session import get_session
+from ..models.records import PackageRecord
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 log = getLogger(__name__)
@@ -227,21 +230,47 @@ class _SignatureVerification:
                 f"Invalid JSON returned from {signing_data_url}/{filename}"
             )
 
-    def __call__(self, record):
-        if not self.enabled or not getattr(record, "signatures", None):
-            return
+    def verify(self, record: PackageRecord):
+        repodata, _ = SubdirData(record.channel).repo_fetch.fetch_latest_parsed()
+
+        if "signatures" not in repodata:
+            raise SignatureError("no signatures found in repodata")
+        signatures = repodata["signatures"]
+
+        if record.fn not in signatures:
+            raise SignatureError(f"no signature found for {record.fn}")
+        signature = signatures[record.fn]
+
+        if record.fn.endswith(CONDA_PACKAGE_EXTENSION_V1):
+            info = repodata["packages"][record.fn]
+        elif record.fn.endswith(CONDA_PACKAGE_EXTENSION_V2):
+            info = repodata["packages.conda"][record.fn]
+        else:
+            raise ValueError("unknown package extension")
 
         # create a signable envelope (a dict with the info and signatures)
-        envelope = wrap_as_signable(record.info)
-        envelope["signatures"] = record.signatures
+        envelope = wrap_as_signable(info)
+        envelope["signatures"] = signature
 
         try:
             verify_delegation("pkg_mgr", envelope, self.key_mgr)
         except SignatureError:
-            log.warn(f"invalid signature for {record.fn}")
-            return "(WARNING: metadata signature verification failed)"
+            log.warning(f"invalid signature for {record.fn}")
+            record.metadata.add("(package metadata is UNTRUSTED)")
         else:
-            return "(INFO: package metadata is signed by Anaconda and trusted)"
+            log.info(f"valid signature for {record.fn}")
+            record.metadata.add("(package metadata is TRUSTED)")
+
+    def __call__(
+        self,
+        unlink_precs: tuple[PackageRecord, ...],
+        link_precs: tuple[PackageRecord, ...],
+    ) -> None:
+        if not self.enabled:
+            return
+
+        for prec in link_precs:
+            self.verify(prec)
 
 
 # singleton for caching

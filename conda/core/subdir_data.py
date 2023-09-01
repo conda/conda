@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import pickle
 from collections import UserList, defaultdict
-from copy import deepcopy
 from functools import partial
 from itertools import chain
 from logging import getLogger
@@ -50,7 +49,6 @@ from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
 
@@ -429,8 +427,6 @@ class SubdirData(metaclass=SubdirDataType):
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
-        signatures = repodata.get("signatures", {})
-
         _internal_state = {
             "channel": self.channel,
             "url_w_subdir": self.url_w_subdir,
@@ -488,15 +484,6 @@ class SubdirData(metaclass=SubdirDataType):
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-                # when signature verification feature is enabled we perform a deep copy of the info
-                # dict that can be passed to conda-content-trust for verification
-                # (see conda.models.records.PackageRecord.metadata and
-                # conda.trust.signature_verification._SignatureVerification.__call__)
-                # avoiding a blanketed deepcopy as it results in a 1-2s slowdown in general
-                duplicate_info = (
-                    deepcopy(info) if signature_verification.enabled else None
-                )
-
                 if copy_legacy_md5:
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
@@ -521,8 +508,6 @@ class SubdirData(metaclass=SubdirDataType):
 
                 # lazy
                 # package_record = PackageRecord(**info)
-                info["info"] = duplicate_info
-                info["signatures"] = signatures.get(fn)
                 info["fn"] = fn
                 info["url"] = join_url(channel_url, fn)
                 _package_records.append(info)

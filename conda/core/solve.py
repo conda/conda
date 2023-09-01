@@ -149,8 +149,8 @@ class Solver:
         #   History right now. Do we need to include other categories from the solve?
 
         # plugins run any post-solve processes here before performing the transaction
-        for pre_solve in context.plugin_manager.get_hook_results("post_solve"):
-            pre_solve.action(unlink_precs, link_precs)
+        for post_solve in context.plugin_manager.get_hook_results("post_solves"):
+            post_solve.action(unlink_precs, link_precs)
 
         self._notify_conda_outdated(link_precs)
         return UnlinkLinkTransaction(
