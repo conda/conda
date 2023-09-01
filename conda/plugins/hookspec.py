@@ -22,6 +22,7 @@ from .types import (
     CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
+    CondaTransportAdapter,
     CondaVirtualPackage,
 )
 
@@ -210,6 +211,16 @@ class CondaSpecs:
                     name="environment-header-auth",
                     auth_handler=EnvironmentHeaderAuth,
                 )
+        """
+
+    @_hookspec
+    def conda_transport_adapters(self) -> Iterable[CondaTransportAdapter]:
+        """
+        Register a conda auth handler derived from the requests API.
+
+        This plugin hook allows attaching requests auth handler subclasses,
+        e.g. when authenticating requests against individual channels hosted
+        at HTTP/HTTPS services.
         """
 
     @_hookspec

@@ -35,5 +35,6 @@ from .types import (  # noqa: F401
     CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
+    CondaTransportAdapter,
     CondaVirtualPackage,
 )
