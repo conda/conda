@@ -12,7 +12,6 @@ Object inheritance:
    :top-classes: conda.models.records.PackageRecord
    :parts: 1
 """
-from functools import lru_cache
 from os.path import basename, join
 
 try:
@@ -244,11 +243,6 @@ class PathsData(Entity):
     paths = ListField(PathData)
 
 
-class Metadata(set):
-    def __str__(self) -> str:
-        return " ".join(self)
-
-
 class PackageRecord(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
@@ -274,10 +268,6 @@ class PackageRecord(DictSafeMixin, Entity):
     )
     sha256 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
-    )
-
-    metadata_signature_status = StringField(
-        default="", required=False, nullable=True, default_in_dump=False
     )
 
     @property
@@ -423,10 +413,11 @@ class PackageRecord(DictSafeMixin, Entity):
             self.channel.name, self.subdir, self.name, self.version, self.build
         )
 
-    @property
-    @lru_cache(maxsize=None)
-    def metadata(self) -> Metadata:
-        return Metadata()
+    metadata: set[str]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.metadata = set()
 
 
 PackageRecordSequence = tuple[PackageRecord, ...]

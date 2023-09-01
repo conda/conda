@@ -1343,7 +1343,7 @@ class UnlinkLinkTransaction:
                 link_prec = change_report.new_precs[namekey]
                 add_single(
                     strip_global(namekey),
-                    f"{link_prec.record_id()} {link_prec.metadata}",
+                    f"{link_prec.record_id()} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.removed_precs:
@@ -1362,7 +1362,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec.metadata}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.superseded_precs:
@@ -1376,7 +1376,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec.metadata}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.downgraded_precs:
@@ -1387,7 +1387,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec.metadata}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
         builder.append("")
         builder.append("")
