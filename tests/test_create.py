@@ -458,27 +458,33 @@ def test_conda_update_package_not_installed(
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
-def test_noarch_python_package_with_entry_points(clear_package_cache: None):
+def test_noarch_python_package_with_entry_points(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
     # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
-    with make_temp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
+    with tmp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/flask/__init__.py"
-        pyc_file = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file))
-        exe_path = join(prefix, get_bin_directory_short_path(), "flask")
-        if on_win:
-            exe_path += ".exe"
-        assert isfile(exe_path)
+        pyc_file = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file).is_file()
+        exe_path = (
+            prefix
+            / get_bin_directory_short_path()
+            / ("flask.exe" if on_win else "flask")
+        )
+        assert exe_path.is_file()
         output = check_output([exe_path, "--help"], text=True)
         assert "Usage: flask" in output
 
-        run_command(Commands.REMOVE, prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
 
-        assert not isfile(join(prefix, py_file))
-        assert not isfile(join(prefix, pyc_file))
-        assert not isfile(exe_path)
+        assert not (prefix / py_file).is_file()
+        assert not (prefix / pyc_file).is_file()
+        assert not exe_path.is_file()
 
 
 def test_noarch_python_package_without_entry_points(clear_package_cache: None):
