@@ -441,21 +441,21 @@ def test_not_writable_env_raises_error(
     with tmp_env() as prefix:
         make_read_only(prefix / PREFIX_MAGIC_FILE)
 
-        with pytest.raises(
-            CondaMultiError,
-            match="The current user does not have write permissions to the target environment.",
-        ):
+        with pytest.raises(CondaMultiError, match="does not have write permissions"):
             conda_cli("install", f"--prefix={prefix}", "openssl", "--yes")
 
 
-def test_conda_update_package_not_installed(clear_package_cache: None):
-    with make_temp_env() as prefix:
-        with pytest.raises(PackageNotInstalledError):
-            run_command(Commands.UPDATE, prefix, "sqlite", "openssl")
+def test_conda_update_package_not_installed(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
+    with tmp_env() as prefix:
+        with pytest.raises(PackageNotInstalledError, match="not installed in prefix."):
+            conda_cli("update", f"--prefix={prefix}", "sqlite", "openssl", "--yes")
 
-        with pytest.raises(CondaError) as conda_error:
-            run_command(Commands.UPDATE, prefix, "conda-forge::*")
-        assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
+        with pytest.raises(CondaError, match="Invalid spec for 'conda update'"):
+            conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
 def test_noarch_python_package_with_entry_points(clear_package_cache: None):
