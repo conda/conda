@@ -21,6 +21,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
+from ..models.records import PackageRecord
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .types import CondaSubcommand
@@ -248,6 +249,22 @@ class CondaPluginManager(pluggy.PluginManager):
             subcommand.name.lower(): subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
+
+    def invoke_post_solves(
+        self,
+        repodata_fn: str,
+        unlink_precs: tuple[PackageRecord, ...],
+        link_precs: tuple[PackageRecord, ...],
+    ) -> None:
+        """
+        Invokes ``CondaPostSolve.action`` functions registered with ``conda_post_solves``.
+
+        :param repodata_fn:
+        :param unlink_precs:
+        :param link_precs:
+        """
+        for hook in self.get_hook_results("post_solves"):
+            hook.action(repodata_fn, unlink_precs, link_precs)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

@@ -151,9 +151,10 @@ class Solver:
         # TODO: Only explicitly requested remove and update specs are being included in
         #   History right now. Do we need to include other categories from the solve?
 
-        # plugins run any post-solve processes here before performing the transaction
-        for post_solve in context.plugin_manager.get_hook_results("post_solves"):
-            post_solve.action(self._repodata_fn, unlink_precs, link_precs)
+        # run post-solve processes here before performing the transaction
+        context.plugin_manager.invoke_post_solves(
+            self._repodata_fn, unlink_precs, link_precs
+        )
 
         self._notify_conda_outdated(link_precs)
         return UnlinkLinkTransaction(
