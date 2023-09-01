@@ -152,6 +152,14 @@ def test_unknown_solver(plugin_manager: CondaPluginManager):
         plugin_manager.get_solver_backend("p_equals_np")
 
 
+def test_known_solver(plugin_manager: CondaPluginManager):
+    """
+    Cover getting a solver that exists.
+    """
+    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.get_solver_backend("verbose-classic") == VerboseSolver
+
+
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):
     canonical_name = plugin_manager.get_canonical_name(object())
     assert re.match(r"<unknown_module>.object\[\d+\]", canonical_name), canonical_name
