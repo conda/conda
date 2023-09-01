@@ -16,7 +16,6 @@ from inspect import getmodule, isclass
 from typing import Literal, overload
 
 import pluggy
-from requests.adapters import BaseAdapter
 from requests.auth import AuthBase
 
 from ..auxlib.ish import dals

@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""The S3 (boto) transport adapter plugin"""
 from ...gateways.connection.adapters.s3 import S3Adapter
 from .. import CondaTransportAdapter, hookimpl
 
