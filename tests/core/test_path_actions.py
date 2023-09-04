@@ -3,13 +3,13 @@
 import importlib.util
 import os
 import sys
-import warnings
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from tlz import accumulate, concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
@@ -434,23 +434,13 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
 
 def test_explode_directories():
-    warnings.warn(
-        "`toolz` is pending deprecation and will be removed in a future release.",
-        PendingDeprecationWarning,
-    )
-
-    try:
-        import tlz as toolz
-    except:
-        import conda._vendor.toolz as toolz
-
     def old_explode_directories(child_directories, already_split=False):
         # get all directories including parents
         # use already_split=True for the result of get_all_directories()
         maybe_split = lambda x: x if already_split else x.split("/")
         return set(
-            toolz.concat(
-                toolz.accumulate(join, maybe_split(directory))
+            concat(
+                accumulate(join, maybe_split(directory))
                 for directory in child_directories
                 if directory
             )

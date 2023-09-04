@@ -8,30 +8,32 @@ from __future__ import annotations
 
 import os
 from functools import partial
+from pathlib import Path
 
 from ..base.constants import DRY_RUN_PREFIX
-from ..base.context import context, locate_prefix_by_name, validate_prefix_name
-from ..cli import common, install
-from ..common.path import expand, paths_equal
+from ..base.context import context, validate_prefix_name
+from ..cli import install
+from ..common.path import expand
+from ..deprecations import deprecated
 from ..exceptions import CondaEnvException
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import rename_context
 
 
-def validate_src(name: str | None, prefix: str | None) -> str:
+@deprecated.argument("24.3", "24.9", "name")
+@deprecated.argument("24.3", "24.9", "prefix")
+def validate_src() -> str:
     """
     Validate that we are receiving at least one value for --name or --prefix
     and ensure that the "base" environment is not being renamed
     """
-    if paths_equal(context.target_prefix, context.root_prefix):
+    if Path(context.target_prefix).samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
 
-    prefix = name or prefix
-
-    if common.is_active_prefix(prefix):
+    if Path(context.target_prefix).samefile(context.active_prefix):
         raise CondaEnvException("Cannot rename the active environment")
 
-    return locate_prefix_by_name(prefix)
+    return context.target_prefix
 
 
 def validate_destination(dest: str, force: bool = False) -> str:
@@ -51,7 +53,7 @@ def validate_destination(dest: str, force: bool = False) -> str:
 
 def execute(args, _):
     """Executes the command for renaming an existing environment."""
-    source = validate_src(args.name, args.prefix)
+    source = validate_src()
     destination = validate_destination(args.destination, force=args.force)
 
     def clone_and_remove():

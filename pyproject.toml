@@ -67,8 +67,113 @@ version-file = "conda/__version__.py"
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']
 
+[tool.coverage.run]
+# store relative paths in coverage information
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+sort = "Miss"
+skip_covered = true
+omit = [
+  "*/site-packages/*",
+  '*\site-packages\*',
+  "conda/_vendor/*",
+  "conda/console.py",
+  "conda/cli/activate.py",
+  "conda/cli/main_package.py",
+  "conda/exports.py",
+  "conda/gateways/connection/adapters/ftp.py",
+  "conda/gateways/connection/adapters/s3.py",
+  "conda_env/*",
+  "tests/*",
+  "utils/*",
+]
+exclude_lines = [
+  "pragma: no cover",
+  "pragma: py$PYTHON_MAJOR_VERSION no cover",
+  "pragma: $TEST_PLATFORM no cover",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "def __repr__",
+  '\s*\.\.\.$',
+]
+
+[tool.flake8]
+# see black+flake8 config
+# https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#flake8
+max-line-length = 99
+# E203 whitespace before ':'
+# E402 module level import not at top of file
+# E722 do not use bare 'except'
+# E731 do not assign a lambda expression, use a def
+# W503 line break before binary operator
+# D1** Missing docstring
+# D205 1 blank line required between summary line and description
+# D400 First line should end with a period
+# D401 First line should be in imperative mood
+extend-ignore = ["E203", "E402", "E722", "E731", "W503", "D1", "D200", "D205", "D400", "D401"]
+extend-select = ["D100"]
+exclude = [
+  ".asv*",
+  "build/*",
+  ".tox/*",
+  "dev*/*",
+  "env/*",
+  "test_data/*",
+  "tests/*",
+  "ve/*",
+  "utils/*",
+  "docs/*",
+  "*/_vendor/*",
+  "conda/compat.py",
+  "conda/common/compat.py",
+  "conda_env/compat.py",
+]
+
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+minversion = 3.0
+testpaths = ["tests"]
+norecursedirs = [
+  "tests/data/*",
+  "tests/integration/*",
+  "tests/plugins/data/*",
+]
+addopts = [
+  "--color=yes",
+  # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
+  "--cov-append",
+  "--cov-branch",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  "--durations=16",
+  "--junitxml=test-report.xml",
+  "--splitting-algorithm=least_duration",
+  "--store-durations",
+  "--strict-markers",
+  "--tb=native",
+  "--xdoctest-modules",
+  "--xdoctest-style=google",
+  "-vv",
+]
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE",
+  "IGNORE_EXCEPTION_DETAIL",
+  "ALLOW_UNICODE",
+  "ELLIPSIS",
+]
+markers = [
+  "integration: integration tests that usually require an internet connect",
+  "slow: slow running tests",
+]
+pythonpath = [
+  # faking a test-plugin to test ImportError handling
+  "tests/plugins/data/test-plugin",
+]
 
 [tool.vendoring]
 destination = "conda/_vendor/"
@@ -86,15 +191,6 @@ drop = [
   '^boltons/(cache|debug|depr|dict|easter|eco|exc|file|format|func|gc|io|iter|json|list|math|mbox|named|path|queue|socket|stats|str|table|tb||type|url)utils\.py',
   "boltons/txurl_notes.md",
   "cpuinfo/__main__.py",
-  "tlz/",
-  '^toolz/(_signatures|functoolz)\.py',
-  "toolz/curried",
-  "toolz/sandbox",
-  "toolz/tests",
-  '^tqdm/.*(gui|notebook|pandas)\.py',
-  '^tqdm/(_dist_ver|rich|keras|tk|dask)\.py',
-  '^tqdm/(completion\.sh|tqdm\.1)',
-  "tqdm/contrib",
 ]
 substitute = []
 
@@ -105,8 +201,6 @@ boltons = []
 cpuinfo = []
 distro = []
 frozendict = []
-toolz = []
-tqdm = []
 
 [tool.vendoring.license.fallback-urls]
 appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt" # MIT
@@ -114,5 +208,3 @@ boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE" # B
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE" # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE" # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt" # LGPL
-toolz = "https://raw.githubusercontent.com/pytoolz/toolz/master/LICENSE.txt" # BSD
-tqdm = "https://raw.githubusercontent.com/tqdm/tqdm/master/LICENCE" # MPL, MIT
