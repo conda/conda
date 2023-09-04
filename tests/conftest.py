@@ -8,7 +8,6 @@ from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.testing import conda_cli, path_factory, tmp_env
-from conda.testing.solver_helpers import parametrized_solver_fixture
 
 from . import http_test_server
 from .fixtures_jlap import (  # NOQA
