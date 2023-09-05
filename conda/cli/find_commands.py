@@ -61,7 +61,7 @@ def find_commands(include_others=True):
     dir_paths.extend(os.environ.get("PATH", "").split(os.pathsep))
 
     if on_win:
-        pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)$")
+        pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)?$")
     else:
         pat = re.compile(r"conda-([\w\-]+)$")
 
@@ -69,8 +69,12 @@ def find_commands(include_others=True):
     for dir_path in dir_paths:
         if not isdir(dir_path):
             continue
-        for fn in os.listdir(dir_path):
-            m = pat.match(fn)
-            if m and isfile(join(dir_path, fn)):
-                res.add(m.group(1))
+        try:
+            for fn in os.listdir(dir_path):
+                m = pat.match(fn)
+                if m and isfile(join(dir_path, fn)):
+                    res.add(m.group(1))
+        except PermissionError:
+            # PermissionError: user doesn't have read access
+            continue
     return tuple(sorted(res))
