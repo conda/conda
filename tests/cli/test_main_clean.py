@@ -63,7 +63,7 @@ def _get_all(pkgs_dir: str | Path) -> tuple[list[Path], list[Path], list[Path]]:
     return _get_pkgs(pkgs_dir), _get_tars(pkgs_dir), _get_index_cache()
 
 
-def any_pkg(name: str, contents: Iterable[str | Path]) -> bool:
+def has_pkg(name: str, contents: Iterable[str | Path]) -> bool:
     return any(Path(content).name.startswith(f"{name}-") for content in contents)
 
 
@@ -101,28 +101,28 @@ def test_clean_and_packages(
 
     with make_temp_package_cache() as pkgs_dir:
         # pkg doesn't exist ahead of time
-        assert not any_pkg(pkg, _get_pkgs(pkgs_dir))
+        assert not has_pkg(pkg, _get_pkgs(pkgs_dir))
 
         with tmp_env(pkg) as prefix:
             # pkg exists
-            assert any_pkg(pkg, _get_pkgs(pkgs_dir))
+            assert has_pkg(pkg, _get_pkgs(pkgs_dir))
 
             # --json flag is regression test for #5451
             stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
-            assert any_pkg(pkg, _get_pkgs(pkgs_dir))
+            assert has_pkg(pkg, _get_pkgs(pkgs_dir))
 
             conda_cli("remove", "--prefix", prefix, pkg, "--yes", "--json")
             stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # pkg is removed
-            assert not any_pkg(pkg, _get_pkgs(pkgs_dir))
+            assert not has_pkg(pkg, _get_pkgs(pkgs_dir))
 
         # pkg is still removed
-        assert not any_pkg(pkg, _get_pkgs(pkgs_dir))
+        assert not has_pkg(pkg, _get_pkgs(pkgs_dir))
 
 
 # conda clean --tarballs
@@ -135,21 +135,21 @@ def test_clean_tarballs(
 
     with make_temp_package_cache() as pkgs_dir:
         # tarball doesn't exist ahead of time
-        assert not any_pkg(pkg, _get_tars(pkgs_dir))
+        assert not has_pkg(pkg, _get_tars(pkgs_dir))
 
         with tmp_env(pkg):
             # tarball exists
-            assert any_pkg(pkg, _get_tars(pkgs_dir))
+            assert has_pkg(pkg, _get_tars(pkgs_dir))
 
             # --json flag is regression test for #5451
             stdout, _, _ = conda_cli("clean", "--tarballs", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # tarball is removed
-            assert not any_pkg(pkg, _get_tars(pkgs_dir))
+            assert not has_pkg(pkg, _get_tars(pkgs_dir))
 
         # tarball is still removed
-        assert not any_pkg(pkg, _get_tars(pkgs_dir))
+        assert not has_pkg(pkg, _get_tars(pkgs_dir))
 
 
 # conda clean --index-cache
@@ -276,15 +276,15 @@ def test_clean_all(
     with make_temp_package_cache() as pkgs_dir:
         # pkg, tarball, & index cache doesn't exist ahead of time
         pkgs, tars, cache = _get_all(pkgs_dir)
-        assert not any_pkg(pkg, pkgs)
-        assert not any_pkg(pkg, tars)
+        assert not has_pkg(pkg, pkgs)
+        assert not has_pkg(pkg, tars)
         assert not cache
 
         with tmp_env(pkg) as prefix:
             # pkg, tarball, & index cache exists
             pkgs, tars, cache = _get_all(pkgs_dir)
-            assert any_pkg(pkg, pkgs)
-            assert any_pkg(pkg, tars)
+            assert has_pkg(pkg, pkgs)
+            assert has_pkg(pkg, tars)
             assert cache
 
             stdout, _, _ = conda_cli("clean", "--all", *args)
@@ -294,8 +294,8 @@ def test_clean_all(
             # tarball is removed
             # index cache is cleared
             pkgs, tars, cache = _get_all(pkgs_dir)
-            assert any_pkg(pkg, pkgs)
-            assert not any_pkg(pkg, tars)
+            assert has_pkg(pkg, pkgs)
+            assert not has_pkg(pkg, tars)
             assert not cache
 
             conda_cli("remove", "--prefix", prefix, pkg, *args)
@@ -306,16 +306,16 @@ def test_clean_all(
             # tarball is still removed
             # index cache is still cleared
             pkgs, tars, index_cache = _get_all(pkgs_dir)
-            assert not any_pkg(pkg, pkgs)
-            assert not any_pkg(pkg, tars)
+            assert not has_pkg(pkg, pkgs)
+            assert not has_pkg(pkg, tars)
             assert not cache
 
         # pkg is still removed
         # tarball is still removed
         # index cache is still cleared
         pkgs, tars, index_cache = _get_all(pkgs_dir)
-        assert not any_pkg(pkg, pkgs)
-        assert not any_pkg(pkg, tars)
+        assert not has_pkg(pkg, pkgs)
+        assert not has_pkg(pkg, tars)
         assert not cache
 
     set_verbosity(0)  # reset verbosity
@@ -338,8 +338,8 @@ def test_clean_all_mock_lstat(
     with make_temp_package_cache() as pkgs_dir, tmp_env(pkg) as prefix:
         # pkg, tarball, & index cache exists
         pkgs, tars, cache = _get_all(pkgs_dir)
-        assert any_pkg(pkg, pkgs)
-        assert any_pkg(pkg, tars)
+        assert has_pkg(pkg, pkgs)
+        assert has_pkg(pkg, tars)
         assert cache
 
         mocker.patch("os.lstat", side_effect=OSError)
@@ -352,8 +352,8 @@ def test_clean_all_mock_lstat(
 
         # pkg, tarball, & index cache still exists
         pkgs, tars, index_cache = _get_all(pkgs_dir)
-        assert any_pkg(pkg, pkgs)
-        assert any_pkg(pkg, tars)
+        assert has_pkg(pkg, pkgs)
+        assert has_pkg(pkg, tars)
         assert cache
 
     set_verbosity(0)  # reset verbosity
