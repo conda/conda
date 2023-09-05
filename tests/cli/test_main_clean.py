@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from os import PathLike, walk
-from os.path import basename, exists, isdir, join
-from shutil import copy
+from pathlib import Path
+from typing import Iterable
 
 import pytest
+from pytest_mock import MockerFixture
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,
@@ -17,54 +17,54 @@ from conda.base.constants import (
 )
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
-from conda.gateways.disk.create import mkdir_p
 from conda.gateways.logging import set_verbosity
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import make_temp_package_cache
 
 
-def _get_pkgs(pkgs_dir):
-    _, dirs, _ = next(walk(pkgs_dir))
-    return [join(pkgs_dir, pkg) for pkg in dirs]
+def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:
+    pkgs_dir = Path(pkgs_dir)
+    return [package for package in pkgs_dir.iterdir() if package.is_dir()]
 
 
-def _get_tars(pkgs_dir):
-    _, _, files = next(walk(pkgs_dir))
+def _get_tars(pkgs_dir: str | Path) -> list[Path]:
+    pkgs_dir = Path(pkgs_dir)
     return [
-        join(pkgs_dir, file)
-        for file in files
-        if file.endswith(CONDA_PACKAGE_EXTENSIONS)
+        file
+        for file in pkgs_dir.iterdir()
+        if file.is_file() and file.name.endswith(CONDA_PACKAGE_EXTENSIONS)
     ]
 
 
-def _get_index_cache():
-    cache_dir = create_cache_dir()
-    _, _, files = next(walk(cache_dir))
-    return [join(cache_dir, file) for file in files if file.endswith(".json")]
-
-
-def _get_tempfiles(pkgs_dir):
-    _, _, files = next(walk(pkgs_dir))
+def _get_index_cache() -> list[Path]:
+    cache_dir = Path(create_cache_dir())
     return [
-        join(pkgs_dir, file) for file in files if file.endswith(CONDA_TEMP_EXTENSIONS)
+        file
+        for file in cache_dir.iterdir()
+        if file.is_file() and file.name.endswith(".json")
     ]
 
 
-def _get_logfiles(pkgs_dir):
-    root, _, files = next(walk(join(pkgs_dir, CONDA_LOGS_DIR)), [None, None, []])
-    return [join(root, file) for file in files]
+def _get_tempfiles(pkgs_dir: str | Path) -> list[Path]:
+    pkgs_dir = Path(pkgs_dir)
+    return [
+        file
+        for file in pkgs_dir.iterdir()
+        if file.is_file() and file.name.endswith(CONDA_TEMP_EXTENSIONS)
+    ]
 
 
-def _get_all(pkgs_dir):
+def _get_logfiles(pkgs_dir: str | Path) -> list[Path]:
+    logs_dir = Path(pkgs_dir, CONDA_LOGS_DIR)
+    return [file for file in logs_dir.iterdir()] if logs_dir.is_dir() else []
+
+
+def _get_all(pkgs_dir: str | Path) -> tuple[list[Path], list[Path], list[Path]]:
     return _get_pkgs(pkgs_dir), _get_tars(pkgs_dir), _get_index_cache()
 
 
-def assert_any_pkg(name, contents):
-    assert any(basename(content).startswith(f"{name}-") for content in contents)
-
-
-def assert_not_pkg(name, contents):
-    assert not any(basename(content).startswith(f"{name}-") for content in contents)
+def any_pkg(name: str, contents: Iterable[str | Path]) -> bool:
+    return any(Path(content).name.startswith(f"{name}-") for content in contents)
 
 
 # conda clean --force-pkgs-dirs
@@ -77,17 +77,18 @@ def test_clean_force_pkgs_dirs(
 
     with make_temp_package_cache() as pkgs_dir:
         # pkgs_dir is a directory
-        assert isdir(pkgs_dir)
+        pkgs_dir = Path(pkgs_dir)
+        assert pkgs_dir.is_dir()
 
         with tmp_env(pkg):
             stdout, _, _ = conda_cli("clean", "--force-pkgs-dirs", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # pkgs_dir is removed
-            assert not exists(pkgs_dir)
+            assert not pkgs_dir.exists()
 
         # pkgs_dir is still removed
-        assert not exists(pkgs_dir)
+        assert not pkgs_dir.exists()
 
 
 # conda clean --packages
@@ -100,28 +101,28 @@ def test_clean_and_packages(
 
     with make_temp_package_cache() as pkgs_dir:
         # pkg doesn't exist ahead of time
-        assert_not_pkg(pkg, _get_pkgs(pkgs_dir))
+        assert not any_pkg(pkg, _get_pkgs(pkgs_dir))
 
         with tmp_env(pkg) as prefix:
             # pkg exists
-            assert_any_pkg(pkg, _get_pkgs(pkgs_dir))
+            assert any_pkg(pkg, _get_pkgs(pkgs_dir))
 
             # --json flag is regression test for #5451
             stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
-            assert_any_pkg(pkg, _get_pkgs(pkgs_dir))
+            assert any_pkg(pkg, _get_pkgs(pkgs_dir))
 
             conda_cli("remove", "--prefix", prefix, pkg, "--yes", "--json")
             stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # pkg is removed
-            assert_not_pkg(pkg, _get_pkgs(pkgs_dir))
+            assert not any_pkg(pkg, _get_pkgs(pkgs_dir))
 
         # pkg is still removed
-        assert_not_pkg(pkg, _get_pkgs(pkgs_dir))
+        assert not any_pkg(pkg, _get_pkgs(pkgs_dir))
 
 
 # conda clean --tarballs
@@ -134,21 +135,21 @@ def test_clean_tarballs(
 
     with make_temp_package_cache() as pkgs_dir:
         # tarball doesn't exist ahead of time
-        assert_not_pkg(pkg, _get_tars(pkgs_dir))
+        assert not any_pkg(pkg, _get_tars(pkgs_dir))
 
         with tmp_env(pkg):
             # tarball exists
-            assert_any_pkg(pkg, _get_tars(pkgs_dir))
+            assert any_pkg(pkg, _get_tars(pkgs_dir))
 
             # --json flag is regression test for #5451
             stdout, _, _ = conda_cli("clean", "--tarballs", "--yes", "--json")
             json.loads(stdout)  # assert valid json
 
             # tarball is removed
-            assert_not_pkg(pkg, _get_tars(pkgs_dir))
+            assert not any_pkg(pkg, _get_tars(pkgs_dir))
 
         # tarball is still removed
-        assert_not_pkg(pkg, _get_tars(pkgs_dir))
+        assert not any_pkg(pkg, _get_tars(pkgs_dir))
 
 
 # conda clean --index-cache
@@ -203,7 +204,7 @@ def test_clean_tempfiles(
             # mimic tempfiles being created
             path = _get_tars(pkgs_dir)[0]  # grab any tarball
             for ext in CONDA_TEMP_EXTENSIONS:
-                copy(path, f"{path}{ext}")
+                (path.parent / f"{path.name}{ext}").touch()
 
             # tempfiles exist
             assert len(_get_tempfiles(pkgs_dir)) == len(CONDA_TEMP_EXTENSIONS)
@@ -240,11 +241,10 @@ def test_clean_logfiles(
 
         with tmp_env(pkg):
             # mimic logfiles being created
-            logs = join(pkgs_dir, CONDA_LOGS_DIR)
-            mkdir_p(logs)
-            path = join(logs, f"{datetime.utcnow():%Y%m%d-%H%M%S-%f}.log")
-            with open(path, "w"):
-                pass
+            logs_dir = Path(pkgs_dir, CONDA_LOGS_DIR)
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            path = logs_dir / f"{datetime.utcnow():%Y%m%d-%H%M%S-%f}.log"
+            path.touch()
 
             # logfiles exist
             assert path in _get_logfiles(pkgs_dir)
@@ -276,15 +276,15 @@ def test_clean_all(
     with make_temp_package_cache() as pkgs_dir:
         # pkg, tarball, & index cache doesn't exist ahead of time
         pkgs, tars, cache = _get_all(pkgs_dir)
-        assert_not_pkg(pkg, pkgs)
-        assert_not_pkg(pkg, tars)
+        assert not any_pkg(pkg, pkgs)
+        assert not any_pkg(pkg, tars)
         assert not cache
 
         with tmp_env(pkg) as prefix:
             # pkg, tarball, & index cache exists
             pkgs, tars, cache = _get_all(pkgs_dir)
-            assert_any_pkg(pkg, pkgs)
-            assert_any_pkg(pkg, tars)
+            assert any_pkg(pkg, pkgs)
+            assert any_pkg(pkg, tars)
             assert cache
 
             stdout, _, _ = conda_cli("clean", "--all", *args)
@@ -294,8 +294,8 @@ def test_clean_all(
             # tarball is removed
             # index cache is cleared
             pkgs, tars, cache = _get_all(pkgs_dir)
-            assert_any_pkg(pkg, pkgs)
-            assert_not_pkg(pkg, tars)
+            assert any_pkg(pkg, pkgs)
+            assert not any_pkg(pkg, tars)
             assert not cache
 
             conda_cli("remove", "--prefix", prefix, pkg, *args)
@@ -306,16 +306,16 @@ def test_clean_all(
             # tarball is still removed
             # index cache is still cleared
             pkgs, tars, index_cache = _get_all(pkgs_dir)
-            assert_not_pkg(pkg, pkgs)
-            assert_not_pkg(pkg, tars)
+            assert not any_pkg(pkg, pkgs)
+            assert not any_pkg(pkg, tars)
             assert not cache
 
         # pkg is still removed
         # tarball is still removed
         # index cache is still cleared
         pkgs, tars, index_cache = _get_all(pkgs_dir)
-        assert_not_pkg(pkg, pkgs)
-        assert_not_pkg(pkg, tars)
+        assert not any_pkg(pkg, pkgs)
+        assert not any_pkg(pkg, tars)
         assert not cache
 
     set_verbosity(0)  # reset verbosity
@@ -338,8 +338,8 @@ def test_clean_all_mock_lstat(
     with make_temp_package_cache() as pkgs_dir, tmp_env(pkg) as prefix:
         # pkg, tarball, & index cache exists
         pkgs, tars, cache = _get_all(pkgs_dir)
-        assert_any_pkg(pkg, pkgs)
-        assert_any_pkg(pkg, tars)
+        assert any_pkg(pkg, pkgs)
+        assert any_pkg(pkg, tars)
         assert cache
 
         mocker.patch("os.lstat", side_effect=OSError)
@@ -352,8 +352,8 @@ def test_clean_all_mock_lstat(
 
         # pkg, tarball, & index cache still exists
         pkgs, tars, index_cache = _get_all(pkgs_dir)
-        assert_any_pkg(pkg, pkgs)
-        assert_any_pkg(pkg, tars)
+        assert any_pkg(pkg, pkgs)
+        assert any_pkg(pkg, tars)
         assert cache
 
     set_verbosity(0)  # reset verbosity
@@ -361,7 +361,7 @@ def test_clean_all_mock_lstat(
 
 # _get_size unittest, valid file
 def test_get_size(tmp_path: Path):
-    warnings = []
+    warnings: list[str] = []
     path = tmp_path / "file"
     path.write_text("hello")
     assert _get_size(path, warnings=warnings)
@@ -376,7 +376,7 @@ def test_get_size_None():
 
 # _get_size unittest, invalid file and collect warnings
 def test_get_size_list():
-    warnings = []
+    warnings: list[str] = []
     with pytest.raises(NotImplementedError):
         _get_size("not-a-file", warnings=warnings)
     assert warnings
