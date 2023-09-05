@@ -23,40 +23,39 @@ from conda.testing.integration import make_temp_package_cache
 
 
 def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:
-    pkgs_dir = Path(pkgs_dir)
-    return [package for package in pkgs_dir.iterdir() if package.is_dir()]
+    return [package for package in Path(pkgs_dir).iterdir() if package.is_dir()]
 
 
 def _get_tars(pkgs_dir: str | Path) -> list[Path]:
-    pkgs_dir = Path(pkgs_dir)
     return [
         file
-        for file in pkgs_dir.iterdir()
+        for file in Path(pkgs_dir).iterdir()
         if file.is_file() and file.name.endswith(CONDA_PACKAGE_EXTENSIONS)
     ]
 
 
 def _get_index_cache() -> list[Path]:
-    cache_dir = Path(create_cache_dir())
     return [
         file
-        for file in cache_dir.iterdir()
+        for file in Path(create_cache_dir()).iterdir()
         if file.is_file() and file.name.endswith(".json")
     ]
 
 
 def _get_tempfiles(pkgs_dir: str | Path) -> list[Path]:
-    pkgs_dir = Path(pkgs_dir)
     return [
         file
-        for file in pkgs_dir.iterdir()
+        for file in Path(pkgs_dir).iterdir()
         if file.is_file() and file.name.endswith(CONDA_TEMP_EXTENSIONS)
     ]
 
 
 def _get_logfiles(pkgs_dir: str | Path) -> list[Path]:
-    logs_dir = Path(pkgs_dir, CONDA_LOGS_DIR)
-    return [file for file in logs_dir.iterdir()] if logs_dir.is_dir() else []
+    try:
+        return [file for file in Path(pkgs_dir, CONDA_LOGS_DIR).iterdir()]
+    except FileNotFoundError:
+        # FileNotFoundError: CONDA_LOGS_DIR doesn't exist
+        return []
 
 
 def _get_all(pkgs_dir: str | Path) -> tuple[list[Path], list[Path], list[Path]]:
