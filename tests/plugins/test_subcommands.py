@@ -74,15 +74,16 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     """
     # setup
     plugin = SubcommandPlugin(name="custom", summary="Summary.")
-    plugin_manager.register(plugin)
+    assert plugin_manager.load_plugins(plugin) == 1
 
     # invalid, identical plugins
-    with pytest.raises(ValueError, match="Plugin already registered"):
-        plugin_manager.register(plugin)
+    with pytest.raises(PluginError, match="Error while loading first-party"):
+        plugin_manager.load_plugins(plugin)
 
     # invalid, similar plugins
-    with pytest.raises(ValueError, match="Plugin already registered"):
-        plugin_manager.register(SubcommandPlugin(name="custom", summary="Summary."))
+    plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
+    with pytest.raises(PluginError, match="Error while loading first-party"):
+        plugin_manager.load_plugins(plugin2)
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)
