@@ -69,8 +69,8 @@ def find_commands(include_others=True):
     for dir_path in dir_paths:
         if not isdir(dir_path):
             continue
-        for fn in os.listdir(dir_path):
-            m = pat.match(fn)
-            if m and isfile(join(dir_path, fn)):
+        for entry in os.scandir(dir_path):
+            m = pat.match(entry.name)
+            if m and entry.is_file():
                 res.add(m.group(1))
     return tuple(sorted(res))
