@@ -210,7 +210,19 @@ the certificates for a secure connection to the package repository.
 Solution
 ~~~~~~~~
 
-Pip can use the ``--trusted-host`` option to indicate that the URL of the
+Pip can use the ``--use-feature=truststore`` option to use the operating system
+certificate store. This may be of help in typically corporate environments with
+https traffic inspection, where the corporate CA is installed in the operating
+system certificate store::
+
+    pip install --use-feature=truststore
+
+Conda has a similar option::
+
+    conda config --set ssl_verify truststore
+
+
+Alternatively, pip can use the ``--trusted-host`` option to indicate that the URL of the
 repository is trusted::
 
     pip install --trusted-host pypi.org
@@ -236,8 +248,9 @@ Conda has three similar options.
        # #   browser. By default, SSL verification is enabled and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
-       # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
-       # #   to a directory containing certificates of trusted CA.
+       # #   ssl_verify can also be (1) a path to a CA bundle file, (2) a path to a
+       # #   directory containing certificates of trusted CA, or (3) 'truststore'
+       # #   to use the OS certificate store.
        # #
        # ssl_verify: true
 
@@ -263,8 +276,9 @@ Conda has three similar options.
        # #   browser. By default, SSL verification is enabled, and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
-       # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
-       # #   to a directory containing certificates of trusted CA.
+       # #   ssl_verify can also be (1) a path to a CA bundle file, (2) a path to a
+       # #   directory containing certificates of trusted CA, or (3) 'truststore'
+       # #   to use the OS certificate store.
        # #
        # ssl_verify: true
 
@@ -298,7 +312,13 @@ Make sure your conda is up-to-date: ``conda --version``
 
 If not, run: ``conda update conda``
 
-Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
+Try using the operating system certificate store. Set you ``ssl_verify`` variable to ``truststore``
+using the following command::
+
+    conda config --set ssl_verify truststore
+
+If using the OS certificate store does not solve your issue, temporarily set your ``ssl_verify`` variable
+to false, upgrade the requests package, and then
 set ``ssl_verify`` back to ``true`` using the following commands::
 
     conda config --set ssl_verify false

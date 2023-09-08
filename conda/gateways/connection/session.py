@@ -3,6 +3,7 @@
 """Requests session configured with all accepted scheme adapters."""
 from __future__ import annotations
 
+import warnings
 from functools import lru_cache
 from logging import getLogger
 from threading import local
@@ -22,7 +23,6 @@ from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
     BaseAdapter,
-    HTTPAdapter,
     Retry,
     Session,
     _basic_auth_str,
@@ -31,6 +31,7 @@ from . import (
     get_netrc_auth,
 )
 from .adapters.ftp import FTPAdapter
+from .adapters.http import HTTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 
@@ -156,6 +157,26 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         self.proxies.update(context.proxy_servers)
 
+        ssl_context = None
+        if context.ssl_verify == "truststore":
+            try:
+                import ssl
+
+                import truststore
+
+                ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            except ImportError:
+                warnings.warn(
+                    dals(
+                        """
+                        The `ssl_verify: truststore` setting is only supported on python >=3.10.
+                        Falling back to `ssl_verify: true`
+                        """
+                    )
+                )
+        else:
+            self.verify = context.ssl_verify
+
         if context.offline:
             unused_adapter = EnforceUnusedAdapter()
             self.mount("http://", unused_adapter)
@@ -172,7 +193,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 raise_on_status=False,
                 respect_retry_after_header=False,
             )
-            http_adapter = HTTPAdapter(max_retries=retry)
+            http_adapter = HTTPAdapter(max_retries=retry, ssl_context=ssl_context)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
@@ -181,8 +202,6 @@ class CondaSession(Session, metaclass=CondaSessionType):
         self.mount("file://", LocalFSAdapter())
 
         self.headers["User-Agent"] = context.user_agent
-
-        self.verify = context.ssl_verify
 
         if context.client_ssl_cert_key:
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)

@@ -1258,13 +1258,26 @@ def test_conda_config_validate(clear_package_cache: None):
             assert len(exc.value.errors) == 2
             str_exc_value = str(exc.value)
             assert (
-                "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs"
+                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the OS certificate store."
                 in str_exc_value
             )
             assert (
                 "default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'"
                 in str_exc_value
             )
+        finally:
+            reset_context()
+
+        try:
+            with open(join(prefix, "condarc"), "w") as fh:
+                fh.write("default_python: anaconda\n")
+                fh.write("ssl_verify: truststore\n")
+            reload_config(prefix)
+
+            with pytest.raises(CondaMultiError) as exc:
+                run_command(Commands.CONFIG, prefix, "--validate")
+
+            assert len(exc.value.errors) == 0
         finally:
             reset_context()
 
