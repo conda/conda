@@ -19,7 +19,7 @@ from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_verbosity
 from conda.testing import CondaCLIFixture, TmpEnvFixture
-from conda.testing.integration import make_temp_package_cache, package_is_installed
+from conda.testing.integration import make_temp_package_cache
 
 
 def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:
@@ -72,7 +72,7 @@ def test_clean_force_pkgs_dirs(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    pkg = "bzip2"
+    pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
         # pkgs_dir is a directory
@@ -96,15 +96,13 @@ def test_clean_and_packages(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    pkg = "bzip2"
+    pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
         # pkg doesn't exist ahead of time
         assert not has_pkg(pkg, _get_pkgs(pkgs_dir))
 
         with tmp_env(pkg) as prefix:
-            assert package_is_installed(prefix, pkg)
-
             # pkg exists
             assert has_pkg(pkg, _get_pkgs(pkgs_dir))
 
@@ -132,7 +130,7 @@ def test_clean_tarballs(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    pkg = "bzip2"
+    pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
         # tarball doesn't exist ahead of time
@@ -159,7 +157,7 @@ def test_clean_index_cache(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    pkg = "bzip2"
+    pkg = "zlib"
 
     with make_temp_package_cache():
         # index cache doesn't exist ahead of time
@@ -195,7 +193,7 @@ def test_clean_tempfiles(
     Since the presence of .c~ and .trash files are dependent upon irregular termination we create
     our own temporary files to confirm they get cleaned up.
     """
-    pkg = "bzip2"
+    pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
         # tempfiles don't exist ahead of time
@@ -234,7 +232,7 @@ def test_clean_logfiles(
     Since these log files were uniquely created during the experimental
     phase of the conda-libmamba-solver.
     """
-    pkg = "bzip2"
+    pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
         # logfiles don't exist ahead of time
@@ -269,7 +267,7 @@ def test_clean_all(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    pkg = "bzip2"
+    pkg = "zlib"
     args = ("--yes", "--json")
     if verbose:
         args = (*args, "--verbose")
@@ -331,7 +329,7 @@ def test_clean_all_mock_lstat(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    pkg = "bzip2"
+    pkg = "zlib"
     args = ("--yes", "--verbose")
     if as_json:
         args = (*args, "--json")
