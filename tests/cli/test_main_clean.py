@@ -19,7 +19,7 @@ from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_verbosity
 from conda.testing import CondaCLIFixture, TmpEnvFixture
-from conda.testing.integration import make_temp_package_cache
+from conda.testing.integration import make_temp_package_cache, package_is_installed
 
 
 def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:
@@ -103,6 +103,8 @@ def test_clean_and_packages(
         assert not has_pkg(pkg, _get_pkgs(pkgs_dir))
 
         with tmp_env(pkg) as prefix:
+            assert package_is_installed(prefix, pkg)
+
             # pkg exists
             assert has_pkg(pkg, _get_pkgs(pkgs_dir))
 

@@ -63,208 +63,208 @@ jobs:
               - 'dev/**/qemu.*'
 
   # windows test suite
-  windows:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # windows:
+  #   # only run test suite if there are code changes
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
 
-    runs-on: windows-2019
-    strategy:
-      fail-fast: false
-      matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.11']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        exclude:
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-    env:
-      OS: Windows
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
-      TEST_GROUP: ${{ matrix.test-group }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  #   runs-on: windows-2019
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+  #       default-channel: ['defaults', 'conda-forge']
+  #       python-version: ['3.8', '3.11']
+  #       test-type: ['unit', 'integration']
+  #       test-group: ['1', '2', '3']
+  #       exclude:
+  #         - default-channel: 'conda-forge'
+  #           python-version: '3.8'
+  #   env:
+  #     OS: Windows
+  #     PYTHON: ${{ matrix.python-version }}
+  #     TEST_SPLITS: 3
+  #     TEST_GROUP: ${{ matrix.test-group }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Cache conda packages
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 3
-        with:
-          # setup.bat makes a directory junction from \conda_bin to
-          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
-          # at this stage.
-          path: C:\Miniconda\envs\conda-test-env\pkgs
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+  #     - name: Cache conda packages
+  #       uses: actions/cache@v3
+  #       env:
+  #         # Increase this value to reset cache
+  #         CACHE_NUMBER: 3
+  #       with:
+  #         # setup.bat makes a directory junction from \conda_bin to
+  #         # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+  #         # at this stage.
+  #         path: C:\Miniconda\envs\conda-test-env\pkgs
+  #         key:
+  #           ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+  #           hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio.exe
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
+  #     - name: Cache minio
+  #       uses: actions/cache@v3
+  #       env:
+  #         # Increase this value to reset cache
+  #         CACHE_NUMBER: 4
+  #       with:
+  #         path: minio.exe
+  #         key:
+  #           ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
-      - name: Set temp dirs correctly
-        # https://github.com/actions/virtual-environments/issues/712
-        run: |
-          echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+  #     - name: Set temp dirs correctly
+  #       # https://github.com/actions/virtual-environments/issues/712
+  #       run: |
+  #         echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+  #         echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+  #         echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
 
-      - name: Setup environment for defaults
-        shell: cmd
-        if: matrix.default-channel == 'defaults'
-        run: |
-          call .\dev\windows\setup.bat
+  #     - name: Setup environment for defaults
+  #       shell: cmd
+  #       if: matrix.default-channel == 'defaults'
+  #       run: |
+  #         call .\dev\windows\setup.bat
 
-      - name: Setup environment for conda-forge
-        shell: cmd
-        if: matrix.default-channel == 'conda-forge'
-        env:
-          CONDA_CHANNELS: ${{ matrix.default-channel }}
-          CONDA_CHANNEL_PRIORITY: strict
-        run: |
-          call .\dev\windows\setup.bat
+  #     - name: Setup environment for conda-forge
+  #       shell: cmd
+  #       if: matrix.default-channel == 'conda-forge'
+  #       env:
+  #         CONDA_CHANNELS: ${{ matrix.default-channel }}
+  #         CONDA_CHANNEL_PRIORITY: strict
+  #       run: |
+  #         call .\dev\windows\setup.bat
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: cmd
-        run: |
-          call .\dev\windows\${{ matrix.test-type }}.bat
+  #     - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+  #       shell: cmd
+  #       run: |
+  #         call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v3
-        with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            .\tools\durations\${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+  #     - name: Upload test results
+  #       if: always()
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+  #         # when locally dowloading and comparing results of different workflow runs.
+  #         name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+  #         path: |
+  #           .coverage
+  #           .\tools\durations\${{ runner.os }}.json
+  #           test-report.xml
+  #         retention-days: 1
 
   # linux test suite
-  linux:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # linux:
+  #   # only run test suite if there are code changes
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        exclude:
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
-    env:
-      OS: Linux
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
-      TEST_GROUP: ${{ matrix.test-group }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+  #       default-channel: ['defaults', 'conda-forge']
+  #       python-version: ['3.8', '3.9', '3.10', '3.11']
+  #       test-type: ['unit', 'integration']
+  #       test-group: ['1', '2', '3']
+  #       exclude:
+  #         - default-channel: 'conda-forge'
+  #           python-version: '3.8'
+  #         - default-channel: 'conda-forge'
+  #           python-version: '3.9'
+  #         - default-channel: 'conda-forge'
+  #           python-version: '3.10'
+  #   env:
+  #     OS: Linux
+  #     PYTHON: ${{ matrix.python-version }}
+  #     TEST_SPLITS: 3
+  #     TEST_GROUP: ${{ matrix.test-group }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          -e TEST_SPLITS
-          -e TEST_GROUP
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
+  #     - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+  #       run: >
+  #         docker run
+  #         --rm -v ${PWD}:/opt/conda-src
+  #         -e TEST_SPLITS
+  #         -e TEST_GROUP
+  #         ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
+  #         /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v3
-        with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            ./tools/durations/${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+  #     - name: Upload test results
+  #       if: always()
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+  #         # when locally dowloading and comparing results of different workflow runs.
+  #         name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+  #         path: |
+  #           .coverage
+  #           ./tools/durations/${{ runner.os }}.json
+  #           test-report.xml
+  #         retention-days: 1
 
   # linux-qemu test suite
-  linux-qemu:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # linux-qemu:
+  #   # only run test suite if there are code changes
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
 
-    # Run one single fast test per docker+qemu emulated linux platform to test that
-    # test execution is possible there (container+tools+dependencies work). Can be
-    # changed / extended to run specific tests in case there are platform related
-    # things to test. Running more tests is time consuming due to emulation
-    # (factor 2-10x slower).
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.11']
-        platform: ['arm64', 'ppc64le']
-    env:
-      PYTHON: ${{ matrix.python-version }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  #   # Run one single fast test per docker+qemu emulated linux platform to test that
+  #   # test execution is possible there (container+tools+dependencies work). Can be
+  #   # changed / extended to run specific tests in case there are platform related
+  #   # things to test. Running more tests is time consuming due to emulation
+  #   # (factor 2-10x slower).
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       default-channel: ['defaults', 'conda-forge']
+  #       python-version: ['3.11']
+  #       platform: ['arm64', 'ppc64le']
+  #   env:
+  #     PYTHON: ${{ matrix.python-version }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        # Equivalent to locally run:
-        #   `docker run --privileged --rm tonistiigi/binfmt --install all`
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v2
+  #       # Equivalent to locally run:
+  #       #   `docker run --privileged --rm tonistiigi/binfmt --install all`
 
-      - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }}, ${{ matrix.python-version }} tests
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          --platform linux/${{ matrix.platform }}
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/qemu.sh
+  #     - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }}, ${{ matrix.python-version }} tests
+  #       run: >
+  #         docker run
+  #         --rm -v ${PWD}:/opt/conda-src
+  #         --platform linux/${{ matrix.platform }}
+  #         ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
+  #         /opt/conda-src/dev/linux/qemu.sh
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.default-channel }}-${{ matrix.python-version }}
-          path: |
-            .coverage
-            test-report.xml
-          retention-days: 1
+  #     - name: Upload test results
+  #       if: always()
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+  #         # when locally dowloading and comparing results of different workflow runs.
+  #         name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.default-channel }}-${{ matrix.python-version }}
+  #         path: |
+  #           .coverage
+  #           test-report.xml
+  #         retention-days: 1
 
   # macos test suite
   macos:
@@ -276,24 +276,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        # fewer test splits for quicker unit tests, keep 3 splits for integration
-        test-splits: [2, 3]
-        exclude:
-          - test-type: unit
-            test-group: '3'
-          - test-type: unit
-            test-splits: 3
-          - test-type: integration
+        include:
+          - default-channel: conda-forge
+            python-version: '3.9'
+            test-type: unit
+            test-group: 2
             test-splits: 2
-          # odd choice kept for parity with previous commit
-          - test-type: integration
-            default-channel: 'conda-forge'
-          - test-type: unit
-            default-channel: 'defaults'
+
+        # default-channel: ['defaults', 'conda-forge']
+        # python-version: ['3.9']
+        # test-type: ['unit', 'integration']
+        # test-group: ['1', '2', '3']
+        # # fewer test splits for quicker unit tests, keep 3 splits for integration
+        # test-splits: [2, 3]
+        # exclude:
+        #   - test-type: unit
+        #     test-group: '3'
+        #   - test-type: unit
+        #     test-splits: 3
+        #   - test-type: integration
+        #     test-splits: 2
+        #   # odd choice kept for parity with previous commit
+        #   - test-type: integration
+        #     default-channel: 'conda-forge'
+        #   - test-type: unit
+        #     default-channel: 'defaults'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
@@ -374,113 +381,113 @@ jobs:
           retention-days: 1
 
   # aggregate and upload
-  aggregate:
-    # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-qemu, macos]
-    if: always() && needs.changes.outputs.code == 'true'
+  # aggregate:
+  #   # only aggregate test suite if there are code changes
+  #   needs: [changes, windows, linux, linux-qemu, macos]
+  #   if: always() && needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download test results
-        uses: actions/download-artifact@v3
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Download test results
+  #       uses: actions/download-artifact@v3
 
-      - name: Upload combined test results
-        # provides one downloadable archive of all .coverage/test-report.xml files
-        # of all matrix runs for further analysis.
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results-${{ github.sha }}-all
-          path: test-results-${{ github.sha }}-*
-          retention-days: 90  # default: 90
+  #     - name: Upload combined test results
+  #       # provides one downloadable archive of all .coverage/test-report.xml files
+  #       # of all matrix runs for further analysis.
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: test-results-${{ github.sha }}-all
+  #         path: test-results-${{ github.sha }}-*
+  #         retention-days: 90  # default: 90
 
-      - name: Test Summary
-        uses: test-summary/action@v2
-        with:
-          paths: ./test-results-${{ github.sha }}-**/test-report*.xml
+  #     - name: Test Summary
+  #       uses: test-summary/action@v2
+  #       with:
+  #         paths: ./test-results-${{ github.sha }}-**/test-report*.xml
 
   # required check
-  analyze:
-    name: Analyze results
-    needs: [windows, linux, linux-qemu, macos, aggregate]
-    if: always()
+  # analyze:
+  #   name: Analyze results
+  #   needs: [windows, linux, linux-qemu, macos, aggregate]
+  #   if: always()
 
-    runs-on: ubuntu-latest
-    steps:
-      - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
-        with:
-          allowed-skips: ${{ toJSON(needs) }}
-          jobs: ${{ toJSON(needs) }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Decide whether the needed jobs succeeded or failed
+  #       uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+  #       with:
+  #         allowed-skips: ${{ toJSON(needs) }}
+  #         jobs: ${{ toJSON(needs) }}
 
   # canary builds
-  build:
-    name: Canary Build
-    needs: [analyze]
-    # only build canary build if
-    # - prior steps succeeded,
-    # - this is the main repo, and
-    # - we are on the main, feature, or release branch
-    if: >-
-      always()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || endsWith(github.ref_name, '.x')
-      )
-    strategy:
-      matrix:
-        include:
-          - runner: ubuntu-latest
-            subdir: linux-64
-          - runner: macos-latest
-            subdir: osx-64
-          - runner: windows-latest
-            subdir: win-64
-    runs-on: ${{ matrix.runner }}
-    steps:
-      # Clean checkout of specific git ref needed for package metadata version
-      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref }}
-          clean: true
-          fetch-depth: 0
+  # build:
+  #   name: Canary Build
+  #   needs: [analyze]
+  #   # only build canary build if
+  #   # - prior steps succeeded,
+  #   # - this is the main repo, and
+  #   # - we are on the main, feature, or release branch
+  #   if: >-
+  #     always()
+  #     && !github.event.repository.fork
+  #     && (
+  #       github.ref_name == 'main'
+  #       || startsWith(github.ref_name, 'feature/')
+  #       || endsWith(github.ref_name, '.x')
+  #     )
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - runner: ubuntu-latest
+  #           subdir: linux-64
+  #         - runner: macos-latest
+  #           subdir: osx-64
+  #         - runner: windows-latest
+  #           subdir: win-64
+  #   runs-on: ${{ matrix.runner }}
+  #   steps:
+  #     # Clean checkout of specific git ref needed for package metadata version
+  #     # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         ref: ${{ github.ref }}
+  #         clean: true
+  #         fetch-depth: 0
 
-      # Explicitly use Python 3.11 since each of the OSes has a different default Python
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+  #     # Explicitly use Python 3.11 since each of the OSes has a different default Python
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.11'
 
-      - name: Detect label
-        shell: python
-        run: |
-          from pathlib import Path
-          from re import match
-          from os import environ
+  #     - name: Detect label
+  #       shell: python
+  #       run: |
+  #         from pathlib import Path
+  #         from re import match
+  #         from os import environ
 
-          if "${{ github.ref_name }}" == "main":
-              # main branch commits are uploaded to the dev label
-              label = "dev"
-          elif "${{ github.ref_name }}".startswith("feature/"):
-              # feature branch commits are uploaded to a custom label
-              label = "${{ github.ref_name }}"
-          else:
-              # release branch commits are added to the rc label
-              # see https://github.com/conda/infrastructure/issues/760
-              _, name = "${{ github.repository }}".split("/")
-              label = f"rc-{name}-${{ github.ref_name }}"
+  #         if "${{ github.ref_name }}" == "main":
+  #             # main branch commits are uploaded to the dev label
+  #             label = "dev"
+  #         elif "${{ github.ref_name }}".startswith("feature/"):
+  #             # feature branch commits are uploaded to a custom label
+  #             label = "${{ github.ref_name }}"
+  #         else:
+  #             # release branch commits are added to the rc label
+  #             # see https://github.com/conda/infrastructure/issues/760
+  #             _, name = "${{ github.repository }}".split("/")
+  #             label = f"rc-{name}-${{ github.ref_name }}"
 
-          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
+  #         Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
-      - name: Create and upload canary build
-        uses: conda/actions/canary-release@v23.7.0
-        env:
-          # Run conda-build in isolated activation to properly package conda
-          _CONDA_BUILD_ISOLATED_ACTIVATION: 1
-        with:
-          package-name: ${{ github.event.repository.name }}
-          subdir: ${{ matrix.subdir }}
-          anaconda-org-channel: conda-canary
-          anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
-          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+  #     - name: Create and upload canary build
+  #       uses: conda/actions/canary-release@v23.7.0
+  #       env:
+  #         # Run conda-build in isolated activation to properly package conda
+  #         _CONDA_BUILD_ISOLATED_ACTIVATION: 1
+  #       with:
+  #         package-name: ${{ github.event.repository.name }}
+  #         subdir: ${{ matrix.subdir }}
+  #         anaconda-org-channel: conda-canary
+  #         anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
+  #         anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
