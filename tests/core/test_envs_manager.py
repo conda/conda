@@ -44,7 +44,12 @@ def test_register_unregister_location_env(tmp_path: Path):
     assert gascon_location not in list_all_known_prefixes()
 
     touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
-    register_env(gascon_location)
+    with env_var(
+        "CONDA_REGISTER_ENVS",
+        "true",
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        register_env(gascon_location)
     assert gascon_location in yield_lines(user_environments_txt_file)
     assert (
         len(

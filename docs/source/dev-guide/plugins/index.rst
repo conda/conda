@@ -97,6 +97,7 @@ For examples of how to use other plugin hooks, please read their respective docu
 .. toctree::
    :maxdepth: 1
 
+   auth_handlers
    post_commands
    pre_commands
    solvers

@@ -23,6 +23,9 @@ def get_user_environments_txt_file(userhome="~"):
 
 
 def register_env(location):
+    if not context.register_envs:
+        return
+
     user_environments_txt_file = get_user_environments_txt_file()
     location = normpath(location)
     folder = dirname(location)

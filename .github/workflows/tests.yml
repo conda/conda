@@ -27,9 +27,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-env:
-    # see https://github.com/conda/conda/pull/12524
-    MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
+# env:
+    # to pin MinIO version, see images.yml for counterpart
+    # MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -57,6 +57,10 @@ jobs:
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
+              - 'dev/**/setup.*'
+              - 'dev/**/integration.*'
+              - 'dev/**/unit.*'
+              - 'dev/**/qemu.*'
 
   # windows test suite
   windows:
@@ -343,7 +347,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           ./dev/macos/setup.sh
 
