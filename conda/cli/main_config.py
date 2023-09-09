@@ -158,7 +158,10 @@ def execute_config(args, parser):
         if context.json:
             stdout_write(
                 json.dumps(
-                    context.collect_all(),
+                    {
+                        str(source): values
+                        for source, values in context.collect_all().items()
+                    },
                     sort_keys=True,
                     indent=2,
                     separators=(",", ": "),
