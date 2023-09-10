@@ -95,7 +95,7 @@ def test_listed_on_envs_txt_file(
         f.write(f"{prefix}")
 
     mocker.patch(
-        "conda.core.envs_manager.get_user_environments_txt_file",
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
     assert check_envs_txt_file(prefix) == True
