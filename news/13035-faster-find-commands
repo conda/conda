@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Use `os.scandir()` to find conda subcommands without `stat()` overhead. (#13033, #13067)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
 
 ### Deprecations
 
