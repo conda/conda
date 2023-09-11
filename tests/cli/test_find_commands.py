@@ -21,6 +21,15 @@ def faux_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
         (permission / "conda-permission.exe").touch()
         monkeypatch.setenv("PATH", str(permission), prepend=os.pathsep)
 
+    # missing directory
+    missing_dir = tmp_path / "missing-directory"
+    monkeypatch.setenv("PATH", str(missing_dir), prepend=os.pathsep)
+
+    # not directory
+    not_dir = tmp_path / "not-directory"
+    not_dir.touch()
+    monkeypatch.setenv("PATH", str(not_dir), prepend=os.pathsep)
+
     # bad executables
     bad = tmp_path / "bad"
     bad.mkdir(exist_ok=True)
