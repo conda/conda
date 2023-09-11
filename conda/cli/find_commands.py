@@ -6,7 +6,7 @@ import re
 import sys
 import sysconfig
 from functools import lru_cache
-from os.path import basename, expanduser, isdir, isfile, join
+from os.path import basename, expanduser, isfile, join
 
 from ..common.compat import on_win
 
@@ -67,14 +67,13 @@ def find_commands(include_others=True):
 
     res = set()
     for dir_path in dir_paths:
-        if not isdir(dir_path):
-            continue
         try:
             for entry in os.scandir(dir_path):
                 m = pat.match(entry.name)
                 if m and entry.is_file():
                     res.add(m.group(1))
-        except PermissionError:
+        except (FileNotFoundError, PermissionError):
+            # FileNotFoundError: directory doesn't exist
             # PermissionError: user doesn't have read access
             continue
     return tuple(sorted(res))
