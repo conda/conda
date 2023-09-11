@@ -6,7 +6,7 @@ import re
 import sys
 import sysconfig
 from functools import lru_cache
-from os.path import basename, expanduser, isdir, isfile, join
+from os.path import basename, expanduser, isfile, join
 
 from ..common.compat import on_win
 
@@ -61,16 +61,19 @@ def find_commands(include_others=True):
     dir_paths.extend(os.environ.get("PATH", "").split(os.pathsep))
 
     if on_win:
-        pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)$")
+        pat = re.compile(r"conda-([\w\-]+)(\.(exe|bat))?$")
     else:
         pat = re.compile(r"conda-([\w\-]+)$")
 
     res = set()
     for dir_path in dir_paths:
-        if not isdir(dir_path):
+        try:
+            for entry in os.scandir(dir_path):
+                m = pat.match(entry.name)
+                if m and entry.is_file():
+                    res.add(m.group(1))
+        except (FileNotFoundError, PermissionError):
+            # FileNotFoundError: directory doesn't exist
+            # PermissionError: user doesn't have read access
             continue
-        for entry in os.scandir(dir_path):
-            m = pat.match(entry.name)
-            if m and entry.is_file():
-                res.add(m.group(1))
     return tuple(sorted(res))
