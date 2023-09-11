@@ -8,8 +8,9 @@ import pytest
 from requests import HTTPError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.context import reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, reset_context
 from conda.common.compat import ensure_binary
+from conda.common.io import env_var, env_vars
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
@@ -23,7 +24,7 @@ from conda.gateways.connection.session import (
 from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
-from conda.testing.integration import env_var, make_temp_env
+from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
 
@@ -107,6 +108,56 @@ def test_s3_server(minio_s3_server):
         ):
             # the .conda files in this repo are somehow corrupted
             with env_var("CONDA_USE_ONLY_TAR_BZ2", "True"):
+                with make_temp_env(
+                    "--override-channels",
+                    f"--channel=s3://{bucket_name}",
+                    "--download-only",
+                    "--no-deps",  # this fake repo only includes the zlib tarball
+                    "zlib",
+                    use_exception_handler=False,
+                    no_capture=True,
+                ):
+                    # we just want to run make_temp_env and cleanup after
+                    pass
+
+
+@pytest.mark.integration
+def test_s3_server_with_mock(package_server_ssl):
+    """
+    Use boto3 to fetch from a mock s3 server pointing at the test package
+    repository. This works since conda only GET's against s3 and s3 is http.
+    """
+    import boto3
+    from botocore.client import Config
+
+    host, port = package_server_ssl.getsockname()
+    endpoint_url = f"https://{host}:{port}"
+    bucket_name = "test"
+
+    # We patch the default kwargs values in boto3.session.Session.resource(...)
+    # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
+    # connection; otherwise it would default to a real AWS instance
+    patched_defaults = (
+        "us-east-1",  # region_name
+        None,  # api_version
+        True,  # use_ssl
+        False,  # verify
+        endpoint_url,  # endpoint_url
+        "minioadmin",  # aws_access_key_id
+        "minioadmin",  # aws_secret_access_key
+        None,  # aws_session_token
+        Config(signature_version="s3v4"),  # config
+    )
+    with pytest.raises(CondaExitZero):
+        with patch.object(
+            boto3.session.Session.resource, "__defaults__", patched_defaults
+        ):
+            # the test package is not available for all architectures used to
+            # run tests
+            with env_vars(
+                {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"},
+                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+            ):
                 with make_temp_env(
                     "--override-channels",
                     f"--channel=s3://{bucket_name}",
