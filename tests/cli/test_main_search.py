@@ -149,4 +149,4 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert "Searching environments" not in stdout
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list)  # can be [] if package not found
-    assert all(entry["package_records"]["name"] == search_for for entry in parsed)
+    assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
