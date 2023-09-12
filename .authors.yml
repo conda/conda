@@ -2364,3 +2364,10 @@
   github: marcoesters
   num_commits: 1
   first_commit: 2023-07-11 05:47:23
+- name: Peter Talley
+  email: peterctalley@gmail.com
+  github: otaithleigh
+  aliases:
+  - P. Talley
+  num_commits: 1
+  first_commit: 2023-08-25 20:43:39
