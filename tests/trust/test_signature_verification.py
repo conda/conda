@@ -6,8 +6,10 @@ from shutil import copyfile
 from types import SimpleNamespace
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
+from conda.base.context import context, reset_context
 from conda.gateways.connection import HTTPError
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
@@ -439,3 +441,34 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
 
     with pytest.raises(SignatureError):
         check_key_mgr = sig_ver.key_mgr
+
+
+def test_signature_verification_enabled(monkeypatch: MonkeyPatch):
+    signature_verification = _SignatureVerification()
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "false")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
+    reset_context()
+    assert not context.extra_safety_checks
+    assert not context.signing_metadata_url_base
+
+    _SignatureVerification.enabled.fget.cache_clear()
+    assert not signature_verification.enabled
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
+    reset_context()
+    assert context.extra_safety_checks
+    assert not context.signing_metadata_url_base
+
+    _SignatureVerification.enabled.fget.cache_clear()
+    assert not signature_verification.enabled
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    reset_context()
+    assert context.extra_safety_checks
+    assert context.signing_metadata_url_base == url
+
+    _SignatureVerification.enabled.fget.cache_clear()
+    assert signature_verification.enabled
