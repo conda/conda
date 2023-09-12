@@ -24,13 +24,18 @@ def display_report_heading(prefix: str) -> None:
 
 def check_envs_txt_file(prefix: str | Path) -> bool:
     """Checks whether the environment is listed in the environments.txt file"""
-    envs_txt_file = get_user_environments_txt_file()
-    with open(envs_txt_file) as f:
-        content = f.read()
+    try:
+        envs_txt_file = Path(get_user_environments_txt_file())
+        content = envs_txt_file.read_text()
         if str(prefix) in content:
             return True
         else:
             return False
+    except Exception as err:
+        logger.error(
+            f"environments.txt file {envs_txt_file} could not be "
+            f"accessed because of the following error: {err}"
+        )
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
