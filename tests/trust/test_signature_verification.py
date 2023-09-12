@@ -4,13 +4,11 @@ import json
 from pathlib import Path
 from shutil import copyfile
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
 
 from conda.gateways.connection import HTTPError
-from conda.trust.constants import INITIAL_TRUST_ROOT
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
 _TESTDATA = Path(__file__).parent / "testdata"
@@ -28,7 +26,7 @@ def test_trusted_root_no_new_metadata(
 ):
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -42,7 +40,7 @@ def test_trusted_root_no_new_metadata(
     err = HTTPError()
     err.response = SimpleNamespace()
     err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
+    sig_ver._fetch_channel_signing_data = mocker.MagicMock(side_effect=err)
 
     # This thing is a property so this is effectively a call
     check_trusted_root = sig_ver.trusted_root
@@ -63,7 +61,7 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -84,7 +82,7 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     err = HTTPError()
     err.response = SimpleNamespace()
     err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
+    sig_ver._fetch_channel_signing_data = mocker.MagicMock(side_effect=err)
 
     # This thing is a property so this is effectively a call
     check_trusted_root = sig_ver.trusted_root
@@ -106,7 +104,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -125,7 +123,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
 
     test_2_root_data = json.loads(test_2_root_dest.read_text())
 
-    data_mock = Mock()
+    data_mock = mocker.Mock()
     data_mock.side_effect = [test_2_root_data]
     sig_ver = _SignatureVerification()
     sig_ver._fetch_channel_signing_data = data_mock
@@ -134,7 +132,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     # err = HTTPError()
     # err.response=SimpleNamespace()
     # err.response.status_code = 404
-    # sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
+    # sig_ver._fetch_channel_signing_data = mocker.MagicMock(side_effect=err)
 
     # This thing is a property so this is effectively a call
     check_trusted_root = sig_ver.trusted_root
@@ -153,7 +151,7 @@ def test_2nd_root_metadata_from_web(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -167,7 +165,7 @@ def test_2nd_root_metadata_from_web(
     # Load 2.root.json's data so we can use it in our mock
     test_2_root_data = json.loads(testdata_2_root.read_text())
 
-    data_mock = Mock()
+    data_mock = mocker.Mock()
     data_mock.side_effect = [test_2_root_data]
     sig_ver = _SignatureVerification()
     sig_ver._fetch_channel_signing_data = data_mock
@@ -191,7 +189,7 @@ def test_3rd_root_metadata_from_web(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -211,7 +209,7 @@ def test_3rd_root_metadata_from_web(
     # Load 3.root.json's data so we can use it in our mock
     test_3_root_data = json.loads(testdata_3_root.read_text())
 
-    data_mock = Mock()
+    data_mock = mocker.Mock()
     data_mock.side_effect = [test_2_root_data, test_3_root_data]
     sig_ver = _SignatureVerification()
     sig_ver._fetch_channel_signing_data = data_mock
@@ -235,7 +233,7 @@ def test_single_invalid_signature_3rd_root_metadata_from_web(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -255,7 +253,7 @@ def test_single_invalid_signature_3rd_root_metadata_from_web(
     # Load 3.root.json's data so we can use it in our mock
     test_3_root_data = json.loads(testdata_3_root.read_text())
 
-    data_mock = Mock()
+    data_mock = mocker.Mock()
     data_mock.side_effect = [test_2_root_data, test_3_root_data]
     sig_ver = _SignatureVerification()
     sig_ver._fetch_channel_signing_data = data_mock
@@ -282,7 +280,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -296,7 +294,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
     err = HTTPError()
     err.response = SimpleNamespace()
     err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
+    sig_ver._fetch_channel_signing_data = mocker.MagicMock(side_effect=err)
 
     # Find key_mgr.json in our test data directory...
     test_key_mgr_path = _TESTDATA / "key_mgr.json"
@@ -322,7 +320,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -336,7 +334,7 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
     err = HTTPError()
     err.response = SimpleNamespace()
     err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
+    sig_ver._fetch_channel_signing_data = mocker.MagicMock(side_effect=err)
 
     # We should have no key_mgr here
     assert sig_ver.key_mgr == None
@@ -353,7 +351,7 @@ def test_trusted_root_new_key_mgr_online(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -371,7 +369,7 @@ def test_trusted_root_new_key_mgr_online(
     err = HTTPError()
     err.response = SimpleNamespace()
     err.response.status_code = 404
-    data_mock = Mock()
+    data_mock = mocker.Mock()
 
     # First time around we return an HTTPError(404) to signal we don't have new root metadata.
     # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
@@ -399,7 +397,7 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     """
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=tmp_path,
     )
     mocker.patch(
@@ -432,7 +430,7 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     err = HTTPError()
     err.response = SimpleNamespace()
     err.response.status_code = 404
-    data_mock = Mock()
+    data_mock = mocker.Mock()
 
     # First time around we return an HTTPError(404) to signal we don't have new root metadata.
     # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
