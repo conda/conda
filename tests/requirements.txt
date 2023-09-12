@@ -10,7 +10,6 @@ conda
 conda-content-trust
 conda-forge::flake8-docstrings
 conda-forge::flake8-pyproject
-conda-forge::minio-server
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
