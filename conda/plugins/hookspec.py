@@ -14,6 +14,7 @@ from collections.abc import Iterable
 import pluggy
 
 from .types import (
+    CondaAuthHandler,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -169,4 +170,41 @@ class CondaSpecs:
                    action=example_post_command,
                    run_for={"install", "create"},
                )
+        """
+
+    @_hookspec
+    def conda_auth_handlers(self) -> Iterable[CondaAuthHandler]:
+        """
+        Register a conda auth handler derived from the requests API.
+
+        This plugin hook allows attaching requests auth handler subclasses,
+        e.g. when authenticating requests against individual channels hosted
+        at HTTP/HTTPS services.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import os
+            from conda import plugins
+            from requests.auth import AuthBase
+
+
+            class EnvironmentHeaderAuth(AuthBase):
+                def __init__(self, *args, **kwargs):
+                    self.username = os.environ["EXAMPLE_CONDA_AUTH_USERNAME"]
+                    self.password = os.environ["EXAMPLE_CONDA_AUTH_PASSWORD"]
+
+                def __call__(self, request):
+                    request.headers["X-Username"] = self.username
+                    request.headers["X-Password"] = self.password
+                    return request
+
+
+            @plugins.hookimpl
+            def conda_auth_handlers():
+                yield plugins.CondaAuthHandler(
+                    name="environment-header-auth",
+                    auth_handler=EnvironmentHeaderAuth,
+                )
         """

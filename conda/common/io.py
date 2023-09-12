@@ -28,6 +28,7 @@ from .constants import NULL
 from .path import expand
 
 log = getLogger(__name__)
+IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 class DeltaSecondsFormatter(Formatter):
@@ -395,9 +396,7 @@ class Spinner:
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = (
-            enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
-        )
+        self.show_spin = enabled and not json and IS_INTERACTIVE
         self.fail_message = fail_message
 
     def start(self):
@@ -473,33 +472,40 @@ class ProgressBar:
         if json:
             pass
         elif enabled:
-            bar_format = "{desc}{bar} | {percentage:3.0f}% "
-            try:
-                self.pbar = self._tqdm(
-                    desc=description,
-                    bar_format=bar_format,
-                    ascii=True,
-                    total=1,
-                    file=sys.stdout,
-                    position=position,
-                    leave=leave,
-                )
-            except OSError as e:
-                if e.errno in (EPIPE, ESHUTDOWN):
-                    self.enabled = False
-                else:
-                    raise
+            if IS_INTERACTIVE:
+                bar_format = "{desc}{bar} | {percentage:3.0f}% "
+                try:
+                    self.pbar = self._tqdm(
+                        desc=description,
+                        bar_format=bar_format,
+                        ascii=True,
+                        total=1,
+                        file=sys.stdout,
+                        position=position,
+                        leave=leave,
+                    )
+                except OSError as e:
+                    if e.errno in (EPIPE, ESHUTDOWN):
+                        self.enabled = False
+                    else:
+                        raise
+            else:
+                self.pbar = None
+                sys.stdout.write("%s ...working..." % description)
 
     def update_to(self, fraction):
         try:
-            if self.json and self.enabled:
-                with self.get_lock():
-                    sys.stdout.write(
-                        '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
-                        % (self.description, fraction)
-                    )
-            elif self.enabled:
-                self.pbar.update(fraction - self.pbar.n)
+            if self.enabled:
+                if self.json:
+                    with self.get_lock():
+                        sys.stdout.write(
+                            '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
+                            % (self.description, fraction)
+                        )
+                elif IS_INTERACTIVE:
+                    self.pbar.update(fraction - self.pbar.n)
+                elif fraction == 1:
+                    sys.stdout.write(" done\n")
         except OSError as e:
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
@@ -511,20 +517,23 @@ class ProgressBar:
 
     def refresh(self):
         """Force refresh i.e. once 100% has been reached"""
-        if self.enabled and not self.json:
+        if self.enabled and not self.json and IS_INTERACTIVE:
             self.pbar.refresh()
 
     @swallow_broken_pipe
     def close(self):
-        if self.enabled and self.json:
-            with self.get_lock():
-                sys.stdout.write(
-                    '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                    % self.description
-                )
-                sys.stdout.flush()
-        elif self.enabled:
-            self.pbar.close()
+        if self.enabled:
+            if self.json:
+                with self.get_lock():
+                    sys.stdout.write(
+                        '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                        % self.description
+                    )
+                    sys.stdout.flush()
+            elif IS_INTERACTIVE:
+                self.pbar.close()
+            else:
+                sys.stdout.write(" done\n")
 
     @staticmethod
     def _tqdm(*args, **kwargs):

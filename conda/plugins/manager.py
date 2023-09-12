@@ -15,6 +15,7 @@ from importlib.metadata import distributions
 from inspect import getmodule, isclass
 
 import pluggy
+from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
 from ..base.context import context
@@ -201,6 +202,18 @@ class CondaPluginManager(pluggy.PluginManager):
             )
 
         return backend
+
+    def get_auth_handler(self, name: str) -> type[AuthBase] | None:
+        """
+        Get the auth handler with the given name or None
+        """
+        auth_handlers = self.get_hook_results("auth_handlers")
+        matches = tuple(
+            item for item in auth_handlers if item.name.lower() == name.lower().strip()
+        )
+
+        if len(matches) > 0:
+            return matches[0].handler
 
     def invoke_pre_commands(self, command: str) -> None:
         """
