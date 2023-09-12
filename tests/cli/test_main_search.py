@@ -144,7 +144,9 @@ def test_search_envs_info(conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_search_envs_json(conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("search", "--envs", "--json", "conda")
+    search_for = "python"
+    stdout, _, _ = conda_cli("search", "--envs", "--json", search_for)
     assert "Searching environments" not in stdout
     parsed = json.loads(stdout.strip())
-    assert parsed
+    assert isinstance(parsed, list)  # can be [] if package not found
+    assert all(entry["package_records"]["name"] == search_for for entry in parsed)
