@@ -106,7 +106,10 @@ def test_s3_server(minio_s3_server):
         with patch.object(
             boto3.session.Session.resource, "__defaults__", patched_defaults
         ):
-            with env_vars({"CONDA_SUBDIR": "linux-64"}):
+            # the .conda files in this repo are somehow corrupted
+            with env_vars(
+                {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"}
+            ):
                 with make_temp_env(
                     "--override-channels",
                     f"--channel=s3://{bucket_name}",
@@ -151,10 +154,11 @@ def test_s3_server_with_mock(package_server_ssl):
         with patch.object(
             boto3.session.Session.resource, "__defaults__", patched_defaults
         ):
-            # the test package is not available for all architectures used to
-            # run tests.
+            # The test package is not available for all architectures used to
+            # run tests. Error using .conda - related to spoofing subdir?
+            # Insufficient test cleanup?
             with env_vars(
-                {"CONDA_SUBDIR": "linux-64"},
+                {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"},
                 stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 with make_temp_env(
