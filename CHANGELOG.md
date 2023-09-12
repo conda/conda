@@ -18,7 +18,7 @@
 * @beeankha
 * @dholth
 * @kenodegard
-
+* @otaithleigh made their first contribution in https://github.com/conda/conda/pull/13035
 
 
 ## 23.7.3 (2023-08-21)
