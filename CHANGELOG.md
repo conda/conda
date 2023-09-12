@@ -1,5 +1,26 @@
 [//]: # (current developments)
 
+## 23.7.4 (2023-09-12)
+
+### Enhancements
+
+* Use `os.scandir()` to find conda subcommands without `stat()` overhead. (#13033, #13067)
+
+### Bug fixes
+
+* Fix S3 bucket name. (#12989)
+* Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
+* Catch `PermissionError` raised by `conda.cli.find_commands.find_commands` when user's `$PATH` contains restricted paths. (#13062, #13089)
+* Fix sorting error for `conda config --show-sources --json`. (#13076)
+
+### Contributors
+
+* @beeankha
+* @dholth
+* @kenodegard
+
+
+
 ## 23.7.3 (2023-08-21)
 
 ### Bug fixes
