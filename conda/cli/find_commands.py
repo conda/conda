@@ -72,8 +72,9 @@ def find_commands(include_others=True):
                 m = pat.match(entry.name)
                 if m and entry.is_file():
                     res.add(m.group(1))
-        except (FileNotFoundError, PermissionError):
-            # FileNotFoundError: directory doesn't exist
+        except (FileNotFoundError, NotADirectoryError, PermissionError):
+            # FileNotFoundError: path doesn't exist
+            # NotADirectoryError: path is not a directory
             # PermissionError: user doesn't have read access
             continue
     return tuple(sorted(res))

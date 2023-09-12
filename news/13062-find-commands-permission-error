@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Catch `PermissionError` raised by `conda.cli.find_commands.find_commands` when user's `$PATH` contains restricted paths. (#13062)
+* Catch `PermissionError` raised by `conda.cli.find_commands.find_commands` when user's `$PATH` contains restricted paths. (#13062, #13089)
 
 ### Deprecations
 
