@@ -25,8 +25,8 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.entity import EntityEncoder
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser, init_loggers
+from conda.cli.conda_argparse import do_call, generate_parser
+from conda.cli.main import init_loggers
 from conda.common.compat import encode_arguments, on_win
 from conda.common.io import (
     argv,
@@ -36,9 +36,10 @@ from conda.common.io import (
     env_var,
     stderr_log_level,
 )
-from conda.common.url import escape_channel_url, path_to_url
+from conda.common.url import path_to_url
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
+from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -198,6 +199,7 @@ class Commands:
     RUN = "run"
 
 
+@deprecated("23.9", "24.3", addendum="Use `monkeypatch.chdir` instead.")
 @contextmanager
 def temp_chdir(target_dir):
     curdir = os.getcwd()
@@ -210,6 +212,7 @@ def temp_chdir(target_dir):
         os.chdir(curdir)
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_command(command, prefix, *arguments, **kwargs):
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
@@ -267,7 +270,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
-    init_loggers(context)
+    init_loggers()
     cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
     print(
@@ -278,21 +281,13 @@ def run_command(command, prefix, *arguments, **kwargs):
         TEST_LOG_LEVEL, "requests"
     ):
         arguments = encode_arguments(arguments)
-        is_run = arguments[0] == "run"
-        if is_run:
-            cap_args = (None, None)
         with argv(["python_api"] + arguments), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
                 result = do_call(args, p)
-        if is_run:
-            stdout = result.stdout
-            stderr = result.stderr
-            result = result.rc
-        else:
-            stdout = c.stdout
-            stderr = c.stderr
+        stdout = c.stdout
+        stderr = c.stderr
         print(stdout, file=sys.stdout)
         print(stderr, file=sys.stderr)
 
@@ -317,7 +312,7 @@ def make_temp_env(*packages, **kwargs):
             rm_rf(prefix)
     if not isdir(prefix):
         make_temp_prefix(name, use_restricted_unicode, prefix)
-    with disable_logger("fetch"), disable_logger("dotupdate"):
+    with disable_logger("fetch"):
         try:
             # try to clear any config that's been set by other tests
             # CAUTION :: This does not partake in the context stack management code
@@ -420,31 +415,8 @@ def reload_config(prefix):
 
 
 def package_is_installed(prefix, spec):
-    is_installed = _package_is_installed(prefix, spec)
-
-    # Mamba needs to escape the URL (e.g. space -> %20)
-    # Which ends up rendered in the package spec
-    # Let's try query with a escaped spec in case we are
-    # testing for Mamba or other implementations that need this
-    if not is_installed and "::" in spec:
-        channel, pkg = spec.split("::", 1)
-        escaped_channel = escape_channel_url(channel)
-        escaped_spec = escaped_channel + "::" + pkg
-        is_installed = _package_is_installed(prefix, escaped_spec)
-
-        # Workaround for https://github.com/mamba-org/mamba/issues/1324
-        if not is_installed and channel.startswith("file:"):
-            components = channel.split("/")
-            lowercase_channel = "/".join(components[:-1] + [components[-1].lower()])
-            spec = lowercase_channel + "::" + pkg
-            is_installed = _package_is_installed(prefix, spec)
-
-    return is_installed
-
-
-def _package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix).query(spec))
+    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=True).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
             "Multiple packages installed.%s"
@@ -453,6 +425,11 @@ def _package_is_installed(prefix, spec):
     return bool(len(prefix_recs))
 
 
+@deprecated(
+    "23.9",
+    "24.3",
+    addendum="Use `conda.core.prefix_data.PrefixData().get()` instead.",
+)
 def get_conda_list_tuple(prefix, package_name):
     stdout, stderr, _ = run_command(Commands.LIST, prefix)
     stdout_lines = stdout.split("\n")

@@ -1,5 +1,242 @@
 [//]: # (current developments)
 
+## 23.7.4 (2023-09-12)
+
+### Enhancements
+
+* Use `os.scandir()` to find conda subcommands without `stat()` overhead. (#13033, #13067)
+
+### Bug fixes
+
+* Fix S3 bucket name. (#12989)
+* Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
+* Catch `PermissionError` raised by `conda.cli.find_commands.find_commands` when user's `$PATH` contains restricted paths. (#13062, #13089)
+* Fix sorting error for `conda config --show-sources --json`. (#13076)
+
+### Contributors
+
+* @beeankha
+* @dholth
+* @kenodegard
+* @otaithleigh made their first contribution in https://github.com/conda/conda/pull/13035
+
+
+## 23.7.3 (2023-08-21)
+
+### Bug fixes
+
+* Fix regression for supporting conda executable plugins installed into non-base environments. (#13006)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 23.7.2 (2023-07-27)
+
+### Bug fixes
+
+* Fix regression in parsing `--json` and `--debug` flags for executable plugins. (#12935, #12936)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 23.7.1 (2023-07-26)
+
+### Bug fixes
+
+* Patch parsed args with pre_args to correctly parse `--json` and `--debug` arguments. (#12928, #12929)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
+## 23.7.0 (2023-07-25)
+
+### Enhancements
+
+* Add `conda.deprecations.DeprecationHandler.action` helper to deprecate `argparse.Action`s. (#12493)
+* Add support for the FreeBSD operating system and register `freebsd-64` as a known subdirectory for FreeBSD on x86-64. (#12647)
+* Do not mock `$CONDA_PREFIX` when `--name` or `--prefix` is provided. (#12696)
+* Add support for `sha256` filters in the MatchSpec syntax (e.g. `*[sha256=f453db4ffe2271ec492a2913af4e61d4a6c118201f07de757df0eff769b65d2e]`). (#12654 via #12707)
+* Add a new health check to `conda doctor` detecting altered packages in an environment by comparing expected and computed `sha256` checksums. (#12757)
+* Add new `pre_commands` and `post_commands` plugin hooks allowing plugins to run code before and after `conda` subcommands. (#12712, #12758, #12864)
+* Stop using `distutils` directly in favor of the vendored version in `setuptools` 60 and later or standard library equivalents. (#11136)
+* Add a `CITATION.cff` file to the root of the repository to make it easier for users to cite conda. (#12781)
+* Add optional `CondaSubcommand.configure_parser` allowing third-party plugins to hook into conda's argument parser. (#12814)
+* Only display third-party subcommands in `conda --help` and not for every other subcommand. (#12814, #12740)
+* Add a new config option, `no_plugins`, a` --no-plugins` command line flag, and a `CONDA_NO_PLUGINS` environment variable that disables external plugins for built-in conda commands. (#12748)
+* Register plugins using their canonical/fully-qualified name instead of the easily spoofable entry point name. (#12869)
+* De-duplicate plugin and legacy subcommands in `conda --help`. (#12893)
+* Implement a 2-phase parser to better handle plugin disabling (via `--no-plugins`). (#12910)
+* Refactor subcommand parsing to use a greedy parser since `argparse.REMAINDER` has [known issues](https://github.com/python/cpython/issues/61252). (#12910)
+
+### Bug fixes
+
+* Use `requests.exceptions.JSONDecodeError` for ensuring compatibility with different `json` implementations used by requests. This fixes a bug that caused only the first of multiple given source URLs to be tried. This also raises the minimum required requests version to 2.27.0. (#12683)
+* Don't export `__osx` virtual package when `CONDA_OVERRIDE_OSX=""`. (#12715)
+* Fix erroneous `conda deactivate` behavior of unsetting preexisting environment variables that are identical to those set during `conda activate`. (#12769)
+* Correct third-party subcommands to receive _remaining_ arguments instead of a blanket `sys.argv[2:]` which broke `conda_cli` testing. (#12814, #12910)
+
+### Deprecations
+
+* Mark `conda.base.context.context.root_dir` as pending deprecation. Use `conda.base.context.context.root_prefix` instead. (#12701)
+* Mark `conda.plugins.subcommands.doctor.cli.get_prefix` as pending deprecation. Use `conda.base.context.context.target_prefix` instead. (#12725)
+* Mark `conda.models.leased_path_entry.LeasedPathEntry` as pending deprecation. (#12735)
+* Mark `conda.models.enums.LeasedPathType` as pending deprecation. (#12735)
+* Mark `conda.common.temporary_content_in_file` as pending deprecation. Use `tempfile` instead. (#12795)
+* Mark `conda.cli.python_api` as pending deprecation. Use `conda.testing.conda_cli` fixture instead. (#12796)
+
+### Docs
+
+* Document how to use the new `pre_commands` and `post_commands` plugin hooks. (#12712, #12758)
+* Add docstrings to all public modules. (#12792)
+* Auto-generate API docs using `sphinx-autoapi`. (#12798)
+* Convert all manual redirects into config using `sphinx-reredirects`. (#12798)
+* Revise the plugins index page to make it easier to understand how to create a conda plugin. (#12802)
+* Add missing `conda env` CLI docs. (#12841)
+
+### Other
+
+* Update `tests/cli/test_main_rename.py` to use latest fixtures. (#12517)
+* Update `tests/test_activate.py` to test the new behavior. (#12769)
+* Re-enable all `conda_env` tests and remove irrelevant tests. (#12813)
+* Convert all `unittest`-style tests to `pytest`-style. (#12819)
+* Convert `tests/test-recipes` into local noarch packages instead of relying on conda-test channel and local builds. (#12879)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dariocurr
+* @jaimergp
+* @jezdez
+* @johanneskoester made their first contribution in https://github.com/conda/conda/pull/12683
+* @jjhelmus
+* @kalawac made their first contribution in https://github.com/conda/conda/pull/12738
+* @kenodegard
+* @schackartk made their first contribution in https://github.com/conda/conda/pull/12781
+* @lesteve made their first contribution in https://github.com/conda/conda/pull/12715
+* @ForgottenProgramme
+* @marcoesters made their first contribution in https://github.com/conda/conda/pull/12863
+* @mpotane made their first contribution in https://github.com/conda/conda/pull/11740
+* @mattkram made their first contribution in https://github.com/conda/conda/pull/12730
+* @morremeyer made their first contribution in https://github.com/conda/conda/pull/12871
+* @mcg1969
+* @travishathaway
+* @pre-commit-ci[bot]
+
+
+
+## 23.5.2 (2023-07-13)
+
+### Bug fixes
+
+* Correct `native_path_to_unix` failure to handle no paths (e.g., an empty string or an empty iterable). (#12880)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 23.5.1 (2023-07-12)
+
+### Bug fixes
+
+* Add (back) the `cygpath` fallback logic since `cygpath` is not always available on Windows. (#12873)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 23.5.0 (2023-05-17)
+
+### Enhancements
+
+* Add `conda doctor` subcommand plugin. (#474)
+* Add Python 3.11 support. (#12256)
+* Add `conda list --reverse` to return a reversed list of installed packages. (#11954)
+* Switch from `setup.py` to `pyproject.toml` and use [Hatchling](https://pypi.org/project/hatchling/) for our build system. (#12509)
+* Optimize which Python modules get imported during `conda activate` calls to make it faster. (#12550)
+* Add `conda_cli` fixture to replace `conda.testing.helpers.run_inprocess_conda_command` and `conda.testing.integration.run_command`. (#12592)
+* Add `tmp_env` fixture to replace `conda.testing.integration.make_temp_env`. (#12592)
+* Add `path_factory` fixture to replace custom prefix logic like `conda.testing.integration._get_temp_prefix` and `conda.testing.integration.make_temp_prefix`. (#12592)
+* Refactor the way that the `Activator` classes are defined in `conda/activate.py`. (#12627)
+* Warn about misconfiguration when signature verification is enabled. (#12639)
+
+### Bug fixes
+
+* `conda clean` no longer fails if we failed to get the file stats. (#12536)
+* Provide fallback version if `conda.deprecations.DeprecationHandler` receives a bad version. (#12541)
+* Ensure the default value for `defaults` includes `msys2` when `context.subdir` is `win-*` on non-Windows platforms. (#12555)
+* Avoid `TypeError` when non-string types are written to the index cache metadata. (#12562)
+* `conda.core.package_cache_data.UrlsData.get_url` no longer fails when `package_path` has `.conda` extension. (#12516)
+* Stop pre-converting paths to Unix style on Windows in `conda.sh`, so that they are prefix replaceable upon installation, which got broken by #12509. It also relies on `cygpath` at runtime, which all `msys2`/`cygwin` bash versions on Windows should have available. (#12627)
+
+### Deprecations
+
+* Mark `conda_env.pip_util.get_pip_version` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util.PipPackage` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util.installed` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util._canonicalize_name` as pending deprecation. (#12492)
+* Mark `conda_env.pip_util.add_pip_installed` as pending deprecation. (#12492)
+* Mark `conda_env.env.load_from_directory` as pending deprecation. (#12492)
+* Mark `python -m conda_env.cli.main` as pending deprecation. Use `conda env` instead. (#12492)
+* Mark `python -m conda_env` as pending deprecation. Use `conda env` instead. (#12492)
+* Mark `conda.auxlib.packaging` for deprecation in 24.3.0. (#12509)
+* Rename index cache metadata file `.state.json` to `.info.json` to track draft CEP. (#12669)
+* Mark `conda.testing.integration.get_conda_list_tuple` as pending deprecation. Use `conda.core.prefix_data.PrefixData().get()` instead. (#12676)
+* Mark `conda.testing.encode_for_env_var` as pending deprecation. (#12677)
+* Mark `conda.testing.integration.temp_chdir` as pending deprecation. Use `monkeypatch.chdir` instead. (#12678)
+
+### Docs
+
+* Change the README example from IPython Notebook and NumPy to PyTorch. (#12579)
+* Discuss options available to properly configure mirrored channels. (#12583, #12641)
+* Add `flake8-docstrings` to `pre-commit`. (#12620)
+
+### Other
+
+* Update retry language in flexible solve and `repodata` logs to be less ominous. (#12612)
+* Improve `repodata` / `subdir_data` programming interface (#12521). Index cache metadata has changed to `.info.json` to better align with the [draft CEP](https://github.com/conda-incubator/ceps/pull/48). Improve cache locking when using `jlap`. Improve `jlap` logging. (#12572)
+* Format with `black` and replaced `pre-commit`'s `darker` hook with `black`. (#12554)
+* Format with `isort` and add `pre-commit` `isort` hook. (#12554)
+* Add functional tests around conda's content trust code. (#11805)
+* Enable `flake8` checks that are now handled by `black`. (#12620)
+
+### Contributors
+
+* @beeankha
+* @chbrandt made their first contribution in https://github.com/conda/conda/pull/12419
+* @chenghlee
+* @conda-bot
+* @dholth
+* @THEdavehogue made their first contribution in https://github.com/conda/conda/pull/12612
+* @HeavenEvolved made their first contribution in https://github.com/conda/conda/pull/12496
+* @eltociear
+* @jaimergp
+* @jezdez
+* @johnnynunez made their first contribution in https://github.com/conda/conda/pull/12256
+* @kenodegard
+* @ForgottenProgramme
+* @pkmooreanaconda
+* @tl-hbk made their first contribution in https://github.com/conda/conda/pull/12604
+* @vic-ma made their first contribution in https://github.com/conda/conda/pull/12579
+* @pre-commit-ci[bot]
+* @sausagenoods made their first contribution in https://github.com/conda/conda/pull/12631
+
+
+
 ## 23.3.1 (2023-03-28)
 
 ### Enhancements

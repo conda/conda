@@ -4,6 +4,7 @@ package:
 
 build:
   number: 0
+  noarch: generic
 
 requirements:
   run:

@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Collection of conda's high-level APIs."""
 from .base.constants import DepsModifier as _DepsModifier
 from .base.constants import UpdateModifier as _UpdateModifier
 from .base.context import context
@@ -9,11 +10,11 @@ from .core.prefix_data import PrefixData as _PrefixData
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
+#: Flags to enable alternate handling of dependencies.
 DepsModifier = _DepsModifier
-"""Flags to enable alternate handling of dependencies."""
 
+#: Flags to enable alternate handling for updates of existing packages in the environment.
 UpdateModifier = _UpdateModifier
-"""Flags to enable alternate handling for updates of existing packages in the environment."""
 
 
 class Solver:

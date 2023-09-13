@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Detect whether this is macOS."""
 import os
 
 from ...base.context import context
@@ -15,4 +16,5 @@ def conda_virtual_packages():
 
     _, dist_version = context.os_distribution_name_version
     dist_version = os.environ.get("CONDA_OVERRIDE_OSX", dist_version)
-    yield CondaVirtualPackage("osx", dist_version, None)
+    if dist_version:
+        yield CondaVirtualPackage("osx", dist_version, None)

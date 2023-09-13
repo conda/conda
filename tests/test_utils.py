@@ -5,6 +5,7 @@ from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
 from pathlib import Path
+from shutil import which
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +13,7 @@ import pytest
 from conda import CondaError, utils
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.compat import on_win
-from conda.common.path import which, win_path_to_unix
+from conda.common.path import win_path_to_unix
 from conda.testing.helpers import assert_equals
 
 SOME_PREFIX = "/some/prefix"

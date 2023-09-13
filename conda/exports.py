@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Backported exports for conda-build."""
 import errno
 import functools
 import os
@@ -13,7 +14,6 @@ from io import StringIO  # noqa: F401
 
 from . import CondaError  # noqa: F401
 from .base.context import reset_context
-from .deprecations import deprecated
 
 reset_context()  # initialize context when conda.exports is imported
 
@@ -24,21 +24,22 @@ from .cli.conda_argparse import add_parser_channels, add_parser_prefix  # noqa: 
 from .common import compat  # noqa: F401
 from .common.compat import on_win  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
+from .core.package_cache_data import rm_fetched  # noqa: F401
 from .core.solve import Solver  # noqa: F401
+from .deprecations import deprecated
 from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
+from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
 from .gateways.disk.link import lchmod  # noqa: F401
 
 
-@deprecated("23.3", "23.9", addendum="Handled by CondaSession.")
+@deprecated("23.3", "24.3", addendum="Handled by CondaSession.")
 def handle_proxy_407(x, y):
     pass
 
 
-from .core.package_cache_data import rm_fetched  # noqa: F401
-from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
 from .resolve import (  # noqa: F401
     MatchSpec,
@@ -51,12 +52,7 @@ NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 import conda.base.context
 
-from .base.context import (  # noqa: F401
-    get_prefix,
-    non_x86_machines,
-    reset_context,
-    sys_rc_path,
-)
+from .base.context import non_x86_machines, reset_context, sys_rc_path  # noqa: F401
 from .common.path import win_path_to_unix  # noqa: F401
 from .gateways.disk.read import compute_md5sum  # noqa: F401
 from .models.channel import Channel  # noqa: F401
@@ -148,7 +144,7 @@ class InstalledPackages:
     pass
 
 
-@deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
+@deprecated("23.3", "24.3", addendum="Use `functools.lru_cache` instead.")
 class memoized:  # pragma: no cover
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned

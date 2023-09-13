@@ -35,14 +35,19 @@ repos:
       - id: check-merge-conflict
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.5.4
     hooks:
       # auto inject license blurb
       - id: insert-license
         files: \.py$
+        exclude: |
+          (?x)^(
+            conda/gateways/connection/adapters/ftp.py |  # Apache 2.0
+            conda/gateways/disk/link.py  # MIT
+          )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.10.1
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -54,18 +59,22 @@ repos:
       # auto sort Python imports
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.9.1
     hooks:
       # auto format Python codes
       - id: black
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.13.0
+    rev: 1.16.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    # Ruff version.
-    rev: 'v0.0.263'
+    rev: v0.0.263
     hooks:
       - id: ruff
+  - repo: meta
+    # see https://pre-commit.com/#meta-hooks
+    hooks:
+      - id: check-hooks-apply
+      - id: check-useless-excludes

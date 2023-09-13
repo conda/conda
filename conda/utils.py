@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Utility functions."""
 from __future__ import annotations
 
 import logging
@@ -10,12 +11,13 @@ from functools import lru_cache, wraps
 from os import PathLike, environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
+from shutil import which
 from typing import Literal
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
-from .common.path import which, win_path_to_unix
+from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 from .gateways.disk.read import compute_sum

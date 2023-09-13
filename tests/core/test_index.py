@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
-from unittest import TestCase
 
 import pytest
 
@@ -133,33 +132,35 @@ def test_supplement_index_with_system_glibc():
 
 
 @pytest.mark.integration
-class GetIndexIntegrationTests(TestCase):
-    def test_get_index_linux64_platform(self):
-        linux64 = "linux-64"
-        index = get_index(platform=linux64)
-        for dist, record in index.items():
-            assert platform_in_record(linux64, record), (linux64, record.url)
-
-    def test_get_index_osx64_platform(self):
-        osx64 = "osx-64"
-        index = get_index(platform=osx64)
-        for dist, record in index.items():
-            assert platform_in_record(osx64, record), (osx64, record.url)
-
-    def test_get_index_win64_platform(self):
-        win64 = "win-64"
-        index = get_index(platform=win64)
-        for dist, record in index.items():
-            assert platform_in_record(win64, record), (win64, record.url)
+def test_get_index_linux64_platform():
+    linux64 = "linux-64"
+    index = get_index(platform=linux64)
+    for dist, record in index.items():
+        assert platform_in_record(linux64, record), (linux64, record.url)
 
 
 @pytest.mark.integration
-class ReducedIndexTests(TestCase):
-    def test_basic_get_reduced_index(self):
-        get_reduced_index(
-            None,
-            (Channel("defaults"), Channel("conda-test")),
-            context.subdirs,
-            (MatchSpec("flask"),),
-            "repodata.json",
-        )
+def test_get_index_osx64_platform():
+    osx64 = "osx-64"
+    index = get_index(platform=osx64)
+    for dist, record in index.items():
+        assert platform_in_record(osx64, record), (osx64, record.url)
+
+
+@pytest.mark.integration
+def test_get_index_win64_platform():
+    win64 = "win-64"
+    index = get_index(platform=win64)
+    for dist, record in index.items():
+        assert platform_in_record(win64, record), (win64, record.url)
+
+
+@pytest.mark.integration
+def test_basic_get_reduced_index():
+    get_reduced_index(
+        None,
+        (Channel("defaults"), Channel("conda-test")),
+        context.subdirs,
+        (MatchSpec("flask"),),
+        "repodata.json",
+    )

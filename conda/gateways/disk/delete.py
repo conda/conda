@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Disk utility functions for deleting files and folders."""
 import fnmatch
 import shutil
 import sys
@@ -27,7 +28,7 @@ from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 
 if not on_win:
-    from ...common.path import which
+    from shutil import which
 
 
 log = getLogger(__name__)

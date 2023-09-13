@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""YAML and JSON serialization and deserialization functions."""
 import functools
 import json
 from io import StringIO

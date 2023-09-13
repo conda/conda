@@ -1,13 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Collection of pytest fixtures used in conda tests."""
 import warnings
 
 import py
 import pytest
 
 from conda.auxlib.ish import dals
-from conda.base.context import context, reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.configuration import YamlRawParameter
+from conda.common.io import env_vars
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.subdir_data import SubdirData
 from conda.gateways.disk.create import TemporaryDirectory
@@ -69,3 +71,15 @@ def reset_conda_context():
     yield
 
     reset_context()
+
+
+@pytest.fixture()
+def temp_package_cache(tmp_path_factory):
+    """
+    Used to isolate package or index cache from other tests.
+    """
+    pkgs_dir = tmp_path_factory.mktemp("pkgs")
+    with env_vars(
+        {"CONDA_PKGS_DIRS": str(pkgs_dir)}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ):
+        yield pkgs_dir
