@@ -31,9 +31,9 @@ def check_envs_txt_file(prefix: str | Path) -> bool:
             return True
         else:
             return False
-    except Exception as err:
+    except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
         logger.error(
-            f"environments.txt file {envs_txt_file} could not be "
+            f"{envs_txt_file} could not be "
             f"accessed because of the following error: {err}"
         )
 

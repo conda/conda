@@ -91,14 +91,13 @@ def test_listed_on_envs_txt_file(
     """Test that runs for the case when the env is listed on the environments.txt file"""
     prefix, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
-    with open(tmp_envs_txt_file, "w") as f:
-        f.write(f"{prefix}")
+    tmp_envs_txt_file.write_text(f"{prefix}")
 
     mocker.patch(
         "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
-    assert check_envs_txt_file(prefix) == True
+    assert check_envs_txt_file(prefix)
 
 
 def test_not_listed_on_envs_txt_file(
@@ -107,14 +106,13 @@ def test_not_listed_on_envs_txt_file(
     """Test that runs for the case when the env is not listed on the environments.txt file"""
     prefix, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
-    with open(tmp_envs_txt_file, "w") as f:
-        f.write("Not environment name")
+    tmp_envs_txt_file.write_text("Not environment name")
 
     mocker.patch(
         "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
-    assert check_envs_txt_file(prefix) == False
+    assert not check_envs_txt_file(prefix)
 
 
 def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
