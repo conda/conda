@@ -26,11 +26,14 @@ def check_envs_txt_file(prefix: str | Path) -> bool:
     """Checks whether the environment is listed in the environments.txt file"""
     try:
         envs_txt_file = Path(get_user_environments_txt_file())
-        content = envs_txt_file.read_text()
-        if str(prefix) in content:
-            return True
-        else:
+        with envs_txt_file.open() as f:
+            lines = f.readlines()
+            for line in lines:
+                line = line.strip()
+                if Path(prefix).samefile(line):
+                    return True
             return False
+
     except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
         logger.error(
             f"{envs_txt_file} could not be "
