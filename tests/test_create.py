@@ -1526,7 +1526,7 @@ def test_update_deps_flag_present(clear_package_cache: None):
 
 
 @pytest.mark.skipif(True, reason="Add this test back someday.")
-# @pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+# @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message(clear_package_cache: None):
     prefix = make_temp_prefix("_" + str(uuid4())[:7])
     with make_temp_env(prefix=prefix):
@@ -1537,7 +1537,7 @@ def test_shortcut_in_underscore_env_shows_message(clear_package_cache: None):
         )
 
 
-@pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_not_attempted_with_no_shortcuts_arg(clear_package_cache: None):
     prefix = make_temp_prefix("_" + str(uuid4())[:7])
     shortcut_dir = get_shortcut_dir()
@@ -1553,7 +1553,7 @@ def test_shortcut_not_attempted_with_no_shortcuts_arg(clear_package_cache: None)
         assert not isfile(shortcut_file)
 
 
-@pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
@@ -1582,7 +1582,7 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
             os.remove(shortcut_file)
 
 
-@pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_absent_does_not_barf_on_uninstall(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
@@ -1610,7 +1610,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(clear_package_cache: None):
             os.remove(shortcut_file)
 
 
-@pytest.mark.skipif(not on_win, reason="legacy shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_absent_when_condarc_set(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
