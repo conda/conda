@@ -99,9 +99,6 @@ exclude_lines = [
   '\s*\.\.\.$',
 ]
 
-[tool.isort]
-profile = "black"
-
 [tool.ruff]
 line-length = 99
 # E, W = pycodestyle errors and warnings
