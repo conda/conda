@@ -70,9 +70,10 @@ repos:
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.263
+    rev: v0.0.289
     hooks:
       - id: ruff
+        args: [--fix]
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
     hooks:

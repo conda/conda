@@ -8,8 +8,6 @@ boto3  # also need the `minio` server, installed manually in CI
 chardet
 conda
 conda-content-trust
-conda-forge::flake8-docstrings
-conda-forge::flake8-pyproject
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
@@ -17,7 +15,6 @@ conda-package-handling >=1.3.0
 conda-verify
 coverage
 cryptography <41.0.0  # 41.0.0 breaks conda-content-trust 0.1.3
-flake8
 flask >=2.2
 git
 jsonpatch >=1.32
