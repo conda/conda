@@ -11,7 +11,6 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import reset_context
-from conda.common.io import env_vars
 from conda.plugins.subcommands.doctor.health_checks import (
     display_health_checks,
     find_altered_packages,
@@ -134,7 +133,6 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str]):
     """Test that runs for the case when json file is missing"""
     prefix, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
-    package = None
     assert find_altered_packages(prefix) == {}
 
 
