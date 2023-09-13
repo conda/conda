@@ -30,11 +30,11 @@ from conda.gateways.repodata import (
     RepoInterface,
     cache_fn_url,
     create_cache_dir,
+    get_repo_interface,
 )
 from conda.gateways.repodata import (
     get_cache_control_max_age as _get_cache_control_max_age,
 )
-from conda.gateways.repodata import get_repo_interface
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
