@@ -8,7 +8,7 @@
 
 ### Bug fixes
 
-* Fix S3 bucket name. (#12989)
+* Fix S3 bucket name in test fixture. (#12989)
 * Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
 * Catch `PermissionError` raised by `conda.cli.find_commands.find_commands` when user's `$PATH` contains restricted paths. (#13062, #13089)
 * Fix sorting error for `conda config --show-sources --json`. (#13076)
