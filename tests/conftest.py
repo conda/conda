@@ -6,9 +6,10 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
+from conda.testing import conda_cli, path_factory, tmp_env  # noqa: F401
 
 from . import http_test_server
-from .fixtures_jlap import (  # NOQA
+from .fixtures_jlap import (  # noqa: F401
     package_repository_base,
     package_server,
     package_server_ssl,
