@@ -221,9 +221,15 @@ def test_get_session_with_channel_settings_no_handler(mocker):
         "conda.gateways.connection.session.get_channel_name_from_url",
         return_value="defaults",
     )
-    mock_context = mocker.patch("conda.gateways.connection.session.context")
-    mock_context.plugin_manager.get_auth_handler.return_value = None
-    mock_context.channel_settings = ({"channel": "defaults", "auth": "dummy_two"},)
+    mock = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler",
+        return_value=None,
+    )
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=({"channel": "defaults", "auth": "dummy_two"},),
+    )
 
     url = "https://localhost/test2"
 
@@ -236,10 +242,7 @@ def test_get_session_with_channel_settings_no_handler(mocker):
     assert type(session_obj.auth) is CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
-    assert (
-        mocker.call("dummy_two")
-        in mock_context.plugin_manager.get_auth_handler.mock_calls
-    )
+    assert mocker.call("dummy_two") in mock.mock_calls
 
 
 @pytest.mark.parametrize(

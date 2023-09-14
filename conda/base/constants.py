@@ -68,6 +68,8 @@ DEFAULTS_CHANNEL_NAME = "defaults"
 
 KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "noarch",
+    "emscripten-wasm32",
+    "wasi-wasm32",
     "freebsd-64",
     "linux-32",
     "linux-64",

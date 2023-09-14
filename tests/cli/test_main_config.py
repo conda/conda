@@ -65,3 +65,11 @@ def test_config_get_missing(
     assert Path(parsed["rc_path"]) == path
     assert parsed["success"]
     assert "warnings" in parsed
+
+
+def test_config_show_sources_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("config", "--show-sources", "--json")
+    parsed = json.loads(stdout.strip())
+    assert "error" not in parsed  # not an error rendered as a json
+    assert not stderr
+    assert not err
