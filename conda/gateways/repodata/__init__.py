@@ -579,7 +579,9 @@ class RepodataCache:
         """
         try:
             self.load(state_only=True)
-        except FileNotFoundError:  # or JSONDecodeError?
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            if isinstance(e,  json.JSONDecodeError):
+                warnings.warn(f"{e.__class__.__name__} loading {self.cache_path_state}")
             self.state.clear()
         return self.state
 
