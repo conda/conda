@@ -1,7 +1,7 @@
 # conda
 # run as 'conda install --file tests/requirements.txt -c defaults' or
 # run as 'conda install --file tests/requirements.txt -c conda-forge'
-anaconda-client
+conda-forge::anaconda-client
 beautifulsoup4
 boltons >=23.0.0
 boto3  # also need the `minio` server, installed manually in CI
