@@ -260,7 +260,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: macos-latest
+    runs-on: ghcr.io/cirruslabs/macos-monterey-xcode:latest
     strategy:
       fail-fast: false
       matrix:
