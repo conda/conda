@@ -24,13 +24,12 @@ def display_report_heading(prefix: str) -> None:
 
 def check_envs_txt_file(prefix: str | Path) -> bool:
     """Checks whether the environment is listed in the environments.txt file"""
+    prefix = Path(prefix)
+    envs_txt_file = Path(get_user_environments_txt_file())
     try:
-        envs_txt_file = Path(get_user_environments_txt_file())
         with envs_txt_file.open() as f:
-            lines = f.readlines()
-            for line in lines:
-                line = line.strip()
-                if Path(prefix).samefile(line):
+            for line in f.readlines():
+                if prefix.samefile(line.strip()):
                     return True
             return False
 
