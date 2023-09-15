@@ -21,6 +21,7 @@ flake8
 flask >=2.2
 git
 jsonpatch >=1.32
+menuinst >=2
 nbformat
 packaging
 perl
@@ -47,4 +48,3 @@ tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
 toolz >=0.8.1
 tqdm >=4
 werkzeug >=2.2
-conda-canary/label/dev::menuinst >=2.0.0a0  # temporary
