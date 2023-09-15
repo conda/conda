@@ -160,7 +160,7 @@ def ssl_verify_validation(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
-                "certificates of trusted CAs or 'truststore' to use the OS certificate store."
+                "certificates of trusted CAs, or 'truststore' to use the OS certificate store."
                 % value
             )
     return True
