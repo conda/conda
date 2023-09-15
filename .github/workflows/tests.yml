@@ -329,7 +329,7 @@ jobs:
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
         env:
-          CONDA_SOLVER: classic
+          CONDA_SOLVER: libmamba
         with:
           activate-environment: conda-test-env
           miniconda-version: "latest"
@@ -339,7 +339,7 @@ jobs:
         name: Setup miniconda for conda-forge
         if: matrix.default-channel == 'conda-forge'
         env:
-          CONDA_SOLVER: classic
+          CONDA_SOLVER: libmamba
         with:
           activate-environment: conda-test-env
           miniforge-version: latest
@@ -347,7 +347,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           ./dev/macos/setup.sh
 
