@@ -13,8 +13,10 @@ import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
+from typing import Literal, overload
 
 import pluggy
+from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
 from ..base.context import context
@@ -22,7 +24,14 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import CondaSubcommand
+from .types import (
+    CondaAuthHandler,
+    CondaPostCommand,
+    CondaPreCommand,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 log = logging.getLogger(__name__)
 
@@ -73,17 +82,18 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         count = 0
         for plugin in plugins:
-            # only use the canonical name after this point
-            canonical = self.get_canonical_name(plugin)
-
             try:
-                self.register(plugin, canonical)
+                # register plugin
+                # extracts canonical name from plugin, checks for duplicates,
+                # and if blocked
+                if self.register(plugin):
+                    # successfully registered a plugin
+                    count += 1
             except ValueError as err:
                 raise PluginError(
-                    f"Error while loading first-party conda plugin: {canonical} ({err})"
+                    f"Error while loading first-party conda plugin: "
+                    f"{self.get_canonical_name(plugin)} ({err})"
                 )
-
-            count += 1
         return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
@@ -116,24 +126,51 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                # only use the canonical name after this point
-                canonical = self.get_canonical_name(plugin)
-
-                # skip plugin if already registered or blocked
-                if self.get_plugin(canonical) or self.is_blocked(canonical):
-                    continue
-
                 try:
-                    self.register(plugin, canonical)
+                    # register plugin
+                    # extracts canonical name from plugin, checks for duplicates,
+                    # and if blocked
+                    if self.register(plugin):
+                        # successfully registered a plugin
+                        count += 1
                 except ValueError as err:
                     raise PluginError(
-                        f"Error while loading third-party conda plugin: {canonical} ({err})"
+                        f"Error while loading third-party conda plugin: "
+                        f"{self.get_canonical_name(plugin)} ({err})"
                     )
-
-                count += 1
         return count
 
-    def get_hook_results(self, name: str) -> list:
+    @overload
+    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["virtual_packages"]
+    ) -> list[CondaVirtualPackage]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_commands"]
+    ) -> list[CondaPostCommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["auth_handlers"]
+    ) -> list[CondaAuthHandler]:
+        ...
+
+    def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -143,10 +180,24 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = sorted(
-            (item for items in hook() for item in items),
-            key=lambda item: item.name,
-        )
+        plugins = [item for items in hook() for item in items]
+
+        # Check for invalid names
+        invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
+        if invalid:
+            raise PluginError(
+                dals(
+                    f"""
+                    Invalid plugin names found:
+
+                    {', '.join([str(plugin) for plugin in invalid])}
+
+                    Please report this issue to the plugin author(s).
+                    """
+                )
+            )
+        plugins = sorted(plugins, key=lambda plugin: plugin.name)
+
         # Check for conflicts
         seen = set()
         conflicts = [
@@ -167,6 +218,13 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
+    def get_solvers(self) -> dict[str, CondaSolver]:
+        """Return a mapping from solver name to solver class."""
+        return {
+            solver_plugin.name.lower(): solver_plugin
+            for solver_plugin in self.get_hook_results("solvers")
+        }
+
     def get_solver_backend(self, name: str | None = None) -> type[Solver]:
         """
         Get the solver backend with the given name (or fall back to the
@@ -183,24 +241,32 @@ class CondaPluginManager(pluggy.PluginManager):
             name = context.solver
         name = name.lower()
 
-        # Build a mapping between a lower cased backend name and
-        # solver backend class provided by the installed plugins.
-        solvers_mapping = {
-            solver.name.lower(): solver.backend
-            for solver in self.get_hook_results("solvers")
-        }
+        solvers_mapping = self.get_solvers()
 
         # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
-        backend = solvers_mapping.get(name, None)
-        if backend is None:
+        solver_plugin = solvers_mapping.get(name, None)
+        if solver_plugin is None:
             raise CondaValueError(
                 f"You have chosen a non-default solver backend ({name}) "
                 f"but it was not recognized. Choose one of: "
-                f"{', '.join(solvers_mapping.keys())}"
+                f"{', '.join(solvers_mapping)}"
             )
 
-        return backend
+        return solver_plugin.backend
+
+    def get_auth_handler(self, name: str) -> type[AuthBase] | None:
+        """
+        Get the auth handler with the given name or None
+        """
+        auth_handlers = self.get_hook_results("auth_handlers")
+        matches = tuple(
+            item for item in auth_handlers if item.name.lower() == name.lower().strip()
+        )
+
+        if len(matches) > 0:
+            return matches[0].handler
+        return None
 
     def invoke_pre_commands(self, command: str) -> None:
         """
@@ -235,6 +301,9 @@ class CondaPluginManager(pluggy.PluginManager):
             subcommand.name.lower(): subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
+
+    def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
+        return tuple(self.get_hook_results("virtual_packages"))
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

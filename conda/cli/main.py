@@ -3,21 +3,30 @@
 """Entry point for all conda subcommands."""
 import sys
 
+from ..deprecations import deprecated
 
-def init_loggers(context=None):
-    from logging import CRITICAL, getLogger
 
-    from ..gateways.logging import initialize_logging, set_verbosity
+@deprecated.argument(
+    "24.3",
+    "24.9",
+    "context",
+    addendum="The context is a global state, no need to pass it around.",
+)
+def init_loggers():
+    import logging
+
+    from ..base.context import context
+    from ..gateways.logging import initialize_logging, set_log_level
 
     initialize_logging()
-    if context and context.json:
-        # Silence logging info to avoid interfering with JSON output
-        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context:
-        if context.verbosity:
-            set_verbosity(context.verbosity)
+    # silence logging info to avoid interfering with JSON output
+    if context.json:
+        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
+            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
+
+    # set log_level
+    set_log_level(context.log_level)
 
 
 def generate_parser(*args, **kwargs):
@@ -42,7 +51,12 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     pre_args, _ = pre_parser.parse_known_args(args)
 
     # the arguments that we want to pass to the main parser later on
-    override_args = {"json": pre_args.json, "debug": pre_args.debug}
+    override_args = {
+        "json": pre_args.json,
+        "debug": pre_args.debug,
+        "trace": pre_args.trace,
+        "verbosity": pre_args.verbosity,
+    }
 
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
@@ -55,7 +69,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     context.__init__(argparse_args=args)
-    init_loggers(context)
+    init_loggers()
 
     # used with main_pip.py
     if post_parse_hook:
@@ -76,7 +90,7 @@ def main_sourced(shell, *args, **kwargs):
     from ..base.context import context
 
     context.__init__()
-    init_loggers(context)
+    init_loggers()
 
     from ..activate import _build_activator_cls
 

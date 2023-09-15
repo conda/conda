@@ -57,6 +57,10 @@ jobs:
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
+              - 'dev/**/setup.*'
+              - 'dev/**/integration.*'
+              - 'dev/**/unit.*'
+              - 'dev/**/qemu.*'
 
   # windows test suite
   windows:
@@ -343,7 +347,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           ./dev/macos/setup.sh
 

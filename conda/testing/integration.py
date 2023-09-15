@@ -270,7 +270,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
-    init_loggers(context)
+    init_loggers()
     cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
     print(
@@ -416,7 +416,7 @@ def reload_config(prefix):
 
 def package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix).query(spec))
+    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=True).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
             "Multiple packages installed.%s"

@@ -15,11 +15,11 @@ import pytest
 import requests
 import zstandard
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError, CondaSSLError
-from conda.gateways.connection.session import CondaSession
+from conda.gateways.connection.session import CondaSession, get_session
 from conda.gateways.repodata import (
     CACHE_CONTROL_KEY,
     CACHE_STATE_SUFFIX,
@@ -127,7 +127,7 @@ def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
 
 @pytest.mark.parametrize("verify_ssl", [True, False])
 def test_jlap_fetch_ssl(
-    package_server_ssl: socket, tmp_path: Path, mocker, verify_ssl: bool
+    package_server_ssl: socket, tmp_path: Path, monkeypatch, verify_ssl: bool
 ):
     """Check that JlapRepoInterface doesn't raise exceptions."""
     host, port = package_server_ssl.getsockname()
@@ -148,23 +148,25 @@ def test_jlap_fetch_ssl(
 
     # clear session cache to avoid leftover wrong-ssl-verify Session()
     try:
-        del CondaSession._thread_local.session
+        CondaSession._thread_local.sessions = {}
     except AttributeError:
         pass
 
     state = {}
-    with env_vars(
-        {"CONDA_SSL_VERIFY": str(verify_ssl).lower()},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(expected_exception), pytest.warns() as record:
+    with pytest.raises(expected_exception), pytest.warns() as record:
+        monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl).lower())
+        reset_context()
         repo.repodata(state)
+
+    # Clear lru_cache from the `get_session` function
+    get_session.cache_clear()
 
     # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
     assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"
 
     # clear session cache to avoid leftover wrong-ssl-verify Session()
     try:
-        del CondaSession._thread_local.session
+        CondaSession._thread_local.sessions = {}
     except AttributeError:
         pass
 
@@ -298,6 +300,55 @@ def test_repodata_state(
         ):
             assert field in state
             assert f"_{field}" not in state
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_info_jsondecodeerror(
+    package_server: socket,
+    use_jlap: bool,
+):
+    """Test that cache metadata file works correctly."""
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    if use_jlap:
+        repo_cls = interface.JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
+
+    with env_vars(
+        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+
+        # parameterize whether this is used?
+        assert isinstance(sd._repo, repo_cls)
+
+        print(sd.repodata_fn)
+
+        assert sd._loaded is False
+        # shoud automatically fetch and load
+        assert len(list(sd.iter_records()))
+        assert sd._loaded is True
+
+        # Corrupt the cache state. Double json could happen when (unadvisably)
+        # running conda in parallel, before we added locks-by-default.
+        sd.cache_path_state.write_text(sd.cache_path_state.read_text() * 2)
+
+        # now try to re-download
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+        sd2 = SubdirData(channel=test_channel)
+
+        # warnings.warn(f"{e.__class__.__name__} loading {self.cache_path_state}")
+        with pytest.warns(UserWarning, match=" loading "):
+            sd2.load()
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
