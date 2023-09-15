@@ -13,5 +13,4 @@ sudo cp minio /usr/local/bin/minio
 # restoring the default for changeps1 to have parity with dev
 conda config --set changeps1 true
 # install all test requirements
-conda install --yes --name conda-test-env --file tests/requirements.txt
-conda update --yes openssl ca-certificates certifi
+conda install --yes --solver=libmamba --name conda-test-env --file tests/requirements.txt
