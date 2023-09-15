@@ -302,6 +302,55 @@ def test_repodata_state(
             assert f"_{field}" not in state
 
 
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_info_jsondecodeerror(
+    package_server: socket,
+    use_jlap: bool,
+):
+    """Test that cache metadata file works correctly."""
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    if use_jlap:
+        repo_cls = interface.JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
+
+    with env_vars(
+        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+
+        # parameterize whether this is used?
+        assert isinstance(sd._repo, repo_cls)
+
+        print(sd.repodata_fn)
+
+        assert sd._loaded is False
+        # shoud automatically fetch and load
+        assert len(list(sd.iter_records()))
+        assert sd._loaded is True
+
+        # Corrupt the cache state. Double json could happen when (unadvisably)
+        # running conda in parallel, before we added locks-by-default.
+        sd.cache_path_state.write_text(sd.cache_path_state.read_text() * 2)
+
+        # now try to re-download
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+        sd2 = SubdirData(channel=test_channel)
+
+        # warnings.warn(f"{e.__class__.__name__} loading {self.cache_path_state}")
+        with pytest.warns(UserWarning, match=" loading "):
+            sd2.load()
+
+
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
 def test_jlap_flag(use_jlap):
     """Test that CONDA_EXPERIMENTAL is a comma-delimited list."""

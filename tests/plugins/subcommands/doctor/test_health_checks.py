@@ -9,10 +9,12 @@ from typing import Iterable
 
 import pytest
 from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda.base.context import reset_context
 from conda.common.io import env_vars
 from conda.plugins.subcommands.doctor.health_checks import (
+    check_envs_txt_file,
     display_health_checks,
     find_altered_packages,
     find_packages_with_missing_files,
@@ -81,6 +83,36 @@ def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, st
         f.write("print('Hello, World!')")
 
     return env_ok
+
+
+def test_listed_on_envs_txt_file(
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str]
+):
+    """Test that runs for the case when the env is listed on the environments.txt file"""
+    prefix, _, _, _ = env_ok
+    tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text(f"{prefix}")
+
+    mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        return_value=tmp_envs_txt_file,
+    )
+    assert check_envs_txt_file(prefix)
+
+
+def test_not_listed_on_envs_txt_file(
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str]
+):
+    """Test that runs for the case when the env is not listed on the environments.txt file"""
+    prefix, _, _, _ = env_ok
+    tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text("Not environment name")
+
+    mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        return_value=tmp_envs_txt_file,
+    )
+    assert not check_envs_txt_file(prefix)
 
 
 def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
