@@ -1957,7 +1957,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 558
+  num_commits: 566
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2003,7 +2003,7 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
-  num_commits: 68
+  num_commits: 70
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
@@ -2083,7 +2083,7 @@
   github: beeankha
   alternate_emails:
   - beeankha@gmail.com
-  num_commits: 25
+  num_commits: 29
   first_commit: 2022-05-12 13:39:02
 - name: Kian-Meng Ang
   email: kianmeng.ang@gmail.com
@@ -2364,3 +2364,10 @@
   github: marcoesters
   num_commits: 1
   first_commit: 2023-07-11 05:47:23
+- name: Peter Talley
+  email: peterctalley@gmail.com
+  github: otaithleigh
+  aliases:
+  - P. Talley
+  num_commits: 1
+  first_commit: 2023-08-25 20:43:39
