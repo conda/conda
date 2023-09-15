@@ -72,11 +72,17 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     Ensures we get an error when attempting to register commands with the same `name` property.
     """
     # setup
-    plugin_manager.register(SubcommandPlugin(name="custom", summary="Summary."))
+    plugin = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(plugin) == 1
 
-    # test
-    with pytest.raises(ValueError, match="Plugin already registered"):
-        plugin_manager.register(SubcommandPlugin(name="custom", summary="Summary."))
+    # invalid, identical plugins
+    with pytest.raises(PluginError, match="Error while loading first-party"):
+        plugin_manager.load_plugins(plugin)
+
+    # invalid, similar plugins
+    plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
+    with pytest.raises(PluginError, match="Error while loading first-party"):
+        plugin_manager.load_plugins(plugin2)
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)
