@@ -1959,14 +1959,11 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    solver_choices = [
-        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
-    ]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=solver_choices,
+        choices=context.plugin_manager.get_solvers(),
         help="Choose which solver backend to use.",
         default=NULL,
     )
