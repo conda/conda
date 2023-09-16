@@ -5,22 +5,19 @@ import json
 from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
 
-boto3 = boto = None
+boto3 = None
 
 
 def _load_boto3():
     """
     Import boto3 on demand only to save startup time.
     """
-    global boto3, boto
+    global boto3
 
     try:
         import boto3
     except ImportError:
-        try:
-            import boto
-        except ImportError:
-            pass
+        pass
 
 
 from ....common.compat import ensure_binary
@@ -42,13 +39,11 @@ class S3Adapter(BaseAdapter):
         resp.status_code = 200
         resp.url = request.url
 
-        if not (boto3 or boto):
+        if not boto3:
             _load_boto3()
 
         if boto3:
             return self._send_boto3(boto3, resp, request)
-        elif boto:
-            return self._send_boto(boto, resp, request)
         else:
             stderrlog.info(
                 "\nError: boto3 is required for S3 channels. "
@@ -100,36 +95,6 @@ class S3Adapter(BaseAdapter):
 
         resp.raw = self._write_tempfile(key.download_fileobj)
         resp.close = resp.raw.close
-
-        return resp
-
-    def _send_boto(self, boto, resp, request):
-        conn = boto.connect_s3()
-
-        bucket_name, key_string = url_to_s3_info(request.url)
-        bucket = conn.get_bucket(bucket_name, validate=False)
-        try:
-            key = bucket.get_key(key_string)
-        except boto.exception.S3ResponseError as exc:
-            resp.status_code = 404
-            resp.raw = exc
-            return resp
-
-        if key and key.exists:
-            modified = key.last_modified
-            content_type = key.content_type or "text/plain"
-            resp.headers = CaseInsensitiveDict(
-                {
-                    "Content-Type": content_type,
-                    "Content-Length": key.size,
-                    "Last-Modified": modified,
-                }
-            )
-
-            resp.raw = self._write_tempfile(key.get_contents_to_file)
-            resp.close = resp.raw.close
-        else:
-            resp.status_code = 404
 
         return resp
 
