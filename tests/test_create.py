@@ -1268,18 +1268,17 @@ def test_conda_config_validate(clear_package_cache: None):
         finally:
             reset_context()
 
-        try:
-            with open(join(prefix, "condarc"), "w") as fh:
-                fh.write("default_python: anaconda\n")
-                fh.write("ssl_verify: truststore\n")
-            reload_config(prefix)
 
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.CONFIG, prefix, "--validate")
-
-            assert len(exc.value.errors) == 0
-        finally:
-            reset_context()
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Skip truststore on earlier python versions",
+)
+def test_conda_config_validate_sslverify_truststore(clear_package_cache: None):
+    with make_temp_env() as prefix:
+        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "truststore")
+        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
+        assert not stdout
+        assert not stderr
 
 
 @pytest.mark.skipif(
