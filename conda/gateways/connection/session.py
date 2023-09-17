@@ -3,11 +3,11 @@
 """Requests session configured with all accepted scheme adapters."""
 from __future__ import annotations
 
-import warnings
 from functools import lru_cache
 from logging import getLogger
 from threading import local
 
+from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
@@ -166,14 +166,11 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
                 ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             except ImportError:
-                warnings.warn(
-                    dals(
-                        """
-                        The `ssl_verify: truststore` setting is only supported on Python 3.10 or later.
-                        Falling back to `ssl_verify: true`
-                        """
-                    )
+                raise CondaError(
+                    "The `ssl_verify: truststore` setting is only supported on"
+                    + "Python 3.10 or later."
                 )
+            self.verify = True
         else:
             self.verify = context.ssl_verify
 
