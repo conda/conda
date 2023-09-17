@@ -169,7 +169,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 warnings.warn(
                     dals(
                         """
-                        The `ssl_verify: truststore` setting is only supported on python >=3.10.
+                        The `ssl_verify: truststore` setting is only supported on Python 3.10 or later.
                         Falling back to `ssl_verify: true`
                         """
                     )
