@@ -1258,7 +1258,7 @@ def test_conda_config_validate(clear_package_cache: None):
             assert len(exc.value.errors) == 2
             str_exc_value = str(exc.value)
             assert (
-                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the OS certificate store."
+                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the operating system certificate store."
                 in str_exc_value
             )
             assert (

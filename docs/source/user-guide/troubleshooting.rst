@@ -250,7 +250,7 @@ Conda has three similar options.
        # #   ssl_verify to False disables certification verification. The value for
        # #   ssl_verify can also be (1) a path to a CA bundle file, (2) a path to a
        # #   directory containing certificates of trusted CA, or (3) 'truststore'
-       # #   to use the OS certificate store.
+       # #   to use the operating system certificate store.
        # #
        # ssl_verify: true
 
@@ -278,7 +278,7 @@ Conda has three similar options.
        # #   ssl_verify to False disables certification verification. The value for
        # #   ssl_verify can also be (1) a path to a CA bundle file, (2) a path to a
        # #   directory containing certificates of trusted CA, or (3) 'truststore'
-       # #   to use the OS certificate store.
+       # #   to use the operating system certificate store.
        # #
        # ssl_verify: true
 
