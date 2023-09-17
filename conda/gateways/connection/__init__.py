@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 try:
     from requests import ConnectionError, HTTPError, Session
-    from requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
-    from requests.adapters import HTTPAdapter as BaseHTTPAdapter
+    from requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter, HTTPAdapter
     from requests.auth import AuthBase, _basic_auth_str
     from requests.cookies import extract_cookies_to_jar
     from requests.exceptions import ChunkedEncodingError, InvalidSchema
@@ -21,9 +20,7 @@ except ImportError:  # pragma: no cover
     from pip._vendor.requests.adapters import (  # noqa: F401
         DEFAULT_POOLBLOCK,
         BaseAdapter,
-    )
-    from pip._vendor.requests.adapters import (  # noqa: F401
-        HTTPAdapter as BaseHTTPAdapter,
+        HTTPAdapter,
     )
     from pip._vendor.requests.auth import AuthBase, _basic_auth_str  # noqa: F401
     from pip._vendor.requests.cookies import extract_cookies_to_jar  # noqa: F401

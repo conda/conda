@@ -34,7 +34,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 from typing import TYPE_CHECKING, Any, Optional
 
-from .. import DEFAULT_POOLBLOCK, BaseHTTPAdapter
+from .. import DEFAULT_POOLBLOCK, HTTPAdapter as BaseHTTPAdapter
 
 if TYPE_CHECKING:
     from ssl import SSLContext
