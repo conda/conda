@@ -160,8 +160,8 @@ def ssl_verify_validation(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
-                "certificates of trusted CAs, or 'truststore' to use the OS certificate store."
-                % value
+                "certificates of trusted CAs, or 'truststore' to use the "
+                "operating system certificate store." % value
             )
     return True
 
@@ -1703,7 +1703,8 @@ class Context(Configuration):
                 fail if a required url's certificate cannot be verified. Setting ssl_verify to
                 False disables certification verification. The value for ssl_verify can also
                 be (1) a path to a CA bundle file, (2) a path to a directory containing
-                certificates of trusted CA, or (3) 'truststore' to use the OS certificate store.
+                certificates of trusted CA, or (3) 'truststore' to use the
+                operating system certificate store.
                 """
             ),
             track_features=dals(

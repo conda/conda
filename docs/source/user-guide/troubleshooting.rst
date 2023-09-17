@@ -317,8 +317,8 @@ using the following command::
 
     conda config --set ssl_verify truststore
 
-If using the OS certificate store does not solve your issue, temporarily set your ``ssl_verify`` variable
-to false, upgrade the requests package, and then
+If using the operating system certificate store does not solve your issue, temporarily
+set your ``ssl_verify`` variable to false, upgrade the requests package, and then
 set ``ssl_verify`` back to ``true`` using the following commands::
 
     conda config --set ssl_verify false
