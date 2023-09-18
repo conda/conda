@@ -5,6 +5,7 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
 import datetime
 import json
+import logging
 import time
 from pathlib import Path
 from socket import socket
@@ -15,6 +16,7 @@ import pytest
 import requests
 import zstandard
 
+import conda.gateways.repodata
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
@@ -306,6 +308,7 @@ def test_repodata_state(
 def test_repodata_info_jsondecodeerror(
     package_server: socket,
     use_jlap: bool,
+    monkeypatch,
 ):
     """Test that cache metadata file works correctly."""
     host, port = package_server.getsockname()
@@ -346,9 +349,19 @@ def test_repodata_info_jsondecodeerror(
         SubdirData.clear_cached_local_channel_data(exclude_file=False)
         sd2 = SubdirData(channel=test_channel)
 
-        # warnings.warn(f"{e.__class__.__name__} loading {self.cache_path_state}")
-        with pytest.warns(UserWarning, match=" loading "):
-            sd2.load()
+        # caplog fixture was able to capture urllib3 logs but not conda's. Could
+        # be due to setting propagate=False on conda's root loggers. Instead,
+        # mock warning() to save messages.
+        records = []
+
+        def warning(*args, **kwargs):
+            records.append(args)
+
+        monkeypatch.setattr(conda.gateways.repodata.log, "warning", warning)
+
+        sd2.load()
+
+        assert any(record[0].startswith("JSONDecodeError") for record in records)
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
