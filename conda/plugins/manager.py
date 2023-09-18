@@ -132,8 +132,8 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                # use the canonical name to check if it has already been
-                # register or is blocked for some reason
+                # use the canonical name here since get_plugin() or is_blocked()
+                # don't retrieve and use that, while register() does
                 canonical = self.get_canonical_name(plugin)
 
                 # skip plugin if already registered or blocked
