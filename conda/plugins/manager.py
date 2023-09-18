@@ -76,8 +76,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def register_or_fail(self, plugin) -> str | None:
         """
-        Call :meth:``pluggy.PluginManager.register`` and return result or
-        fail with a ``conda.exceptions.PluginError``.
+        Call :meth:`pluggy.PluginManager.register` and return the result or
+        fail with a :cls:`~conda.exceptions.PluginError`.
         """
         try:
             # register plugin
