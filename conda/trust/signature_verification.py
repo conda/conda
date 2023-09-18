@@ -16,7 +16,6 @@ try:
         load_metadata_from_file,
         write_metadata_to_file,
     )
-    from conda_content_trust.signing import wrap_as_signable
 except ImportError:
     # _SignatureVerification.enabled handles the rest of this state
     class SignatureError(Exception):
