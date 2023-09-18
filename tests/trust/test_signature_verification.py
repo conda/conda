@@ -10,8 +10,13 @@ import pytest
 from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
+from conda.base.constants import REPODATA_FN
 from conda.base.context import context, reset_context
+from conda.core.subdir_data import SubdirData
 from conda.gateways.connection import HTTPError
+from conda.models.channel import Channel
+from conda.models.records import PackageRecord
+from conda.testing import PathFactoryFixture
 from conda.trust.constants import KEY_MGR_FILE
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
@@ -20,13 +25,15 @@ HTTP404 = HTTPError(response=SimpleNamespace(status_code=404))
 
 
 @pytest.fixture
-def av_data_dir(mocker: MockerFixture, tmp_path: Path) -> Path:
+def av_data_dir(mocker: MockerFixture, path_factory: PathFactoryFixture) -> Path:
+    av_data_dir = path_factory()
+    av_data_dir.mkdir()
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
         new_callable=mocker.PropertyMock,
-        return_value=tmp_path,
+        return_value=av_data_dir,
     )
-    return tmp_path
+    return av_data_dir
 
 
 @pytest.fixture
@@ -53,6 +60,19 @@ def mock_fetch_channel_signing_data(mocker: MockerFixture) -> Callable[[...], No
         )
 
     return inner
+
+
+@pytest.fixture
+def sig_ver(monkeypatch: MonkeyPatch) -> _SignatureVerification:
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    reset_context()
+    assert context.extra_safety_checks
+    assert context.signing_metadata_url_base == url
+
+    sig_ver = _SignatureVerification()
+    assert sig_ver.enabled
+    return sig_ver
 
 
 def test_trusted_root_no_new_metadata(
@@ -261,13 +281,13 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     assert sig_ver._fetch_channel_signing_data.call_count == 2
 
 
-def test_signature_verification_enabled(
+def test_signature_verification_not_enabled(
     av_data_dir: Path,
     initial_trust_root: dict,
     key_mgr: dict,
     monkeypatch: MonkeyPatch,
 ):
-    signature_verification = _SignatureVerification()
+    sig_ver = _SignatureVerification()
 
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "false")
     monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
@@ -276,7 +296,7 @@ def test_signature_verification_enabled(
     assert not context.signing_metadata_url_base
 
     _SignatureVerification.cache_clear()
-    assert not signature_verification.enabled
+    assert not sig_ver.enabled
 
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
     monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
@@ -285,13 +305,59 @@ def test_signature_verification_enabled(
     assert not context.signing_metadata_url_base
 
     _SignatureVerification.cache_clear()
-    assert not signature_verification.enabled
+    assert not sig_ver.enabled
 
-    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
-    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
-    reset_context()
-    assert context.extra_safety_checks
-    assert context.signing_metadata_url_base == url
 
-    _SignatureVerification.cache_clear()
-    assert signature_verification.enabled
+@pytest.mark.parametrize(
+    "package,trusted",
+    [
+        ("_anaconda_depends-2018.12-py27_0.tar.bz2", True),
+        ("zstd-1.3.7-h0b5b093_0.conda", True),
+        ("zstd-1.4.4-h0b5b093_3.conda", True),
+        # bad key_mgr.json pubkey
+        ("broken-0.0.1-broken.tar.bz2", False),
+        # bad signature
+        ("broken-0.0.1-broken.conda", False),
+    ],
+)
+def test_signature_verification(
+    sig_ver: _SignatureVerification,
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+    package: str,
+    trusted: bool,
+):
+    # mock out the cache path base
+    cache_path_base = path_factory()
+    cache_path_base.mkdir()
+    mocker.patch(
+        "conda.core.subdir_data.SubdirData.cache_path_base",
+        new_callable=mocker.PropertyMock,
+        return_value=cache_path_base,
+    )
+
+    # load repodata.json with signatures
+    src = _TESTDATA / "repodata_short_signed_sample.json"
+    repodata = json.loads(src.read_text())
+
+    # copy repodata.json to cache path
+    dst = cache_path_base / (subdir := repodata["info"]["subdir"]) / REPODATA_FN
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    copyfile(src, dst)
+
+    # create record to verify
+    record = PackageRecord.from_objects(
+        repodata["packages.conda" if package.endswith(".conda") else "packages"][
+            package
+        ],
+        channel=Channel.from_value(f"file://{cache_path_base}/{subdir}"),
+        fn=package,
+    )
+
+    # ensure signature is valid
+    sig_ver.verify(REPODATA_FN, record)
+
+    if trusted:
+        assert "(package metadata is TRUSTED)" in record.metadata
+    else:
+        assert "(package metadata is UNTRUSTED)" in record.metadata

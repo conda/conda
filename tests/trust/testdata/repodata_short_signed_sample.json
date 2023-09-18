@@ -293,6 +293,22 @@
       "timestamp": 1562173890182,
       "version": "2018.12"
     },
+    "broken-0.0.1-broken.tar.bz2": {
+      "build": "broken",
+      "build_number": 0,
+      "depends": [],
+      "license": "BSD 3-Clause",
+      "license_family": "BSD",
+      "md5": "00000000000000000000000000000000",
+      "name": "broken",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "subdir": "linux-64",
+      "timestamp": 1695069658866,
+      "version": "0.0.1"
+    }
+  },
+  "packages.conda": {
     "zstd-1.3.7-h0b5b093_0.conda": {
       "build": "h0b5b093_0",
       "build_number": 0,
@@ -330,6 +346,20 @@
       "subdir": "linux-64",
       "timestamp": 1587075143434,
       "version": "1.4.4"
+    },
+    "broken-0.0.1-broken.conda": {
+      "build": "broken",
+      "build_number": 0,
+      "depends": [],
+      "license": "BSD 3-Clause",
+      "license_family": "BSD",
+      "md5": "00000000000000000000000000000000",
+      "name": "broken",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "subdir": "linux-64",
+      "timestamp": 1695069658866,
+      "version": "0.0.1"
     }
   },
   "removed": [
@@ -429,18 +459,28 @@
   "repodata_version": 1,
   "signatures": {
     "_anaconda_depends-2018.12-py27_0.tar.bz2": {
-      "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
+      "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569": {
         "signature": "a0ffab3f954c3dc64373ba16bee5e9ba9683a625fa3e4a6c4263d9de550bcafd233c2522789c9b31b40c35a87775d6f8fa2498a3bec3647c36c0a2f5cd2eb10c"
       }
     },
     "zstd-1.3.7-h0b5b093_0.conda": {
-      "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
+      "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569": {
         "signature": "ea1f11a74c081298fe243c6982f676d9838bfee81e74a24bef6474f3be1243b4624f6d12dc8196f8db909cf049e9e344151e44c5b950cbab8583641c7b661a0d"
       }
     },
     "zstd-1.4.4-h0b5b093_3.conda": {
-      "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
+      "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569": {
         "signature": "db7b2fe5f9d48fe60bb7da5d1eaca15d300a00787df8ca1098b7093ceb9942ea9fb350f92e8ff14f4df13ad66899c2b8f4efe86fe7897e820ed20f1765021803"
+      }
+    },
+    "broken-0.0.1-broken.tar.bz2": {
+      "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
+        "signature": "15a84f45f2b9400f8111c282579e782dc4b5ac45ebe44caea5a229ad89a4b8ee7ea2750301814203b62e2d75b4d211c5306557ec9ab6405a9ec95ccd012a4079"
+      }
+    },
+    "broken-0.0.1-broken.conda": {
+      "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569": {
+        "signature": "0c01dd6cfca34a9787d01c279a512d43fafbcd1c3f7b4433bcdc1bd21d20d9a0c0b787b4bea14606aa8639ea87aaca254f2e3cfc872949a18cfdec2c8b5d3bb7"
       }
     }
   }
