@@ -42,7 +42,7 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, ".condarc")).replace("%", "%%")
 
-#: List of a built-in commands; these cannot be overridden by plugin subcommands
+#: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {
     "clean",
     "compare",
