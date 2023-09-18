@@ -74,6 +74,22 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
+    def register_or_fail(self, plugin) -> str | None:
+        """
+        Call :meth:``pluggy.PluginManager.register`` and return result or
+        fail with a ``conda.exceptions.PluginError``.
+        """
+        try:
+            # register plugin
+            # extracts canonical name from plugin, checks for duplicates,
+            # and if blocked
+            return self.register(plugin)
+        except ValueError as err:
+            raise PluginError(
+                f"Error while loading first-party conda plugin: "
+                f"{self.get_canonical_name(plugin)} ({err})"
+            )
+
     def load_plugins(self, *plugins) -> int:
         """
         Load the provided list of plugins and fail gracefully on error.
@@ -82,18 +98,8 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         count = 0
         for plugin in plugins:
-            try:
-                # register plugin
-                # extracts canonical name from plugin, checks for duplicates,
-                # and if blocked
-                if self.register(plugin):
-                    # successfully registered a plugin
-                    count += 1
-            except ValueError as err:
-                raise PluginError(
-                    f"Error while loading first-party conda plugin: "
-                    f"{self.get_canonical_name(plugin)} ({err})"
-                )
+            if self.register_or_fail(plugin):
+                count += 1
         return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
@@ -126,18 +132,16 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                try:
-                    # register plugin
-                    # extracts canonical name from plugin, checks for duplicates,
-                    # and if blocked
-                    if self.register(plugin):
-                        # successfully registered a plugin
-                        count += 1
-                except ValueError as err:
-                    raise PluginError(
-                        f"Error while loading third-party conda plugin: "
-                        f"{self.get_canonical_name(plugin)} ({err})"
-                    )
+                # use the canonical name to check if it has already been
+                # register or is blocked for some reason
+                canonical = self.get_canonical_name(plugin)
+
+                # skip plugin if already registered or blocked
+                if self.get_plugin(canonical) or self.is_blocked(canonical):
+                    continue
+
+                if self.register_or_fail(plugin):
+                    count += 1
         return count
 
     @overload
