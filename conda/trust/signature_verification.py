@@ -285,6 +285,10 @@ class _SignatureVerification:
         for prec in link_precs:
             self.verify(repodata_fn, prec)
 
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.enabled.fget.cache_clear()
+
 
 # singleton for caching
 signature_verification = _SignatureVerification()
