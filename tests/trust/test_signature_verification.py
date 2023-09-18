@@ -60,10 +60,11 @@ def test_trusted_root_no_new_metadata(
     initial_trust_root: dict,
     mock_fetch_channel_signing_data: Callable,
 ):
+    # return HTTPError(404)
     mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Compare sig_ver's view on INITIAL_TRUST_ROOT to the contents of testdata/1.root.json
+    # fetches 1.root.json (non-existant), fallback to initial_trust_root
     assert sig_ver.trusted_root == initial_trust_root
     assert sig_ver._fetch_channel_signing_data.call_count == 1
 
@@ -77,12 +78,17 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     Case where we cannot reach new root metadata online but have a newer version locally
     (2.root.json). Use this new version if it is valid.
     """
+    # copy 2.root.json to disk
     copyfile(_TESTDATA / "2.root.json", path := av_data_dir / "2.root.json")
+
+    # load 2.root.json
     root2 = json.loads(path.read_text())
 
+    # return HTTPError(404)
     mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
+    # fetches 3.root.json (non-existent), fallback to disk
     assert sig_ver.trusted_root == root2
     assert sig_ver._fetch_channel_signing_data.call_count == 1
 
@@ -96,12 +102,17 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     Unusual case:  We have an invalid 2.root.json on disk and no new metadata available
     online. In this case, our deliberate choice is to accept whatever on disk.
     """
+    # copy 2.root_invalid.json to disk
     copyfile(_TESTDATA / "2.root_invalid.json", path := av_data_dir / "2.root.json")
+
+    # load 2.root.json
     root2 = json.loads(path.read_text())
 
-    mock_fetch_channel_signing_data(root2)
+    # return HTTPError(404)
+    mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
+    # fetches 3.root.json (non-existent), fallback to disk
     assert sig_ver.trusted_root == root2
     assert sig_ver._fetch_channel_signing_data.call_count == 1
 
@@ -114,12 +125,14 @@ def test_2nd_root_metadata_from_web(
     """
     Test happy case where we get a new valid root metadata from the web
     """
+    # load 2.root.json
     root2 = json.loads((_TESTDATA / "2.root.json").read_text())
 
-    mock_fetch_channel_signing_data(root2)
+    # return 2.root.json then HTTPError(404)
+    mock_fetch_channel_signing_data(root2, HTTP404)
     sig_ver = _SignatureVerification()
 
-    # One call for 2.root.json and 3.root.json (non-existant)
+    # fetches 2.root.json (valid) and 3.root.json (non-existant)
     assert sig_ver.trusted_root == root2
     assert sig_ver._fetch_channel_signing_data.call_count == 2
 
@@ -132,13 +145,15 @@ def test_3rd_root_metadata_from_web(
     """
     Test happy case where we get a chain of valid root metadata from the web
     """
+    # load 2.root.json and 3.root.json
     root2 = json.loads((_TESTDATA / "2.root.json").read_text())
     root3 = json.loads((_TESTDATA / "3.root.json").read_text())
 
-    mock_fetch_channel_signing_data(root2, root3)
+    # return 2.root.json, 3.root.json, then HTTPError(404)
+    mock_fetch_channel_signing_data(root2, root3, HTTP404)
     sig_ver = _SignatureVerification()
 
-    # One call for 2.root.json and 3.root.json and 4.root.json (non-existant)
+    # fetches 2.root.json (valid), 3.root.json (valid), and 4.root.json (non-existant)
     assert sig_ver.trusted_root == root3
     assert sig_ver._fetch_channel_signing_data.call_count == 3
 
@@ -151,13 +166,15 @@ def test_single_invalid_signature_3rd_root_metadata_from_web(
     """
     Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
     """
+    # load 2.root.json and 3.root_invalid.json
     root2 = json.loads((_TESTDATA / "2.root.json").read_text())
     root3 = json.loads((_TESTDATA / "3.root_invalid.json").read_text())
 
+    # return 2.root.json then 3.root.json
     mock_fetch_channel_signing_data(root2, root3)
     sig_ver = _SignatureVerification()
 
-    # One call for 2.root.json and 3.root.json and 4.root.json (non-existant)
+    # fetches 2.root.json (valid) and 3.root.json (invalid)
     assert sig_ver.trusted_root == root2
     assert sig_ver._fetch_channel_signing_data.call_count == 2
 
@@ -171,11 +188,13 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
     """
     If we don't have a new key_mgr online, we use the one from disk
     """
+    # return HTTPError(404)
     mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Compare sig_ver's view on key_mgr to
+    # fetches key_mgr.json (non-existent), fallback to disk (exists)
     assert sig_ver.key_mgr == key_mgr
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
@@ -186,11 +205,13 @@ def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
     """
     If we have no key_mgr online and no key_mgr on disk we don't have a key_mgr
     """
+    # return HTTPError(404)
     mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # We should have no key_mgr here
+    # fetches key_mgr.json (non-existent), fallback to disk (non-existent)
     assert sig_ver.key_mgr is None
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_trusted_root_new_key_mgr_online(
@@ -202,19 +223,22 @@ def test_trusted_root_new_key_mgr_online(
     We have a new key_mgr online that can be verified against our trusted root.
     We should accept the new key_mgr
     """
+    # load key_mgr.json
     key_mgr = json.loads((_TESTDATA / "key_mgr.json").read_text())
 
-    # First time around we return an HTTPError(404) to signal we don't have new root metadata.
-    # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
+    # return key_mgr.json then HTTPError(404)
     mock_fetch_channel_signing_data(key_mgr, HTTP404)
     sig_ver = _SignatureVerification()
 
+    # fetches key_mgr.json (valid) then 2.root.json (non-existant)
     assert sig_ver.key_mgr == key_mgr
+    assert sig_ver._fetch_channel_signing_data.call_count == 2
 
 
 def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     av_data_dir: Path,
     initial_trust_root: dict,
+    key_mgr: dict,
     mock_fetch_channel_signing_data: Callable,
 ):
     """
@@ -224,16 +248,17 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     Note:  This one does not fail with a warning and no side effects like the others.
     Instead, we raise a SignatureError
     """
+    # load key_mgr_invalid.json
     key_mgr = json.loads((_TESTDATA / "key_mgr_invalid.json").read_text())
-    copyfile(_TESTDATA / "key_mgr.json", av_data_dir / "key_mgr.json")
 
-    # First time around we return an HTTPError(404) to signal we don't have new root metadata.
-    # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
+    # return key_mgr_invalid.json then HTTPError(404)
     mock_fetch_channel_signing_data(key_mgr, HTTP404)
     sig_ver = _SignatureVerification()
 
+    # fetches key_mgr.json (invalid) then 2.root.json (non-existant)
     with pytest.raises(SignatureError):
         sig_ver.key_mgr
+    assert sig_ver._fetch_channel_signing_data.call_count == 2
 
 
 def test_signature_verification_enabled(
