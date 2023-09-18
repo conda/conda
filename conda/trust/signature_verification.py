@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import warnings
 from functools import lru_cache
-from glob import glob
 from logging import getLogger
-from os import makedirs
-from os.path import basename, exists, isdir, join
+from pathlib import Path
 
 try:
     from conda_content_trust.authentication import verify_delegation, verify_root
@@ -37,11 +37,14 @@ from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 log = getLogger(__name__)
 
 
+RE_ROOT_METADATA = re.compile(r"(?P<number>\d+)\.root\.json")
+
+
 class _SignatureVerification:
     # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
     @lru_cache(maxsize=None)
-    def enabled(self):
+    def enabled(self) -> bool:
         # safety checks must be enabled
         if not context.extra_safety_checks:
             return False
@@ -64,10 +67,8 @@ class _SignatureVerification:
             )
             return False
 
-        # create artifact verification directory if missing
-        if not isdir(context.av_data_dir):
-            log.info("creating directory for artifact verification metadata")
-            makedirs(context.av_data_dir)
+        # ensure artifact verification directory exists
+        Path(context.av_data_dir).mkdir(parents=True, exist_ok=True)
 
         # ensure the trusted_root exists
         if self.trusted_root is None:
@@ -87,35 +88,48 @@ class _SignatureVerification:
     # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
     @lru_cache(maxsize=None)
-    def trusted_root(self):
+    def trusted_root(self) -> dict:
         # TODO: formalize paths for `*.root.json` and `key_mgr.json` on server-side
-        trusted = INITIAL_TRUST_ROOT
+        trusted: dict | None = None
 
-        # Load current trust root metadata from filesystem
-        for path in sorted(
-            glob(join(context.av_data_dir, "[0-9]*.root.json")), reverse=True
-        ):
-            try:
-                int(basename(path).split(".")[0])
-            except ValueError:
-                # prefix is not an int and is consequently an invalid file, skip to the next
-                pass
-            else:
-                log.info(f"Loading root metadata from {path}.")
-                trusted = load_metadata_from_file(path)
-                break
+        # Load latest trust root metadata from filesystem
+        try:
+            paths = {
+                int(m.group("number")): entry
+                for entry in os.scandir(context.av_data_dir)
+                if (m := RE_ROOT_METADATA.match(entry.name))
+            }
+        except (FileNotFoundError, NotADirectoryError, PermissionError):
+            # FileNotFoundError: context.av_data_dir does not exist
+            # NotADirectoryError: context.av_data_dir is not a directory
+            # PermsissionError: context.av_data_dir is not readable
+            pass
         else:
+            for _, entry in sorted(paths.items(), reverse=True):
+                log.info(f"Loading root metadata from {entry}.")
+                try:
+                    trusted = load_metadata_from_file(entry)
+                except (IsADirectoryError, FileNotFoundError, PermissionError):
+                    # IsADirectoryError: entry is not a file
+                    # FileNotFoundError: entry does not exist
+                    # PermsissionError: entry is not readable
+                    continue
+                else:
+                    break
+
+        # Fallback to default root metadata if unable to fetch any
+        if not trusted:
             log.debug(
                 f"No root metadata in {context.av_data_dir}. "
                 "Using built-in root metadata."
             )
+            trusted = INITIAL_TRUST_ROOT
 
         # Refresh trust root metadata
-        more_signatures = True
-        while more_signatures:
+        while True:
             # TODO: caching mechanism to reduce number of refresh requests
             fname = f"{trusted['signed']['version'] + 1}.root.json"
-            path = join(context.av_data_dir, fname)
+            path = Path(context.av_data_dir, fname)
 
             try:
                 # TODO: support fetching root data with credentials
@@ -130,55 +144,55 @@ class _SignatureVerification:
                 # not really an "error" and does not need to be logged.
                 if err.response.status_code != 404:
                     log.error(err)
-                more_signatures = False
+                break
             except Exception as err:
                 # TODO: more error handling
                 log.error(err)
-                more_signatures = False
+                break
             else:
                 # New trust root metadata checks out
-                trusted = untrusted
-                write_metadata_to_file(trusted, path)
+                write_metadata_to_file(trusted := untrusted, path)
 
         return trusted
 
     # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
     @lru_cache(maxsize=None)
-    def key_mgr(self):
-        trusted = None
+    def key_mgr(self) -> dict | None:
+        trusted: dict | None = None
 
         # Refresh key manager metadata
         fname = KEY_MGR_FILE
-        path = join(context.av_data_dir, fname)
+        path = Path(context.av_data_dir, fname)
 
         try:
             untrusted = self._fetch_channel_signing_data(
                 context.signing_metadata_url_base,
-                KEY_MGR_FILE,
+                fname,
             )
 
             verify_delegation("key_mgr", untrusted, self.trusted_root)
-        except (ConnectionError, HTTPError) as err:
+        except ConnectionError as err:
             log.warn(err)
-        except Exception as err:
-            # TODO: more error handling
-            raise
-            log.error(err)
+        except HTTPError as err:
+            # sometimes the HTTPError message is blank, when that occurs include the
+            # HTTP status code
+            log.warn(
+                str(err) or f"{err.__class__.__name__} ({err.response.status_code})"
+            )
         else:
             # New key manager metadata checks out
-            trusted = untrusted
-            write_metadata_to_file(trusted, path)
+            write_metadata_to_file(trusted := untrusted, path)
 
         # If key_mgr is unavailable from server, fall back to copy on disk
-        if not trusted and exists(path):
+        if not trusted and path.exists():
             trusted = load_metadata_from_file(path)
 
         return trusted
 
     def _fetch_channel_signing_data(
-        self, signing_data_url, filename, etag=None, mod_stamp=None
-    ):
+        self, signing_data_url: str, filename: str, etag=None, mod_stamp=None
+    ) -> dict:
         session = get_session(signing_data_url)
 
         if not context.ssl_verify:
