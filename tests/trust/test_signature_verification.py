@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from shutil import copyfile
 from types import SimpleNamespace
-from typing import Callable
+from typing import Any, Callable
 
 import pytest
 from pytest import MonkeyPatch
@@ -12,7 +12,6 @@ from pytest_mock import MockerFixture
 
 from conda.base.constants import REPODATA_FN
 from conda.base.context import context, reset_context
-from conda.core.subdir_data import SubdirData
 from conda.gateways.connection import HTTPError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
@@ -52,7 +51,9 @@ def key_mgr(av_data_dir: Path, mocker: MockerFixture) -> dict:
 
 
 @pytest.fixture
-def mock_fetch_channel_signing_data(mocker: MockerFixture) -> Callable[[...], None]:
+def mock_fetch_channel_signing_data(
+    mocker: MockerFixture,
+) -> Callable[[Any, ...], None]:
     def inner(*values) -> None:
         mocker.patch(
             "conda.trust.signature_verification._SignatureVerification._fetch_channel_signing_data",
