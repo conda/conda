@@ -8,6 +8,7 @@ boto3  # also need the `minio` server, installed manually in CI
 chardet
 conda
 conda-content-trust
+conda-libmamba-solver
 conda-forge::flake8-docstrings
 conda-forge::flake8-pyproject
 conda-forge::pytest-split
