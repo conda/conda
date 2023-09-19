@@ -5,9 +5,8 @@ try:
     from requests.adapters import BaseAdapter, HTTPAdapter
     from requests.auth import AuthBase, _basic_auth_str
     from requests.cookies import extract_cookies_to_jar
-    from requests.exceptions import ChunkedEncodingError, InvalidSchema
+    from requests.exceptions import ChunkedEncodingError, InvalidSchema, SSLError
     from requests.exceptions import ProxyError as RequestsProxyError
-    from requests.exceptions import SSLError
     from requests.hooks import dispatch_hook
     from requests.models import Response
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -20,10 +19,10 @@ except ImportError:  # pragma: no cover
     from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter  # noqa: F401
     from pip._vendor.requests.auth import AuthBase, _basic_auth_str  # noqa: F401
     from pip._vendor.requests.cookies import extract_cookies_to_jar  # noqa: F401
-    from pip._vendor.requests.exceptions import SSLError  # noqa: F401
     from pip._vendor.requests.exceptions import (  # noqa: F401
         ChunkedEncodingError,
         InvalidSchema,
+        SSLError,  # noqa: F401
     )
     from pip._vendor.requests.exceptions import (  # noqa: F401
         ProxyError as RequestsProxyError,
