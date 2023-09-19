@@ -106,12 +106,6 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
 def test_load_plugins_error(plugin_manager: CondaPluginManager):
     # first load the plugin once
     plugin_manager.load_plugins(VerboseSolverPlugin)
-    # then try again to trigger a PluginError via the `ValueError` that
-    # pluggy.PluginManager.register throws on duplicate plugins
-    with pytest.raises(
-        PluginError, match="Error while loading first-party conda plugin"
-    ):
-        plugin_manager.load_plugins(VerboseSolverPlugin)
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
 
 
@@ -152,13 +146,8 @@ def test_load_entrypoints_register_valueerror(plugin_manager: CondaPluginManager
     """
     Cover check when self.register() raises ValueError.
     """
-
-    def raises_value_error(*args):
-        raise ValueError("bad plugin?")
-
-    plugin_manager.register = raises_value_error
-    with pytest.raises(PluginError):
-        plugin_manager.load_entrypoints("test_plugin", "success")
+    plugin_manager.load_entrypoints("test_plugin", "success")
+    plugin_manager.load_entrypoints("test_plugin", "success")
 
 
 def test_unknown_solver(plugin_manager: CondaPluginManager):

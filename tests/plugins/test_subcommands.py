@@ -76,14 +76,12 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     plugin = SubcommandPlugin(name="custom", summary="Summary.")
     assert plugin_manager.load_plugins(plugin) == 1
 
-    # invalid, identical plugins
-    with pytest.raises(PluginError, match="Error while loading first-party"):
-        plugin_manager.load_plugins(plugin)
+    # invalid, identical plugins, error ignored
+    plugin_manager.load_plugins(plugin)
 
-    # invalid, similar plugins
+    # invalid, similar plugins, error ignored
     plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
-    with pytest.raises(PluginError, match="Error while loading first-party"):
-        plugin_manager.load_plugins(plugin2)
+    plugin_manager.load_plugins(plugin2)
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)
