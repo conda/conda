@@ -81,7 +81,8 @@ class CondaPluginManager(pluggy.PluginManager):
         had already been registered.
         """
         try:
-            # register plugin but ignore the e
+            # register plugin but ignore ValueError since that means
+            # the plugin has already been registered
             return super().register(plugin, name=name)
         except ValueError:
             return None
