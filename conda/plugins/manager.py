@@ -74,17 +74,18 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
-    def register_or_fail(self, plugin) -> str | None:
+    def register(self, plugin, name: str | None = None) -> str | None:
         """
         Call :meth:`pluggy.PluginManager.register` and return the result or
-        fail with a :cls:`~conda.exceptions.PluginError`.
+        ignore errors raised, except ``ValueError``, which means the plugin
+        had already been registered.
         """
         try:
-            # register plugin
-            # extracts canonical name from plugin, checks for duplicates,
-            # and if blocked
-            return self.register(plugin)
-        except ValueError as err:
+            # register plugin but ignore the e
+            return super().register(plugin, name=name)
+        except ValueError:
+            return None
+        except Exception as err:
             raise PluginError(
                 f"Error while loading first-party conda plugin: "
                 f"{self.get_canonical_name(plugin)} ({err})"
@@ -98,7 +99,7 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         count = 0
         for plugin in plugins:
-            if self.register_or_fail(plugin):
+            if self.register(plugin):
                 count += 1
         return count
 
@@ -132,15 +133,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                # use the canonical name here since get_plugin() or is_blocked()
-                # don't retrieve and use that, while register() does
-                canonical = self.get_canonical_name(plugin)
-
-                # skip plugin if already registered or blocked
-                if self.get_plugin(canonical) or self.is_blocked(canonical):
-                    continue
-
-                if self.register_or_fail(plugin):
+                if self.register(plugin):
                     count += 1
         return count
 
