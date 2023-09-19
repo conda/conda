@@ -3,7 +3,6 @@
 """
 Strongly related to subdir_data / test_subdir_data.
 """
-
 from __future__ import annotations
 
 import datetime
@@ -33,10 +32,7 @@ from conda.gateways.connection import (
     SSLError,
 )
 from conda.gateways.repodata import (
-    CACHE_CONTROL_KEY,
-    CACHE_STATE_SUFFIX,
     ETAG_KEY,
-    LAST_MODIFIED_KEY,
     CondaRepoInterface,
     RepodataCache,
     RepodataFetch,
@@ -171,15 +167,6 @@ def test_stale(tmp_path):
     assert state.mod == "some"
 
 
-from conda.gateways.connection import (
-    HTTPError,
-    InvalidSchema,
-    RequestsProxyError,
-    SSLError,
-)
-from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
-
-
 def test_repodata_state_has_format():
     # wrong has_zst format
     state = RepodataState(
@@ -188,7 +175,7 @@ def test_repodata_state_has_format():
     value, dt = state.has_format("zst")
     assert value is False
     assert isinstance(dt, datetime.datetime)
-    assert not "has_zst" in state
+    assert "has_zst" not in state
 
     # no has_zst information
     state = RepodataState("", "", "")
