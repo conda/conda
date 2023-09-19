@@ -195,9 +195,9 @@ class RawParameter(metaclass=ABCMeta):
         self.source = source
         self.key = key
         try:
-            # ignore flake8 on this because it finds an error on py3 even though it is guarded
-            self._raw_value = unicode(raw_value.decode("utf-8"))  # NOQA
-        except:
+            self._raw_value = raw_value.decode("utf-8")
+        except AttributeError:
+            # AttributeError: raw_value is not encoded
             self._raw_value = raw_value
 
     def __repr__(self):

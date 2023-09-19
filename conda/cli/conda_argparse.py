@@ -6,14 +6,16 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from argparse import REMAINDER, SUPPRESS, Action
-from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
+    REMAINDER,
+    SUPPRESS,
+    Action,
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
     _StoreTrueAction,
 )
+from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
