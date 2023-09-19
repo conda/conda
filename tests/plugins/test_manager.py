@@ -57,18 +57,15 @@ class NoNameVirtualPackagePlugin:
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
-    plugin_names = plugin_manager.load_plugins()
-    assert plugin_names == 0
+    assert plugin_manager.load_plugins() == 0
 
 
 def test_load_two_plugins_one_impls(plugin_manager: CondaPluginManager):
-    plugin_names = plugin_manager.load_plugins(this_module)
-    assert plugin_names == 1
+    assert plugin_manager.load_plugins(this_module) == 1
     assert plugin_manager.get_plugins() == {this_module}
     assert plugin_manager.hook.conda_solvers.get_hookimpls() == []
 
-    plugin_names = plugin_manager.load_plugins(VerboseSolverPlugin)
-    assert plugin_names == 1
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {this_module, VerboseSolverPlugin}
 
     hooks_impls = plugin_manager.hook.conda_solvers.get_hookimpls()
@@ -81,7 +78,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     assert plugin_manager.get_hook_results(name) == []
 
     # loading the archspec plugin module and make sure it was loaded correctly
-    plugin_manager.load_plugins(virtual_packages.archspec)
+    assert plugin_manager.load_plugins(virtual_packages.archspec) == 1
     hook_result = plugin_manager.get_hook_results(name)
     assert len(hook_result) == 1
     assert hook_result[0].name == "archspec"
@@ -104,8 +101,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
 
 
 def test_load_plugins_error(plugin_manager: CondaPluginManager):
-    # first load the plugin once
-    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
 
 
@@ -144,10 +140,11 @@ def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
 
 def test_load_entrypoints_register_valueerror(plugin_manager: CondaPluginManager):
     """
-    Cover check when self.register() raises ValueError.
+    Cover check when self.register() raises ValueError because the plugin
+    was loaded already.
     """
-    plugin_manager.load_entrypoints("test_plugin", "success")
-    plugin_manager.load_entrypoints("test_plugin", "success")
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 0
 
 
 def test_unknown_solver(plugin_manager: CondaPluginManager):
@@ -162,7 +159,7 @@ def test_known_solver(plugin_manager: CondaPluginManager):
     """
     Cover getting a solver that exists.
     """
-    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_solver_backend("verbose-classic") == VerboseSolver
 
 
@@ -203,17 +200,17 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
 
 
 def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(DummyVirtualPackagePlugin)
+    assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
     assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
 
 
 def test_get_virtual_packages_no_name(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(NoNameVirtualPackagePlugin)
+    assert plugin_manager.load_plugins(NoNameVirtualPackagePlugin) == 1
     with pytest.raises(PluginError, match="Invalid plugin names"):
         plugin_manager.get_virtual_packages()
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
