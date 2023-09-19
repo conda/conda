@@ -20,8 +20,13 @@ CALL conda activate conda-test-env || goto :error
 python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error
 
-:: Temporary (only installable _now_ that we are in dev mode; otherwise conflicts with stable conda)
-CALL conda install -y --solver=libmamba -c conda-forge "menuinst>=2" || goto :error
+:: We can't install menuinst>=2 because currently released conda's have menuinst<2 as a constraint
+:: This will cause conflicts. Instead we install explicitly from URL until a conda release without
+:: that constraint is available.
+if "%PYTHON%" == "3.11" CALL conda install -y https://anaconda.org/conda-forge/menuinst/2.0.0/download/win-64/menuinst-2.0.0-py311h12c1d0e_0.conda || goto :error
+if "%PYTHON%" == "3.10" CALL conda install -y https://anaconda.org/conda-forge/menuinst/2.0.0/download/win-64/menuinst-2.0.0-py310h00ffb61_0.conda || goto :error
+if "%PYTHON%" == "3.9"  CALL conda install -y https://anaconda.org/conda-forge/menuinst/2.0.0/download/win-64/menuinst-2.0.0-py39h99910a6_0.conda || goto :error
+if "%PYTHON%" == "3.8"  CALL conda install -y https://anaconda.org/conda-forge/menuinst/2.0.0/download/win-64/menuinst-2.0.0-py38hd3f51b4_0.conda || goto :error
 
 :: Download minio server needed for S3 tests and place it in our conda environment so is in PATH
 :: You can pin to an older release by setting MINIO_RELEASE to 'archive/XXXX'
