@@ -5,7 +5,6 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
 import datetime
 import json
-import logging
 import time
 from pathlib import Path
 from socket import socket
