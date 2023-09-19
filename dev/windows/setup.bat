@@ -21,7 +21,7 @@ python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error
 
 :: Temporary (only installable _now_ that we are in dev mode; otherwise conflicts with stable conda)
-CALL conda install -y --solver=libmamba "conda-forge::menuinst>=2" || goto :error
+CALL conda install -y --solver=libmamba -c conda-forge "conda-forge::menuinst>=2" || goto :error
 
 :: Download minio server needed for S3 tests and place it in our conda environment so is in PATH
 :: You can pin to an older release by setting MINIO_RELEASE to 'archive/XXXX'
