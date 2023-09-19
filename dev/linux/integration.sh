@@ -9,7 +9,7 @@ TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
 # make sure all test requirements are installed
-sudo /opt/conda/bin/conda install --quiet -y --solver=libmamba --file tests/requirements.txt
+sudo /opt/conda/bin/conda install --quiet -y --solver=libmamba "conda-forge::menuinst>=2" --file tests/requirements.txt
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
 # put temporary files on same filesystem

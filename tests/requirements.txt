@@ -21,7 +21,7 @@ flake8
 flask >=2.2
 git
 jsonpatch >=1.32
-menuinst >=2
+# menuinst >=2
 nbformat
 packaging
 perl
