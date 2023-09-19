@@ -1,0 +1,20 @@
+### Enhancements
+
+* Show first few characters of undecodeable response if repodata.json raises
+  JSONDecodeError (#11804)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

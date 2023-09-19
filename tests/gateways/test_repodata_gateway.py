@@ -373,3 +373,25 @@ def test_repodata_fetch_cached(
         for key in "mtime_ns", "size", "refresh_ns":
             state.pop(key)
         assert state == {}
+
+
+def test_repodata_fetch_jsondecodeerror(tmp_path):
+    """
+    Show that repodata's JSONDecodeError contains sample of bad data.
+    """
+
+    channel_url = "file:///path/does/not/exist"
+
+    class UndecodeableRepodataFetch(RepodataFetch):
+        def fetch_latest(self):
+            return "not json", {}
+
+    fetch = UndecodeableRepodataFetch(
+        tmp_path,
+        Channel(channel_url),
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+
+    with pytest.raises(json.JSONDecodeError, match="not json"):
+        fetch.fetch_latest_parsed()
