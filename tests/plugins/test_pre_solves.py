@@ -7,7 +7,7 @@ from conda import plugins
 from conda.exceptions import DryRunExit
 from conda.plugins import solvers
 from conda.plugins.manager import CondaPluginManager
-from conda.testing import CondaCLIFixture, PathFactoryFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
 class PreSolvePlugin:
@@ -24,7 +24,8 @@ class PreSolvePlugin:
 
 @pytest.fixture
 def pre_solve_plugin(
-    mocker: MockerFixture, plugin_manager: CondaPluginManager
+    mocker: MockerFixture,
+    plugin_manager: CondaPluginManager,
 ) -> PreSolvePlugin:
     mocker.patch.object(PreSolvePlugin, "pre_solve_action")
 
@@ -39,17 +40,19 @@ def pre_solve_plugin(
 
 def test_pre_solve_invoked(
     pre_solve_plugin: PreSolvePlugin,
-    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
-        conda_cli("install", "zlib", "--dry-run")
+        with tmp_env("zlib", "--dry-run"):
+            pass
 
     assert len(pre_solve_plugin.pre_solve_action.mock_calls) == 1
 
 
 def test_pre_solve_not_invoked(
-    pre_solve_plugin: PreSolvePlugin, conda_cli: CondaCLIFixture
+    pre_solve_plugin: PreSolvePlugin,
+    conda_cli: CondaCLIFixture,
 ):
     conda_cli("config")
 
@@ -58,13 +61,14 @@ def test_pre_solve_not_invoked(
 
 def test_pre_solve_action_raises_exception(
     pre_solve_plugin: PreSolvePlugin,
-    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
 ):
     exc_message = "💥"
     pre_solve_plugin.pre_solve_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):
-        conda_cli("install", "zlib", "--dry-run")
+        with tmp_env("zlib", "--dry-run"):
+            pass
 
     assert len(pre_solve_plugin.pre_solve_action.mock_calls) == 1

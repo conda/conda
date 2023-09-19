@@ -7,7 +7,7 @@ from conda import plugins
 from conda.exceptions import DryRunExit
 from conda.plugins import solvers
 from conda.plugins.manager import CondaPluginManager
-from conda.testing import CondaCLIFixture, PathFactoryFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
 class PostSolvePlugin:
@@ -24,7 +24,8 @@ class PostSolvePlugin:
 
 @pytest.fixture
 def post_solve_plugin(
-    mocker: MockerFixture, plugin_manager: CondaPluginManager
+    mocker: MockerFixture,
+    plugin_manager: CondaPluginManager,
 ) -> PostSolvePlugin:
     mocker.patch.object(PostSolvePlugin, "post_solve_action")
 
@@ -39,17 +40,19 @@ def post_solve_plugin(
 
 def test_post_solve_invoked(
     post_solve_plugin: PostSolvePlugin,
-    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
-        conda_cli("install", "zlib", "--dry-run")
+        with tmp_env("zlib", "--dry-run"):
+            pass
 
     assert len(post_solve_plugin.post_solve_action.mock_calls) == 1
 
 
 def test_post_solve_not_invoked(
-    post_solve_plugin: PostSolvePlugin, conda_cli: CondaCLIFixture
+    post_solve_plugin: PostSolvePlugin,
+    conda_cli: CondaCLIFixture,
 ):
     conda_cli("config")
 
@@ -58,13 +61,14 @@ def test_post_solve_not_invoked(
 
 def test_post_solve_action_raises_exception(
     post_solve_plugin: PostSolvePlugin,
-    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
 ):
     exc_message = "💥"
     post_solve_plugin.post_solve_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):
-        conda_cli("install", "zlib", "--dry-run")
+        with tmp_env("zlib", "--dry-run"):
+            pass
 
     assert len(post_solve_plugin.post_solve_action.mock_calls) == 1
