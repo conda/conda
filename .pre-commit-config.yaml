@@ -74,3 +74,11 @@ repos:
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
+  - repo: local
+    hooks:
+      - id: git-diff
+        name: git diff
+        entry: git diff --exit-code
+        language: system
+        pass_filenames: false
+        always_run: true

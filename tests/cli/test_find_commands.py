@@ -30,6 +30,10 @@ def faux_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
     not_dir.touch()
     monkeypatch.setenv("PATH", str(not_dir), prepend=os.pathsep)
 
+    # incorrect syntax
+    not_dir_2 = " C:\\path-may-not-start-with-space"
+    monkeypatch.setenv("PATH", str(not_dir_2), prepend=os.pathsep)
+
     # bad executables
     bad = tmp_path / "bad"
     bad.mkdir(exist_ok=True)
