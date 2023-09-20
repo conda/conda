@@ -12,7 +12,7 @@ import sys
 from contextlib import contextmanager
 from functools import lru_cache
 from logging import getLogger
-from os.path import dirname, exists, isdir, join, lexists
+from os.path import dirname, isdir, join, lexists
 from pathlib import Path
 from random import sample
 from shutil import copyfile, rmtree
