@@ -7,7 +7,7 @@ from conda.plugins.manager import CondaPluginManager
 
 
 @pytest.fixture
-def plugin_manager(mocker):
+def plugin_manager(mocker) -> CondaPluginManager:
     pm = CondaPluginManager()
     pm.add_hookspecs(CondaSpecs)
     mocker.patch("conda.plugins.manager.get_plugin_manager", return_value=pm)
