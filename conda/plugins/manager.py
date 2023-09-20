@@ -88,8 +88,8 @@ class CondaPluginManager(pluggy.PluginManager):
             return None
         except Exception as err:
             raise PluginError(
-                f"Error while loading first-party conda plugin: "
-                f"{self.get_canonical_name(plugin)} ({err})"
+                f"Error while loading conda plugin: "
+                f"{name or self.get_canonical_name(plugin)} ({err})"
             )
 
     def load_plugins(self, *plugins) -> int:

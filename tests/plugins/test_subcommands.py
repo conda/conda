@@ -76,11 +76,11 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     assert plugin_manager.load_plugins(plugin) == 1
 
     # invalid, identical plugins, error ignored
-    plugin_manager.load_plugins(plugin)
+    assert plugin_manager.load_plugins(plugin) == 0
 
     # invalid, similar plugins, error ignored
     plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
-    plugin_manager.load_plugins(plugin2)
+    assert plugin_manager.load_plugins(plugin2) == 0
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)
