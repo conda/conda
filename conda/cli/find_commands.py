@@ -72,9 +72,11 @@ def find_commands(include_others=True):
                 m = pat.match(entry.name)
                 if m and entry.is_file():
                     res.add(m.group(1))
-        except (FileNotFoundError, NotADirectoryError, PermissionError):
+        except (FileNotFoundError, NotADirectoryError, PermissionError, OSError):
             # FileNotFoundError: path doesn't exist
             # NotADirectoryError: path is not a directory
             # PermissionError: user doesn't have read access
+            # OSError: [WinError 123] The filename, directory name, or volume
+            # label syntax is incorrect
             continue
     return tuple(sorted(res))

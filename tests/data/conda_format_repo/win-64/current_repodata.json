@@ -43,10 +43,10 @@
       "legacy_bz2_md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
       "license": "zlib",
       "license_family": "Other",
-      "md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+      "md5": "edad165fc3d25636d4f0a61c42873fbc",
       "name": "zlib",
-      "sha256": "10363f6c023d7fb3d11fdb4cc8de59b5ad5c6affdf960210dd95a252a3fced2b",
-      "size": 131285,
+      "sha256": "2fb5900c4a2ca7e0f509ebc344b3508815d7647c86cfb6721a1690365222e55a",
+      "size": 112305,
       "subdir": "win-64",
       "timestamp": 1542815182812,
       "version": "1.2.11"

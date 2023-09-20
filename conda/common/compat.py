@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common compatiblity code."""
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.
