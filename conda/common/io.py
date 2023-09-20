@@ -7,8 +7,14 @@ import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
-from concurrent.futures.thread import _WorkItem, _threads_queues
+from concurrent.futures import (
+    Executor,
+    Future,
+    ThreadPoolExecutor,
+    _base,
+    as_completed,
+    thread,
+)
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -351,7 +357,7 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
                 return future.result(timeout=timeout_secs)
             except KeyboardInterrupt:  # pragma: no cover
                 executor._threads.clear()
-                _threads_queues.clear()
+                thread._threads_queues.clear()
                 return default_return
     else:
 
@@ -597,7 +603,7 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
                 raise RuntimeError("cannot schedule new futures after shutdown")
 
             f = _base.Future()
-            w = _WorkItem(f, fn, args, kwargs)
+            w = thread._WorkItem(f, fn, args, kwargs)
 
             self._work_queue.put(w)
             try:
