@@ -962,10 +962,6 @@ def test_allow_softlinks(hardlink_supported_mock, clear_package_cache: None):
     hardlink_supported_mock._result_cache.clear()
 
 
-@pytest.mark.skipif(
-    context.solver == "libmamba",
-    reason="conda-libmamba-solver does not support features",
-)
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
 def test_remove_features(clear_package_cache: None):
     with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
@@ -2028,11 +2024,6 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
     reason="Skip unsupported platforms",
 )
 def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
-    if context.solver == "libmamba":
-        pytest.xfail(
-            "Known issue; see https://github.com/conda/conda-libmamba-solver/issues/141"
-        )
-
     with env_vars(
         {
             "CONDA_REPORT_ERRORS": "false",
@@ -2442,11 +2433,6 @@ def test_use_index_cache(clear_package_cache: None):
 
 
 def test_offline_with_empty_index_cache(clear_package_cache: None):
-    if context.solver == "libmamba":
-        pytest.xfail(
-            "Known bug in libmamba; see https://github.com/mamba-org/mamba/issues/1197"
-        )
-
     from conda.core.subdir_data import SubdirData
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
@@ -2961,15 +2947,7 @@ def test_neutering_of_historic_specs(clear_package_cache: None):
         stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
         with open(os.path.join(prefix, "conda-meta", "history")) as f:
             d = f.read()
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
-            # libmamba relaxes more aggressively sometimes
-            # instead of relaxing from pkgname=version=build to pkgname=version, it
-            # goes to just pkgname; this is because libmamba does not take into account
-            # matchspec target and optionality (iow, MatchSpec.conda_build_form() does not)
-            assert re.search(r"neutered specs:.*'psutil'\]", d)
-        else:
-            assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
+        assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
 
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
