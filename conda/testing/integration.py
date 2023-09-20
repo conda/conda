@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from functools import lru_cache
 from logging import getLogger
 from os.path import dirname, exists, isdir, join, lexists
+from pathlib import Path
 from random import sample
 from shutil import copyfile, rmtree
 from subprocess import check_output
@@ -440,9 +441,10 @@ def get_conda_list_tuple(prefix, package_name):
     return package_line.split()
 
 
-def get_shortcut_dir():
-    user_mode = "user" if exists(join(sys.prefix, ".nonadmin")) else "system"
+def get_shortcut_dir(prefix_for_unix=sys.prefix):
     if sys.platform == "win32":
+        # On Windows, .nonadmin has been historically created by constructor in sys.prefix
+        user_mode = "user" if Path(sys.prefix, ".nonadmin") else "system"
         try:  # menuinst v2
             from menuinst.platforms.win_utils.knownfolders import dirs_src
 
@@ -456,6 +458,21 @@ def get_shortcut_dir():
                 from menuinst.win32 import dirs
 
                 return dirs[user_mode]["start"]
+    # on unix, .nonadmin is only created by menuinst v2 as needed on the target prefix
+    # it might exist, or might not; if it doesn't, we try to create it
+    # see https://github.com/conda/menuinst/issues/150
+    non_admin_file = Path(prefix_for_unix, ".nonadmin")
+    if non_admin_file.is_file():
+        user_mode = "user"
+    else:
+        try:
+            non_admin_file.touch()
+        except OSError:
+            user_mode = "system"
+        else:
+            user_mode = "user"
+            non_admin_file.unlink()
+
     if sys.platform == "darwin":
         if user_mode == "user":
             return join(os.environ["HOME"], "Applications")

@@ -1669,7 +1669,7 @@ def test_menuinst_v2(clear_package_cache: None, monkeypatch: MonkeyPatch):
     assert Path(prefix, "Menu", "package_1.json").is_file()
     assert called
     assert "menuinst Exception" not in out + err
-    base_dir = Path(get_shortcut_dir())
+    base_dir = Path(get_shortcut_dir(prefix_for_unix=prefix))
     if sys.platform == "win32":
         assert (base_dir / "Package 1" / "A.lnk").is_file()
     elif sys.platform == "darwin":
