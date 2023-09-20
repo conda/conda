@@ -3,6 +3,7 @@
 """Common I/O utilities."""
 import json
 import logging
+import math
 import os
 import signal
 import sys
@@ -355,7 +356,7 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             future = executor.submit(func, *args, **kwargs)
             try:
                 return future.result(timeout=timeout_secs)
-            except KeyboardInterrupt:  # pragma: no cover
+            except KeyboardInterrupt:
                 executor._threads.clear()
                 thread._threads_queues.clear()
                 return default_return
@@ -368,13 +369,13 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             raise TimeoutException()
 
         signal.signal(signal.SIGALRM, interrupt)
-        signal.alarm(timeout_secs)
+        signal.alarm(math.ceil(timeout_secs))
 
         try:
             ret = func(*args, **kwargs)
             signal.alarm(0)
             return ret
-        except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
+        except (TimeoutException, KeyboardInterrupt):
             return default_return
 
 
