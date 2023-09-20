@@ -100,40 +100,27 @@ exclude_lines = [
   '\s*\.\.\.$',
 ]
 
-[tool.flake8]
-# see black+flake8 config
-# https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#flake8
-max-line-length = 99
-# E203 whitespace before ':'
+[tool.ruff]
+line-length = 99
+# E, W = pycodestyle errors and warnings
+# F = pyflakes
+# I = isort
+# D = pydocstyle
+select = ["E", "W", "F", "I", "D1"]
 # E402 module level import not at top of file
 # E722 do not use bare 'except'
 # E731 do not assign a lambda expression, use a def
-# W503 line break before binary operator
-# D1** Missing docstring
-# D205 1 blank line required between summary line and description
-# D400 First line should end with a period
-# D401 First line should be in imperative mood
-extend-ignore = ["E203", "E402", "E722", "E731", "W503", "D1", "D200", "D205", "D400", "D401"]
-extend-select = ["D100"]
-exclude = [
-  ".asv*",
-  "build/*",
-  ".tox/*",
-  "dev*/*",
-  "env/*",
-  "test_data/*",
-  "tests/*",
-  "ve/*",
-  "utils/*",
-  "docs/*",
-  "*/_vendor/*",
-  "conda/compat.py",
-  "conda/common/compat.py",
-  "conda_env/compat.py",
-]
-
-[tool.isort]
-profile = "black"
+# D101 Missing docstring in public class
+# D102 Missing docstring in public method
+# D103 Missing docstring in public function
+# D104 Missing docstring in public package
+# D105 Missing docstring in magic method
+# D107 Missing docstring in `__init__`
+ignore = ["E731", "E722", "E402", "F821", "E501", "D101", "D102", "D103", "D104", "D105", "D107"]
+exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
+# Use PEP 257-style docstrings.
+pydocstyle = {convention = "pep257"}
 
 [tool.pytest.ini_options]
 minversion = 3.0

@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from os import environ
 from pathlib import Path
 from uuid import uuid4
 
@@ -12,7 +11,7 @@ from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing import CondaCLIFixture
-from conda.testing.integration import Commands, package_is_installed, run_command
+from conda.testing.integration import package_is_installed
 
 from . import support_file
 from .utils import make_temp_envs_dir

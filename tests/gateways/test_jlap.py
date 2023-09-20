@@ -15,6 +15,7 @@ import pytest
 import requests
 import zstandard
 
+import conda.gateways.repodata
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
@@ -300,6 +301,66 @@ def test_repodata_state(
         ):
             assert field in state
             assert f"_{field}" not in state
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_info_jsondecodeerror(
+    package_server: socket,
+    use_jlap: bool,
+    monkeypatch,
+):
+    """Test that cache metadata file works correctly."""
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    if use_jlap:
+        repo_cls = interface.JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
+
+    with env_vars(
+        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+
+        # parameterize whether this is used?
+        assert isinstance(sd._repo, repo_cls)
+
+        print(sd.repodata_fn)
+
+        assert sd._loaded is False
+        # shoud automatically fetch and load
+        assert len(list(sd.iter_records()))
+        assert sd._loaded is True
+
+        # Corrupt the cache state. Double json could happen when (unadvisably)
+        # running conda in parallel, before we added locks-by-default.
+        sd.cache_path_state.write_text(sd.cache_path_state.read_text() * 2)
+
+        # now try to re-download
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+        sd2 = SubdirData(channel=test_channel)
+
+        # caplog fixture was able to capture urllib3 logs but not conda's. Could
+        # be due to setting propagate=False on conda's root loggers. Instead,
+        # mock warning() to save messages.
+        records = []
+
+        def warning(*args, **kwargs):
+            records.append(args)
+
+        monkeypatch.setattr(conda.gateways.repodata.log, "warning", warning)
+
+        sd2.load()
+
+        assert any(record[0].startswith("JSONDecodeError") for record in records)
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])

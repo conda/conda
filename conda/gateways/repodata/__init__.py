@@ -579,7 +579,9 @@ class RepodataCache:
         """
         try:
             self.load(state_only=True)
-        except FileNotFoundError:  # or JSONDecodeError?
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            if isinstance(e, json.JSONDecodeError):
+                log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
             self.state.clear()
         return self.state
 
@@ -607,7 +609,7 @@ class RepodataCache:
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
-            # "a+" avoids trunctating file before we have the lock and creates
+            # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
@@ -627,8 +629,9 @@ class RepodataCache:
         """
         Update access time in cache info file to indicate a HTTP 304 Not Modified response.
         """
+        # Note this is not thread-safe.
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
-            # "a+" avoids trunctating file before we have the lock and creates
+            # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             self.state["refresh_ns"] = refresh_ns or time.time_ns()
