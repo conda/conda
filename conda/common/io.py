@@ -8,7 +8,7 @@ import signal
 import sys
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
-from concurrent.futures.thread import _WorkItem
+from concurrent.futures.thread import _WorkItem, _threads_queues
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -343,16 +343,16 @@ def attach_stderr_handler(
 
 
 def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
-    """Enforce a maximum time for a callable to complete.
-    Not yet implemented on Windows.
-    """
+    """Enforce a maximum time for a callable to complete."""
     if on_win:
-        # Why does Windows have to be so difficult all the time? Kind of gets old.
-        # Guess we'll bypass Windows timeouts for now.
-        try:
-            return func(*args, **kwargs)
-        except KeyboardInterrupt:  # pragma: no cover
-            return default_return
+        with ThreadLimitedThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(func, *args, **kwargs)
+            try:
+                return future.result(timeout=timeout_secs)
+            except KeyboardInterrupt:  # pragma: no cover
+                executor._threads.clear()
+                _threads_queues.clear()
+                return default_return
     else:
 
         class TimeoutException(Exception):
