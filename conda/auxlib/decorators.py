@@ -2,66 +2,9 @@ from collections.abc import Hashable
 from types import GeneratorType
 
 from functools import wraps
-from ..deprecations import deprecated
 
 
 # TODO: spend time filling out functionality and make these more robust
-
-
-@deprecated("23.3", "23.9", addendum="Use `functools.lru_cache` instead.")
-def memoize(func):
-    """
-    Decorator to cause a function to cache it's results for each combination of
-    inputs and return the cached result on subsequent calls.  Does not support
-    named arguments or arg values that are not hashable.
-
-    >>> @memoize
-    ... def foo(x):
-    ...     print('running function with', x)
-    ...     return x+3
-    ...
-    >>> foo(10)
-    running function with 10
-    13
-    >>> foo(10)
-    13
-    >>> foo(11)
-    running function with 11
-    14
-    >>> @memoize
-    ... def range_tuple(limit):
-    ...     print('running function')
-    ...     return tuple(i for i in range(limit))
-    ...
-    >>> range_tuple(3)
-    running function
-    (0, 1, 2)
-    >>> range_tuple(3)
-    (0, 1, 2)
-    >>> @memoize
-    ... def range_iter(limit):
-    ...     print('running function')
-    ...     return (i for i in range(limit))
-    ...
-    >>> range_iter(3)
-    Traceback (most recent call last):
-    TypeError: Can't memoize a generator or non-hashable object!
-    """
-    func._result_cache = {}  # pylint: disable-msg=W0212
-
-    @wraps(func)
-    def _memoized_func(*args, **kwargs):
-        key = (args, tuple(sorted(kwargs.items())))
-        if key in func._result_cache:  # pylint: disable-msg=W0212
-            return func._result_cache[key]  # pylint: disable-msg=W0212
-        else:
-            result = func(*args, **kwargs)
-            if isinstance(result, GeneratorType) or not isinstance(result, Hashable):
-                raise TypeError("Can't memoize a generator or non-hashable object!")
-            func._result_cache[key] = result  # pylint: disable-msg=W0212
-            return result
-
-    return _memoized_func
 
 
 def memoizemethod(method):
@@ -149,43 +92,6 @@ def memoizemethod(method):
     return _wrapper
 
 
-# class memoizemethod(object):
-#     """cache the return value of a method
-#
-#     This class is meant to be used as a decorator of methods. The return value
-#     from a given method invocation will be cached on the instance whose method
-#     was invoked. All arguments passed to a method decorated with memoize must
-#     be hashable.
-#
-#     If a memoized method is invoked directly on its class the result will not
-#     be cached. Instead the method will be invoked like a static method:
-#     class Obj(object):
-#         @memoize
-#         def add_to(self, arg):
-#             return self + arg
-#     Obj.add_to(1) # not enough arguments
-#     Obj.add_to(1, 2) # returns 3, result is not cached
-#     """
-#     def __init__(self, func):
-#         self.func = func
-#     def __get__(self, obj, objtype=None):
-#         if obj is None:
-#             return self.func
-#         return partial(self, obj)
-#     def __call__(self, *args, **kw):
-#         obj = args[0]
-#         try:
-#             cache = obj.__cache
-#         except AttributeError:
-#             cache = obj.__cache = {}
-#         key = (self.func, args[1:], frozenset(kw.items()))
-#         try:
-#             res = cache[key]
-#         except KeyError:
-#             res = cache[key] = self.func(*args, **kw)
-#         return res
-
-
 def clear_memoized_methods(obj, *method_names):
     """
     Clear the memoized method or @memoizedproperty results for the given
@@ -270,42 +176,6 @@ def memoizedproperty(func):
     return property(new_fget)
 
 
-# def memoized_property(fget):
-#     """
-#     Return a property attribute for new-style classes that only calls its getter on the first
-#     access. The result is stored and on subsequent accesses is returned, preventing the need to
-#     call the getter any more.
-#     Example::
-#         >>> class C(object):
-#         ...     load_name_count = 0
-#         ...     @memoized_property
-#         ...     def name(self):
-#         ...         "name's docstring"
-#         ...         self.load_name_count += 1
-#         ...         return "the name"
-#         >>> c = C()
-#         >>> c.load_name_count
-#         0
-#         >>> c.name
-#         "the name"
-#         >>> c.load_name_count
-#         1
-#         >>> c.name
-#         "the name"
-#         >>> c.load_name_count
-#         1
-#     """
-#     attr_name = '_{0}'.format(fget.__name__)
-#
-#     @wraps(fget)
-#     def fget_memoized(self):
-#         if not hasattr(self, attr_name):
-#             setattr(self, attr_name, fget(self))
-#         return getattr(self, attr_name)
-#
-#     return property(fget_memoized)
-
-
 class classproperty:  # pylint: disable=C0103
     # from celery.five
 
@@ -344,5 +214,3 @@ class classproperty:  # pylint: disable=C0103
 # memoizefunction
 # memoizemethod
 # memoizedproperty
-#
-#

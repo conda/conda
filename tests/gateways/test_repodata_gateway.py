@@ -3,7 +3,6 @@
 """
 Strongly related to subdir_data / test_subdir_data.
 """
-
 from __future__ import annotations
 
 import datetime
@@ -33,10 +32,7 @@ from conda.gateways.connection import (
     SSLError,
 )
 from conda.gateways.repodata import (
-    CACHE_CONTROL_KEY,
-    CACHE_STATE_SUFFIX,
     ETAG_KEY,
-    LAST_MODIFIED_KEY,
     CondaRepoInterface,
     RepodataCache,
     RepodataFetch,
@@ -171,28 +167,6 @@ def test_stale(tmp_path):
     assert state.mod == "some"
 
 
-def test_coverage_repodata_state(tmp_path):
-    # now these should be loaded through RepodataCache instead.
-
-    # assert invalid state is equal to no state
-    state = RepodataState(
-        tmp_path / "garbage.json",
-        tmp_path / f"garbage{CACHE_STATE_SUFFIX}",
-        "repodata.json",
-    )
-    state.cache_path_state.write_text("not json")
-    assert dict(state.load()) == {}
-
-
-from conda.gateways.connection import (
-    HTTPError,
-    InvalidSchema,
-    RequestsProxyError,
-    SSLError,
-)
-from conda.gateways.repodata import RepodataIsEmpty, conda_http_errors
-
-
 def test_repodata_state_has_format():
     # wrong has_zst format
     state = RepodataState(
@@ -201,7 +175,7 @@ def test_repodata_state_has_format():
     value, dt = state.has_format("zst")
     assert value is False
     assert isinstance(dt, datetime.datetime)
-    assert not "has_zst" in state
+    assert "has_zst" not in state
 
     # no has_zst information
     state = RepodataState("", "", "")
@@ -315,52 +289,6 @@ def test_ssl_unavailable_error_message():
         del sys.modules["ssl"]
 
 
-def test_cache_json(tmp_path: Path):
-    """
-    Load and save standardized field names, from internal matches-legacy
-    underscore-prefixed field names. Assert state is only loaded if it matches
-    cached json.
-    """
-    cache_json = tmp_path / "cached.json"
-    cache_state = tmp_path / f"cached{CACHE_STATE_SUFFIX}"
-
-    cache_json.write_text("{}")
-
-    RepodataState(cache_json, cache_state, "repodata.json").save()
-
-    state = RepodataState(cache_json, cache_state, "repodata.json").load()
-
-    mod = "last modified time"
-
-    state = RepodataState(cache_json, cache_state, "repodata.json")
-    state.mod = mod  # this is the last-modified header not mtime_ns
-    state.cache_control = "cache control"
-    state.etag = '"unambiguous-etag"'
-    state.save()
-
-    on_disk_format = json.loads(cache_state.read_text())
-    print("disk format", on_disk_format)
-    assert on_disk_format[LAST_MODIFIED_KEY] == mod
-    assert on_disk_format[CACHE_CONTROL_KEY]
-    assert on_disk_format[ETAG_KEY]
-    assert isinstance(on_disk_format["size"], int)
-    assert isinstance(on_disk_format["mtime_ns"], int)
-
-    state2 = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state2.mod == mod
-    assert state2.cache_control
-    assert state2.etag
-
-    assert state2[LAST_MODIFIED_KEY] == state2.mod
-    assert state2[ETAG_KEY] == state2.etag
-    assert state2[CACHE_CONTROL_KEY] == state2.cache_control
-
-    cache_json.write_text("{ }")  # now invalid due to size
-
-    state_invalid = RepodataState(cache_json, cache_state, "repodata.json").load()
-    assert state_invalid.get(LAST_MODIFIED_KEY) == ""
-
-
 @pytest.mark.parametrize("use_jlap", [True, False])
 def test_repodata_fetch_formats(
     package_server: socket,
@@ -398,9 +326,50 @@ def test_repodata_fetch_formats(
         cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
     )
 
+    assert isinstance(fetch.cache_path_state, Path)  # coverage
+
     a, state = fetch.fetch_latest_parsed()
     b, state = fetch.fetch_latest_path()
 
     assert a == json.loads(b.read_text())
 
     assert isinstance(state, RepodataState)
+
+
+@pytest.mark.parametrize("use_network", [False, True])
+@pytest.mark.parametrize("use_index", ["false", "true"])
+def test_repodata_fetch_cached(
+    use_index: str, use_network: bool, package_server, tmp_path
+):
+    """
+    An empty cache should return an empty result instead of an error, when
+    CONDA_USE_INDEX is enabled.
+    """
+
+    # real network but 404, avoids socket timeouts
+    if use_network:
+        host, port = package_server.getsockname()
+        channel_url = f"http://{host}:{port}/notfound"
+    else:
+        channel_url = "file:///path/does/not/exist"
+
+    with env_vars({"CONDA_USE_INDEX": use_index}):
+        # we always check for *and create* a writable cache dir before fetch
+        cache_path_base = tmp_path / "fetch_cached"
+        cache_path_base.parent.mkdir(exist_ok=True)
+
+        # due to the way we handle file:/// urls, this test will pass whether or
+        # not use_index is true or false. Will it exercise different code paths?
+        channel = Channel(channel_url)
+
+        fetch = RepodataFetch(
+            cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
+        )
+
+        # strangely never throws unavailable exception?
+        repodata, state = fetch.fetch_latest_parsed()
+
+        assert repodata == {}
+        for key in "mtime_ns", "size", "refresh_ns":
+            state.pop(key)
+        assert state == {}

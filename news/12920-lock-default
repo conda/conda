@@ -1,0 +1,21 @@
+### Enhancements
+
+* Lock index cache metadata by default. Added `--no-lock` option in case of
+  problems, should not be necessary. Older `--experimental=lock` no longer has
+  an effect. (#12920)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

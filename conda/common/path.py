@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common path utilities."""
 from __future__ import annotations
 
 import os
@@ -22,7 +23,6 @@ from typing import Iterable, Sequence
 from urllib.parse import urlsplit
 
 from .. import CondaError
-from ..deprecations import deprecated
 from .compat import on_win
 
 log = getLogger(__name__)
@@ -125,7 +125,6 @@ def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
     return tuple("/".join(leaf) for leaf in leaves)
 
 
-@deprecated.argument("23.3", "23.9", "already_split")
 def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str]:
     # get all directories including parents
     # child_directories must already be split with os.path.split

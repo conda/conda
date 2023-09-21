@@ -4,7 +4,7 @@
 build/
 dist/
 docs/_build
-docs/source/umls/dev-guide/*.puml
+docs/source/dev-guide/umls/*.puml
 .cache/
 .idea/
 ve/
@@ -23,7 +23,6 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
-env/
 dev-init.bat
 devenv/
 Miniconda*.sh
@@ -36,6 +35,9 @@ conda.tmp/
 *.ipr
 *.iws
 test-report.xml
+
+# default pytest duration files
+.test_durations
 
 # Rever
 rever/

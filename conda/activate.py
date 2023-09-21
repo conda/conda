@@ -1,5 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda activate and deactivate logic.
+
+Implementation for all shell interface logic exposed via
+`conda shell.* [activate|deactivate|reactivate|hook|commands]`. This includes a custom argument
+parser, an abstract shell class, and special path handling for Windows.
+
+See conda.cli.main.main_sourced for the entry point into this module.
+"""
 from __future__ import annotations
 
 import abc
@@ -370,15 +378,17 @@ class _Activator(metaclass=abc.ABCMeta):
 
         # get clobbered environment variables
         clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
-        clobber_vars = set(
-            filter(lambda var: env_vars[var] != os.environ[var], clobber_vars)
-        )
-        if clobber_vars:
+        overwritten_clobber_vars = [
+            clobber_var
+            for clobber_var in clobber_vars
+            if os.environ[clobber_var] != env_vars[clobber_var]
+        ]
+        if overwritten_clobber_vars:
             print(
                 "WARNING: overwriting environment variables set in the machine",
                 file=sys.stderr,
             )
-            print(f"overwriting variable {clobber_vars}", file=sys.stderr)
+            print(f"overwriting variable {overwritten_clobber_vars}", file=sys.stderr)
         for name in clobber_vars:
             env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
 
@@ -815,12 +825,16 @@ def ensure_fs_path_encoding(value):
 
 def native_path_to_unix(
     paths: str | Iterable[str] | None,
-) -> str | tuple[str] | None:
+) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-
-    if not on_win:
+    elif not on_win:
         return path_identity(paths)
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
 
     # on windows, uses cygpath to convert windows native paths to posix paths
     from shutil import which
@@ -834,23 +848,44 @@ def native_path_to_unix(
 
     bash = which("bash")
     cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
 
-    unix_path = run(
-        [
-            cygpath,
-            "--path",
-            paths if isinstance(paths, str) else os.pathsep.join(paths),
-        ],
-        text=True,
-        capture_output=True,
-        check=True,
-    ).stdout.strip()
+    try:
+        # if present, use cygpath to convert paths since its more reliable
+        unix_path = run(
+            [cygpath, "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        def _translation(found_path):
+            found = (
+                found_path.group(1)
+                .replace("\\", "/")
+                .replace(":", "")
+                .replace("//", "/")
+            )
+            return "/" + found.rstrip("/")
+
+        unix_path = (
+            re.sub(
+                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
+                _translation,
+                joined,
+            )
+            .replace(";/", ":/")
+            .rstrip(";")
+        )
+
     unix_path = unix_path.split(":") if unix_path else ()
 
     return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
 
 
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
+def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
     elif isinstance(paths, str):
@@ -861,10 +896,9 @@ def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str] | None:
 
 def backslash_to_forwardslash(
     paths: str | Iterable[str] | None,
-) -> str | tuple[str] | None:
+) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-
     elif isinstance(paths, str):
         return paths.replace("\\", "/")
     else:

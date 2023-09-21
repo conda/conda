@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda config`.
+
+Allows for programmatically interacting with conda's configuration files (e.g., `~/.condarc`).
+"""
 import json
 import os
 import sys
@@ -154,7 +158,10 @@ def execute_config(args, parser):
         if context.json:
             stdout_write(
                 json.dumps(
-                    context.collect_all(),
+                    {
+                        str(source): values
+                        for source, values in context.collect_all().items()
+                    },
                     sort_keys=True,
                     indent=2,
                     separators=(",", ": "),
@@ -281,8 +288,8 @@ def execute_config(args, parser):
     if args.system:
         rc_path = sys_rc_path
     elif args.env:
-        if "CONDA_PREFIX" in os.environ:
-            rc_path = join(os.environ["CONDA_PREFIX"], ".condarc")
+        if context.active_prefix:
+            rc_path = join(context.active_prefix, ".condarc")
         else:
             rc_path = user_rc_path
     elif args.file:

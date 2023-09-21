@@ -1,14 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""
-                         +---------------+
-                         | PackageRecord |
-                         +--+---------+--+
-+--------------------+      |         |      +--------------+
-| PackageCacheRecord <------+         +------> PrefixRecord |
-+--------------------+                       +--------------+
+"""Implements the data model for conda packages.
 
+A PackageRecord is the record of a package present in a channel. A PackageCache is the record of a
+downloaded and cached package. A PrefixRecord is the record of a package installed into a conda
+environment.
 
+Object inheritance:
+
+.. autoapi-inheritance-diagram:: PackageRecord PackageCacheRecord PrefixRecord
+   :top-classes: conda.models.records.PackageRecord
+   :parts: 1
 """
 
 from os.path import basename, join

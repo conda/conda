@@ -3,5 +3,5 @@ channels:
   - defaults
 
 dependencies:
-  - python=2
+  - python
   - pytz

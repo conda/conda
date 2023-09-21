@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda search`.
+
+Query channels for packages matching the provided package spec.
+"""
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -25,7 +29,7 @@ def execute(args, parser):
     if args.envs:
         with Spinner(
             "Searching environments for %s" % spec,
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             prefix_matches = query_all_prefixes(spec)
@@ -77,7 +81,9 @@ def execute(args, parser):
         return 0
 
     with Spinner(
-        "Loading channels", not context.verbosity and not context.quiet, context.json
+        "Loading channels",
+        not context.verbose and not context.quiet,
+        context.json,
     ):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
@@ -156,7 +162,9 @@ def pretty_record(record):
     push_line("version", "version")
     push_line("build", "build")
     push_line("build number", "build_number")
-    builder.append("%-12s: %s" % ("size", human_bytes(record.size)))
+    size = getattr(record, "size", None)
+    if size is not None:
+        builder.append("%-12s: %s" % ("size", human_bytes(size)))
     push_line("license", "license")
     push_line("subdir", "subdir")
     push_line("url", "url")

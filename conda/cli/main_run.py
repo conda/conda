@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda run`.
+
+Runs the provided command within the specified environment.
+"""
 import os
 import sys
 from logging import getLogger
@@ -16,9 +20,7 @@ def execute(args, parser):
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
-        validate_prefix(
-            context.target_prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
-        ),
+        validate_prefix(context.target_prefix),  # ensure prefix exists
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,

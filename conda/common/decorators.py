@@ -1,9 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common decorators."""
 import os
 from functools import wraps
 
+from ..deprecations import deprecated
 
+deprecated.module("24.3", "24.9")
+
+
+@deprecated("24.3", "24.9")
 def env_override(envvar_name, convert_empty_to_none=False):
     """Override the return value of the decorated function with an environment variable.
 

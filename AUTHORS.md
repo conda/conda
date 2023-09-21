@@ -188,6 +188,7 @@ Authors are sorted alphabetically.
 * Joel Kim
 * Joel Tony
 * Johan Carlin
+* Johannes Köster
 * John Ayad
 * John Flavin
 * John Kirkham
@@ -206,8 +207,10 @@ Authors are sorted alphabetically.
 * Kamil Kwiek
 * Kannan Jayachandran
 * Kara de la Marck
+* Katherine Abrikian
 * Katherine Kinnaman
 * Ken Odegard
+* Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
@@ -219,6 +222,7 @@ Authors are sorted alphabetically.
 * Lila Hickey
 * Lorcan Hamill
 * Lori A. Burns
+* Loïc Estève
 * Luc J. Bourhis
 * Luis Gutierrez
 * Maggie Mari
@@ -232,10 +236,12 @@ Authors are sorted alphabetically.
 * Marcel Stimberg
 * Marcelo Duarte Trevisani
 * Marcin Wojdyr
+* Marco Esters
 * Marco Rossi
 * Marcos Vanetta
 * Marcus Caisey
 * Mario Juric
+* Mark Edzel Potane
 * Mark Harfouche
 * Mark Wiebe
 * Markus Gerstel
@@ -245,6 +251,7 @@ Authors are sorted alphabetically.
 * Martin Prüsse
 * Martin Raden
 * Matt Craig
+* Matt Kramer
 * Matthew Anderson
 * Matthew Dillon
 * Matthew Linebaugh
@@ -254,6 +261,7 @@ Authors are sorted alphabetically.
 * Matthieu Guillaumin
 * MatthieuDartiailh
 * Matti Picus
+* Maurice Meyer
 * Max Reeder
 * Maximilian Noethe
 * Maya Gilad
@@ -304,6 +312,7 @@ Authors are sorted alphabetically.
 * Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
+* Peter Talley
 * Peter Williams
 * Phil Elson
 * Philip Thomas

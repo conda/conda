@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda info`.
+
+Display information about current conda installation.
+"""
 import json
 import os
 import re
@@ -247,7 +251,7 @@ def get_env_vars_str(info_dict):
 
 def get_main_info_str(info_dict):
     for key in "pkgs_dirs", "envs_dirs", "channels", "config_files":
-        info_dict["_" + key] = ("\n" + 26 * " ").join(info_dict[key])
+        info_dict[f"_{key}"] = ("\n" + 26 * " ").join(map(str, info_dict[key]))
 
     info_dict["_virtual_pkgs"] = ("\n" + 26 * " ").join(
         ["%s=%s=%s" % tuple(x) for x in info_dict["virtual_pkgs"]]
@@ -337,13 +341,13 @@ def execute(args, parser):
 
     options = "envs", "system"
 
-    if args.all or context.json:
+    if context.verbose or context.json:
         for option in options:
             setattr(args, option, True)
     info_dict = get_info_dict(args.system)
 
     if (
-        args.all or all(not getattr(args, opt) for opt in options)
+        context.verbose or all(not getattr(args, opt) for opt in options)
     ) and not context.json:
         print(get_main_info_str(info_dict) + "\n")
 

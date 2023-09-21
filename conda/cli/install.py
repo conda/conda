@@ -1,5 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda package installation logic.
+
+Core logic for `conda [create|install|update|remove]` commands.
+
+See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
+conda.cli.main_remove for the entry points into this module.
+"""
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
@@ -43,6 +50,10 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
+    if os.pathsep in prefix:
+        raise CondaValueError(
+            f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
+        )
     name = basename(prefix)
     error = None
     if name == ROOT_ENV_NAME:

@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# Lappin' up the jlap
+"""JLAP consumer."""
 from __future__ import annotations
 
 import io
@@ -128,7 +128,10 @@ def request_jlap(
     response = session.get(url, stream=True, headers=headers, timeout=timeout)
     response.raise_for_status()
 
-    log.debug("request headers: %s", pprint.pformat(response.request.headers))
+    if response.request:
+        log.debug("request headers: %s", pprint.pformat(response.request.headers))
+    else:
+        log.debug("response without request.")
     log.debug(
         "response headers: %s",
         pprint.pformat(

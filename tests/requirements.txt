@@ -1,15 +1,13 @@
 # conda
 # run as 'conda install --file tests/requirements.txt -c defaults' or
 # run as 'conda install --file tests/requirements.txt -c conda-forge'
-anaconda-client
+conda-forge::anaconda-client
 beautifulsoup4
 boltons >=23.0.0
 boto3  # also need the `minio` server, installed manually in CI
 chardet
 conda
-conda-build >=3.23.3
 conda-content-trust
-conda-forge::flake8-docstrings
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
@@ -17,7 +15,6 @@ conda-package-handling >=1.3.0
 conda-verify
 coverage
 cryptography <41.0.0  # 41.0.0 breaks conda-content-trust 0.1.3
-flake8
 flask >=2.2
 git
 jsonpatch >=1.32
@@ -41,8 +38,9 @@ pytest-xdist
 requests >=2.18.4,<3
 responses
 ruamel.yaml >=0.11.14,<0.18
-setuptools >=31.0.1
+setuptools >=60.0.0
 setuptools_scm  # needed for devenv version detection
+tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
 toolz >=0.8.1
 tqdm >=4
 werkzeug >=2.2
