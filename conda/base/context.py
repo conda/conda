@@ -156,11 +156,12 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not isfile(value) and not isdir(value):
+        if not value == "truststore" and not isfile(value) and not isdir(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
-                "certificate bundle file, or a path to a directory containing "
-                "certificates of trusted CAs." % value
+                "certificate bundle file, a path to a directory containing "
+                "certificates of trusted CAs, or 'truststore' to use the "
+                "operating system certificate store." % value
             )
     return True
 
@@ -1701,8 +1702,9 @@ class Context(Configuration):
                 browser. By default, SSL verification is enabled, and conda operations will
                 fail if a required url's certificate cannot be verified. Setting ssl_verify to
                 False disables certification verification. The value for ssl_verify can also
-                be (1) a path to a CA bundle file, or (2) a path to a directory containing
-                certificates of trusted CA.
+                be (1) a path to a CA bundle file, (2) a path to a directory containing
+                certificates of trusted CA, or (3) 'truststore' to use the
+                operating system certificate store.
                 """
             ),
             track_features=dals(
