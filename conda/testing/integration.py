@@ -444,7 +444,7 @@ def get_conda_list_tuple(prefix, package_name):
 def get_shortcut_dir(prefix_for_unix=sys.prefix):
     if sys.platform == "win32":
         # On Windows, .nonadmin has been historically created by constructor in sys.prefix
-        user_mode = "user" if Path(sys.prefix, ".nonadmin") else "system"
+        user_mode = "user" if Path(sys.prefix, ".nonadmin").is_file() else "system"
         try:  # menuinst v2
             from menuinst.platforms.win_utils.knownfolders import dirs_src
 
