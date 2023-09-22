@@ -303,7 +303,7 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: jezdez/setup-miniconda@cirrus-fixes
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
         env:
@@ -313,7 +313,7 @@ jobs:
           activate-environment: conda-test-env
           python-version: ${{ matrix.python-version }}
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: jezdez/setup-miniconda@cirrus-fixes
         name: Setup miniconda for conda-forge
         if: matrix.default-channel == 'conda-forge'
         env:
