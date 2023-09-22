@@ -420,7 +420,7 @@ def test_install_conda_sh(verbose):
 
         from conda.activate import PosixActivator
 
-        activator = PosixActivator()
+        PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
         if on_win:

@@ -35,6 +35,7 @@ dependencies = [
   "setuptools >=60.0.0",
   "toolz >=0.8.1",
   "tqdm >=4",
+  "truststore >=0.8.0; python_version>='3.10'",
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]
@@ -66,8 +67,100 @@ version-file = "conda/__version__.py"
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']
 
-[tool.isort]
-profile = "black"
+[tool.coverage.run]
+# store relative paths in coverage information
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+sort = "Miss"
+skip_covered = true
+omit = [
+  "*/site-packages/*",
+  '*\site-packages\*',
+  "conda/_vendor/*",
+  "conda/console.py",
+  "conda/cli/activate.py",
+  "conda/cli/main_package.py",
+  "conda/exports.py",
+  "conda/gateways/connection/adapters/ftp.py",
+  "conda/gateways/connection/adapters/s3.py",
+  "conda_env/*",
+  "tests/*",
+  "utils/*",
+]
+exclude_lines = [
+  "pragma: no cover",
+  "pragma: py$PYTHON_MAJOR_VERSION no cover",
+  "pragma: $TEST_PLATFORM no cover",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "def __repr__",
+  '\s*\.\.\.$',
+]
+
+[tool.ruff]
+line-length = 99
+# E, W = pycodestyle errors and warnings
+# F = pyflakes
+# I = isort
+# D = pydocstyle
+select = ["E", "W", "F", "I", "D1"]
+# E402 module level import not at top of file
+# E722 do not use bare 'except'
+# E731 do not assign a lambda expression, use a def
+# D101 Missing docstring in public class
+# D102 Missing docstring in public method
+# D103 Missing docstring in public function
+# D104 Missing docstring in public package
+# D105 Missing docstring in magic method
+# D107 Missing docstring in `__init__`
+ignore = ["E731", "E722", "E402", "F821", "E501", "D101", "D102", "D103", "D104", "D105", "D107"]
+exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
+# Use PEP 257-style docstrings.
+pydocstyle = {convention = "pep257"}
+
+[tool.pytest.ini_options]
+minversion = 3.0
+testpaths = ["tests"]
+norecursedirs = [
+  "tests/data/*",
+  "tests/integration/*",
+  "tests/plugins/data/*",
+]
+addopts = [
+  "--color=yes",
+  # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
+  "--cov-append",
+  "--cov-branch",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  "--durations=16",
+  "--junitxml=test-report.xml",
+  "--splitting-algorithm=least_duration",
+  "--store-durations",
+  "--strict-markers",
+  "--tb=native",
+  "--xdoctest-modules",
+  "--xdoctest-style=google",
+  "-vv",
+]
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE",
+  "IGNORE_EXCEPTION_DETAIL",
+  "ALLOW_UNICODE",
+  "ELLIPSIS",
+]
+markers = [
+  "integration: integration tests that usually require an internet connect",
+  "slow: slow running tests",
+]
+pythonpath = [
+  # faking a test-plugin to test ImportError handling
+  "tests/plugins/data/test-plugin",
+]
 
 [tool.vendoring]
 destination = "conda/_vendor/"

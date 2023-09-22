@@ -133,10 +133,17 @@ def test_search_envs(conda_cli: CondaCLIFixture):
     assert "Searching environments" in stdout
     assert "conda" in stdout
 
+
+@pytest.mark.integration
+def test_search_envs_info(conda_cli: CondaCLIFixture):
     stdout, _, _ = conda_cli("search", "--envs", "--info", "conda")
     assert "Searching environments" in stdout
     assert "conda" in stdout
 
+
+@pytest.mark.integration
+def test_search_envs_json(conda_cli: CondaCLIFixture):
     stdout, _, _ = conda_cli("search", "--envs", "--json", "conda")
     assert "Searching environments" not in stdout
-    assert "conda" in stdout
+    parsed = json.loads(stdout.strip())
+    assert parsed
