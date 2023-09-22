@@ -151,6 +151,7 @@ be stored defined following The XDG Base Directory Specification (XDGBDS). Defau
 to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
+``CONDARC`` must be a path to a file named ``.condarc`` or ``condarc``.
 
 .. note::
    Any condarc files that exist in any of these special search path
