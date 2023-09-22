@@ -732,26 +732,24 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         assert prefix not in PrefixData._cache_
 
 
-def test_compare_success():
-    with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
-        env_file = join(prefix, "env.yml")
-        touch(env_file)
-        with open(env_file, "w") as f:
-            f.write(
-                dals(
-                    """
-                    name: dummy
-                    channels:
-                      - defaults
-                    dependencies:
-                      - bzip2=1.0.8
-                      - flask>=1.0.1,<=1.0.4
-                    """
-                )
+def test_compare_success(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3.10", "flask=2.0.1", "bzip2=1.0.8") as prefix:
+        env_file = prefix / "env.yml"
+        env_file.touch()
+        env_file.write_text(
+            dals(
+                """
+                name: dummy
+                channels:
+                    - defaults
+                dependencies:
+                    - bzip2=1.0.8
+                    - flask>=2.0.0,<=2.0.2
+                """
             )
-        output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+        )
+        output, _, _ = conda_cli("compare", "--prefix", prefix, env_file, "--json")
         assert "Success" in output
-        rmtree(prefix, ignore_errors=True)
 
 
 def test_compare_fail():
