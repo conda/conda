@@ -254,8 +254,101 @@ jobs:
             test-report.xml
           retention-days: 1
 
-  # macos test suite
-  macos:
+  # macos test suite on x86_64
+  macos-x86_64:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        default-channel: ['defaults']
+        python-version: ['3.9']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
+    env:
+      OS: macOS
+      PYTHON: ${{ matrix.python-version }}
+      TEST_SPLITS: 3
+      TEST_GROUP: ${{ matrix.test-group }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Cache conda packages
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 4
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+
+      - name: Cache minio
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache
+          CACHE_NUMBER: 4
+        with:
+          path: minio
+          key:
+            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
+
+      - uses: conda-incubator/setup-miniconda@v2
+        name: Setup miniconda for defaults
+        if: matrix.default-channel == 'defaults'
+        env:
+          CONDA_SOLVER: classic
+        with:
+          miniconda-version: latest
+          activate-environment: conda-test-env
+          python-version: ${{ matrix.python-version }}
+
+      - uses: conda-incubator/setup-miniconda@v2
+        name: Setup miniconda for conda-forge
+        if: matrix.default-channel == 'conda-forge'
+        env:
+          CONDA_SOLVER: classic
+        with:
+          miniforge-version: latest
+          activate-environment: conda-test-env
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup environment
+        shell: bash -l {0}
+        timeout-minutes: 15
+        run: |
+          ./dev/macos/setup.sh
+
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        shell: bash -l {0}
+        run: |
+          ./dev/macos/${{ matrix.test-type }}.sh
+
+      - uses: codecov/codecov-action@v3
+        with:
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+
+      - name: Upload test results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          path: |
+            .coverage
+            ./tools/durations/${{ runner.os }}.json
+            test-report.xml
+          retention-days: 1
+
+  # macos test suite on arm64
+  macos-arm64:
     # only run test suite if there are code changes
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -268,24 +361,11 @@ jobs:
         python-version: ['3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
-        # fewer test splits for quicker unit tests, keep 3 splits for integration
-        test-splits: [2, 3]
-        exclude:
-          - test-type: unit
-            test-group: '3'
-          - test-type: unit
-            test-splits: 3
-          - test-type: integration
-            test-splits: 2
-          # odd choice kept for parity with previous commit
-          - test-type: integration
-            default-channel: 'conda-forge'
-          - test-type: unit
-            default-channel: 'defaults'
+
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
+      TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
@@ -351,10 +431,11 @@ jobs:
             test-report.xml
           retention-days: 1
 
+
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-qemu, macos]
+    needs: [changes, windows, linux, linux-qemu, macos-x86_64, macos-arm64]
     if: >-
       !cancelled()
       && needs.changes.outputs.code == 'true'
@@ -381,7 +462,7 @@ jobs:
   # required check
   analyze:
     name: Analyze results
-    needs: [windows, linux, linux-qemu, macos, aggregate]
+    needs: [windows, linux, linux-qemu, macos-x86_64, macos-arm64, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
