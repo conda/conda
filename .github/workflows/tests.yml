@@ -265,13 +265,27 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults']
-        python-version: ['3.9']
+        python-version: ['3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+        # fewer test splits for quicker unit tests, keep 3 splits for integration
+        test-splits: [2, 3]
+        exclude:
+          - test-type: unit
+            test-group: '3'
+          - test-type: unit
+            test-splits: 3
+          - test-type: integration
+            test-splits: 2
+          # odd choice kept for parity with previous commit
+          - test-type: integration
+            default-channel: 'conda-forge'
+          - test-type: unit
+            default-channel: 'defaults'
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
@@ -305,8 +319,8 @@ jobs:
         env:
           CONDA_SOLVER: classic
         with:
-          miniconda-version: latest
           activate-environment: conda-test-env
+          miniconda-version: latest
           python-version: ${{ matrix.python-version }}
 
       - uses: conda-incubator/setup-miniconda@v2
@@ -315,8 +329,8 @@ jobs:
         env:
           CONDA_SOLVER: classic
         with:
-          miniforge-version: latest
           activate-environment: conda-test-env
+          miniforge-version: latest
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
@@ -357,15 +371,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults', 'conda-forge']
+        default-channel: ['defaults']
         python-version: ['3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
+        # fewer test splits for quicker unit tests, keep 3 splits for integration
+        test-splits: [2, 3]
+        exclude:
+          - test-type: unit
+            test-group: '3'
+          - test-type: unit
+            test-splits: 3
+          - test-type: integration
+            test-splits: 2
+          # odd choice kept for parity with previous commit
+          - test-type: integration
+            default-channel: 'conda-forge'
+          - test-type: unit
+            default-channel: 'defaults'
 
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
+      TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
