@@ -1,7 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Entry point for all conda-env subcommands."""
 import os
 import sys
+from importlib import import_module
 
 # pip_util.py import on_win from conda.exports
 # conda.exports resets the context
@@ -27,8 +29,10 @@ def show_help_on_empty_command():
 
 def create_parser():
     p = ArgumentParser()
-    sub_parsers = p.add_subparsers()
-
+    sub_parsers = p.add_subparsers(
+        metavar="command",
+        dest="cmd",
+    )
     main_create.configure_parser(sub_parsers)
     main_export.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
@@ -40,13 +44,18 @@ def create_parser():
     return p
 
 
-def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit(".", 1)
+def do_call(arguments, parser):
+    relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'
-    from importlib import import_module
 
-    module = import_module(relative_mod, __name__.rsplit(".", 1)[0])
-    exit_code = getattr(module, func_name)(args, parser)
+    # Run the pre_command actions
+    command = relative_mod.replace(".main_", "")
+
+    context.plugin_manager.invoke_pre_commands(f"env_{command}")
+    module = import_module(relative_mod, "conda_env.cli")
+    exit_code = getattr(module, func_name)(arguments, parser)
+    context.plugin_manager.invoke_post_commands(f"env_{command}")
+
     return exit_code
 
 
@@ -56,7 +65,7 @@ def main():
     args = parser.parse_args()
     os.environ["CONDA_AUTO_UPDATE_CONDA"] = "false"
     context.__init__(argparse_args=args)
-    init_loggers(context)
+    init_loggers()
     return conda_exception_handler(do_call, args, parser)
 
 

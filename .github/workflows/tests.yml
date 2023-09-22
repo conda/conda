@@ -4,8 +4,7 @@
 name: Tests
 
 on:
-  # NOTE: github.event context is push payload:
-  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#push
   push:
     branches:
       - main
@@ -13,9 +12,11 @@ on:
       - '[0-9].*.x'  # e.g., 4.14.x
       - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
-  # NOTE: github.event context is pull_request payload:
-  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
+
+  # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
+  workflow_dispatch:
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -26,24 +27,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-env:
-    # see https://github.com/conda/conda/pull/12524
-    MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
+# env:
+    # to pin MinIO version, see images.yml for counterpart
+    # MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
 
 jobs:
   # detect whether any code changes are included in this PR
   changes:
     runs-on: ubuntu-latest
     permissions:
+      # necessary to detect changes
+      # https://github.com/dorny/paths-filter#supported-workflows
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v3
         # dorny/paths-filter needs git clone for push events
-        # https://github.com/marketplace/actions/paths-changes-filter#supported-workflows
-        if: github.event_name == 'push'
-      - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50
+        # https://github.com/dorny/paths-filter#supported-workflows
+        if: github.event_name != 'pull_request'
+      - uses: dorny/paths-filter@v2.11.1
         id: filter
         with:
           filters: |
@@ -54,6 +57,10 @@ jobs:
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
+              - 'dev/**/setup.*'
+              - 'dev/**/integration.*'
+              - 'dev/**/unit.*'
+              - 'dev/**/qemu.*'
 
   # windows test suite
   windows:
@@ -65,35 +72,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        conda-subdir: ['win-64']
+        python-version: ['3.8', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
-          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
             python-version: '3.8'
-          - default-channel: 'conda-forge'
-            python-version: '3.11'
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
-      CONDA_SUBDIR: ${{ matrix.conda-subdir }}
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      # for cache
-      - if: ${{ runner.os == 'Windows' }}
-        name: Use GNU tar
-        shell: cmd
-        run: |
-          echo "Adding GNU tar to PATH"
-          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
 
       - name: Cache conda packages
         uses: actions/cache@v3
@@ -141,15 +136,14 @@ jobs:
         run: |
           call .\dev\windows\setup.bat
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.conda-subdir }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: cmd
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: always()
@@ -157,10 +151,10 @@ jobs:
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.conda-subdir }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${OS}.json
+            .\tools\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -174,16 +168,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.9', '3.10', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
-          # exclude all but one Python version for conda-forge
           - default-channel: 'conda-forge'
             python-version: '3.8'
           - default-channel: 'conda-forge'
             python-version: '3.9'
+          - default-channel: 'conda-forge'
+            python-version: '3.10'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -205,8 +201,7 @@ jobs:
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: always()
@@ -217,7 +212,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${OS}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -240,7 +235,6 @@ jobs:
         python-version: ['3.11']
         platform: ['arm64', 'ppc64le']
     env:
-      OS: linux-${{ matrix.platform }}
       PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v3
@@ -353,7 +347,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           ./dev/macos/setup.sh
 
@@ -364,8 +358,7 @@ jobs:
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }}
-          env_vars: OS,PYTHON
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: always()
@@ -376,7 +369,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${OS}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -384,7 +377,7 @@ jobs:
   aggregate:
     # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-qemu, macos]
-    if: needs.changes.outputs.code == 'true' && always()
+    if: always() && needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     steps:
@@ -428,7 +421,7 @@ jobs:
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
     if: >-
-      success()
+      always()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'
@@ -454,8 +447,34 @@ jobs:
           clean: true
           fetch-depth: 0
 
+      # Explicitly use Python 3.11 since each of the OSes has a different default Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Detect label
+        shell: python
+        run: |
+          from pathlib import Path
+          from re import match
+          from os import environ
+
+          if "${{ github.ref_name }}" == "main":
+              # main branch commits are uploaded to the dev label
+              label = "dev"
+          elif "${{ github.ref_name }}".startswith("feature/"):
+              # feature branch commits are uploaded to a custom label
+              label = "${{ github.ref_name }}"
+          else:
+              # release branch commits are added to the rc label
+              # see https://github.com/conda/infrastructure/issues/760
+              _, name = "${{ github.repository }}".split("/")
+              label = f"rc-{name}-${{ github.ref_name }}"
+
+          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
+
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v22.10.0
+        uses: conda/actions/canary-release@v23.7.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -463,5 +482,5 @@ jobs:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
-          anaconda-org-label: ${{ github.ref_name == 'main' && 'dev' || github.ref_name }}
+          anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}

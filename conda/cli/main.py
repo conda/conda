@@ -1,76 +1,81 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""conda is a tool for managing environments and packages.
-
-conda provides the following commands:
-
-    Information
-    ===========
-
-    info       : display information about the current install
-    list       : list packages linked into a specified environment
-    search     : print information about a specified package
-    help       : display a list of available conda commands and their help
-                 strings
-
-    Package Management
-    ==================
-
-    create     : create a new conda environment from a list of specified
-                 packages
-    install    : install new packages into an existing conda environment
-    update     : update packages in a specified conda environment
-
-
-    Packaging
-    =========
-
-    package    : create a conda package in an environment
-
-Additional help for each command can be accessed by using:
-
-    conda <command> -h
-"""
+"""Entry point for all conda subcommands."""
 import sys
 
-from .conda_argparse import generate_parser
+from ..deprecations import deprecated
 
 
-def init_loggers(context=None):
-    from logging import CRITICAL, getLogger
+@deprecated.argument(
+    "24.3",
+    "24.9",
+    "context",
+    addendum="The context is a global state, no need to pass it around.",
+)
+def init_loggers():
+    import logging
 
-    from ..gateways.logging import initialize_logging, set_verbosity
+    from ..base.context import context
+    from ..gateways.logging import initialize_logging, set_log_level
 
     initialize_logging()
-    if context and context.json:
-        # Silence logging info to avoid interfering with JSON output
-        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context:
-        if context.verbosity:
-            set_verbosity(context.verbosity)
+    # silence logging info to avoid interfering with JSON output
+    if context.json:
+        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
+            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
+
+    # set log_level
+    set_log_level(context.log_level)
+
+
+def generate_parser(*args, **kwargs):
+    """
+    Some code paths import this function directly from this module instead
+    of from conda_argparse. We add the forwarder for backwards compatibility.
+    """
+    from .conda_argparse import generate_parser
+
+    return generate_parser(*args, **kwargs)
 
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
+    # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
+    from ..base.context import context
+    from .conda_argparse import do_call, generate_parser, generate_pre_parser
+
     args = args or ["--help"]
 
-    p = generate_parser()
-    args = p.parse_args(args)
+    pre_parser = generate_pre_parser(add_help=False)
+    pre_args, _ = pre_parser.parse_known_args(args)
 
-    from ..base.context import context
+    # the arguments that we want to pass to the main parser later on
+    override_args = {
+        "json": pre_args.json,
+        "debug": pre_args.debug,
+        "trace": pre_args.trace,
+        "verbosity": pre_args.verbosity,
+    }
+
+    context.__init__(argparse_args=pre_args)
+    if context.no_plugins:
+        context.plugin_manager.disable_external_plugins()
+
+    # reinitialize in case any of the entrypoints modified the context
+    context.__init__(argparse_args=pre_args)
+
+    parser = generate_parser(add_help=True)
+    args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     context.__init__(argparse_args=args)
-    init_loggers(context)
+    init_loggers()
 
     # used with main_pip.py
     if post_parse_hook:
-        post_parse_hook(args, p)
+        post_parse_hook(args, parser)
 
-    from .conda_argparse import do_call
-
-    exit_code = do_call(args, p)
+    exit_code = do_call(args, parser)
     if isinstance(exit_code, int):
         return exit_code
     elif hasattr(exit_code, "rc"):
@@ -81,10 +86,11 @@ def main_sourced(shell, *args, **kwargs):
     """Entrypoint for the "sourced" invocation of CLI interface. E.g. `conda activate`."""
     shell = shell.replace("shell.", "", 1)
 
+    # This is called any way later in conda.activate, so no point in removing it
     from ..base.context import context
 
     context.__init__()
-    init_loggers(context)
+    init_loggers()
 
     from ..activate import _build_activator_cls
 
@@ -103,7 +109,7 @@ def main_sourced(shell, *args, **kwargs):
 def main(*args, **kwargs):
     # conda.common.compat contains only stdlib imports
     from ..common.compat import ensure_text_type
-    from ..exceptions import conda_exception_handler
+    from ..exception_handler import conda_exception_handler
 
     # cleanup argv
     args = args or sys.argv[1:]  # drop executable/script

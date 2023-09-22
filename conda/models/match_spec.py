@@ -1,5 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Implements the query language for conda packages (a.k.a, MatchSpec).
+
+The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
+`cryptography * *_0`) and is used to communicate the desired packages to install.
+"""
 import re
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -144,7 +149,8 @@ class MatchSpec(metaclass=MatchSpecType):
       - version
       - build
     must be given as exact values.  In the future, the namespace field will be added to this list.
-    Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'.
+    Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'
+    or '*[sha256=f453db4ffe2271ec492a2913af4e61d4a6c118201f07de757df0eff769b65d2e]'.
     """
 
     FIELD_NAMES = (
@@ -158,6 +164,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "features",
         "url",
         "md5",
+        "sha256",
         "license",
         "license_family",
         "fn",

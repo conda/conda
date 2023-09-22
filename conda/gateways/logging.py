@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Configure logging for conda."""
 import logging
 import re
 import sys
@@ -18,10 +19,18 @@ from logging import (
 
 from .. import CondaError
 from ..common.io import _FORMATTER, attach_stderr_handler
+from ..deprecations import deprecated
 
 log = getLogger(__name__)
-TRACE = 5  # TRACE LOG LEVEL
-VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
+
+_VERBOSITY_LEVELS = {
+    0: WARN,  # standard output
+    1: WARN,  # -v, detailed output
+    2: INFO,  # -vv, info logging
+    3: DEBUG,  # -vvv, debug logging
+    4: (TRACE := 5),  # -vvvv, trace logging
+}
+deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 
 
 class TokenURLFilter(Filter):
@@ -206,15 +215,21 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
     conda_logger.addHandler(handler)
 
 
-def set_verbosity(verbosity_level):
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.gateways.logging.set_log_level` instead.",
+)
+def set_verbosity(verbosity: int):
     try:
-        set_all_logger_level(VERBOSITY_LEVELS[verbosity_level])
-    except IndexError:
-        raise CondaError(
-            "Invalid verbosity level: %(verbosity_level)s",
-            verbosity_level=verbosity_level,
-        )
-    log.debug("verbosity set to %s", verbosity_level)
+        set_log_level(_VERBOSITY_LEVELS[verbosity])
+    except KeyError:
+        raise CondaError(f"Invalid verbosity level: {verbosity}") from None
+
+
+def set_log_level(log_level: int):
+    set_all_logger_level(log_level)
+    log.debug("log_level set to %d", log_level)
 
 
 def trace(self, message, *args, **kwargs):
@@ -223,7 +238,7 @@ def trace(self, message, *args, **kwargs):
 
 
 logging.addLevelName(TRACE, "TRACE")
-logging.Logger.trace = trace
+logging.Logger.trace = trace  # type: ignore[attr-defined]
 
 # suppress DeprecationWarning for warn method
-logging.Logger.warn = logging.Logger.warning
+logging.Logger.warn = logging.Logger.warning  # type: ignore[method-assign]

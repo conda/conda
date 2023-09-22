@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Helpers for the tests."""
-
+"""Collection of helper functions used in conda tests."""
 import json
 import os
 import re
@@ -17,14 +16,14 @@ from uuid import uuid4
 import pytest
 
 from conda.auxlib.compat import shlex_split_unicode
+from conda.deprecations import deprecated
 from conda_env.cli import main as conda_env_cli
 
 from .. import cli
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
-from ..common.io import argv
+from ..common.io import argv, env_var
 from ..common.io import captured as common_io_captured
-from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..gateways.disk.delete import rm_rf
@@ -92,6 +91,11 @@ def capture_json_with_argv(
         raise
 
 
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
+)
 @contextmanager
 def set_active_prefix(prefix: str) -> None:
     old_prefix = os.environ["CONDA_PREFIX"]
@@ -122,6 +126,7 @@ def assert_in(a, b, output=""):
     )
 
 
+@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
 def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())

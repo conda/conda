@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda-env list`.
+
+Lists available conda environments.
+"""
 from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common

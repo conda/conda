@@ -1,11 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common path utilities."""
 from __future__ import annotations
 
 import os
 import re
 import subprocess
-from distutils.spawn import find_executable
 from functools import lru_cache, reduce
 from itertools import accumulate, chain
 from logging import getLogger
@@ -23,7 +23,6 @@ from typing import Iterable, Sequence
 from urllib.parse import urlsplit
 
 from .. import CondaError
-from ..deprecations import deprecated
 from .compat import on_win
 
 log = getLogger(__name__)
@@ -126,7 +125,6 @@ def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
     return tuple("/".join(leaf) for leaf in leaves)
 
 
-@deprecated.argument("23.3", "23.9", "already_split")
 def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str]:
     # get all directories including parents
     # child_directories must already be split with os.path.split
@@ -326,6 +324,10 @@ def win_path_to_unix(path, root_prefix=""):
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
     if not path:
         return ""
+
+    # rebind to shutil to avoid triggering the deprecation warning
+    from shutil import which
+
     bash = which("bash")
     if bash:
         cygpath = os.environ.get(
@@ -359,7 +361,10 @@ def win_path_to_unix(path, root_prefix=""):
 
 
 def which(executable):
-    return find_executable(executable)
+    """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
+    from shutil import which
+
+    return which(executable)
 
 
 def strip_pkg_extension(path: str):

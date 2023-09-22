@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check CLA
-        uses: conda/actions/check-cla@v23.5.1
+        uses: conda/actions/check-cla@v23.7.0
         with:
           # [required]
           # A token with ability to comment, label, and modify the commit status
@@ -27,7 +27,7 @@ jobs:
           # (default: secrets.GITHUB_TOKEN)
           token: ${{ secrets.CLA_ACTION_TOKEN }}
           # [required]
-          # Label to apply to contributor's PR once CLA is singed
+          # Label to apply to contributor's PR once CLA is signed
           label: cla-signed
 
           # [required]

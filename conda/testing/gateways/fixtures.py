@@ -1,18 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Collection of pytest fixtures used in conda.gateways tests."""
 import json
 import os
 import socket
 from pathlib import Path
+from shutil import which
 
 import boto3
 import pytest
 from botocore.client import Config
 from xprocess import ProcessStarter
 
-from ...cli.find_commands import find_executable
-
-MINIO_EXE = find_executable("minio")
+MINIO_EXE = which("minio")
 
 
 def minio_s3_server(xprocess, tmp_path):
@@ -31,7 +31,8 @@ def minio_s3_server(xprocess, tmp_path):
     class Minio:
         # The 'name' below will be the name of the S3 bucket containing
         # keys like `noarch/repodata.json`
-        name = "minio_s3_server"
+        # see https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+        name = "minio-s3-server"
         port = 9000
 
         def __init__(self):
@@ -39,7 +40,11 @@ def minio_s3_server(xprocess, tmp_path):
 
         @property
         def server_url(self):
-            return f"http://localhost:{self.port}/{self.name}"
+            return f"{self.endpoint}/{self.name}"
+
+        @property
+        def endpoint(self):
+            return f"http://localhost:{self.port}"
 
         def populate_bucket(self, endpoint, bucket_name, channel_dir):
             """Prepare the s3 connection for our minio instance"""
@@ -79,7 +84,7 @@ def minio_s3_server(xprocess, tmp_path):
                     client.upload_file(
                         str(path),
                         bucket_name,
-                        str(key),
+                        str(key).replace("\\", "/"),  # MinIO expects Unix paths
                         ExtraArgs={"ACL": "public-read"},
                     )
 

@@ -5,13 +5,15 @@ from contextlib import contextmanager
 from textwrap import dedent
 
 import pytest
+from ruamel.yaml.scanner import ScannerError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
-from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import ConfigurationLoadError
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
+from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
+from conda.testing import CondaCLIFixture
 
 # use condarc from source tree to run these tests against
 
@@ -77,7 +79,7 @@ conda_build:
 CONDARC_BASE = CONDARC_CHANNELS + "\n" + CONDARC_OTHER
 
 
-def test_invalid_yaml():
+def test_invalid_yaml(conda_cli: CondaCLIFixture):
     condarc = dedent(
         """\
         fgddgh
@@ -87,34 +89,33 @@ def test_invalid_yaml():
     )
     try:
         with make_temp_condarc(condarc) as rc:
-            run_command(Commands.CONFIG, "--file", rc, "--add", "channels", "test")
+            try:
+                conda_cli("config", "--file", rc, "--add", "channels", "test")
+            except ScannerError as err:
+                assert "mapping values are not allowed here" == err.problem
     except ConfigurationLoadError as err:
-        assert "reason: invalid yaml at line" in err.message, err.message
+        assert "reason: invalid yaml at line" in err.message
 
 
-def test_channels_add_empty():
+def test_channels_add_empty(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--add", "channels", "test"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--add", "channels", "test"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == _channels_as_yaml("test", "defaults")
 
 
-def test_channels_add_empty_with_defaults():
+def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
     # When defaults is explicitly given, it should not be added
     with make_temp_condarc() as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--add",
-            "channels",
-            "test",
-            "--add",
-            "channels",
-            "defaults",
-            use_exception_handler=True,
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--add", "channels", "test"),
+            *("--add", "channels", "defaults"),
         )
         assert stdout == ""
         assert (
@@ -124,18 +125,14 @@ def test_channels_add_empty_with_defaults():
         assert _read_test_condarc(rc) == _channels_as_yaml("defaults", "test")
 
 
-def test_channels_add_duplicate():
+def test_channels_add_duplicate(conda_cli: CondaCLIFixture):
     channels_initial = _channels_as_yaml("test", "defaults", "mychannel")
     channels_expected = _channels_as_yaml("mychannel", "test", "defaults")
     with make_temp_condarc(channels_initial) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--add",
-            "channels",
-            "mychannel",
-            use_exception_handler=True,
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--add", "channels", "mychannel"),
         )
         assert stdout == ""
         assert (
@@ -145,21 +142,25 @@ def test_channels_add_duplicate():
         assert _read_test_condarc(rc) == channels_expected
 
 
-def test_channels_prepend():
+def test_channels_prepend(conda_cli: CondaCLIFixture):
     channels_expected = _channels_as_yaml("mychannel", "test", "defaults")
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--prepend", "channels", "mychannel"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--prepend", "channels", "mychannel"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == channels_expected + "\n" + CONDARC_OTHER
 
 
-def test_channels_prepend_duplicate():
+def test_channels_prepend_duplicate(conda_cli: CondaCLIFixture):
     channels_expected = _channels_as_yaml("defaults", "test")
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--prepend", "channels", "defaults"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--prepend", "channels", "defaults"),
         )
         assert stdout == ""
         assert (
@@ -169,16 +170,12 @@ def test_channels_prepend_duplicate():
         assert _read_test_condarc(rc) == channels_expected + CONDARC_OTHER
 
 
-def test_channels_append():
+def test_channels_append(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--append",
-            "channels",
-            "mychannel",
-            use_exception_handler=True,
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--append", "channels", "mychannel"),
         )
         assert stdout == stderr == ""
         assert (
@@ -187,17 +184,13 @@ def test_channels_append():
         )
 
 
-def test_channels_append_duplicate():
+def test_channels_append_duplicate(conda_cli: CondaCLIFixture):
     channels_expected = _channels_as_yaml("defaults", "test")
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--append",
-            "channels",
-            "test",
-            use_exception_handler=True,
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--append", "channels", "test"),
         )
         assert stdout == ""
         assert (
@@ -207,64 +200,62 @@ def test_channels_append_duplicate():
         assert _read_test_condarc(rc) == channels_expected + CONDARC_OTHER
 
 
-def test_channels_remove():
+def test_channels_remove(conda_cli: CondaCLIFixture):
     channels_expected = _channels_as_yaml("defaults")
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--remove", "channels", "test"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--remove", "channels", "test"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == channels_expected + CONDARC_OTHER
 
 
-def test_channels_remove_duplicate():
+def test_channels_remove_duplicate(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--remove", "channels", "test"
-        )
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--remove",
-            "channels",
-            "test",
-            use_exception_handler=True,
-        )
-        assert stdout == ""
-        assert (
-            stderr.strip() == "CondaKeyError: 'channels': 'test' is not "
-            "in the 'channels' key of the config file"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--remove", "channels", "test"),
         )
 
+        with pytest.raises(
+            CondaKeyError,
+            match="'channels': 'test' is not in the 'channels' key of the config file",
+        ):
+            conda_cli(
+                "config",
+                *("--file", rc),
+                *("--remove", "channels", "test"),
+            )
 
-def test_create_condarc_on_set():
+
+def test_create_condarc_on_set(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--set", "always_yes", "true"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--set", "always_yes", "true"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == "always_yes: true\n"
 
 
-def test_show_sorts_keys():
+def test_show_sorts_keys(conda_cli: CondaCLIFixture):
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--show"
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--show")
         output_keys = yaml_round_trip_load(stdout).keys()
 
         assert stderr == ""
         assert sorted(output_keys) == [item for item in output_keys]
 
 
-def test_get_all():
+def test_get_all(conda_cli: CondaCLIFixture):
     condarc = CONDARC_BASE + "\n\ninvalid_key: true\n"
     with make_temp_condarc(condarc) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", use_exception_handler=True
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get")
         assert stdout == dedent(
             """\
             --set always_yes True
@@ -279,12 +270,10 @@ def test_get_all():
         assert stderr.strip() == "unknown key invalid_key"
 
 
-def test_get_all_inc_maps():
+def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
     condarc = "invalid_key: true\nchangeps1: false\n" + CONDARC_CHANNELS + CONDARC_MAPS
     with make_temp_condarc(condarc) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", use_exception_handler=True
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get")
         assert stdout == dedent(
             """\
             --set changeps1 False
@@ -299,11 +288,9 @@ def test_get_all_inc_maps():
         assert stderr.strip() == "unknown key invalid_key"
 
 
-def test_get_channels_list():
+def test_get_channels_list(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "channels"
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "channels")
         assert stdout == dedent(
             """\
             --add channels 'defaults'   # lowest priority
@@ -313,20 +300,16 @@ def test_get_channels_list():
         assert stderr == ""
 
 
-def test_get_boolean_value():
+def test_get_boolean_value(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "changeps1"
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "changeps1")
         assert stdout.strip() == "--set changeps1 False"
         assert stderr == ""
 
 
-def test_get_string_value():
+def test_get_string_value(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "channel_alias"
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "channel_alias")
         assert stdout.strip() == "--set channel_alias http://alpha.conda.anaconda.org"
         assert stderr == ""
 
@@ -338,27 +321,27 @@ def test_get_string_value():
         ("conda_build.cache_dir", "/tmp/conda-bld"),
     ],
 )
-def test_get_map_subkey(key, value):
+def test_get_map_subkey(key, value, conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_MAPS) as rc:
-        stdout, stderr, _ = run_command(Commands.CONFIG, "--file", rc, "--get", key)
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", key)
         assert stdout.strip() == f"--set {key} {value}"
         assert stderr == ""
 
 
-def test_get_map_full():
+def test_get_map_full(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_MAPS) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "proxy_servers"
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "proxy_servers")
         assert "--set proxy_servers.http 1.2.3.4:5678\n" in stdout
         assert "--set proxy_servers.https 1.2.3.4:5678\n" in stdout
         assert stderr == ""
 
 
-def test_get_multiple_keys():
+def test_get_multiple_keys(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "changeps1", "channels"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--get", "changeps1", "channels"),
         )
         assert stdout == dedent(
             """\
@@ -370,10 +353,12 @@ def test_get_multiple_keys():
         assert stderr == ""
 
 
-def test_get_multiple_keys_incl_map_subkey():
+def test_get_multiple_keys_incl_map_subkey(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE + CONDARC_MAPS) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "changeps1", "proxy_servers.http"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--get", "changeps1", "proxy_servers.http"),
         )
         assert stdout == dedent(
             """\
@@ -384,10 +369,12 @@ def test_get_multiple_keys_incl_map_subkey():
         assert stderr == ""
 
 
-def test_get_multiple_keys_incl_map_full():
+def test_get_multiple_keys_incl_map_full(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE + CONDARC_MAPS) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "changeps1", "proxy_servers"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--get", "changeps1", "proxy_servers"),
         )
         assert stdout == dedent(
             """\
@@ -399,36 +386,29 @@ def test_get_multiple_keys_incl_map_full():
         assert stderr == ""
 
 
-def test_get_unconfigured_key():
+def test_get_unconfigured_key(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--get", "allow_softlinks"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--get", "allow_softlinks"),
         )
         assert stdout == ""
         assert stderr == ""
 
 
-def test_get_invalid_key():
+def test_get_invalid_key(conda_cli: CondaCLIFixture):
     condarc = CONDARC_BASE
     with make_temp_condarc(condarc) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--get",
-            "invalid_key",
-            use_exception_handler=True,
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "invalid_key")
         assert stdout == ""
         assert stderr.strip() == "unknown key invalid_key"
 
 
-def test_set_key():
+def test_set_key(conda_cli: CondaCLIFixture):
     key, from_val, to_val = "changeps1", "true", "false"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--set", key, to_val
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == CONDARC_BASE.replace(
             f"{key}: {from_val}", f"{key}: {to_val}"
@@ -449,56 +429,41 @@ def test_set_key():
         ),
     ],
 )
-def test_set_map_key(key, from_val, to_val):
+def test_set_map_key(key, from_val, to_val, conda_cli: CondaCLIFixture):
     parent_key, sub_key = key.split(".")
     with make_temp_condarc(CONDARC_MAPS) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--set", key, to_val
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == CONDARC_MAPS.replace(
             f"  {sub_key}: {from_val}", f"  {sub_key}: {to_val}"
         )
 
 
-def test_set_unconfigured_key():
+def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
     key, to_val = "restore_free_channel", "true"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--set",
-            key,
-            to_val,
-            use_exception_handler=True,
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == CONDARC_BASE + f"{key}: {to_val}\n"
 
 
-def test_set_invalid_key():
+def test_set_invalid_key(conda_cli: CondaCLIFixture):
     key, to_val = "invalid_key", "a_bogus_value"
-    error = f"CondaValueError: Key '{key}' is not a known primitive parameter."
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--set",
-            key,
-            to_val,
-            use_exception_handler=True,
-        )
-        assert stdout == ""
-        assert stderr.strip() == error
+        with pytest.raises(
+            CondaValueError, match=f"Key '{key}' is not a known primitive parameter."
+        ):
+            conda_cli("config", "--file", rc, "--set", key, to_val)
+
         assert _read_test_condarc(rc) == CONDARC_BASE
 
 
-def test_add_key():
+def test_add_key(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--add", "disallowed_packages", "perl"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--add", "disallowed_packages", "perl"),
         )
         assert stdout == stderr == ""
         assert (
@@ -506,78 +471,46 @@ def test_add_key():
         )
 
 
-def test_add_invalid_key():
+def test_add_invalid_key(conda_cli: CondaCLIFixture):
     key, to_val = "invalid_key", "a_bogus_value"
-    error = f"CondaValueError: Key '{key}' is not a known sequence parameter."
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--add",
-            key,
-            to_val,
-            use_exception_handler=True,
-        )
-        assert stdout == ""
-        assert stderr.strip() == error
+        with pytest.raises(
+            CondaValueError, match=f"Key '{key}' is not a known sequence parameter."
+        ):
+            conda_cli("config", "--file", rc, "--add", key, to_val)
+
         assert _read_test_condarc(rc) == CONDARC_BASE
 
 
-def test_remove_key():
+def test_remove_key(conda_cli: CondaCLIFixture):
     key, value = "changeps1", "false"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--remove-key",
-            key,
-            use_exception_handler=True,
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--remove-key", key)
         assert stdout == stderr == ""
         assert f"{key}: {value}\n" not in _read_test_condarc(rc)
 
 
-def test_remove_key_duplicate():
+def test_remove_key_duplicate(conda_cli: CondaCLIFixture):
     key, value = "changeps1", "false"
-    error = f"CondaKeyError: '{key}': key '{key}' is not in the config file"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--remove-key",
-            key,
-            use_exception_handler=True,
-        )
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--remove-key",
-            key,
-            use_exception_handler=True,
-        )
-        assert stdout == ""
-        assert stderr.strip() == error
+        conda_cli("config", "--file", rc, "--remove-key", key)
+
+        with pytest.raises(
+            CondaKeyError, match=f"'{key}': key '{key}' is not in the config file"
+        ):
+            conda_cli("config", "--file", rc, "--remove-key", key)
+
         assert f"{key}: {value}\n" not in _read_test_condarc(rc)
 
 
-def test_remove_unconfigured_key():
+def test_remove_unconfigured_key(conda_cli: CondaCLIFixture):
     key = "restore_free_channel"
-    error = f"CondaKeyError: '{key}': key '{key}' is not in the config file"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--remove-key",
-            key,
-            use_exception_handler=True,
-        )
-        assert stdout == ""
-        assert stderr.strip() == error
+        with pytest.raises(
+            CondaKeyError, match=f"'{key}': key '{key}' is not in the config file"
+        ):
+            conda_cli("config", "--file", rc, "--remove-key", key)
+
         assert _read_test_condarc(rc) == CONDARC_BASE
 
 
@@ -592,17 +525,9 @@ def test_remove_unconfigured_key():
         ("proxy_servers.http", "1.2.3.4:5678", {"http": "1.2.3.4:5678"}),
     ],
 )
-def test_set_check_types(key, str_value, py_value):
+def test_set_check_types(key, str_value, py_value, conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--set",
-            key,
-            str_value,
-            use_exception_handler=True,
-        )
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, str_value)
         assert stdout == stderr == ""
         with open(rc) as fh:
             content = yaml_round_trip_load(fh.read())
@@ -611,13 +536,11 @@ def test_set_check_types(key, str_value, py_value):
             assert content[key] == py_value
 
 
-def test_set_and_get_bool():
+def test_set_and_get_bool(conda_cli: CondaCLIFixture):
     key = "restore_free_channel"
     with make_temp_condarc() as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--set", key, "yes"
-        )
-        stdout, stderr, _ = run_command(Commands.CONFIG, "--file", rc, "--get", key)
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, "yes")
+        stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", key)
         assert stdout.strip() == f"--set {key} True"
         assert stderr == ""
 
@@ -628,27 +551,43 @@ def test_ssl_verify_default():
         assert context.ssl_verify is True
 
 
-def test_ssl_verify_set_bool():
+def test_ssl_verify_set_bool(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--set", "ssl_verify", "no"
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--set", "ssl_verify", "no"),
         )
         assert stdout == stderr == ""
         reset_context([rc])
         assert context.ssl_verify is False
 
 
-def test_ssl_verify_set_filename():
+def test_ssl_verify_set_filename(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc, Utf8NamedTemporaryFile() as tf:
-        stdout, stderr, _ = run_command(
-            Commands.CONFIG, "--file", rc, "--set", "ssl_verify", tf.name
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--set", "ssl_verify", tf.name),
         )
         assert stdout == stderr == ""
         reset_context([rc])
         assert context.ssl_verify == tf.name
 
 
-def test_set_rc_without_user_rc():
+def test_ssl_verify_set_truststore(conda_cli: CondaCLIFixture):
+    with make_temp_condarc() as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--set", "ssl_verify", "truststore"),
+        )
+        assert stdout == stderr == ""
+        reset_context([rc])
+        assert context.ssl_verify == "truststore"
+
+
+def test_set_rc_without_user_rc(conda_cli: CondaCLIFixture):
     if os.path.exists(sys_rc_path):
         # Backup system rc_config
         with open(sys_rc_path) as fh:
@@ -676,9 +615,7 @@ def test_set_rc_without_user_rc():
         pytest.skip("No writing right to root prefix.")
 
     # This would create a user rc_config
-    stdout, stderr, return_code = run_command(
-        Commands.CONFIG, "--add", "channels", "test"
-    )
+    stdout, stderr, return_code = conda_cli("config", "--add", "channels", "test")
     assert stdout == stderr == ""
     assert yaml_round_trip_load(_read_test_condarc(user_rc_path)) == {
         "channels": ["test", "conda-forge"]
@@ -694,10 +631,12 @@ def test_set_rc_without_user_rc():
             rc.write(yaml_round_trip_dump(sys_rc_config_backup))
 
 
-def test_custom_multichannels_append():
+def test_custom_multichannels_append(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--append", "custom_multichannels.foo", "bar"
+        stdout, stderr, return_code = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--append", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == yaml_round_trip_dump(
@@ -705,10 +644,12 @@ def test_custom_multichannels_append():
         )
 
 
-def test_custom_multichannels_add():
+def test_custom_multichannels_add(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--add", "custom_multichannels.foo", "bar"
+        stdout, stderr, return_code = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--add", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == yaml_round_trip_dump(
@@ -716,15 +657,12 @@ def test_custom_multichannels_add():
         )
 
 
-def test_custom_multichannels_prepend():
+def test_custom_multichannels_prepend(conda_cli: CondaCLIFixture):
     with make_temp_condarc() as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--prepend",
-            "custom_multichannels.foo",
-            "bar",
+        stdout, stderr, return_code = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--prepend", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
         assert _read_test_condarc(rc) == yaml_round_trip_dump(
@@ -732,13 +670,15 @@ def test_custom_multichannels_prepend():
         )
 
 
-def test_custom_multichannels_append_duplicate():
+def test_custom_multichannels_append_duplicate(conda_cli: CondaCLIFixture):
     custom_multichannels_expected = yaml_round_trip_dump(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--append", "custom_multichannels.foo", "bar"
+        stdout, stderr, return_code = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--append", "custom_multichannels.foo", "bar"),
         )
         assert stdout == ""
         assert (
@@ -748,13 +688,15 @@ def test_custom_multichannels_append_duplicate():
         assert _read_test_condarc(rc) == custom_multichannels_expected
 
 
-def test_custom_multichannels_add_duplicate():
+def test_custom_multichannels_add_duplicate(conda_cli: CondaCLIFixture):
     custom_multichannels_expected = yaml_round_trip_dump(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG, "--file", rc, "--add", "custom_multichannels.foo", "bar"
+        stdout, stderr, return_code = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--add", "custom_multichannels.foo", "bar"),
         )
         assert stdout == ""
         assert (
@@ -764,18 +706,15 @@ def test_custom_multichannels_add_duplicate():
         assert _read_test_condarc(rc) == custom_multichannels_expected
 
 
-def test_custom_multichannels_prepend_duplicate():
+def test_custom_multichannels_prepend_duplicate(conda_cli: CondaCLIFixture):
     custom_multichannels_expected = yaml_round_trip_dump(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
-        stdout, stderr, return_code = run_command(
-            Commands.CONFIG,
-            "--file",
-            rc,
-            "--prepend",
-            "custom_multichannels.foo",
-            "bar",
+        stdout, stderr, return_code = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--prepend", "custom_multichannels.foo", "bar"),
         )
         assert stdout == ""
         assert (

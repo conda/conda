@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Notices network fetch logic."""
 from __future__ import annotations
 
 import logging
@@ -9,7 +10,7 @@ from typing import Sequence
 import requests
 
 from ..common.io import Spinner
-from ..gateways.connection.session import CondaSession
+from ..gateways.connection.session import get_session
 from .cache import cached_response
 from .types import ChannelNoticeResponse
 
@@ -55,7 +56,7 @@ def get_channel_notice_response(url: str, name: str) -> ChannelNoticeResponse | 
     additional channel information to use. If the response was invalid we suppress/log
     and error message.
     """
-    session = CondaSession()
+    session = get_session(url)
     try:
         resp = session.get(
             url, allow_redirects=False, timeout=5

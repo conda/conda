@@ -3,8 +3,8 @@
 import ntpath
 import os
 import sys
-from distutils.sysconfig import get_python_lib
 from os.path import abspath, dirname, isfile, join, realpath
+from sysconfig import get_path
 
 import pytest
 
@@ -35,6 +35,7 @@ from conda.core.initialize import (
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
+from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
 
 
@@ -56,7 +57,7 @@ def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
     assert python_version == "%s.%s.%s" % sys.version_info[:3]
-    assert site_packages_dir == get_python_lib()
+    assert site_packages_dir == get_path("platlib")
 
 
 def test_make_install_plan(verbose, mocker):
@@ -419,7 +420,7 @@ def test_install_conda_sh(verbose):
 
         from conda.activate import PosixActivator
 
-        activator = PosixActivator()
+        PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
         if on_win:
@@ -1099,3 +1100,12 @@ def test_init_sh_system(verbose):
 
         init_sh_system(target_path, conda_prefix, reverse=True)
         assert not isfile(target_path)
+
+
+def test_init_all(conda_cli: CondaCLIFixture):
+    # TODO: run this test without cygpath being available (on win)
+    stdout, stderr, err = conda_cli("init", "--all", "--dry-run")
+
+    assert stdout
+    assert not stderr
+    assert not err

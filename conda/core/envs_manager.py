@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Tools for managing conda environments."""
 import os
 from errno import EACCES, ENOENT, EROFS
 from logging import getLogger
@@ -22,6 +23,9 @@ def get_user_environments_txt_file(userhome="~"):
 
 
 def register_env(location):
+    if not context.register_envs:
+        return
+
     user_environments_txt_file = get_user_environments_txt_file()
     location = normpath(location)
     folder = dirname(location)

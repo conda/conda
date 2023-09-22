@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""CLI implementation for `conda-env config`.
+
+Allows for programmatically interacting with conda-env's configuration files (e.g., `~/.condarc`).
+"""
 from argparse import RawDescriptionHelpFormatter
 
 from .main_vars import configure_parser as configure_vars_parser
