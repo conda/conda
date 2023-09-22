@@ -35,6 +35,7 @@ dependencies = [
   "setuptools >=60.0.0",
   "toolz >=0.8.1",
   "tqdm >=4",
+  "truststore >=0.8.0; python_version>='3.10'",
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]
