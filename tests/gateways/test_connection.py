@@ -79,14 +79,36 @@ def test_local_file_adapter_200():
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
 @pytest.mark.integration
 def test_s3_server(minio_s3_server):
-    import boto3
-    from botocore.client import Config
-
     endpoint = minio_s3_server.endpoint
     bucket_name = minio_s3_server.name
     channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"
 
     minio_s3_server.populate_bucket(endpoint, bucket_name, channel_dir)
+
+    inner_s3_test(endpoint, bucket_name)
+
+
+@pytest.mark.integration
+def test_s3_server_with_mock(package_server_ssl):
+    """
+    Use boto3 to fetch from a mock s3 server pointing at the test package
+    repository. This works since conda only GET's against s3 and s3 is http.
+    """
+    host, port = package_server_ssl.getsockname()
+    endpoint_url = f"https://{host}:{port}"
+    bucket_name = "test"
+
+    inner_s3_test(endpoint_url, bucket_name)
+
+
+def inner_s3_test(endpoint_url, bucket_name):
+    """
+    Called by functions that build a populated s3 server.
+
+    (Not sure how to accomplish the same thing with pytest parametrize)
+    """
+    import boto3
+    from botocore.client import Config
 
     # We patch the default kwargs values in boto3.session.Session.resource(...)
     # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
@@ -96,12 +118,13 @@ def test_s3_server(minio_s3_server):
         None,  # api_version
         True,  # use_ssl
         None,  # verify
-        endpoint,  # endpoint_url
+        endpoint_url,  # endpoint_url
         "minioadmin",  # aws_access_key_id
         "minioadmin",  # aws_secret_access_key
         None,  # aws_session_token
         Config(signature_version="s3v4"),  # config
     )
+
     with pytest.raises(CondaExitZero):
         with patch.object(
             boto3.session.Session.resource, "__defaults__", patched_defaults
@@ -109,57 +132,6 @@ def test_s3_server(minio_s3_server):
             # the .conda files in this repo are somehow corrupted
             with env_vars(
                 {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"}
-            ):
-                with make_temp_env(
-                    "--override-channels",
-                    f"--channel=s3://{bucket_name}",
-                    "--download-only",
-                    "--no-deps",  # this fake repo only includes the zlib tarball
-                    "zlib",
-                    use_exception_handler=False,
-                    no_capture=True,
-                ):
-                    # we just want to run make_temp_env and cleanup after
-                    pass
-
-
-@pytest.mark.integration
-def test_s3_server_with_mock(package_server_ssl):
-    """
-    Use boto3 to fetch from a mock s3 server pointing at the test package
-    repository. This works since conda only GET's against s3 and s3 is http.
-    """
-    import boto3
-    from botocore.client import Config
-
-    host, port = package_server_ssl.getsockname()
-    endpoint_url = f"https://{host}:{port}"
-    bucket_name = "test"
-
-    # We patch the default kwargs values in boto3.session.Session.resource(...)
-    # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
-    # connection; otherwise it would default to a real AWS instance
-    patched_defaults = (
-        "us-east-1",  # region_name
-        None,  # api_version
-        True,  # use_ssl
-        False,  # verify
-        endpoint_url,  # endpoint_url
-        "minioadmin",  # aws_access_key_id
-        "minioadmin",  # aws_secret_access_key
-        None,  # aws_session_token
-        Config(signature_version="s3v4"),  # config
-    )
-    with pytest.raises(CondaExitZero):
-        with patch.object(
-            boto3.session.Session.resource, "__defaults__", patched_defaults
-        ):
-            # The test package is not available for all architectures used to
-            # run tests. Error using .conda - related to spoofing subdir?
-            # Insufficient test cleanup?
-            with env_vars(
-                {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"},
-                stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
                 with make_temp_env(
                     "--override-channels",
