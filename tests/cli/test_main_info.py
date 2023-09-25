@@ -5,7 +5,7 @@ from os.path import isdir
 
 from pytest import MonkeyPatch
 
-from conda.base.context import context, reset_context
+from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.testing import CondaCLIFixture
 

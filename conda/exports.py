@@ -8,55 +8,77 @@ import sys
 import threading
 from builtins import input  # noqa: F401
 from collections.abc import Hashable as _Hashable
+from io import StringIO  # noqa: F401, for conda-build
 
-# necessary for conda-build
-from io import StringIO  # noqa: F401
-
-from . import CondaError  # noqa: F401
-from .base.context import reset_context
-
-reset_context()  # initialize context when conda.exports is imported
-
-from . import plan  # noqa: F401
+from . import CondaError, plan  # noqa: F401
+from .auxlib.entity import EntityEncoder  # noqa: F401
+from .base.constants import (  # noqa: F401
+    DEFAULT_CHANNELS,
+    DEFAULT_CHANNELS_UNIX,
+    DEFAULT_CHANNELS_WIN,
+    PREFIX_PLACEHOLDER,
+)
+from .base.context import (  # noqa: F401
+    context,
+    non_x86_machines,
+    reset_context,
+    sys_rc_path,
+)
 from .cli.common import spec_from_line, specs_from_args, specs_from_url  # noqa: F401
-from .cli.conda_argparse import ArgumentParser  # noqa: F401
-from .cli.conda_argparse import add_parser_channels, add_parser_prefix  # noqa: F401
+from .cli.conda_argparse import (  # noqa: F401
+    ArgumentParser,
+    add_parser_channels,
+    add_parser_prefix,
+)
 from .common import compat  # noqa: F401
 from .common.compat import on_win  # noqa: F401
+from .common.path import win_path_to_unix  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
-from .core.package_cache_data import rm_fetched  # noqa: F401
+from .core.index import dist_str_in_index  # noqa: F401
+from .core.index import fetch_index as _fetch_index  # noqa: F401
+from .core.index import get_index as _get_index
+from .core.package_cache_data import ProgressiveFetchExtract, rm_fetched  # noqa: F401
+from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
+from .core.subdir_data import cache_fn_url  # noqa: F401
 from .deprecations import deprecated
+from .exceptions import (  # noqa: F401
+    CondaHTTPError,
+    CondaOSError,
+    LinkError,
+    LockError,
+    PaddingError,
+    PathNotFoundError,
+    UnsatisfiableError,
+)
 from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
+from .gateways.disk.delete import rm_rf as _rm_rf
 from .gateways.disk.link import lchmod  # noqa: F401
-
-
-@deprecated("23.3", "24.3", addendum="Handled by CondaSession.")
-def handle_proxy_407(x, y):
-    pass
-
-
+from .gateways.disk.read import compute_md5sum  # noqa: F401
+from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
+from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
+from .models.dist import Dist
+from .models.enums import FileMode, PathType  # noqa: F401
+from .models.records import PackageRecord
+from .models.version import VersionOrder, normalized_version  # noqa: F401
+from .plan import display_actions as _display_actions
+from .plan import (  # noqa: F401
+    execute_actions,
+    execute_instructions,
+    execute_plan,
+    install_actions,
+)
 from .resolve import (  # noqa: F401
     MatchSpec,
     Resolve,
     ResolvePackageNotFound,
     Unsatisfiable,
 )
-
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
-
-import conda.base.context
-
-from .base.context import non_x86_machines, reset_context, sys_rc_path  # noqa: F401
-from .common.path import win_path_to_unix  # noqa: F401
-from .gateways.disk.read import compute_md5sum  # noqa: F401
-from .models.channel import Channel  # noqa: F401
-from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .utils import (  # noqa: F401
     hashsum_file,
     human_bytes,
@@ -65,60 +87,39 @@ from .utils import (  # noqa: F401
     url_path,
 )
 
+reset_context()  # initialize context when conda.exports is imported
+
+
+@deprecated("23.3", "24.3", addendum="Handled by CondaSession.")
+def handle_proxy_407(x, y):
+    pass
+
+
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 non_x86_linux_machines = non_x86_machines
-
-from .auxlib.entity import EntityEncoder  # noqa: F401
-from .base.constants import (  # noqa: F401
-    DEFAULT_CHANNELS,
-    DEFAULT_CHANNELS_UNIX,
-    DEFAULT_CHANNELS_WIN,
-)
-
-get_default_urls = lambda: DEFAULT_CHANNELS
-
-from .base.constants import PREFIX_PLACEHOLDER
-
+get_default_urls = lambda: DEFAULT_CHANNELS  # noqa: E731
 _PREFIX_PLACEHOLDER = prefix_placeholder = PREFIX_PLACEHOLDER
-
-arch_name = conda.base.context.context.arch_name
-binstar_upload = conda.base.context.context.anaconda_upload
-bits = conda.base.context.context.bits
-default_prefix = conda.base.context.context.default_prefix
-default_python = conda.base.context.context.default_python
-envs_dirs = conda.base.context.context.envs_dirs
-pkgs_dirs = conda.base.context.context.pkgs_dirs
-platform = conda.base.context.context.platform
-root_dir = conda.base.context.context.root_prefix
-root_writable = conda.base.context.context.root_writable
-subdir = conda.base.context.context.subdir
-conda_build = conda.base.context.context.conda_build
-
-from .models.channel import get_conda_build_local_url  # NOQA
-
-get_rc_urls = lambda: list(conda.base.context.context.channels)
-get_local_urls = lambda: list(get_conda_build_local_url()) or []
-load_condarc = lambda fn: conda.base.context.reset_context([fn])
-
-from .exceptions import CondaOSError, LinkError, PaddingError, PathNotFoundError  # NOQA
-
+arch_name = context.arch_name
+binstar_upload = context.anaconda_upload
+bits = context.bits
+default_prefix = context.default_prefix
+default_python = context.default_python
+envs_dirs = context.envs_dirs
+pkgs_dirs = context.pkgs_dirs
+platform = context.platform
+root_dir = context.root_prefix
+root_writable = context.root_writable
+subdir = context.subdir
+conda_build = context.conda_build
+get_rc_urls = lambda: list(context.channels)  # noqa: E731
+get_local_urls = lambda: list(get_conda_build_local_url()) or []  # noqa: E731
+load_condarc = lambda fn: reset_context([fn])  # noqa: E731
 PaddingError = PaddingError
 LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
-PathNotFoundError = CondaFileNotFoundError = PathNotFoundError
-
-from .models.enums import FileMode  # noqa: F401
-from .models.enums import PathType  # noqa: F401
-from .models.records import PackageRecord
-
+CondaFileNotFoundError = PathNotFoundError
 IndexRecord = PackageRecord
-
-from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
-from .core.subdir_data import cache_fn_url  # noqa: F401
-from .exceptions import CondaHTTPError, LockError, UnsatisfiableError  # noqa: F401
-from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
-from .models.dist import Dist
-
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
@@ -178,10 +179,6 @@ class memoized:  # pragma: no cover
                 return value
 
 
-from .core.prefix_data import delete_prefix_from_linked_data
-from .gateways.disk.delete import rm_rf as _rm_rf
-
-
 def rm_rf(path, max_retries=5, trash=True):
     _rm_rf(path, max_retries, trash)
     delete_prefix_from_linked_data(path)
@@ -202,15 +199,6 @@ def verify(_):
     return False  # pragma: no cover
 
 
-from .plan import display_actions as _display_actions
-from .plan import (  # noqa: F401
-    execute_actions,
-    execute_instructions,
-    execute_plan,
-    install_actions,
-)
-
-
 def display_actions(
     actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()
 ):
@@ -224,11 +212,6 @@ def display_actions(
     return _display_actions(
         actions, index, show_channel_urls, specs_to_remove, specs_to_add
     )
-
-
-from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import fetch_index as _fetch_index  # noqa: F401
-from .core.index import get_index as _get_index
 
 
 def get_index(

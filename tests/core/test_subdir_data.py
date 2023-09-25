@@ -17,16 +17,9 @@ from conda.core.subdir_data import (
     cache_fn_url,
     fetch_repodata_remote_request,
 )
-from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvalidChannel
+from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
-from conda.gateways.connection import SSLError
-from conda.gateways.connection.session import CondaSession
-from conda.gateways.repodata import (
-    CondaRepoInterface,
-    RepodataCache,
-    RepodataFetch,
-    Response304ContentUnchanged,
-)
+from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -52,8 +45,6 @@ def platform_in_record(platform, record):
 
 @pytest.mark.integration
 def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
-    import conda.core.subdir_data
-
     with env_vars(
         {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
