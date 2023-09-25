@@ -9,7 +9,7 @@
 ### Deprecations
 
 * Removed `conda.another_unicode()`. (#12948)
-* Removed `conda._vendor.toolz`. (#12948)
+* Removed `conda._vendor.toolz`. (#12948, #13141)
 * Removed `conda._vendor.tqdm`. (#12948)
 * Removed `conda.auxlib.decorators.memoized` decorator. (#12948)
 * Removed `conda.base.context.Context.experimental_solver`. (#12948)
