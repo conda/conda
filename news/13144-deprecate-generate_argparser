@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.cli.main.generate_parser` as pending deprecation. Use `conda.cli.conda_argparse.generate_parser` instead. (#13144)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
