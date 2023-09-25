@@ -47,7 +47,7 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.11.0
+    rev: v3.13.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -64,8 +64,8 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
         additional_dependencies: [black]
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.289
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.291
     hooks:
       - id: ruff
         args: [--fix]
