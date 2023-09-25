@@ -6,14 +6,16 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from argparse import REMAINDER, SUPPRESS, Action
-from argparse import ArgumentParser as ArgumentParserBase
 from argparse import (
+    REMAINDER,
+    SUPPRESS,
+    Action,
     RawDescriptionHelpFormatter,
     _CountAction,
     _HelpAction,
     _StoreTrueAction,
 )
+from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
 from logging import getLogger
 from os.path import abspath, expanduser, join
@@ -42,7 +44,7 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, ".condarc")).replace("%", "%%")
 
-#: List of a built-in commands; these cannot be overriden by plugin subcommands
+#: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {
     "clean",
     "compare",
@@ -1959,14 +1961,11 @@ def add_parser_solver(p):
 
     See ``context.solver`` for more info.
     """
-    solver_choices = [
-        solver.name for solver in context.plugin_manager.get_hook_results("solvers")
-    ]
     group = p.add_mutually_exclusive_group()
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=solver_choices,
+        choices=context.plugin_manager.get_solvers(),
         help="Choose which solver backend to use.",
         default=NULL,
     )

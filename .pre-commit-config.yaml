@@ -47,19 +47,14 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.10.1
+    rev: v3.13.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
         args: [--py38-plus]
         exclude: ^conda/exports.py
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      # auto sort Python imports
-      - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 23.9.1
     hooks:
       # auto format Python codes
       - id: black
@@ -69,15 +64,21 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
         additional_dependencies: [black]
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.291
     hooks:
-      # lint Python codes
-      - id: flake8
-        args: [--docstring-convention=pep257]
-        additional_dependencies: [flake8-docstrings, flake8-pyproject]
+      - id: ruff
+        args: [--fix]
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
+  - repo: local
+    hooks:
+      - id: git-diff
+        name: git diff
+        entry: git diff --exit-code
+        language: system
+        pass_filenames: false
+        always_run: true
