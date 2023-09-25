@@ -16,7 +16,6 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    explode_directories,
     get_bin_directory_short_path,
     get_python_noarch_target_path,
     get_python_short_path,
