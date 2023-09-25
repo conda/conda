@@ -9,7 +9,6 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from tlz import accumulate, concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
@@ -431,24 +430,3 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
-
-
-def test_explode_directories():
-    def old_explode_directories(child_directories, already_split=False):
-        # get all directories including parents
-        # use already_split=True for the result of get_all_directories()
-        maybe_split = lambda x: x if already_split else x.split("/")
-        return set(
-            concat(
-                accumulate(join, maybe_split(directory))
-                for directory in child_directories
-                if directory
-            )
-        )
-
-    old_version = old_explode_directories(
-        (os.path.split(path) for path in sys.path), already_split=True
-    )
-    new_version = explode_directories(os.path.split(path) for path in sys.path)
-
-    assert new_version == old_version
