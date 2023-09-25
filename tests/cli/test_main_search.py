@@ -5,7 +5,6 @@ import re
 
 import pytest
 
-from conda.base.context import context
 from conda.testing import CondaCLIFixture
 
 

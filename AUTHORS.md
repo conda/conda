@@ -312,6 +312,7 @@ Authors are sorted alphabetically.
 * Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
+* Peter Talley
 * Peter Williams
 * Phil Elson
 * Philip Thomas

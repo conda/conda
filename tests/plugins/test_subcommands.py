@@ -13,7 +13,6 @@ from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
-from conda.exceptions import CommandNotFoundError
 from conda.plugins.types import CondaSubcommand
 from conda.testing import CondaCLIFixture
 
@@ -73,11 +72,15 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     Ensures we get an error when attempting to register commands with the same `name` property.
     """
     # setup
-    plugin_manager.register(SubcommandPlugin(name="custom", summary="Summary."))
+    plugin = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(plugin) == 1
 
-    # test
-    with pytest.raises(ValueError, match="Plugin already registered"):
-        plugin_manager.register(SubcommandPlugin(name="custom", summary="Summary."))
+    # invalid, identical plugins, error ignored
+    assert plugin_manager.load_plugins(plugin) == 0
+
+    # invalid, similar plugins, error ignored
+    plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
+    assert plugin_manager.load_plugins(plugin2) == 0
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)

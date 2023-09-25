@@ -4,7 +4,6 @@ import pytest
 from pytest_mock import MockerFixture
 
 from conda.exceptions import UnsatisfiableError
-from conda.gateways.disk.delete import rm_rf
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 

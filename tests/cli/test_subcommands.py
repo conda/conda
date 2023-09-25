@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Callable, ContextManager
 
 import pytest
 
@@ -134,6 +133,20 @@ def test_remove(subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixt
     with tmp_env() as prefix:
         out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
         assert out
+        assert not err
+        assert not code
+
+
+@pytest.mark.parametrize("subcommand", ["remove", "uninstall"])
+def test_remove_all_json(
+    subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
+):
+    # Test that the json output is valid
+    # regression test for #13019
+    with tmp_env("ca-certificates") as prefix:
+        out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--json")
+        json_obj = json.loads(out)
+        assert "UNLINK" in json_obj["actions"]
         assert not err
         assert not code
 
