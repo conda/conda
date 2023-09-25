@@ -58,6 +58,9 @@ jobs:
           - python: '3.11'  # same as miniforge
             channel: conda-forge
             platforms: 'linux/amd64,linux/arm64,linux/ppc64le'
+          - python: '3.12'  # for testing purposes
+            channel: ad-testing/label/py312
+            platforms: 'linux/amd64'
     steps:
       - uses: actions/checkout@v3
 
