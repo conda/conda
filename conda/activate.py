@@ -1030,7 +1030,7 @@ class XonshActivator(_Activator):
     run_script_tmpl = (
         'source-cmd --suppress-skip-message "%s"'
         if on_win
-        else 'source-bash --suppress-skip-message "%s"'
+        else 'source-bash --suppress-skip-message -n "%s"'
     )
 
     hook_source_path = join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")

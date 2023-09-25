@@ -1734,7 +1734,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
             join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.bat")
         )
     else:
-        e_activate_info["sourcer"] = "source-bash --suppress-skip-message"
+        e_activate_info["sourcer"] = "source-bash --suppress-skip-message -n"
         e_activate_info["activate1"] = activator.path_conversion(
             join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
         )
@@ -1786,7 +1786,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
                 )
             )
         else:
-            e_reactivate_info["sourcer"] = "source-bash --suppress-skip-message"
+            e_reactivate_info["sourcer"] = "source-bash --suppress-skip-message -n"
             e_reactivate_info["activate1"] = activator.path_conversion(
                 join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
             )
@@ -1838,7 +1838,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
                 )
             )
         else:
-            e_deactivate_info["sourcer"] = "source-bash --suppress-skip-message"
+            e_deactivate_info["sourcer"] = "source-bash --suppress-skip-message -n"
             e_deactivate_info["deactivate1"] = activator.path_conversion(
                 join(
                     shell_wrapper_unit, "etc", "conda", "deactivate.d", "deactivate1.sh"
