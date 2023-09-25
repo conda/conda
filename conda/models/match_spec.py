@@ -777,10 +777,12 @@ def _parse_spec_str(spec_str):
     # e.g. tensorflow[name=* version=* md5=<hash of pytorch package> ] will APPEAR to install
     # tensorflow but actually install pytorch.
     if "name" in components and "name" in brackets:
-        warnings.warn(
-            f"'name' specified both inside ({brackets['name']}) and outside ({components['name']})"
-            " of brackets. the value outside of brackets ({components['name']}) will be used."
+        msg = (
+            f"'name' specified both inside ({brackets['name']}) and outside "
+            f"({components['name']}) of brackets. The value outside of brackets "
+            f"({components['name']}) will be used."
         )
+        warnings.warn(msg, UserWarning)
         del brackets["name"]
     components.update(brackets)
     components["_original_spec_str"] = original_spec_str
