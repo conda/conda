@@ -13,8 +13,7 @@ except ImportError:  # pragma: no cover
 
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..deprecations import deprecated
-from ..exceptions import ChannelNotAllowed, InvalidSpec, PluginError
+from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
@@ -25,11 +24,6 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
 
 log = getLogger(__name__)
-
-
-@deprecated("23.3", "23.9", addendum="Use `conda.core.index.check_allowlist` instead.")
-def check_whitelist(channel_urls):
-    return check_allowlist(channel_urls)
 
 
 def check_allowlist(channel_urls):
@@ -180,21 +174,7 @@ def _supplement_index_with_system(index):
     and adds them to the provided index, unless there is a naming
     conflict.
     """
-    registered_names = []
-    packages = context.plugin_manager.get_hook_results("virtual_packages")
-    for package in packages:
-        if package.name is None:
-            continue
-        if package.name in registered_names:
-            raise PluginError(
-                "Conflicting virtual package entries found for the "
-                f"`{package.name}` key. Multiple conda plugins "
-                "are registering this virtual package via the "
-                "`conda_virtual_packages` hook, please make sure "
-                "you don't have any incompatible plugins installed."
-            )
-        registered_names.append(package.name)
-
+    for package in context.plugin_manager.get_virtual_packages():
         rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
         index[rec] = rec
 

@@ -1,22 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import warnings
 from itertools import chain
+
+from tlz.dicttoolz import merge, merge_with
+from tlz.itertoolz import interleave
 
 from conda.core.link import PrefixActionGroup
 
 
 def test_unpacking_for_merge():
-    warnings.warn(
-        "`toolz` is pending deprecation and will be removed in a future release.",
-        PendingDeprecationWarning,
-    )
-
-    try:
-        from tlz.dicttoolz import merge
-    except ImportError:
-        from conda._vendor.toolz.dicttoolz import merge
-
     # data
     first_mapping = {"a": "a", "b": "b", "c": "c"}
     second_mapping = {"d": "d", "e": "e"}
@@ -32,16 +24,6 @@ def test_unpacking_for_merge():
 
 
 def test_unpacking_for_merge_with():
-    warnings.warn(
-        "`toolz` is pending deprecation and will be removed in a future release.",
-        PendingDeprecationWarning,
-    )
-
-    try:
-        from tlz.dicttoolz import merge_with
-    except ImportError:
-        from conda._vendor.toolz.dicttoolz import merge_with
-
     # data
     mappings = [
         {"a": 1, "b": 2, "c": 3},
@@ -63,11 +45,6 @@ def test_unpacking_for_merge_with():
 
 
 def test_interleave():
-    try:
-        from tlz.itertoolz import interleave
-    except ImportError:
-        from conda._vendor.toolz.itertoolz import interleave
-
     prefix_action_groups = {
         "remove_menu_action_groups": PrefixActionGroup(
             [1, 2], [], [], [], [], [], [], [], []

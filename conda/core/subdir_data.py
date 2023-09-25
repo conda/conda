@@ -5,14 +5,10 @@ from __future__ import annotations
 
 import json
 import pickle
-import re
 from collections import UserList, defaultdict
-from contextlib import closing
-from errno import ENODEV
 from functools import partial
-from itertools import chain, islice
+from itertools import chain
 from logging import getLogger
-from mmap import ACCESS_READ, mmap
 from os.path import exists, join, splitext
 from pathlib import Path
 from time import time
@@ -36,11 +32,13 @@ from conda.gateways.repodata import (
     create_cache_dir,
     get_repo_interface,
 )
+from conda.gateways.repodata import (
+    get_cache_control_max_age as _get_cache_control_max_age,
+)
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.compat import ensure_unicode
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
@@ -58,6 +56,15 @@ log = getLogger(__name__)
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+
+
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.gateways.repodata.get_cache_control_max_age` instead.",
+)
+def get_cache_control_max_age(cache_control_value: str) -> int:
+    return _get_cache_control_max_age(cache_control_value)
 
 
 class SubdirDataType(type):
@@ -297,20 +304,6 @@ class SubdirData(metaclass=SubdirDataType):
         for i in self._names_index[name]:
             yield self._package_records[i]
 
-    def _load_state(self):
-        """
-        Cache headers and additional data needed to keep track of the cache are
-        stored separately, instead of the previous "added to repodata.json"
-        arrangement.
-        """
-        return self.repo_cache.load_state()
-
-    def _save_state(self, state: RepodataState):
-        assert Path(state.cache_path_json) == Path(self.cache_path_json)
-        assert Path(state.cache_path_state) == Path(self.cache_path_state)
-        assert state.repodata_fn == self.repodata_fn
-        return state.save()
-
     def _load(self):
         """
         Try to load repodata. If e.g. we are downloading
@@ -533,36 +526,6 @@ class SubdirData(metaclass=SubdirDataType):
         return _internal_state
 
 
-@deprecated("23.1", "23.9", addendum="Cache headers are now stored in a separate file.")
-def read_mod_and_etag(path):
-    # this function should no longer be used by conda but is kept for API
-    # stability. Was used to read inlined cache information from json; now
-    # stored in separate file.
-    with open(path, "rb") as f:
-        try:
-            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = islice(re.finditer(REPODATA_HEADER_RE, m), 3)
-                result = dict(
-                    map(ensure_unicode, mo.groups()) for mo in match_objects  # type: ignore
-                )
-                return result
-        except (BufferError, ValueError):  # pragma: no cover
-            # BufferError: cannot close exported pointers exist
-            #   https://github.com/conda/conda/issues/4592
-            # ValueError: cannot mmap an empty file
-            return {}
-        except OSError as e:  # pragma: no cover
-            # OSError: [Errno 19] No such device
-            if e.errno == ENODEV:
-                return {}
-            raise
-
-
-def get_cache_control_max_age(cache_control_value: str):
-    max_age = re.search(r"max-age=(\d+)", cache_control_value)
-    return int(max_age.groups()[0]) if max_age else 0
-
-
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = "%s@" % feature_name
@@ -596,7 +559,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
     subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
 
     try:
-        cache_state = subdir._load_state()
+        cache_state = subdir.repo_cache.load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
         raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore

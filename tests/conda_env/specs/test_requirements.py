@@ -24,4 +24,4 @@ def test_req_file_and_name():
 def test_environment():
     spec = RequirementsSpec(filename=support_file("requirements.txt"), name="env")
     assert isinstance(spec.environment, Environment)
-    assert spec.environment.dependencies["conda"][0] == "flask==1.1.1"
+    assert spec.environment.dependencies["conda"][0] == "conda-package-handling==2.2.0"

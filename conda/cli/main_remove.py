@@ -62,7 +62,8 @@ def execute(args, parser):
             )
         if not isfile(join(prefix, "conda-meta", "history")):
             raise DirectoryNotACondaEnvironmentError(prefix)
-        print(f"\nRemove all packages in environment {prefix}:\n")
+        if not args.json:
+            print(f"\nRemove all packages in environment {prefix}:\n")
 
         if "package_names" in args:
             stp = PrefixSetup(
@@ -77,7 +78,10 @@ def execute(args, parser):
             try:
                 handle_txn(txn, prefix, args, False, True)
             except PackagesNotFoundError:
-                print(f"No packages found in {prefix}. Continuing environment removal")
+                if not args.json:
+                    print(
+                        f"No packages found in {prefix}. Continuing environment removal"
+                    )
         if not context.dry_run:
             rm_rf(prefix, clean_empty_parents=True)
             unregister_env(prefix)

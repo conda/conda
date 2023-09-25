@@ -8,7 +8,7 @@ import os
 
 from conda.base.context import context
 from conda.gateways.connection.download import disable_ssl_verify_warning
-from conda.gateways.connection.session import CondaSession
+from conda.gateways.connection.session import get_session
 
 from .. import (
     CACHE_CONTROL_KEY,
@@ -64,10 +64,10 @@ class JlapRepoInterface(RepoInterface):
         When repodata is not updated, it doesn't matter whether this function or
         the caller reads from a file.
         """
+        session = get_session(self._url)
+
         if not context.ssl_verify:
             disable_ssl_verify_warning()
-
-        session = CondaSession()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
 

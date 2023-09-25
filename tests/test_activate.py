@@ -48,14 +48,9 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-from conda.testing import PathFactoryFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.helpers import tempdir
-from conda.testing.integration import (
-    SPACER_CHARACTER,
-    Commands,
-    make_temp_env,
-    run_command,
-)
+from conda.testing.integration import SPACER_CHARACTER
 
 log = getLogger(__name__)
 
@@ -3220,9 +3215,20 @@ def prefix():
         ),
     ],
 )
-def test_activate_deactivate_modify_path(test_recipes_channel: None, shell, prefix):
+def test_activate_deactivate_modify_path(
+    test_recipes_channel: None,
+    shell,
+    prefix,
+    conda_cli: CondaCLIFixture,
+):
     original_path = os.environ.get("PATH")
-    run_command(Commands.INSTALL, prefix, "activate_deactivate_package", "--use-local")
+    conda_cli(
+        "install",
+        *("--prefix", prefix),
+        "activate_deactivate_package",
+        "--use-local",
+        "--yes",
+    )
 
     with InteractiveShell(shell) as sh:
         sh.sendline('conda activate "%s"' % prefix)
@@ -3233,8 +3239,8 @@ def test_activate_deactivate_modify_path(test_recipes_channel: None, shell, pref
     assert original_path == os.environ.get("PATH")
 
 
-@pytest.fixture(scope="module")
-def create_stackable_envs():
+@pytest.fixture
+def create_stackable_envs(tmp_env: TmpEnvFixture):
     # generate stackable environments, two with curl and one without curl
     which = f"{'where' if on_win else 'which -a'} curl"
 
@@ -3252,20 +3258,17 @@ def create_stackable_envs():
             self.paths = paths
 
     sys = _run_command(
-        *("conda deactivate" for _ in range(5)),
         "conda config --set auto_activate_base false",
         which,
     )
 
-    with make_temp_env("curl", name="fake_base") as base:
-        with make_temp_env("curl", name="haspkg") as haspkg:
-            with make_temp_env(name="notpkg") as notpkg:
-                yield which, {
-                    "sys": Env(paths=sys),
-                    "base": Env(prefix=base),
-                    "has": Env(prefix=haspkg),
-                    "not": Env(prefix=notpkg),
-                }
+    with tmp_env("curl") as base, tmp_env("curl") as haspkg, tmp_env() as notpkg:
+        yield which, {
+            "sys": Env(paths=sys),
+            "base": Env(prefix=base),
+            "has": Env(prefix=haspkg),
+            "not": Env(prefix=notpkg),
+        }
 
 
 def _run_command(*lines):
@@ -3276,8 +3279,13 @@ def _run_command(*lines):
     else:
         join = "\n".join
         source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
-    script = join((source, *lines))
+
+    marker = uuid4().hex
+    script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
     output = check_output(script, shell=True).decode().splitlines()
+    output = list(map(str.strip, output))
+    output = output[output.index(marker) + 1 :]  # trim setup output
+
     return [Path(path) for path in filter(None, output)]
 
 
@@ -3326,7 +3334,6 @@ def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
     expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
     assert (
         _run_command(
-            *("conda deactivate" for _ in range(5)),
             f"conda config --set auto_stack {auto_stack}",
             *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
             f'conda run -p "{envs[run.strip()].prefix}" {which}',

@@ -12,6 +12,8 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from typing import Callable, NamedTuple
 
+from requests.auth import AuthBase
+
 from ..core.solve import Solver
 
 
@@ -47,7 +49,7 @@ class CondaVirtualPackage(NamedTuple):
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
-    :param version: Virtual package build string (e.g., ``x86_64``).
+    :param build: Virtual package build string (e.g., ``x86_64``).
     """
 
     name: str
@@ -102,3 +104,40 @@ class CondaPostCommand(NamedTuple):
     name: str
     action: Callable[[str], None]
     run_for: set[str]
+
+
+class ChannelNameMixin:
+    """
+    Class mixin to make all plugin implementations compatible, e.g. when they
+    use an existing (e.g. 3rd party) requests authentication handler.
+
+    Please use the concrete :class:`~conda.plugins.types.ChannelAuthBase`
+    in case you're creating an own implementation.
+    """
+
+    def __init__(self, channel_name: str, *args, **kwargs):
+        self.channel_name = channel_name
+        super().__init__(*args, **kwargs)
+
+
+class ChannelAuthBase(ChannelNameMixin, AuthBase):
+    """
+    Base class that we require all plugin implementations to use to be compatible.
+
+    Authentication is tightly coupled with individual channels. Therefore, an additional
+    ``channel_name`` property must be set on the ``requests.auth.AuthBase`` based class.
+    """
+
+
+class CondaAuthHandler(NamedTuple):
+    """
+    Return type to use when the defining the conda auth handlers hook.
+
+    :param name: Name (e.g., ``basic-auth``). This name should be unique
+                 and only one may be registered at a time.
+    :param handler: Type that will be used as the authentication handler
+                    during network requests.
+    """
+
+    name: str
+    handler: type[ChannelAuthBase]

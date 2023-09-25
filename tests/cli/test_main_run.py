@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import json
 import os
 import stat
 import uuid
@@ -41,7 +40,7 @@ def test_run_returns_nonzero_errorlevel(
         stdout, stderr, err = conda_cli("run", "--prefix", prefix, "exit", "5")
 
         assert not stdout
-        assert not stderr
+        assert stderr
         assert err == 5
 
 

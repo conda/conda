@@ -21,7 +21,7 @@ Each individual operation must
 
   a) return a `Result` (i.e. NEEDS_SUDO, MODIFIED, or NO_CHANGE)
   b) have no side effects if context.dry_run is True
-  c) be verbose and descriptive about the changes being made or proposed is context.verbosity >= 1
+  c) be verbose and descriptive about the changes being made or proposed is context.verbose
 
 The plan runner functions take the plan (list of dicts) as an argument, and then coordinate the
 execution of each individual operation.  The docstring for `run_plan_elevated()` has details on
@@ -196,7 +196,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 
     run_plan(plan)
 
-    if context.dry_run or context.verbosity:
+    if context.dry_run or context.verbose:
         print_plan_results(plan, sys.stderr)
 
     if any(step["result"] == Result.NEEDS_SUDO for step in plan):  # pragma: no cover
@@ -229,7 +229,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         if not context.dry_run:
             with open("dev-init.bat", "w") as fh:
                 fh.write("\n".join(script))
-        if context.verbosity:
+        if context.verbose:
             print("\n".join(script))
         print("now run  > .\\dev-init.bat")
     else:
@@ -953,7 +953,7 @@ def make_entry_point(target_path, conda_prefix, module, func):
     )
 
     if new_ep_content != original_ep_content:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(original_ep_content, new_ep_content))
@@ -1030,7 +1030,7 @@ def _install_file(target_path, file_content):
     new_content = file_content
 
     if new_content != original_content:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(original_content, new_content))
@@ -1279,7 +1279,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
             rc_content += "\n%s\n" % conda_initialize_content
 
     if rc_content != rc_original_content:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(rc_original_content, rc_content))
@@ -1368,7 +1368,7 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
             rc_content += f"\n{conda_initialize_content}\n"
 
     if rc_content != rc_original_content:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(rc_original_content, rc_content))
@@ -1543,7 +1543,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
             rc_content += "\n%s\n" % conda_initialize_content
 
     if rc_content != rc_original_content:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(rc_original_content, rc_content))
@@ -1571,7 +1571,7 @@ def init_sh_system(target_path, conda_prefix, reverse=False):
     else:
         conda_sh_contents = _bashrc_content(conda_prefix, "posix")
         if conda_sh_system_contents != conda_sh_contents:
-            if context.verbosity:
+            if context.verbose:
                 print("\n")
                 print(target_path)
                 print(make_diff(conda_sh_contents, conda_sh_system_contents))
@@ -1686,7 +1686,7 @@ def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
                 new_value = new_hook
 
     if prev_value != new_value:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(prev_value, new_value))
@@ -1703,7 +1703,7 @@ def init_long_path(target_path):
     if int(win_ver) >= 10 and int(win_rev) >= 14352:
         prev_value, value_type = _read_windows_registry(target_path)
         if str(prev_value) != "1":
-            if context.verbosity:
+            if context.verbose:
                 print("\n")
                 print(target_path)
                 print(make_diff(str(prev_value), "1"))
@@ -1713,7 +1713,7 @@ def init_long_path(target_path):
         else:
             return Result.NO_CHANGE
     else:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(
                 "Not setting long path registry key; Windows version must be at least 10 with "
@@ -1784,7 +1784,7 @@ def init_powershell_user(target_path, conda_prefix, reverse):
             ).replace("__CONDA_REPLACE_ME_123__", conda_initialize_content)
 
     if profile_content != profile_original_content:
-        if context.verbosity:
+        if context.verbose:
             print("\n")
             print(target_path)
             print(make_diff(profile_original_content, profile_content))
@@ -1844,7 +1844,7 @@ def make_conda_egg_link(target_path, conda_source_root):
         conda_egg_link_contents_old = ""
 
     if conda_egg_link_contents_old != conda_egg_link_contents:
-        if context.verbosity:
+        if context.verbose:
             print("\n", file=sys.stderr)
             print(target_path, file=sys.stderr)
             print(
@@ -1884,7 +1884,7 @@ def modify_easy_install_pth(target_path, conda_source_root):
         + os.linesep
     )
 
-    if context.verbosity:
+    if context.verbose:
         print("\n", file=sys.stderr)
         print(target_path, file=sys.stderr)
         print(make_diff(old_contents, new_contents), file=sys.stderr)
@@ -1919,7 +1919,7 @@ def make_dev_egg_info_file(target_path):
     if old_contents == new_contents:
         return Result.NO_CHANGE
 
-    if context.verbosity:
+    if context.verbose:
         print("\n", file=sys.stderr)
         print(target_path, file=sys.stderr)
         print(make_diff(old_contents, new_contents), file=sys.stderr)
