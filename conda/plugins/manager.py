@@ -74,6 +74,24 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
+    def register(self, plugin, name: str | None = None) -> str | None:
+        """
+        Call :meth:`pluggy.PluginManager.register` and return the result or
+        ignore errors raised, except ``ValueError``, which means the plugin
+        had already been registered.
+        """
+        try:
+            # register plugin but ignore ValueError since that means
+            # the plugin has already been registered
+            return super().register(plugin, name=name)
+        except ValueError:
+            return None
+        except Exception as err:
+            raise PluginError(
+                f"Error while loading conda plugin: "
+                f"{name or self.get_canonical_name(plugin)} ({err})"
+            )
+
     def load_plugins(self, *plugins) -> int:
         """
         Load the provided list of plugins and fail gracefully on error.
@@ -82,18 +100,8 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         count = 0
         for plugin in plugins:
-            try:
-                # register plugin
-                # extracts canonical name from plugin, checks for duplicates,
-                # and if blocked
-                if self.register(plugin):
-                    # successfully registered a plugin
-                    count += 1
-            except ValueError as err:
-                raise PluginError(
-                    f"Error while loading first-party conda plugin: "
-                    f"{self.get_canonical_name(plugin)} ({err})"
-                )
+            if self.register(plugin):
+                count += 1
         return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
@@ -126,18 +134,8 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                try:
-                    # register plugin
-                    # extracts canonical name from plugin, checks for duplicates,
-                    # and if blocked
-                    if self.register(plugin):
-                        # successfully registered a plugin
-                        count += 1
-                except ValueError as err:
-                    raise PluginError(
-                        f"Error while loading third-party conda plugin: "
-                        f"{self.get_canonical_name(plugin)} ({err})"
-                    )
+                if self.register(plugin):
+                    count += 1
         return count
 
     @overload
