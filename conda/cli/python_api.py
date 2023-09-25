@@ -10,8 +10,7 @@ from ..common.io import CaptureTarget, argv, captured
 from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
-from .conda_argparse import do_call
-from .main import generate_parser
+from .conda_argparse import do_call, generate_parser
 
 deprecated.module("24.3", "24.9", addendum="Use `conda.testing.conda_cli` instead.")
 
