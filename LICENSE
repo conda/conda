@@ -36,5 +36,4 @@ Conda incorporates the following libraries into its distributed code:
 * py-cpuinfo, licensed as MIT
 * distro, licensed as Apache-2.0
 * frozendict, license as LGPL-3.0
-* toolz, licensed as BSD-3-Clause
 * tqdm, licensed as MIT
