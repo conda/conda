@@ -4,7 +4,6 @@ from collections.abc import Mapping, Set
 
 from .compat import isiterable
 from .._vendor.frozendict import frozendict
-from ..deprecations import deprecated
 
 
 def make_immutable(value):
@@ -76,7 +75,6 @@ def first(seq, key=bool, default=None, apply=lambda x: x):
     return next((apply(x) for x in seq if key(x)), default() if callable(default) else default)
 
 
-@deprecated("24.3", "24.9")
 def firstitem(map, key=lambda k, v: bool(k), default=None, apply=lambda k, v: (k, v)):
     return next((apply(k, v) for k, v in map if key(k, v)), default)
 
@@ -85,7 +83,6 @@ def last(seq, key=bool, default=None, apply=lambda x: x):
     return next((apply(x) for x in reversed(seq) if key(x)), default)
 
 
-@deprecated("24.3", "24.9")
 def call_each(seq):
     """Calls each element of sequence to invoke the side effect.
 

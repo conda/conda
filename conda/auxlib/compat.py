@@ -3,11 +3,9 @@ import os
 from shlex import split
 from tempfile import NamedTemporaryFile
 
-from ..deprecations import deprecated
 
-
-deprecated.constant("24.3", "24.9", "NoneType", type(None))
-deprecated.constant("24.3", "24.9", "primitive_types", (str, int, float, complex, bool, type(None)))
+NoneType = type(None)
+primitive_types = (str, int, float, complex, bool, NoneType)
 
 
 def isiterable(obj):
@@ -25,7 +23,6 @@ def shlex_split_unicode(to_split, posix=True):
     return split(e_to_split, posix=posix)
 
 
-@deprecated("24.3", "24.9")
 def utf8_writer(fp):
     return fp
 

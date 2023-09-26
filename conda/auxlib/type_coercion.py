@@ -5,8 +5,7 @@ from re import IGNORECASE, compile
 
 from enum import Enum
 
-from ..deprecations import deprecated
-from .compat import isiterable
+from .compat import NoneType, isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
@@ -170,7 +169,6 @@ def boolify(value, nullable=False, return_string=False):
             raise TypeCoercionError(value, "The value %r cannot be boolified." % value)
 
 
-@deprecated("24.3", "24.9")
 def boolify_truthy_string_ok(value):
     try:
         return boolify(value)
@@ -232,11 +230,11 @@ def typify(value, type_hint=None):
             return numberify(value)
         elif not (type_hint - STRING_TYPES_SET):
             return str(value)
-        elif not (type_hint - {bool, type(None)}):
+        elif not (type_hint - {bool, NoneType}):
             return boolify(value, nullable=True)
         elif not (type_hint - (STRING_TYPES_SET | {bool})):
             return boolify(value, return_string=True)
-        elif not (type_hint - (STRING_TYPES_SET | {type(None)})):
+        elif not (type_hint - (STRING_TYPES_SET | {NoneType})):
             value = str(value)
             return None if value.lower() == 'none' else value
         elif not (type_hint - {bool, int}):
@@ -274,7 +272,6 @@ def maybecall(value):
     return value() if callable(value) else value
 
 
-@deprecated("24.3", "24.9")
 def listify(val, return_type=tuple):
     """
     Examples:
