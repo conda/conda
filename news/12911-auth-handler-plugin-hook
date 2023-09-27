@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds a new "auth handler" plugin hook for conda (#12911)
+* Adds a new "auth handler" plugin hook for conda. (#12911)
 
 ### Bug fixes
 

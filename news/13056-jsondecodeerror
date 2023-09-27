@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Treat `JSONDecodeError` on `repodata.info.json` as a warning, equivalent to a
-  missing `repodata.info.json` (#13056)
+  missing `repodata.info.json`. (#13056)
 
 ### Deprecations
 

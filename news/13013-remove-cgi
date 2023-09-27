@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Remove import of deprecated cgi module by deprecating ftp STOR support
+* Remove import of deprecated cgi module by deprecating ftp STOR support.
   (#13013)
 
 ### Docs

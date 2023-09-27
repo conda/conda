@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Directly suppress use of binstar (conda) token when fetching trust metadata (#12889)
+* Directly suppress use of binstar (conda) token when fetching trust metadata. (#12889)
 
 ### Bug fixes
 

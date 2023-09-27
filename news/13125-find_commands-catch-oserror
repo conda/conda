@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Catch OSError in `find_commands` to account for incorrect PATH entries on
-  Windows (#13125)
+  Windows. (#13125)
 
 ### Deprecations
 
