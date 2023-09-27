@@ -27,7 +27,7 @@ Here is our updated plan to change the default to follow [CEP 8](https://github.
 - All development on `conda-libmamba-solver` happens in the [conda-libmamba-solver repo](https://github.com/conda/conda-libmamba-solver), including issue tracking.
 - The documentation of the `conda-libmamba-solver` can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/).
 
-More information can also be found in the [blog post from earlier this year](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout) about the conda-libmamba-solver rollout plans.
+For more information about the `conda-libmamba-solver` rollout plan, please also see our [blog post from earlier this year](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout).
 
 ### Enhancements
 
