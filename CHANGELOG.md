@@ -4,7 +4,7 @@
 
 ### Special announcement
 
-This is an announcement to inform you about an important and ultimately positive change in conda's functionality in the future:
+This is an announcement to inform you about an important and positive future change in conda's functionality:
 
 > We will change the default solver of conda to [`conda-libmamba-solver`](https://conda.github.io/conda-libmamba-solver/) in a __special 23.10.0 release__ in the near future!
 
