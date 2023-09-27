@@ -17,7 +17,7 @@ Since July 2023, that `[conda-libmamba-solver](https://github.com/conda/conda-li
 
 Here are our updated plans to change the default to follow [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) better and reduce the impact on all conda users:
 
-- There will be a release dedicated to the switch of the default solver **after the regular 23.9.0 maintenance**
+- There will be a release dedicated to the switch of the default solver **after the regular 23.9.0 release**
 - Users may opt out of the `libmamba` solver and use the classic solver instead using one of these options:
   - running `conda config --set solver classic`
   - the `--solver=classic` command line option
