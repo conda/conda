@@ -1,3 +1,0 @@
-### Enhancements
-
-* Add support for `truststore` to the `ssl_verify` config option, enabling conda to use the operating system certificate store (requires Python 3.10 or later). (#13075 and #13149)
