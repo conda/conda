@@ -28,15 +28,15 @@ For more information about the `conda-libmamba-solver` rollout plan, please also
 
 #### Context
 
-To address growth challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced [a new conda dependency solver based on the Mamba project](https://mamba.readthedocs.io) in December 2022. A "solver" is a core component of most package managers, which calculates which dependencies (and which version) to also install, when a user requests to install a package from a package repository.
+A "solver" is the core component of most package managers; it calculates which dependencies (and which version of those dependencies) to install when a user requests to install a package from a package repository. To address growth-related challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced [a new conda dependency solver based on the Mamba project](https://mamba.readthedocs.io) in December 2022.
 
 Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in and automatically installed with all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), _with the default solver configuration unchanged_.
 
 ### Enhancements
 
-* Improve speed of fish shell initialization. (#12811)
+* Improve speed of `fish` shell initialization. (#12811)
 * Directly suppress use of binstar (conda) token when fetching trust metadata. (#12889)
-* Adds a new "auth handler" plugin hook for conda. (#12911)
+* Add a new "auth handler" plugin hook for conda. (#12911)
 * Lock index cache metadata by default. Added `--no-lock` option in case of
   problems, should not be necessary. Older `--experimental=lock` no longer has
   an effect. (#12920)
@@ -46,29 +46,29 @@ Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-l
 * Add support for `truststore` to the `ssl_verify` config option, enabling conda to use the operating system certificate store (requires Python 3.10 or later). (#13075 and #13149)
 * Add `emscripten-wasm32` and `wasi-wasm32` platforms to known platforms. (#13095)
 * Adds the `py.typed` marker file to the `conda` package for compliance with PEP-561. (#13107)
-* Import boto3 only when s3 channels are used, saving startup time. (#12914)
+* Import `boto3` only when S3 channels are used, saving startup time. (#12914)
 
 ### Bug fixes
 
 * When using pip dependencies with `conda env create`, check the directory permissions before writing to disk. (#11610)
-* Hide InsecureRequestWarning for jlap when CONDA_SSL_VERIFY=false, matching
-  non-jlap behavior. (#12731)
+* Hide `InsecureRequestWarning` for JLAP when `CONDA_SSL_VERIFY=false`, matching
+  non-JLAP behavior. (#12731)
 * Disallow ability to create a conda environment with a colon in the prefix. (#13044)
-* Fix AttributeError logging response with nonexistent request, when using jlap
-  with file:/// URIs. (#12966)
-* Do not show progress bars in non interactive runs for cleaner logs. (#12982)
+* Fix `AttributeError` logging response with nonexistent request when using JLAP
+  with `file:///` URIs. (#12966)
+* Do not show progress bars in non-interactive runs for cleaner logs. (#12982)
 * Fix S3 bucket name. (#12989)
-* Default `--json` and `--debug` to `NULL` so as to not overriding `CONDA_JSON` and `CONDA_DEBUG` environment variables. (#12987)
+* Default `--json` and `--debug` to `NULL` so as to not override `CONDA_JSON` and `CONDA_DEBUG` environment variables. (#12987)
 * ``XonshActivator`` now uses ``source-bash`` in non-interactive mode to avoid
-  side-effects from interactively loaded RC files
-* Fix conda remove --all --json output. (#13019)
-* Update test data to stop triggering security scanners false-positives. (#13034)
+  side-effects from interactively loaded RC files. (#13012)
+* Fix `conda remove --all --json` output. (#13019)
+* Update test data to stop triggering security scanners' false-positives. (#13034)
 * Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
 * Configure conda to ignore "Retry-After" header to avoid the scenarios when this value is very large and causes conda to hang indefinitely. (#13050)
 * Treat `JSONDecodeError` on `repodata.info.json` as a warning, equivalent to a
   missing `repodata.info.json`. (#13056)
 * Fix sorting error for `conda config --show-sources --json`. (#13076)
-* Catch OSError in `find_commands` to account for incorrect PATH entries on
+* Catch `OSError` in `find_commands` to account for incorrect `PATH` entries on
   Windows. (#13125)
 * Catch a `NotWritableError` when trying to find the first writable package cache dir. (#9609)
 * `conda env update --prune` uses only the specs coming from `environment.yml` file and ignores the history specs. (#9614)
@@ -99,7 +99,7 @@ Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-l
 * Removed `conda_env.cli.common.find_prefix_name()`. (#12948)
 * Remove import of deprecated cgi module by deprecating ftp STOR support.
   (#13013)
-* Require `boto3` for s3 support and drop support for the older `boto` as it
+* Require `boto3` for S3 support and drop support for the older `boto` as it
   doesn't support our minimum required version of Python. (#13112)
 * Reduce startup delay from deprecations module by using `sys._getframe()`
   instead of `inspect.stack()`. (#12919)
@@ -107,7 +107,7 @@ Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-l
 ### Other
 
 * Use Ruff linter in pre-commit configuration (#12279)
-* Remove unused cache_path arguments from RepoInterface/JlapRepoInterface;
+* Remove unused `cache_path` arguments from `RepoInterface`/`JlapRepoInterface`;
   replaced by cache object. (#12927)
 
 ### Contributors
