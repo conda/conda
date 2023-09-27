@@ -10,7 +10,7 @@ To address growth challenges within the conda ecosystem, the conda maintainers, 
 
 Since July 2023, that `[conda-libmamba-solver](https://github.com/conda/conda-libmamba-solver)` project has been included in and automatically installed with all major conda installers (miniconda, miniforge, mambaforge and Anaconda Distribution), _with the default solver configuration remaining unchanged_.
 
-**IMPORTANT:** We plan to change the default solver of conda in the __upcoming release after 23.9.0__! You can already benefit from it _TODAY_ by [configuring your conda installation to use it](https://conda.github.io/conda-libmamba-solver/getting-started/#usage).
+**IMPORTANT:** We plan to change the default solver of conda in the __upcoming release after 23.9.0__! You can already benefit from it _TODAY_ by [configuring your conda installation to use it](https://conda.github.io/conda-libmamba-solver/getting-started/#usage) (e.g. by running `conda config --set solver libmamba`).
 
 > [!NOTE]
 > The existing "classic" solver, is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the forseeable future, a fallback is possible and available.
@@ -18,7 +18,8 @@ Since July 2023, that `[conda-libmamba-solver](https://github.com/conda/conda-li
 Here are our updated plans to change the default to follow [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) better and reduce the impact on all conda users:
 
 - There will be a release dedicated to the switch of the default solver **after the regular 23.9.0 maintenance**
-- In the future users may opt out of the `libmamba` solver and instead use the classic solver via:
+- Users may opt out of the `libmamba` solver and use the classic solver instead using one of these options:
+  - running `conda config --set solver classic`
   - the `--solver=classic` command line option
   - the `CONDA_SOLVER=classic` environment variable or
   - the `solver: classic` config value
