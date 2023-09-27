@@ -4,7 +4,7 @@
 
 ### Special announcement
 
-This is a pre-announcement to inform you about an important but ultimately positive change in conda's functionality:
+This is a pre-announcement to inform you about an important but ultimately positive change in conda's functionality in the future:
 
 To address growth challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced a new dependency solver [based on the Mamba project](https://mamba.readthedocs.io) for conda in Dezember 2022.
 
