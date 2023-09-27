@@ -2,6 +2,29 @@
 
 ## 23.9.0 (2023-09-27)
 
+### Special announcement
+
+This is a pre-announcement to inform you about an important but ultimately positive change in conda's functionality:
+
+To address growing challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced a new dependency solver [based on the Mamba project](https://mamba.readthedocs.io) for conda in Dezember 2022.
+
+Since July 2023, that `[conda-libmamba-solver](https://github.com/conda/conda-libmamba-solver)` project has been included in and automatically installed with all major conda installers (miniconda, miniforge, mambaforge and Anaconda Distribution), _with the default solver configuration remaining unchanged_.
+
+**IMPORTANT:** We plan to change the default solver of conda in the __upcoming release after 23.9.0__! You can already benefit from it _TODAY_ by [configuring your conda installation to use it](https://conda.github.io/conda-libmamba-solver/getting-started/#usage).
+
+> [!NOTE]
+> The existing "classic" solver, is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the forseeable future, a fallback is possible and available.
+
+Here are our updated plans to change the default to follow [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) better and reduce the impact on all conda users:
+
+- There will be a release dedicated to the switch of the default solver **after the regular 23.9.0 maintenance**
+- In the future users may opt out of the `libmamba` solver and instead use the classic solver via:
+  - the `--solver=classic` command line option
+  - the `CONDA_SOLVER=classic` environment variable or
+  - the `solver: classic` config value
+- All development on `conda-libmamba-solver` is happening in the [conda-libmamba-solver repo](https://github.com/conda/conda-libmamba-solver) including issue tracking
+- The documentation of the `conda-libmamba-solver` can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/)
+
 ### Enhancements
 
 * Improve speed of fish shell initialization. (#12811)
