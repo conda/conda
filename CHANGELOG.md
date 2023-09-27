@@ -6,7 +6,7 @@
 
 This is a pre-announcement to inform you about an important but ultimately positive change in conda's functionality:
 
-To address growing challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced a new dependency solver [based on the Mamba project](https://mamba.readthedocs.io) for conda in Dezember 2022.
+To address growth challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced a new dependency solver [based on the Mamba project](https://mamba.readthedocs.io) for conda in Dezember 2022.
 
 Since July 2023, that `[conda-libmamba-solver](https://github.com/conda/conda-libmamba-solver)` project has been included in and automatically installed with all major conda installers (miniconda, miniforge, mambaforge and Anaconda Distribution), _with the default solver configuration remaining unchanged_.
 
