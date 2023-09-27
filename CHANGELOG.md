@@ -94,16 +94,16 @@
 * @eltociear
 * @jaimergp
 * @jezdez
-* @jmcarpenter2
+* @jmcarpenter2 made their first contribution in https://github.com/conda/conda/pull/13034
 * @kenodegard
 * @ForgottenProgramme
-* @Mon-ius
-* @otaithleigh
-* @zeehio
-* @tarcisioe
+* @Mon-ius made their first contribution in https://github.com/conda/conda/pull/12811
+* @otaithleigh made their first contribution in https://github.com/conda/conda/pull/13035
+* @psteyer made their first contribution in https://github.com/conda/conda/pull/11610
+* @tarcisioe made their first contribution in https://github.com/conda/conda/pull/9614
 * @travishathaway
-* @psteyer
-* @wolfv
+* @wolfv made their first contribution in https://github.com/conda/conda/pull/13095
+* @zeehio made their first contribution in https://github.com/conda/conda/pull/13075
 * @pre-commit-ci[bot]
 
 
