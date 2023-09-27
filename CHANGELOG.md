@@ -15,6 +15,8 @@ Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-l
 > [!NOTE]
 > The existing "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the forseeable future, a fallback is possible and available.
 
+#### Plan to change the default solver
+
 Here are our updated plans to change the default to follow [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) better and reduce the impact on all conda users:
 
 - There will be a release dedicated to the switch of the default solver **after the regular 23.9.0 release**.
@@ -24,6 +26,8 @@ Here are our updated plans to change the default to follow [CEP 8](https://githu
   - running `conda config --set solver classic`.
 - All development on `conda-libmamba-solver` happens in the [conda-libmamba-solver repo](https://github.com/conda/conda-libmamba-solver), including issue tracking.
 - The documentation of the `conda-libmamba-solver` can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/).
+
+More information can also be found in the [blog post from earlier this year](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout) about the conda-libmamba-solver rollout plans.
 
 ### Enhancements
 
