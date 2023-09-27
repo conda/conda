@@ -1262,7 +1262,7 @@ def test_conda_config_validate(clear_package_cache: None):
             assert len(exc.value.errors) == 2
             str_exc_value = str(exc.value)
             assert (
-                "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs"
+                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the operating system certificate store."
                 in str_exc_value
             )
             assert (
@@ -1271,6 +1271,18 @@ def test_conda_config_validate(clear_package_cache: None):
             )
         finally:
             reset_context()
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Skip truststore on earlier python versions",
+)
+def test_conda_config_validate_sslverify_truststore(clear_package_cache: None):
+    with make_temp_env() as prefix:
+        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "truststore")
+        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
+        assert not stdout
+        assert not stderr
 
 
 @pytest.mark.skipif(

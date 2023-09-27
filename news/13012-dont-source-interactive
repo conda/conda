@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* ``XonshActivator`` now uses ``source-bash`` in non-interactive mode to avoid
+  side-effects from interactively loaded RC files
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

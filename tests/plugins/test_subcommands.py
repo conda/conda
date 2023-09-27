@@ -13,7 +13,6 @@ from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
-from conda.exceptions import PluginError
 from conda.plugins.types import CondaSubcommand
 from conda.testing import CondaCLIFixture
 
@@ -76,14 +75,12 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     plugin = SubcommandPlugin(name="custom", summary="Summary.")
     assert plugin_manager.load_plugins(plugin) == 1
 
-    # invalid, identical plugins
-    with pytest.raises(PluginError, match="Error while loading first-party"):
-        plugin_manager.load_plugins(plugin)
+    # invalid, identical plugins, error ignored
+    assert plugin_manager.load_plugins(plugin) == 0
 
-    # invalid, similar plugins
+    # invalid, similar plugins, error ignored
     plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
-    with pytest.raises(PluginError, match="Error while loading first-party"):
-        plugin_manager.load_plugins(plugin2)
+    assert plugin_manager.load_plugins(plugin2) == 0
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)

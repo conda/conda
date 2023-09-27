@@ -33,8 +33,8 @@ dependencies = [
   "requests >=2.27.0,<3",
   "ruamel.yaml >=0.11.14,<0.18",
   "setuptools >=60.0.0",
-  "toolz >=0.8.1",
   "tqdm >=4",
+  "truststore >=0.8.0; python_version>='3.10'",
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]

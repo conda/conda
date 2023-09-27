@@ -30,13 +30,13 @@ requirements:
     - wheel
     # for `conda init` in build/script above
     - menuinst >=1.4.11,<2         # [win]
-    - requests >=2.20.1,<3
+    - requests >=2.27.0,<3
     - ruamel.yaml >=0.11.14,<0.18
     - tqdm >=4
   run:
     - boltons >=23.0.0
-    - conda-package-handling >=1.3.0
     - conda-libmamba-solver >=23.7.0
+    - conda-package-handling >=2.2.0
     - jsonpatch >=1.32
     - menuinst >=1.4.11,<2         # [win]
     - packaging >=23.0
@@ -44,16 +44,15 @@ requirements:
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - python
-    - requests >=2.20.1,<3
+    - requests >=2.27.0,<3
     - ruamel.yaml >=0.11.14,<0.18
     - setuptools >=60.0.0
-    - toolz >=0.8.1
     - tqdm >=4
   run_constrained:
     - conda-build >=3.18.3
     - conda-content-trust >=0.1.1
     - conda-env >=2.6
-    - cytoolz >=0.8.1
+    - conda-libmamba-solver >=22.12.0
 
 test:
   imports:
