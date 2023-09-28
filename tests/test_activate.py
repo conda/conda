@@ -2304,14 +2304,14 @@ class InteractiveShell:
             #                            '&& set _CE_CONDA='
             #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
             #                                    join(sys.prefix, "Scripts", "conda.exe")),
-            "init_command": 'set "CONDA_SHLVL=" '
-            "&& @CALL {}\\shell\\condabin\\conda_hook.bat {}"
-            "&& set CONDA_EXE={}"
-            "&& set _CE_M=-m"
-            "&& set _CE_CONDA=conda".format(
-                CONDA_PACKAGE_ROOT, dev_arg, sys.executable
+            "init_command": (
+                '@SET "CONDA_SHLVL=" '
+                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {dev_arg} "
+                f"&& @SET CONDA_EXE={sys.executable} "
+                "&& @SET _CE_M=-m "
+                "&& @SET _CE_CONDA=conda"
             ),
-            "print_env_var": "@echo %%%s%%",
+            "print_env_var": "@ECHO %%%s%%",
         },
         "csh": {
             "activator": "csh",
@@ -2460,8 +2460,8 @@ class InteractiveShell:
 
     def get_env_var(self, env_var, default=None):
         if self.shell_name == "cmd.exe":
-            self.sendline("@echo %%%s%%" % env_var)
-            self.expect("@echo %%%s%%\r\n([^\r]*)\r" % env_var)
+            self.sendline(f"@ECHO %{env_var}%")
+            self.expect(rf"@ECHO %{env_var}%\r\n([^\r]*)\r")
             value = self.p.match.groups()[0]
         elif self.shell_name in ("powershell", "pwsh"):
             self.sendline(self.print_env_var % env_var)
@@ -2962,6 +2962,8 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
 def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, _ = shell_wrapper_integration
 
+    print(f'before {os.environ["PATH"]=}')
+
     conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
     with env_vars(
         {
@@ -2969,8 +2971,10 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
+        print(f'after {os.environ["PATH"]=}')
+
         with InteractiveShell("cmd.exe") as shell:
-            shell.expect(".*\n")
+            shell.expect(r".*\n")
 
             shell.assert_env_var("_CE_CONDA", "conda\r")
             shell.assert_env_var("_CE_M", "-m\r")
@@ -2984,18 +2988,18 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
             shell.p.expect_exact("Source : " + conda_bat)
 
             shell.sendline("chcp")
-            shell.expect(".*\n")
+            shell.expect(r".*\n")
 
             PATH0 = shell.get_env_var("PATH", "").split(os.pathsep)
-            print(PATH0)
-            shell.sendline('conda activate --dev "%s"' % charizard)
+            print(f"{PATH0=}")
+            shell.sendline(f'conda activate --dev "{charizard}"')
 
             shell.sendline("chcp")
-            shell.expect(".*\n")
+            shell.expect(r".*\n")
             shell.assert_env_var("CONDA_SHLVL", "1\r")
 
             PATH1 = shell.get_env_var("PATH", "").split(os.pathsep)
-            print(PATH1)
+            print(f"{PATH1=}")
             shell.sendline(
                 'powershell -NoProfile -c ("get-command conda | Format-List Source")'
             )
@@ -3006,14 +3010,14 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
             shell.assert_env_var("CONDA_EXE", escape(sys.executable) + "\r")
             shell.assert_env_var("CONDA_PREFIX", charizard, True)
             PATH2 = shell.get_env_var("PATH", "").split(os.pathsep)
-            print(PATH2)
+            print(f"{PATH2=}")
 
             shell.sendline(
                 'powershell -NoProfile -c ("get-command conda -All | Format-List Source")'
             )
             shell.p.expect_exact("Source : " + conda_bat)
 
-            shell.sendline('conda activate --dev "%s"' % prefix)
+            shell.sendline(f'conda activate --dev "{prefix}"')
             shell.assert_env_var("_CE_CONDA", "conda\r")
             shell.assert_env_var("_CE_M", "-m\r")
             shell.assert_env_var("CONDA_EXE", escape(sys.executable) + "\r")
@@ -3027,8 +3031,10 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
             #       not require an old or incompatible version of any
             #       library critical to the correct functioning of
             #       Python (e.g. OpenSSL).
-            shell.sendline(f"conda install -yq hdf5={HDF5_VERSION}")
-            shell.expect("Executing transaction: ...working... done.*\n", timeout=100)
+            shell.sendline(f"conda install --yes --quiet hdf5={HDF5_VERSION}")
+            shell.expect(
+                r"Executing transaction: \.\.\.working\.\.\. done.*\n", timeout=100
+            )
             shell.assert_env_var("errorlevel", "0", True)
             # TODO: assert that reactivate worked correctly
 
@@ -3037,7 +3043,6 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
             # conda run integration test
             shell.sendline(f"conda run {dev_arg} h5stat --version")
-
             shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
             shell.sendline("conda deactivate --dev")
