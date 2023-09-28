@@ -9,7 +9,8 @@ CALL pytest ^
     --cov=conda ^
     -m "integration" ^
     --basetemp=C:\tmp ^
-    "tests/test_activate.py::test_cmd_exe_basic_integration" || goto :error
+    --splits=%TEST_SPLITS% ^
+    --group=%TEST_GROUP% || goto :error
 goto :EOF
 
 :error
