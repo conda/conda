@@ -26,8 +26,8 @@ from .common.compat import on_win
 from .common.io import dashlist
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
-from .deprecations import DeprecatedError  # noqa: 401
-from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: 401
+from .deprecations import DeprecatedError  # noqa: F401
+from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
 
 log = getLogger(__name__)

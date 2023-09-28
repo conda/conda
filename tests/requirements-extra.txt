@@ -1,0 +1,4 @@
+# conda
+# run as 'conda install --file tests/requirements-extra.txt -c defaults' or
+# run as 'conda install --file tests/requirements-extra.txt -c conda-forge'
+conda-forge::minio-server
