@@ -1,0 +1,3 @@
+channels:
+  - defaults
+channel_priority: strict

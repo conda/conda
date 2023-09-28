@@ -1,6 +1,3 @@
-# this is the sibling workflow to docs.yml, it is required to work around
-# the skipped but required checks issue:
-#   https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
 name: Tests
 
 on:
@@ -42,6 +39,7 @@ jobs:
         # dorny/paths-filter needs git clone for push events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
+
       - uses: dorny/paths-filter@v2.11.1
         id: filter
         with:
@@ -64,85 +62,99 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: windows-2019
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.11']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
         exclude:
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
+          - python-version: '3.8'
+            default-channel: conda-forge
+          - test-type: unit
+            test-group: 3
     env:
-      OS: Windows
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
-      TEST_GROUP: ${{ matrix.test-group }}
+      ALLURE_DIR: ${{ github.workspace }}\allure-results
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_NUMPROCESSES: 0
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
+      HASH: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.default-channel }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Cache conda packages
+      - name: Timestamp
+        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache conda
         uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 3
         with:
-          # setup.bat makes a directory junction from \conda_bin to
-          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
-          # at this stage.
-          path: C:\Miniconda\envs\conda-test-env\pkgs
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+          path: ~/conda_pkgs_dir
+          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
 
-      - name: Set temp dirs correctly
-        # https://github.com/actions/virtual-environments/issues/712
-        run: |
-          echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          condarc-file: .github\condarc-${{ matrix.default-channel }}
+          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
 
-      - name: Setup environment for defaults
-        shell: cmd
-        if: matrix.default-channel == 'defaults'
+      - name: Setup environment
         run: |
-          call .\dev\windows\setup.bat
+          conda install --quiet --yes `
+            --file .\tests\requirements.txt `
+            --file .\tests\requirements-extra.txt `
+            --file .\tests\requirements-${{ runner.os }}.txt
+          pip install -e .
 
-      - name: Setup environment for conda-forge
-        shell: cmd
-        if: matrix.default-channel == 'conda-forge'
-        env:
-          CONDA_CHANNELS: ${{ matrix.default-channel }}
-          CONDA_CHANNEL_PRIORITY: strict
+      - name: Show info
         run: |
-          call .\dev\windows\setup.bat
+          conda info --verbose
+          conda list --show-channel-urls
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: cmd
+      - name: Run tests
         run: |
-          call .\dev\windows\${{ matrix.test-type }}.bat
+          pytest `
+            --alluredir="${{ env.ALLURE_DIR }}" `
+            --basetemp="${{ runner.temp }}\${{ matrix.test-type }}" `
+            --cov=conda `
+            --durations-path=".\tools\durations\${{ runner.os }}.json" `
+            --group=${{ matrix.test-group }} `
+            --splits=${{ env.PYTEST_SPLITS }} `
+            -m "${{ env.PYTEST_MARKER }}" `
+            -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
-      - name: Upload test results
+      - name: Upload durations
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            .\tools\durations\${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+          name: durations-${{ env.HASH }}
+          path: .\tools\durations\${{ runner.os }}.json
+          retention-days: 7  # for durations.yml workflow
+
+      - name: Tar Allure Results
+        if: '!cancelled()'
+        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
+        # windows-2019/powershell ships with GNU tar 1.28 which struggles with Windows paths
+        # window-2019/cmd ships with bsdtar 3.5.2 which doesn't have this problem
+        shell: cmd
+
+      - name: Upload Allure Results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-${{ env.HASH }}
+          path: ${{ env.ALLURE_DIR }}
 
   # linux test suite
   linux:
@@ -151,56 +163,102 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
         exclude:
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-          - default-channel: 'conda-forge'
-            python-version: '3.9'
-          - default-channel: 'conda-forge'
-            python-version: '3.10'
+          - python-version: '3.8'
+            default-channel: conda-forge
+          - python-version: '3.9'
+            default-channel: conda-forge
+          - python-version: '3.10'
+            default-channel: conda-forge
+          - test-type: unit
+            test-group: 3
     env:
-      OS: Linux
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
-      TEST_GROUP: ${{ matrix.test-group }}
+      ALLURE_DIR: ${{ github.workspace }}/allure-results
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_NUMPROCESSES: 0
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
+      HASH: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.default-channel }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          -e TEST_SPLITS
-          -e TEST_GROUP
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
+      - name: Timestamp
+        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache conda
+        uses: actions/cache@v3
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
+
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
+
+      - name: Setup environment
+        run: |
+          conda install --quiet --yes \
+            --file .\tests\requirements.txt \
+            --file .\tests\requirements-extra.txt
+          pip install -e .
+
+      - name: Show info
+        run: |
+          conda info --verbose
+          conda list --show-channel-urls
+
+      - name: Run tests
+        run: |
+          pytest \
+            --alluredir="${{ env.ALLURE_DIR }}" \
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
+            --cov=conda \
+            --durations-path=./tools/durations/${{ runner.os }}.json \
+            --group=${{ matrix.test-group }} \
+            --splits=${{ env.PYTEST_SPLITS }} \
+            -m "${{ env.PYTEST_MARKER }}" \
+            -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
-      - name: Upload test results
+      - name: Upload durations
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            ./tools/durations/${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+          name: durations-${{ env.HASH }}
+          path: ./tools/durations/${{ runner.os }}.json
+          retention-days: 7  # for duration.yml workflow
+
+      - name: Tar Allure Results
+        if: '!cancelled()'
+        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
+
+      - name: Upload Allure Results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-${{ env.HASH }}
+          path: ${{ env.ALLURE_DIR }}
 
   # linux-qemu test suite
   linux-qemu:
@@ -259,95 +317,100 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: macos-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults', 'conda-forge']
+        # test defaults with integration tests and conda-forge with unit tests
         python-version: ['3.9']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        # fewer test splits for quicker unit tests, keep 3 splits for integration
-        test-splits: [2, 3]
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
         exclude:
+          - default-channel: conda-forge
+            test-type: integration
+          - default-channel: defaults
+            test-type: unit
           - test-type: unit
-            test-group: '3'
-          - test-type: unit
-            test-splits: 3
-          - test-type: integration
-            test-splits: 2
-          # odd choice kept for parity with previous commit
-          - test-type: integration
-            default-channel: 'conda-forge'
-          - test-type: unit
-            default-channel: 'defaults'
+            test-group: 3
     env:
-      OS: macOS
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
-      TEST_GROUP: ${{ matrix.test-group }}
+      ALLURE_DIR: ${{ github.workspace }}/allure-results
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_NUMPROCESSES: 0
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
+      HASH: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.default-channel }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Cache conda packages
+      - name: Timestamp
+        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache conda
         uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
         with:
           path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
 
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda for defaults
-        if: matrix.default-channel == 'defaults'
-        env:
-          CONDA_SOLVER: classic
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: conda-test-env
-          miniconda-version: "latest"
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
-
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda for conda-forge
-        if: matrix.default-channel == 'conda-forge'
-        env:
-          CONDA_SOLVER: classic
-        with:
-          activate-environment: conda-test-env
-          miniforge-version: latest
-          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
 
       - name: Setup environment
-        shell: bash -l {0}
-        timeout-minutes: 15
         run: |
-          ./dev/macos/setup.sh
+          conda install --quiet --yes \
+            --file .\tests\requirements.txt \
+            --file .\tests\requirements-extra.txt
+          pip install -e .
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: bash -l {0}
+      - name: Show info
         run: |
-          ./dev/macos/${{ matrix.test-type }}.sh
+          conda info --verbose
+          conda list --show-channel-urls
+
+      - name: Run tests
+        run: |
+          pytest \
+            --alluredir="${{ env.ALLURE_DIR }}" \
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
+            --cov=conda \
+            --durations-path=./tools/durations/${{ runner.os }}.json \
+            --group=${{ matrix.test-group }} \
+            --splits=${{ env.PYTEST_SPLITS }} \
+            -m "${{ env.PYTEST_MARKER }}" \
+            -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - uses: codecov/codecov-action@v3
         with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
-      - name: Upload test results
+      - name: Upload durations
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            ./tools/durations/${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+          name: durations-${{ env.HASH }}
+          path: ./tools/durations/${{ runner.os }}.json
+          retention-days: 7  # for duration.yml workflow
+
+      - name: Tar Allure Results
+        if: '!cancelled()'
+        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
+
+      - name: Upload Allure Results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-${{ env.HASH }}
+          path: ${{ env.ALLURE_DIR }}
 
   # aggregate and upload
   aggregate:
