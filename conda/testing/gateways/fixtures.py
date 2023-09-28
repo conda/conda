@@ -15,7 +15,10 @@ from xprocess import ProcessStarter
 MINIO_EXE = which("minio")
 
 
-def minio_s3_server_runner(xprocess, tmp_path):
+# rely on tests not requesting this fixture, and pytest not creating this if
+# MINIO_EXE was not found
+pytest.fixture()
+def minio_s3_server(xprocess, tmp_path):
     """
     Mock a local S3 server using `minio`
 
@@ -124,6 +127,3 @@ def minio_s3_server_runner(xprocess, tmp_path):
     yield minio
     xprocess.getinfo(minio.name).terminate()
 
-
-if MINIO_EXE is not None:
-    minio_s3_server = pytest.fixture()(minio_s3_server_runner)
