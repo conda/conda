@@ -17,7 +17,7 @@ MINIO_EXE = which("minio")
 
 # rely on tests not requesting this fixture, and pytest not creating this if
 # MINIO_EXE was not found
-pytest.fixture()
+@pytest.fixture()
 def minio_s3_server(xprocess, tmp_path):
     """
     Mock a local S3 server using `minio`
