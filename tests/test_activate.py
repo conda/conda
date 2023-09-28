@@ -2455,7 +2455,7 @@ class InteractiveShell:
                 self.expect_exact(value)
                 self.expect(".*\n")
             else:
-                self.expect(f"{value}\n")
+                self.expect(f"{value}\r?\n")
         except:
             print(f"{self.p.before=}", file=sys.stderr)
             print(f"{self.p.after=}", file=sys.stderr)
@@ -2887,13 +2887,13 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 
         print("## [PowerShell integration] Activating.")
         shell.sendline('conda activate "%s"' % charizard)
-        shell.assert_env_var("CONDA_SHLVL", "1\r?")
+        shell.assert_env_var("CONDA_SHLVL", "1")
         PATH = shell.get_env_var("PATH")
         assert "charizard" in PATH
         shell.sendline("conda --version")
         shell.expect_exact("conda " + conda_version)
         shell.sendline('conda activate "%s"' % prefix)
-        shell.assert_env_var("CONDA_SHLVL", "2\r?")
+        shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
 
         shell.sendline("conda deactivate")
@@ -2922,11 +2922,11 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 
         print("## [PowerShell integration] Deactivating")
         shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "1\r?")
+        shell.assert_env_var("CONDA_SHLVL", "1")
         shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "0\r?")
+        shell.assert_env_var("CONDA_SHLVL", "0")
         shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "0\r?")
+        shell.assert_env_var("CONDA_SHLVL", "0")
 
 
 @pytest.mark.skipif(
@@ -2988,9 +2988,9 @@ def test_cmd_exe_basic_integration(
     with InteractiveShell("cmd.exe") as shell:
         shell.expect(r".*\n")
 
-        shell.assert_env_var("_CE_CONDA", "conda\r")
-        shell.assert_env_var("_CE_M", "-m\r")
-        shell.assert_env_var("CONDA_EXE", escape(sys.executable) + "\r")
+        shell.assert_env_var("_CE_CONDA", "conda")
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
 
         # We use 'PowerShell' here because 'where conda' returns all of them and
         # shell.expect_exact does not do what you would think it does given its name.
@@ -3008,7 +3008,7 @@ def test_cmd_exe_basic_integration(
 
         shell.sendline("chcp")
         shell.expect(r".*\n")
-        shell.assert_env_var("CONDA_SHLVL", "1\r")
+        shell.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = shell.get_env_var("PATH", "").split(os.pathsep)
         print(f"{PATH1=}")
@@ -3017,9 +3017,9 @@ def test_cmd_exe_basic_integration(
         )
         shell.expect_exact(f"Source : {conda_bat}")
 
-        shell.assert_env_var("_CE_CONDA", "conda\r")
-        shell.assert_env_var("_CE_M", "-m\r")
-        shell.assert_env_var("CONDA_EXE", escape(sys.executable) + "\r")
+        shell.assert_env_var("_CE_CONDA", "conda")
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
         shell.assert_env_var("CONDA_PREFIX", charizard, True)
         PATH2 = shell.get_env_var("PATH", "").split(os.pathsep)
         print(f"{PATH2=}")
@@ -3030,10 +3030,10 @@ def test_cmd_exe_basic_integration(
         shell.expect_exact(f"Source : {conda_bat}")
 
         shell.sendline(f'conda activate --dev "{prefix}"')
-        shell.assert_env_var("_CE_CONDA", "conda\r")
-        shell.assert_env_var("_CE_M", "-m\r")
-        shell.assert_env_var("CONDA_EXE", escape(sys.executable) + "\r")
-        shell.assert_env_var("CONDA_SHLVL", "2\r")
+        shell.assert_env_var("_CE_CONDA", "conda")
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
+        shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
 
         # TODO: Make a dummy package and release it (somewhere?)
@@ -3058,11 +3058,11 @@ def test_cmd_exe_basic_integration(
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
         shell.sendline("conda deactivate --dev")
-        shell.assert_env_var("CONDA_SHLVL", "1\r")
+        shell.assert_env_var("CONDA_SHLVL", "1")
         shell.sendline("conda deactivate --dev")
-        shell.assert_env_var("CONDA_SHLVL", "0\r")
+        shell.assert_env_var("CONDA_SHLVL", "0")
         shell.sendline("conda deactivate --dev")
-        shell.assert_env_var("CONDA_SHLVL", "0\r")
+        shell.assert_env_var("CONDA_SHLVL", "0")
 
 
 @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
@@ -3096,7 +3096,7 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
             "Could not find conda environment: environment-not-found-doesnt-exist"
         )
         shell.expect(".*")
-        shell.assert_env_var("errorlevel", "1\r")
+        shell.assert_env_var("errorlevel", "1")
 
         shell.sendline("conda activate -h blah blah")
         shell.expect("usage: conda activate")
