@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import codecs
-import sys
 import warnings
 from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
 
+from conda.common.compat import on_mac
 from conda.core.subdir_data import cache_fn_url
 from conda.misc import explicit, url_pat, walk_prefix
 from conda.testing import CondaCLIFixture, TmpEnvFixture
@@ -148,7 +148,7 @@ def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
         "testdir1/testfile",
         "testdir1/testdir2/testfile",
     }
-    if sys.platform != "darwin":
+    if not on_mac:
         answer.add("python.app")
 
     assert walk_prefix(tmpdir.strpath) == answer

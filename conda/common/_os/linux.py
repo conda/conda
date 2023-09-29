@@ -1,11 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import sys
 from functools import lru_cache
 from logging import getLogger
-from os import scandir
+from os import confstr, confstr_names, readlink, scandir
 
 from genericpath import exists
+
+from ..compat import on_linux
 
 log = getLogger(__name__)
 
@@ -13,10 +14,8 @@ log = getLogger(__name__)
 @lru_cache(maxsize=None)
 def linux_get_libc_version():
     """If on linux, returns (libc_family, version), otherwise (None, None)."""
-    if not sys.platform.startswith("linux"):
+    if not on_linux:
         return None, None
-
-    from os import confstr, confstr_names, readlink
 
     # Python 2.7 does not have either of these keys in confstr_names, so provide
     # hard-coded defaults and assert if the key is in confstr_names but differs.
