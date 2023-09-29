@@ -126,4 +126,3 @@ def minio_s3_server(xprocess, tmp_path):
     print(f"Server (PID: {pid}) log file can be found here: {logfile}")
     yield minio
     xprocess.getinfo(minio.name).terminate()
-
