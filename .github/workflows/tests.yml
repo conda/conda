@@ -83,7 +83,8 @@ jobs:
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -91,64 +92,68 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
-      - name: Cache conda
+      - name: Cache Conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup miniconda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup environment
+      - name: Setup Environment
         run: |
           conda install --quiet --yes `
-            --file .\tests\requirements.txt `
-            --file .\tests\requirements-extra.txt `
-            --file .\tests\requirements-${{ runner.os }}.txt
+            --file tests\requirements.txt `
+            --file tests\requirements-extra.txt `
+            --file tests\requirements-${{ runner.os }}.txt
           pip install -e .
 
-      - name: Show info
+      - name: Show Info
         run: |
           conda info --verbose
           conda list --show-channel-urls
 
-      - name: Run tests
+      - name: Run Tests
         run: |
           pytest `
             --alluredir="${{ env.ALLURE_DIR }}" `
             --basetemp="${{ runner.temp }}\${{ matrix.test-type }}" `
             --cov=conda `
-            --durations-path=".\tools\durations\${{ runner.os }}.json" `
+            --durations-path="tools\durations\${{ runner.os }}.json" `
             --group=${{ matrix.test-group }} `
             --splits=${{ env.PYTEST_SPLITS }} `
             -m "${{ env.PYTEST_MARKER }}" `
             -n "${{ env.PYTEST_NUMPROCESSES }}"
 
-      - uses: codecov/codecov-action@v3
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
-      - name: Upload durations
+      - name: Upload Test Results
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
-          name: durations-${{ env.HASH }}
-          path: .\tools\durations\${{ runner.os }}.json
-          retention-days: 7  # for durations.yml workflow
+          name: test-results-${{ env.HASH }}
+          path: |
+            .coverage
+            tools\durations\${{ runner.os }}.json
+            test-report.xml
+          retention-days: 1  # temporary, combined in aggregate below
 
-      - name: Tar Allure Results
+      - name: Tar Allure
         if: '!cancelled()'
         run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
         # windows-2019/powershell ships with GNU tar 1.28 which struggles with Windows paths
         # window-2019/cmd ships with bsdtar 3.5.2 which doesn't have this problem
         shell: cmd
 
-      - name: Upload Allure Results
+      - name: Upload Allure
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
@@ -190,7 +195,8 @@ jobs:
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -198,60 +204,64 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
-      - name: Cache conda
+      - name: Cache Conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup miniconda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup environment
+      - name: Setup Environment
         run: |
           conda install --quiet --yes \
-            --file .\tests\requirements.txt \
-            --file .\tests\requirements-extra.txt
+            --file tests/requirements.txt \
+            --file tests/requirements-extra.txt
           pip install -e .
 
-      - name: Show info
+      - name: Show Info
         run: |
           conda info --verbose
           conda list --show-channel-urls
 
-      - name: Run tests
+      - name: Run Tests
         run: |
           pytest \
             --alluredir="${{ env.ALLURE_DIR }}" \
             --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
             --cov=conda \
-            --durations-path=./tools/durations/${{ runner.os }}.json \
+            --durations-path=tools/durations/${{ runner.os }}.json \
             --group=${{ matrix.test-group }} \
             --splits=${{ env.PYTEST_SPLITS }} \
             -m "${{ env.PYTEST_MARKER }}" \
             -n "${{ env.PYTEST_NUMPROCESSES }}"
 
-      - uses: codecov/codecov-action@v3
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
-      - name: Upload durations
+      - name: Upload Test Results
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
-          name: durations-${{ env.HASH }}
-          path: ./tools/durations/${{ runner.os }}.json
-          retention-days: 7  # for duration.yml workflow
+          name: test-results-${{ env.HASH }}
+          path: |
+            .coverage
+            tools/durations/${{ runner.os }}.json
+            test-report.xml
+          retention-days: 1  # temporary, combined in aggregate below
 
-      - name: Tar Allure Results
+      - name: Tar Allure
         if: '!cancelled()'
         run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
 
-      - name: Upload Allure Results
+      - name: Upload Allure
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
@@ -270,6 +280,10 @@ jobs:
     # things to test. Running more tests is time consuming due to emulation
     # (factor 2-10x slower).
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
@@ -281,7 +295,8 @@ jobs:
       options: --platform linux/${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -289,32 +304,32 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.platform }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
-      - name: Cache conda
+      - name: Cache Conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup miniconda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup environment
+      - name: Setup Environment
         run: |
           conda install --quiet --yes \
-            --file .\tests\requirements.txt \
-            --file .\tests\requirements-extra.txt
+            --file tests/requirements.txt \
+            --file tests/requirements-extra.txt
           pip install -e .
 
-      - name: Show info
+      - name: Show Info
         run: |
           conda info --verbose
           conda list --show-channel-urls
 
-      - name: Run tests
+      - name: Run Tests
         run: |
           pytest \
             --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
@@ -353,7 +368,8 @@ jobs:
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -361,60 +377,64 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
-      - name: Cache conda
+      - name: Cache Conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup miniconda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup environment
+      - name: Setup Environment
         run: |
           conda install --quiet --yes \
-            --file .\tests\requirements.txt \
-            --file .\tests\requirements-extra.txt
+            --file tests/requirements.txt \
+            --file tests/requirements-extra.txt
           pip install -e .
 
-      - name: Show info
+      - name: Show Info
         run: |
           conda info --verbose
           conda list --show-channel-urls
 
-      - name: Run tests
+      - name: Run Tests
         run: |
           pytest \
             --alluredir="${{ env.ALLURE_DIR }}" \
             --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
             --cov=conda \
-            --durations-path=./tools/durations/${{ runner.os }}.json \
+            --durations-path=tools/durations/${{ runner.os }}.json \
             --group=${{ matrix.test-group }} \
             --splits=${{ env.PYTEST_SPLITS }} \
             -m "${{ env.PYTEST_MARKER }}" \
             -n "${{ env.PYTEST_NUMPROCESSES }}"
 
-      - uses: codecov/codecov-action@v3
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
-      - name: Upload durations
+      - name: Upload Test Results
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
-          name: durations-${{ env.HASH }}
-          path: ./tools/durations/${{ runner.os }}.json
-          retention-days: 7  # for duration.yml workflow
+          name: test-results-${{ env.HASH }}
+          path: |
+            .coverage
+            tools/durations/${{ runner.os }}.json
+            test-report.xml
+          retention-days: 1  # temporary, combined in aggregate below
 
-      - name: Tar Allure Results
+      - name: Tar Allure
         if: '!cancelled()'
         run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
 
-      - name: Upload Allure Results
+      - name: Upload Allure
         if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
@@ -431,22 +451,21 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - name: Download test results
+      - name: Download Artifacts
         uses: actions/download-artifact@v3
 
-      - name: Upload combined test results
-        # provides one downloadable archive of all .coverage/test-report.xml files
-        # of all matrix runs for further analysis.
+      - name: Upload Combined Test Results
+        # provides one downloadable archive of all matrix run test results for further analysis
         uses: actions/upload-artifact@v3
         with:
           name: test-results-${{ github.sha }}-all
-          path: test-results-${{ github.sha }}-*
-          retention-days: 90  # default: 90
+          path: test-results-*
+          retention-days: 7  # for durations.yml workflow
 
       - name: Test Summary
         uses: test-summary/action@v2
         with:
-          paths: ./test-results-${{ github.sha }}-**/test-report*.xml
+          paths: test-results-*/test-report.xml
 
   # required check
   analyze:
@@ -456,8 +475,8 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      - name: Determine Success
+        uses: re-actors/alls-green@v1.2.2
         with:
           allowed-skips: ${{ toJSON(needs) }}
           jobs: ${{ toJSON(needs) }}
