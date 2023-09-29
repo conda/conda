@@ -14,7 +14,7 @@ log = getLogger(__name__)
 
 
 @lru_cache(maxsize=None)
-def linux_get_libc_version() -> tuple[str | None, str | None]:
+def linux_get_libc_version() -> tuple[str, str] | tuple[None, None]:
     """If on linux, returns (libc_family, version), otherwise (None, None)."""
     if not on_linux:
         return None, None
