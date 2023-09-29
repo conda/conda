@@ -81,22 +81,21 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: 0
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
-      HASH: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.default-channel }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
 
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Timestamp
-        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
+          key: cache-${{ env.HASH }}
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
@@ -189,22 +188,21 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: 0
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
-      HASH: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.default-channel }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
 
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Timestamp
-        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
+          key: cache-${{ env.HASH }}
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
@@ -287,15 +285,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Timestamp
-        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.platform }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
+          key: cache-${{ env.HASH }}
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
@@ -353,22 +351,21 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: 0
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
-      HASH: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.default-channel }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
 
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Timestamp
-        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache conda
         uses: actions/cache@v3
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
+          key: cache-${{ env.HASH }}
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
