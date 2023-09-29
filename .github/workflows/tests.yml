@@ -275,40 +275,52 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults', 'conda-forge']
         python-version: ['3.11']
-        platform: ['arm64', 'ppc64le']
-    env:
-      PYTHON: ${{ matrix.python-version }}
+        default-channel: [defaults, conda-forge]
+        platform: [arm64, ppc64le]
+    container:
+      image: tonistiigi/binfmt:latest
+      options: --platform linux/${{ matrix.platform }}
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        # Equivalent to locally run:
-        #   `docker run --privileged --rm tonistiigi/binfmt --install all`
+      - name: Timestamp
+        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
 
-      - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }}, ${{ matrix.python-version }} tests
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          --platform linux/${{ matrix.platform }}
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/qemu.sh
-
-      - name: Upload test results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
+      - name: Cache conda
+        uses: actions/cache@v3
         with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.default-channel }}-${{ matrix.python-version }}
-          path: |
-            .coverage
-            test-report.xml
-          retention-days: 1
+          path: ~/conda_pkgs_dir
+          key: ${{ env.HASH }}-${{ env.TIMESTAMP }}
+
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
+
+      - name: Setup environment
+        run: |
+          conda install --quiet --yes \
+            --file .\tests\requirements.txt \
+            --file .\tests\requirements-extra.txt
+          pip install -e .
+
+      - name: Show info
+        run: |
+          conda info --verbose
+          conda list --show-channel-urls
+
+      - name: Run tests
+        run: |
+          pytest \
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
+            tests/test_api.py::test_DepsModifier_contract
 
   # macos test suite
   macos:
