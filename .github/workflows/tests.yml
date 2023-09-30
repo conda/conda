@@ -106,7 +106,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: >-
+        run: >
           conda install --quiet --yes
             --file tests\requirements.txt
             --file tests\requirements-s3.txt
@@ -120,7 +120,7 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: >-
+        run: >
           pytest
             --alluredir="${{ env.ALLURE_DIR }}"
             --basetemp="${{ runner.temp }}\${{ matrix.test-type }}"
@@ -219,7 +219,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: >-
+        run: >
           conda install --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
@@ -232,7 +232,7 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: >-
+        run: >
           pytest
             --alluredir="${{ env.ALLURE_DIR }}"
             --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
@@ -320,7 +320,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: >-
+        run: >
           conda install --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-ci.txt
@@ -332,7 +332,7 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: >-
+        run: >
           pytest
             --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
             tests/test_api.py::test_DepsModifier_contract
@@ -393,7 +393,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: >-
+        run: >
           conda install --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
@@ -406,7 +406,7 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: >-
+        run: >
           pytest
             --alluredir="${{ env.ALLURE_DIR }}"
             --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
