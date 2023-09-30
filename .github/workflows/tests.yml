@@ -109,7 +109,8 @@ jobs:
         run: |
           conda install --quiet --yes `
             --file tests\requirements.txt `
-            --file tests\requirements-extra.txt `
+            --file tests\requirements-s3.txt `
+            --file tests\requirements-ci.txt `
             --file tests\requirements-${{ runner.os }}.txt
           pip install -e .
 
@@ -221,7 +222,8 @@ jobs:
         run: |
           conda install --quiet --yes \
             --file tests/requirements.txt \
-            --file tests/requirements-extra.txt
+            --file tests/requirements-s3.txt \
+            --file tests/requirements-ci.txt
           pip install -e .
 
       - name: Show Info
@@ -321,7 +323,7 @@ jobs:
         run: |
           conda install --quiet --yes \
             --file tests/requirements.txt \
-            --file tests/requirements-extra.txt
+            --file tests/requirements-ci.txt
           pip install -e .
 
       - name: Show Info
@@ -394,7 +396,8 @@ jobs:
         run: |
           conda install --quiet --yes \
             --file tests/requirements.txt \
-            --file tests/requirements-extra.txt
+            --file tests/requirements-s3.txt \
+            --file tests/requirements-ci.txt
           pip install -e .
 
       - name: Show Info

@@ -243,7 +243,8 @@ if updating; then
         --override-channels \
         -c defaults \
         --file "${_SRC}/tests/requirements.txt" \
-        $([ "${_MACH}" = "Linux" ] && echo "patchelf") \
+        --file "${_SRC}/tests/requirements-ci.txt" \
+        $([ "${_MACH}" = "Linux" ] && echo "--file '${_SRC}/tests/requirements-Linux.txt'") \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
