@@ -1,13 +1,12 @@
 boltons >=23.0.0
-chardet
-conda
+chardet  # see fallbacks in conda.common.compat
 conda-content-trust >=0.2.0
-conda-package-handling >=1.3.0
+conda-package-handling >=2.2.0
 jsonpatch >=1.32
-packaging
+packaging >=23.0
 pluggy >=1.0.0
 pycosat >=0.6.3
-requests >=2.18.4,<3
+requests >=2.27.0,<3
 ruamel.yaml >=0.11.14,<0.18
 setuptools >=60.0.0
 setuptools_scm  # for devenv version detection
