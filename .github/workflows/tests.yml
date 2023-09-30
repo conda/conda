@@ -106,13 +106,13 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: |
-          conda install --quiet --yes `
-            --file tests\requirements.txt `
-            --file tests\requirements-s3.txt `
-            --file tests\requirements-ci.txt `
+        run: >-
+          conda install --quiet --yes
+            --file tests\requirements.txt
+            --file tests\requirements-s3.txt
+            --file tests\requirements-ci.txt
             --file tests\requirements-${{ runner.os }}.txt
-          pip install -e .
+          && pip install -e .
 
       - name: Show Info
         run: |
@@ -120,15 +120,15 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: |
-          pytest `
-            --alluredir="${{ env.ALLURE_DIR }}" `
-            --basetemp="${{ runner.temp }}\${{ matrix.test-type }}" `
-            --cov=conda `
-            --durations-path="tools\durations\${{ runner.os }}.json" `
-            --group=${{ matrix.test-group }} `
-            --splits=${{ env.PYTEST_SPLITS }} `
-            -m "${{ env.PYTEST_MARKER }}" `
+        run: >-
+          pytest
+            --alluredir="${{ env.ALLURE_DIR }}"
+            --basetemp="${{ runner.temp }}\${{ matrix.test-type }}"
+            --cov=conda
+            --durations-path="tools\durations\${{ runner.os }}.json"
+            --group=${{ matrix.test-group }}
+            --splits=${{ env.PYTEST_SPLITS }}
+            -m "${{ env.PYTEST_MARKER }}"
             -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - name: Upload Coverage
@@ -219,12 +219,12 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: |
-          conda install --quiet --yes \
-            --file tests/requirements.txt \
-            --file tests/requirements-s3.txt \
+        run: >-
+          conda install --quiet --yes
+            --file tests/requirements.txt
+            --file tests/requirements-s3.txt
             --file tests/requirements-ci.txt
-          pip install -e .
+          && pip install -e .
 
       - name: Show Info
         run: |
@@ -232,15 +232,15 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: |
-          pytest \
-            --alluredir="${{ env.ALLURE_DIR }}" \
-            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
-            --cov=conda \
-            --durations-path=tools/durations/${{ runner.os }}.json \
-            --group=${{ matrix.test-group }} \
-            --splits=${{ env.PYTEST_SPLITS }} \
-            -m "${{ env.PYTEST_MARKER }}" \
+        run: >-
+          pytest
+            --alluredir="${{ env.ALLURE_DIR }}"
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
+            --cov=conda
+            --durations-path=tools/durations/${{ runner.os }}.json
+            --group=${{ matrix.test-group }}
+            --splits=${{ env.PYTEST_SPLITS }}
+            -m "${{ env.PYTEST_MARKER }}"
             -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - name: Upload Coverage
@@ -293,7 +293,7 @@ jobs:
         default-channel: [defaults, conda-forge]
         platform: [arm64, ppc64le]
     container:
-      image: tonistiigi/binfmt:latest
+      image: tonistiigi/binfmt
       options: --platform linux/${{ matrix.platform }}
 
     steps:
@@ -320,11 +320,11 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: |
-          conda install --quiet --yes \
-            --file tests/requirements.txt \
+        run: >-
+          conda install --quiet --yes
+            --file tests/requirements.txt
             --file tests/requirements-ci.txt
-          pip install -e .
+          && pip install -e .
 
       - name: Show Info
         run: |
@@ -332,9 +332,9 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: |
-          pytest \
-            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
+        run: >-
+          pytest
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
             tests/test_api.py::test_DepsModifier_contract
 
   # macos test suite
@@ -393,12 +393,12 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: |
-          conda install --quiet --yes \
-            --file tests/requirements.txt \
-            --file tests/requirements-s3.txt \
+        run: >-
+          conda install --quiet --yes
+            --file tests/requirements.txt
+            --file tests/requirements-s3.txt
             --file tests/requirements-ci.txt
-          pip install -e .
+          && pip install -e .
 
       - name: Show Info
         run: |
@@ -406,15 +406,15 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: |
-          pytest \
-            --alluredir="${{ env.ALLURE_DIR }}" \
-            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}" \
-            --cov=conda \
-            --durations-path=tools/durations/${{ runner.os }}.json \
-            --group=${{ matrix.test-group }} \
-            --splits=${{ env.PYTEST_SPLITS }} \
-            -m "${{ env.PYTEST_MARKER }}" \
+        run: >-
+          pytest
+            --alluredir="${{ env.ALLURE_DIR }}"
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
+            --cov=conda
+            --durations-path=tools/durations/${{ runner.os }}.json
+            --group=${{ matrix.test-group }}
+            --splits=${{ env.PYTEST_SPLITS }}
+            -m "${{ env.PYTEST_MARKER }}"
             -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - name: Upload Coverage
