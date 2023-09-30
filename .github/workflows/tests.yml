@@ -288,11 +288,13 @@ jobs:
         python-version: ['3.11']
         default-channel: [defaults, conda-forge]
         platform: [arm64, ppc64le]
-    container:
-      image: tonistiigi/binfmt
-      options: --platform linux/${{ matrix.platform }}
 
     steps:
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.platform }}
+
       - name: Checkout Source
         uses: actions/checkout@v3
         with:
