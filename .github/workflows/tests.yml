@@ -293,6 +293,9 @@ jobs:
       options: --platform linux/${{ matrix.platform }}
 
     steps:
+      - run: echo "hello world"
+        shell: bash
+
       # - name: Checkout Source
       #   uses: actions/checkout@v4
       #   with:
