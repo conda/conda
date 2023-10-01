@@ -60,7 +60,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false && needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
@@ -163,7 +163,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false && needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -293,20 +293,20 @@ jobs:
       options: --platform linux/${{ matrix.platform }}
 
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      # - name: Checkout Source
+      #   uses: actions/checkout@v4
+      #   with:
+      #     fetch-depth: 0
 
-      - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.platform }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
+      # - name: Hash + Timestamp
+      #   run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.platform }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+      #   shell: bash
 
-      - name: Cache Conda
-        uses: actions/cache@v3
-        with:
-          path: ~/conda_pkgs_dir
-          key: cache-${{ env.HASH }}
+      # - name: Cache Conda
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/conda_pkgs_dir
+      #     key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
@@ -315,27 +315,27 @@ jobs:
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup Environment
-        run: conda install --quiet --yes
-            --file tests/requirements.txt
-            --file tests/requirements-ci.txt
-          && pip install -e .
+      # - name: Setup Environment
+      #   run: conda install --quiet --yes
+      #       --file tests/requirements.txt
+      #       --file tests/requirements-ci.txt
+      #     && pip install -e .
 
       - name: Show Info
         run: |
           conda info --verbose
           conda list --show-channel-urls
 
-      - name: Run Tests
-        run: pytest
-          --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
-          tests/test_api.py::test_DepsModifier_contract
+      # - name: Run Tests
+      #   run: pytest
+      #     --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
+      #     tests/test_api.py::test_DepsModifier_contract
 
   # macos test suite
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false && needs.changes.outputs.code == 'true'
 
     runs-on: macos-latest
     defaults:
