@@ -112,7 +112,6 @@ jobs:
             --file tests\requirements-s3.txt
             --file tests\requirements-ci.txt
             --file tests\requirements-${{ runner.os }}.txt
-          && pip install -e .
 
       - name: Show Info
         run: |
@@ -223,7 +222,6 @@ jobs:
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             --file tests/requirements-ci.txt
-          && pip install -e .
 
       - name: Show Info
         run: |
@@ -316,7 +314,6 @@ jobs:
             --file tests/requirements-ci.txt
             python=${{ matrix.python-version }}
           && conda activate test
-          && pip install -e .
           && conda info --verbose
           && conda list --show-channel-urls
           && pytest
@@ -384,7 +381,6 @@ jobs:
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             --file tests/requirements-ci.txt
-          && pip install -e .
 
       - name: Show Info
         run: |
