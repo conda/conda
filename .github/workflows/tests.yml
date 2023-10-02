@@ -308,7 +308,8 @@ jobs:
           --platform linux/${{ matrix.platform }}
           ${{ matrix.image }}
           bash -lc
-          "conda create
+          ". /opt/conda/etc/profile.d/conda.sh
+          && conda create
             --name test
             --quiet --yes
             --file tests/requirements.txt
