@@ -79,8 +79,8 @@ jobs:
     env:
       ALLURE_DIR: ${{ github.workspace }}\allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: 0
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
+      PYTEST_NUMPROCESSES: '0'
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
 
     steps:
       - name: Checkout Source
@@ -191,8 +191,8 @@ jobs:
     env:
       ALLURE_DIR: ${{ github.workspace }}/allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: 0
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
+      PYTEST_NUMPROCESSES: '0'
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
 
     steps:
       - name: Checkout Source
@@ -352,8 +352,8 @@ jobs:
     env:
       ALLURE_DIR: ${{ github.workspace }}/allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: 0
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && 2 || 3 }}
+      PYTEST_NUMPROCESSES: '0'
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
 
     steps:
       - name: Checkout Source
