@@ -110,6 +110,7 @@ jobs:
             --quiet --yes
             --file tests\requirements.txt
             --file tests\requirements-s3.txt
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt' }}
             --file tests\requirements-ci.txt
             --file tests\requirements-${{ runner.os }}.txt
 
@@ -221,6 +222,7 @@ jobs:
             --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' }}
             --file tests/requirements-ci.txt
 
       - name: Show Info
@@ -380,6 +382,7 @@ jobs:
             --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' }}
             --file tests/requirements-ci.txt
 
       - name: Show Info
