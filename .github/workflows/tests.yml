@@ -122,7 +122,6 @@ jobs:
       - name: Run Tests
         run: pytest
           --alluredir="${{ env.ALLURE_DIR }}"
-          --basetemp="${{ runner.temp }}\${{ matrix.test-type }}"
           --cov=conda
           --durations-path="tools\durations\${{ runner.os }}.json"
           --group=${{ matrix.test-group }}
@@ -233,7 +232,6 @@ jobs:
       - name: Run Tests
         run: pytest
           --alluredir="${{ env.ALLURE_DIR }}"
-          --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -318,9 +316,7 @@ jobs:
           && conda activate test
           && conda info --verbose
           && conda list --show-channel-urls
-          && pytest
-            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
-            tests/test_api.py::test_DepsModifier_contract"
+          && pytest tests/test_api.py::test_DepsModifier_contract"
 
   # macos test suite
   macos:
@@ -393,7 +389,6 @@ jobs:
       - name: Run Tests
         run: pytest
           --alluredir="${{ env.ALLURE_DIR }}"
-          --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
