@@ -8,7 +8,6 @@ from pathlib import Path
 from shutil import which
 
 import pytest
-from botocore.client import Config
 from xprocess import ProcessStarter
 
 MINIO_EXE = which("minio")
@@ -51,6 +50,7 @@ def minio_s3_server(xprocess, tmp_path):
         def populate_bucket(self, endpoint, bucket_name, channel_dir):
             """Prepare the s3 connection for our minio instance"""
             import boto3
+            from botocore.client import Config
 
             # Make the minio bucket public first
             # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-example-bucket-policies.html#set-a-bucket-policy
