@@ -307,7 +307,7 @@ jobs:
           --workdir /opt/conda-src
           --platform linux/${{ matrix.platform }}
           ${{ matrix.image }}
-          sh -c
+          bash -lc
           "conda create
             --name test
             --quiet --yes
