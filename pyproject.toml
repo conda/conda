@@ -29,7 +29,6 @@ dependencies = [
   "packaging",
   "pluggy >=1.0.0",
   "pycosat >=0.6.3",
-  "pyopenssl >=16.2.0",
   "requests >=2.27.0,<3",
   "ruamel.yaml >=0.11.14,<0.18",
   "setuptools >=60.0.0",
