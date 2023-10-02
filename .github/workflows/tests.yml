@@ -106,7 +106,8 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: conda install --quiet --yes
+        run: conda install
+            --quiet --yes
             --file tests\requirements.txt
             --file tests\requirements-s3.txt
             --file tests\requirements-ci.txt
@@ -217,7 +218,8 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: conda install --quiet --yes
+        run: conda install
+            --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             --file tests/requirements-ci.txt
@@ -286,53 +288,39 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.11']
-        default-channel: [defaults, conda-forge]
+        image: ['continuumio/miniconda3:latest', 'condaforge/miniforge3:latest']
         platform: [arm64, ppc64le]
-    container:
-      image: debian:11
-      options: --platform linux/${{ matrix.platform }}
 
     steps:
-      - run: echo "hello world"
-        shell: bash
-
-      # - name: Checkout Source
-      #   uses: actions/checkout@v4
-      #   with:
-      #     fetch-depth: 0
-
-      # - name: Hash + Timestamp
-      #   run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.platform }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-      #   shell: bash
-
-      # - name: Cache Conda
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/conda_pkgs_dir
-      #     key: cache-${{ env.HASH }}
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Checkout Source
+        uses: actions/checkout@v4
         with:
-          condarc-file: .github/condarc-${{ matrix.default-channel }}
-          python-version: ${{ matrix.python-version }}
-          run-post: false  # skip post cleanup
+          fetch-depth: 0
 
-      # - name: Setup Environment
-      #   run: conda install --quiet --yes
-      #       --file tests/requirements.txt
-      #       --file tests/requirements-ci.txt
-      #     && pip install -e .
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
 
-      - name: Show Info
-        run: |
-          conda info --verbose
-          conda list --show-channel-urls
-
-      # - name: Run Tests
-      #   run: pytest
-      #     --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
-      #     tests/test_api.py::test_DepsModifier_contract
+      - name: Run Tests
+        run: docker run
+          --rm
+          --volume ${PWD}:/opt/conda-src
+          --workdir /opt/conda-src
+          --platform linux/${{ matrix.platform }}
+          ${{ matrix.image }}
+          sh -c
+          "conda create
+            --name test
+            --quiet --yes
+            --file tests/requirements.txt
+            --file tests/requirements-ci.txt
+            python=${{ matrix.python-version }}
+          && conda activate test
+          && pip install -e .
+          && conda info --verbose
+          && conda list --show-channel-urls
+          && pytest
+            --basetemp="${{ runner.temp }}/${{ matrix.test-type }}"
+            tests/test_api.py::test_DepsModifier_contract"
 
   # macos test suite
   macos:
@@ -390,7 +378,8 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
-        run: conda install --quiet --yes
+        run: conda install
+            --quiet --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             --file tests/requirements-ci.txt
