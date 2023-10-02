@@ -479,7 +479,7 @@ rules are applied to each pair of corresponding subcomponents:
 The resulting order is::
 
    0.4
- < 0.4.0
+ == 0.4.0
  < 0.4.1.rc
  == 0.4.1.RC   # case-insensitive comparison
  < 0.4.1
