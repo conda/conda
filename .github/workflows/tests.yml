@@ -298,7 +298,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Run Tests
         run: docker run
@@ -466,6 +466,7 @@ jobs:
       - name: Determine Success
         uses: re-actors/alls-green@v1.2.2
         with:
+          # permit jobs to be skipped if there are no code changes (see changes job)
           allowed-skips: ${{ toJSON(needs) }}
           jobs: ${{ toJSON(needs) }}
 
