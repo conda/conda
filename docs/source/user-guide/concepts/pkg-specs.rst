@@ -305,7 +305,7 @@ parts:
     EXAMPLE: ``1.0|1.2`` matches version 1.0 or 1.2
 
   * \* matches 0 or more characters in the version string. In
-    terms of regular expressions, it is the same as ``r``.*````.
+    terms of regular expressions, it is the same as ``r".*"``.
 
     EXAMPLE: 1.0|1.4* matches 1.0, 1.4 and 1.4.1b2, but not 1.2.
 
