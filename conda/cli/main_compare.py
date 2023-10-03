@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .helpers import add_parser_help, add_parser_json, add_parser_prefix
+    from .helpers import add_parser_json, add_parser_prefix
 
     summary = "Compare packages between conda environments."
     description = summary
@@ -42,7 +42,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         description=description,
         epilog=examples,
     )
-    add_parser_help(p)
     add_parser_json(p)
     add_parser_prefix(p)
     p.add_argument(

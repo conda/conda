@@ -18,7 +18,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_channels,
-        add_parser_help,
         add_parser_networking,
         add_parser_prefix,
         add_parser_prune,
@@ -65,7 +64,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=example,
         **kwargs,
     )
-    add_parser_help(p)
     add_parser_pscheck(p)
 
     add_parser_prefix(p)

@@ -15,7 +15,6 @@ log = logging.getLogger(__name__)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
-        add_parser_help,
         add_parser_json,
         add_parser_prefix,
         add_parser_show_channel_urls,
@@ -60,7 +59,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=examples,
         **kwargs,
     )
-    add_parser_help(p)
     add_parser_prefix(p)
     add_parser_json(p)
     add_parser_show_channel_urls(p)
