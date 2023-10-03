@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 set -eu
 
@@ -6,7 +6,7 @@ TARGETARCH="${TARGETARCH:-$(uname -m)}"
 CONDA_VERSION="${CONDA_VERSION:-latest}"
 default_channel="${default_channel:-defaults}"
 
-if [ "${default_channel}" = "defaults" ] || [[ "${default_channel}" = ad-testing/* ]]; then
+if [ "${default_channel}" = "defaults" ]; then
     if [ "${TARGETARCH}" = "amd64" ]; then
         MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh"
     elif [ "${TARGETARCH}" = "s390x" ]; then
