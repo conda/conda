@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import importlib
 import json
 from pathlib import Path
 from uuid import uuid4
@@ -655,3 +656,30 @@ def test_invalid_extensions(
 
     with pytest.raises(EnvironmentFileExtensionNotValid):
         conda_cli("env", "create", "--file", env_yml, "--yes")
+
+
+@pytest.mark.parametrize(
+    "module_name, function_name",
+    [
+        ("conda_env.cli.main_config", "configure_parser"),
+        ("conda_env.cli.main_config", "execute"),
+        ("conda_env.cli.main_create", "configure_parser"),
+        ("conda_env.cli.main_create", "execute"),
+        ("conda_env.cli.main_export", "configure_parser"),
+        ("conda_env.cli.main_export", "execute"),
+        ("conda_env.cli.main_list", "configure_parser"),
+        ("conda_env.cli.main_list", "execute"),
+        ("conda_env.cli.main_remove", "configure_parser"),
+        ("conda_env.cli.main_remove", "execute"),
+        ("conda_env.cli.main_update", "configure_parser"),
+        ("conda_env.cli.main_update", "execute"),
+        ("conda_env.cli.main_vars", "configure_parser"),
+        ("conda_env.cli.main_vars", "execute_list"),
+        ("conda_env.cli.main_vars", "execute_set"),
+        ("conda_env.cli.main_vars", "execute_unset"),
+    ],
+)
+def test_configure_parser_imports(module_name, function_name):
+    conda_env_module = importlib.import_module(module_name)
+
+    assert hasattr(conda_env_module, function_name)
