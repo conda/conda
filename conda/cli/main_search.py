@@ -4,22 +4,22 @@
 
 Query channels for packages matching the provided package spec.
 """
+from argparse import ArgumentParser, Namespace
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from ..base.context import context
-from ..cli.common import stdout_json
-from ..common.io import Spinner, dashlist
-from ..core.envs_manager import query_all_prefixes
-from ..core.index import calculate_channel_urls
-from ..core.subdir_data import SubdirData
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
-from ..models.version import VersionOrder
-from ..utils import human_bytes
 
+def execute(args: Namespace, parser: ArgumentParser) -> None:
+    from ..base.context import context
+    from ..cli.common import stdout_json
+    from ..common.io import Spinner
+    from ..core.envs_manager import query_all_prefixes
+    from ..core.index import calculate_channel_urls
+    from ..core.subdir_data import SubdirData
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
+    from ..models.version import VersionOrder
 
-def execute(args, parser):
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value("subdir"):
         subdirs = (spec.get_exact_value("subdir"),)
@@ -148,6 +148,9 @@ def execute(args, parser):
 
 
 def pretty_record(record):
+    from ..common.io import dashlist
+    from ..utils import human_bytes
+
     def push_line(display_name, attr_name):
         value = getattr(record, attr_name, None)
         if value is not None:
