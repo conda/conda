@@ -7,25 +7,25 @@ Removes the specified packages from an existing environment.
 import logging
 from os.path import isfile, join
 
-from ..base.context import context
-from ..core.envs_manager import unregister_env
-from ..core.link import PrefixSetup, UnlinkLinkTransaction
-from ..core.prefix_data import PrefixData
-from ..exceptions import (
-    CondaEnvironmentError,
-    CondaValueError,
-    DirectoryNotACondaEnvironmentError,
-    PackagesNotFoundError,
-)
-from ..gateways.disk.delete import path_is_clean, rm_rf
-from ..models.match_spec import MatchSpec
-from .common import check_non_admin, specs_from_args
-from .install import handle_txn
-
 log = logging.getLogger(__name__)
 
 
 def execute(args, parser):
+    from ..base.context import context
+    from ..core.envs_manager import unregister_env
+    from ..core.link import PrefixSetup, UnlinkLinkTransaction
+    from ..core.prefix_data import PrefixData
+    from ..exceptions import (
+        CondaEnvironmentError,
+        CondaValueError,
+        DirectoryNotACondaEnvironmentError,
+        PackagesNotFoundError,
+    )
+    from ..gateways.disk.delete import path_is_clean, rm_rf
+    from ..models.match_spec import MatchSpec
+    from .common import check_non_admin, specs_from_args
+    from .install import handle_txn
+
     if not (args.all or args.package_names):
         raise CondaValueError(
             "no package names supplied,\n"
