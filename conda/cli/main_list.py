@@ -8,13 +8,6 @@ import logging
 import re
 from os.path import isdir, isfile
 
-from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from ..base.context import context
-from ..core.prefix_data import PrefixData
-from ..gateways.disk.test import is_conda_environment
-from ..history import History
-from .common import disp_features, stdout_json
-
 log = logging.getLogger(__name__)
 
 
@@ -33,8 +26,17 @@ def get_packages(installed, regex):
 
 
 def list_packages(
-    prefix, regex=None, format="human", reverse=False, show_channel_urls=None
+    prefix,
+    regex=None,
+    format="human",
+    reverse=False,
+    show_channel_urls=None,
 ):
+    from ..base.constants import DEFAULTS_CHANNEL_NAME
+    from ..base.context import context
+    from ..core.prefix_data import PrefixData
+    from .common import disp_features
+
     res = 0
 
     installed = sorted(
@@ -91,6 +93,9 @@ def print_packages(
     json=False,
     show_channel_urls=None,
 ):
+    from ..base.context import context
+    from .common import stdout_json
+
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
 
@@ -117,6 +122,10 @@ def print_packages(
 
 
 def print_explicit(prefix, add_md5=False):
+    from ..base.constants import UNKNOWN_CHANNEL
+    from ..base.context import context
+    from ..core.prefix_data import PrefixData
+
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
 
@@ -133,6 +142,11 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
+    from ..base.context import context
+    from ..gateways.disk.test import is_conda_environment
+    from ..history import History
+    from .common import stdout_json
+
     prefix = context.target_prefix
     if not is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
