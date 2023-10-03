@@ -4,24 +4,19 @@
 
 Compare the packages in an environment with the packages listed in an environment file.
 """
+from __future__ import annotations
+
 import logging
 import os
 from os.path import abspath, expanduser, expandvars
-
-from conda_env import specs
-
-from ..base.context import context
-from ..core.prefix_data import PrefixData
-from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
-from ..gateways.connection.session import CONDA_SESSION_SCHEMES
-from ..gateways.disk.test import is_conda_environment
-from ..models.match_spec import MatchSpec
-from .common import stdout_json
 
 log = logging.getLogger(__name__)
 
 
 def get_packages(prefix):
+    from ..core.prefix_data import PrefixData
+    from ..exceptions import EnvironmentLocationNotFound
+
     if not os.path.isdir(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
@@ -31,44 +26,41 @@ def get_packages(prefix):
     )
 
 
-def _get_name_tuple(pkg):
-    return pkg.name, pkg
+def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
+    from ..models.match_spec import MatchSpec
 
-
-def _to_str(pkg):
-    return f"{pkg.name}=={pkg.version}={pkg.build}"
-
-
-def compare_packages(active_pkgs, specification_pkgs):
     output = []
-    res = 0
-    ok = True
+    miss = False
     for pkg in specification_pkgs:
         pkg_spec = MatchSpec(pkg)
-        name = pkg_spec.name
-        if name in active_pkgs:
-            if not pkg_spec.match(active_pkgs[name]):
-                ok = False
+        if (name := pkg_spec.name) in active_pkgs:
+            if not pkg_spec.match(active_pkg := active_pkgs[name]):
+                miss = True
                 output.append(
-                    "{} found but mismatch. Specification pkg: {}, Running pkg: {}".format(
-                        name, pkg, _to_str(active_pkgs[name])
-                    )
+                    f"{name} found but mismatch. Specification pkg: {pkg}, "
+                    f"Running pkg: {active_pkg.name}=={active_pkg.version}={active_pkg.build}"
                 )
         else:
-            ok = False
+            miss = True
             output.append(f"{name} not found")
-    if ok:
+    if not miss:
         output.append(
-            "Success. All the packages in the \
-specification file are present in the environment \
-with matching version and build string."
+            "Success. All the packages in the "
+            "specification file are present in the environment "
+            "with matching version and build string."
         )
-    else:
-        res = 1
-    return res, output
+    return int(miss), output
 
 
 def execute(args, parser):
+    from conda_env import specs
+
+    from ..base.context import context
+    from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
+    from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+    from ..gateways.disk.test import is_conda_environment
+    from .common import stdout_json
+
     prefix = context.target_prefix
     if not is_conda_environment(prefix):
         raise EnvironmentLocationNotFound(prefix)
@@ -88,7 +80,7 @@ def execute(args, parser):
     except SpecNotFound:
         raise
 
-    active_pkgs = dict(map(_get_name_tuple, get_packages(prefix)))
+    active_pkgs = {pkg.name: pkg for pkg in get_packages(prefix)}
     specification_pkgs = []
     if "conda" in env.dependencies:
         specification_pkgs = specification_pkgs + env.dependencies["conda"]
