@@ -118,30 +118,14 @@ def print_package_info(packages):
 
 def get_info_dict(system=False):
     try:
-        from requests import __version__ as requests_version
-
-        # These environment variables can influence requests' behavior, along with configuration
-        # in a .netrc file
-        #   CURL_CA_BUNDLE
-        #   REQUESTS_CA_BUNDLE
-        #   HTTP_PROXY
-        #   HTTPS_PROXY
-    except ImportError:  # pragma: no cover
-        try:
-            from pip._vendor.requests import __version__ as requests_version
-        except Exception as e:  # pragma: no cover
-            requests_version = "Error %r" % e
-    except Exception as e:  # pragma: no cover
-        requests_version = "Error %r" % e
-
-    try:
-        import conda_build
-    except ImportError:  # pragma: no cover
+        from conda_build import __version__ as conda_build_version
+    except ImportError as err:
+        # ImportError: conda-build is not installed
+        log.debug("Unable to import conda-build: %s", err)
         conda_build_version = "not installed"
-    except Exception as e:  # pragma: no cover
-        conda_build_version = "Error %s" % e
-    else:  # pragma: no cover
-        conda_build_version = conda_build.__version__
+    except Exception as err:
+        log.error("Error to import conda-build: %s", err)
+        conda_build_version = "error"
 
     virtual_pkg_index = {}
     _supplement_index_with_system(virtual_pkg_index)
@@ -184,7 +168,7 @@ def get_info_dict(system=False):
         offline=context.offline,
         envs=[],
         python_version=".".join(map(str, sys.version_info)),
-        requests_version=requests_version,
+        requests_version=context.requests_version,
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
         config_files=context.config_files,

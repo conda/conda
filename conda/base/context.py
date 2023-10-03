@@ -1043,13 +1043,15 @@ class Context(Configuration):
     @memoizedproperty
     def requests_version(self):
         try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+            from requests import __version__ as requests_version
+        except ImportError as err:
+            # ImportError: requests is not installed
+            log.error("Unable to import requests: %s", err)
+            requests_version = "unknown"
+        except Exception as err:
+            log.error("Error importing requests: %s", err)
+            requests_version = "unknown"
+        return requests_version
 
     @memoizedproperty
     def python_implementation_name_version(self):
