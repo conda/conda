@@ -33,6 +33,10 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
+      # sort requirements files
+      - id: file-contents-sorter
+        files: ^tests/requirements.*\.txt
+        args: [--unique]
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.4
