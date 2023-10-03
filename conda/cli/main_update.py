@@ -5,14 +5,16 @@
 Updates the specified packages in an existing environment.
 """
 import sys
+from argparse import ArgumentParser, Namespace
 
-from ..base.context import context
 from ..notices import notices
-from .install import install
 
 
 @notices
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser):
+    from ..base.context import context
+    from .install import install
+
     if context.force:
         print(
             "\n\n"
