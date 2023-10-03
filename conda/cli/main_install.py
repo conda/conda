@@ -6,13 +6,14 @@ Installs the specified packages into an existing environment.
 """
 import sys
 
-from ..base.context import context
 from ..notices import notices
-from .install import install
 
 
 @notices
 def execute(args, parser):
+    from ..base.context import context
+    from .install import install
+
     if context.force:
         print(
             "\n\n"
