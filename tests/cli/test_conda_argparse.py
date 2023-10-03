@@ -97,8 +97,6 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
         ("conda.cli.conda_argparse.generate_parser", isfunction),
         ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
-        ("conda.cli.conda_argparse.NOTICES_DESCRIPTION", lambda x: isinstance(x, str)),
-        ("conda.cli.conda_argparse.NOTICES_HELP", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.NullCountAction", isclass),
         ("conda.cli.conda_argparse.sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.user_rc_path", lambda x: isinstance(x, str)),
