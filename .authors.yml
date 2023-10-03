@@ -743,7 +743,7 @@
   - travis@continuum.io
   num_commits: 73
   first_commit: 2013-08-16 08:12:49
-  github: ContinuumIO
+  github: teoliphant
 - name: Troy Powell
   email: tpowell@MathBook Pro.(none)
   num_commits: 1
