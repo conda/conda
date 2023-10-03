@@ -243,6 +243,7 @@ if updating; then
         --override-channels \
         -c defaults \
         --file "${_SRC}/tests/requirements.txt" \
+        conda \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
