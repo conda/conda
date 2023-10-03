@@ -11,12 +11,18 @@ from importlib import import_module
 # when importing pip (and pip_util)
 import conda.exports  # noqa
 from conda.base.context import context
+from conda.cli import (
+    main_env_config,
+    main_env_create,
+    main_env_export,
+    main_env_list,
+    main_env_remove,
+    main_env_update,
+)
 from conda.cli.conda_argparse import ArgumentParser
 from conda.cli.main import init_loggers
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
-
-from . import main_config, main_create, main_export, main_list, main_remove, main_update
 
 
 # TODO: This belongs in a helper library somewhere
@@ -33,12 +39,13 @@ def create_parser():
         metavar="command",
         dest="cmd",
     )
-    main_create.configure_parser(sub_parsers)
-    main_export.configure_parser(sub_parsers)
-    main_list.configure_parser(sub_parsers)
-    main_remove.configure_parser(sub_parsers)
-    main_update.configure_parser(sub_parsers)
-    main_config.configure_parser(sub_parsers)
+    # Use rerouted imports from main_env_ modules
+    main_env_config.configure_parser(sub_parsers)
+    main_env_create.configure_parser(sub_parsers)
+    main_env_export.configure_parser(sub_parsers)
+    main_env_list.configure_parser(sub_parsers)
+    main_env_remove.configure_parser(sub_parsers)
+    main_env_update.configure_parser(sub_parsers)
 
     show_help_on_empty_command()
     return p
