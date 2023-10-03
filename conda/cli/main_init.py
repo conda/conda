@@ -6,16 +6,15 @@ Prepares the user's profile for running conda, and sets up the conda shell inter
 """
 from logging import getLogger
 
-from ..base.context import context
-from ..common.compat import on_win
-from ..exceptions import ArgumentError
-
 log = getLogger(__name__)
 
 
 def execute(args, parser):
     from ..base.constants import COMPATIBLE_SHELLS
+    from ..base.context import context
+    from ..common.compat import on_win
     from ..core.initialize import initialize, initialize_dev, install
+    from ..exceptions import ArgumentError
 
     if args.install:
         return install(context.conda_prefix)
