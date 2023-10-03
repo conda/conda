@@ -7,20 +7,21 @@ Creates new conda environments with the specified packages.
 from logging import getLogger
 from os.path import isdir
 
-from ..base.context import context
-from ..common.path import paths_equal
-from ..exceptions import CondaValueError
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.test import is_conda_environment
 from ..notices import notices
-from .common import confirm_yn
-from .install import install
 
 log = getLogger(__name__)
 
 
 @notices
 def execute(args, parser):
+    from ..base.context import context
+    from ..common.path import paths_equal
+    from ..exceptions import CondaValueError
+    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.test import is_conda_environment
+    from .common import confirm_yn
+    from .install import install
+
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
