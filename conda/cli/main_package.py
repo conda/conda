@@ -12,14 +12,6 @@ import tarfile
 import tempfile
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
-from ..auxlib.entity import EntityEncoder
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_PLACEHOLDER
-from ..base.context import context
-from ..common.path import paths_equal
-from ..core.prefix_data import PrefixData
-from ..gateways.disk.delete import rmtree
-from ..misc import untracked
-
 
 def remove(prefix, files):
     """Remove files for a given prefix."""
@@ -37,6 +29,9 @@ def remove(prefix, files):
 
 
 def execute(args, parser):
+    from ..base.context import context
+    from ..misc import untracked
+
     prefix = context.target_prefix
 
     if args.which:
@@ -67,6 +62,8 @@ def execute(args, parser):
 
 
 def get_installed_version(prefix, name):
+    from ..core.prefix_data import PrefixData
+
     for info in PrefixData(prefix).iter_records():
         if info["name"] == name:
             return str(info["version"])
@@ -74,6 +71,8 @@ def get_installed_version(prefix, name):
 
 
 def create_info(name, version, build_number, requires_py):
+    from ..base.context import context
+
     d = dict(
         name=name,
         version=version,
@@ -93,6 +92,8 @@ shebang_pat = re.compile(r"^#!.+$", re.M)
 
 
 def fix_shebang(tmp_dir, path):
+    from ..base.constants import PREFIX_PLACEHOLDER
+
     if open(path, "rb").read(2) != "#!":
         return False
 
@@ -111,6 +112,8 @@ def fix_shebang(tmp_dir, path):
 
 
 def _add_info_dir(t, tmp_dir, files, has_prefix, info):
+    from ..auxlib.entity import EntityEncoder
+
     info_dir = join(tmp_dir, "info")
     os.mkdir(info_dir)
     with open(join(info_dir, "files"), "w") as fo:
@@ -131,6 +134,8 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
 
 def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     """Create a conda package and return a list of warnings."""
+    from ..gateways.disk.delete import rmtree
+
     files = sorted(files)
     warnings = []
     has_prefix = []
@@ -169,6 +174,9 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
 
 
 def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=None):
+    from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
+    from ..misc import untracked
+
     if files is None:
         files = untracked(prefix)
     print("# files: %d" % len(files))
@@ -198,6 +206,9 @@ def which_package(path):
     the conda packages the file came from. Usually the iteration yields
     only one package.
     """
+    from ..common.path import paths_equal
+    from ..core.prefix_data import PrefixData
+
     path = abspath(path)
     prefix = which_prefix(path)
     if prefix is None:
