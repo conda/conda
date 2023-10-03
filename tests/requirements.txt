@@ -1,6 +1,5 @@
 beautifulsoup4
 boltons >=23.0.0
-boto3
 chardet
 conda
 conda-content-trust
