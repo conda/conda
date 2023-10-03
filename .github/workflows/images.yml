@@ -51,16 +51,13 @@ jobs:
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
-        python: ['3.8', '3.9', '3.10', '3.11']
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
         channel: [defaults]
         platforms: ['linux/amd64,linux/arm64,linux/ppc64le,linux/s390x']
         include:
           - python: '3.11'  # same as miniforge
             channel: conda-forge
             platforms: 'linux/amd64,linux/arm64,linux/ppc64le'
-          - python: '3.12'  # for testing purposes
-            channel: ad-testing/label/py312
-            platforms: 'linux/amd64'
     steps:
       - uses: actions/checkout@v3
 
