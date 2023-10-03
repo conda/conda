@@ -7,17 +7,11 @@ Renames an existing environment by cloning it and then removing the original env
 from __future__ import annotations
 
 import os
+from argparse import ArgumentParser, Namespace
 from functools import partial
 from pathlib import Path
 
-from ..base.constants import DRY_RUN_PREFIX
-from ..base.context import context, validate_prefix_name
-from ..cli import install
-from ..common.path import expand
 from ..deprecations import deprecated
-from ..exceptions import CondaEnvException
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.update import rename_context
 
 
 @deprecated.argument("24.3", "24.9", "name")
@@ -27,6 +21,9 @@ def validate_src() -> str:
     Validate that we are receiving at least one value for --name or --prefix
     and ensure that the "base" environment is not being renamed
     """
+    from ..base.context import context
+    from ..exceptions import CondaEnvException
+
     if Path(context.target_prefix).samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
 
@@ -38,6 +35,10 @@ def validate_src() -> str:
 
 def validate_destination(dest: str, force: bool = False) -> str:
     """Ensure that our destination does not exist"""
+    from ..base.context import context, validate_prefix_name
+    from ..common.path import expand
+    from ..exceptions import CondaEnvException
+
     if os.sep in dest:
         dest = expand(dest)
     else:
@@ -51,12 +52,18 @@ def validate_destination(dest: str, force: bool = False) -> str:
     return dest
 
 
-def execute(args, _):
+def execute(args: Namespace, parser: ArgumentParser):
     """Executes the command for renaming an existing environment."""
+    from ..base.constants import DRY_RUN_PREFIX
+    from ..base.context import context
+    from ..cli import install
+    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.update import rename_context
+
     source = validate_src()
     destination = validate_destination(args.destination, force=args.force)
 
-    def clone_and_remove():
+    def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (
             partial(
                 install.clone,
