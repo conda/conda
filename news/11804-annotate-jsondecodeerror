@@ -1,7 +1,7 @@
 ### Enhancements
 
-* Show first few characters of undecodeable response if repodata.json raises
-  JSONDecodeError (#11804)
+* Show first few characters of undecodeable response if `repodata.json` raises
+  `JSONDecodeError`. (#11804)
 
 ### Bug fixes
 
