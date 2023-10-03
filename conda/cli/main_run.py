@@ -6,17 +6,18 @@ Runs the provided command within the specified environment.
 """
 import os
 import sys
+from argparse import ArgumentParser, Namespace
 from logging import getLogger
 
-from ..base.context import context
-from ..common.compat import encode_environment
-from ..gateways.disk.delete import rm_rf
-from ..gateways.subprocess import subprocess_call
-from ..utils import wrap_subprocess_call
-from .common import validate_prefix
 
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..base.context import context
+    from ..common.compat import encode_environment
+    from ..gateways.disk.delete import rm_rf
+    from ..gateways.subprocess import subprocess_call
+    from ..utils import wrap_subprocess_call
+    from .common import validate_prefix
 
-def execute(args, parser):
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
