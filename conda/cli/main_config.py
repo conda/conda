@@ -13,26 +13,9 @@ from logging import getLogger
 from os.path import isfile, join
 from textwrap import wrap
 
-from conda.common.iterators import groupby_to_dict as groupby
-
-from .. import CondaError
-from ..auxlib.entity import EntityEncoder
-from ..base.constants import (
-    ChannelPriority,
-    DepsModifier,
-    PathConflict,
-    SafetyChecks,
-    SatSolverChoice,
-    UpdateModifier,
-)
-from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable
-from ..common.configuration import pretty_list, pretty_map
-from ..common.io import timeout
-from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
-
 
 def execute(args, parser):
+    from .. import CondaError
     from ..exceptions import CouldntParseError
 
     try:
@@ -42,6 +25,9 @@ def execute(args, parser):
 
 
 def format_dict(d):
+    from ..common.compat import isiterable
+    from ..common.configuration import pretty_list, pretty_map
+
     lines = []
     for k, v in d.items():
         if isinstance(v, Mapping):
@@ -62,6 +48,10 @@ def format_dict(d):
 
 
 def parameter_description_builder(name):
+    from ..auxlib.entity import EntityEncoder
+    from ..base.context import context
+    from ..common.serialize import yaml_round_trip_dump
+
     builder = []
     details = context.describe_parameter(name)
     aliases = details["aliases"]
@@ -102,6 +92,8 @@ def parameter_description_builder(name):
 
 
 def describe_all_parameters():
+    from ..base.context import context
+
     builder = []
     skip_categories = ("CLI-only", "Hidden and Undocumented")
     for category, parameter_names in context.category_map.items():
@@ -149,6 +141,21 @@ def print_config_item(key, value):
 
 
 def execute_config(args, parser):
+    from .. import CondaError
+    from ..auxlib.entity import EntityEncoder
+    from ..base.constants import (
+        ChannelPriority,
+        DepsModifier,
+        PathConflict,
+        SafetyChecks,
+        SatSolverChoice,
+        UpdateModifier,
+    )
+    from ..base.context import context, sys_rc_path, user_rc_path
+    from ..common.io import timeout
+    from ..common.iterators import groupby_to_dict as groupby
+    from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
+
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
     json_warnings = []
