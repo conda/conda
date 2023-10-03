@@ -8,9 +8,51 @@ from __future__ import annotations
 
 import logging
 import os
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import abspath, expanduser, expandvars
 
 log = logging.getLogger(__name__)
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from .helpers import add_parser_help, add_parser_json, add_parser_prefix
+
+    summary = "Compare packages between conda environments."
+    description = summary
+    examples = dals(
+        """
+        Examples:
+
+        Compare packages in the current environment with respect
+        to 'environment.yml' located in the current working directory::
+
+            conda compare environment.yml
+
+        Compare packages installed into the environment 'myenv' with respect
+        to 'environment.yml' in a different directory::
+
+            conda compare -n myenv path/to/file/environment.yml
+
+        """
+    )
+    p = sub_parsers.add_parser(
+        "compare",
+        help=summary,
+        description=description,
+        epilog=examples,
+    )
+    add_parser_help(p)
+    add_parser_json(p)
+    add_parser_prefix(p)
+    p.add_argument(
+        "file",
+        action="store",
+        help="Path to the environment file that is to be compared against.",
+    )
+    p.set_defaults(func="conda.cli.main_compare.execute")
+
+    return p
 
 
 def get_packages(prefix):
@@ -52,7 +94,7 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
     return int(miss), output
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from conda_env import specs
 
     from ..base.context import context

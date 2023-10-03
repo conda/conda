@@ -4,12 +4,143 @@
 
 Query channels for packages matching the provided package spec.
 """
-from argparse import ArgumentParser, Namespace
+from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from collections import defaultdict
 from datetime import datetime, timezone
 
 
-def execute(args: Namespace, parser: ArgumentParser) -> None:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from ..common.constants import NULL
+    from .helpers import (
+        add_parser_channels,
+        add_parser_json,
+        add_parser_known,
+        add_parser_networking,
+    )
+
+    summary = "Search for packages and display associated information using the MatchSpec format."
+    description = dals(
+        f"""
+        {summary}
+
+        MatchSpec is a query language for conda packages.
+        """
+    )
+
+    example = dals(
+        """
+    Examples:
+
+    Search for a specific package named 'scikit-learn'::
+
+        conda search scikit-learn
+
+    Search for packages containing 'scikit' in the package name::
+
+        conda search *scikit*
+
+    Note that your shell may expand '*' before handing the command over to conda.
+    Therefore, it is sometimes necessary to use single or double quotes around the query::
+
+        conda search '*scikit'
+        conda search "*scikit*"
+
+    Search for packages for 64-bit Linux (by default, packages for your current
+    platform are shown)::
+
+        conda search numpy[subdir=linux-64]
+
+    Search for a specific version of a package::
+
+        conda search 'numpy>=1.12'
+
+    Search for a package on a specific channel::
+
+        conda search conda-forge::numpy
+        conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+    """
+    )
+    p = sub_parsers.add_parser(
+        "search",
+        help=summary,
+        description=description,
+        epilog=example,
+        **kwargs,
+    )
+    p.add_argument(
+        "--envs",
+        action="store_true",
+        help="Search all of the current user's environments. If run as Administrator "
+        "(on Windows) or UID 0 (on unix), search all known environments on the system.",
+    )
+    p.add_argument(
+        "-i",
+        "--info",
+        action="store_true",
+        help="Provide detailed information about each package.",
+    )
+    p.add_argument(
+        "--subdir",
+        "--platform",
+        action="store",
+        dest="subdir",
+        help="Search the given subdir. Should be formatted like 'osx-64', 'linux-32', "
+        "'win-64', and so on. The default is to search the current platform.",
+        default=NULL,
+    )
+    p.add_argument(
+        "match_spec",
+        default="*",
+        nargs="?",
+        help=SUPPRESS,
+    )
+
+    p.add_argument(
+        "--canonical",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "-f",
+        "--full-name",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--names-only",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    add_parser_known(p)
+    p.add_argument(
+        "-o",
+        "--outdated",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--spec",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--reverse-dependency",
+        action="store_true",
+        # help="Perform a reverse dependency search. Use 'conda search package --info' "
+        #      "to see the dependencies of a package.",
+        help=SUPPRESS,  # TODO: re-enable once we have --reverse-dependency working again
+    )
+
+    add_parser_channels(p)
+    add_parser_networking(p)
+    add_parser_json(p)
+    p.set_defaults(func="conda.cli.main_search.execute")
+
+    return p
+
+
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..common.io import Spinner
@@ -145,6 +276,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> None:
                 )
             )
         print("\n".join(builder))
+    return 0
 
 
 def pretty_record(record):

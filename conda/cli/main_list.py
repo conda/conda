@@ -6,9 +6,124 @@ Lists all packages installed into an environment.
 """
 import logging
 import re
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isdir, isfile
 
 log = logging.getLogger(__name__)
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from .helpers import (
+        add_parser_help,
+        add_parser_json,
+        add_parser_prefix,
+        add_parser_show_channel_urls,
+    )
+
+    summary = "List installed packages in a conda environment."
+    description = summary
+    examples = dals(
+        """
+        Examples:
+
+        List all packages in the current environment::
+
+            conda list
+
+        List all packages in reverse order::
+
+            conda list --reverse
+
+        List all packages installed into the environment 'myenv'::
+
+            conda list -n myenv
+
+        List all packages that begin with the letters "py", using regex::
+
+            conda list ^py
+
+        Save packages for future use::
+
+            conda list --export > package-list.txt
+
+        Reinstall packages from an export file::
+
+            conda create -n myenv --file package-list.txt
+
+        """
+    )
+    p = sub_parsers.add_parser(
+        "list",
+        help=summary,
+        description=description,
+        epilog=examples,
+        **kwargs,
+    )
+    add_parser_help(p)
+    add_parser_prefix(p)
+    add_parser_json(p)
+    add_parser_show_channel_urls(p)
+    p.add_argument(
+        "--reverse",
+        action="store_true",
+        default=False,
+        help="List installed packages in reverse order.",
+    )
+    p.add_argument(
+        "-c",
+        "--canonical",
+        action="store_true",
+        help="Output canonical names of packages only.",
+    )
+    p.add_argument(
+        "-f",
+        "--full-name",
+        action="store_true",
+        help="Only search for full names, i.e., ^<regex>$. "
+        "--full-name NAME is identical to regex '^NAME$'.",
+    )
+    p.add_argument(
+        "--explicit",
+        action="store_true",
+        help="List explicitly all installed conda packages with URL "
+        "(output may be used by conda create --file).",
+    )
+    p.add_argument(
+        "--md5",
+        action="store_true",
+        help="Add MD5 hashsum when using --explicit.",
+    )
+    p.add_argument(
+        "-e",
+        "--export",
+        action="store_true",
+        help="Output explicit, machine-readable requirement strings instead of "
+        "human-readable lists of packages. This output may be used by "
+        "conda create --file.",
+    )
+    p.add_argument(
+        "-r",
+        "--revisions",
+        action="store_true",
+        help="List the revision history.",
+    )
+    p.add_argument(
+        "--no-pip",
+        action="store_false",
+        default=True,
+        dest="pip",
+        help="Do not include pip-only installed packages.",
+    )
+    p.add_argument(
+        "regex",
+        action="store",
+        nargs="?",
+        help="List only packages matching this regular expression.",
+    )
+    p.set_defaults(func="conda.cli.main_list.execute")
+
+    return p
 
 
 def print_export_header(subdir):
@@ -141,7 +256,7 @@ def print_explicit(prefix, add_md5=False):
         print(url + ("#%s" % md5 if add_md5 and md5 else ""))
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..gateways.disk.test import is_conda_environment
     from ..history import History
@@ -168,11 +283,11 @@ def execute(args, parser):
             from ..exceptions import PathNotFoundError
 
             raise PathNotFoundError(h.path)
-        return
+        return 0
 
     if args.explicit:
         print_explicit(prefix, args.md5)
-        return
+        return 0
 
     if args.canonical:
         format = "canonical"

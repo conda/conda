@@ -10,7 +10,64 @@ import os
 import re
 import tarfile
 import tempfile
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .helpers import add_parser_prefix
+
+    summary = "Create low-level conda packages. (EXPERIMENTAL)"
+    description = summary
+
+    p = sub_parsers.add_parser(
+        "package",
+        help=summary,
+        description=description,
+        **kwargs,
+    )
+    add_parser_prefix(p)
+    p.add_argument(
+        "-w",
+        "--which",
+        metavar="PATH",
+        nargs="+",
+        action="store",
+        help="Given some file's PATH, print which conda package the file came from.",
+    )
+    p.add_argument(
+        "-r",
+        "--reset",
+        action="store_true",
+        help="Remove all untracked files and exit.",
+    )
+    p.add_argument(
+        "-u",
+        "--untracked",
+        action="store_true",
+        help="Display all untracked files and exit.",
+    )
+    p.add_argument(
+        "--pkg-name",
+        action="store",
+        default="unknown",
+        help="Designate package name of the package being created.",
+    )
+    p.add_argument(
+        "--pkg-version",
+        action="store",
+        default="0.0",
+        help="Designate package version of the package being created.",
+    )
+    p.add_argument(
+        "--pkg-build",
+        action="store",
+        default=0,
+        help="Designate package build number of the package being created.",
+    )
+    p.set_defaults(func="conda.cli.main_package.execute")
+
+    return p
 
 
 def remove(prefix, files):
@@ -28,7 +85,7 @@ def remove(prefix, files):
             pass
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..misc import untracked
 
@@ -38,20 +95,20 @@ def execute(args, parser):
         for path in args.which:
             for prec in which_package(path):
                 print("%-50s  %s" % (path, prec.dist_str()))
-        return
+        return 0
 
     print("# prefix:", prefix)
 
     if args.reset:
         remove(prefix, untracked(prefix))
-        return
+        return 0
 
     if args.untracked:
         files = sorted(untracked(prefix))
         print("# untracked files: %d" % len(files))
         for fn in files:
             print(fn)
-        return
+        return 0
 
     make_tarbz2(
         prefix,
@@ -59,6 +116,7 @@ def execute(args, parser):
         version=args.pkg_version,
         build_number=int(args.pkg_build),
     )
+    return 0
 
 
 def get_installed_version(prefix, name):

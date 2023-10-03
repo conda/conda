@@ -8,11 +8,94 @@ from __future__ import annotations
 
 import os
 import sys
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
 from os.path import isdir, join
 from typing import Any, Iterable
 
 log = getLogger(__name__)
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from .actions import ExtendConstAction
+    from .helpers import add_output_and_prompt_options
+
+    summary = "Remove unused packages and caches."
+    description = summary
+    example = dals(
+        """
+        Examples::
+
+            conda clean --tarballs
+        """
+    )
+    p = sub_parsers.add_parser(
+        "clean",
+        help=summary,
+        description=description,
+        epilog=example,
+        **kwargs,
+    )
+
+    removal_target_options = p.add_argument_group("Removal Targets")
+    removal_target_options.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
+    )
+    removal_target_options.add_argument(
+        "-i",
+        "--index-cache",
+        action="store_true",
+        help="Remove index cache.",
+    )
+    removal_target_options.add_argument(
+        "-p",
+        "--packages",
+        action="store_true",
+        help="Remove unused packages from writable package caches. "
+        "WARNING: This does not check for packages installed using "
+        "symlinks back to the package cache.",
+    )
+    removal_target_options.add_argument(
+        "-t",
+        "--tarballs",
+        action="store_true",
+        help="Remove cached package tarballs.",
+    )
+    removal_target_options.add_argument(
+        "-f",
+        "--force-pkgs-dirs",
+        action="store_true",
+        help="Remove *all* writable package caches. This option is not included with the --all "
+        "flag. WARNING: This will break environments with packages installed using symlinks "
+        "back to the package cache.",
+    )
+    removal_target_options.add_argument(
+        "-c",  # for tempfile extension (.c~)
+        "--tempfiles",
+        const=sys.prefix,
+        action=ExtendConstAction,
+        help=(
+            "Remove temporary files that could not be deleted earlier due to being in-use.  "
+            "The argument for the --tempfiles flag is a path (or list of paths) to the "
+            "environment(s) where the tempfiles should be found and removed."
+        ),
+    )
+    removal_target_options.add_argument(
+        "-l",
+        "--logfiles",
+        action="store_true",
+        help="Remove log files.",
+    )
+
+    add_output_and_prompt_options(p)
+
+    p.set_defaults(func="conda.cli.main_clean.execute")
+
+    return p
 
 
 def _get_size(*parts: str, warnings: list[str] | None) -> int:
@@ -316,7 +399,7 @@ def _execute(args, parser):
     return json_result
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from .common import stdout_json
 
@@ -327,3 +410,4 @@ def execute(args, parser):
         from ..exceptions import DryRunExit
 
         raise DryRunExit
+    return 0

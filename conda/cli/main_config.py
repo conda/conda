@@ -7,6 +7,7 @@ Allows for programmatically interacting with conda's configuration files (e.g., 
 import json
 import os
 import sys
+from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from collections.abc import Mapping, Sequence
 from itertools import chain
 from logging import getLogger
@@ -14,12 +15,217 @@ from os.path import isfile, join
 from textwrap import wrap
 
 
-def execute(args, parser):
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from ..base.constants import CONDA_HOMEPAGE_URL
+    from ..base.context import context, sys_rc_path, user_rc_path
+    from ..common.constants import NULL
+    from .helpers import add_parser_json
+
+    escaped_user_rc_path = user_rc_path.replace("%", "%%")
+    escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
+
+    summary = "Modify configuration values in .condarc."
+    description = dals(
+        f"""
+        {summary}
+
+        This is modeled after the git config command.  Writes to the user .condarc
+        file ({escaped_user_rc_path}) by default. Use the
+        --show-sources flag to display all identified configuration locations on
+        your computer.
+
+        """
+    )
+    examples = dals(
+        f"""
+        See `conda config --describe` or {CONDA_HOMEPAGE_URL}/docs/config.html
+        for details on all the options that can go in .condarc.
+
+        Examples:
+
+        Display all configuration values as calculated and compiled::
+
+            conda config --show
+
+        Display all identified configuration sources::
+
+            conda config --show-sources
+
+        Print the descriptions of all available configuration
+        options to your command line::
+
+            conda config --describe
+
+        Print the description for the "channel_priority" configuration
+        option to your command line::
+
+            conda config --describe channel_priority
+
+        Add the conda-canary channel::
+
+            conda config --add channels conda-canary
+
+        Set the output verbosity to level 3 (highest) for
+        the current activate environment::
+
+            conda config --set verbosity 3 --env
+
+        Add the 'conda-forge' channel as a backup to 'defaults'::
+
+            conda config --append channels conda-forge
+
+        """
+    )
+
+    p = sub_parsers.add_parser(
+        "config",
+        help=summary,
+        description=description,
+        epilog=examples,
+        **kwargs,
+    )
+    add_parser_json(p)
+
+    # TODO: use argparse.FileType
+    config_file_location_group = p.add_argument_group(
+        "Config File Location Selection",
+        "Without one of these flags, the user config file at '%s' is used."
+        % escaped_user_rc_path,
+    )
+    location = config_file_location_group.add_mutually_exclusive_group()
+    location.add_argument(
+        "--system",
+        action="store_true",
+        help="Write to the system .condarc file at '%s'." % escaped_sys_rc_path,
+    )
+    location.add_argument(
+        "--env",
+        action="store_true",
+        help="Write to the active conda environment .condarc file (%s). "
+        "If no environment is active, write to the user config file (%s)."
+        ""
+        % (
+            context.active_prefix or "<no active environment>",
+            escaped_user_rc_path,
+        ),
+    )
+    location.add_argument("--file", action="store", help="Write to the given file.")
+
+    # XXX: Does this really have to be mutually exclusive. I think the below
+    # code will work even if it is a regular group (although combination of
+    # --add and --remove with the same keys will not be well-defined).
+    _config_subcommands = p.add_argument_group("Config Subcommands")
+    config_subcommands = _config_subcommands.add_mutually_exclusive_group()
+    config_subcommands.add_argument(
+        "--show",
+        nargs="*",
+        default=None,
+        help="Display configuration values as calculated and compiled. "
+        "If no arguments given, show information for all configuration values.",
+    )
+    config_subcommands.add_argument(
+        "--show-sources",
+        action="store_true",
+        help="Display all identified configuration sources.",
+    )
+    config_subcommands.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate all configuration sources. Iterates over all .condarc files "
+        "and checks for parsing errors.",
+    )
+    config_subcommands.add_argument(
+        "--describe",
+        nargs="*",
+        default=None,
+        help="Describe given configuration parameters. If no arguments given, show "
+        "information for all configuration parameters.",
+    )
+    config_subcommands.add_argument(
+        "--write-default",
+        action="store_true",
+        help="Write the default configuration to a file. "
+        "Equivalent to `conda config --describe > ~/.condarc`.",
+    )
+
+    _config_modifiers = p.add_argument_group("Config Modifiers")
+    config_modifiers = _config_modifiers.add_mutually_exclusive_group()
+    config_modifiers.add_argument(
+        "--get",
+        nargs="*",
+        action="store",
+        help="Get a configuration value.",
+        default=None,
+        metavar="KEY",
+    )
+    config_modifiers.add_argument(
+        "--append",
+        nargs=2,
+        action="append",
+        help="""Add one configuration value to the end of a list key.""",
+        default=[],
+        metavar=("KEY", "VALUE"),
+    )
+    config_modifiers.add_argument(
+        "--prepend",
+        "--add",
+        nargs=2,
+        action="append",
+        help="""Add one configuration value to the beginning of a list key.""",
+        default=[],
+        metavar=("KEY", "VALUE"),
+    )
+    config_modifiers.add_argument(
+        "--set",
+        nargs=2,
+        action="append",
+        help="""Set a boolean or string key.""",
+        default=[],
+        metavar=("KEY", "VALUE"),
+    )
+    config_modifiers.add_argument(
+        "--remove",
+        nargs=2,
+        action="append",
+        help="""Remove a configuration value from a list key.
+                This removes all instances of the value.""",
+        default=[],
+        metavar=("KEY", "VALUE"),
+    )
+    config_modifiers.add_argument(
+        "--remove-key",
+        nargs=1,
+        action="append",
+        help="""Remove a configuration key (and all its values).""",
+        default=[],
+        metavar="KEY",
+    )
+    config_modifiers.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Apply configuration information given in yaml format piped through stdin.",
+    )
+
+    p.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,  # TODO: No longer used.  Remove in a future release.
+    )
+
+    p.set_defaults(func="conda.cli.main_config.execute")
+
+    return p
+
+
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .. import CondaError
     from ..exceptions import CouldntParseError
 
     try:
-        execute_config(args, parser)
+        return execute_config(args, parser)
     except (CouldntParseError, NotImplementedError) as e:
         raise CondaError(e)
 

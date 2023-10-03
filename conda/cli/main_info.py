@@ -10,12 +10,100 @@ import json
 import os
 import re
 import sys
+from argparse import (
+    SUPPRESS,
+    ArgumentParser,
+    Namespace,
+    _StoreTrueAction,
+    _SubParsersAction,
+)
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import Iterable
 
+from ..deprecations import deprecated
+
 log = getLogger(__name__)
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..common.constants import NULL
+    from .helpers import add_parser_json
+
+    summary = "Display information about current conda install."
+    description = summary
+
+    p = sub_parsers.add_parser(
+        "info",
+        help=summary,
+        description=description,
+        **kwargs,
+    )
+    add_parser_json(p)
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "-a",
+        "--all",
+        dest="verbosity",
+        action=deprecated.action(
+            "24.3",
+            "24.9",
+            _StoreTrueAction,
+            addendum="Use `--verbose` instead.",
+        ),
+    )
+    p.add_argument(
+        "--base",
+        action="store_true",
+        help="Display base environment path.",
+    )
+    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
+    p.add_argument(
+        "-e",
+        "--envs",
+        action="store_true",
+        help="List all known conda environments.",
+    )
+    p.add_argument(
+        "-l",
+        "--license",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "-s",
+        "--system",
+        action="store_true",
+        help="List environment variables.",
+    )
+    p.add_argument(
+        "--root",
+        action="store_true",
+        help=SUPPRESS,
+        dest="base",
+    )
+    p.add_argument(
+        "--unsafe-channels",
+        action="store_true",
+        help="Display list of channels with tokens exposed.",
+    )
+
+    p.add_argument(
+        "packages",
+        action="store",
+        nargs="*",
+        help=SUPPRESS,
+    )
+
+    p.set_defaults(func="conda.cli.main_info.execute")
+
+    return p
 
 
 def get_user_site():  # pragma: no cover
@@ -301,7 +389,7 @@ def get_main_info_str(info_dict):
     return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from .common import print_envs_list, stdout_json
 
@@ -310,14 +398,14 @@ def execute(args, parser):
             stdout_json({"root_prefix": context.root_prefix})
         else:
             print(f"{context.root_prefix}")
-        return
+        return 0
 
     if args.packages:
         from ..resolve import ResolvePackageNotFound
 
         try:
             print_package_info(args.packages)
-            return
+            return 0
         except ResolvePackageNotFound as e:  # pragma: no cover
             from ..exceptions import PackagesNotFoundError
 
@@ -374,3 +462,4 @@ def execute(args, parser):
 
     if context.json:
         stdout_json(info_dict)
+    return 0
