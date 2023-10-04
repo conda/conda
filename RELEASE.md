@@ -392,6 +392,9 @@ To publish the release, go to the project's release page (e.g., https://github.c
 
 ## 10. Hand off to Anaconda's packaging team.
 
+> **Note:**
+> This step should NOT be done past Thursday morning EST; please start the process on a Monday, Tuesday, or Wednesday instead in order to avoid any potential debugging sessions over evenings or weekends.
+
 <details>
 <summary>Internal process</summary>
 
