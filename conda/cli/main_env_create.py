@@ -21,17 +21,14 @@ from conda.cli.conda_argparse import (
 )
 from conda.core.prefix_data import PrefixData
 from conda.deprecations import deprecated
+from conda.env.cli.common import get_filename, print_result
+from conda.env.installers.base import InvalidInstaller, get_installer
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 from conda_env import (
     specs,
 )
-
-from ..env.cli.common import get_filename, print_result
-
-# &&&&&& Change/update import (and anywhere else it says "from conda_env")
-from ..env.installers.base import InvalidInstaller, get_installer
 
 description = """
 Create an environment based on an environment definition file.
