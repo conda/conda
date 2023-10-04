@@ -6,7 +6,7 @@ CLI implementation for `conda-env remove`.
 
 Removes the specified conda environment.
 """
-# Import from conda.cli.main_env_remove but still make this module usable
+# Import from conda.cli.main_env_remove since this module is deprecated.
 from conda.cli.main_env_remove import configure_parser, execute  # noqa
 from conda.deprecations import deprecated
 

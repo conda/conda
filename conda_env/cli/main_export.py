@@ -6,7 +6,7 @@ CLI implementation for `conda-env export`.
 
 Dumps specified environment package specifications to the screen.
 """
-# Import from conda.cli.main_env_export but still make this module usable
+# Import from conda.cli.main_env_export since this module is deprecated.
 from conda.cli.main_env_export import configure_parser, execute  # noqa
 from conda.deprecations import deprecated
 

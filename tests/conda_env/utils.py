@@ -8,9 +8,9 @@ from conda.cli.main_env_create import configure_parser as create_configure_parse
 from conda.cli.main_env_export import configure_parser as export_configure_parser
 from conda.cli.main_env_update import configure_parser as update_configure_parser
 from conda.deprecations import deprecated
+from conda.env.cli.main import do_call as do_call_conda_env
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
-from conda_env.cli.main import do_call as do_call_conda_env
 
 
 class Commands:

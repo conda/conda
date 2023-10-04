@@ -4,7 +4,6 @@
 
 Dynamic installer loading.
 """
-# Import conda.cli.main_env_vars since this module is deprecated.
 from conda.deprecations import deprecated
 from conda.env.installers.base import InvalidInstaller, get_installer  # noqa
 

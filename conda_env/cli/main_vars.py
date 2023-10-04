@@ -7,6 +7,12 @@ CLI implementation for `conda-env config vars`.
 Allows for configuring conda-env's vars.
 """
 # Import conda.cli.main_env_vars since this module is deprecated.
+from conda.cli.main_env_vars import (  # noqa
+    configure_parser,
+    execute_list,
+    execute_set,
+    execute_unset,
+)
 from conda.deprecations import deprecated
 
 deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env_vars` instead.")
