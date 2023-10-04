@@ -1042,6 +1042,8 @@ class Context(Configuration):
 
     @memoizedproperty
     def requests_version(self):
+        # used in User-Agent as "requests/<version>"
+        # if unable to detect a version we expect "requests/unknown"
         try:
             from requests import __version__ as requests_version
         except ImportError as err:

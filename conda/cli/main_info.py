@@ -124,7 +124,7 @@ def get_info_dict(system=False):
         log.debug("Unable to import conda-build: %s", err)
         conda_build_version = "not installed"
     except Exception as err:
-        log.error("Error to import conda-build: %s", err)
+        log.error("Error importing conda-build: %s", err)
         conda_build_version = "error"
 
     virtual_pkg_index = {}
