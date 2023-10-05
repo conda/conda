@@ -12,9 +12,10 @@ from os.path import dirname, isdir, join
 from pathlib import Path
 from re import escape
 from shutil import which
+from signal import SIGINT
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
-from typing import Iterable
+from typing import Iterable, overload
 from uuid import uuid4
 
 import pytest
@@ -42,7 +43,7 @@ from conda.base.constants import (
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.main import main_sourced
-from conda.common.compat import ensure_text_type, on_win
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
@@ -51,6 +52,7 @@ from conda.gateways.disk.update import touch
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.helpers import tempdir
 from conda.testing.integration import SPACER_CHARACTER
+from conda.utils import quote_for_shell
 
 log = getLogger(__name__)
 
@@ -2241,26 +2243,11 @@ def test_json_basic(shell_wrapper_unit: str):
 
 
 class InteractiveShell:
-    activator = None
-    init_command = None
-    print_env_var = None
-    from conda.utils import quote_for_shell
-
-    exe_quoted = quote_for_shell(
-        sys.executable.replace("\\", "/") if on_win else sys.executable
-    )
-    shells = {
+    exe = quote_for_shell(native_path_to_unix(sys.executable))
+    SHELLS = {
         "posix": {
             "activator": "posix",
-            # 'init_command': 'env | sort && mount && which {0} && {0} -V && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format('/c/Users/rdonnelly/mc/python.exe'), # sys.executable.replace('\\', '/')),
-            # 'init_command': 'env | sort && echo "$({0} -m conda shell.posix hook)" && eval "$({0} -m conda shell.posix hook)"'.format(self.
-            #    '/c/Users/rdonnelly/mc/python.exe'),  # sys.executable.replace('\\', '/')),
-            "init_command": (
-                'env | sort && echo "$({0} -m conda shell.posix hook {1})" && '
-                'eval "$({0} -m conda shell.posix hook {1})" && env | sort'.format(
-                    exe_quoted, dev_arg
-                )
-            ),
+            "init_command": (f'eval "$({exe} -m conda shell.posix hook {dev_arg})"'),
             "print_env_var": 'echo "$%s"',
         },
         "bash": {
@@ -2268,15 +2255,8 @@ class InteractiveShell:
             "args": ("-l",) if on_win else (),
             "base_shell": "posix",  # inheritance implemented in __init__
         },
-        "dash": {
-            "base_shell": "posix",  # inheritance implemented in __init__
-        },
-        "zsh": {
-            "base_shell": "posix",  # inheritance implemented in __init__
-            "init_command": (
-                f'env | sort && eval "$({exe_quoted} -m conda shell.zsh hook {dev_arg})"'
-            ),
-        },
+        "dash": {"base_shell": "posix"},
+        "zsh": {"base_shell": "posix"},
         # It should be noted here that we use the latest hook with whatever conda.exe is installed
         # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
         # though, so there is that.  What I'm getting at is that this is a huge mixup and a mess.
@@ -2307,18 +2287,16 @@ class InteractiveShell:
             # .. and this one from the `macOS` terminal:
             # pexpect.exceptions.EOF: End Of File (EOF).
             # 'args': ('-x',),
-            "init_command": 'set _CONDA_EXE="{CPR}/shell/bin/conda"; '
-            "source {CPR}/shell/etc/profile.d/conda.csh; ".format(
-                CPR=CONDA_PACKAGE_ROOT
+            "init_command": (
+                f'set _CONDA_EXE="{CONDA_PACKAGE_ROOT}/shell/bin/conda"; '
+                f"source {CONDA_PACKAGE_ROOT}/shell/etc/profile.d/conda.csh;"
             ),
             "print_env_var": 'echo "$%s"',
         },
-        "tcsh": {
-            "base_shell": "csh",
-        },
+        "tcsh": {"base_shell": "csh"},
         "fish": {
             "activator": "fish",
-            "init_command": f"eval ({exe_quoted} -m conda shell.fish hook {dev_arg})",
+            "init_command": f"eval ({exe} -m conda shell.fish hook {dev_arg})",
             "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called
@@ -2326,8 +2304,10 @@ class InteractiveShell:
         "powershell": {
             "activator": "powershell",
             "args": ("-NoProfile", "-NoLogo"),
-            "init_command": "{} -m conda shell.powershell hook --dev | Out-String | Invoke-Expression".format(
-                sys.executable
+            "init_command": (
+                f"{sys.executable} -m conda shell.powershell hook --dev "
+                "| Out-String "
+                "| Invoke-Expression"
             ),
             "print_env_var": "$Env:%s",
             "exit_cmd": "exit",
@@ -2335,142 +2315,166 @@ class InteractiveShell:
         "pwsh": {"base_shell": "powershell"},
         "pwsh-preview": {"base_shell": "powershell"},
     }
+    del exe
 
-    def __init__(self, shell_name):
+    def __init__(
+        self,
+        shell_name: str,
+        *,
+        activator: str,
+        args: Iterable[str] = (),
+        init_command: str,
+        print_env_var: str,
+        exit_cmd: str | None = None,
+        base_shell: str | None = None,  # ignored
+    ):
         self.shell_name = shell_name
-        base_shell = self.shells[shell_name].get("base_shell")
-        shell_vals = self.shells.get(base_shell, {}).copy()
-        shell_vals.update(self.shells[shell_name])
-        for key, value in shell_vals.items():
-            setattr(self, key, value)
-        self.activator = activator_map[shell_vals["activator"]]()
-        self.exit_cmd = self.shells[shell_name].get("exit_cmd", None)
+        assert (path := which(shell_name))
+        self.shell_exe = quote_for_shell(path, *args)
+        self.shell_dir = dirname(path)
+
+        self.activator = activator_map[activator]()
+        self.args = args
+        self.init_command = init_command
+        self.print_env_var = print_env_var
+        self.exit_cmd = exit_cmd
+
+    @classmethod
+    def from_name(cls, shell_name: str):
+        return cls(
+            shell_name,
+            **{
+                **cls.SHELLS.get(cls.SHELLS[shell_name].get("base_shell"), {}),
+                **cls.SHELLS[shell_name],
+            },
+        )
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
 
-        # remove all CONDA_ env vars
-        # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
-        os.environ["MSYS2_PATH_TYPE"] = "inherit"
-        os.environ["CHERE_INVOKING"] = "1"
-        env = {str(k): str(v) for k, v in os.environ.items()}
-        remove_these = {var_name for var_name in env if var_name.startswith("CONDA_")}
-        for var_name in remove_these:
-            del env[var_name]
-        from conda.utils import quote_for_shell
-
-        # 1. shell='cmd.exe' is deliberate. We are not, at this time, running bash, we
-        #    are launching it (from `cmd.exe` most likely).
-        # 2. For some reason, passing just self.shell_name (which is `bash`) runs WSL
-        #    bash instead of MSYS2's, even when MSYS2 appears before System32 on PATH.
-        shell_found = which(self.shell_name) or self.shell_name
-        args = list(self.args) if hasattr(self, "args") else []
-
-        p = PopenSpawn(
-            quote_for_shell(shell_found, *args),
-            timeout=30,
+        self.p = PopenSpawn(
+            self.shell_exe,
+            timeout=10,
             maxread=5000,
             searchwindowsize=None,
             logfile=sys.stdout,
             cwd=os.getcwd(),
-            env=env,
+            env={
+                **os.environ,
+                "CONDA_AUTO_ACTIVATE_BASE": "false",
+                "CONDA_AUTO_STACK": "0",
+                "CONDA_CHANGEPS1": "true",
+                # "CONDA_ENV_PROMPT": "({default_env}) ",
+                "PYTHONPATH": self.convert(CONDA_SOURCE_ROOT),
+                "PATH": self.activator.pathsep_join(
+                    self.convert(
+                        (
+                            *self.activator._get_starting_path_list(),
+                            self.shell_dir,
+                        )
+                    )
+                ),
+                # ensure PATH is shared with any msys2 bash shell, rather than starting fresh
+                "MSYS2_PATH_TYPE": "inherit",
+                "CHERE_INVOKING": "1",
+            },
             encoding="utf-8",
             codec_errors="strict",
         )
 
-        # set state for context
-        joiner = (
-            os.pathsep.join
-            if self.shell_name == "fish"
-            else self.activator.pathsep_join
-        )
-        PATH = joiner(
-            self.activator.path_conversion(
-                (
-                    *self.activator._get_starting_path_list(),
-                    dirname(which(self.shell_name)),
-                )
-            )
-        )
-        self.original_path = PATH
-        env = {
-            "CONDA_AUTO_ACTIVATE_BASE": "false",
-            "PYTHONPATH": self.activator.path_conversion(CONDA_SOURCE_ROOT),
-            "PATH": PATH,
-        }
-        for ev in (
-            "CONDA_TEST_SAVE_TEMPS",
-            "CONDA_TEST_TMPDIR",
-            "CONDA_TEST_USER_ENVIRONMENTS_TXT_FILE",
-        ):
-            if ev in os.environ:
-                env[ev] = os.environ[ev]
-
-        for name, val in env.items():
-            p.sendline(self.activator.export_var_tmpl % (name, val))
-
         if self.init_command:
-            p.sendline(self.init_command)
-        self.p = p
+            self.p.sendline(self.init_command)
+
+        self.sendline("conda deactivate")
+        self.sendline("conda deactivate")
+        self.sendline("conda deactivate")
+        self.sendline("conda activate base")  # intentional
+        self.sendline("conda deactivate")
+        self.clear()
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print(f"Exception encountered: {exc_val}")
+            print(f"Exception encountered: ({exc_type}) {exc_val}", file=sys.stderr)
+
         if self.p:
             if self.exit_cmd:
                 self.sendline(self.exit_cmd)
-            import signal
 
-            self.p.kill(signal.SIGINT)
+            self.p.kill(SIGINT)
 
     def sendline(self, *args, **kwargs):
         return self.p.sendline(*args, **kwargs)
 
     def expect(self, *args, **kwargs):
-        return self.p.expect(*args, **kwargs)
-
-    def expect_exact(self, *args, **kwargs):
-        return self.p.expect_exact(*args, **kwargs)
-
-    def assert_env_var(self, env_var, value, use_exact=False):
-        # value is actually a regex
-        self.sendline(self.print_env_var % env_var)
         try:
-            if use_exact:
-                self.expect_exact(value)
-                self.expect(".*\n")
-            else:
-                self.expect(f"{value}\r?\n")
-        except:
+            return self.p.expect(*args, **kwargs)
+        except Exception:
             print(f"{self.p.before=}", file=sys.stderr)
             print(f"{self.p.after=}", file=sys.stderr)
             raise
 
+    def expect_exact(self, *args, **kwargs):
+        try:
+            return self.p.expect_exact(*args, **kwargs)
+        except Exception:
+            print(f"{self.p.before=}", file=sys.stderr)
+            print(f"{self.p.after=}", file=sys.stderr)
+            raise
+
+    def assert_env_var(self, env_var, value, use_exact=False):
+        # value is actually a regex
+        self.sendline(self.print_env_var % env_var)
+        if use_exact:
+            self.expect_exact(value)
+            self.expect(".*\n")
+        else:
+            self.expect(rf"{value}\r?\n")
+
     def get_env_var(self, env_var, default=None):
         if self.shell_name == "cmd.exe":
-            self.sendline(self.print_env_var % env_var)
-            self.expect(rf"@ECHO %{env_var}%\r\n([^\r]*)\r")
-            value = self.p.match.groups()[0]
-        elif self.shell_name in ("powershell", "pwsh"):
-            self.sendline(self.print_env_var % env_var)
-            if on_win:
-                # The \r\n\( is the newline after the env var and the start of the prompt.
-                # If we knew the active env we could add that in as well as the closing )
-                self.expect(rf"\$Env:{env_var}\r\n([^\r]*)(\r\n).*")
-                value = self.p.match.groups()[0]
-            else:
-                self.expect(f"\\$Env:{env_var}\n")
-                value = self.p.readline()
+            self.sendline(cmd := self.print_env_var % env_var)
+            self.expect(rf"{escape(cmd)}\r?\n([^\r\n]*)\r?\n")
+        elif self.shell_name in ("powershell", "pwsh", "pwsh-preview"):
+            self.sendline(cmd := self.print_env_var % env_var)
+            self.expect(rf"{escape(cmd)}\r?\n([^\r\n]*)\r?\n")
         else:
-            self.sendline("echo get_var_start")
+            marker = f"get_env_var-{uuid4().hex}"
             self.sendline(self.print_env_var % env_var)
-            self.sendline("echo get_var_end")
-            self.expect("get_var_start\n")
-            value = self.p.readline()
-            self.expect("get_var_end")
+            self.sendline(f"echo {marker}")
+            self.expect(rf"([^\r\n]*)\r?\n{marker}\r?\n")
 
-        return default if value is None else ensure_text_type(value).strip()
+        value = self.p.match.groups()[0]
+        return default if value is None else value
+
+    @overload
+    def convert(self, paths: str) -> str:
+        ...
+
+    @overload
+    def convert(self, paths: tuple[str, ...]) -> tuple[str, ...]:
+        ...
+
+    @overload
+    def convert(self, paths: None) -> None:
+        ...
+
+    def convert(self, paths):
+        paths = self.activator.path_conversion(paths)
+        if not on_win:
+            return paths
+        elif not paths:
+            return None
+        elif isinstance(paths, str):
+            return paths.lower()
+        else:
+            return tuple(map(str.lower, paths))
+
+    def clear(self) -> None:
+        marker = f"clear-{uuid4().hex}"
+        self.sendline(f"echo {marker}")
+        self.expect(rf"{marker}\r?\n")
 
 
 def which_powershell():
@@ -2537,13 +2541,6 @@ def basic_posix(shell, prefix, prefix2, prefix3):
 
     PATH0 = shell.get_env_var("PATH", "")
     assert any(path.endswith("condabin") for path in PATH0.split(":"))
-
-    # calling bash -l, as we do for MSYS2, may cause conda activation.
-    shell.sendline("conda deactivate")
-    shell.sendline("conda deactivate")
-    shell.sendline("conda deactivate")
-    shell.sendline("conda deactivate")
-    shell.expect(".*\n")
 
     shell.assert_env_var("CONDA_SHLVL", "0")
     PATH0 = shell.get_env_var("PATH", "")
@@ -2748,7 +2745,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
         assert PATH1 == PATH5
 
     # Test auto_stack
-    shell.sendline("conda config --env --set auto_stack 1")
+    shell.sendline(shell.activator.export_var_tmpl % ("CONDA_AUTO_STACK", "1"))
 
     shell.sendline("conda" + activate + '"%s"' % prefix3)
     shell.assert_env_var("CONDA_SHLVL", "2")
@@ -2786,25 +2783,36 @@ def basic_csh(shell, prefix, prefix2, prefix3):
     shell.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.flaky(reruns=5)
-@pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
 @pytest.mark.integration
-def test_bash_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell("bash") as shell:
-        basic_posix(shell, *shell_wrapper_integration)
-
-
-@pytest.mark.skipif(not which("dash") or on_win, reason="dash not installed")
-@pytest.mark.integration
-def test_dash_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell("dash") as shell:
-        basic_posix(shell, *shell_wrapper_integration)
-
-
-@pytest.mark.skipif(not which("zsh"), reason="zsh not installed")
-@pytest.mark.integration
-def test_zsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell("zsh") as shell:
+@pytest.mark.parametrize(
+    "shell_name",
+    [
+        pytest.param(
+            "bash",
+            marks=[
+                pytest.mark.skipif(
+                    bash_unsupported(), reason=bash_unsupported_because()
+                )
+            ],
+        ),
+        pytest.param(
+            "dash",
+            marks=[
+                pytest.mark.skipif(
+                    not which("dash") or on_win, reason="dash not installed"
+                )
+            ],
+        ),
+        pytest.param(
+            "zsh",
+            marks=[pytest.mark.skipif(not which("zsh"), reason="zsh not installed")],
+        ),
+    ],
+)
+def test_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str], shell_name: str
+):
+    with InteractiveShell.from_name(shell_name) as shell:
         basic_posix(shell, *shell_wrapper_integration)
 
 
@@ -2814,7 +2822,7 @@ def test_zsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
 )
 @pytest.mark.integration
 def test_csh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell("csh") as shell:
+    with InteractiveShell.from_name("csh") as shell:
         basic_csh(shell, *shell_wrapper_integration)
 
 
@@ -2822,7 +2830,7 @@ def test_csh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
 @pytest.mark.xfail(reason="punting until we officially enable support for tcsh")
 @pytest.mark.integration
 def test_tcsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell("tcsh") as shell:
+    with InteractiveShell.from_name("tcsh") as shell:
         basic_csh(shell, *shell_wrapper_integration)
 
 
@@ -2832,7 +2840,7 @@ def test_tcsh_basic_integration(shell_wrapper_integration: tuple[str, str, str])
 def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
-    with InteractiveShell("fish") as shell:
+    with InteractiveShell.from_name("fish") as shell:
         shell.sendline("env | sort")
         # We should be seeing environment variable output to terminal with this line, but
         # we aren't.  Haven't experienced this problem yet with any other shell...
@@ -2863,7 +2871,7 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 
     posh_kind, posh_path = which_powershell()
     print(f"## [PowerShell integration] Using {posh_path}.")
-    with InteractiveShell(posh_kind) as shell:
+    with InteractiveShell.from_name(posh_kind) as shell:
         print("## [PowerShell integration] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
         shell.expect_exact("Alias")
@@ -2924,7 +2932,7 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
 
     posh_kind, posh_path = which_powershell()
     print(f"## [PowerShell activation PATH management] Using {posh_path}.")
-    with InteractiveShell(posh_kind) as shell:
+    with InteractiveShell.from_name(posh_kind) as shell:
         prefix = join(prefix, "envs", "test")
         print("## [PowerShell activation PATH management] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
@@ -2971,7 +2979,7 @@ def test_cmd_exe_basic_integration(
     conda_bat = Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
     monkeypatch.setenv("PATH", STRIPPED_PATH)
 
-    with InteractiveShell("cmd.exe") as shell:
+    with InteractiveShell.from_name("cmd.exe") as shell:
         shell.expect(r".*\n")
 
         shell.assert_env_var("_CE_CONDA", "conda")
@@ -3055,7 +3063,7 @@ def test_cmd_exe_basic_integration(
 @pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
-    with InteractiveShell("bash") as shell:
+    with InteractiveShell.from_name("bash") as shell:
         shell.sendline("export CONDA_SHLVL=unaffected")
         if on_win:
             shell.sendline("uname -o")
@@ -3074,7 +3082,7 @@ def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
 @pytest.mark.integration
 def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
-    with InteractiveShell("cmd.exe") as shell:
+    with InteractiveShell.from_name("cmd.exe") as shell:
         shell.sendline("set")
         shell.expect(".*")
         shell.sendline("conda activate --dev environment-not-found-doesnt-exist")
@@ -3096,7 +3104,7 @@ def test_legacy_activate_deactivate_bash(
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell("bash") as shell:
+    with InteractiveShell.from_name("bash") as shell:
         # calling bash -l, as we do for MSYS2, may cause conda activation.
         shell.sendline("conda deactivate")
         shell.sendline("conda deactivate")
@@ -3143,7 +3151,7 @@ def test_legacy_activate_deactivate_cmd_exe(
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell("cmd.exe") as shell:
+    with InteractiveShell.from_name("cmd.exe") as shell:
         shell.sendline("echo off")
 
         conda__ce_conda = shell.get_env_var("_CE_CONDA")
@@ -3233,7 +3241,7 @@ def test_activate_deactivate_modify_path(
         "--yes",
     )
 
-    with InteractiveShell(shell) as sh:
+    with InteractiveShell.from_name(shell) as sh:
         sh.sendline('conda activate "%s"' % prefix)
         activated_env_path = sh.get_env_var("PATH")
         sh.sendline("conda deactivate")
