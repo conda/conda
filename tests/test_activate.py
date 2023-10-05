@@ -156,17 +156,9 @@ def bash_unsupported_win():
 
 
 @pytest.fixture
-def reset_environ() -> None:
-    # store copy of original environment variables
-    original = os.environ.copy()
-    for var in POP_THESE:
-        os.environ.pop(var, None)
-
-    yield
-
-    # restore original environment variables
-    os.environ.clear
-    os.environ.update(original)
+def reset_environ(monkeypatch: MonkeyPatch) -> None:
+    for name in POP_THESE:
+        monkeypatch.delenv(name)
 
 
 def write_pkg_env_vars(prefix):
