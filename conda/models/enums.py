@@ -47,14 +47,7 @@ class Platform(Enum):
 
     @classmethod
     def from_sys(cls):
-        p = sys.platform
-        if p.startswith("linux"):
-            # Changed in version 2.7.3: Since lots of code check for sys.platform == 'linux2',
-            # and there is no essential change between Linux 2.x and 3.x, sys.platform is always
-            # set to 'linux2', even on Linux 3.x. In Python 3.3 and later, the value will always
-            # be set to 'linux'
-            p = "linux"
-        return cls(p)
+        return cls(sys.platform)
 
     def __json__(self):
         return self.value
