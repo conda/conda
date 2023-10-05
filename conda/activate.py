@@ -876,7 +876,7 @@ def native_path_to_unix(
                 _translation,
                 joined,
             )
-            .replace(";/", ":/")
+            .replace(";", ":")
             .rstrip(";")
         )
 
