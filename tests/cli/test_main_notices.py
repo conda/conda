@@ -277,6 +277,7 @@ def test_notices_appear_once_when_running_decorated_commands(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     )
 
+    # TODO: https://github.com/conda/conda/pull/12984#discussion_r1347806613
     if context.solver == "classic":
         PACKAGE_MISSING_MESSAGE = "The following packages are missing from the target environment"
     elif context.solver == "libmamba":
