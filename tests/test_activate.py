@@ -129,12 +129,6 @@ def bash_unsupported_because():
                 output = check_output(bash + " --version")
                 if b"msys" not in output and b"cygwin" not in output:
                     reason = f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output}\n"
-                elif bash.startswith(sys.prefix):
-                    reason = (
-                        f"bash: MSYS2 bash installed from m2-bash in prefix {sys.prefix}.\n"
-                        "This is unsupportable due to Git-for-Windows conflicts.\n"
-                        "Please use upstream MSYS2 and have it on PATH.  ."
-                    )
     return reason
 
 
