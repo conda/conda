@@ -17,12 +17,9 @@ import re
 import sys
 from collections.abc import Callable, Iterable
 from os.path import (
-    abspath,
     basename,
     dirname,
     exists,
-    expanduser,
-    expandvars,
     isdir,
     join,
 )
@@ -40,7 +37,7 @@ from .base.constants import (
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
-from .common.path import paths_equal
+from .common.path import expand, paths_equal
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -801,10 +798,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 env_vars.update(prefix_state_env_vars)
 
         return env_vars
-
-
-def expand(path):
-    return abspath(expanduser(expandvars(path)))
 
 
 def ensure_binary(value):
