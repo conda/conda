@@ -3110,7 +3110,6 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
         shell.expect("usage: conda activate")
 
 
-@pytest.mark.flaky(reruns=5)
 @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
 @pytest.mark.integration
 def test_legacy_activate_deactivate_bash(
@@ -3119,13 +3118,6 @@ def test_legacy_activate_deactivate_bash(
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
     with InteractiveShell.from_name("bash") as shell:
-        # calling bash -l, as we do for MSYS2, may cause conda activation.
-        shell.sendline("conda deactivate")
-        shell.sendline("conda deactivate")
-        shell.sendline("conda deactivate")
-        shell.sendline("conda deactivate")
-        shell.expect(".*\n")
-
         activator = PosixActivator()
         CONDA_PACKAGE_ROOT_p = activator.path_conversion(CONDA_PACKAGE_ROOT)
         prefix2_p = activator.path_conversion(prefix2)
