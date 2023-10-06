@@ -25,6 +25,7 @@ from .gateways.disk.read import compute_sum
 log = logging.getLogger(__name__)
 
 
+@deprecated("24.3", "24.9")
 def path_identity(path):
     """Used as a dummy path converter where no conversion necessary"""
     return path
@@ -215,12 +216,20 @@ deprecated.constant(
     },
 )
 
-
-# ##########################################
-# put back because of conda build
-# ##########################################
-
-urlpath = url_path = path_to_url
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "urlpath",
+    path_to_url,
+    addendum="Use `conda.common.url.path_to_url` instead.",
+)
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "url_path",
+    path_to_url,
+    addendum="Use `conda.common.url.path_to_url` instead.",
+)
 
 
 @deprecated(
