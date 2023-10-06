@@ -154,7 +154,7 @@ def bash_unsupported_win():
 @pytest.fixture
 def reset_environ(monkeypatch: MonkeyPatch) -> None:
     for name in POP_THESE:
-        monkeypatch.delenv(name)
+        monkeypatch.delenv(name, raising=False)
 
 
 def write_pkg_env_vars(prefix):
