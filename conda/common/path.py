@@ -300,6 +300,7 @@ def is_private_env_path(env_path):
     return False
 
 
+@deprecated("24.3", "24.9")
 def right_pad_os_sep(path):
     return path if path.endswith(os.sep) else path + os.sep
 
