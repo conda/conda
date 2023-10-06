@@ -155,6 +155,7 @@ def pyc_path(py_path, python_major_minor_version):
         return "{}{}{}".format(directory, "/", pyc_file) if directory else pyc_file
 
 
+@deprecated("24.3", "24.9")
 def missing_pyc_files(python_major_minor_version, files):
     # returns a tuple of tuples, with the inner tuple being the .py file and the missing .pyc file
     py_files = (f for f in files if f.endswith(".py"))
@@ -266,6 +267,7 @@ def ensure_pad(name, pad="_"):
         return f"{pad}{name}{pad}"
 
 
+@deprecated("24.3", "24.9")
 def is_private_env_name(env_name):
     """
 
@@ -279,6 +281,7 @@ def is_private_env_name(env_name):
     return env_name and env_name[0] == env_name[-1] == "_"
 
 
+@deprecated("24.3", "24.9")
 def is_private_env_path(env_path):
     """
 

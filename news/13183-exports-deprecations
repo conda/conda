@@ -27,6 +27,9 @@
 * Mark `conda.utils.cygwin_path_to_win` for deprecation in 24.9. (#13183)
 * Mark `conda.utils.translate_stream` for deprecation in 24.9. (#13183)
 * Mark `conda.common.path.which` for deprecation in 24.9. (#13183)
+* Mark `conda.common.path.missing_pyc_files` for deprecation in 24.9. (#13183)
+* Mark `conda.common.path.is_private_env_name` for deprecation in 24.9. (#13183)
+* Mark `conda.common.path.is_private_env_path` for deprecation in 24.9. (#13183)
 
 ### Docs
 
