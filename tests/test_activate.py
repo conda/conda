@@ -2794,10 +2794,11 @@ def basic_csh(shell, prefix, prefix2, prefix3):
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "shell_name",
+    "shell_name,script",
     [
         pytest.param(
             "bash",
+            basic_posix,
             marks=[
                 pytest.mark.skipif(
                     bash_unsupported(), reason=bash_unsupported_because()
@@ -2806,6 +2807,7 @@ def basic_csh(shell, prefix, prefix2, prefix3):
         ),
         pytest.param(
             "dash",
+            basic_posix,
             marks=[
                 pytest.mark.skipif(
                     not which("dash") or on_win, reason="dash not installed"
@@ -2814,33 +2816,36 @@ def basic_csh(shell, prefix, prefix2, prefix3):
         ),
         pytest.param(
             "zsh",
+            basic_posix,
             marks=[pytest.mark.skipif(not which("zsh"), reason="zsh not installed")],
+        ),
+        pytest.param(
+            "csh",
+            basic_csh,
+            marks=[
+                pytest.mark.skipif(not which("csh"), reason="csh not installed"),
+                pytest.mark.xfail(
+                    reason="pure csh doesn't support argument passing to sourced scripts"
+                ),
+            ],
+        ),
+        pytest.param(
+            "tcsh",
+            basic_csh,
+            marks=[
+                pytest.mark.skipif(not which("tcsh"), reason="tcsh not installed"),
+                pytest.mark.xfail(
+                    reason="punting until we officially enable support for tcsh"
+                ),
+            ],
         ),
     ],
 )
 def test_basic_integration(
-    shell_wrapper_integration: tuple[str, str, str], shell_name: str
+    shell_wrapper_integration: tuple[str, str, str], shell_name: str, script: Callable
 ):
     with InteractiveShell.from_name(shell_name) as shell:
-        basic_posix(shell, *shell_wrapper_integration)
-
-
-@pytest.mark.skipif(not which("csh"), reason="csh not installed")
-@pytest.mark.xfail(
-    reason="pure csh doesn't support argument passing to sourced scripts"
-)
-@pytest.mark.integration
-def test_csh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell.from_name("csh") as shell:
-        basic_csh(shell, *shell_wrapper_integration)
-
-
-@pytest.mark.skipif(not which("tcsh"), reason="tcsh not installed")
-@pytest.mark.xfail(reason="punting until we officially enable support for tcsh")
-@pytest.mark.integration
-def test_tcsh_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
-    with InteractiveShell.from_name("tcsh") as shell:
-        basic_csh(shell, *shell_wrapper_integration)
+        script(shell, *shell_wrapper_integration)
 
 
 @pytest.mark.skipif(not which("fish"), reason="fish not installed")
