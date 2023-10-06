@@ -15,7 +15,7 @@ from shutil import which
 from signal import SIGINT
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
-from typing import Iterable, overload
+from typing import Callable, Iterable, overload
 from uuid import uuid4
 
 import pytest
@@ -2842,7 +2842,9 @@ def basic_csh(shell, prefix, prefix2, prefix3):
     ],
 )
 def test_basic_integration(
-    shell_wrapper_integration: tuple[str, str, str], shell_name: str, script: Callable
+    shell_wrapper_integration: tuple[str, str, str],
+    shell_name: str,
+    script: Callable[[InteractiveShell, str, str, str], None],
 ):
     with InteractiveShell.from_name(shell_name) as shell:
         script(shell, *shell_wrapper_integration)
