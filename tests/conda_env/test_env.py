@@ -11,18 +11,18 @@ from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.common.serialize import yaml_round_trip_load
-from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
-from conda.models.match_spec import MatchSpec
-from conda.testing import CondaCLIFixture, PathFactoryFixture
-from conda.testing.integration import package_is_installed
-from conda_env.env import (
+from conda.env.env import (
     VALID_KEYS,
     Environment,
     from_environment,
     from_file,
     load_from_directory,
 )
+from tests.test_utils import is_prefix_activated_PATHwise
+from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
+from conda.models.match_spec import MatchSpec
+from conda.testing import CondaCLIFixture
+from conda.testing.integration import package_is_installed
 
 from . import support_file
 from .utils import make_temp_envs_dir
