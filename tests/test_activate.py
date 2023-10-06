@@ -2969,15 +2969,6 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
         shell.expect("Executing transaction: ...working... done.*\n")
 
 
-def _contains(prefix: str, path: str) -> bool:
-    try:
-        Path(path).relative_to(prefix)
-        return True
-    except ValueError:
-        # ValueError: path is not relative to prefix
-        return False
-
-
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
 @pytest.mark.integration
 def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
