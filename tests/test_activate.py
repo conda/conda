@@ -41,7 +41,7 @@ from conda.base.constants import (
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import on_win
 from conda.common.io import captured, env_var, env_vars
@@ -157,6 +157,20 @@ def reset_environ(monkeypatch: MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
+@pytest.fixture
+def changeps1(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_CHANGEPS1", "true")
+    reset_context()
+    assert context.changeps1
+
+
+@pytest.fixture
+def no_changeps1(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_CHANGEPS1", "false")
+    reset_context()
+    assert not context.changeps1
+
+
 def write_pkg_env_vars(prefix):
     activate_pkg_env_vars = join(prefix, PACKAGE_ENV_VARS_DIR)
     mkdir_p(activate_pkg_env_vars)
@@ -180,30 +194,25 @@ def test_activate_environment_not_found(reset_environ: None):
         activator.build_activate("wontfindmeIdontexist_abc123")
 
 
-def test_PS1(reset_environ: None):
-    with env_var(
-        "CONDA_CHANGEPS1", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        activator = PosixActivator()
-        assert (
-            activator._prompt_modifier("/dont/matter", ROOT_ENV_NAME)
-            == "(%s) " % ROOT_ENV_NAME
-        )
+def test_PS1(reset_environ: None, changeps1: None):
+    activator = PosixActivator()
+    assert (
+        activator._prompt_modifier("/dont/matter", ROOT_ENV_NAME)
+        == "(%s) " % ROOT_ENV_NAME
+    )
 
-        instructions = activator.build_activate("base")
-        assert (
-            instructions["export_vars"]["CONDA_PROMPT_MODIFIER"]
-            == "(%s) " % ROOT_ENV_NAME
-        )
+    instructions = activator.build_activate("base")
+    assert (
+        instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == "(%s) " % ROOT_ENV_NAME
+    )
 
 
-def test_PS1_no_changeps1(reset_environ: None):
-    with env_var("CONDA_CHANGEPS1", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        activator = PosixActivator()
-        assert activator._prompt_modifier("/dont/matter", "root") == ""
+def test_PS1_no_changeps1(reset_environ: None, no_changeps1: None):
+    activator = PosixActivator()
+    assert activator._prompt_modifier("/dont/matter", "root") == ""
 
-        instructions = activator.build_activate("base")
-        assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
+    instructions = activator.build_activate("base")
+    assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
 
 
 def test_add_prefix_to_path_posix(reset_environ: None):
@@ -331,7 +340,7 @@ def test_default_env(reset_environ: None):
         assert "named-env" == activator._default_env(p)
 
 
-def test_build_activate_dont_activate_unset_var(reset_environ: None):
+def test_build_activate_dont_activate_unset_var(reset_environ: None, changeps1: None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -392,7 +401,7 @@ def test_build_activate_dont_activate_unset_var(reset_environ: None):
                 assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
+def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None, changeps1: None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -452,7 +461,7 @@ def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
                 assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_0(reset_environ: None):
+def test_build_activate_shlvl_0(reset_environ: None, changeps1: None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -1266,7 +1275,7 @@ def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
         assert all(assert_unix_path(path) for path in native_path_to_unix(paths))
 
 
-def test_posix_basic(shell_wrapper_unit: str):
+def test_posix_basic(shell_wrapper_unit: str, changeps1: None):
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1407,7 +1416,7 @@ def test_posix_basic(shell_wrapper_unit: str):
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
-def test_cmd_exe_basic(shell_wrapper_unit: str):
+def test_cmd_exe_basic(shell_wrapper_unit: str, changeps1: None):
     # NOTE :: We do not want dev mode here.
     context.dev = False
     activator = CmdExeActivator()
@@ -1547,7 +1556,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_csh_basic(shell_wrapper_unit: str):
+def test_csh_basic(shell_wrapper_unit: str, changeps1: None):
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1686,7 +1695,7 @@ def test_csh_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_xonsh_basic(shell_wrapper_unit: str):
+def test_xonsh_basic(shell_wrapper_unit: str, changeps1: None):
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1836,7 +1845,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_fish_basic(shell_wrapper_unit: str):
+def test_fish_basic(shell_wrapper_unit: str, changeps1: None):
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1967,7 +1976,7 @@ def test_fish_basic(shell_wrapper_unit: str):
         assert deactivate_data == e_deactivate_data
 
 
-def test_powershell_basic(shell_wrapper_unit: str):
+def test_powershell_basic(shell_wrapper_unit: str, changeps1: None):
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -2096,7 +2105,7 @@ def test_unicode(shell_wrapper_unit: str):
                     main_sourced(shell, *activate_args, shell_wrapper_unit)
 
 
-def test_json_basic(shell_wrapper_unit: str):
+def test_json_basic(shell_wrapper_unit: str, changeps1: None):
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
