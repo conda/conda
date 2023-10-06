@@ -20,6 +20,12 @@
 * Mark `conda.exports.symlink_conda` for deprecation in 24.9. (#13183)
 * Mark `conda.exports._symlink_conda_hlp` for deprecation in 24.9. (#13183)
 * Mark `conda.exports.win_conda_bat_redirect` for deprecation in 24.9. (#13183)
+* Mark `conda.utils.unix_shell_base` for deprecation in 24.9. (#13183)
+* Mark `conda.utils.msys2_shell_base` for deprecation in 24.9. (#13183)
+* Mark `conda.utils.shells` for deprecation in 24.9. (#13183)
+* Mark `conda.utils.win_path_to_cygwin` for deprecation in 24.9. (#13183)
+* Mark `conda.utils.cygwin_path_to_win` for deprecation in 24.9. (#13183)
+* Mark `conda.utils.translate_stream` for deprecation in 24.9. (#13183)
 
 ### Docs
 

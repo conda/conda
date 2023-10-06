@@ -54,15 +54,17 @@ def unix_path_to_win(path, root_prefix=""):
     return translation
 
 
-# curry cygwin functions
+@deprecated("24.3", "24.9")
 def win_path_to_cygwin(path):
     return win_path_to_unix(path, "/cygdrive")
 
 
+@deprecated("24.3", "24.9")
 def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
 
+@deprecated("24.3", "24.9")
 def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
@@ -93,39 +95,46 @@ def human_bytes(n):
     return "%.2f GB" % g
 
 
-# TODO: this should be done in a more extensible way
-#     (like files for each shell, with some registration mechanism.)
-
 # defaults for unix shells.  Note: missing "exe" entry, which should be set to
 #    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(
-    binpath="/bin/",  # mind the trailing slash.
-    echo="echo",
-    env_script_suffix=".sh",
-    nul="2>/dev/null",
-    path_from=path_identity,
-    path_to=path_identity,
-    pathsep=":",
-    printdefaultenv="echo $CONDA_DEFAULT_ENV",
-    printpath="echo $PATH",
-    printps1="echo $CONDA_PROMPT_MODIFIER",
-    promptvar="PS1",
-    sep="/",
-    set_var="export ",
-    shell_args=["-l", "-c"],
-    shell_suffix="",
-    slash_convert=("\\", "/"),
-    source_setup="source",
-    test_echo_extra="",
-    var_format="${}",
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "unix_shell_base",
+    _unix_shell_base := dict(
+        binpath="/bin/",  # mind the trailing slash.
+        echo="echo",
+        env_script_suffix=".sh",
+        nul="2>/dev/null",
+        path_from=path_identity,
+        path_to=path_identity,
+        pathsep=":",
+        printdefaultenv="echo $CONDA_DEFAULT_ENV",
+        printpath="echo $PATH",
+        printps1="echo $CONDA_PROMPT_MODIFIER",
+        promptvar="PS1",
+        sep="/",
+        set_var="export ",
+        shell_args=["-l", "-c"],
+        shell_suffix="",
+        slash_convert=("\\", "/"),
+        source_setup="source",
+        test_echo_extra="",
+        var_format="${}",
+    ),
 )
 
-msys2_shell_base = dict(
-    unix_shell_base,
-    path_from=unix_path_to_win,
-    path_to=win_path_to_unix,
-    binpath="/bin/",  # mind the trailing slash.
-    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "msys2_shell_base",
+    _msys2_shell_base := dict(
+        _unix_shell_base,
+        path_from=unix_path_to_win,
+        path_to=win_path_to_unix,
+        binpath="/bin/",  # mind the trailing slash.
+        printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
+    ),
 )
 
 deprecated.constant(
@@ -177,7 +186,7 @@ deprecated.constant(
             pathsep=";",
         ),
         "cygwin": dict(
-            unix_shell_base,
+            _unix_shell_base,
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=cygwin_path_to_win,
@@ -187,43 +196,43 @@ deprecated.constant(
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
         #    filesystem root.
         "bash.exe": dict(
-            msys2_shell_base,
+            _msys2_shell_base,
             exe="bash.exe",
         ),
         "bash": dict(
-            msys2_shell_base,
+            _msys2_shell_base,
             exe="bash",
         ),
         "sh.exe": dict(
-            msys2_shell_base,
+            _msys2_shell_base,
             exe="sh.exe",
         ),
         "zsh.exe": dict(
-            msys2_shell_base,
+            _msys2_shell_base,
             exe="zsh.exe",
         ),
         "zsh": dict(
-            msys2_shell_base,
+            _msys2_shell_base,
             exe="zsh",
         ),
     }
     if on_win
     else {
         "bash": dict(
-            unix_shell_base,
+            _unix_shell_base,
             exe="bash",
         ),
         "dash": dict(
-            unix_shell_base,
+            _unix_shell_base,
             exe="dash",
             source_setup=".",
         ),
         "zsh": dict(
-            unix_shell_base,
+            _unix_shell_base,
             exe="zsh",
         ),
         "fish": dict(
-            unix_shell_base,
+            _unix_shell_base,
             exe="fish",
             pathsep=" ",
         ),
