@@ -16,6 +16,7 @@ import os
 import re
 import sys
 from collections.abc import Callable, Iterable
+from logging import getLogger
 from os.path import (
     abspath,
     basename,
@@ -41,6 +42,8 @@ from .base.constants import (
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
+
+log = getLogger(__name__)
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -823,6 +826,9 @@ def ensure_fs_path_encoding(value):
         return value
 
 
+RE_WIN = re.compile(r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)")
+
+
 def native_path_to_unix(
     paths: str | Iterable[str] | None,
 ) -> str | tuple[str, ...] | None:
@@ -847,7 +853,7 @@ def native_path_to_unix(
     # expect the results to work with the other.  It does not.
 
     bash = which("bash")
-    cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
     joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
 
     try:
@@ -861,28 +867,26 @@ def native_path_to_unix(
     except FileNotFoundError:
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
-        def _translation(found_path):
-            found = (
-                found_path.group(1)
+        def win_to_unix(match):
+            return "/" + (
+                match.group(1)
                 .replace("\\", "/")
                 .replace(":", "")
                 .replace("//", "/")
+                .rstrip("/")
             )
-            return "/" + found.rstrip("/")
 
-        unix_path = (
-            re.sub(
-                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
-                _translation,
-                joined,
-            )
-            .replace(";", ":")
-            .rstrip(";")
-        )
+        unix_path = RE_WIN.sub(win_to_unix, joined).replace(";", ":").rstrip(";")
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
 
-    unix_path = unix_path.split(":") if unix_path else ()
-
-    return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
+    if isinstance(paths, str):
+        return unix_path
+    elif not unix_path:
+        return ()
+    else:
+        return tuple(unix_path.split(":"))
 
 
 def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
