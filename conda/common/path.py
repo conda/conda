@@ -364,6 +364,30 @@ def win_path_to_unix(path, root_prefix=""):
     return path
 
 
+def unix_path_to_win(path, root_prefix=""):
+    """Convert a path or :-separated string of paths into a Windows representation
+
+    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+    """
+    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
+        # already a windows path
+        return path.replace("/", "\\")
+    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
+
+    def _translation(found_path):
+        group = found_path.group(0)
+        return "{}:{}".format(
+            group[len(root_prefix) + 1],
+            group[len(root_prefix) + 2 :].replace("/", "\\"),
+        )
+
+    translation = re.sub(path_re, _translation, path)
+    translation = re.sub(
+        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
+    )
+    return translation
+
+
 @deprecated("24.3", "24.9", addendum="Use `shutil.which` instead.")
 def which(executable):
     """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
