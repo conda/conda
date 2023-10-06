@@ -36,8 +36,11 @@ from .base.constants import (
     PREFIX_STATE_FILE,
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, on_win
+from .common.compat import ensure_binary as _ensure_binary
+from .common.compat import ensure_fs_path_encoding as _ensure_fs_path_encoding
+from .common.compat import on_win
 from .common.path import expand, paths_equal
+from .deprecations import deprecated
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -800,20 +803,20 @@ class _Activator(metaclass=abc.ABCMeta):
         return env_vars
 
 
-def ensure_binary(value):
-    try:
-        return value.encode("utf-8")
-    except AttributeError:  # pragma: no cover
-        # AttributeError: '<>' object has no attribute 'encode'
-        # In this case assume already binary type and do nothing
-        return value
-
-
-def ensure_fs_path_encoding(value):
-    try:
-        return value.decode(FILESYSTEM_ENCODING)
-    except AttributeError:
-        return value
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "ensure_binary",
+    _ensure_binary,
+    addendum="Use `conda.common.compat.ensure_binary` instead.",
+)
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "ensure_fs_path_encoding",
+    _ensure_fs_path_encoding,
+    addendum="Use `conda.common.ensure_fs_path_encoding` instead.",
+)
 
 
 def native_path_to_unix(
