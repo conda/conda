@@ -18,7 +18,6 @@ from conda.env.env import (
     from_file,
     load_from_directory,
 )
-from tests.test_utils import is_prefix_activated_PATHwise
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture
