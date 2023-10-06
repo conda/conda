@@ -23,6 +23,7 @@ from typing import Iterable, Sequence
 from urllib.parse import urlsplit
 
 from .. import CondaError
+from ..deprecations import deprecated
 from .compat import on_win
 
 log = getLogger(__name__)
@@ -360,6 +361,7 @@ def win_path_to_unix(path, root_prefix=""):
     return path
 
 
+@deprecated("24.3", "24.9", addendum="Use `shutil.which` instead.")
 def which(executable):
     """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
     from shutil import which

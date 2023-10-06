@@ -26,6 +26,7 @@
 * Mark `conda.utils.win_path_to_cygwin` for deprecation in 24.9. (#13183)
 * Mark `conda.utils.cygwin_path_to_win` for deprecation in 24.9. (#13183)
 * Mark `conda.utils.translate_stream` for deprecation in 24.9. (#13183)
+* Mark `conda.common.path.which` for deprecation in 24.9. (#13183)
 
 ### Docs
 
