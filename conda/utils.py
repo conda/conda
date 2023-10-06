@@ -128,8 +128,11 @@ msys2_shell_base = dict(
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
-if on_win:
-    shells = {
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "shells",
+    {
         # "powershell.exe": dict(
         #    echo="echo",
         #    test_echo_extra=" .",
@@ -204,9 +207,8 @@ if on_win:
             exe="zsh",
         ),
     }
-
-else:
-    shells = {
+    if on_win
+    else {
         "bash": dict(
             unix_shell_base,
             exe="bash",
@@ -225,7 +227,8 @@ else:
             exe="fish",
             pathsep=" ",
         ),
-    }
+    },
+)
 
 
 # ##########################################

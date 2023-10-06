@@ -4,7 +4,6 @@
 import errno
 import functools
 import os
-import sys
 import threading
 from builtins import input  # noqa: F401
 from collections.abc import Hashable as _Hashable
@@ -35,8 +34,6 @@ from .common.compat import on_win  # noqa: F401
 from .common.path import win_path_to_unix  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import fetch_index as _fetch_index  # noqa: F401
-from .core.index import get_index as _get_index
 from .core.package_cache_data import ProgressiveFetchExtract, rm_fetched  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
@@ -126,10 +123,12 @@ string_types = str  # noqa: F401
 text_type = str  # noqa: F401
 
 
+@deprecated("24.3", "24.9")
 def iteritems(d, **kw):
     return iter(d.items(**kw))
 
 
+@deprecated("24.3", "24.9")
 class Completer:  # pragma: no cover
     def get_items(self):
         return self._get_items()
@@ -141,6 +140,7 @@ class Completer:  # pragma: no cover
         return iter(self.get_items())
 
 
+@deprecated("24.3", "24.9")
 class InstalledPackages:
     pass
 
@@ -187,20 +187,26 @@ def rm_rf(path, max_retries=5, trash=True):
 # ######################
 # signature.py
 # ######################
-KEYS = None
-KEYS_DIR = None
+deprecated.constant("24.3", "24.9", "KEYS", None)
+deprecated.constant("24.3", "24.9", "KEYS_DIR", None)
 
 
-def hash_file(_):
+@deprecated("24.3", "24.9")
+def hash_file(*args, **kwargs):
     return None  # pragma: no cover
 
 
-def verify(_):
+@deprecated("24.3", "24.9")
+def verify(*args, **kwargs):
     return False  # pragma: no cover
 
 
 def display_actions(
-    actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()
+    actions,
+    index,
+    show_channel_urls=None,
+    specs_to_remove=(),
+    specs_to_add=(),
 ):
     if "FETCH" in actions:
         actions["FETCH"] = [index[d] for d in actions["FETCH"]]
@@ -214,24 +220,18 @@ def display_actions(
     )
 
 
-def get_index(
-    channel_urls=(),
-    prepend=True,
-    platform=None,
-    use_local=False,
-    use_cache=False,
-    unknown=None,
-    prefix=None,
-):
-    index = _get_index(
-        channel_urls, prepend, platform, use_local, use_cache, unknown, prefix
-    )
-    return {Dist(prec): prec for prec in index.values()}
+@deprecated("24.3", "24.9", addendum="Use `conda.core.index.get_index` instead.")
+def get_index(*args, **kwargs):
+    from .core.index import get_index
+
+    return {Dist(prec): prec for prec in get_index(*args, **kwargs).values()}
 
 
-def fetch_index(channel_urls, use_cache=False, index=None):
-    index = _fetch_index(channel_urls, use_cache, index)
-    return {Dist(prec): prec for prec in index.values()}
+@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
+def fetch_index(*args, **kwargs):
+    from .core.index import fetch_index
+
+    return {Dist(prec): prec for prec in fetch_index(*args, **kwargs).values()}
 
 
 def package_cache():
@@ -252,8 +252,8 @@ def package_cache():
     return package_cache()
 
 
+@deprecated("24.3", "24.9")
 def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
-    print("WARNING: symlink_conda() is deprecated.", file=sys.stderr)
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
     if os.path.normcase(os.path.normpath(prefix)) in os.path.normcase(
@@ -271,6 +271,7 @@ def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     _symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
+@deprecated("24.3", "24.9")
 def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
     scripts = ["conda", "activate", "deactivate"]
     prefix_where = os.path.join(prefix, where)
@@ -298,6 +299,7 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
 
 if on_win:  # pragma: no cover
 
+    @deprecated("24.3", "24.9")
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
