@@ -815,7 +815,7 @@ deprecated.constant(
     "24.9",
     "ensure_fs_path_encoding",
     _ensure_fs_path_encoding,
-    addendum="Use `conda.common.ensure_fs_path_encoding` instead.",
+    addendum="Use `conda.common.compat.ensure_fs_path_encoding` instead.",
 )
 
 

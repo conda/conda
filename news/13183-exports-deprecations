@@ -34,6 +34,8 @@
 * Mark `conda.common.path.urlpath` for deprecation in 24.9. Use `conda.common.url.path_to_url` instead. (#13183)
 * Mark `conda.common.path.url_path` for deprecation in 24.9. Use `conda.common.url.path_to_url` instead. (#13183)
 * Mark `conda.common.path.right_pad_os_sep` for deprecation in 24.9. (#13183)
+* Mark `conda.activate.ensure_binary` for deprecation in 24.9. Use `conda.common.compat.ensure_binary` instead. (#13183)
+* Mark `conda.activate.ensure_fs_path_encoding` for deprecation in 24.9. Use `conda.common.compat.ensure_fs_path_encoding` instead. (#13183)
 
 ### Docs
 
