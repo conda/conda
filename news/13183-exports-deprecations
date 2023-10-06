@@ -1,0 +1,30 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.exports.iteritems` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.Completer` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.InstalledPackages` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.KEYS` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.KEYS_DIR` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.hash_file` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.verify` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.get_index` for deprecation in 24.9. Use `conda.core.index.get_index` instead. (#13183)
+* Mark `conda.exports.fetch_index` for deprecation in 24.9. Use `conda.core.index.fetch_index` instead. (#13183)
+* Mark `conda.exports.symlink_conda` for deprecation in 24.9. (#13183)
+* Mark `conda.exports._symlink_conda_hlp` for deprecation in 24.9. (#13183)
+* Mark `conda.exports.win_conda_bat_redirect` for deprecation in 24.9. (#13183)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
