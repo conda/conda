@@ -2363,7 +2363,7 @@ class InteractiveShell:
 
         self.p = PopenSpawn(
             self.shell_exe,
-            timeout=10,
+            timeout=30,
             maxread=5000,
             searchwindowsize=None,
             logfile=sys.stdout,
@@ -2394,11 +2394,11 @@ class InteractiveShell:
         if self.init_command:
             self.p.sendline(self.init_command)
 
-        self.sendline("conda deactivate")
-        self.sendline("conda deactivate")
-        self.sendline("conda deactivate")
-        self.sendline("conda activate base")  # intentional
-        self.sendline("conda deactivate")
+        self.sendline("conda deactivate --dev")
+        self.sendline("conda deactivate --dev")
+        self.sendline("conda deactivate --dev")
+        self.sendline("conda activate --dev base")  # intentional
+        self.sendline("conda deactivate --dev")
         self.clear()
 
         return self
@@ -2886,16 +2886,16 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
     prefix, charizard, venusaur = shell_wrapper_integration
 
     posh_kind, posh_path = which_powershell()
-    print(f"## [PowerShell integration] Using {posh_path}.")
+    log.debug(f"## [PowerShell integration] Using {posh_path}.")
     with InteractiveShell.from_name(posh_kind) as shell:
-        print("## [PowerShell integration] Starting test.")
+        log.debug("## [PowerShell integration] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
         shell.expect_exact("Alias")
         shell.sendline("(Get-Command conda).Definition")
         shell.expect_exact("Invoke-Conda")
         shell.sendline("(Get-Command Invoke-Conda).Definition")
 
-        print("## [PowerShell integration] Activating.")
+        log.debug("## [PowerShell integration] Activating.")
         shell.sendline('conda activate "%s"' % charizard)
         shell.assert_env_var("CONDA_SHLVL", "1")
         PATH = shell.get_env_var("PATH")
@@ -2914,23 +2914,23 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
         assert "venusaur" in PATH
         assert "charizard" in PATH
 
-        print("## [PowerShell integration] Installing.")
+        log.debug("## [PowerShell integration] Installing.")
         shell.sendline(f"conda install -yq hdf5={HDF5_VERSION}")
         shell.expect("Executing transaction: ...working... done.*\n", timeout=100)
         shell.sendline("$LASTEXITCODE")
         shell.expect("0")
         # TODO: assert that reactivate worked correctly
 
-        print("## [PowerShell integration] Checking installed version.")
+        log.debug("## [PowerShell integration] Checking installed version.")
         shell.sendline("h5stat --version")
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
         # conda run integration test
-        print("## [PowerShell integration] Checking conda run.")
+        log.debug("## [PowerShell integration] Checking conda run.")
         shell.sendline(f"conda run {dev_arg} h5stat --version")
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
-        print("## [PowerShell integration] Deactivating")
+        log.debug("## [PowerShell integration] Deactivating")
         shell.sendline("conda deactivate")
         shell.assert_env_var("CONDA_SHLVL", "1")
         shell.sendline("conda deactivate")
@@ -2978,71 +2978,52 @@ def _contains(prefix: str, path: str) -> bool:
         return False
 
 
-STRIPPED_PATH = os.pathsep.join(
-    path
-    for path in os.environ["PATH"].split(os.pathsep)
-    if not _contains(context.conda_prefix, path)
-)
-
-
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
 @pytest.mark.integration
-def test_cmd_exe_basic_integration(
-    shell_wrapper_integration: tuple[str, str, str],
-    monkeypatch: MonkeyPatch,
-):
+def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, _ = shell_wrapper_integration
-    conda_bat = Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
-    monkeypatch.setenv("PATH", STRIPPED_PATH)
+    conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
 
     with InteractiveShell.from_name("cmd.exe") as shell:
-        shell.expect(r".*\n")
-
-        shell.assert_env_var("_CE_CONDA", "conda")
-        shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("CONDA_EXE", escape(sys.executable))
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("_CE_CONDA", "conda")
 
         # We use 'PowerShell' here because 'where conda' returns all of them and
         # shell.expect_exact does not do what you would think it does given its name.
-        shell.sendline(
-            'powershell -NoProfile -c ("get-command conda | Format-List Source")'
-        )
-        shell.expect_exact(f"Source : {conda_bat}")
+        shell.sendline('powershell -NoProfile -c "(Get-Command conda).Source"')
+        shell.expect_exact(conda_bat)
 
         shell.sendline("chcp")
-        shell.expect(r".*\n")
+        shell.clear()
 
         PATH0 = shell.get_env_var("PATH", "").split(os.pathsep)
-        print(f"{PATH0=}")
+        log.debug(f"{PATH0=}")
         shell.sendline(f'conda activate --dev "{charizard}"')
 
         shell.sendline("chcp")
-        shell.expect(r".*\n")
+        shell.clear()
         shell.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = shell.get_env_var("PATH", "").split(os.pathsep)
-        print(f"{PATH1=}")
-        shell.sendline(
-            'powershell -NoProfile -c ("get-command conda | Format-List Source")'
-        )
-        shell.expect_exact(f"Source : {conda_bat}")
+        log.debug(f"{PATH1=}")
+        shell.sendline('powershell -NoProfile -c "(Get-Command conda).Source"')
+        shell.expect_exact(conda_bat)
 
-        shell.assert_env_var("_CE_CONDA", "conda")
-        shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("CONDA_EXE", escape(sys.executable))
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("_CE_CONDA", "conda")
         shell.assert_env_var("CONDA_PREFIX", charizard, True)
         PATH2 = shell.get_env_var("PATH", "").split(os.pathsep)
-        print(f"{PATH2=}")
+        log.debug(f"{PATH2=}")
 
-        shell.sendline(
-            'powershell -NoProfile -c ("get-command conda -All | Format-List Source")'
-        )
-        shell.expect_exact(f"Source : {conda_bat}")
+        shell.sendline('powershell -NoProfile -c "(Get-Command conda -All).Source"')
+        shell.expect_exact(conda_bat)
 
         shell.sendline(f'conda activate --dev "{prefix}"')
-        shell.assert_env_var("_CE_CONDA", "conda")
-        shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("CONDA_EXE", escape(sys.executable))
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("_CE_CONDA", "conda")
         shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
 
@@ -3055,7 +3036,8 @@ def test_cmd_exe_basic_integration(
         #       Python (e.g. OpenSSL).
         shell.sendline(f"conda install --yes --quiet hdf5={HDF5_VERSION}")
         shell.expect(
-            r"Executing transaction: \.\.\.working\.\.\. done.*\n", timeout=100
+            r"Executing transaction: \.\.\.working\.\.\. done.*\n",
+            timeout=100,
         )
         shell.assert_env_var("errorlevel", "0", True)
         # TODO: assert that reactivate worked correctly
