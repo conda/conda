@@ -42,7 +42,6 @@ extensions = [
     "sphinxarg.ext",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
-    "sphinx_design",
 ]
 
 # Leave double dashes as they are in the docs. Don't replace -- with -

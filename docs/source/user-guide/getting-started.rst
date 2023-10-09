@@ -46,24 +46,22 @@ Starting conda
 
 Conda is available on Windows, macOS, or Linux. Conda can be used with any terminal application in MacOS/Linux, while in Windows, we recommend using the Anaconda Prompt application provided by the Anaconda Distribution or Miniconda installations.
 
-.. tab-set::
+**Windows**
 
-   .. tab-item:: Windows
+#. From the Start menu, search for "Anaconda Prompt".
+#. Open the Anaconda Prompt desktop app that appears in the search sidebar.
 
-      #. From the Start menu, search for "Anaconda Prompt".
-      #. Open the Anaconda Prompt desktop app that appears in the search sidebar.
+**MacOS**
 
-   .. tab-item:: MacOS
-
-      #. Open Launchpad.
-      #. Open the Other application folder.
-      #. Open the Terminal application.
+#. Open Launchpad.
+#. Open the Other application folder.
+#. Open the Terminal application.
       
-      iTerm2 can also be used with conda on macOS.
+iTerm2 can also be used with conda on macOS.
 
-   .. tab-item:: Linux
+**Linux**
 
-      Open a terminal window.
+Open a terminal window.
 
 .. _managing-conda:
 

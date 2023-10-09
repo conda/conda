@@ -8,7 +8,6 @@ ruamel.yaml==0.17.16
 sphinx-argparse==0.3.1
 sphinx-autoapi
 sphinx-autobuild==2021.3.14
-sphinx-design==0.5.0
 sphinx-reredirects
 sphinx-rtd-theme==1.0.0
 sphinx-sitemap==2.2.0
