@@ -119,7 +119,13 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
-IndexRecord = PackageRecord
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "IndexRecord",
+    PackageRecord,
+    addendum="Use `conda.models.records.PackageRecord` instead.",
+)
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
