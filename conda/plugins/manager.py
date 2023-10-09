@@ -26,6 +26,7 @@ from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .types import (
     CondaAuthHandler,
+    CondaDoctor,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -168,6 +169,10 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaAuthHandler]:
         ...
 
+    @overload
+    def get_hook_results(self, name: Literal["health_checks"]) -> list[CondaDoctor]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -302,6 +307,9 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
+
+    def get_health_checks(self) -> tuple[CondaDoctor]:
+        return tuple(self.get_hook_results("health_checks"))
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
