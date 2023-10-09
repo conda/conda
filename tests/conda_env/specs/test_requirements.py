@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import importlib
+
 from conda_env.env import Environment
 from conda_env.specs.requirements import RequirementsSpec
 
@@ -25,3 +27,12 @@ def test_environment():
     spec = RequirementsSpec(filename=support_file("requirements.txt"), name="env")
     assert isinstance(spec.environment, Environment)
     assert spec.environment.dependencies["conda"][0] == "conda-package-handling==2.2.0"
+
+
+def test_requirements_import():
+    deprecated = importlib.import_module("conda_env.specs.requirements")
+    redirect_module = importlib.import_module("conda.env.specs.requirements")
+
+    assert getattr(deprecated, "RequirementsSpec") is getattr(
+        redirect_module, "RequirementsSpec"
+    )
