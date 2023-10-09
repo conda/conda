@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import importlib
 
-from conda_env.env import Environment
-from conda_env.specs.requirements import RequirementsSpec
+from conda.env.env import Environment
+from conda.env.specs.requirements import RequirementsSpec
 
 from .. import support_file
 

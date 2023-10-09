@@ -5,8 +5,8 @@ import importlib
 from binstar_client.errors import NotFound
 from pytest_mock import MockerFixture
 
-from conda_env.env import Environment
-from conda_env.specs.binstar import BinstarSpec
+from conda.env.env import Environment
+from conda.env.specs.binstar import BinstarSpec
 
 
 def test_name_not_present():
