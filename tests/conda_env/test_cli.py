@@ -679,7 +679,7 @@ def test_invalid_extensions(
         ("conda_env.cli.main_vars", "conda.cli.main_env_vars", "execute_unset"),
     ],
 )
-def test_configure_parser_imports(conda_env_module, conda_cli_module, function_name):
+def test_cli_module_imports(conda_env_module, conda_cli_module, function_name):
     deprecated = importlib.import_module(conda_env_module)
     redirect_module = importlib.import_module(conda_cli_module)
 

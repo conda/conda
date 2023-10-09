@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import importlib
 import os
 import random
 from io import StringIO
@@ -393,3 +394,22 @@ def test_from_history():
         assert len(out.to_dict()["dependencies"]) == 4
 
         m.assert_called()
+
+
+@pytest.mark.parametrize(
+    "conda_env_module, conda_module, func_class_const_name",
+    [
+        ("conda_env.env", "conda.env.env", "from_environment"),
+        ("conda_env.env", "conda.env.env", "from_file"),
+        ("conda_env.env", "conda.env.env", "load_from_directory"),
+        ("conda_env.env", "conda.env.env", "VALID_KEYS"),
+        ("conda_env.env", "conda.env.env", "Environment"),
+    ],
+)
+def test_env_imports(conda_env_module, conda_module, func_class_const_name):
+    deprecated = importlib.import_module(conda_env_module)
+    redirect_module = importlib.import_module(conda_module)
+
+    assert getattr(deprecated, func_class_const_name) is getattr(
+        redirect_module, func_class_const_name
+    )
