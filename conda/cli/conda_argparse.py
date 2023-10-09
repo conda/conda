@@ -44,10 +44,12 @@ escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
 #: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {
+    "activate",  # Mock entry for shell command
     "clean",
     "compare",
     "config",
     "create",
+    "deactivate",  # Mock entry for shell command
     "info",
     "init",
     "install",
@@ -830,6 +832,16 @@ def configure_parser_init(sub_parsers):
     #
     #
     # """)
+
+    # Add mock entries for the (de)activate shell commands
+    sub_parsers.add_parser(
+        "activate",
+        help="Activate a conda environment.",
+    )
+    sub_parsers.add_parser(
+        "deactivate",
+        help="Deactivate the current active conda environment.",
+    )
 
     p = sub_parsers.add_parser(
         "init",
