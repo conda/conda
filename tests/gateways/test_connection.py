@@ -89,13 +89,13 @@ def test_s3_server(minio_s3_server):
 
 
 @pytest.mark.integration
-def test_s3_server_with_mock(package_server_ssl):
+def test_s3_server_with_mock(package_server):
     """
     Use boto3 to fetch from a mock s3 server pointing at the test package
     repository. This works since conda only GET's against s3 and s3 is http.
     """
-    host, port = package_server_ssl.getsockname()
-    endpoint_url = f"https://{host}:{port}"
+    host, port = package_server.getsockname()
+    endpoint_url = f"http://{host}:{port}"
     bucket_name = "test"
 
     inner_s3_test(endpoint_url, bucket_name)
