@@ -9,7 +9,7 @@ from collections import defaultdict
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
-from .common.compat import on_win, open
+from .common.compat import on_mac, on_win, open
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
@@ -167,7 +167,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
         ".nonadmin",
     }
     binignore = {"conda", "activate", "deactivate"}
-    if sys.platform == "darwin":
+    if on_mac:
         ignore.update({"python.app", "Launcher.app"})
     for fn in (entry.name for entry in os.scandir(prefix)):
         if ignore_predefined_files and fn in ignore:
@@ -200,7 +200,7 @@ def untracked(prefix, exclude_self_build=False):
         for path in walk_prefix(prefix) - conda_files
         if not (
             path.endswith("~")
-            or sys.platform == "darwin"
+            or on_mac
             and path.endswith(".DS_Store")
             or path.endswith(".pyc")
             and path[:-1] in conda_files

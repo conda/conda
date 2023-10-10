@@ -132,7 +132,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -190,7 +190,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -241,7 +241,7 @@ jobs:
           /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -337,7 +337,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -353,7 +353,9 @@ jobs:
   aggregate:
     # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-qemu, macos]
-    if: always() && needs.changes.outputs.code == 'true'
+    if: >-
+      !cancelled()
+      && needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     steps:
@@ -378,7 +380,7 @@ jobs:
   analyze:
     name: Analyze results
     needs: [windows, linux, linux-qemu, macos, aggregate]
-    if: always()
+    if: '!cancelled()'
 
     runs-on: ubuntu-latest
     steps:
@@ -397,7 +399,7 @@ jobs:
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
     if: >-
-      always()
+      !cancelled()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'

@@ -1,13 +1,10 @@
-# conda
-# run as 'conda install --file tests/requirements.txt -c defaults' or
-# run as 'conda install --file tests/requirements.txt -c conda-forge'
-conda-forge::anaconda-client
 beautifulsoup4
 boltons >=23.0.0
 boto3
 chardet
 conda
 conda-content-trust
+conda-forge::anaconda-client
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
@@ -41,6 +38,5 @@ ruamel.yaml >=0.11.14,<0.18
 setuptools >=60.0.0
 setuptools_scm  # needed for devenv version detection
 tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
-toolz >=0.8.1
 tqdm >=4
 werkzeug >=2.2
