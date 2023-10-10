@@ -473,7 +473,23 @@ def test_basepydist_load_requires_provides_file():
 
 def test_dist_get_paths():
     content = 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'
-    temp_path, fpaths = _create_test_files((("", "SOURCES.txt", content),))
+    temp_path, _ = _create_test_files((("", "SOURCES.txt", content),))
+
+    sp_dir = get_python_site_packages_short_path("2.7")
+
+    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
+    output = dist.get_paths()
+    expected_output = [
+        (join_url(sp_dir, "foo", "bar"), "1", 45),
+        (join_url(sp_dir, "foo", "spam"), None, None),
+    ]
+    _print_output(output, expected_output)
+    assert output == expected_output
+
+
+def test_dist_get_paths_uppercase_algorithm():
+    content = 'foo/bar,SHA256=1,"45"\nfoo/spam,,\n'
+    temp_path, _ = _create_test_files((("", "SOURCES.txt", content),))
 
     sp_dir = get_python_site_packages_short_path("2.7")
 

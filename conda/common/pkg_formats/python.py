@@ -10,6 +10,7 @@ from configparser import ConfigParser
 from csv import reader as csv_reader
 from email.parser import HeaderParser
 from errno import ENOENT
+from hashlib import algorithms_guaranteed
 from io import StringIO
 from itertools import chain
 from logging import getLogger
@@ -128,12 +129,14 @@ class PythonDistribution:
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""
         if checksum:
-            assert checksum.startswith("sha256="), (
+            checksum_ok, checksum_or_err = self._validate_checksum_format(checksum)
+            assert checksum_ok, (
+                checksum_or_err,
                 self._metadata_dir_full_path,
                 path,
                 checksum,
             )
-            checksum = checksum[7:]
+            checksum = checksum_or_err
         else:
             checksum = None
         size = int(size) if size else None
@@ -226,6 +229,56 @@ class PythonDistribution:
                     break
         return manifest_full_path
 
+    def _validate_checksum_format(self, checksum):
+        """
+        Check that the checksum record is in the correct format
+
+        Algorithms are case insensitive but the checksum is case sensitive
+
+        Per python packaging guidelines, checksum algorithms are limited to
+        those listed by hashlib.algorithms_guaranteed excluding sha1 and md5
+
+        checksum is of the form <algorithm>=<checksum>
+
+        Returns a tuple <bool, str> where the bool is True if the checksum is valid and False if not
+        If True, the str is the checksum without the algorithm prefix
+        If False, the str is the error message
+        """
+        excluded_algorithms = {"sha1", "md5"}
+        valid_algorithms = {
+            alg.upper()
+            for alg in algorithms_guaranteed
+            if alg not in excluded_algorithms
+        }
+        assert checksum
+        try:
+            eq_idx = checksum.index("=")
+        except ValueError:
+            err = (
+                "RECORD checksum is not in the correct format: %s. " % checksum
+                + "Missing '=' after algorithm name. "
+                + "This is a bug in the package. Please report it to the package maintainer."
+            )
+            return False, err
+
+        algorithm = checksum[:eq_idx]
+        if algorithm not in valid_algorithms:
+            err = (
+                "RECORD checksum algorithm is not valid: %s. " % algorithm
+                + "Valid algorithms are: %s. " % valid_algorithms
+                + " This is a bug in the package. Please report it to the package maintainer."
+            )
+            return False, err
+        if len(checksum) < eq_idx + 1:
+            err = (
+                "RECORD checksum is not in the correct format. No checksum after =: %s. "
+                % checksum
+                + " This is a bug in the package. Please report it to the package maintainer."
+            )
+            return False, err
+        checksum = checksum[eq_idx + 1 :]
+        return True, checksum
+
     def get_paths(self):
         """
         Read the list of installed paths from record or source file.
@@ -257,12 +310,17 @@ class PythonDistribution:
                     if len(row) == 3:
                         checksum, size = row[1:]
                         if checksum:
-                            assert checksum.startswith("sha256="), (
+                            (
+                                checksum_ok,
+                                checksum_or_err,
+                            ) = self._validate_checksum_format(checksum)
+                            assert checksum_ok, (
+                                checksum_or_err,
                                 self._metadata_dir_full_path,
                                 cleaned_path,
                                 checksum,
                             )
-                            checksum = checksum[7:]
+                            checksum = checksum_or_err
                         else:
                             checksum = None
                         size = int(size) if size else None
