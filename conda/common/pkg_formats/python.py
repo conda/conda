@@ -21,9 +21,9 @@ from posixpath import normpath as posix_normpath
 
 from conda.common.iterators import groupby_to_dict as groupby
 
-from ... import CondaError
 from ..._vendor.frozendict import frozendict
 from ...auxlib.decorators import memoizedproperty
+from ...exceptions import CondaError, ParseError
 from ..compat import open
 from ..path import (
     get_major_minor_version,
@@ -126,22 +126,50 @@ class PythonDistribution:
                 if not isfile(fpath):
                     raise OSError(ENOENT, strerror(ENOENT), fpath)
 
-    def _check_path_data(self, path, checksum, size):
-        """Normalizes record data content and format."""
-        if checksum:
-            checksum_ok, checksum_or_err = self._validate_checksum_format(checksum)
-            assert checksum_ok, (
-                checksum_or_err,
-                self._metadata_dir_full_path,
-                path,
-                checksum,
-            )
-            checksum = checksum_or_err
-        else:
-            checksum = None
-        size = int(size) if size else None
+    def _validate_checksum_format(self, checksum):
+        """
+        Check that the checksum record is in the correct format
 
-        return path, checksum, size
+        Algorithms are case insensitive but the checksum is case sensitive
+
+        Per python packaging guidelines, checksum algorithms are limited to
+        those listed by hashlib.algorithms_guaranteed excluding sha1 and md5
+
+        checksum is of the form <algorithm>=<checksum>
+
+        Returns a tuple <bool, str> where the bool is True if the checksum is valid and False if not
+        If True, the str is the checksum without the algorithm prefix
+        If False, the str is the error message
+        """
+        excluded_algorithms = {"sha1", "md5"}
+        valid_algorithms = algorithms_guaranteed - excluded_algorithms
+        assert checksum
+        try:
+            eq_idx = checksum.index("=")
+        except ValueError:
+            err = (
+                f"RECORD checksum is not in the correct format: {checksum}"
+                + "Missing '=' after algorithm name. "
+                + "This is a bug in the package. Please report it to the package maintainer."
+            )
+            return False, err
+
+        algorithm = checksum[:eq_idx].lower()
+        if algorithm not in valid_algorithms:
+            err = (
+                f"RECORD checksum algorithm is not valid: {algorithm}"
+                + f"Valid algorithms are: {valid_algorithms} "
+                + "This is a bug in the package. Please report it to the package maintainer."
+            )
+            return False, err
+        if len(checksum) < eq_idx + 1:
+            err = (
+                f"RECORD checksum is not in the correct format. No checksum after =: {checksum}"
+                + " This is a bug in the package. Please report it to the package maintainer."
+            )
+            return False, err
+        checksum = checksum[eq_idx + 1 :]
+        return True, checksum
 
     @staticmethod
     def _parse_requires_file_data(data, global_section="__global__"):
@@ -229,56 +257,6 @@ class PythonDistribution:
                     break
         return manifest_full_path
 
-    def _validate_checksum_format(self, checksum):
-        """
-        Check that the checksum record is in the correct format
-
-        Algorithms are case insensitive but the checksum is case sensitive
-
-        Per python packaging guidelines, checksum algorithms are limited to
-        those listed by hashlib.algorithms_guaranteed excluding sha1 and md5
-
-        checksum is of the form <algorithm>=<checksum>
-
-        Returns a tuple <bool, str> where the bool is True if the checksum is valid and False if not
-        If True, the str is the checksum without the algorithm prefix
-        If False, the str is the error message
-        """
-        excluded_algorithms = {"sha1", "md5"}
-        valid_algorithms = {
-            alg.upper()
-            for alg in algorithms_guaranteed
-            if alg not in excluded_algorithms
-        }
-        assert checksum
-        try:
-            eq_idx = checksum.index("=")
-        except ValueError:
-            err = (
-                "RECORD checksum is not in the correct format: %s. " % checksum
-                + "Missing '=' after algorithm name. "
-                + "This is a bug in the package. Please report it to the package maintainer."
-            )
-            return False, err
-
-        algorithm = checksum[:eq_idx]
-        if algorithm not in valid_algorithms:
-            err = (
-                "RECORD checksum algorithm is not valid: %s. " % algorithm
-                + "Valid algorithms are: %s. " % valid_algorithms
-                + " This is a bug in the package. Please report it to the package maintainer."
-            )
-            return False, err
-        if len(checksum) < eq_idx + 1:
-            err = (
-                "RECORD checksum is not in the correct format. No checksum after =: %s. "
-                % checksum
-                + " This is a bug in the package. Please report it to the package maintainer."
-            )
-            return False, err
-        checksum = checksum[eq_idx + 1 :]
-        return True, checksum
-
     def get_paths(self):
         """
         Read the list of installed paths from record or source file.
@@ -314,12 +292,12 @@ class PythonDistribution:
                                 checksum_ok,
                                 checksum_or_err,
                             ) = self._validate_checksum_format(checksum)
-                            assert checksum_ok, (
-                                checksum_or_err,
-                                self._metadata_dir_full_path,
-                                cleaned_path,
-                                checksum,
-                            )
+                            if not checksum_ok:
+                                err = (
+                                    f"Checksum validation failed for {cleaned_path}: "
+                                    + f"{checksum_or_err} metadata_dir_full_path: {self._metadata_dir_full_path}"
+                                )
+                                raise ParseError(err)
                             checksum = checksum_or_err
                         else:
                             checksum = None

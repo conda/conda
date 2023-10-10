@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test for python distribution information and metadata handling."""
 
+import hashlib
 import os
 import tempfile
+from base64 import urlsafe_b64encode
 from errno import ENOENT
 from os.path import basename, lexists
 from pprint import pprint
@@ -472,35 +474,26 @@ def test_basepydist_load_requires_provides_file():
 
 
 def test_dist_get_paths():
-    content = 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'
-    temp_path, _ = _create_test_files((("", "SOURCES.txt", content),))
+    all_algos = hashlib.algorithms_guaranteed.union(
+        {alg.upper() for alg in hashlib.algorithms_guaranteed}
+    )
+    dummy_data = "This is a a string to be hashed for a unit test"
+    for algo in all_algos:
+        digest = hashlib.new(algo, dummy_data.encode("utf-8")).digest()
+        encoded_digest = urlsafe_b64encode(digest)
+        content = f'foo/bar,{algo}={encoded_digest},"45"\nfoo/spam,,\n'
+        temp_path, _ = _create_test_files((("", "SOURCES.txt", content),))
 
-    sp_dir = get_python_site_packages_short_path("2.7")
+        sp_dir = get_python_site_packages_short_path("3.10")
 
-    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
-    output = dist.get_paths()
-    expected_output = [
-        (join_url(sp_dir, "foo", "bar"), "1", 45),
-        (join_url(sp_dir, "foo", "spam"), None, None),
-    ]
-    _print_output(output, expected_output)
-    assert output == expected_output
-
-
-def test_dist_get_paths_uppercase_algorithm():
-    content = 'foo/bar,SHA256=1,"45"\nfoo/spam,,\n'
-    temp_path, _ = _create_test_files((("", "SOURCES.txt", content),))
-
-    sp_dir = get_python_site_packages_short_path("2.7")
-
-    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
-    output = dist.get_paths()
-    expected_output = [
-        (join_url(sp_dir, "foo", "bar"), "1", 45),
-        (join_url(sp_dir, "foo", "spam"), None, None),
-    ]
-    _print_output(output, expected_output)
-    assert output == expected_output
+        dist = PythonEggInfoDistribution(temp_path, "3.10", None)
+        output = dist.get_paths()
+        expected_output = [
+            (join_url(sp_dir, "foo", "bar"), encoded_digest, 45),
+            (join_url(sp_dir, "foo", "spam"), None, None),
+        ]
+        _print_output(output, expected_output)
+        assert output == expected_output
 
 
 def test_dist_get_paths_no_paths():
