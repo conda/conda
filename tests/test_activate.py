@@ -42,7 +42,7 @@ from conda.base.constants import (
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.main import main_sourced
-from conda.common.compat import ensure_text_type, on_win
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
@@ -2462,29 +2462,18 @@ class InteractiveShell:
             raise
 
     def get_env_var(self, env_var, default=None):
+        self.sendline(self.print_env_var % env_var)
         if self.shell_name == "cmd.exe":
-            self.sendline(self.print_env_var % env_var)
-            self.expect(rf"@ECHO %{env_var}%\r\n([^\r]*)\r")
-            value = self.p.match.groups()[0]
+            self.expect(rf"@ECHO %{env_var}%\r?\n([^\r\n]*)\r?\n")
         elif self.shell_name in ("powershell", "pwsh"):
-            self.sendline(self.print_env_var % env_var)
-            if on_win:
-                # The \r\n\( is the newline after the env var and the start of the prompt.
-                # If we knew the active env we could add that in as well as the closing )
-                self.expect(rf"\$Env:{env_var}\r\n([^\r]*)(\r\n).*")
-                value = self.p.match.groups()[0]
-            else:
-                self.expect(f"\\$Env:{env_var}\n")
-                value = self.p.readline()
+            self.expect(rf"\$Env:{env_var}\r?\n([^\r\n]*)\r?\n")
         else:
-            self.sendline("echo get_var_start")
-            self.sendline(self.print_env_var % env_var)
-            self.sendline("echo get_var_end")
-            self.expect("get_var_start\n")
-            value = self.p.readline()
-            self.expect("get_var_end")
+            marker = f"get_env_var-{uuid4().hex}"
+            self.sendline(f"echo {marker}")
+            self.expect(rf"([^\r\n]*)\r?\n{marker}\r?\n")
 
-        return default if value is None else ensure_text_type(value).strip()
+        value = self.p.match.group(1)
+        return default if value is None else value
 
 
 def which_powershell():
