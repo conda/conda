@@ -8,9 +8,9 @@ import pytest
 from requests import HTTPError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, reset_context
+from conda.base.context import reset_context
 from conda.common.compat import ensure_binary
-from conda.common.io import env_var, env_vars
+from conda.common.io import env_vars
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
