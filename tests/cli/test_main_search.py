@@ -142,7 +142,20 @@ def test_search_envs_info(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_search_envs_json(conda_cli: CondaCLIFixture):
+def test_search_envs_json(conda_cli: CondaCLIFixture, capsys):
+    with capsys.disabled():
+        import sys
+
+        stdout, stderr, err = conda_cli("info", "--verbose")
+        print(stdout, file=sys.stderr)
+        print(stderr, file=sys.stderr)
+        print(err, file=sys.stderr)
+
+        stdout, stderr, err = conda_cli("config", "--show-sources")
+        print(stdout, file=sys.stderr)
+        print(stderr, file=sys.stderr)
+        print(err, file=sys.stderr)
+
     stdout, _, _ = conda_cli("search", "--envs", "--json", "conda")
     assert "Searching environments" not in stdout
     parsed = json.loads(stdout.strip())
