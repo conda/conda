@@ -826,9 +826,6 @@ def ensure_fs_path_encoding(value):
         return value
 
 
-RE_WIN = re.compile(r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)")
-
-
 def native_path_to_unix(
     paths: str | Iterable[str] | None,
 ) -> str | tuple[str, ...] | None:
@@ -867,7 +864,7 @@ def native_path_to_unix(
     except FileNotFoundError:
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
-        def win_to_unix(match):
+        def _translation(match):
             return "/" + (
                 match.group(1)
                 .replace("\\", "/")
@@ -876,7 +873,11 @@ def native_path_to_unix(
                 .rstrip("/")
             )
 
-        unix_path = RE_WIN.sub(win_to_unix, joined).replace(";", ":").rstrip(";")
+        unix_path = (
+            re.sub(r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)", _translation, joined)
+            .replace(";", ":")
+            .rstrip(";")
+        )
     except Exception as err:
         log.error("Unexpected cygpath error (%s)", err)
         raise
