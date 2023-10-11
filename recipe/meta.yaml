@@ -42,7 +42,6 @@ requirements:
     - packaging >=23.0
     - pluggy >=1.0.0
     - pycosat >=0.6.3
-    - pyopenssl >=16.2.0
     - python
     - requests >=2.27.0,<3
     - ruamel.yaml >=0.11.14,<0.18
@@ -50,7 +49,7 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0           # [py>=310]
   run_constrained:
-    - conda-build >=3.18.3
+    - conda-build >=3.27
     - conda-content-trust >=0.1.1
     - conda-env >=2.6
     - conda-libmamba-solver >=22.12.0

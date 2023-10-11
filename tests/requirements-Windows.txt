@@ -1,0 +1,2 @@
+menuinst >=1.4.11,<2
+pywin32
