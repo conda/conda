@@ -108,6 +108,8 @@ def generate_parser(**kwargs) -> ArgumentParser:
         action=_GreedySubParsersAction,
     )
 
+    configure_parser_mock_activate(sub_parsers)
+    configure_parser_mock_deactivate(sub_parsers)
     configure_parser_clean(sub_parsers)
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
@@ -380,6 +382,22 @@ def configure_parser_plugins(sub_parsers) -> None:
         parser.greedy = True
 
         parser.set_defaults(_executable=name)
+
+
+def configure_parser_mock_activate(sub_parsers):
+    p = sub_parsers.add_parser(
+        "activate",
+        help="Activate a conda environment.",
+    )
+    p.set_defaults(func=".main_mock_activate.execute")
+
+
+def configure_parser_mock_deactivate(sub_parsers):
+    p = sub_parsers.add_parser(
+        "deactivate",
+        help="Deactivate the current active conda environment.",
+    )
+    p.set_defaults(func=".main_mock_deactivate.execute")
 
 
 def configure_parser_clean(sub_parsers):
@@ -832,16 +850,6 @@ def configure_parser_init(sub_parsers):
     #
     #
     # """)
-
-    # Add mock entries for the (de)activate shell commands
-    sub_parsers.add_parser(
-        "activate",
-        help="Activate a conda environment.",
-    )
-    sub_parsers.add_parser(
-        "deactivate",
-        help="Deactivate the current active conda environment.",
-    )
 
     p = sub_parsers.add_parser(
         "init",
