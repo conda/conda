@@ -129,34 +129,24 @@ def test_search_5(conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_search_envs(conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("search", "--envs", "conda")
+    # search environments for Python (will be present in testing env)
+    stdout, _, _ = conda_cli("search", "--envs", "python")
     assert "Searching environments" in stdout
-    assert "conda" in stdout
+    assert "python" in stdout
 
 
 @pytest.mark.integration
 def test_search_envs_info(conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("search", "--envs", "--info", "conda")
+    # search environments for Python (will be present in testing env)
+    stdout, _, _ = conda_cli("search", "--envs", "--info", "python")
     assert "Searching environments" in stdout
-    assert "conda" in stdout
+    assert "python" in stdout
 
 
 @pytest.mark.integration
 def test_search_envs_json(conda_cli: CondaCLIFixture, capsys):
-    with capsys.disabled():
-        import sys
-
-        stdout, stderr, err = conda_cli("info", "--verbose")
-        print(stdout, file=sys.stderr)
-        print(stderr, file=sys.stderr)
-        print(err, file=sys.stderr)
-
-        stdout, stderr, err = conda_cli("config", "--show-sources")
-        print(stdout, file=sys.stderr)
-        print(stderr, file=sys.stderr)
-        print(err, file=sys.stderr)
-
-    stdout, _, _ = conda_cli("search", "--envs", "--json", "conda")
+    # search environments for Python (will be present in testing env)
+    stdout, _, _ = conda_cli("search", "--envs", "--json", "python")
     assert "Searching environments" not in stdout
     parsed = json.loads(stdout.strip())
     assert parsed
