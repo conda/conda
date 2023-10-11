@@ -194,22 +194,17 @@ def test_activate_environment_not_found(reset_environ: None):
         activator.build_activate("wontfindmeIdontexist_abc123")
 
 
-def test_PS1(reset_environ: None):
+def test_PS1(reset_environ: None, tmp_path: Path):
     activator = PosixActivator()
-    assert (
-        activator._prompt_modifier("/dont/matter", ROOT_ENV_NAME)
-        == "(%s) " % ROOT_ENV_NAME
-    )
+    assert activator._prompt_modifier(tmp_path, ROOT_ENV_NAME) == f"({ROOT_ENV_NAME}) "
 
     instructions = activator.build_activate("base")
-    assert (
-        instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == "(%s) " % ROOT_ENV_NAME
-    )
+    assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == f"({ROOT_ENV_NAME}) "
 
 
-def test_PS1_no_changeps1(reset_environ: None, no_changeps1: None):
+def test_PS1_no_changeps1(reset_environ: None, no_changeps1: None, tmp_path: Path):
     activator = PosixActivator()
-    assert activator._prompt_modifier("/dont/matter", "root") == ""
+    assert activator._prompt_modifier(tmp_path, "root") == ""
 
     instructions = activator.build_activate("base")
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
