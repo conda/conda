@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
