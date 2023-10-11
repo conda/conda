@@ -2995,9 +2995,9 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.sendline('powershell -NoProfile -c "(Get-Command conda).Source"')
         shell.expect_exact(conda_bat)
 
-        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
-        shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("_CE_CONDA", "conda")
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
         shell.assert_env_var("CONDA_PREFIX", charizard, True)
         PATH2 = shell.get_env_var("PATH", "").split(os.pathsep)
         log.debug(f"{PATH2=}")
@@ -3006,9 +3006,9 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.expect_exact(conda_bat)
 
         shell.sendline(f'conda activate --dev "{prefix}"')
-        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
-        shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("_CE_CONDA", "conda")
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
         shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
 
