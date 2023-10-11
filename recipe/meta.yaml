@@ -35,7 +35,7 @@ requirements:
     - tqdm >=4
   run:
     - boltons >=23.0.0
-    - chardet
+    - charset-normalizer
     - conda-package-handling >=2.2.0
     - jsonpatch >=1.32
     - menuinst >=1.4.11,<2         # [win]
