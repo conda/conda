@@ -17,4 +17,4 @@ from conda.env.env import (  # noqa
 )
 from conda.deprecations import deprecated
 
-deprecated.module("23.9", "24.3", addendum="Use `conda.env.env` instead.")
+deprecated.module("24.3", "24.9", addendum="Use `conda.env.env` instead.")

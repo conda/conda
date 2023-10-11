@@ -8,4 +8,4 @@ Common utilities for conda-env command line tools.
 from conda.deprecations import deprecated
 from conda.env.cli.common import get_filename, print_result  # noqa
 
-deprecated.module("23.9", "24.3", addendum="Use `conda.env.cli.common` instead.")
+deprecated.module("24.3", "24.9", addendum="Use `conda.env.cli.common` instead.")
