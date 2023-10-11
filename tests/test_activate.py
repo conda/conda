@@ -2246,13 +2246,13 @@ def test_json_basic(shell_wrapper_unit: str):
         assert json.loads(deactivate_data) == e_deactivate_data
 
 
-class InteractiveShell:
-    exe = quote_for_shell(native_path_to_unix(sys.executable))
-    SHELLS = {
+class InteractiveShellType(type):
+    EXE = quote_for_shell(native_path_to_unix(sys.executable))
+    SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",
             "init_command": (
-                f'eval "$({exe} -m conda shell.posix hook {dev_arg})"'
+                f'eval "$({EXE} -m conda shell.posix hook {dev_arg})"'
                 "&& conda deactivate"
                 "&& conda deactivate"
                 "&& conda deactivate"
@@ -2306,7 +2306,7 @@ class InteractiveShell:
         "tcsh": {"base_shell": "csh"},
         "fish": {
             "activator": "fish",
-            "init_command": f"eval ({exe} -m conda shell.fish hook {dev_arg})",
+            "init_command": f"eval ({EXE} -m conda shell.fish hook {dev_arg})",
             "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called
@@ -2325,8 +2325,18 @@ class InteractiveShell:
         "pwsh": {"base_shell": "powershell"},
         "pwsh-preview": {"base_shell": "powershell"},
     }
-    del exe
 
+    def __call__(self, shell_name: str):
+        return super().__call__(
+            shell_name,
+            **{
+                **self.SHELLS.get(self.SHELLS[shell_name].get("base_shell"), {}),
+                **self.SHELLS[shell_name],
+            },
+        )
+
+
+class InteractiveShell(metaclass=InteractiveShellType):
     def __init__(
         self,
         shell_name: str,
@@ -2348,16 +2358,6 @@ class InteractiveShell:
         self.init_command = init_command
         self.print_env_var = print_env_var
         self.exit_cmd = exit_cmd
-
-    @classmethod
-    def from_name(cls, shell_name: str):
-        return cls(
-            shell_name,
-            **{
-                **cls.SHELLS.get(cls.SHELLS[shell_name].get("base_shell"), {}),
-                **cls.SHELLS[shell_name],
-            },
-        )
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
@@ -2840,7 +2840,7 @@ def test_basic_integration(
     shell_name: str,
     script: Callable[[InteractiveShell, str, str, str], None],
 ):
-    with InteractiveShell.from_name(shell_name) as shell:
+    with InteractiveShell(shell_name) as shell:
         script(shell, *shell_wrapper_integration)
 
 
@@ -2850,7 +2850,7 @@ def test_basic_integration(
 def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
-    with InteractiveShell.from_name("fish") as shell:
+    with InteractiveShell("fish") as shell:
         shell.sendline("env | sort")
         # We should be seeing environment variable output to terminal with this line, but
         # we aren't.  Haven't experienced this problem yet with any other shell...
@@ -2881,7 +2881,7 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 
     posh_kind, posh_path = which_powershell()
     log.debug(f"## [PowerShell integration] Using {posh_path}.")
-    with InteractiveShell.from_name(posh_kind) as shell:
+    with InteractiveShell(posh_kind) as shell:
         log.debug("## [PowerShell integration] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
         shell.expect_exact("Alias")
@@ -2942,7 +2942,7 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
 
     posh_kind, posh_path = which_powershell()
     print(f"## [PowerShell activation PATH management] Using {posh_path}.")
-    with InteractiveShell.from_name(posh_kind) as shell:
+    with InteractiveShell(posh_kind) as shell:
         prefix = join(prefix, "envs", "test")
         print("## [PowerShell activation PATH management] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
@@ -2969,7 +2969,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
 
-    with InteractiveShell.from_name("cmd.exe") as shell:
+    with InteractiveShell("cmd.exe") as shell:
         shell.assert_env_var("_CE_CONDA", "conda")
         shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("CONDA_EXE", escape(sys.executable))
@@ -3043,7 +3043,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 @pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
-    with InteractiveShell.from_name("bash") as shell:
+    with InteractiveShell("bash") as shell:
         shell.sendline("export CONDA_SHLVL=unaffected")
         if on_win:
             shell.sendline("uname -o")
@@ -3062,7 +3062,7 @@ def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
 @pytest.mark.integration
 def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
-    with InteractiveShell.from_name("cmd.exe") as shell:
+    with InteractiveShell("cmd.exe") as shell:
         shell.sendline("set")
         shell.expect(".*")
         shell.sendline("conda activate --dev environment-not-found-doesnt-exist")
@@ -3083,7 +3083,7 @@ def test_legacy_activate_deactivate_bash(
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell.from_name("bash") as shell:
+    with InteractiveShell("bash") as shell:
         activator = PosixActivator()
         CONDA_PACKAGE_ROOT_p = activator.path_conversion(CONDA_PACKAGE_ROOT)
         prefix2_p = activator.path_conversion(prefix2)
@@ -3123,7 +3123,7 @@ def test_legacy_activate_deactivate_cmd_exe(
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell.from_name("cmd.exe") as shell:
+    with InteractiveShell("cmd.exe") as shell:
         shell.sendline("echo off")
 
         conda__ce_conda = shell.get_env_var("_CE_CONDA")
@@ -3213,7 +3213,7 @@ def test_activate_deactivate_modify_path(
         "--yes",
     )
 
-    with InteractiveShell.from_name(shell) as sh:
+    with InteractiveShell(shell) as sh:
         sh.sendline('conda activate "%s"' % prefix)
         activated_env_path = sh.get_env_var("PATH")
         sh.sendline("conda deactivate")
