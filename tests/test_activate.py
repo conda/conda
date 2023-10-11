@@ -2437,24 +2437,22 @@ class InteractiveShell:
         self.sendline(self.print_env_var % env_var)
         if use_exact:
             self.expect_exact(value)
-            self.expect(".*\n")
+            self.clear()
         else:
             self.expect(rf"{value}\r?\n")
 
     def get_env_var(self, env_var, default=None):
+        self.sendline(self.print_env_var % env_var)
         if self.shell_name == "cmd.exe":
-            self.sendline(cmd := self.print_env_var % env_var)
-            self.expect(rf"{escape(cmd)}\r?\n([^\r\n]*)\r?\n")
-        elif self.shell_name in ("powershell", "pwsh", "pwsh-preview"):
-            self.sendline(cmd := self.print_env_var % env_var)
-            self.expect(rf"{escape(cmd)}\r?\n([^\r\n]*)\r?\n")
+            self.expect(rf"@ECHO %{env_var}%\r?\n([^\r\n]*)\r?\n")
+        elif self.shell_name in ("powershell", "pwsh"):
+            self.expect(rf"\$Env:{env_var}\r?\n([^\r\n]*)\r?\n")
         else:
             marker = f"get_env_var-{uuid4().hex}"
-            self.sendline(self.print_env_var % env_var)
             self.sendline(f"echo {marker}")
             self.expect(rf"([^\r\n]*)\r?\n{marker}\r?\n")
 
-        value = self.p.match.groups()[0]
+        value = self.p.match.group(1)
         return default if value is None else value
 
     @overload
@@ -2659,7 +2657,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     )
 
     shell.sendline("conda" + install + f"-yq hdf5={HDF5_VERSION}")
-    shell.expect("Executing transaction: ...working... done.*\n", timeout=120)
+    shell.expect(r"Executing transaction: ...working... done.*\n", timeout=120)
     shell.assert_env_var("?", "0", use_exact=True)
 
     shell.sendline("h5stat --version")
@@ -2699,7 +2697,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
         assert PATH0 == PATH
 
     shell.sendline(shell.print_env_var % "PS1")
-    shell.expect(".*\n")
+    shell.clear()
     assert "CONDA_PROMPT_MODIFIER" not in str(shell.p.after)
 
     shell.sendline("conda" + deactivate)
@@ -2873,7 +2871,7 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
         shell.assert_env_var("CONDA_SHLVL", "0")
 
         shell.sendline(shell.print_env_var % "PS1")
-        shell.expect(".*\n")
+        shell.clear()
         assert "CONDA_PROMPT_MODIFIER" not in str(shell.p.after)
 
         shell.sendline("conda deactivate")
@@ -2916,7 +2914,7 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 
         log.debug("## [PowerShell integration] Installing.")
         shell.sendline(f"conda install -yq hdf5={HDF5_VERSION}")
-        shell.expect("Executing transaction: ...working... done.*\n", timeout=100)
+        shell.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
         shell.sendline("$LASTEXITCODE")
         shell.expect("0")
         # TODO: assert that reactivate worked correctly
@@ -2956,7 +2954,7 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
         shell.sendline("(Get-Command conda).Definition")
         shell.expect_exact("Invoke-Conda")
         shell.sendline("(Get-Command Invoke-Conda).Definition")
-        shell.expect(".*\n")
+        shell.clear()
 
         shell.sendline("conda deactivate")
         shell.sendline("conda deactivate")
@@ -2966,7 +2964,7 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
         shell.sendline("(Get-Command conda).CommandType")
         shell.expect_exact("Alias")
         shell.sendline(f'conda create -yqp "{prefix}" bzip2')
-        shell.expect("Executing transaction: ...working... done.*\n")
+        shell.expect(r"Executing transaction: ...working... done.*\n")
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
@@ -2976,9 +2974,9 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
 
     with InteractiveShell.from_name("cmd.exe") as shell:
-        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
-        shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("_CE_CONDA", "conda")
+        shell.assert_env_var("_CE_M", "-m")
+        shell.assert_env_var("CONDA_EXE", escape(sys.executable))
 
         # We use 'PowerShell' here because 'where conda' returns all of them and
         # shell.expect_exact does not do what you would think it does given its name.
@@ -3026,10 +3024,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         #       library critical to the correct functioning of
         #       Python (e.g. OpenSSL).
         shell.sendline(f"conda install --yes --quiet hdf5={HDF5_VERSION}")
-        shell.expect(
-            r"Executing transaction: \.\.\.working\.\.\. done.*\n",
-            timeout=100,
-        )
+        shell.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
         shell.assert_env_var("errorlevel", "0", True)
         # TODO: assert that reactivate worked correctly
 
@@ -3143,7 +3138,7 @@ def test_legacy_activate_deactivate_cmd_exe(
         shell.sendline("SET PATH=" + PATH)
 
         shell.sendline('activate --dev "%s"' % prefix2)
-        shell.expect(".*\n")
+        shell.clear()
 
         conda_shlvl = shell.get_env_var("CONDA_SHLVL")
         assert conda_shlvl == "1", conda_shlvl
