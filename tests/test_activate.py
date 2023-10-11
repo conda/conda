@@ -15,7 +15,7 @@ from shutil import which
 from signal import SIGINT
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
-from typing import Callable, Iterable, overload
+from typing import Callable, Iterable
 from uuid import uuid4
 
 import pytest
@@ -2375,9 +2375,9 @@ class InteractiveShell(metaclass=InteractiveShellType):
                 "CONDA_AUTO_STACK": "0",
                 "CONDA_CHANGEPS1": "true",
                 # "CONDA_ENV_PROMPT": "({default_env}) ",
-                "PYTHONPATH": self.convert(CONDA_SOURCE_ROOT),
+                "PYTHONPATH": self.activator.path_conversion(CONDA_SOURCE_ROOT),
                 "PATH": self.activator.pathsep_join(
-                    self.convert(
+                    self.activator.path_conversion(
                         (
                             *self.activator._get_starting_path_list(),
                             self.shell_dir,
@@ -2450,29 +2450,6 @@ class InteractiveShell(metaclass=InteractiveShellType):
 
         value = self.p.match.group(1)
         return default if value is None else value
-
-    @overload
-    def convert(self, paths: str) -> str:
-        ...
-
-    @overload
-    def convert(self, paths: tuple[str, ...]) -> tuple[str, ...]:
-        ...
-
-    @overload
-    def convert(self, paths: None) -> None:
-        ...
-
-    def convert(self, paths):
-        paths = self.activator.path_conversion(paths)
-        if not on_win:
-            return paths
-        elif not paths:
-            return None
-        elif isinstance(paths, str):
-            return paths.lower()
-        else:
-            return tuple(map(str.lower, paths))
 
     def clear(self) -> None:
         marker = f"clear-{uuid4().hex}"
