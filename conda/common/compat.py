@@ -118,10 +118,9 @@ def ensure_text_type(value) -> str:
         # In this case assume already text_type and do nothing
         return value
     except UnicodeDecodeError:  # pragma: no cover
-        from chardet import detect
+        from charset_normalizer import from_bytes
 
-        encoding = detect(value).get("encoding") or "utf-8"
-        return value.decode(encoding, errors="replace")
+        return from_bytes(value).best()
     except UnicodeEncodeError:  # pragma: no cover
         # it's already str, so ignore?
         # not sure, surfaced with tests/models/test_match_spec.py test_tarball_match_specs

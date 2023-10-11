@@ -1,7 +1,7 @@
 beautifulsoup4
 boltons >=23.0.0
 boto3
-chardet
+charset-normalizer
 conda
 conda-content-trust
 conda-forge::anaconda-client
