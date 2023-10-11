@@ -41,7 +41,6 @@ requirements:
     - packaging >=23.0
     - pluggy >=1.0.0
     - pycosat >=0.6.3
-    - pyopenssl >=16.2.0
     - python
     - requests >=2.27.0,<3
     - ruamel.yaml >=0.11.14,<0.18
