@@ -157,7 +157,7 @@ def reset_environ(monkeypatch: MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def changeps1(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
@@ -194,7 +194,7 @@ def test_activate_environment_not_found(reset_environ: None):
         activator.build_activate("wontfindmeIdontexist_abc123")
 
 
-def test_PS1(reset_environ: None, changeps1: None):
+def test_PS1(reset_environ: None):
     activator = PosixActivator()
     assert (
         activator._prompt_modifier("/dont/matter", ROOT_ENV_NAME)
@@ -340,7 +340,7 @@ def test_default_env(reset_environ: None):
         assert "named-env" == activator._default_env(p)
 
 
-def test_build_activate_dont_activate_unset_var(reset_environ: None, changeps1: None):
+def test_build_activate_dont_activate_unset_var(reset_environ: None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -401,7 +401,7 @@ def test_build_activate_dont_activate_unset_var(reset_environ: None, changeps1: 
                 assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None, changeps1: None):
+def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -461,7 +461,7 @@ def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None, changeps1: 
                 assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_0(reset_environ: None, changeps1: None):
+def test_build_activate_shlvl_0(reset_environ: None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -1275,7 +1275,7 @@ def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
         assert all(assert_unix_path(path) for path in native_path_to_unix(paths))
 
 
-def test_posix_basic(shell_wrapper_unit: str, changeps1: None):
+def test_posix_basic(shell_wrapper_unit: str):
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1416,7 +1416,7 @@ def test_posix_basic(shell_wrapper_unit: str, changeps1: None):
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
-def test_cmd_exe_basic(shell_wrapper_unit: str, changeps1: None):
+def test_cmd_exe_basic(shell_wrapper_unit: str):
     # NOTE :: We do not want dev mode here.
     context.dev = False
     activator = CmdExeActivator()
@@ -1556,7 +1556,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, changeps1: None):
         assert deactivate_data == e_deactivate_data
 
 
-def test_csh_basic(shell_wrapper_unit: str, changeps1: None):
+def test_csh_basic(shell_wrapper_unit: str):
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1695,7 +1695,7 @@ def test_csh_basic(shell_wrapper_unit: str, changeps1: None):
         assert deactivate_data == e_deactivate_data
 
 
-def test_xonsh_basic(shell_wrapper_unit: str, changeps1: None):
+def test_xonsh_basic(shell_wrapper_unit: str):
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1845,7 +1845,7 @@ def test_xonsh_basic(shell_wrapper_unit: str, changeps1: None):
         assert deactivate_data == e_deactivate_data
 
 
-def test_fish_basic(shell_wrapper_unit: str, changeps1: None):
+def test_fish_basic(shell_wrapper_unit: str):
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1976,7 +1976,7 @@ def test_fish_basic(shell_wrapper_unit: str, changeps1: None):
         assert deactivate_data == e_deactivate_data
 
 
-def test_powershell_basic(shell_wrapper_unit: str, changeps1: None):
+def test_powershell_basic(shell_wrapper_unit: str):
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -2105,7 +2105,7 @@ def test_unicode(shell_wrapper_unit: str):
                     main_sourced(shell, *activate_args, shell_wrapper_unit)
 
 
-def test_json_basic(shell_wrapper_unit: str, changeps1: None):
+def test_json_basic(shell_wrapper_unit: str):
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
