@@ -2251,7 +2251,13 @@ class InteractiveShell:
     SHELLS = {
         "posix": {
             "activator": "posix",
-            "init_command": (f'eval "$({exe} -m conda shell.posix hook {dev_arg})"'),
+            "init_command": (
+                f'eval "$({exe} -m conda shell.posix hook {dev_arg})"'
+                "&& conda deactivate"
+                "&& conda deactivate"
+                "&& conda deactivate"
+                "&& conda deactivate"
+            ),
             "print_env_var": 'echo "$%s"',
         },
         "bash": {
@@ -2389,11 +2395,6 @@ class InteractiveShell:
         if self.init_command:
             self.p.sendline(self.init_command)
 
-        self.sendline("conda deactivate --dev")
-        self.sendline("conda deactivate --dev")
-        self.sendline("conda deactivate --dev")
-        self.sendline("conda activate --dev base")  # intentional
-        self.sendline("conda deactivate --dev")
         self.clear()
 
         return self
