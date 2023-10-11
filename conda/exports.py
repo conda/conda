@@ -229,6 +229,7 @@ def get_index(
     return {Dist(prec): prec for prec in index.values()}
 
 
+@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
 def fetch_index(channel_urls, use_cache=False, index=None):
     index = _fetch_index(channel_urls, use_cache, index)
     return {Dist(prec): prec for prec in index.values()}
