@@ -14,10 +14,16 @@ def test_export(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     monkeypatch: MonkeyPatch,
+    request
 ):
     """Test that `conda list --export` output can be used to create a similar environment."""
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
     reset_context()
+
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    from conda.base.context import context
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+
     # assert context.channels == ("defaults",)
 
     # use "cheap" packages with no dependencies
@@ -41,8 +47,13 @@ def test_explicit(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
+    request
 ):
     """Test that `conda list --explicit` output can be used to recreate an identical environment."""
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    from conda.base.context import context
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+
     # use "cheap" packages with no dependencies
     with tmp_env("pkgs/main::zlib", "conda-forge::ca-certificates") as prefix:
         assert package_is_installed(prefix, "pkgs/main::zlib")
