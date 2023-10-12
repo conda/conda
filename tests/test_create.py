@@ -910,7 +910,10 @@ def test_update_with_pinned_packages(clear_package_cache: None):
         assert not package_is_installed(prefix, "python=2.7.12")
 
 
-def test_pinned_override_with_explicit_spec(clear_package_cache: None):
+def test_pinned_override_with_explicit_spec(clear_package_cache: None, request):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+
     with make_temp_env("python=3.9") as prefix:
         pyver = next(PrefixData(prefix).query("python")).version
         run_command(
@@ -963,7 +966,10 @@ def test_allow_softlinks(hardlink_supported_mock, clear_package_cache: None):
 
 
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-def test_remove_features(clear_package_cache: None):
+def test_remove_features(clear_package_cache: None, request):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+
     with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "numpy")
@@ -2450,7 +2456,10 @@ def test_use_index_cache(clear_package_cache: None):
             )
 
 
-def test_offline_with_empty_index_cache(clear_package_cache: None):
+def test_offline_with_empty_index_cache(clear_package_cache: None, request):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    
     from conda.core.subdir_data import SubdirData
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
