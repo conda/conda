@@ -3342,3 +3342,14 @@ def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
         )
         == expected
     )
+
+
+def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
+    # Call activate and check that the proper error shows up
+    assert "ERROR: Run 'conda init' before 'conda activate'" in conda_cli("activate")[0]
+
+    # Call deactivate and check that the proper error shows up
+    assert (
+        "ERROR: Run 'conda init' before 'conda deactivate'"
+        in conda_cli("deactivate")[0]
+    )

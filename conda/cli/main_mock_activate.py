@@ -7,4 +7,4 @@ A mock implementation of the activate shell command for better UX.
 
 
 def execute(args, parser):
-    print("ERROR Run `conda init` before `conda activate`")
+    print("ERROR: Run 'conda init' before 'conda activate'")
