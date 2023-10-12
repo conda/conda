@@ -245,7 +245,7 @@ class MatchSpec(metaclass=MatchSpecType):
 
     def match(self, rec):
         """
-        Accepts an `IndexRecord` or a dict, and matches can pull from any field
+        Accepts a `PackageRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
