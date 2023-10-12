@@ -3194,12 +3194,23 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
-        assert (
-            "incompatible with the existing python installation in your environment:"
-            in error_msg
-        )
-        assert "- scikit-learn==0.13 -> python=2.7" in error_msg
-        assert "Your python: python=2.6" in error_msg
+        # libmamba has a significantly more detailed (and different) error messages
+        if context.solver == "classic":
+            error_snippets = [
+                "incompatible with the existing python installation in your environment:",
+                "- scikit-learn==0.13 -> python=2.7",
+                "Your python: python=2.6",
+            ]
+        elif context.solver == "libmamba":
+            error_snippets = [
+                "Encountered problems while solving",
+                "Pins seem to be involved in the conflict. Currently pinned specs",
+                "python 2.6.*",
+                "scikit-learn 0.13",
+            ]
+
+        for snippet in error_snippets:
+            assert snippet in error_msg
 
     specs_to_add = (MatchSpec("unsatisfiable-with-py26"),)
     with get_solver(
@@ -3211,12 +3222,23 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
         error_msg = str(exc.value).strip()
-        assert (
-            "incompatible with the existing python installation in your environment:"
-            in error_msg
-        )
-        assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
-        assert "Your python: python=2.6"
+        # libmamba has a significantly more detailed (and different) error messages
+        if context.solver == "classic":
+            error_snippets = [
+                "incompatible with the existing python installation in your environment:",
+                "- unsatisfiable-with-py26 -> python=2.7",
+                "Your python: python=2.6",
+            ]
+        elif context.solver == "libmamba":
+            error_snippets = [
+                "Encountered problems while solving",
+                "Pins seem to be involved in the conflict. Currently pinned specs",
+                "python 2.6.*",
+                "unsatisfiable-with-py26",
+            ]
+
+        for snippet in error_snippets:
+            assert snippet in error_msg
 
 
 fake_index = [
