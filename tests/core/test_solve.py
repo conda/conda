@@ -740,7 +740,7 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
     """Regression test: Check that prefix data is not taken into account when solving on prune."""
     # "Create" a conda env with specs that "pin" dependencies.
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba" and not prune, reason="see PR #12984", strict=True))
 
     specs = (
         MatchSpec("python=2.7"),
@@ -2632,7 +2632,10 @@ def test_force_reinstall_2(tmpdir):
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_timestamps_1(tmpdir):
+def test_timestamps_1(tmpdir, request):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+
     specs = (MatchSpec("python=3.6.2"),)
     with get_solver_4(tmpdir, specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
@@ -2659,7 +2662,10 @@ def test_timestamps_1(tmpdir):
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_channel_priority_churn_minimized(tmpdir):
+def test_channel_priority_churn_minimized(tmpdir, request):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+
     specs = (
         MatchSpec("conda-build"),
         MatchSpec("itsdangerous"),
