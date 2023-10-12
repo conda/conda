@@ -1137,6 +1137,10 @@ def test_install_update_deps_only_deps_flags(clear_package_cache: None):
 
 @pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
 def test_install_features(clear_package_cache: None):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    if context.solver == "libmamba":
+        pytest.xfail("libmamba solver failing test see PR #12984")
+
     with make_temp_env("python=2", "numpy=1.13", "nomkl", no_capture=True) as prefix:
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
@@ -2036,6 +2040,10 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
     reason="Skip unsupported platforms",
 )
 def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    if context.solver == "libmamba":
+        pytest.xfail("libmamba solver failing test see PR #12984")
+
     with env_vars(
         {
             "CONDA_REPORT_ERRORS": "false",
