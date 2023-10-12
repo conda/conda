@@ -81,10 +81,9 @@ def test_solve_1(tmpdir):
         assert convert_to_dist_str(final_state) == order
 
 
-def test_solve_2(tmpdir):
+def test_solve_2(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (MatchSpec("numpy"),)
 
@@ -396,11 +395,9 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
             with pytest.raises(UnsatisfiableError):
                 solver.solve_final_state()
 
-
-def test_prune_1(tmpdir):
+def test_prune_1(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (
         MatchSpec("numpy=1.6"),
@@ -528,13 +525,12 @@ def test_update_prune_1(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_update_prune_2(tmpdir):
+def test_update_prune_2(tmpdir, request):
     """Regression test: Ensure that update with prune is pruning dependencies
     of packages that are removed from environment as well.
     """
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (
         MatchSpec("python=2.7.3"),
@@ -602,13 +598,12 @@ def test_update_prune_2(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_update_prune_3(tmpdir):
+def test_update_prune_3(tmpdir, request):
     """Ensure that update with prune is not removing packages that are still
     needed by remaining specs.
     """
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (
         MatchSpec("numpy"),
@@ -741,12 +736,11 @@ def test_update_prune_4(tmpdir):
 
 
 @pytest.mark.parametrize("prune", [True, False])
-def test_update_prune_5(tmpdir, prune, capsys):
+def test_update_prune_5(tmpdir, prune, capsys, request):
     """Regression test: Check that prefix data is not taken into account when solving on prune."""
     # "Create" a conda env with specs that "pin" dependencies.
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba" and not prune:
-        pytest.xfail("libmamba solver failing test see PR #12984")
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (
         MatchSpec("python=2.7"),
@@ -776,10 +770,9 @@ def test_update_prune_5(tmpdir, prune, capsys):
     assert ("Updating numexpr is constricted by" in out) is solve_using_prefix_data
 
 
-def test_force_remove_1(tmpdir):
+def test_force_remove_1(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (MatchSpec("numpy[version=*,build=*py27*]"),)
     with get_solver(tmpdir, specs) as solver:
@@ -1229,10 +1222,9 @@ def test_broken_install(tmpdir):
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade(tmpdir):
+def test_conda_downgrade(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (MatchSpec("conda-build"),)
     with env_var(
@@ -1842,10 +1834,9 @@ def test_aggressive_update_packages(tmpdir):
         )
 
 
-def test_python2_update(tmpdir):
+def test_python2_update(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     # Here we're actually testing that a user-request will uninstall incompatible packages
     # as necessary.
@@ -2137,10 +2128,9 @@ def test_update_deps_2(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_fast_update_with_update_modifier_not_set(tmpdir):
+def test_fast_update_with_update_modifier_not_set(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (
         MatchSpec("python=2"),
@@ -2776,10 +2766,9 @@ def test_remove_with_constrained_dependencies(tmpdir):
             assert spec in convert_to_dist_str(unlink_dists_2)
 
 
-def test_priority_1(tmpdir):
+def test_priority_1(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     with env_var(
         "CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -2874,10 +2863,9 @@ def test_priority_1(tmpdir):
             assert "pandas" not in convert_to_dist_str(final_state_4)
 
 
-def test_features_solve_1(tmpdir):
+def test_features_solve_1(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
@@ -2937,10 +2925,9 @@ def test_features_solve_1(tmpdir):
 
 
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
-def test_freeze_deps_1(tmpdir):
+def test_freeze_deps_1(tmpdir, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
+    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
 
     specs = (MatchSpec("six=1.7"),)
     with get_solver_2(tmpdir, specs) as solver:
