@@ -281,7 +281,7 @@ def test_notices_appear_once_when_running_decorated_commands(
     if context.solver == "classic":
         PACKAGE_MISSING_MESSAGE = "The following packages are missing from the target environment"
     elif context.solver == "libmamba":
-         PACKAGE_MISSING_MESSAGE = "The following packages are not available from current channels"
+        PACKAGE_MISSING_MESSAGE = "The following packages are not available from current channels"
 
     # First run of install; notices should be retrieved; it's okay that this function fails
     # to install anything.
