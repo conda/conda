@@ -2541,7 +2541,9 @@ def test_offline_with_empty_index_cache(clear_package_cache: None):
                             assert result_dict.get("local_channel_seen")
 
                         # Fails because pytz cannot be found in available channels.
-                        with pytest.raises(PackagesNotFoundError):
+                        # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
+                        # We can remove it when 23.9.2 is out with a fix
+                        with pytest.raises((PackagesNotFoundError, RuntimeError)):
                             run_command(
                                 Commands.INSTALL,
                                 prefix,
