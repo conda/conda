@@ -308,17 +308,17 @@ def _patch_for_local_exports(name, subdir_data):
 
 
 def _get_index_r_base(
-    json_filename_or_data,
+    json_filename_or_packages,
     channel_name,
     subdir=context.subdir,
     add_pip=False,
     merge_noarch=False,
 ):
-    if isinstance(json_filename_or_data, (str, os.PathLike)):
-        with open(join(TEST_DATA_DIR, json_filename_or_data)) as fi:
+    if isinstance(json_filename_or_packages, (str, os.PathLike)):
+        with open(join(TEST_DATA_DIR, json_filename_or_packages)) as fi:
             all_packages = json.load(fi)
-    elif isinstance(json_filename_or_data, dict):
-        all_packages = json_filename_or_data
+    elif isinstance(json_filename_or_packages, dict):
+        all_packages = json_filename_or_packages
     else:
         raise ValueError("'json_filename_or_data' must be path-like or dict")
 
@@ -414,83 +414,76 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
 @lru_cache(maxsize=None)
 def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
-        "info": {
-            "subdir": subdir,
-            "arch": context.arch_name,
-            "platform": context.platform,
+        "foobar-1.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": ["libbar 2.0.*", "libfoo 1.0.*"],
+            "md5": "11ec1194bcc56b9a53c127142a272772",
+            "name": "foobar",
+            "timestamp": 1562861325613,
+            "version": "1.0",
         },
-        "packages": {
-            "foobar-1.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": ["libbar 2.0.*", "libfoo 1.0.*"],
-                "md5": "11ec1194bcc56b9a53c127142a272772",
-                "name": "foobar",
-                "timestamp": 1562861325613,
-                "version": "1.0",
-            },
-            "foobar-2.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": ["libbar 2.0.*", "libfoo 2.0.*"],
-                "md5": "f8eb5a7fa1ff6dead4e360631a6cd048",
-                "name": "foobar",
-                "version": "2.0",
-            },
-            "libbar-1.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": [],
-                "md5": "f51f4d48a541b7105b5e343704114f0f",
-                "name": "libbar",
-                "timestamp": 1562858881022,
-                "version": "1.0",
-            },
-            "libbar-2.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": [],
-                "md5": "27f4e717ed263f909074f64d9cbf935d",
-                "name": "libbar",
-                "timestamp": 1562858881748,
-                "version": "2.0",
-            },
-            "libfoo-1.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": [],
-                "md5": "ad7c088566ffe2389958daedf8ff312c",
-                "name": "libfoo",
-                "timestamp": 1562858763881,
-                "version": "1.0",
-            },
-            "libfoo-2.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": [],
-                "md5": "daf7af7086d8f22be49ae11bdc41f332",
-                "name": "libfoo",
-                "timestamp": 1562858836924,
-                "version": "2.0",
-            },
-            "qux-1.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": ["libbar 2.0.*", "libfoo 1.0.*"],
-                "md5": "18604cbe4f789fe853232eef4babd4f9",
-                "name": "qux",
-                "timestamp": 1562861393808,
-                "version": "1.0",
-            },
-            "qux-2.0-0.tar.bz2": {
-                "build": "0",
-                "build_number": 0,
-                "depends": ["libbar 1.0.*", "libfoo 2.0.*"],
-                "md5": "892aa4b9ec64b67045a46866ef1ea488",
-                "name": "qux",
-                "timestamp": 1562861394828,
-                "version": "2.0",
-            },
+        "foobar-2.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": ["libbar 2.0.*", "libfoo 2.0.*"],
+            "md5": "f8eb5a7fa1ff6dead4e360631a6cd048",
+            "name": "foobar",
+            "version": "2.0",
+        },
+        "libbar-1.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": [],
+            "md5": "f51f4d48a541b7105b5e343704114f0f",
+            "name": "libbar",
+            "timestamp": 1562858881022,
+            "version": "1.0",
+        },
+        "libbar-2.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": [],
+            "md5": "27f4e717ed263f909074f64d9cbf935d",
+            "name": "libbar",
+            "timestamp": 1562858881748,
+            "version": "2.0",
+        },
+        "libfoo-1.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": [],
+            "md5": "ad7c088566ffe2389958daedf8ff312c",
+            "name": "libfoo",
+            "timestamp": 1562858763881,
+            "version": "1.0",
+        },
+        "libfoo-2.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": [],
+            "md5": "daf7af7086d8f22be49ae11bdc41f332",
+            "name": "libfoo",
+            "timestamp": 1562858836924,
+            "version": "2.0",
+        },
+        "qux-1.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": ["libbar 2.0.*", "libfoo 1.0.*"],
+            "md5": "18604cbe4f789fe853232eef4babd4f9",
+            "name": "qux",
+            "timestamp": 1562861393808,
+            "version": "1.0",
+        },
+        "qux-2.0-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": ["libbar 1.0.*", "libfoo 2.0.*"],
+            "md5": "892aa4b9ec64b67045a46866ef1ea488",
+            "name": "qux",
+            "timestamp": 1562861394828,
+            "version": "2.0",
         },
     }
     _get_index_r_base(
