@@ -9,6 +9,7 @@ from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
+
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "pinned_package",

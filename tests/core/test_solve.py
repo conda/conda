@@ -1,17 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import copy
-import platform
 import sys
 from pprint import pprint
 from unittest.mock import Mock
 
 import pytest
 
-from conda._vendor.cpuinfo import get_cpu_info
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.compat import on_linux, on_mac, on_win
+from conda.common.compat import on_linux
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
@@ -81,9 +79,11 @@ def test_solve_1(tmpdir):
         assert convert_to_dist_str(final_state) == order
 
 
-def test_solve_2(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+def test_solve_2(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip(
+            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+        )
 
     specs = (MatchSpec("numpy"),)
 
@@ -160,7 +160,9 @@ def test_solve_2(tmpdir, request):
 
 def test_virtual_package_solver(tmpdir, clear_cuda_version):
     if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver does not use the SSC object")
+        pytest.skip(
+            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+        )
 
     specs = (MatchSpec("cudatoolkit"),)
 
@@ -228,21 +230,6 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
             with pytest.raises(UnsatisfiableError) as exc:
                 solver.solve_final_state()
 
-    if on_mac:
-        if "ARM_8" in get_cpu_info()["arch"]:
-            plat = "osx-arm64"
-        else:
-            plat = "osx-64"
-    elif on_linux:
-        plat = "linux-64"
-    elif on_win:
-        if platform.architecture()[0] == "32bit":
-            plat = "win-32"
-        else:
-            plat = "win-64"
-    else:
-        plat = "linux-64"
-
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -262,7 +249,7 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
         assert str(exc.value).strip() == dals(
             f"""The following specifications were found to be incompatible with your system:
 
-  - feature:/{plat}::__cuda==8.0=0
+  - feature:/{context._native_subdir()}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed version is: 8.0"""
@@ -395,9 +382,15 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
             with pytest.raises(UnsatisfiableError):
                 solver.solve_final_state()
 
+
 def test_prune_1(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
 
     specs = (
         MatchSpec("numpy=1.6"),
@@ -529,8 +522,13 @@ def test_update_prune_2(tmpdir, request):
     """Regression test: Ensure that update with prune is pruning dependencies
     of packages that are removed from environment as well.
     """
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
 
     specs = (
         MatchSpec("python=2.7.3"),
@@ -602,8 +600,13 @@ def test_update_prune_3(tmpdir, request):
     """Ensure that update with prune is not removing packages that are still
     needed by remaining specs.
     """
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
 
     specs = (
         MatchSpec("numpy"),
@@ -739,8 +742,13 @@ def test_update_prune_4(tmpdir):
 def test_update_prune_5(tmpdir, prune, capsys, request):
     """Regression test: Check that prefix data is not taken into account when solving on prune."""
     # "Create" a conda env with specs that "pin" dependencies.
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba" and not prune, reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba" and not prune,
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
 
     specs = (
         MatchSpec("python=2.7"),
@@ -771,8 +779,14 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
 
 
 def test_force_remove_1(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Known limitation. VERIFY task needed to make this pass, but breaks other tests."
+            " See https://github.com/conda/conda-libmamba-solver/pull/302",
+            strict=True,
+        )
+    )
 
     specs = (MatchSpec("numpy[version=*,build=*py27*]"),)
     with get_solver(tmpdir, specs) as solver:
@@ -1116,7 +1130,7 @@ def test_update_all_1(tmpdir):
 
 def test_broken_install(tmpdir):
     if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver does not use the ._r (Resolve) object")
+        pytest.skip("conda-libmamba-solver does not use a Solver._r (Resolve) object")
 
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
@@ -1222,10 +1236,7 @@ def test_broken_install(tmpdir):
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
-
+def test_conda_downgrade(tmpdir):
     specs = (MatchSpec("conda-build"),)
     with env_var(
         "CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -1408,24 +1419,24 @@ def test_conda_downgrade(tmpdir, request):
                     "channel-4::conda-build-3.12.1-py36_0",
                 )
             )
-            # if context.solver == "libmamba":
-            #     # LIBMAMBA ADJUSTMENT
-            #     # We only check for conda itself and the explicit specs
-            #     # The other packages are slightly different;
-            #     # again libedit and ncurses are involved
-            #     # (they are also involved in test_fast_update_with_update_modifier_not_set)
-            #     for pkg in link_precs:
-            #         if pkg.name == "conda":
-            #             assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
-            #         elif pkg.name == "python":
-            #             assert pkg.version == "3.6.2"
-            #         elif pkg.name == "conda-build":
-            #             assert pkg.version == "3.12.1"
-            #         elif pkg.name == "itsdangerous":
-            #             assert pkg.version == "0.24"
-            # else:
-            assert convert_to_dist_str(unlink_precs) == unlink_order
-            assert convert_to_dist_str(link_precs) == link_order
+            if context.solver == "libmamba":
+                # LIBMAMBA ADJUSTMENT
+                # We only check for conda itself and the explicit specs
+                # The other packages are slightly different;
+                # again libedit and ncurses are involved
+                # (they are also involved in test_fast_update_with_update_modifier_not_set)
+                for pkg in link_precs:
+                    if pkg.name == "conda":
+                        assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
+                    elif pkg.name == "python":
+                        assert pkg.version == "3.6.2"
+                    elif pkg.name == "conda-build":
+                        assert pkg.version == "3.12.1"
+                    elif pkg.name == "itsdangerous":
+                        assert pkg.version == "0.24"
+            else:
+                assert convert_to_dist_str(unlink_precs) == unlink_order
+                assert convert_to_dist_str(link_precs) == link_order
     finally:
         sys.prefix = saved_sys_prefix
 
@@ -1834,10 +1845,7 @@ def test_aggressive_update_packages(tmpdir):
         )
 
 
-def test_python2_update(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
-
+def test_python2_update(tmpdir):
     # Here we're actually testing that a user-request will uninstall incompatible packages
     # as necessary.
     specs = MatchSpec("conda"), MatchSpec("python=2")
@@ -1924,22 +1932,22 @@ def test_python2_update(tmpdir, request):
             )
         )
         full_solution = convert_to_dist_str(final_state_2)
-        # if context.solver == "libmamba":
-        #     # LIBMAMBA ADJUSTMENT
-        #     # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
-        #     # and cryptography-vectors (not present in regular conda)
-        #     # they are essentially the same functional solution; the important part here
-        #     # is that the env migrated to Python 3.7, so we only check some packages
-        #     important_parts = add_subdir_to_iter(
-        #         (
-        #             "channel-4::python-3.7.0-hc3d631a_0",
-        #             "channel-4::conda-4.5.10-py37_0",
-        #             "channel-4::pycosat-0.6.3-py37h14c3975_0",
-        #         )
-        #     )
-        #     assert set(important_parts).issubset(set(full_solution))
-        # else:
-        assert full_solution == order
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
+            # and cryptography-vectors (not present in regular conda)
+            # they are essentially the same functional solution; the important part here
+            # is that the env migrated to Python 3.7, so we only check some packages
+            important_parts = add_subdir_to_iter(
+                (
+                    "channel-4::python-3.7.0-hc3d631a_0",
+                    "channel-4::conda-4.5.10-py37_0",
+                    "channel-4::pycosat-0.6.3-py37h14c3975_0",
+                )
+            )
+            assert set(important_parts).issubset(set(full_solution))
+        else:
+            assert full_solution == order
 
 
 def test_update_deps_1(tmpdir):
@@ -2128,10 +2136,7 @@ def test_update_deps_2(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_fast_update_with_update_modifier_not_set(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
-
+def test_fast_update_with_update_modifier_not_set(tmpdir):
     specs = (
         MatchSpec("python=2"),
         MatchSpec("openssl==1.0.2l"),
@@ -2182,18 +2187,18 @@ def test_fast_update_with_update_modifier_not_set(tmpdir, request):
                 "channel-4::python-3.6.4-hc3d631a_1",  # python is upgraded
             )
         )
-        # if context.solver == "libmamba":
-        #     # LIBMAMBA ADJUSTMENT
-        #     # We only check python was upgraded as expected, not the full solution
-        #     assert add_subdir(
-        #         "channel-4::python-2.7.14-h89e7a4a_22"
-        #     ) in convert_to_dist_str(unlink_precs)
-        #     assert add_subdir(
-        #         "channel-4::python-3.6.4-hc3d631a_1"
-        #     ) in convert_to_dist_str(link_precs)
-        # else:
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # We only check python was upgraded as expected, not the full solution
+            assert add_subdir(
+                "channel-4::python-2.7.14-h89e7a4a_22"
+            ) in convert_to_dist_str(unlink_precs)
+            assert add_subdir(
+                "channel-4::python-3.6.4-hc3d631a_1"
+            ) in convert_to_dist_str(link_precs)
+        else:
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = (MatchSpec("sqlite"),)
     with get_solver_4(
@@ -2220,22 +2225,22 @@ def test_fast_update_with_update_modifier_not_set(tmpdir, request):
                 "channel-4::python-2.7.15-h1571d57_0",  # python is not upgraded
             )
         )
-        # if context.solver == "libmamba":
-        #     # LIBMAMBA ADJUSTMENT
-        #     # We only check sqlite was upgraded as expected and python stays the same
-        #     assert add_subdir(
-        #         "channel-4::sqlite-3.21.0-h1bed415_2"
-        #     ) in convert_to_dist_str(unlink_precs)
-        #     sqlite = next(pkg for pkg in link_precs if pkg.name == "sqlite")
-        #     # mamba chooses a different sqlite version (3.23 instead of 3.24)
-        #     assert VersionOrder(sqlite.version) > VersionOrder("3.21")
-        #     # If Python was changed, it should have stayed at 2.7
-        #     python = next((pkg for pkg in link_precs if pkg.name == "python"), None)
-        #     if python:
-        #         assert python.version.startswith("2.7")
-        # else:
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # We only check sqlite was upgraded as expected and python stays the same
+            assert add_subdir(
+                "channel-4::sqlite-3.21.0-h1bed415_2"
+            ) in convert_to_dist_str(unlink_precs)
+            sqlite = next(pkg for pkg in link_precs if pkg.name == "sqlite")
+            # mamba chooses a different sqlite version (3.23 instead of 3.24)
+            assert VersionOrder(sqlite.version) > VersionOrder("3.21")
+            # If Python was changed, it should have stayed at 2.7
+            python = next((pkg for pkg in link_precs if pkg.name == "python"), None)
+            if python:
+                assert python.version.startswith("2.7")
+        else:
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = (
         MatchSpec("sqlite"),
@@ -2253,10 +2258,6 @@ def test_fast_update_with_update_modifier_not_set(tmpdir, request):
 
 @pytest.mark.integration
 def test_pinned_1(tmpdir):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    if context.solver == "libmamba":
-        pytest.xfail("libmamba solver failing test see PR #12984")    
-
     specs = (MatchSpec("numpy"),)
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -2345,22 +2346,22 @@ def test_pinned_1(tmpdir):
             prefix_records=final_state_1,
             history_specs=specs,
         ) as solver:
-            # if context.solver == "libmamba":
-            #     # LIBMAMBA ADJUSTMENT
-            #     # Original tests checks for SpecsConfigurationConflictError
-            #     # being raised but libmamba will fails with UnsatisfiableError
-            #     # instead. Hence, we check the error string.
-            #     with pytest.raises(UnsatisfiableError) as exc_info:
-            #         solver.solve_final_state(ignore_pinned=False)
-            #     error = str(exc_info.value)
-            #     assert "package scikit-learn-0.13" in error
-            #     assert "requires python 2.7*" in error
-            # else:
-            with pytest.raises(SpecsConfigurationConflictError) as exc:
-                solver.solve_final_state(ignore_pinned=False)
-            kwargs = exc.value._kwargs
-            assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
-            assert kwargs["pinned_specs"] == ["python=2.6"]
+            if context.solver == "libmamba":
+                # LIBMAMBA ADJUSTMENT
+                # Original tests checks for SpecsConfigurationConflictError
+                # being raised but libmamba will fails with UnsatisfiableError
+                # instead. Hence, we check the error string.
+                with pytest.raises(UnsatisfiableError) as exc_info:
+                    solver.solve_final_state(ignore_pinned=False)
+                error = str(exc_info.value)
+                assert "package scikit-learn-0.13" in error
+                assert "requires python 2.7*" in error
+            else:
+                with pytest.raises(SpecsConfigurationConflictError) as exc:
+                    solver.solve_final_state(ignore_pinned=False)
+                kwargs = exc.value._kwargs
+                assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
+                assert kwargs["pinned_specs"] == ["python=2.6"]
 
         specs_to_add = (MatchSpec("numba"),)
         history_specs = (
@@ -2465,7 +2466,12 @@ def test_pinned_1(tmpdir):
             assert convert_to_dist_str(final_state_5) == order
 
     # now update without pinning
-    specs_to_add = (MatchSpec("python"),)
+    if context.solver == "libmamba":
+        # LIBMAMBA ADJUSTMENT:
+        # libmamba decides to stay in python=2.6 unless explicit
+        specs_to_add = (MatchSpec("python=3"),)
+    else:
+        specs_to_add = (MatchSpec("python"),)
     history_specs = (
         MatchSpec("python"),
         MatchSpec("system=5.8=0"),
@@ -2632,10 +2638,7 @@ def test_force_reinstall_2(tmpdir):
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_timestamps_1(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
-
+def test_timestamps_1(tmpdir):
     specs = (MatchSpec("python=3.6.2"),)
     with get_solver_4(tmpdir, specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
@@ -2662,10 +2665,7 @@ def test_timestamps_1(tmpdir, request):
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_channel_priority_churn_minimized(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
-
+def test_channel_priority_churn_minimized(tmpdir):
     specs = (
         MatchSpec("conda-build"),
         MatchSpec("itsdangerous"),
@@ -2773,8 +2773,15 @@ def test_remove_with_constrained_dependencies(tmpdir):
 
 
 def test_priority_1(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    if context.solver == "libmamba":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "libmamba",
+                reason="libmamba is 'lazier' to change channels if the installed one already "
+                "satisfies the request.",
+                strict=True,
+            )
+        )
 
     with env_var(
         "CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -2870,8 +2877,13 @@ def test_priority_1(tmpdir, request):
 
 
 def test_features_solve_1(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
 
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
@@ -2931,13 +2943,9 @@ def test_features_solve_1(tmpdir, request):
 
 
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
-def test_freeze_deps_1(tmpdir, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
-
+def test_freeze_deps_1(tmpdir):
     specs = (MatchSpec("six=1.7"),)
     with get_solver_2(tmpdir, specs) as solver:
-        # solver._command = "install"
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -2958,7 +2966,6 @@ def test_freeze_deps_1(tmpdir, request):
     with get_solver_2(
         tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
     ) as solver:
-        # solver._command = "install"
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -2990,7 +2997,6 @@ def test_freeze_deps_1(tmpdir, request):
         prefix_records=final_state_1,
         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4")),
     ) as solver:
-        # solver._command = "install"
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -3023,7 +3029,6 @@ def test_freeze_deps_1(tmpdir, request):
             prefix_records=final_state_1,
             history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4")),
         ) as solver:
-            # solver._command = "install"
             unlink_precs, link_precs = solver.solve_for_diff()
 
     # adding the explicit python spec allows conda to change the python versions.
@@ -3037,7 +3042,6 @@ def test_freeze_deps_1(tmpdir, request):
         prefix_records=final_state_1,
         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4")),
     ) as solver:
-        # solver._command = "install"
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
         pprint(convert_to_dist_str(link_precs))
@@ -3045,14 +3049,11 @@ def test_freeze_deps_1(tmpdir, request):
             (
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
-                "channel-2::xz-5.2.3-0",
+                # LIBMAMBA ADJUSTMENT
+                # libmamba doesn't remove xz in this solve
+                *(() if context.solver == "libmamba" else ("channel-2::xz-5.2.3-0",)),
             )
         )
-        # if context.solver != "libmamba":
-        #     # LIBMAMBA ADJUSTMENT
-        #     # libmamba doesn't remove xz in this solve; investigate
-        #     unlink_recs = (*unlink_recs, "channel-2::xz-5.2.3-0")
-        # unlink_order = add_subdir_to_iter(unlink_recs)
         link_order = add_subdir_to_iter(
             (
                 "channel-2::mkl-2017.0.3-0",
@@ -3087,7 +3088,6 @@ def test_freeze_deps_1(tmpdir, request):
         prefix_records=final_state_1,
         history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4")),
     ) as solver:
-        # solver._command = "install"
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 

@@ -22,7 +22,7 @@ from conda_env.cli import main as conda_env_cli
 from .. import cli
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
-from ..common.io import argv, env_var
+from ..common.io import argv, env_var, env_vars
 from ..common.io import captured as common_io_captured
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
@@ -687,9 +687,11 @@ def get_solver_aggregate_1(
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
+        with env_vars(
+            {
+                "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY": "false",
+                # "CONDA_CHANNEL_ALIAS": f"file://{EXPORTED_CHANNELS_DIR}",
+            },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
@@ -723,9 +725,11 @@ def get_solver_aggregate_2(
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
     _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
     with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
+        with env_vars(
+            {
+                "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY": "false",
+                # "CONDA_CHANNEL_ALIAS": f"file://{EXPORTED_CHANNELS_DIR}",
+            },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
