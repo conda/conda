@@ -7,14 +7,13 @@ import os
 import re
 import struct
 import subprocess
-import sys
 from logging import getLogger
 from os.path import basename, realpath
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_linux, on_win
+from ..common.compat import on_linux, on_mac, on_win
 from ..exceptions import BinaryPrefixReplacementError, CondaIOError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
@@ -85,12 +84,7 @@ def update_prefix(
 
     updated = update_file_in_place_as_binary(realpath(path), _update_prefix)
 
-    if (
-        updated
-        and mode == FileMode.binary
-        and subdir == "osx-arm64"
-        and sys.platform == "darwin"
-    ):
+    if updated and mode == FileMode.binary and subdir == "osx-arm64" and on_mac:
         # Apple arm64 needs signed executables
         subprocess.run(
             ["/usr/bin/codesign", "-s", "-", "-f", realpath(path)], capture_output=True

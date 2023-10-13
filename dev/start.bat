@@ -147,7 +147,8 @@
     --override-channels ^
     -c defaults ^
     --file "%_SRC%\tests\requirements.txt" ^
-    pywin32 ^
+    --file "%_SRC%\tests\requirements-Windows.txt" ^
+    conda ^
     "python=%_PYTHON%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_NAME% 1>&2

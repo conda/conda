@@ -11,7 +11,7 @@ import pytest
 from conda._vendor.cpuinfo import get_cpu_info
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.compat import on_linux
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
@@ -218,14 +218,14 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
             with pytest.raises(UnsatisfiableError) as exc:
                 solver.solve_final_state()
 
-    if sys.platform == "darwin":
+    if on_mac:
         if "ARM_8" in get_cpu_info()["arch"]:
             plat = "osx-arm64"
         else:
             plat = "osx-64"
-    elif sys.platform == "linux":
+    elif on_linux:
         plat = "linux-64"
-    elif sys.platform == "win32":
+    elif on_win:
         if platform.architecture()[0] == "32bit":
             plat = "win-32"
         else:
