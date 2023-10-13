@@ -219,24 +219,20 @@ def add_feature_records_legacy(index):
         index[rec] = rec
 
 
-def _export_subdir_data_to_repodata(subdir_data: SubdirData, index, subdir=None):
+def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     """
     This function is only temporary and meant to patch wrong / undesirable
     testing behaviour. It should end up being replaced with the new class-based,
     backend-agnostic solver tests.
     """
     state = subdir_data._internal_state
-    subdir = subdir or subdir_data.channel.subdir
+    subdir = subdir_data.channel.subdir
     packages = {}
-    for pkg in index:
+    for pkg in subdir_data.iter_records():
         data = pkg.dump()
-        if getattr(pkg, "noarch", None):
-            if subdir == "noarch":
-                data["subdir"] = "noarch"
-                data["platform"] = data["arch"] = None
-            else:
-                # skip noarch packages incorrectly labeled with a platform specific subdir
-                continue
+        if subdir == "noarch" and getattr(pkg, "noarch", None):
+            data["subdir"] = "noarch"
+            data["platform"] = data["arch"] = None
         if pkg.timestamp:
             data["timestamp"] = pkg.timestamp
         if "features" in data:
@@ -261,26 +257,17 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData, index, subdir=None)
     }
 
 
-def _sync_channel_to_disk(channel, subdir_data, index):
+def _sync_channel_to_disk(subdir_data: SubdirData):
     """
     This function is only temporary and meant to patch wrong / undesirable
     testing behaviour. It should end up being replaced with the new class-based,
     backend-agnostic solver tests.
     """
-    base = Path(EXPORTED_CHANNELS_DIR) / channel.name
-    subdir_path = base / channel.platform
+    base = Path(EXPORTED_CHANNELS_DIR) / subdir_data.channel.name
+    subdir_path = base / subdir_data.channel.subdir
     subdir_path.mkdir(parents=True, exist_ok=True)
     with open(subdir_path / "repodata.json", "w") as f:
-        json.dump(_export_subdir_data_to_repodata(subdir_data, index), f, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-
-    noarch_path = base / "noarch"
-    noarch_path.mkdir(parents=True, exist_ok=True)
-    with open(noarch_path / "repodata.json", "w") as f:
-        json.dump(
-            _export_subdir_data_to_repodata(subdir_data, index, "noarch"), f, indent=2
-        )
+        json.dump(_export_subdir_data_to_repodata(subdir_data), f, indent=2)
         f.flush()
         os.fsync(f.fileno())
 
@@ -302,7 +289,7 @@ def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None)
         ] = subdir_data
 
 
-def _patch_for_local_exports(name, subdir_data, channel, index):
+def _patch_for_local_exports(name, subdir_data):
     """
     This function is only temporary and meant to patch wrong / undesirable
     testing behaviour. It should end up being replaced with the new class-based,
@@ -316,25 +303,34 @@ def _patch_for_local_exports(name, subdir_data, channel, index):
     # and there's no need for that extra work
     # (check conda.core.subdir_data.SubdirDataType.__call__ for
     # details)
-    _sync_channel_to_disk(channel, subdir_data, index)
+    _sync_channel_to_disk(subdir_data)
     subdir_data._mtime = float("inf")
 
 
 def _get_index_r_base(
-    json_filename,
+    json_filename_or_data,
     channel_name,
     subdir=context.subdir,
     add_pip=False,
+    merge_noarch=False,
 ):
-    with open(join(TEST_DATA_DIR, json_filename)) as fi:
-        all_packages = json.load(fi)
+    if isinstance(json_filename_or_data, (str, os.PathLike)):
+        with open(join(TEST_DATA_DIR, json_filename_or_data)) as fi:
+            all_packages = json.load(fi)
+    elif isinstance(json_filename_or_data, dict):
+        all_packages = json_filename_or_data
+    else:
+        raise ValueError("'json_filename_or_data' must be path-like or dict")
 
-    packages = {subdir: {}, "noarch": {}}
-    for key, pkg in all_packages.items():
-        if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
-            packages["noarch"][key] = pkg
-        else:
-            packages[subdir][key] = pkg
+    if merge_noarch:
+        packages = {subdir: all_packages}
+    else:
+        packages = {subdir: {}, "noarch": {}}
+        for key, pkg in all_packages.items():
+            if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
+                packages["noarch"][key] = pkg
+            else:
+                packages[subdir][key] = pkg
 
     subdir_datas = []
     channels = []
@@ -354,14 +350,13 @@ def _get_index_r_base(
         subdir_datas.append(sd)
         with env_var(
             "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "true" if add_pip else "false",
+            str(add_pip).lower(),
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
         sd._loaded = True
         SubdirData._cache_[channel.url(with_credentials=True)] = sd
-        index = {prec: prec for prec in sd.iter_records()}
-        _patch_for_local_exports(channel_name, sd, channel, index)
+        _patch_for_local_exports(channel_name, sd)
 
     # this is for the classic solver only, which is fine with a single collapsed index
     index = {}
@@ -373,27 +368,51 @@ def _get_index_r_base(
 
 
 # this fixture appears to introduce a test-order dependency if cached
-def get_index_r_1(subdir=context.subdir):
-    return _get_index_r_base("index.json", "channel-1", subdir=subdir)
+def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
+    return _get_index_r_base(
+        "index.json",
+        "channel-1",
+        subdir=subdir,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @lru_cache(maxsize=None)
-def get_index_r_2(subdir=context.subdir):
-    return _get_index_r_base("index2.json", "channel-2", subdir=subdir)
+def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
+    return _get_index_r_base(
+        "index2.json",
+        "channel-2",
+        subdir=subdir,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @lru_cache(maxsize=None)
-def get_index_r_4(subdir=context.subdir):
-    return _get_index_r_base("index4.json", "channel-4", subdir=subdir)
+def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
+    return _get_index_r_base(
+        "index4.json",
+        "channel-4",
+        subdir=subdir,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @lru_cache(maxsize=None)
-def get_index_r_5(subdir=context.subdir, add_pip=False):
-    return _get_index_r_base("index5.json", "channel-5", subdir=subdir, add_pip=add_pip)
+def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
+    return _get_index_r_base(
+        "index5.json",
+        "channel-5",
+        subdir=subdir,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @lru_cache(maxsize=None)
-def get_index_must_unfreeze(subdir=context.subdir):
+def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
         "info": {
             "subdir": subdir,
@@ -474,51 +493,24 @@ def get_index_must_unfreeze(subdir=context.subdir):
             },
         },
     }
-    channel = Channel("https://conda.anaconda.org/channel-freeze/%s" % subdir)
-    sd = SubdirData(channel)
-    with env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        "false",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
-
-    index = {prec: prec for prec in sd.iter_records()}
-    r = Resolve(index, channels=(channel,))
-
-    _patch_for_local_exports("channel-freeze", sd, channel, index)
-    return index, r
+    _get_index_r_base(
+        repodata,
+        "channel-freeze",
+        subdir=subdir,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 # Do not memoize this get_index to allow different CUDA versions to be detected
-def get_index_cuda(subdir=context.subdir):
-    with open(join(TEST_DATA_DIR, "index.json")) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
-
-    channel = Channel("https://conda.anaconda.org/channel-1/%s" % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
-
-    index = {prec: prec for prec in sd.iter_records()}
-
-    add_feature_records_legacy(index)
-    r = Resolve(index, channels=(channel,))
-
-    _patch_for_local_exports("channel-1", sd, channel, index)
-    return index, r
+def get_index_cuda(subdir=context.subdir, add_pip=True, merge_noarch=False):
+    return _get_index_r_base(
+        "index.json",
+        "channel-1",
+        subdir=subdir,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 def record(
@@ -543,9 +535,15 @@ def record(
     )
 
 
-@contextmanager
-def get_solver(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+def _get_solver_base(
+    channel_id,
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
@@ -553,87 +551,135 @@ def get_solver(
         rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
     }
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_1(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),),
-                (context.subdir,),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    if channel_id == "channel-1":
+        get_index_r_1(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
+        channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),)
+    elif channel_id == "channel-2":
+        get_index_r_2(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
+        channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),)
+    elif channel_id == "channel-4":
+        get_index_r_4(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
+        channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),)
+    elif channel_id == "channel-5":
+        get_index_r_5(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
+        channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),)
+    elif channel_id == "aggregate-1":
+        get_index_r_2(context.subdir, add_pip, merge_noarch)
+        get_index_r_4(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
+        channels = (
+            Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
+            Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
+        )
+    elif channel_id == "aggregate-2":
+        get_index_r_2(context.subdir, add_pip, merge_noarch)
+        get_index_r_4(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
+        # This is the only difference with aggregate-1: the priority
+        channels = (
+            Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
+            Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
+        )
+    elif channel_id == "must-unfreeze":
+        get_index_must_unfreeze(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze")
+        channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-freeze"),)
+    elif channel_id == "cuda":
+        get_index_cuda(context.subdir, add_pip, merge_noarch)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
+        channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),)
+
+    subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
+
+    with patch.object(
+        History, "get_requested_specs_map", return_value=spec_map
+    ), env_var(
+        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+        str(add_pip).lower(),
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
+        # get_index_r_*) to cover solver logics that need to load from disk instead of
+        # hitting the SubdirData cache
+        yield context.plugin_manager.get_solver_backend()(
+            tmpdir,
+            channels,
+            subdirs,
+            specs_to_add=specs_to_add,
+            specs_to_remove=specs_to_remove,
+        )
+
+
+@contextmanager
+def get_solver(
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
+):
+    yield from _get_solver_base(
+        "channel-1",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
 def get_solver_2(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),),
-                (context.subdir, "noarch"),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "channel-2",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
 def get_solver_4(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_4(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),),
-                (context.subdir, "noarch"),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "channel-4",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
@@ -644,170 +690,106 @@ def get_solver_5(
     prefix_records=(),
     history_specs=(),
     add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_5(context.subdir, add_pip=add_pip)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "true" if add_pip else "false",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),),
-                (context.subdir, "noarch"),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "channel-5",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
 def get_solver_aggregate_1(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_vars(
-            {
-                "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY": "false",
-                # "CONDA_CHANNEL_ALIAS": f"file://{EXPORTED_CHANNELS_DIR}",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (
-                    Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
-                    Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
-                ),
-                (context.subdir, "noarch"),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "aggregate-1",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
 def get_solver_aggregate_2(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2(context.subdir)
-    get_index_r_4(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_vars(
-            {
-                "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY": "false",
-                # "CONDA_CHANNEL_ALIAS": f"file://{EXPORTED_CHANNELS_DIR}",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (
-                    Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
-                    Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
-                ),
-                (context.subdir, "noarch"),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "aggregate-2",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
 def get_solver_must_unfreeze(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_must_unfreeze(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-freeze"),),
-                (context.subdir,),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "must-unfreeze",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 @contextmanager
 def get_solver_cuda(
-    tmpdir, specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()
+    tmpdir,
+    specs_to_add=(),
+    specs_to_remove=(),
+    prefix_records=(),
+    history_specs=(),
+    add_pip=False,
+    merge_noarch=False,
 ):
-    tmpdir = tmpdir.strpath
-    pd = PrefixData(tmpdir)
-    pd._PrefixData__prefix_records = {
-        rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records
-    }
-    spec_map = {spec.name: spec for spec in history_specs}
-    get_index_cuda(context.subdir)
-    _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            "false",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-            # get_index_r_*) to cover solver logics that need to load from disk instead of
-            # hitting the SubdirData cache
-            solver = context.plugin_manager.get_solver_backend()(
-                tmpdir,
-                (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),),
-                (context.subdir,),
-                specs_to_add=specs_to_add,
-                specs_to_remove=specs_to_remove,
-            )
-            yield solver
+    yield from _get_solver_base(
+        "cuda",
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=prefix_records,
+        history_specs=history_specs,
+        add_pip=add_pip,
+        merge_noarch=merge_noarch,
+    )
 
 
 def convert_to_dist_str(solution):
