@@ -390,6 +390,7 @@ def configure_parser_mock_activate(sub_parsers):
         help="Activate a conda environment.",
     )
     p.set_defaults(func=".main_mock_activate.execute")
+    p.add_argument("args", action="store", nargs="*", help=SUPPRESS)
 
 
 def configure_parser_mock_deactivate(sub_parsers):
