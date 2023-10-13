@@ -730,7 +730,6 @@ def test_sort_without_prep(tmpdir, mocker):
         records, specs = get_windows_conda_build_record_set(tmpdir)
         graph = PrefixGraph(records, specs)
 
-        print(*records, sep="\n")
         python_node = graph.get_node_by_name("python")
         pip_node = graph.get_node_by_name("pip")
         assert pip_node in graph.graph[python_node]
