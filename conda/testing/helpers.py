@@ -22,7 +22,7 @@ from conda_env.cli import main as conda_env_cli
 from .. import cli
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
-from ..common.io import argv, env_var, env_vars
+from ..common.io import argv, env_var
 from ..common.io import captured as common_io_captured
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
