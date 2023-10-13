@@ -4,6 +4,7 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context
+from conda.common.compat import on_linux
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 
@@ -57,6 +58,7 @@ def test_reorder_channel_priority(
         if context.solver == "libmamba":
             # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
             # the request, so it stays in pkgs/main. Other transient deps do change, though.
-            assert PrefixData(prefix).get("libgcc-ng").channel.name == "conda-forge"
+            if on_linux:  # lazy, only check on linux
+                assert PrefixData(prefix).get("libgcc-ng").channel.name == "conda-forge"
         else:
             assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
