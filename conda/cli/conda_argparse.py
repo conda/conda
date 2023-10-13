@@ -27,6 +27,7 @@ from ..auxlib.ish import dals
 from ..base.constants import (
     COMPATIBLE_SHELLS,
     CONDA_HOMEPAGE_URL,
+    KNOWN_SUBDIRS,
     DepsModifier,
     UpdateModifier,
 )
@@ -762,10 +763,11 @@ def configure_parser_create(sub_parsers):
         help="Create a new environment as a copy of an existing local environment.",
         metavar="ENV",
     )
-    solver_mode_options, package_install_options = add_parser_create_install_update(
+    solver_mode_options, _, channel_options = add_parser_create_install_update(
         p, prefix_required=True
     )
     add_parser_default_packages(solver_mode_options)
+    add_parser_platform(channel_options)
     add_parser_solver(solver_mode_options)
     p.add_argument(
         "-m",
@@ -973,7 +975,9 @@ def configure_parser_install(sub_parsers):
         metavar="REVISION",
     )
 
-    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
+        p
+    )
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
@@ -1520,7 +1524,9 @@ def configure_parser_update(sub_parsers, aliases):
         epilog=example,
         aliases=aliases,
     )
-    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
+        p
+    )
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
@@ -1643,7 +1649,7 @@ def configure_parser_rename(sub_parsers) -> None:
 
 def add_parser_create_install_update(p, prefix_required=False):
     add_parser_prefix(p, prefix_required)
-    add_parser_channels(p)
+    channel_options = add_parser_channels(p)
     solver_mode_options = add_parser_solver_mode(p)
     package_install_options = add_parser_package_install_options(p)
     add_parser_networking(p)
@@ -1678,7 +1684,7 @@ def add_parser_create_install_update(p, prefix_required=False):
         help="List of packages to install or update in the conda environment.",
     )
 
-    return solver_mode_options, package_install_options
+    return solver_mode_options, package_install_options, channel_options
 
 
 def add_parser_pscheck(p):
@@ -2047,6 +2053,21 @@ def add_parser_default_packages(p):
         "--no-default-packages",
         action="store_true",
         help="Ignore create_default_packages in the .condarc file.",
+    )
+
+
+def add_parser_platform(parser):
+    parser.add_argument(
+        "--subdir",
+        "--platform",
+        default=NULL,
+        dest="subdir",
+        choices=[s for s in KNOWN_SUBDIRS if s != "noarch"],
+        metavar="SUBDIR",
+        help="Use packages built for this platform. "
+        "The new environment will be configured to remember this choice. "
+        "Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
+        "Defaults to the current (native) platform.",
     )
 
 
