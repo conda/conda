@@ -8,3 +8,4 @@ A mock implementation of the deactivate shell command for better UX.
 
 def execute(args, parser):
     print("ERROR: Run 'conda init' before 'conda deactivate'")
+    return 1
