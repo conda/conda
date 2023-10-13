@@ -4,7 +4,8 @@
 import sys
 
 from conda.deprecations import deprecated
-from conda.env.cli import main
+
+from .cli import main
 
 deprecated.module("23.9", "24.3", addendum="Use `conda env` instead.")
 

@@ -86,7 +86,6 @@ def test_get_pip_installed_packages_none(pip_output):
     "conda_env_module, conda_module, function_name",
     [
         ("conda_env.pip_util", "conda.env.pip_util", "get_pip_installed_packages"),
-        ("conda_env.pip_util", "conda.env.pip_util", "get_pip_version"),
         ("conda_env.pip_util", "conda.env.pip_util", "pip_subprocess"),
     ],
 )

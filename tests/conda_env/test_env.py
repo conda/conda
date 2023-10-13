@@ -17,12 +17,12 @@ from conda.env.env import (
     Environment,
     from_environment,
     from_file,
-    load_from_directory,
 )
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture
 from conda.testing.integration import package_is_installed
+from conda_env.env import load_from_directory
 
 from . import support_file
 from .utils import make_temp_envs_dir
@@ -401,9 +401,11 @@ def test_from_history():
     [
         ("conda_env.env", "conda.env.env", "from_environment"),
         ("conda_env.env", "conda.env.env", "from_file"),
-        ("conda_env.env", "conda.env.env", "load_from_directory"),
         ("conda_env.env", "conda.env.env", "VALID_KEYS"),
+        ("conda_env.env", "conda.env.env", "Dependencies"),
         ("conda_env.env", "conda.env.env", "Environment"),
+        ("conda_env.env", "conda.env.env", "from_yaml"),
+        ("conda_env.env", "conda.env.env", "validate_keys"),
     ],
 )
 def test_env_imports(conda_env_module, conda_module, func_class_const_name):
