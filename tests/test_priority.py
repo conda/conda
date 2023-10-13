@@ -3,9 +3,11 @@
 import pytest
 from pytest import MonkeyPatch
 
+from conda.base.context import context
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
@@ -47,9 +49,13 @@ def test_reorder_channel_priority(
             "--all",
             "--yes",
         )
-
         # check pinned package is unchanged but unpinned packages are updated from conda-forge
         PrefixData._cache_.clear()
         expected_channel = "pkgs/main" if pinned_package else "conda-forge"
         assert PrefixData(prefix).get(package1).channel.name == expected_channel
-        assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
+        if context.solver == "libmamba":
+            # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
+            # the request, so it stays in pkgs/main. Other transient deps do change, though.
+            assert PrefixData(prefix).get("libgcc-ng").channel.name == "conda-forge"
+        else:
+            assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
