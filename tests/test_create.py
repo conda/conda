@@ -2062,7 +2062,6 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
     reason="Skip unsupported platforms",
 )
 def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, request):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
