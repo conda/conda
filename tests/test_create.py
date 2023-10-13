@@ -2063,13 +2063,20 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
 )
 def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
-    # request.applymarker(pytest.mark.xfail(context.solver == "libmamba", reason="see PR #12984", strict=True))
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="conda-libmamba-solver does not implement pip interoperability",
+            strict=True,
+        )
+    )
 
     with env_vars(
         {
             "CONDA_REPORT_ERRORS": "false",
             "CONDA_RESTORE_FREE_CHANNEL": True,
             "CONDA_CHANNELS": "defaults",
+            "CONDA_PIP_INTEROP_ENABLED": "true",
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
@@ -2078,7 +2085,6 @@ def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, req
         ) as prefix:
             workdir = prefix
 
-            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
