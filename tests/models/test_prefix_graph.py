@@ -17,6 +17,7 @@ from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
+
 @lru_cache(maxsize=None)
 def get_conda_build_record_set(tmpdir):
     specs = (
@@ -46,7 +47,7 @@ def get_windows_conda_build_record_set(tmpdir):
         MatchSpec("colour"),
         MatchSpec("uses-spiffy-test-app"),
     )
-    with get_solver_5(tmpdir, specs, add_pip=True) as solver:
+    with get_solver_5(tmpdir, specs, add_pip=True, merge_noarch=True) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
@@ -729,6 +730,7 @@ def test_sort_without_prep(tmpdir, mocker):
         records, specs = get_windows_conda_build_record_set(tmpdir)
         graph = PrefixGraph(records, specs)
 
+        print(*records, sep="\n")
         python_node = graph.get_node_by_name("python")
         pip_node = graph.get_node_by_name("pip")
         assert pip_node in graph.graph[python_node]
