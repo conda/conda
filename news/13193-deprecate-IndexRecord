@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* Catch a `NotWritableError` when trying to find the first writable package cache dir. (#9609)
+* <news item>
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
 
 ### Docs
 

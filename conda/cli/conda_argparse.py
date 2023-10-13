@@ -18,7 +18,6 @@ from argparse import (
 from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
 from logging import getLogger
-from os.path import abspath, expanduser, join
 from subprocess import Popen
 from textwrap import dedent
 
@@ -31,18 +30,16 @@ from ..base.constants import (
     DepsModifier,
     UpdateModifier,
 )
-from ..base.context import context
+from ..base.context import context, sys_rc_path, user_rc_path
+from ..common.compat import on_win
 from ..common.constants import NULL
 from ..deprecations import deprecated
 from .find_commands import find_commands, find_executable
 
 log = getLogger(__name__)
 
-# duplicated code in the interest of import efficiency
-on_win = bool(sys.platform == "win32")
-user_rc_path = abspath(expanduser("~/.condarc"))
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
-escaped_sys_rc_path = abspath(join(sys.prefix, ".condarc")).replace("%", "%%")
+escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
 #: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {

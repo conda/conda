@@ -575,6 +575,18 @@ def test_ssl_verify_set_filename(conda_cli: CondaCLIFixture):
         assert context.ssl_verify == tf.name
 
 
+def test_ssl_verify_set_truststore(conda_cli: CondaCLIFixture):
+    with make_temp_condarc() as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            *("--file", rc),
+            *("--set", "ssl_verify", "truststore"),
+        )
+        assert stdout == stderr == ""
+        reset_context([rc])
+        assert context.ssl_verify == "truststore"
+
+
 def test_set_rc_without_user_rc(conda_cli: CondaCLIFixture):
     if os.path.exists(sys_rc_path):
         # Backup system rc_config
