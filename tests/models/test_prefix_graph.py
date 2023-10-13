@@ -37,7 +37,7 @@ def get_pandas_record_set(tmpdir):
 
 
 @lru_cache(maxsize=None)
-def get_windows_conda_build_record_set(tmpdir, add_pip=False):
+def get_windows_conda_build_record_set(tmpdir):
     "Some tests expect pip as a python dependency, so expose that as an option."
     specs = (
         MatchSpec("conda"),
@@ -46,7 +46,7 @@ def get_windows_conda_build_record_set(tmpdir, add_pip=False):
         MatchSpec("colour"),
         MatchSpec("uses-spiffy-test-app"),
     )
-    with get_solver_5(tmpdir, specs, add_pip=add_pip) as solver:
+    with get_solver_5(tmpdir, specs, add_pip=True) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
@@ -594,7 +594,7 @@ def test_windows_sort_orders_1(tmpdir, monkeypatch):
     # are behaving correctly.
 
     monkeypatch.setattr(conda.models.prefix_graph, "on_win", True)
-    records, specs = get_windows_conda_build_record_set(tmpdir, add_pip=True)
+    records, specs = get_windows_conda_build_record_set(tmpdir)
     graph = PrefixGraph(records, specs)
 
     nodes = tuple(rec.name for rec in graph.records)
@@ -657,7 +657,7 @@ def test_windows_sort_orders_2(tmpdir):
         old_on_win = conda.models.prefix_graph.on_win
         conda.models.prefix_graph.on_win = False
         try:
-            records, specs = get_windows_conda_build_record_set(tmpdir, add_pip=True)
+            records, specs = get_windows_conda_build_record_set(tmpdir)
             graph = PrefixGraph(records, specs)
 
             python_node = graph.get_node_by_name("python")
