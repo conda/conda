@@ -15,6 +15,7 @@ from conda.models.prefix_graph import GeneralGraph, PrefixGraph
 from conda.models.records import PackageRecord
 from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 @lru_cache(maxsize=None)
 def get_conda_build_record_set(tmpdir):
