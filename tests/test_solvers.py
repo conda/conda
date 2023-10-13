@@ -22,7 +22,7 @@ class TestLibMambaSolver(SolverTests):
     @property
     def tests_to_skip(self):
         return {
-            "LibMambaSolver does not support track-features/features": [
+            "conda-libmamba-solver does not support features": [
                 "test_iopro_mkl",
                 "test_iopro_nomkl",
                 "test_mkl",
@@ -32,11 +32,9 @@ class TestLibMambaSolver(SolverTests):
                 "test_no_features",
                 "test_surplus_features_1",
                 "test_surplus_features_2",
+                "test_remove",
                 # this one below only fails reliably on windows;
                 # it passes Linux on CI, but not locally?
                 "test_unintentional_feature_downgrade",
-            ],
-            "LibMambaSolver installs numpy with mkl while we were expecting no-mkl numpy": [
-                "test_remove",
             ],
         }

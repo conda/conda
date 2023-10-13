@@ -38,7 +38,6 @@ def get_pandas_record_set(tmpdir):
 
 @lru_cache(maxsize=None)
 def get_windows_conda_build_record_set(tmpdir):
-    "Some tests expect pip as a python dependency, so expose that as an option."
     specs = (
         MatchSpec("conda"),
         MatchSpec("conda-build"),
