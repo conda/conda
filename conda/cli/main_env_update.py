@@ -22,8 +22,9 @@ from conda.notices import notices
 
 sys.path.append("..")
 from conda_env import specs as install_specs
-from conda_env.cli.common import get_filename, print_result
-from conda_env.installers.base import InvalidInstaller, get_installer
+
+from ..env.installers.base import InvalidInstaller, get_installer
+from .common import get_filename, print_result
 
 description = """
 Update the current environment based on environment file
