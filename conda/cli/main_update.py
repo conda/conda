@@ -52,7 +52,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=example,
         **kwargs,
     )
-    solver_mode_options, package_install_options, _ = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
+        p
+    )
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)

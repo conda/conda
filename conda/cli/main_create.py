@@ -20,8 +20,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_parser_create_install_update,
         add_parser_default_packages,
-        add_parser_solver,
         add_parser_platform,
+        add_parser_solver,
     )
 
     summary = "Create a new conda environment from a list of specified packages. "

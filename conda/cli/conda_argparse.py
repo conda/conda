@@ -18,13 +18,6 @@ from subprocess import Popen
 from .. import __version__
 from ..auxlib.compat import isiterable
 from ..auxlib.ish import dals
-from ..base.constants import (
-    COMPATIBLE_SHELLS,
-    CONDA_HOMEPAGE_URL,
-    KNOWN_SUBDIRS,
-    DepsModifier,
-    UpdateModifier,
-)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import on_win
 from ..common.constants import NULL
@@ -41,6 +34,7 @@ from .helpers import (  # noqa: F401
     add_parser_known,
     add_parser_networking,
     add_parser_package_install_options,
+    add_parser_platform,
     add_parser_prefix,
     add_parser_prune,
     add_parser_pscheck,
@@ -49,7 +43,6 @@ from .helpers import (  # noqa: F401
     add_parser_solver_mode,
     add_parser_update_modifiers,
     add_parser_verbose,
-    add_parser_platform,
 )
 from .main_clean import configure_parser as configure_parser_clean
 from .main_compare import configure_parser as configure_parser_compare
