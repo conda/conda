@@ -183,10 +183,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         return _exec([executable, *args._args], os.environ)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
-        relative_mod, func_name = args.func.rsplit(".", 1)
+        module_name, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
-        module = import_module(relative_mod, "conda.cli")
-        command = relative_mod.replace(".main_", "")
+        module = import_module(module_name)
+        command = module_name.split(".")[-1].replace("main_", "")
 
         context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)

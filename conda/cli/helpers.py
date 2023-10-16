@@ -15,6 +15,8 @@ from argparse import (
 
 
 def add_parser_create_install_update(p, prefix_required=False):
+    from ..common.constants import NULL
+
     add_parser_prefix(p, prefix_required)
     channel_options = add_parser_channels(p)
     solver_mode_options = add_parser_solver_mode(p)
@@ -93,7 +95,8 @@ def add_parser_help(p: ArgumentParser) -> None:
 
 
 def add_parser_prefix(
-    p: ArgumentParser, prefix_required: bool = False
+    p: ArgumentParser,
+    prefix_required: bool = False,
 ) -> _MutuallyExclusiveGroup:
     target_environment_group = p.add_argument_group("Target Environment Specification")
     npgroup = target_environment_group.add_mutually_exclusive_group(
@@ -452,6 +455,9 @@ def add_parser_default_packages(p: ArgumentParser) -> None:
 
 
 def add_parser_platform(parser):
+    from ..base.constants import KNOWN_SUBDIRS
+    from ..common.constants import NULL
+
     parser.add_argument(
         "--subdir",
         "--platform",
