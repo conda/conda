@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Log expected JLAP range-request errors, which can happen when the remote file
-  has rolled over, at `info` level. (#12193)
+  has rolled over, at `info` level. (#12913)
 
 ### Deprecations
 
