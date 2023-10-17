@@ -15,6 +15,7 @@ import pluggy
 
 from .types import (
     CondaAuthHandler,
+    CondaDoctor,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
