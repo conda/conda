@@ -2738,6 +2738,40 @@ def test_multiline_run_command(clear_package_cache: None):
     assert not errs_etc
 
 
+def _check_create_xz_env_different_platform(prefix, platform):
+    assert exists(join(prefix, "bin", "xz"))
+    # make sure we read the config from PREFIX/.condarc
+    prefix_condarc = Path(prefix, ".condarc")
+    reset_context([prefix_condarc])
+    config_sources = context.collect_all()
+    assert config_sources[prefix_condarc]["subdir"] == platform
+
+    stdout, _, _ = run_command(
+        Commands.INSTALL,
+        prefix,
+        "python",
+        "--dry-run",
+        "--json",
+        use_exception_handler=True,
+    )
+    result = json.loads(stdout)
+    assert result["success"]
+    python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
+    assert python["platform"] == platform
+
+
+def test_create_env_different_platform_cli_flag():
+    platform = "linux-64" if on_mac else "osx-64"
+    with make_temp_env("xz", "--platform", platform) as prefix:
+        _check_create_xz_env_different_platform(prefix, platform)
+
+
+def test_create_env_different_platform_env_var():
+    platform = "linux-64" if on_mac else "osx-64"
+    with env_var("CONDA_SUBDIR", platform), make_temp_env("xz") as prefix:
+        _check_create_xz_env_different_platform(prefix, platform)
+
+
 @pytest.mark.skip("Test is flaky")
 def test_conda_downgrade(clear_package_cache: None):
     # Create an environment with the current conda under test, but include an earlier
