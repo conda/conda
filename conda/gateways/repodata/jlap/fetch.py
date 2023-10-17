@@ -358,9 +358,9 @@ def request_url_jlap_state(
             state.set_has_format("jlap", True)
             need_jlap = False
         except ValueError:
-            log.info("Checksum not OK")
-        except IndexError as e:
-            log.info("Incomplete file?", exc_info=e)
+            log.info("Checksum not OK on JLAP range request. Retry with complete JLAP.")
+        except IndexError:
+            log.exception("Incomplete file?")
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
@@ -374,7 +374,10 @@ def request_url_jlap_state(
                     cache=cache,
                     temp_path=temp_path,
                 )
-            log.exception("Requests error")
+            log.info(
+                "Response code %d on JLAP range request. Retry with complete JLAP.",
+                e.response.status_code,
+            )
 
         if need_jlap:  # retry whole file, if range failed
             try:
