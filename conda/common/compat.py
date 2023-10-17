@@ -120,7 +120,7 @@ def ensure_text_type(value) -> str:
     except UnicodeDecodeError:  # pragma: no cover
         from charset_normalizer import from_bytes
 
-        return from_bytes(value).best()
+        return str(from_bytes(value).best())
     except UnicodeEncodeError:  # pragma: no cover
         # it's already str, so ignore?
         # not sure, surfaced with tests/models/test_match_spec.py test_tarball_match_specs
