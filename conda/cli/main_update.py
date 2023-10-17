@@ -36,7 +36,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         dependency packages from being installed.
         """
     )
-    example = dals(
+    epilog = dals(
         """
         Examples:
 
@@ -49,7 +49,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "update",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
     solver_mode_options, package_install_options, _ = add_parser_create_install_update(

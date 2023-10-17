@@ -39,7 +39,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         this may result in a broken environment, so use this with caution.
         """
     )
-    example = dals(
+    epilog = dals(
         """
         Examples:
 
@@ -57,11 +57,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
+
     p = sub_parsers.add_parser(
         "remove",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
     add_parser_pscheck(p)

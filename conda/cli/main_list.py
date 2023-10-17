@@ -22,7 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     summary = "List installed packages in a conda environment."
     description = summary
-    examples = dals(
+    epilog = dals(
         """
         Examples:
 
@@ -52,11 +52,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
+
     p = sub_parsers.add_parser(
         "list",
         help=summary,
         description=description,
-        epilog=examples,
+        epilog=epilog,
         **kwargs,
     )
     add_parser_prefix(p)

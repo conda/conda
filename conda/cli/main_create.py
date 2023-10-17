@@ -33,8 +33,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         This command requires either the -n NAME or -p PREFIX option.
         """
     )
-
-    example = dals(
+    epilog = dals(
         """
         Examples:
 
@@ -46,13 +45,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda create -n env2 --clone path/to/file/env1
 
-    """
+        """
     )
     p = sub_parsers.add_parser(
         "create",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
     p.add_argument(

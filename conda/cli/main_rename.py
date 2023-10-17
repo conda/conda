@@ -21,7 +21,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     summary = "Rename an existing environment."
     description = dals(
         f"""
-        {help}
+        {summary}
 
         This command renames a conda environment via its name (-n/--name) or
         its prefix (-p/--prefix).
@@ -29,7 +29,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         The base environment and the currently-active environment cannot be renamed.
         """
     )
-    example = dals(
+    epilog = dals(
         """
         Examples::
 
@@ -48,7 +48,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "rename",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
     # Add name and prefix args

@@ -17,12 +17,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import add_parser_prefix, add_parser_verbose
 
     summary = "Run an executable in a conda environment."
-    description = dals(
-        f"""
-        {summary}
-        """
-    )
-    example = dals(
+    description = summary
+    epilog = dals(
         """
         Example::
 
@@ -35,7 +31,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "run",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
 

@@ -23,18 +23,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     summary = "Remove unused packages and caches."
     description = summary
-    example = dals(
+    epilog = dals(
         """
         Examples::
 
             conda clean --tarballs
         """
     )
+
     p = sub_parsers.add_parser(
         "clean",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
 

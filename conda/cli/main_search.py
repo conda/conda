@@ -27,45 +27,45 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         MatchSpec is a query language for conda packages.
         """
     )
-
-    example = dals(
+    epilog = dals(
         """
-    Examples:
+        Examples:
 
-    Search for a specific package named 'scikit-learn'::
+        Search for a specific package named 'scikit-learn'::
 
-        conda search scikit-learn
+            conda search scikit-learn
 
-    Search for packages containing 'scikit' in the package name::
+        Search for packages containing 'scikit' in the package name::
 
-        conda search *scikit*
+            conda search *scikit*
 
-    Note that your shell may expand '*' before handing the command over to conda.
-    Therefore, it is sometimes necessary to use single or double quotes around the query::
+        Note that your shell may expand '*' before handing the command over to conda.
+        Therefore, it is sometimes necessary to use single or double quotes around the query::
 
-        conda search '*scikit'
-        conda search "*scikit*"
+            conda search '*scikit'
+            conda search "*scikit*"
 
-    Search for packages for 64-bit Linux (by default, packages for your current
-    platform are shown)::
+        Search for packages for 64-bit Linux (by default, packages for your current
+        platform are shown)::
 
-        conda search numpy[subdir=linux-64]
+            conda search numpy[subdir=linux-64]
 
-    Search for a specific version of a package::
+        Search for a specific version of a package::
 
-        conda search 'numpy>=1.12'
+            conda search 'numpy>=1.12'
 
-    Search for a package on a specific channel::
+        Search for a package on a specific channel::
 
-        conda search conda-forge::numpy
-        conda search 'numpy[channel=conda-forge, subdir=osx-64]'
-    """
+            conda search conda-forge::numpy
+            conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+        """
     )
+
     p = sub_parsers.add_parser(
         "search",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
     p.add_argument(

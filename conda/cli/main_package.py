@@ -19,11 +19,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     summary = "Create low-level conda packages. (EXPERIMENTAL)"
     description = summary
+    epilog = ""
 
     p = sub_parsers.add_parser(
         "package",
         help=summary,
         description=description,
+        epilog=epilog,
         **kwargs,
     )
     add_parser_prefix(p)

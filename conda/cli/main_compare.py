@@ -20,7 +20,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     summary = "Compare packages between conda environments."
     description = summary
-    examples = dals(
+    epilog = dals(
         """
         Examples:
 
@@ -36,11 +36,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
+
     p = sub_parsers.add_parser(
         "compare",
         help=summary,
         description=description,
-        epilog=examples,
+        epilog=epilog,
+        **kwargs,
     )
     add_parser_json(p)
     add_parser_prefix(p)

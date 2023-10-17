@@ -22,7 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     summary = "Install a list of packages into a specified conda environment."
-    descr = dals(
+    description = dals(
         f"""
         {summary}
 
@@ -48,7 +48,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         filenames and package specifications cannot be mixed in a single command.
         """
     )
-    example = dals(
+    epilog = dals(
         """
         Examples:
 
@@ -66,11 +66,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
+
     p = sub_parsers.add_parser(
         "install",
         help=summary,
-        description=descr,
-        epilog=example,
+        description=description,
+        epilog=epilog,
         **kwargs,
     )
     p.add_argument(

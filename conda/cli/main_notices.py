@@ -22,7 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
-    example = dals(
+    epilog = dals(
         """
         Examples::
 
@@ -32,11 +32,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
+
     p = sub_parsers.add_parser(
         "notices",
         help=summary,
         description=description,
-        epilog=example,
+        epilog=epilog,
         **kwargs,
     )
     add_parser_channels(p)

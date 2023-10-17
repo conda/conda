@@ -33,11 +33,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     summary = "Display information about current conda install."
     description = summary
+    epilog = ""
 
     p = sub_parsers.add_parser(
         "info",
         help=summary,
         description=description,
+        epilog=epilog,
         **kwargs,
     )
     add_parser_json(p)

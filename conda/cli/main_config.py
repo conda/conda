@@ -37,7 +37,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
-    examples = dals(
+    epilog = dals(
         f"""
         See `conda config --describe` or {CONDA_HOMEPAGE_URL}/docs/config.html
         for details on all the options that can go in .condarc.
@@ -82,7 +82,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "config",
         help=summary,
         description=description,
-        epilog=examples,
+        epilog=epilog,
         **kwargs,
     )
     add_parser_json(p)
