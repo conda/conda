@@ -182,7 +182,7 @@ def _supplement_index_with_system(index):
 def get_archspec_name():
     from conda.base.context import _arch_names, _platform_map, non_x86_machines
 
-    target_plat, target_arch = context.subdir.split("-")
+    target_plat, target_arch = context.subdir.split("-", maxsplit=1)
     # This has to reverse what Context.subdir is doing
     if target_arch in non_x86_machines:
         machine = target_arch
