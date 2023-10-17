@@ -835,7 +835,7 @@ def test_expand_search_path(tmp_path):
     even more confusing to reject based on the symlink target.
     """
     target = tmp_path / "condarc-symlink-target"
-    target.write_text("")
+    target.touch()
     symlink = tmp_path / "condarc"
     symlink.symlink_to(target)
 
