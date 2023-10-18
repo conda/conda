@@ -40,7 +40,7 @@ def execute(args: argparse.Namespace) -> None:
 
     display_health_checks(context.target_prefix, verbose=context.verbose)
     for health_check in context.plugin_manager.get_health_checks():
-        health_check.action()
+        health_check.action
 
 
 @hookimpl
