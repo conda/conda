@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import sys
 from pathlib import Path
 from uuid import uuid4
 
@@ -91,7 +92,9 @@ def test_create_host_port(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
+def test_create_advanced_pip(
+    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, capsys
+):
     with make_temp_envs_dir() as envs_dir:
         monkeypatch.setenv("CONDA_ENVS_DIRS", envs_dir)
         reset_context()
@@ -100,21 +103,22 @@ def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixtur
         env_name = uuid4().hex[:8]
         prefix = Path(envs_dir, env_name)
 
-        conda_cli(
+        stdout, stderr, _ = conda_cli(
             *("env", "create"),
             *("--name", env_name),
             *("--file", support_file("advanced-pip/environment.yml")),
         )
+
+        with capsys.disabled():
+            print(stdout)
+            print(stdout, file=sys.stderr)
+
         PrefixData._cache_.clear()
         assert prefix.exists()
         assert package_is_installed(prefix, "python")
         assert package_is_installed(prefix, "argh")
         assert package_is_installed(prefix, "module-to-install-in-editable-mode")
-        try:
-            assert package_is_installed(prefix, "six")
-        except AssertionError:
-            # six may now be conda-installed because of packaging changes
-            assert package_is_installed(prefix, "six")
+        assert package_is_installed(prefix, "six")
         assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
