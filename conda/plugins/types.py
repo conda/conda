@@ -145,7 +145,7 @@ class CondaAuthHandler(NamedTuple):
 
 class CondaHealthChecks(NamedTuple):
     """
-    Return type to use when defining conda doctor plugin hook.
+    Return type to use when defining conda health checks plugin hook.
     """
 
     name: str
