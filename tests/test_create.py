@@ -79,7 +79,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
@@ -631,11 +631,13 @@ def test_list_with_pip_no_binary(clear_package_cache: None):
             assert prefix not in PrefixData._cache_
 
 
-def test_list_with_pip_wheel(clear_package_cache: None):
+def test_list_with_pip_wheel(
+    clear_package_cache: None, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     from conda.exports import rm_rf as _rm_rf
 
     py_ver = "3.10"
-    with make_temp_env("python=" + py_ver, "pip") as prefix:
+    with tmp_env(f"python={py_ver}", "pip") as prefix:
         evs = {"PYTHONUTF8": "1"}
         # This test does not activate the env.
         if on_win:
@@ -647,7 +649,7 @@ def test_list_with_pip_wheel(clear_package_cache: None):
                 shell=True,
             )
             PrefixData._cache_.clear()
-            stdout, stderr, _ = run_command(Commands.LIST, prefix)
+            stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
             stdout_lines = stdout.split("\n")
             assert any(
                 line.endswith("pypi")
@@ -656,7 +658,7 @@ def test_list_with_pip_wheel(clear_package_cache: None):
             )
 
             # regression test for #3433
-            run_command(Commands.INSTALL, prefix, "python=3.9", no_capture=True)
+            conda_cli("install", f"--prefix={prefix}", "python=3.9", "--yes", "--quiet")
             assert package_is_installed(prefix, "python=3.9")
 
             # regression test for #5847
@@ -665,17 +667,21 @@ def test_list_with_pip_wheel(clear_package_cache: None):
             _rm_rf(join(prefix, get_python_site_packages_short_path("3.9")), "os.py")
             assert prefix not in PrefixData._cache_
 
+
+def test_rmtree(clear_package_cache: None, tmp_env: TmpEnvFixture):
+    from conda.exports import rm_rf as _rm_rf
+
     # regression test for #5980, related to #5847
-    with make_temp_env() as prefix:
-        assert isdir(prefix)
+    with tmp_env() as prefix:
+        assert prefix.is_dir()
         assert prefix in PrefixData._cache_
 
         rmtree(prefix)
-        assert not isdir(prefix)
+        assert not prefix.is_dir()
         assert prefix in PrefixData._cache_
 
         _rm_rf(prefix)
-        assert not isdir(prefix)
+        assert not prefix.is_dir()
         assert prefix not in PrefixData._cache_
 
 
