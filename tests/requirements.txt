@@ -1,3 +1,4 @@
+archspec
 boltons >=23.0.0
 chardet  # see fallbacks in conda.common.compat
 conda-content-trust
