@@ -34,6 +34,7 @@ requirements:
     - ruamel.yaml >=0.11.14,<0.18
     - tqdm >=4
   run:
+    - archspec
     - boltons >=23.0.0
     - conda-package-handling >=2.2.0
     - jsonpatch >=1.32
