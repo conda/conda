@@ -1394,7 +1394,7 @@ class Configuration(metaclass=ConfigurationType):
                 path = search
             else:
                 template = custom_expandvars(search, environ, **kwargs)
-                path = Path(template).expanduser().resolve()
+                path = Path(template).expanduser()
 
             if path.is_file() and (
                 path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS
