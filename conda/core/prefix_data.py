@@ -6,6 +6,7 @@ import os
 import re
 from logging import getLogger
 from os.path import basename, isdir, isfile, join, lexists
+from pathlib import Path
 
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
@@ -41,10 +42,10 @@ class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
     def __call__(cls, prefix_path, pip_interop_enabled=None):
-        if prefix_path in PrefixData._cache_:
-            return PrefixData._cache_[prefix_path]
-        elif isinstance(prefix_path, PrefixData):
+        if isinstance(prefix_path, PrefixData):
             return prefix_path
+        elif (prefix_path := Path(prefix_path)) in PrefixData._cache_:
+            return PrefixData._cache_[prefix_path]
         else:
             prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
             PrefixData._cache_[prefix_path] = prefix_data_instance
