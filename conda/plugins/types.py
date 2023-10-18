@@ -143,7 +143,7 @@ class CondaAuthHandler(NamedTuple):
     handler: type[ChannelAuthBase]
 
 
-class CondaDoctor(NamedTuple):
+class CondaHealthChecks(NamedTuple):
     """
     Return type to use when defining conda doctor plugin hook.
     """

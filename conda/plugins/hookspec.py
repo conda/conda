@@ -15,7 +15,7 @@ import pluggy
 
 from .types import (
     CondaAuthHandler,
-    CondaDoctor,
+    CondaHealthChecks,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -211,7 +211,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_doctor(self) -> Iterable[CondaDoctor]:
+    def conda_health_checks(self) -> Iterable[CondaHealthChecks]:
         """
         Register health checks for conda doctor.
 
