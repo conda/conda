@@ -97,7 +97,7 @@ def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixtur
         reset_context()
         assert context.envs_dirs[0] == envs_dir
 
-        env_name = str(uuid4())[:8]
+        env_name = uuid4().hex[:8]
         prefix = Path(envs_dir, env_name)
 
         conda_cli(
@@ -105,6 +105,7 @@ def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixtur
             *("--name", env_name),
             *("--file", support_file("advanced-pip/environment.yml")),
         )
+        PrefixData._cache_.clear()
         assert prefix.exists()
         assert package_is_installed(prefix, "python")
         assert package_is_installed(prefix, "argh")

@@ -597,14 +597,18 @@ def test_strict_resolve_get_reduced_index(clear_package_cache: None):
         assert {} == channel_name_groups
 
 
-def test_list_with_pip_no_binary(clear_package_cache: None):
+def test_list_with_pip_no_binary(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     from conda.exports import rm_rf as _rm_rf
 
     # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
     # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
     # We elect to test the more complex of the two options.
     py_ver = "3.10"
-    with make_temp_env("python=" + py_ver, "pip") as prefix:
+    with tmp_env(f"python={py_ver}", "pip") as prefix:
         evs = {"PYTHONUTF8": "1"}
         # This test does not activate the env.
         if on_win:
@@ -616,7 +620,7 @@ def test_list_with_pip_no_binary(clear_package_cache: None):
                 shell=True,
             )
             PrefixData._cache_.clear()
-            stdout, stderr, _ = run_command(Commands.LIST, prefix)
+            stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
             stdout_lines = stdout.split("\n")
             assert any(
                 line.endswith("pypi")
@@ -627,7 +631,7 @@ def test_list_with_pip_no_binary(clear_package_cache: None):
             # regression test for #5847
             #   when using rm_rf on a directory
             assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path(py_ver)))
+            _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
             assert prefix not in PrefixData._cache_
 
 
