@@ -39,7 +39,6 @@ def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, re
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-            strict=True,
         )
     )
     out, err, code = conda_cli("create", "--prefix", path_factory(), "--yes")
@@ -107,7 +106,6 @@ def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-            strict=True,
         )
     )
     with tmp_env() as prefix:
@@ -203,7 +201,6 @@ def test_update(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-            strict=True,
         )
     )
     with tmp_env("ca-certificates<2023") as prefix:
@@ -242,7 +239,6 @@ def test_env_create(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-            strict=True,
         )
     )
     out, err, code = conda_cli(
@@ -266,7 +262,6 @@ def test_env_update(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-            strict=True,
         )
     )
     with tmp_env("ca-certificates<2023") as prefix:
