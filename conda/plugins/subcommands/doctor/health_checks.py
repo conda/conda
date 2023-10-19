@@ -29,7 +29,8 @@ def check_envs_txt_file(prefix: str | Path) -> bool:
     try:
         with envs_txt_file.open() as f:
             for line in f.readlines():
-                if prefix.samefile(line.strip()):
+                line = line.strip()
+                if line and prefix.samefile(line):
                     return True
             return False
 
