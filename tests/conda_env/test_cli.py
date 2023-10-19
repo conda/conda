@@ -376,7 +376,9 @@ def test_update_env_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_update_env_only_pip_json_output(env_name_1: None, conda_cli: CondaCLIFixture, request):
+def test_update_env_only_pip_json_output(
+    env_name_1: None, conda_cli: CondaCLIFixture, request
+):
     """
     Update an environment by adding only a pip package
     Check the json output
@@ -404,7 +406,9 @@ def test_update_env_only_pip_json_output(env_name_1: None, conda_cli: CondaCLIFi
 
 
 @pytest.mark.integration
-def test_update_env_no_action_json_output(env_name_1: None, conda_cli: CondaCLIFixture, request):
+def test_update_env_no_action_json_output(
+    env_name_1: None, conda_cli: CondaCLIFixture, request
+):
     """
     Update an already up-to-date environment
     Check the json output

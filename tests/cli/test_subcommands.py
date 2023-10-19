@@ -13,6 +13,7 @@ from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
+
 @pytest.fixture
 def environment_yml(path_factory: PathFactoryFixture) -> Path:
     path = path_factory(name="environment.yml")
@@ -195,7 +196,9 @@ def test_search(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.parametrize("subcommand", ["update", "upgrade"])
-def test_update(subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
+def test_update(
+    subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request
+):
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
