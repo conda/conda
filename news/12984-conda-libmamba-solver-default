@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Have `conda doctor` ignore blank lines in `~/.conda/environments.txt`. (#12984)
 
 ### Deprecations
 
