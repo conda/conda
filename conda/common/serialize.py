@@ -11,12 +11,9 @@ from ..auxlib.entity import EntityEncoder
 try:
     import ruamel.yaml as yaml
 except ImportError:
-    try:
-        import ruamel_yaml as yaml
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
+    raise ImportError(
+        "No yaml library available. To proceed, conda install ruamel.yaml"
+    )
 
 log = getLogger(__name__)
 

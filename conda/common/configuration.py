@@ -54,14 +54,9 @@ try:
     from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
-    try:
-        from ruamel_yaml.comments import CommentedMap, CommentedSeq
-        from ruamel_yaml.reader import ReaderError
-        from ruamel_yaml.scanner import ScannerError
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
+    raise ImportError(
+        "No yaml library available. To proceed, conda install ruamel.yaml"
+    )
 
 log = getLogger(__name__)
 
