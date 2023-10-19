@@ -807,7 +807,9 @@ def make_test_jlap(original: bytes, changes=1):
 
             yield json.dumps(row).encode("utf-8")
 
-        # for code coverage
+        # Coverage for the branch that skips irrelevant patches in the series,
+        # when deciding which patches take us from our current to desired
+        # state.
         yield json.dumps(
             {"from": core.DEFAULT_IV.hex(), "to": core.DEFAULT_IV.hex(), "patch": []}
         ).encode("utf-8")
