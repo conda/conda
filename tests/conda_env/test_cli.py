@@ -21,6 +21,8 @@ from conda.exceptions import (
 from conda.gateways.disk.delete import rm_rf
 from conda.testing import CondaCLIFixture, PathFactoryFixture
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
+
 # Environment names we use during our tests
 TEST_ENV_NAME_1 = "env-1"
 TEST_ENV_NAME_2 = "snowflakes"
@@ -374,11 +376,18 @@ def test_update_env_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_update_env_only_pip_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
+def test_update_env_only_pip_json_output(env_name_1: None, conda_cli: CondaCLIFixture, request):
     """
     Update an environment by adding only a pip package
     Check the json output
     """
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
+            strict=True,
+        )
+    )
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
     conda_cli("env", "create", "--name", "envjson-4", "--json", "--yes")
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS)
@@ -395,11 +404,18 @@ def test_update_env_only_pip_json_output(env_name_1: None, conda_cli: CondaCLIFi
 
 
 @pytest.mark.integration
-def test_update_env_no_action_json_output(env_name_1: None, conda_cli: CondaCLIFixture):
+def test_update_env_no_action_json_output(env_name_1: None, conda_cli: CondaCLIFixture, request):
     """
     Update an already up-to-date environment
     Check the json output
     """
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
+            strict=True,
+        )
+    )
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
     conda_cli("env", "create", "--name", "envjson-5", "--json", "--yes")
     stdout, _, _ = conda_cli(
