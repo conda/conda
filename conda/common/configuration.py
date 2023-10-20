@@ -49,14 +49,9 @@ from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
 
-try:
-    from ruamel.yaml.comments import CommentedMap, CommentedSeq
-    from ruamel.yaml.reader import ReaderError
-    from ruamel.yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    raise ImportError(
-        "No yaml library available. To proceed, conda install ruamel.yaml"
-    )
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.reader import ReaderError
+from ruamel.yaml.scanner import ScannerError
 
 log = getLogger(__name__)
 

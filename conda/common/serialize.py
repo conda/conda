@@ -8,12 +8,7 @@ from logging import getLogger
 
 from ..auxlib.entity import EntityEncoder
 
-try:
-    import ruamel.yaml as yaml
-except ImportError:
-    raise ImportError(
-        "No yaml library available. To proceed, conda install ruamel.yaml"
-    )
+import ruamel.yaml as yaml
 
 log = getLogger(__name__)
 
