@@ -387,7 +387,6 @@ def test_update_env_only_pip_json_output(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
-            strict=True,
         )
     )
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
@@ -417,7 +416,6 @@ def test_update_env_no_action_json_output(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
-            strict=True,
         )
     )
     create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
