@@ -6,9 +6,9 @@ import json
 from io import StringIO
 from logging import getLogger
 
-from ..auxlib.entity import EntityEncoder
-
 import ruamel.yaml as yaml
+
+from ..auxlib.entity import EntityEncoder
 
 log = getLogger(__name__)
 

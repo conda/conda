@@ -39,6 +39,10 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.reader import ReaderError
+from ruamel.yaml.scanner import ScannerError
+
 from .. import CondaError, CondaMultiError
 from .._vendor.frozendict import frozendict
 from ..auxlib.collection import AttrDict, first, last, make_immutable
@@ -48,10 +52,6 @@ from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
-
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
-from ruamel.yaml.reader import ReaderError
-from ruamel.yaml.scanner import ScannerError
 
 log = getLogger(__name__)
 
