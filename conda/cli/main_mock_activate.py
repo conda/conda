@@ -4,8 +4,8 @@
 
 A mock implementation of the activate shell command for better UX.
 """
+from .. import CondaError
 
 
 def execute(args, parser):
-    print("ERROR: Run 'conda init' before 'conda activate'")
-    return 1
+    raise CondaError("Run 'conda init' before 'conda activate'")
