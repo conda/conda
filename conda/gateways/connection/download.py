@@ -35,6 +35,9 @@ from .session import get_session
 log = getLogger(__name__)
 
 
+CHUNK_SIZE = 1<<14
+
+
 def disable_ssl_verify_warning():
     warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -78,7 +81,7 @@ def download(
         try:
             with open(target_full_path, "wb") as fh:
                 streamed_bytes = 0
-                for chunk in resp.iter_content(2**14):
+                for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
                     # chunk could be the decompressed form of the real data
                     # but we want the exact number of bytes read till now
                     streamed_bytes = resp.raw.tell()
@@ -119,10 +122,9 @@ def download(
                     downloaded_bytes=streamed_bytes,
                 )
 
-        except OSError as e:
-            if e.errno == 104:
-                # Connection reset by peer
-                log.debug("%s, trying again" % e)
+        except ConnectionResetError as e:
+            log.debug("%s, trying again" % e)
+            # where does retry happen?
             raise
 
         if checksum:
