@@ -173,6 +173,7 @@ Authors are sorted alphabetically.
 * Jan-Benedikt Jagusch
 * Jan-Philipp Igla
 * Jannis Leidel
+* Jason Carpenter
 * Jason Grout
 * Jason Vestuto
 * Javier Rovegno
@@ -188,6 +189,7 @@ Authors are sorted alphabetically.
 * Joel Kim
 * Joel Tony
 * Johan Carlin
+* Johannes Köster
 * John Ayad
 * John Flavin
 * John Kirkham
@@ -206,8 +208,10 @@ Authors are sorted alphabetically.
 * Kamil Kwiek
 * Kannan Jayachandran
 * Kara de la Marck
+* Katherine Abrikian
 * Katherine Kinnaman
 * Ken Odegard
+* Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
@@ -219,6 +223,7 @@ Authors are sorted alphabetically.
 * Lila Hickey
 * Lorcan Hamill
 * Lori A. Burns
+* Loïc Estève
 * Luc J. Bourhis
 * Luis Gutierrez
 * Maggie Mari
@@ -232,10 +237,12 @@ Authors are sorted alphabetically.
 * Marcel Stimberg
 * Marcelo Duarte Trevisani
 * Marcin Wojdyr
+* Marco Esters
 * Marco Rossi
 * Marcos Vanetta
 * Marcus Caisey
 * Mario Juric
+* Mark Edzel Potane
 * Mark Harfouche
 * Mark Wiebe
 * Markus Gerstel
@@ -245,6 +252,7 @@ Authors are sorted alphabetically.
 * Martin Prüsse
 * Martin Raden
 * Matt Craig
+* Matt Kramer
 * Matthew Anderson
 * Matthew Dillon
 * Matthew Linebaugh
@@ -254,6 +262,7 @@ Authors are sorted alphabetically.
 * Matthieu Guillaumin
 * MatthieuDartiailh
 * Matti Picus
+* Maurice Meyer
 * Max Reeder
 * Maximilian Noethe
 * Maya Gilad
@@ -274,6 +283,7 @@ Authors are sorted alphabetically.
 * Mike Croucher
 * MinRK
 * Minh Phan
+* Monius
 * Morgan Parry
 * Morten Enemark Lund
 * Murray Read
@@ -304,6 +314,7 @@ Authors are sorted alphabetically.
 * Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
+* Peter Talley
 * Peter Williams
 * Phil Elson
 * Philip Thomas
@@ -345,6 +356,7 @@ Authors are sorted alphabetically.
 * Scott Evtuch
 * Sean Ross-Ross
 * Sebastien Awwad
+* Sergio Oller
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
@@ -369,6 +381,7 @@ Authors are sorted alphabetically.
 * Stijn Verstraeten
 * Stuart Berg
 * Tadeu Manoel
+* Tarcisio
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
@@ -391,6 +404,7 @@ Authors are sorted alphabetically.
 * Troy Powell
 * Tyler Kim
 * Tyrone Grandison
+* Udo-Peter Steyer
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
@@ -402,6 +416,7 @@ Authors are sorted alphabetically.
 * Will Warner
 * Willy Chen
 * Winston Sebastian Pais
+* Wolf Vollprecht
 * Wolfgang Ulmer
 * Xuehai Pan
 * Xylar Asay-Davis

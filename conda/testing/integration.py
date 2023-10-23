@@ -36,7 +36,7 @@ from conda.common.io import (
     env_var,
     stderr_log_level,
 )
-from conda.common.url import escape_channel_url, path_to_url
+from conda.common.url import path_to_url
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.deprecations import deprecated
@@ -270,7 +270,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(arguments)
     context._set_argparse_args(args)
-    init_loggers(context)
+    init_loggers()
     cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
     print(
@@ -312,7 +312,7 @@ def make_temp_env(*packages, **kwargs):
             rm_rf(prefix)
     if not isdir(prefix):
         make_temp_prefix(name, use_restricted_unicode, prefix)
-    with disable_logger("fetch"), disable_logger("dotupdate"):
+    with disable_logger("fetch"):
         try:
             # try to clear any config that's been set by other tests
             # CAUTION :: This does not partake in the context stack management code
@@ -415,31 +415,8 @@ def reload_config(prefix):
 
 
 def package_is_installed(prefix, spec):
-    is_installed = _package_is_installed(prefix, spec)
-
-    # Mamba needs to escape the URL (e.g. space -> %20)
-    # Which ends up rendered in the package spec
-    # Let's try query with a escaped spec in case we are
-    # testing for Mamba or other implementations that need this
-    if not is_installed and "::" in spec:
-        channel, pkg = spec.split("::", 1)
-        escaped_channel = escape_channel_url(channel)
-        escaped_spec = escaped_channel + "::" + pkg
-        is_installed = _package_is_installed(prefix, escaped_spec)
-
-        # Workaround for https://github.com/mamba-org/mamba/issues/1324
-        if not is_installed and channel.startswith("file:"):
-            components = channel.split("/")
-            lowercase_channel = "/".join(components[:-1] + [components[-1].lower()])
-            spec = lowercase_channel + "::" + pkg
-            is_installed = _package_is_installed(prefix, spec)
-
-    return is_installed
-
-
-def _package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix).query(spec))
+    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=True).query(spec))
     if len(prefix_recs) > 1:
         raise AssertionError(
             "Multiple packages installed.%s"

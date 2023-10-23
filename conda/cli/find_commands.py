@@ -1,11 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Utilities for finding executables and `conda-*` commands."""
 import os
 import re
 import sys
 import sysconfig
 from functools import lru_cache
-from os.path import basename, expanduser, isdir, isfile, join
+from os.path import basename, expanduser, isfile, join
 
 from ..common.compat import on_win
 
@@ -57,19 +58,25 @@ def find_commands(include_others=True):
     else:
         dir_paths = []
 
+    dir_paths.extend(os.environ.get("PATH", "").split(os.pathsep))
+
     if on_win:
-        pat = re.compile(r"conda-([\w\-]+)\.(exe|bat)$")
+        pat = re.compile(r"conda-([\w\-]+)(\.(exe|bat))?$")
     else:
         pat = re.compile(r"conda-([\w\-]+)$")
 
     res = set()
     for dir_path in dir_paths:
-        if not isdir(dir_path):
+        try:
+            for entry in os.scandir(dir_path):
+                m = pat.match(entry.name)
+                if m and entry.is_file():
+                    res.add(m.group(1))
+        except (FileNotFoundError, NotADirectoryError, PermissionError, OSError):
+            # FileNotFoundError: path doesn't exist
+            # NotADirectoryError: path is not a directory
+            # PermissionError: user doesn't have read access
+            # OSError: [WinError 123] The filename, directory name, or volume
+            # label syntax is incorrect
             continue
-        for fn in os.listdir(dir_path):
-            if not isfile(join(dir_path, fn)):
-                continue
-            m = pat.match(fn)
-            if m:
-                res.add(m.group(1))
     return tuple(sorted(res))

@@ -41,7 +41,7 @@ body:
     id: what
     attributes:
       label: What should happen?
-      description: What should be the user experience with the feature? Describe from a user perpective what they would do and see.
+      description: What should be the user experience with the feature? Describe from a user perspective what they would do and see.
   - type: textarea
     id: context
     attributes:

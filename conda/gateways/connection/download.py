@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Download logic for conda indices and packages."""
 import hashlib
 import tempfile
 import warnings
@@ -30,7 +31,7 @@ from . import (
     RequestsProxyError,
     SSLError,
 )
-from .session import CondaSession
+from .session import get_session
 
 log = getLogger(__name__)
 
@@ -61,7 +62,7 @@ def download(
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        session = CondaSession()
+        session = get_session(url)
         headers = {
             "Range": "bytes=%s-" % target_part_size
         }  # Attempt to resume downloading.
@@ -316,7 +317,7 @@ def download_text(url):
         disable_ssl_verify_warning()
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        session = CondaSession()
+        session = get_session(url)
         response = session.get(
             url, stream=True, proxies=session.proxies, timeout=timeout
         )

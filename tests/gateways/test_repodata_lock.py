@@ -8,7 +8,8 @@ import traceback
 
 import pytest
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.common.compat import on_win
 from conda.common.io import env_vars
 from conda.gateways.repodata import RepodataCache, lock
 
@@ -46,10 +47,15 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
     # forked workers might share file handle and lock
     multiprocessing.set_start_method("spawn", force=True)
 
+    vars = {"CONDA_PLATFORM": "osx-64"}
+    if not use_lock:
+        vars["CONDA_NO_LOCK"] = "1"  # sets option even if empty string
     with env_vars(
-        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "lock" if use_lock else ""},
+        vars,
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
+        assert context.no_lock == (not use_lock)
+
         cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 
         qout = multiprocessing.Queue()  # put here, get in subprocess
@@ -72,9 +78,7 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
             assert p.exitcode == 0
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="emulate windows behavior for code coverage"
-)
+@pytest.mark.skipif(on_win, reason="emulate windows behavior for code coverage")
 def test_lock_rename(tmp_path):
     class PunyPath(type(tmp_path)):
         def rename(self, path):

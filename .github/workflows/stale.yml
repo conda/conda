@@ -34,7 +34,7 @@ jobs:
             days-before-issue-stale: 90
             days-before-issue-close: 21
     steps:
-      - uses: conda/actions/read-yaml@v23.4.0
+      - uses: conda/actions/read-yaml@v23.10.0
         id: read_yaml
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
@@ -69,8 +69,6 @@ jobs:
           stale-pr-label: stale
           # Label to apply on closed PRs
           close-pr-label: stale::closed
-          # Reason to use when closing PRs
-          close-pr-reason: not_planned
 
           # Remove stale label from issues/PRs on updates/comments
           remove-stale-when-updated: true

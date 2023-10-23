@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Topological sorting implementation."""
 from functools import reduce as _reduce
 from logging import getLogger
 
@@ -80,7 +81,7 @@ def _safe_toposort(data):
             log.debug(err.args[0])
 
             if not data:
-                return
+                return  # pragma: nocover
 
             yield pop_key(data)
 

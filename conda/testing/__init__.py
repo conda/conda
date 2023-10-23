@@ -140,7 +140,7 @@ def conda_check_versions_aligned():
     else:
         version_from_file = None
 
-    git_exe = "git.exe" if sys.platform == "win32" else "git"
+    git_exe = "git.exe" if on_win else "git"
     version_from_git = None
     for pe in os.environ.get("PATH", "").split(os.pathsep):
         if isfile(join(pe, git_exe)):
@@ -178,28 +178,37 @@ class CondaCLIFixture:
         :return: Command results
         :rtype: tuple[stdout, stdout, exitcode]
         """
-        # extra checks to handle legacy subcommands
-        if argv[0] == "env":
-            from conda_env.cli.main import create_parser as generate_parser
-            from conda_env.cli.main import do_call
-
-            argv = argv[1:]
-        else:
-            from conda.cli.conda_argparse import do_call, generate_parser
+        # clear output
+        self.capsys.readouterr()
 
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
-        # parse arguments
-        parser = generate_parser()
-        args = parser.parse_args(argv)
+        # mock legacy subcommands
+        if argv[0] == "env":
+            from conda_env.cli.main import create_parser, do_call
 
-        # initialize context and loggers
-        context.__init__(argparse_args=args)
-        init_loggers(context)
+            argv = argv[1:]
 
-        # run command
-        code = do_call(args, parser)
+            # parse arguments
+            parser = create_parser()
+            args = parser.parse_args(argv)
+
+            # initialize context and loggers
+            context.__init__(argparse_args=args)
+            init_loggers()
+
+            # run command
+            code = do_call(args, parser)
+
+        # all other subcommands
+        else:
+            from conda.cli.main import main_subshell
+
+            # run command
+            code = main_subshell(*argv)
+
+        # capture output
         out, err = self.capsys.readouterr()
 
         # restore to prior state

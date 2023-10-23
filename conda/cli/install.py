@@ -1,5 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda package installation logic.
+
+Core logic for `conda [create|install|update|remove]` commands.
+
+See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
+conda.cli.main_remove for the entry points into this module.
+"""
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
@@ -23,8 +30,10 @@ from ..exceptions import (
     DryRunExit,
     EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
+    OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     TooManyArgumentsError,
     UnsatisfiableError,
@@ -34,15 +43,19 @@ from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
-from ..resolve import ResolvePackageNotFound
 from . import common
 from .common import check_non_admin
+from .python_api import Commands, run_command
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
+    if os.pathsep in prefix:
+        raise CondaValueError(
+            f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
+        )
     name = basename(prefix)
     error = None
     if name == ROOT_ENV_NAME:
@@ -132,8 +145,6 @@ def install(args, parser, command="install"):
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
     prefix = context.target_prefix
-    if newenv:
-        check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
     if isupdate and not (
@@ -147,7 +158,47 @@ def install(args, parser, command="install"):
 """
         )
 
-    if not newenv:
+    if newenv:
+        check_prefix(prefix, json=context.json)
+        if context.subdir != context._native_subdir():
+            # We will only allow a different subdir if it's specified by global
+            # configuration, environment variable or command line argument. IOW,
+            # prevent a non-base env configured for a non-native subdir from leaking
+            # its subdir to a newer env.
+            context_sources = context.collect_all()
+            if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
+                pass  # this is ok
+            elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
+                pass  # this is ok too
+            # config does not come from envvars or cmd_line, it must be a file
+            # that's ok as long as it's a base env or a global file
+            elif not paths_equal(context.active_prefix, context.root_prefix):
+                # this is only ok as long as it's base environment
+                active_env_config = next(
+                    (
+                        config
+                        for path, config in context_sources.items()
+                        if paths_equal(context.active_prefix, path.parent)
+                    ),
+                    None,
+                )
+                if active_env_config.get("subdir") == context.subdir:
+                    # In practice this never happens; the subdir info is not even
+                    # loaded from the active env for conda create :shrug:
+                    msg = dals(
+                        f"""
+                        Active environment configuration ({context.active_prefix}) is
+                        implicitly requesting a non-native platform ({context.subdir}).
+                        Please deactivate first or explicitly request the platform via
+                        the --platform=[value] command line flag.
+                        """
+                    )
+                    raise OperationNotAllowed(msg)
+            log.info(
+                "Creating new environment for a non-native platform %s",
+                context.subdir,
+            )
+    else:
         if isdir(prefix):
             delete_trash(prefix)
             if not isfile(join(prefix, "conda-meta", "history")):
@@ -424,6 +475,15 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if newenv:
         touch_nonadmin(prefix)
+        if context.subdir != context._native_subdir():
+            run_command(
+                Commands.CONFIG,
+                "--file",
+                os.path.join(prefix, ".condarc"),
+                "--set",
+                "subdir",
+                context.subdir,
+            )
         print_activate(args.name or prefix)
 
     if context.json:

@@ -27,10 +27,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-env:
-    # see https://github.com/conda/conda/pull/12524
-    MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
-
 jobs:
   # detect whether any code changes are included in this PR
   changes:
@@ -54,10 +50,13 @@ jobs:
               - 'conda/**'
               - 'conda_env/**'
               - 'tests/**'
-              - '!tests/durations/**'
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
+              - 'dev/**/setup.*'
+              - 'dev/**/integration.*'
+              - 'dev/**/unit.*'
+              - 'dev/**/qemu.*'
 
   # windows test suite
   windows:
@@ -101,16 +100,6 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio.exe
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
-
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
         run: |
@@ -143,7 +132,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -151,7 +140,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests\durations\${{ runner.os }}.json
+            .\tools\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -201,7 +190,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -209,7 +198,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ runner.os }}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -252,7 +241,7 @@ jobs:
           /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -312,16 +301,6 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
-
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
@@ -344,7 +323,7 @@ jobs:
 
       - name: Setup environment
         shell: bash -l {0}
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           ./dev/macos/setup.sh
 
@@ -358,7 +337,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -366,7 +345,7 @@ jobs:
           name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
-            tests/durations/${{ runner.os }}.json
+            ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
 
@@ -374,7 +353,9 @@ jobs:
   aggregate:
     # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-qemu, macos]
-    if: always() && needs.changes.outputs.code == 'true'
+    if: >-
+      !cancelled()
+      && needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     steps:
@@ -399,7 +380,7 @@ jobs:
   analyze:
     name: Analyze results
     needs: [windows, linux, linux-qemu, macos, aggregate]
-    if: always()
+    if: '!cancelled()'
 
     runs-on: ubuntu-latest
     steps:
@@ -418,7 +399,7 @@ jobs:
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
     if: >-
-      always()
+      !cancelled()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'
@@ -444,8 +425,34 @@ jobs:
           clean: true
           fetch-depth: 0
 
+      # Explicitly use Python 3.11 since each of the OSes has a different default Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Detect label
+        shell: python
+        run: |
+          from pathlib import Path
+          from re import match
+          from os import environ
+
+          if "${{ github.ref_name }}" == "main":
+              # main branch commits are uploaded to the dev label
+              label = "dev"
+          elif "${{ github.ref_name }}".startswith("feature/"):
+              # feature branch commits are uploaded to a custom label
+              label = "${{ github.ref_name }}"
+          else:
+              # release branch commits are added to the rc label
+              # see https://github.com/conda/infrastructure/issues/760
+              _, name = "${{ github.repository }}".split("/")
+              label = f"rc-{name}-${{ github.ref_name }}"
+
+          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
+
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v22.10.0
+        uses: conda/actions/canary-release@v23.7.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -453,5 +460,5 @@ jobs:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
-          anaconda-org-label: ${{ github.ref_name == 'main' && 'dev' || github.ref_name }}
+          anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}

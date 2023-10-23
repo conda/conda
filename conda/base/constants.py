@@ -68,6 +68,8 @@ DEFAULTS_CHANNEL_NAME = "defaults"
 
 KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "noarch",
+    "emscripten-wasm32",
+    "wasi-wasm32",
     "freebsd-64",
     "linux-32",
     "linux-64",
@@ -319,3 +321,8 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Not all python namespace packages are registered on PyPI. If a package
 # contains files in site-packages, it probably belongs in the python namespace.
+
+
+# Indicates whether or not external plugins (i.e., plugins that aren't shipped
+# with conda) are enabled
+NO_PLUGINS = False

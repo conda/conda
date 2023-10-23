@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Disk utility functions for reading and processing file contents."""
 from __future__ import annotations
 
 import hashlib

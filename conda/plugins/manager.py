@@ -1,13 +1,22 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""
+This module contains a subclass implementation of pluggy's
+`PluginManager <https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluginManager>`_.
+
+Additionally, it contains a function we use to construct the ``PluginManager`` object and
+register all plugins during conda's startup process.
+"""
 from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable, Iterable
 from importlib.metadata import distributions
+from inspect import getmodule, isclass
+from typing import Literal, overload
 
 import pluggy
+from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
 from ..base.context import context
@@ -15,14 +24,21 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .types import (
+    CondaAuthHandler,
+    CondaPostCommand,
+    CondaPreCommand,
+    CondaSolver,
+    CondaSubcommand,
+    CondaVirtualPackage,
+)
 
 log = logging.getLogger(__name__)
 
 
 class CondaPluginManager(pluggy.PluginManager):
     """
-    The conda plugin manager to implement behavior additional to
-    pluggy's default plugin manager.
+    The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
@@ -40,42 +56,72 @@ class CondaPluginManager(pluggy.PluginManager):
             self.get_solver_backend
         )
 
-    def load_plugins(self, *plugins) -> list[str]:
+    def get_canonical_name(self, plugin: object) -> str:
+        # detect the fully qualified module name
+        prefix = "<unknown_module>"
+        if (module := getmodule(plugin)) and module.__spec__:
+            prefix = module.__spec__.name
+
+        # return the fully qualified name for modules
+        if module is plugin:
+            return prefix
+
+        # return the fully qualified name for classes
+        elif isclass(plugin):
+            return f"{prefix}.{plugin.__qualname__}"
+
+        # return the fully qualified name for instances
+        else:
+            return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
+
+    def register(self, plugin, name: str | None = None) -> str | None:
+        """
+        Call :meth:`pluggy.PluginManager.register` and return the result or
+        ignore errors raised, except ``ValueError``, which means the plugin
+        had already been registered.
+        """
+        try:
+            # register plugin but ignore ValueError since that means
+            # the plugin has already been registered
+            return super().register(plugin, name=name)
+        except ValueError:
+            return None
+        except Exception as err:
+            raise PluginError(
+                f"Error while loading conda plugin: "
+                f"{name or self.get_canonical_name(plugin)} ({err})"
+            )
+
+    def load_plugins(self, *plugins) -> int:
         """
         Load the provided list of plugins and fail gracefully on error.
-        The provided list plugins can either be classes or modules with
-        :attr:`~conda.plugins.hook_impl`.
+        The provided list of plugins can either be classes or modules with
+        :attr:`~conda.plugins.hookimpl`.
         """
-        plugin_names = []
+        count = 0
         for plugin in plugins:
-            try:
-                plugin_name = self.register(plugin)
-            except ValueError as err:
-                raise PluginError(
-                    f"Error while loading conda plugins from {plugins}: {err}"
-                )
-            else:
-                plugin_names.append(plugin_name)
-        return plugin_names
+            if self.register(plugin):
+                count += 1
+        return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
         """Load modules from querying the specified setuptools ``group``.
+
         :param str group: Entry point group to load plugins.
         :param str name: If given, loads only plugins with the given ``name``.
         :rtype: int
         :return: The number of plugins loaded by this call.
         """
         count = 0
-        for dist in list(distributions()):
+        for dist in distributions():
             for entry_point in dist.entry_points:
-                if (
-                    entry_point.group != group
-                    or (name is not None and entry_point.name != name)
-                    # already registered
-                    or self.get_plugin(entry_point.name)
-                    or self.is_blocked(entry_point.name)
+                # skip entry points that don't match the group/name
+                if entry_point.group != group or (
+                    name is not None and entry_point.name != name
                 ):
                     continue
+
+                # attempt to load plugin from entry point
                 try:
                     plugin = entry_point.load()
                 except Exception as err:
@@ -84,14 +130,45 @@ class CondaPluginManager(pluggy.PluginManager):
                     # meaning that it comes too late to properly render
                     # a traceback
                     log.warning(
-                        f"Could not load conda plugin `{entry_point.name}`:\n\n{err}"
+                        f"Error while loading conda entry point: {entry_point.name} ({err})"
                     )
                     continue
-                self.register(plugin, name=entry_point.name)
-                count += 1
+
+                if self.register(plugin):
+                    count += 1
         return count
 
-    def get_hook_results(self, name: str) -> list:
+    @overload
+    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["virtual_packages"]
+    ) -> list[CondaVirtualPackage]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_commands"]
+    ) -> list[CondaPostCommand]:
+        ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["auth_handlers"]
+    ) -> list[CondaAuthHandler]:
+        ...
+
+    def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -99,12 +176,26 @@ class CondaPluginManager(pluggy.PluginManager):
         specname = f"{self.project_name}_{name}"  # e.g. conda_solvers
         hook = getattr(self.hook, specname, None)
         if hook is None:
-            raise PluginError(f"Could not load `{specname}` plugins.")
+            raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = sorted(
-            (item for items in hook() for item in items),
-            key=lambda item: item.name,
-        )
+        plugins = [item for items in hook() for item in items]
+
+        # Check for invalid names
+        invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
+        if invalid:
+            raise PluginError(
+                dals(
+                    f"""
+                    Invalid plugin names found:
+
+                    {', '.join([str(plugin) for plugin in invalid])}
+
+                    Please report this issue to the plugin author(s).
+                    """
+                )
+            )
+        plugins = sorted(plugins, key=lambda plugin: plugin.name)
+
         # Check for conflicts
         seen = set()
         conflicts = [
@@ -125,7 +216,14 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return plugins
 
-    def get_solver_backend(self, name: str = None) -> type[Solver]:
+    def get_solvers(self) -> dict[str, CondaSolver]:
+        """Return a mapping from solver name to solver class."""
+        return {
+            solver_plugin.name.lower(): solver_plugin
+            for solver_plugin in self.get_hook_results("solvers")
+        }
+
+    def get_solver_backend(self, name: str | None = None) -> type[Solver]:
         """
         Get the solver backend with the given name (or fall back to the
         name provided in the context).
@@ -141,45 +239,76 @@ class CondaPluginManager(pluggy.PluginManager):
             name = context.solver
         name = name.lower()
 
-        # Build a mapping between a lower cased backend name and
-        # solver backend class provided by the installed plugins.
-        solvers_mapping = {
-            solver.name.lower(): solver.backend
-            for solver in self.get_hook_results("solvers")
-        }
+        solvers_mapping = self.get_solvers()
 
         # Look up the solver mapping and fail loudly if it can't
         # find the requested solver.
-        backend = solvers_mapping.get(name, None)
-        if backend is None:
+        solver_plugin = solvers_mapping.get(name, None)
+        if solver_plugin is None:
             raise CondaValueError(
                 f"You have chosen a non-default solver backend ({name}) "
                 f"but it was not recognized. Choose one of: "
-                f"{', '.join(solvers_mapping.keys())}"
+                f"{', '.join(solvers_mapping)}"
             )
 
-        return backend
+        return solver_plugin.backend
 
-    def yield_pre_command_hook_actions(self, command: str) -> Iterable[Callable]:
+    def get_auth_handler(self, name: str) -> type[AuthBase] | None:
         """
-        Yields the ``CondaPreCommand.action`` functions registered by the ``conda_pre_commands``
-        hook.
+        Get the auth handler with the given name or None
+        """
+        auth_handlers = self.get_hook_results("auth_handlers")
+        matches = tuple(
+            item for item in auth_handlers if item.name.lower() == name.lower().strip()
+        )
+
+        if len(matches) > 0:
+            return matches[0].handler
+        return None
+
+    def invoke_pre_commands(self, command: str) -> None:
+        """
+        Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
 
         :param command: name of the command that is currently being invoked
         """
-        # Load pre-commands available to run
-        pre_command_hooks = self.get_hook_results("pre_commands")
+        for hook in self.get_hook_results("pre_commands"):
+            if command in hook.run_for:
+                hook.action(command)
 
-        for pre_command in pre_command_hooks:
-            if command in pre_command.run_for:
-                yield pre_command.action
+    def invoke_post_commands(self, command: str) -> None:
+        """
+        Invokes ``CondaPostCommand.action`` functions registered with ``conda_post_commands``.
+
+        :param command: name of the command that is currently being invoked
+        """
+        for hook in self.get_hook_results("post_commands"):
+            if command in hook.run_for:
+                hook.action(command)
+
+    def disable_external_plugins(self) -> None:
+        """
+        Disables all currently registered plugins except built-in conda plugins
+        """
+        for name, plugin in self.list_name_plugin():
+            if not name.startswith("conda.plugins.") and not self.is_blocked(name):
+                self.set_blocked(name)
+
+    def get_subcommands(self) -> dict[str, CondaSubcommand]:
+        return {
+            subcommand.name.lower(): subcommand
+            for subcommand in self.get_hook_results("subcommands")
+        }
+
+    def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
+        return tuple(self.get_hook_results("virtual_packages"))
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
-    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager`
-    instance, with the built-in and the entrypoints provided plugins loaded.
+    Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,
+    with the built-in and entrypoints provided by the plugins loaded.
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)

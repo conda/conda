@@ -151,6 +151,12 @@ be stored defined following The XDG Base Directory Specification (XDGBDS). Defau
 to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
+``CONDARC`` must be a path to a file named ``.condarc``, ``condarc``, or end with a YAML suffix (``.yml`` or ``.yaml``).
+
+.. note::
+   Any condarc files that exist in any of these special search path
+   directories need to end in a valid yaml extension (".yml" or ".yaml").
+
 
 Conflict merging strategy
 -------------------------
@@ -199,8 +205,8 @@ conda defaults, causing conda to search only the channels listed
 here, in the order given.
 
 Use ``defaults`` to automatically include all default channels.
-Non-URL channels are interpreted as Anaconda.org user names. You
-can change this by modifying the ``channel_alias`` as described
+Non-URL channels are interpreted as Anaconda.org user or organization
+names. You can change this by modifying the ``channel_alias`` as described
 in :ref:`set-ch-alias`. The default is just ``defaults``.
 
 EXAMPLE:

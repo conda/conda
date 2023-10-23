@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""(Legacy) Low-level implementation of a PackageRecord."""
 from logging import getLogger
 
 from ..auxlib.entity import (

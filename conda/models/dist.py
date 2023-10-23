@@ -1,8 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""(Legacy) Low-level implementation of a Channel."""
 import re
-from collections import namedtuple
 from logging import getLogger
+from typing import NamedTuple
 
 from .. import CondaError
 from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
@@ -15,18 +16,30 @@ from ..base.context import context
 from ..common.compat import ensure_text_type
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
+from ..deprecations import deprecated
 from .channel import Channel
 from .package_info import PackageInfo
 from .records import PackageRecord
 
 log = getLogger(__name__)
-DistDetails = namedtuple(
-    "DistDetails",
-    ("name", "version", "build_string", "build_number", "dist_name", "fmt"),
+
+
+class DistDetails(NamedTuple):
+    name: str
+    version: str
+    build_string: str
+    build_number: str
+    dist_name: str
+    fmt: str
+
+
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "IndexRecord",
+    PackageRecord,
+    addendum="Use `conda.models.records.PackageRecord` instead.",
 )
-
-
-IndexRecord = PackageRecord  # for conda-build backward compat
 
 
 class DistType(EntityType):

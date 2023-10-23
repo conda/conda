@@ -1,28 +1,28 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-# Taken from requests-ftp
-# (https://github.com/Lukasa/requests-ftp/blob/master/requests_ftp/ftp.py)
+# Copyright (C) 2012 Cory Benfield
+# SPDX-License-Identifier: Apache-2.0
+"""Defines FTP transport adapter for CondaSession (requests.Session).
 
-# Copyright 2012 Cory Benfield
+Taken from requests-ftp (https://github.com/Lukasa/requests-ftp/blob/master/requests_ftp/ftp.py).
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-import cgi
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import ftplib
 import os
 from base64 import b64decode
 from io import BytesIO, StringIO
 from logging import getLogger
+
+from conda.deprecations import deprecated
 
 from ....common.url import urlparse
 from ....exceptions import AuthenticationError
@@ -133,6 +133,7 @@ class FTPAdapter(BaseAdapter):
 
         return response
 
+    @deprecated("24.3", "24.9")
     def stor(self, path, request):
         """Executes the FTP STOR command on the given path."""
         # First, get the file handle. We assume (bravely)
@@ -267,10 +268,13 @@ def build_response(request, data, code, encoding):
     return response
 
 
+@deprecated("24.3", "24.9")
 def parse_multipart_files(request):
     """Given a prepared request, return a file-like object containing the
     original data. This is pretty hacky.
     """
+    import cgi
+
     # Start by grabbing the pdict.
     _, pdict = cgi.parse_header(request.headers["Content-Type"])
 

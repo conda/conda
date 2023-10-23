@@ -1,15 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Wrapper for running conda CLI commands as a Python API."""
 from logging import getLogger
 
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
 from ..common.compat import encode_arguments
 from ..common.io import CaptureTarget, argv, captured
+from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
-from .conda_argparse import do_call
-from .main import generate_parser
+from .conda_argparse import do_call, generate_parser
+
+deprecated.module("24.3", "24.9", addendum="Use `conda.testing.conda_cli` instead.")
 
 log = getLogger(__name__)
 

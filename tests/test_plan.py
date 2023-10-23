@@ -1,38 +1,29 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import random
-import unittest
 from collections import defaultdict, namedtuple
-from contextlib import contextmanager
-from functools import partial
-from os.path import join
-from unittest import mock
+from random import randint
 
 import pytest
+from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 import conda.instructions as inst
 from conda import CondaError
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, stack_context
-from conda.cli.python_api import Commands, run_command
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
 from conda.exports import execute_plan
-from conda.gateways.disk.create import mkdir_p
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.plan import _update_old_plan as update_old_plan
-from conda.plan import add_defaults_to_specs, add_unlink, display_actions
+from conda.plan import add_unlink, display_actions
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.helpers import captured, get_index_r_1
 
-from .gateways.disk.test_permissions import tempdir
-
-(
-    index,
-    r,
-) = get_index_r_1()
+index, r = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state
 
 
@@ -61,47 +52,19 @@ def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
-class add_unlink_TestCase(unittest.TestCase):
-    def generate_random_dist(self):
-        return "foobar-%s-0" % random.randint(100, 200)
-
-    @contextmanager
-    def mock_platform(self, windows=False):
-        from conda import plan
-
-        with mock.patch.object(plan, "sys") as sys:
-            sys.platform = "win32" if windows else "not win32"
-            yield sys
-
-    def test_simply_adds_unlink_on_non_windows(self):
-        actions = {}
-        dist = Dist.from_string(self.generate_random_dist())
-        with self.mock_platform(windows=False):
-            add_unlink(actions, dist)
-        self.assertIn(inst.UNLINK, actions)
-        self.assertEqual(
-            actions[inst.UNLINK],
-            [
-                dist,
-            ],
-        )
-
-    def test_adds_to_existing_actions(self):
-        actions = {inst.UNLINK: [{"foo": "bar"}]}
-        dist = Dist.from_string(self.generate_random_dist())
-        with self.mock_platform(windows=False):
-            add_unlink(actions, dist)
-        self.assertEqual(2, len(actions[inst.UNLINK]))
+def test_simply_adds_unlink_on_non_windows():
+    actions = {}
+    dist = Dist.from_string(f"foobar-{randint(100, 200)}-0")
+    add_unlink(actions, dist)
+    assert inst.UNLINK in actions
+    assert actions[inst.UNLINK] == [dist]
 
 
-class TestAddDeaultsToSpec(unittest.TestCase):
-    # tests for plan.add_defaults_to_specs(r, linked, specs)
-
-    def check(self, specs, added):
-        new_specs = list(specs + added)
-        add_defaults_to_specs(r, self.linked, specs)
-        specs = [s.split(" (")[0] for s in specs]
-        self.assertEqual(specs, new_specs)
+def test_adds_to_existing_actions():
+    actions = {inst.UNLINK: [{"foo": "bar"}]}
+    dist = Dist.from_string(f"foobar-{randint(100, 200)}-0")
+    add_unlink(actions, dist)
+    assert len(actions[inst.UNLINK]) == 2
 
 
 def test_display_actions_0():
@@ -1325,42 +1288,34 @@ The following packages will be UPDATED:
         )
 
 
-class TestDeprecatedExecutePlan(unittest.TestCase):
-    def test_update_old_plan(self):
-        old_plan = ["# plan", "INSTRUCTION arg"]
-        new_plan = update_old_plan(old_plan)
+def test_update_old_plan():
+    old_plan = ["# plan", "INSTRUCTION arg"]
+    new_plan = update_old_plan(old_plan)
 
-        expected = [("INSTRUCTION", "arg")]
-        self.assertEqual(new_plan, expected)
+    expected = [("INSTRUCTION", "arg")]
+    assert new_plan == expected
 
-        with self.assertRaises(CondaError):
-            update_old_plan(["INVALID"])
+    with pytest.raises(CondaError):
+        update_old_plan(["INVALID"])
 
-    def test_execute_plan(self):
-        initial_commands = inst.commands
 
-        def set_commands(cmds):
-            inst.commands = cmds
+def test_execute_plan(monkeypatch: MonkeyPatch):
+    def INSTRUCTION_CMD(state, arg):
+        INSTRUCTION_CMD.called = True
+        INSTRUCTION_CMD.arg = arg
 
-        self.addCleanup(lambda: set_commands(initial_commands))
+    monkeypatch.setitem(inst.commands, "INSTRUCTION", INSTRUCTION_CMD)
 
-        def INSTRUCTION_CMD(state, arg):
-            INSTRUCTION_CMD.called = True
-            INSTRUCTION_CMD.arg = arg
+    old_plan = ["# plan", "INSTRUCTION arg"]
+    execute_plan(old_plan)
 
-        set_commands({"INSTRUCTION": INSTRUCTION_CMD})
-
-        old_plan = ["# plan", "INSTRUCTION arg"]
-
-        execute_plan(old_plan)
-
-        self.assertTrue(INSTRUCTION_CMD.called)
-        self.assertEqual(INSTRUCTION_CMD.arg, "arg")
+    assert INSTRUCTION_CMD.called
+    assert INSTRUCTION_CMD.arg == "arg"
 
 
 def generate_mocked_resolve(pkgs, install=None):
     mock_package = namedtuple(
-        "IndexRecord", ["preferred_env", "name", "schannel", "version", "fn"]
+        "PacakgeRecord", ["preferred_env", "name", "schannel", "version", "fn"]
     )
     mock_resolve = namedtuple(
         "Resolve",
@@ -1434,17 +1389,6 @@ def generate_mocked_context(prefix, root_prefix, envs_dirs):
     )
 
 
-class TestGetActionsForDist(unittest.TestCase):
-    def setUp(self):
-        self.pkgs = [
-            (None, "test-spec", "defaults", "1"),
-            ("ranenv", "test-spec", "defaults", "5"),
-            (None, "test-spec2", "defaults", "1"),
-            ("ranenv", "test", "defaults", "1.2.0"),
-        ]
-        self.res = generate_mocked_resolve(self.pkgs)
-
-
 def generate_remove_action(prefix, unlink):
     action = defaultdict(list)
     action["op_order"] = (
@@ -1463,57 +1407,78 @@ def generate_remove_action(prefix, unlink):
     return action
 
 
-def test_pinned_specs():
+def test_pinned_specs_CONDA_PINNED_PACKAGES():
     # Test pinned specs environment variable
-    specs_str_1 = ("numpy 1.11", "python >3")
-    specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
+    specs = ("numpy 1.11", "python >3")
     with env_var(
         "CONDA_PINNED_PACKAGES",
-        "&".join(specs_str_1),
+        "&".join(specs),
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         pinned_specs = get_pinned_specs("/none")
-        assert pinned_specs == specs_1
-        assert pinned_specs != specs_str_1
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
+
+def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
     # Test pinned specs conda environment file
-    specs_str_2 = ("scipy ==0.14.2", "openjdk >=8")
-    specs_2 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_2)
+    specs = ("scipy ==0.14.2", "openjdk >=8")
+    with tmp_env() as prefix:
+        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs) + "\n")
 
-    with tempdir() as td:
-        mkdir_p(join(td, "conda-meta"))
-        with open(join(td, "conda-meta", "pinned"), "w") as fh:
-            fh.write("\n".join(specs_str_2))
-            fh.write("\n")
-        pinned_specs = get_pinned_specs(td)
-        assert pinned_specs == specs_2
-        assert pinned_specs != specs_str_2
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
+
+def test_pinned_specs_condarc(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    # Test pinned specs conda environment file
+    specs = ("requests ==2.13",)
+    with tmp_env() as prefix:
+        # mock active prefix
+        mocker.patch(
+            "conda.base.context.Context.active_prefix",
+            new_callable=mocker.PropertyMock,
+            return_value=str(prefix),
+        )
+
+        conda_cli("config", "--env", "--add", "pinned_packages", *specs)
+
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_pinned_specs_all(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
     # Test pinned specs conda configuration and pinned specs conda environment file
-    with tempdir() as td:
-        mkdir_p(join(td, "conda-meta"))
-        pinned_filename = join(td, "conda-meta", "pinned")
-        with open(pinned_filename, "w") as fh:
-            fh.write("\n".join(specs_str_1))
-            fh.write("\n")
+    specs1 = ("numpy 1.11", "python >3")
+    specs2 = ("scipy ==0.14.2", "openjdk >=8")
+    specs3 = ("requests=2.13",)
+    specs = (*specs1, *specs3, *specs2)
+    with tmp_env() as prefix, env_var(
+        "CONDA_PINNED_PACKAGES",
+        "&".join(specs1),
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs2) + "\n")
 
-        with env_var("CONDA_PREFIX", td, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            run_command(
-                Commands.CONFIG, "--env", "--add", "pinned_packages", "requests=2.13"
-            )
-            condarc = join(td, ".condarc")
-            with env_var(
-                "CONDA_PINNED_PACKAGES",
-                "&".join(specs_str_2),
-                partial(stack_context, True, search_path=(condarc,)),
-            ):  # conda_tests_ctxt_mgmt_def_pol):
-                pinned_specs = get_pinned_specs(td)
-                expected = (
-                    specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
-                )
-                assert pinned_specs == expected
-                assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
+        # mock active prefix
+        mocker.patch(
+            "conda.base.context.Context.active_prefix",
+            new_callable=mocker.PropertyMock,
+            return_value=str(prefix),
+        )
 
+        conda_cli("config", "--env", "--add", "pinned_packages", *specs3)
 
-if __name__ == "__main__":
-    unittest.main()
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)

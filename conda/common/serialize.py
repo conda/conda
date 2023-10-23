@@ -1,21 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""YAML and JSON serialization and deserialization functions."""
 import functools
 import json
 from io import StringIO
 from logging import getLogger
 
-from ..auxlib.entity import EntityEncoder
+import ruamel.yaml as yaml
 
-try:
-    import ruamel.yaml as yaml
-except ImportError:
-    try:
-        import ruamel_yaml as yaml
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
+from ..auxlib.entity import EntityEncoder
 
 log = getLogger(__name__)
 

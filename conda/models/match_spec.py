@@ -1,5 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Implements the query language for conda packages (a.k.a, MatchSpec).
+
+The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
+`cryptography * *_0`) and is used to communicate the desired packages to install.
+"""
 import re
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -240,7 +245,7 @@ class MatchSpec(metaclass=MatchSpecType):
 
     def match(self, rec):
         """
-        Accepts an `IndexRecord` or a dict, and matches can pull from any field
+        Accepts a `PackageRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
@@ -772,10 +777,12 @@ def _parse_spec_str(spec_str):
     # e.g. tensorflow[name=* version=* md5=<hash of pytorch package> ] will APPEAR to install
     # tensorflow but actually install pytorch.
     if "name" in components and "name" in brackets:
-        warnings.warn(
-            f"'name' specified both inside ({brackets['name']}) and outside ({components['name']})"
-            " of brackets. the value outside of brackets ({components['name']}) will be used."
+        msg = (
+            f"'name' specified both inside ({brackets['name']}) and outside "
+            f"({components['name']}) of brackets. The value outside of brackets "
+            f"({components['name']}) will be used."
         )
+        warnings.warn(msg, UserWarning)
         del brackets["name"]
     components.update(brackets)
     components["_original_spec_str"] = original_spec_str
