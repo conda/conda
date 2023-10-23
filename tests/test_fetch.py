@@ -100,7 +100,7 @@ def test_tmpDownload():
 
 
 @responses.activate
-def test_resume_download(self):
+def test_resume_download():
     output_path = mktemp()
     url = DEFAULT_CHANNEL_ALIAS
     responses.add(
@@ -142,7 +142,7 @@ def test_resume_download(self):
 
 
 @responses.activate
-def test_download_when_ranges_not_supported(self):
+def test_download_when_ranges_not_supported():
     output_path = mktemp()
     with pytest.raises(ConnectionAbortedError):
         url = DEFAULT_CHANNEL_ALIAS
