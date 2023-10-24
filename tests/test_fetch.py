@@ -3,11 +3,13 @@
 import hashlib
 import os
 from os.path import exists, isfile
+from pathlib import Path
 from tempfile import mktemp
 from unittest.mock import patch
 
 import pytest
 import responses
+from conda_package_handling.utils import checksum
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
@@ -140,7 +142,7 @@ def test_resume_download(tmp_path):
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
-        status=216,
+        status=206,  # partial content
     )
 
     with patch("requests.Response.iter_content", side_effect=iter_content_resumed):
@@ -215,3 +217,28 @@ def test_download_httperror():
         )
         download(url, mktemp())
         assert msg in str(execinfo)
+
+
+def test_resume_partial(tmp_path, package_repository_base, package_server):
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    package_name = "zlib-1.2.11-h7b6447c_3.conda"
+    url = f"{base}/linux-64/{package_name}"
+    package_path = package_repository_base / "linux-64" / package_name
+    sha256 = checksum(package_path, algorithm="sha256")
+    size = package_path.stat().st_size
+    output_path = tmp_path / package_name
+
+    # try full download
+    download(url, output_path, size=size, sha256=sha256)
+
+    # simulate partial download
+    partial_path = Path(str(output_path) + ".partial")
+    output_path.rename(partial_path)
+
+    with partial_path.open("r+") as partial:
+        partial.seek(10)
+        partial.truncate()
+
+    # resume from `.partial` file
+    download(url, output_path, size=size, sha256=sha256)

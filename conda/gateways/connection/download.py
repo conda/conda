@@ -99,8 +99,8 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
         resp.raise_for_status()
 
         # Reset file if we think we're downloading partial content but the
-        # server doesn't respond with 216 Partial Content
-        if partial and resp.status_code != 216:
+        # server doesn't respond with 206 Partial Content
+        if partial and resp.status_code != 206:
             target.seek(0)
             target.truncate()
 
