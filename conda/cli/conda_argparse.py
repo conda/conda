@@ -106,6 +106,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
         description="The following built-in and plugins subcommands are available.",
         dest="cmd",
         action=_GreedySubParsersAction,
+        required=True,
     )
 
     configure_parser_mock_activate(sub_parsers)
