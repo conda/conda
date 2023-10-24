@@ -1,7 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import os
 from os.path import exists, isfile
 from tempfile import mktemp
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -94,6 +96,89 @@ def test_tmpDownload():
                 msg = "Rock and Roll Never Die"
                 with TmpDownload(msg) as result:
                     assert result == msg
+
+
+@responses.activate
+def test_resume_download():
+    output_path = mktemp()
+    url = DEFAULT_CHANNEL_ALIAS
+    responses.add(
+        responses.GET,
+        url,
+        stream=True,
+        content_type="application/json",
+        headers={"Accept-Ranges": "bytes"},
+    )
+    # Download gets interrupted by an exception
+    with pytest.raises(ConnectionAbortedError):
+
+        def iter_content_interrupted(*args, **kwargs):
+            yield b"first:"
+            yield b"second:"
+            raise ConnectionAbortedError("aborted")
+
+        with patch(
+            "requests.Response.iter_content", side_effect=iter_content_interrupted
+        ):
+            download(url, output_path)
+
+    # Check that only the .part file is present
+    assert not os.path.exists(output_path)
+    assert os.path.exists(output_path + ".partial")
+
+    # Download is resumed
+    def iter_content_resumed(*args, **kwargs):
+        yield b"last"
+
+    with patch("requests.Response.iter_content", side_effect=iter_content_resumed):
+        download(url, output_path)
+
+    assert os.path.exists(output_path)
+    assert not os.path.exists(output_path + ".partial")
+
+    with open(output_path, "rb") as fh:
+        assert fh.read() == b"first:second:last"
+
+
+@responses.activate
+def test_download_when_ranges_not_supported():
+    output_path = mktemp()
+    with pytest.raises(ConnectionAbortedError):
+        url = DEFAULT_CHANNEL_ALIAS
+        responses.add(
+            responses.GET,
+            url,
+            stream=True,
+            content_type="application/json",
+            headers={"Accept-Ranges": "none"},
+        )
+        with patch("requests.Response.iter_content") as iter_content_mock:
+
+            def iter_content_interrupted(*args, **kwargs):
+                yield b"first:"
+                yield b"second:"
+                raise ConnectionAbortedError("aborted")
+
+            iter_content_mock.side_effect = iter_content_interrupted
+            download(url, output_path)
+
+    assert not os.path.exists(output_path)
+    assert os.path.exists(output_path + ".partial")
+
+    # Accept-Ranges is not supported, send full content
+    with patch("requests.Response.iter_content") as iter_content_mock:
+
+        def iter_content_resumed(*args, **kwargs):
+            yield b"first:second:last"
+
+        iter_content_mock.side_effect = iter_content_resumed
+        download(url, output_path)
+
+    assert os.path.exists(output_path)
+    assert not os.path.exists(output_path + ".partial")
+
+    with open(output_path, "rb") as fh:
+        assert fh.read() == b"first:second:last"
 
 
 @responses.activate
