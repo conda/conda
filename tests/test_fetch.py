@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import hashlib
 import os
 from os.path import exists, isfile
 from tempfile import mktemp
@@ -11,10 +12,9 @@ import responses
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
-from conda.core.package_cache_data import download
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
-from conda.gateways.connection.download import TmpDownload
+from conda.gateways.connection.download import TmpDownload, download
 from conda.models.channel import Channel
 
 
@@ -100,27 +100,31 @@ def test_tmpDownload():
 
 @responses.activate
 def test_resume_download():
+    test_file = [b"first:", b"second:", b"last"]
+    size = sum(len(line) for line in test_file)
+    sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
+
     output_path = mktemp()
     url = DEFAULT_CHANNEL_ALIAS
     responses.add(
         responses.GET,
         url,
         stream=True,
-        content_type="application/json",
+        content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
     )
     # Download gets interrupted by an exception
     with pytest.raises(ConnectionAbortedError):
 
         def iter_content_interrupted(*args, **kwargs):
-            yield b"first:"
-            yield b"second:"
+            yield test_file[0]
+            yield test_file[1]
             raise ConnectionAbortedError("aborted")
 
         with patch(
             "requests.Response.iter_content", side_effect=iter_content_interrupted
         ):
-            download(url, output_path)
+            download(url, output_path, size=size, sha256=sha256)
 
     # Check that only the .part file is present
     assert not os.path.exists(output_path)
@@ -128,10 +132,20 @@ def test_resume_download():
 
     # Download is resumed
     def iter_content_resumed(*args, **kwargs):
-        yield b"last"
+        yield test_file[2]
+
+    # won't resume download unless 216 Partial Content status code
+    responses.replace(
+        responses.GET,
+        url,
+        stream=True,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=216,
+    )
 
     with patch("requests.Response.iter_content", side_effect=iter_content_resumed):
-        download(url, output_path)
+        download(url, output_path, size=size, sha256=sha256)
 
     assert os.path.exists(output_path)
     assert not os.path.exists(output_path + ".partial")

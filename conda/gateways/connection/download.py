@@ -73,11 +73,11 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     session = get_session(url)
 
-    partial = True
-    target_file_for_download = download_partial_file
-    if not (md5 or sha256) or size:
-        partial = False
-        target_file_for_download = download_full_file
+    partial = False
+    target_file_for_download = download_full_file
+    if size and (md5 or sha256):
+        partial = True
+        target_file_for_download = download_partial_file
 
     streamed_bytes = 0
     size_builder = 0
@@ -98,6 +98,12 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
 
+        # Reset file if we think we're downloading partial content but the
+        # server doesn't respond with 216 Partial Content
+        if partial and resp.status_code != 216:
+            target.seek(0)
+            target.truncate()
+
         content_length = int(resp.headers.get("Content-Length", 0))
 
         for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
@@ -115,55 +121,55 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                 if progress_update_callback:
                     progress_update_callback(streamed_bytes / content_length)
 
-    if content_length and streamed_bytes != content_length:
-        # TODO: needs to be a more-specific error type
-        message = dals(
+        if content_length and streamed_bytes != content_length:
+            # TODO: needs to be a more-specific error type
+            message = dals(
+                """
+            Downloaded bytes did not match Content-Length
+                url: %(url)s
+                target_path: %(target_path)s
+                Content-Length: %(content_length)d
+                downloaded bytes: %(downloaded_bytes)d
             """
-        Downloaded bytes did not match Content-Length
-            url: %(url)s
-            target_path: %(target_path)s
-            Content-Length: %(content_length)d
-            downloaded bytes: %(downloaded_bytes)d
-        """
-        )
-        raise CondaError(
-            message,
-            url=url,
-            target_path=target_full_path,
-            content_length=content_length,
-            downloaded_bytes=streamed_bytes,
-        )
+            )
+            raise CondaError(
+                message,
+                url=url,
+                target_path=target_full_path,
+                content_length=content_length,
+                downloaded_bytes=streamed_bytes,
+            )
 
-    if md5 or sha256:
-        target.seek(0)
-        checksum_type = "sha256" if sha256 else "md5"
-        checksum = sha256 if sha256 else md5
-        hasher = hashlib.new(checksum_type)
-        for block in target.read(CHUNK_SIZE):
-            hasher.update(block)
+        if md5 or sha256:
+            checksum_type = "sha256" if sha256 else "md5"
+            checksum = sha256 if sha256 else md5
+            hasher = hashlib.new(checksum_type)
+            target.seek(0)
+            while read := target.read(CHUNK_SIZE):
+                hasher.update(read)
 
-        actual_checksum = hasher.hexdigest()
+            actual_checksum = hasher.hexdigest()
 
-        if actual_checksum != checksum:
-            log.debug(
-                "%s mismatch for download: %s (%s != %s)",
-                checksum_type,
-                url,
-                actual_checksum,
-                checksum,
-            )
-            raise ChecksumMismatchError(
-                url, target_full_path, checksum_type, checksum, actual_checksum
-            )
-    if size is not None:
-        actual_size = os.fstat(target.fileno()).st_size
-        if actual_size != size:
-            log.debug(
-                "size mismatch for download: %s (%s != %s)", url, actual_size, size
-            )
-            raise ChecksumMismatchError(
-                url, target_full_path, "size", size, actual_size
-            )
+            if actual_checksum != checksum:
+                log.debug(
+                    "%s mismatch for download: %s (%s != %s)",
+                    checksum_type,
+                    url,
+                    actual_checksum,
+                    checksum,
+                )
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
+        if size is not None:
+            actual_size = os.fstat(target.fileno()).st_size
+            if actual_size != size:
+                log.debug(
+                    "size mismatch for download: %s (%s != %s)", url, actual_size, size
+                )
+                raise ChecksumMismatchError(
+                    url, target_full_path, "size", size, actual_size
+                )
 
 
 @contextmanager
