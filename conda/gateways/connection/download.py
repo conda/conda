@@ -73,19 +73,22 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     session = get_session(url)
 
+    partial = True
+    target_file_for_download = download_partial_file
     if not (md5 or sha256) or size:
-        raise ValueError("Want checksum and size to do resumeable downloads")
+        partial = False
+        target_file_for_download = download_full_file
 
     streamed_bytes = 0
     size_builder = 0
 
-    with download_partial_file(target_full_path) as target:
+    with target_file_for_download(target_full_path) as target:
         stat_result = os.fstat(target.fileno())
         if stat_result.st_size >= size:
             return  # moves partial onto target_path, checksum will be checked
 
         headers = {}
-        if stat_result.st_size > 0:
+        if partial and stat_result.st_size > 0:
             headers = {"Range": f"bytes={stat_result.st_size}-"}
 
         resp = session.get(
