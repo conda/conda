@@ -1,12 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Download logic for conda indices and packages."""
-from contextlib import contextmanager
+from __future__ import annotations
+
 import hashlib
+import os
 import tempfile
 import warnings
+from contextlib import contextmanager
 from logging import DEBUG, getLogger
 from os.path import basename, exists, join
+from pathlib import Path
+
+from conda.gateways.repodata.lock import lock
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -41,6 +47,152 @@ CHUNK_SIZE = 1 << 14
 
 def disable_ssl_verify_warning():
     warnings.simplefilter("ignore", InsecureRequestWarning)
+
+
+@time_recorder("download")
+def download(
+    url,
+    target_full_path,
+    md5=None,
+    sha256=None,
+    size=None,
+    progress_update_callback=None,
+):
+    if exists(target_full_path):
+        maybe_raise(BasicClobberError(target_full_path, url, context), context)
+    if not context.ssl_verify:
+        disable_ssl_verify_warning()
+
+    with download_http_errors(url):
+        return download_inner(
+            url, target_full_path, md5, sha256, size, progress_update_callback
+        )
+
+
+def download_inner(url, target_full_path, md5, sha256, size, progress_update_callback):
+    timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+    session = get_session(url)
+
+    if not (md5 or sha256) or size:
+        raise ValueError("Want checksum and size to do resumeable downloads")
+
+    streamed_bytes = 0
+    size_builder = 0
+
+    with download_partial_file(target_full_path) as target:
+        stat_result = os.fstat(target.fileno())
+        if stat_result.st_size >= size:
+            return  # moves partial onto target_path, checksum will be checked
+
+        headers = {}
+        if stat_result.st_size > 0:
+            headers = {"Range": f"bytes={stat_result.st_size}-"}
+
+        resp = session.get(
+            url, stream=True, headers=headers, proxies=session.proxies, timeout=timeout
+        )
+        if log.isEnabledFor(DEBUG):
+            log.debug(stringify(resp, content_max_len=256))
+        resp.raise_for_status()
+
+        content_length = int(resp.headers.get("Content-Length", 0))
+
+        for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
+            # chunk could be the decompressed form of the real data
+            # but we want the exact number of bytes read till now
+            streamed_bytes = resp.raw.tell()
+            try:
+                target.write(chunk)
+            except OSError as e:
+                message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
+                raise CondaError(message, target_path=target.name, errno=e.errno)
+            size_builder += len(chunk)
+
+            if content_length and 0 <= streamed_bytes <= content_length:
+                if progress_update_callback:
+                    progress_update_callback(streamed_bytes / content_length)
+
+    if content_length and streamed_bytes != content_length:
+        # TODO: needs to be a more-specific error type
+        message = dals(
+            """
+        Downloaded bytes did not match Content-Length
+            url: %(url)s
+            target_path: %(target_path)s
+            Content-Length: %(content_length)d
+            downloaded bytes: %(downloaded_bytes)d
+        """
+        )
+        raise CondaError(
+            message,
+            url=url,
+            target_path=target_full_path,
+            content_length=content_length,
+            downloaded_bytes=streamed_bytes,
+        )
+
+    if md5 or sha256:
+        target.seek(0)
+        checksum_type = "sha256" if sha256 else "md5"
+        checksum = sha256 if sha256 else md5
+        hasher = hashlib.new(checksum_type)
+        for block in target.read(CHUNK_SIZE):
+            hasher.update(block)
+
+        actual_checksum = hasher.hexdigest()
+
+        if actual_checksum != checksum:
+            log.debug(
+                "%s mismatch for download: %s (%s != %s)",
+                checksum_type,
+                url,
+                actual_checksum,
+                checksum,
+            )
+            raise ChecksumMismatchError(
+                url, target_full_path, checksum_type, checksum, actual_checksum
+            )
+    if size is not None:
+        actual_size = os.fstat(target.fileno()).st_size
+        if actual_size != size:
+            log.debug(
+                "size mismatch for download: %s (%s != %s)", url, actual_size, size
+            )
+            raise ChecksumMismatchError(
+                url, target_full_path, "size", size, actual_size
+            )
+
+
+@contextmanager
+def download_partial_file(target_full_path: str | Path):
+    """
+    Create or open locked partial download file, moving onto target_full_path
+    when finished. Preserve partial file on exception.
+    """
+    target_full_path = Path(target_full_path)
+    parent = target_full_path.parent
+    name = Path(target_full_path).name
+    partial_name = f"{name}.partial"
+    partial_path = parent / partial_name
+
+    if not parent.is_dir():
+        raise ValueError("Download directory is not a directory")
+
+    with partial_path.open(mode="a+b") as partial, lock(partial):
+        yield partial
+
+    partial_path.rename(target_full_path)
+
+
+@contextmanager
+def download_full_file(target_full_path: str | Path):
+    """
+    Create or truncate target_full_path.
+
+    Used when partial download is not desired.
+    """
+    with Path(target_full_path).open("w+b") as target:
+        yield target
 
 
 @contextmanager
@@ -116,126 +268,6 @@ def download_http_errors(url: str):
             e.response,
             caused_by=e,
         )
-
-
-@time_recorder("download")
-def download(
-    url,
-    target_full_path,
-    md5=None,
-    sha256=None,
-    size=None,
-    progress_update_callback=None,
-):
-    if exists(target_full_path):
-        maybe_raise(BasicClobberError(target_full_path, url, context), context)
-    if not context.ssl_verify:
-        disable_ssl_verify_warning()
-
-    with download_http_errors(url):
-        return _download_inner(
-            url, target_full_path, md5, sha256, size, progress_update_callback
-        )
-
-
-def _download_inner(url, target_full_path, md5, sha256, size, progress_update_callback):
-    timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-    session = get_session(url)
-    resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
-    if log.isEnabledFor(DEBUG):
-        log.debug(stringify(resp, content_max_len=256))
-    resp.raise_for_status()
-
-    content_length = int(resp.headers.get("Content-Length", 0))
-
-    # prefer sha256 over md5 when both are available
-    checksum_type = checksum = None
-    if sha256:
-        checksum_builder = hashlib.new("sha256")
-        checksum_type = "sha256"
-        checksum = sha256
-    elif md5:
-        checksum_builder = hashlib.new("md5")
-        checksum_type = "md5"
-        checksum = md5
-    else:
-
-        class NullChecksumBuilder:
-            """
-            Simplify checksum-update code when no checksum.
-            """
-
-            def update(self, bytes):
-                return
-
-            def hexdigest(self):
-                raise NotImplemented()
-
-        checksum_builder = NullChecksumBuilder()
-
-    size_builder = 0
-
-    with open(target_full_path, "wb") as fh:
-        streamed_bytes = 0
-        for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
-            # chunk could be the decompressed form of the real data
-            # but we want the exact number of bytes read till now
-            streamed_bytes = resp.raw.tell()
-            try:
-                fh.write(chunk)
-            except OSError as e:
-                message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
-                # TODO: make this CondaIOError
-                raise CondaError(message, target_path=target_full_path, errno=e.errno)
-
-            checksum_builder.update(chunk)
-            size_builder += len(chunk)
-
-            if content_length and 0 <= streamed_bytes <= content_length:
-                if progress_update_callback:
-                    progress_update_callback(streamed_bytes / content_length)
-
-    if content_length and streamed_bytes != content_length:
-        # TODO: needs to be a more-specific error type
-        message = dals(
-            """
-        Downloaded bytes did not match Content-Length
-            url: %(url)s
-            target_path: %(target_path)s
-            Content-Length: %(content_length)d
-            downloaded bytes: %(downloaded_bytes)d
-        """
-        )
-        raise CondaError(
-            message,
-            url=url,
-            target_path=target_full_path,
-            content_length=content_length,
-            downloaded_bytes=streamed_bytes,
-        )
-
-    if checksum:
-        actual_checksum = checksum_builder.hexdigest()
-        if actual_checksum != checksum:
-            log.debug(
-                "%s mismatch for download: %s (%s != %s)",
-                checksum_type,
-                url,
-                actual_checksum,
-                checksum,
-            )
-            raise ChecksumMismatchError(
-                url, target_full_path, checksum_type, checksum, actual_checksum
-            )
-    if size is not None:
-        actual_size = size_builder
-        if actual_size != size:
-            log.debug(
-                "size mismatch for download: %s (%s != %s)", url, actual_size, size
-            )
-            raise ChecksumMismatchError(
-                url, target_full_path, "size", size, actual_size
-            )
 
 
 def download_text(url):
