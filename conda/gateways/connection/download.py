@@ -151,6 +151,12 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
 
             if content_length and 0 <= streamed_bytes <= content_length:
                 if progress_update_callback:
+                    # This is also incorrect during partial downloads. MDN:
+                    #
+                    # The Content-Length header now indicates the size of the
+                    # requested range (and not the full size of the image). The
+                    # Content-Range response header indicates where in the full
+                    # resource this partial message belongs.
                     progress_update_callback(
                         (stat_result.st_size + streamed_bytes) / content_length
                     )
