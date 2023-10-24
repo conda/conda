@@ -47,7 +47,7 @@ from ..connection import (
 )
 from ..connection.session import get_session
 from ..disk import mkdir_p_sudo_safe
-from .lock import lock
+from ..disk.lock import lock
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")

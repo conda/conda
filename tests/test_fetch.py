@@ -189,7 +189,7 @@ def test_download_when_ranges_not_supported(tmp_path):
     with patch("requests.Response.iter_content") as iter_content_mock:
 
         def iter_content_resumed(*args, **kwargs):
-            yield b"first:second:last"
+            yield b"".join(test_file)
 
         iter_content_mock.side_effect = iter_content_resumed
         download(url, output_path, size=size, sha256=sha256)
@@ -198,7 +198,7 @@ def test_download_when_ranges_not_supported(tmp_path):
     assert not os.path.exists(partial_path)
 
     with open(output_path, "rb") as fh:
-        assert fh.read() == b"first:second:last"
+        assert fh.read() == b"".join(test_file)
 
 
 @responses.activate
