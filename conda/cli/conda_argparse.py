@@ -52,6 +52,8 @@ from .main_info import configure_parser as configure_parser_info
 from .main_init import configure_parser as configure_parser_init
 from .main_install import configure_parser as configure_parser_install
 from .main_list import configure_parser as configure_parser_list
+from .main_mock_activate import configure_parser as configure_parser_mock_activate
+from .main_mock_deactivate import configure_parser as configure_parser_mock_deactivate
 from .main_notices import configure_parser as configure_parser_notices
 from .main_package import configure_parser as configure_parser_package
 from .main_remove import configure_parser as configure_parser_remove
@@ -353,20 +355,3 @@ def configure_parser_plugins(sub_parsers) -> None:
         parser.greedy = True
 
         parser.set_defaults(_executable=name)
-
-
-def configure_parser_mock_activate(sub_parsers):
-    p = sub_parsers.add_parser(
-        "activate",
-        help="Activate a conda environment.",
-    )
-    p.set_defaults(func=".main_mock_activate.execute")
-    p.add_argument("args", action="store", nargs="*", help=SUPPRESS)
-
-
-def configure_parser_mock_deactivate(sub_parsers):
-    p = sub_parsers.add_parser(
-        "deactivate",
-        help="Deactivate the current active conda environment.",
-    )
-    p.set_defaults(func=".main_mock_deactivate.execute")
