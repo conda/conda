@@ -12,7 +12,7 @@ from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 from pathlib import Path
 
-from conda.gateways.repodata.lock import lock
+from conda.gateways.disk.lock import lock
 
 from ... import CondaError
 from ...auxlib.ish import dals
