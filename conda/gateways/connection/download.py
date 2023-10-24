@@ -119,7 +119,9 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
 
             if content_length and 0 <= streamed_bytes <= content_length:
                 if progress_update_callback:
-                    progress_update_callback(streamed_bytes / content_length)
+                    progress_update_callback(
+                        (stat_result.st_size + streamed_bytes) / content_length
+                    )
 
         if content_length and streamed_bytes != content_length:
             # TODO: needs to be a more-specific error type
