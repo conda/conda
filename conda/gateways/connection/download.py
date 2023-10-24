@@ -188,9 +188,6 @@ def download_partial_file(target_full_path: str | Path):
     partial_name = f"{name}.partial"
     partial_path = parent / partial_name
 
-    if not parent.is_dir():
-        raise ValueError("Download directory is not a directory")
-
     with partial_path.open(mode="a+b") as partial, lock(partial):
         yield partial
 
