@@ -158,6 +158,10 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                     actual_checksum,
                     checksum,
                 )
+                # These exceptions will prevent .partial -> final rename but
+                # leave `.partial`. Delete or truncate here? Or exit from
+                # partial context manager, automatically renaming to final path,
+                # then run checksum on destination path?
                 raise ChecksumMismatchError(
                     url, target_full_path, checksum_type, checksum, actual_checksum
                 )
