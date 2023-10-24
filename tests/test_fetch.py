@@ -99,12 +99,12 @@ def test_tmpDownload():
 
 
 @responses.activate
-def test_resume_download():
+def test_resume_download(tmp_path):
     test_file = [b"first:", b"second:", b"last"]
     size = sum(len(line) for line in test_file)
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
 
-    output_path = mktemp()
+    output_path = tmp_path / "download.tar.bz2"  # double extension
     url = DEFAULT_CHANNEL_ALIAS
     responses.add(
         responses.GET,
@@ -113,22 +113,21 @@ def test_resume_download():
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
     )
+
+    def iter_content_interrupted(*args, **kwargs):
+        yield test_file[0]
+        yield test_file[1]
+        raise ConnectionAbortedError("aborted")
+
     # Download gets interrupted by an exception
-    with pytest.raises(ConnectionAbortedError):
-
-        def iter_content_interrupted(*args, **kwargs):
-            yield test_file[0]
-            yield test_file[1]
-            raise ConnectionAbortedError("aborted")
-
-        with patch(
-            "requests.Response.iter_content", side_effect=iter_content_interrupted
-        ):
-            download(url, output_path, size=size, sha256=sha256)
+    with pytest.raises(ConnectionAbortedError), patch(
+        "requests.Response.iter_content", side_effect=iter_content_interrupted
+    ):
+        download(url, output_path, size=size, sha256=sha256)
 
     # Check that only the .part file is present
     assert not os.path.exists(output_path)
-    assert os.path.exists(output_path + ".partial")
+    assert os.path.exists(str(output_path) + ".partial")
 
     # Download is resumed
     def iter_content_resumed(*args, **kwargs):
@@ -148,36 +147,43 @@ def test_resume_download():
         download(url, output_path, size=size, sha256=sha256)
 
     assert os.path.exists(output_path)
-    assert not os.path.exists(output_path + ".partial")
+    assert not os.path.exists(str(output_path) + ".partial")
 
     with open(output_path, "rb") as fh:
         assert fh.read() == b"first:second:last"
 
 
 @responses.activate
-def test_download_when_ranges_not_supported():
-    output_path = mktemp()
-    with pytest.raises(ConnectionAbortedError):
-        url = DEFAULT_CHANNEL_ALIAS
-        responses.add(
-            responses.GET,
-            url,
-            stream=True,
-            content_type="application/json",
-            headers={"Accept-Ranges": "none"},
-        )
-        with patch("requests.Response.iter_content") as iter_content_mock:
+def test_download_when_ranges_not_supported(tmp_path):
+    # partial mechanism and `.partial` files sidestepped when size, hash not given
+    test_file = [b"first:", b"second:", b"last"]
+    size = sum(len(line) for line in test_file)
+    sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
 
-            def iter_content_interrupted(*args, **kwargs):
-                yield b"first:"
-                yield b"second:"
-                raise ConnectionAbortedError("aborted")
+    output_path = tmp_path / "download.tar.bz2"  # double extension
+    partial_path = str(output_path) + ".partial"
 
-            iter_content_mock.side_effect = iter_content_interrupted
-            download(url, output_path)
+    url = DEFAULT_CHANNEL_ALIAS
+    responses.add(
+        responses.GET,
+        url,
+        stream=True,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "none"},
+    )
+
+    def iter_content_interrupted(*args, **kwargs):
+        yield test_file[0]
+        yield test_file[1]
+        raise ConnectionAbortedError("aborted")
+
+    with pytest.raises(ConnectionAbortedError), patch(
+        "requests.Response.iter_content", side_effect=iter_content_interrupted
+    ):
+        download(url, output_path, size=size, sha256=sha256)
 
     assert not os.path.exists(output_path)
-    assert os.path.exists(output_path + ".partial")
+    assert os.path.exists(partial_path)
 
     # Accept-Ranges is not supported, send full content
     with patch("requests.Response.iter_content") as iter_content_mock:
@@ -186,10 +192,10 @@ def test_download_when_ranges_not_supported():
             yield b"first:second:last"
 
         iter_content_mock.side_effect = iter_content_resumed
-        download(url, output_path)
+        download(url, output_path, size=size, sha256=sha256)
 
     assert os.path.exists(output_path)
-    assert not os.path.exists(output_path + ".partial")
+    assert not os.path.exists(partial_path)
 
     with open(output_path, "rb") as fh:
         assert fh.read() == b"first:second:last"
