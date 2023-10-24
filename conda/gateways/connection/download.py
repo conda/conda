@@ -64,9 +64,41 @@ def download(
         disable_ssl_verify_warning()
 
     with download_http_errors(url):
-        return download_inner(
+        download_inner(
             url, target_full_path, md5, sha256, size, progress_update_callback
         )
+
+    with Path(target_full_path).open("rb") as target:
+        if md5 or sha256:
+            checksum_type = "sha256" if sha256 else "md5"
+            checksum = sha256 if sha256 else md5
+            hasher = hashlib.new(checksum_type)
+            target.seek(0)
+            while read := target.read(CHUNK_SIZE):
+                hasher.update(read)
+
+            actual_checksum = hasher.hexdigest()
+
+            if actual_checksum != checksum:
+                log.debug(
+                    "%s mismatch for download: %s (%s != %s)",
+                    checksum_type,
+                    url,
+                    actual_checksum,
+                    checksum,
+                )
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
+        if size is not None:
+            actual_size = os.fstat(target.fileno()).st_size
+            if actual_size != size:
+                log.debug(
+                    "size mismatch for download: %s (%s != %s)", url, actual_size, size
+                )
+                raise ChecksumMismatchError(
+                    url, target_full_path, "size", size, actual_size
+                )
 
 
 def download_inner(url, target_full_path, md5, sha256, size, progress_update_callback):
@@ -142,38 +174,6 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                 downloaded_bytes=streamed_bytes,
             )
     # exit context manager, renaming target to target_full_path
-
-    with Path(target_full_path).open("rb") as target:
-        if md5 or sha256:
-            checksum_type = "sha256" if sha256 else "md5"
-            checksum = sha256 if sha256 else md5
-            hasher = hashlib.new(checksum_type)
-            target.seek(0)
-            while read := target.read(CHUNK_SIZE):
-                hasher.update(read)
-
-            actual_checksum = hasher.hexdigest()
-
-            if actual_checksum != checksum:
-                log.debug(
-                    "%s mismatch for download: %s (%s != %s)",
-                    checksum_type,
-                    url,
-                    actual_checksum,
-                    checksum,
-                )
-                raise ChecksumMismatchError(
-                    url, target_full_path, checksum_type, checksum, actual_checksum
-                )
-        if size is not None:
-            actual_size = os.fstat(target.fileno()).st_size
-            if actual_size != size:
-                log.debug(
-                    "size mismatch for download: %s (%s != %s)", url, actual_size, size
-                )
-                raise ChecksumMismatchError(
-                    url, target_full_path, "size", size, actual_size
-                )
 
 
 @contextmanager

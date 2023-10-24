@@ -15,8 +15,23 @@ from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol
 from conda.common.io import env_var
 from conda.core.subdir_data import SubdirData
-from conda.exceptions import CondaHTTPError
-from conda.gateways.connection.download import TmpDownload, download
+from conda.exceptions import (
+    CondaDependencyError,
+    CondaHTTPError,
+    CondaSSLError,
+    ProxyError,
+)
+from conda.gateways.connection import (
+    HTTPError,
+    InvalidSchema,
+    RequestsProxyError,
+    SSLError,
+)
+from conda.gateways.connection.download import (
+    TmpDownload,
+    download,
+    download_http_errors,
+)
 from conda.models.channel import Channel
 
 
@@ -229,8 +244,22 @@ def test_resume_partial(tmp_path, package_repository_base, package_server):
     size = package_path.stat().st_size
     output_path = tmp_path / package_name
 
+    called = False
+
+    def progress_update_callback(amount):
+        nonlocal called
+        called = True
+
     # try full download
-    download(url, output_path, size=size, sha256=sha256)
+    download(
+        url,
+        output_path,
+        size=size,
+        sha256=sha256,
+        progress_update_callback=progress_update_callback,
+    )
+
+    assert called
 
     # simulate partial download
     partial_path = Path(str(output_path) + ".partial")
@@ -242,3 +271,60 @@ def test_resume_partial(tmp_path, package_repository_base, package_server):
 
     # resume from `.partial` file
     download(url, output_path, size=size, sha256=sha256)
+
+    # exercise code that avoids requesting 'range not satisfiable' if partial
+    # file is full-size
+    partial_path = Path(str(output_path) + ".partial")
+    output_path.rename(partial_path)
+
+    download(url, output_path, size=size, sha256=sha256)
+
+    # Get 'range not satisfiable' by requesting a start offset past the end of
+    # the file. Imagine we partially download a file, and the remote is replaced
+    # by a shorter one before we resume...
+    partial_path = Path(str(output_path) + ".partial")
+    output_path.rename(partial_path)
+
+    with pytest.raises(CondaHTTPError, match="416"):
+        download(url, output_path, size=size * 2, sha256=sha256)
+
+    # Should we special-case deleting this file on 416 to get un-stuck or will a
+    # sha256 mismatch save us? (Assuming size, sha256 metadata is eventually
+    # consistent with remote file.)
+    assert partial_path.exists()
+
+    with pytest.raises(Exception, match="mismatch"):
+        download(url, output_path, size=size // 2, sha256=sha256)
+
+    download(url, output_path, size=size, sha256=sha256)
+
+
+def test_download_http_errors():
+    class Response:
+        def __init__(self, status_code):
+            self.status_code = status_code
+
+    with pytest.raises(ConnectionResetError), download_http_errors(
+        "https://example.org/file"
+    ):
+        raise ConnectionResetError()
+
+    with pytest.raises(ProxyError), download_http_errors("https://example.org/file"):
+        raise RequestsProxyError()
+
+    with pytest.raises(CondaDependencyError), download_http_errors(
+        "https://example.org/file"
+    ):
+        raise InvalidSchema("SOCKS")
+
+    with pytest.raises(InvalidSchema), download_http_errors("https://example.org/file"):
+        raise InvalidSchema("shoes")  # not a SOCKS problem
+
+    with pytest.raises(CondaSSLError), download_http_errors("https://example.org/file"):
+        raise SSLError()
+
+    # A variety of helpful error messages should follow
+    with pytest.raises(CondaHTTPError, match=str(401)), download_http_errors(
+        "https://example.org/file"
+    ):
+        raise HTTPError(response=Response(401))
