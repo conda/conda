@@ -84,7 +84,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
 
     with target_file_for_download(target_full_path) as target:
         stat_result = os.fstat(target.fileno())
-        if stat_result.st_size >= size:
+        if size is not None and stat_result.st_size >= size:
             return  # moves partial onto target_path, checksum will be checked
 
         headers = {}
