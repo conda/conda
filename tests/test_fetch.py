@@ -135,7 +135,7 @@ def test_resume_download(tmp_path):
     def iter_content_resumed(*args, **kwargs):
         yield test_file[2]
 
-    # won't resume download unless 216 Partial Content status code
+    # won't resume download unless Partial Content status code
     responses.replace(
         responses.GET,
         url,
