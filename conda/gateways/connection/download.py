@@ -139,7 +139,9 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                 content_length=content_length,
                 downloaded_bytes=streamed_bytes,
             )
+    # exit context manager, renaming target to target_full_path
 
+    with Path(target_full_path).open("rb") as target:
         if md5 or sha256:
             checksum_type = "sha256" if sha256 else "md5"
             checksum = sha256 if sha256 else md5
