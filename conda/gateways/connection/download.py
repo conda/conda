@@ -106,15 +106,15 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
     session = get_session(url)
 
     partial = False
-    target_file_for_download = download_full_file
     if size and (md5 or sha256):
         partial = True
-        target_file_for_download = download_partial_file
 
     streamed_bytes = 0
     size_builder = 0
 
-    with target_file_for_download(target_full_path) as target:
+    # Use `.partial` even for full downloads. Avoid creating incomplete files
+    # with the final filename.
+    with download_partial_file(target_full_path) as target:
         stat_result = os.fstat(target.fileno())
         if size is not None and stat_result.st_size >= size:
             return  # moves partial onto target_path, checksum will be checked
@@ -136,7 +136,19 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
             target.seek(0)
             target.truncate()
 
-        content_length = int(resp.headers.get("Content-Length", 0))
+        content_length = total_content_length = int(
+            resp.headers.get("Content-Length", 0)
+        )
+        if partial and headers:
+            # Get total content length, not the range we are currently fetching.
+            # ex. Content-Range: bytes 200-1000/67589
+            content_range = resp.headers.get("Content-Range", "bytes 0-0/0")
+            try:
+                total_content_length = int(
+                    content_range.split(" ", 1)[1].rsplit("/")[-1]
+                )
+            except (LookupError, ValueError):
+                pass
 
         for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
             # chunk could be the decompressed form of the real data
@@ -158,7 +170,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                     # Content-Range response header indicates where in the full
                     # resource this partial message belongs.
                     progress_update_callback(
-                        (stat_result.st_size + streamed_bytes) / content_length
+                        (stat_result.st_size + streamed_bytes) / total_content_length
                     )
 
         if content_length and streamed_bytes != content_length:
@@ -198,17 +210,6 @@ def download_partial_file(target_full_path: str | Path):
         yield partial
 
     partial_path.rename(target_full_path)
-
-
-@contextmanager
-def download_full_file(target_full_path: str | Path):
-    """
-    Create or truncate target_full_path.
-
-    Used when partial download is not desired.
-    """
-    with Path(target_full_path).open("w+b") as target:
-        yield target
 
 
 @contextmanager
