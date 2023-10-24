@@ -21,7 +21,10 @@ class NullCountAction(_CountAction):
 
 
 class ExtendConstAction(Action):
-    # a derivative of _AppendConstAction and Python 3.8's _ExtendAction
+    """
+    A derivative of _AppendConstAction and Python 3.8's _ExtendAction
+    """
+
     def __init__(
         self,
         option_strings,
