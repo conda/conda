@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from logging import DEBUG, getLogger
 from os.path import basename, exists, join
+from pathlib import Path
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -210,58 +211,9 @@ def download(
 
 
 def download_text(url):
-    if not context.ssl_verify:
-        disable_ssl_verify_warning()
-    try:
-        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        session = get_session(url)
-        response = session.get(
-            url, stream=True, proxies=session.proxies, timeout=timeout
-        )
-        if log.isEnabledFor(DEBUG):
-            log.debug(stringify(response, content_max_len=256))
-        response.raise_for_status()
-    except RequestsProxyError:
-        raise ProxyError()  # see #3962
-    except InvalidSchema as e:
-        if "SOCKS" in str(e):
-            message = dals(
-                """
-                Requests has identified that your current working environment is configured
-                to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
-                proxy configuration, run `conda install pysocks`, and then you can re-enable
-                your proxy configuration.
-                """
-            )
-            raise CondaDependencyError(message)
-        else:
-            raise
-    except (ConnectionError, HTTPError, SSLError) as e:
-        status_code = getattr(e.response, "status_code", None)
-        if status_code == 404:
-            help_message = dals(
-                """
-            An HTTP error occurred when trying to retrieve this URL.
-            The URL does not exist.
-            """
-            )
-        else:
-            help_message = dals(
-                """
-            An HTTP error occurred when trying to retrieve this URL.
-            HTTP errors are often intermittent, and a simple retry will get you on your way.
-            """
-            )
-        raise CondaHTTPError(
-            help_message,
-            url,
-            status_code,
-            getattr(e.response, "reason", None),
-            getattr(e.response, "elapsed", None),
-            e.response,
-            caused_by=e,
-        )
-    return response.text
+    with tempfile.NamedTemporaryFile() as target:
+        download(url, target.name)
+        return Path(target.name).read_text()
 
 
 class TmpDownload:
