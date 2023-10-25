@@ -5,4 +5,4 @@ Backwards compatibility import.
 
 Moved to prevent circular imports.
 """
-from conda.gateways.disk.lock import *  # noqa
+from conda.gateways.disk.lock import lock  # noqa
