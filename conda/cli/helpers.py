@@ -399,7 +399,6 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
-    from ..common.compat import on_win
     from ..common.constants import NULL
 
     package_install_options = p.add_argument_group(
