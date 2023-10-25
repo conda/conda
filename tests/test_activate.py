@@ -20,7 +20,7 @@ from uuid import uuid4
 import pytest
 from pytest import MonkeyPatch
 
-from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
 from conda import __version__ as conda_version
 from conda.activate import (
     CmdExeActivator,
@@ -3341,4 +3341,25 @@ def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
             f'conda run -p "{envs[run.strip()].prefix}" {which}',
         )
         == expected
+    )
+
+
+def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
+    # Call activate (with and without env argument) and check that the proper error shows up
+    with pytest.raises(CondaError) as conda_error:
+        conda_cli("activate")
+    assert conda_error.value.message.startswith(
+        "Run 'conda init' before 'conda activate'"
+    )
+    with pytest.raises(CondaError) as conda_error:
+        conda_cli("activate", "env")
+    assert conda_error.value.message.startswith(
+        "Run 'conda init' before 'conda activate'"
+    )
+
+    # Call deactivate and check that the proper error shows up
+    with pytest.raises(CondaError) as conda_error:
+        conda_cli("deactivate")
+    assert conda_error.value.message.startswith(
+        "Run 'conda init' before 'conda deactivate'"
     )
