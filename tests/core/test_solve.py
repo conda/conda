@@ -2780,6 +2780,7 @@ def test_priority_1(tmpdir, request):
                 reason="libmamba is 'lazier' to change channels if the installed one already "
                 "satisfies the request.",
                 strict=True,
+                run=False,
             )
         )
 
