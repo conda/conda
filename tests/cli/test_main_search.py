@@ -110,6 +110,7 @@ def test_search_4(conda_cli: CondaCLIFixture):
     assert not err
 
 
+@pytest.mark.flaky(reruns=5)
 @pytest.mark.integration
 def test_search_5(conda_cli: CondaCLIFixture):
     stdout, stderr, err = conda_cli(
