@@ -304,10 +304,8 @@ def test_resume_partial(tmp_path: Path, package_repository_base, package_server)
     with pytest.raises(CondaHTTPError, match="416"):
         download(url, output_path, size=size * 2, sha256=sha256)
 
-    # Should we special-case deleting this file on 416 to get un-stuck or will a
-    # sha256 mismatch save us? (Assuming size, sha256 metadata is eventually
-    # consistent with remote file.)
-    assert partial_path.exists()
+    # Special-cased deleting this file on 4xx errors
+    assert not partial_path.exists()
 
     with pytest.raises(Exception, match="mismatch"):
         download(url, output_path, size=size // 2, sha256=sha256)
