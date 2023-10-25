@@ -215,7 +215,10 @@ def download_partial_file(
     except CondaHTTPError as e:
         # Don't keep `.partial` for errors like 404 not found, or 'Range not
         # Satisfiable' that will never succeed
-        status_code = getattr(e._caused_by, "status_code")
+        try:
+            status_code = e._caused_by.response.status_code
+        except LookupError:
+            status_code = None
         if isinstance(status_code, int) and 400 <= status_code < 500:
             partial_path.unlink()
         raise
