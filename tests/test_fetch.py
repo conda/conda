@@ -25,6 +25,7 @@ from conda.gateways.connection import (
     HTTPError,
     InvalidSchema,
     RequestsProxyError,
+    Response,
     SSLError,
 )
 from conda.gateways.connection.download import (
@@ -134,7 +135,7 @@ def test_resume_download(tmp_path):
     def iter_content_interrupted(*args, **kwargs):
         yield test_file[0]
         yield test_file[1]
-        raise ConnectionAbortedError("aborted")
+        raise ConnectionAbortedError("Aborted")
 
     # Download gets interrupted by an exception
     with pytest.raises(ConnectionAbortedError), patch(
@@ -168,6 +169,21 @@ def test_resume_download(tmp_path):
 
     with open(output_path, "rb") as fh:
         assert fh.read() == b"first:second:last"
+
+    def iter_content_interrupted_2(*args, **kwargs):
+        yield test_file[0]
+        yield test_file[1]
+        response = Response()
+        response.status_code = 416
+        raise HTTPError(response=response)
+
+    # Download gets interrupted by HTTP 4xx exception; assert `.partial` deleted
+    assert not os.path.exists(str(output_path) + ".partial")
+    with pytest.raises(CondaHTTPError), patch(
+        "requests.Response.iter_content", side_effect=iter_content_interrupted_2
+    ):
+        download(url, output_path, size=size, sha256=sha256)
+    assert not os.path.exists(str(output_path) + ".partial")
 
 
 @responses.activate
