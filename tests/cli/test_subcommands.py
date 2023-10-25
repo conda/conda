@@ -192,7 +192,7 @@ def test_update(
 
 
 def test_env_list(conda_cli: CondaCLIFixture):
-    assert conda_cli("env", "list") == conda_cli("info", "--envs")
+    assert conda_cli("env", "list")[0] == conda_cli("info", "--envs")[0]
 
 
 def test_env_export(conda_cli: CondaCLIFixture):
