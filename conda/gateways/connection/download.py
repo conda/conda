@@ -225,7 +225,7 @@ def download_partial_file(
 
     try:
         partial_path.rename(target_full_path)
-    except OSError:  # Windows doesn't rename onto existing pathsÍ
+    except OSError:  # Windows doesn't rename onto existing paths
         target_full_path.unlink()
         partial_path.rename(target_full_path)
 
