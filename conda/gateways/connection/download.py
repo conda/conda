@@ -173,40 +173,40 @@ def download_partial_file(
     partial_path = parent / partial_name
 
     def check(target):
+        target.seek(0)
+        if md5 or sha256:
+            checksum_type = "sha256" if sha256 else "md5"
+            checksum = sha256 if sha256 else md5
+            hasher = hashlib.new(checksum_type)
             target.seek(0)
-            if md5 or sha256:
-                checksum_type = "sha256" if sha256 else "md5"
-                checksum = sha256 if sha256 else md5
-                hasher = hashlib.new(checksum_type)
-                target.seek(0)
-                while read := target.read(CHUNK_SIZE):
-                    hasher.update(read)
+            while read := target.read(CHUNK_SIZE):
+                hasher.update(read)
 
-                actual_checksum = hasher.hexdigest()
+            actual_checksum = hasher.hexdigest()
 
-                if actual_checksum != checksum:
-                    log.debug(
-                        "%s mismatch for download: %s (%s != %s)",
-                        checksum_type,
-                        url,
-                        actual_checksum,
-                        checksum,
-                    )
-                    raise ChecksumMismatchError(
-                        url, target_full_path, checksum_type, checksum, actual_checksum
-                    )
-            if size is not None:
-                actual_size = os.fstat(target.fileno()).st_size
-                if actual_size != size:
-                    log.debug(
-                        "size mismatch for download: %s (%s != %s)",
-                        url,
-                        actual_size,
-                        size,
-                    )
-                    raise ChecksumMismatchError(
-                        url, target_full_path, "size", size, actual_size
-                    )
+            if actual_checksum != checksum:
+                log.debug(
+                    "%s mismatch for download: %s (%s != %s)",
+                    checksum_type,
+                    url,
+                    actual_checksum,
+                    checksum,
+                )
+                raise ChecksumMismatchError(
+                    url, target_full_path, checksum_type, checksum, actual_checksum
+                )
+        if size is not None:
+            actual_size = os.fstat(target.fileno()).st_size
+            if actual_size != size:
+                log.debug(
+                    "size mismatch for download: %s (%s != %s)",
+                    url,
+                    actual_size,
+                    size,
+                )
+                raise ChecksumMismatchError(
+                    url, target_full_path, "size", size, actual_size
+                )
 
     try:
         with partial_path.open(mode="a+b") as partial, lock(partial):
@@ -215,7 +215,7 @@ def download_partial_file(
     except CondaHTTPError as e:
         # Don't keep `.partial` for errors like 404 not found, or 'Range not
         # Satisfiable' that will never succeed
-        status_code = getattr(e._caused_by, 'status_code')
+        status_code = getattr(e._caused_by, "status_code")
         if isinstance(status_code, int) and 400 <= status_code < 500:
             partial_path.unlink()
         raise
@@ -225,7 +225,7 @@ def download_partial_file(
 
     try:
         partial_path.rename(target_full_path)
-    except OSError: # Windows doesn't rename onto existing pathsÍ
+    except OSError:  # Windows doesn't rename onto existing pathsÍ
         target_full_path.unlink()
         partial_path.rename(target_full_path)
 
