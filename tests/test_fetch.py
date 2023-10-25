@@ -234,7 +234,7 @@ def test_download_httperror():
         assert msg in str(execinfo)
 
 
-def test_resume_partial(tmp_path, package_repository_base, package_server):
+def test_resume_partial(tmp_path: Path, package_repository_base, package_server):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     package_name = "zlib-1.2.11-h7b6447c_3.conda"
@@ -295,6 +295,11 @@ def test_resume_partial(tmp_path, package_repository_base, package_server):
 
     with pytest.raises(Exception, match="mismatch"):
         download(url, output_path, size=size // 2, sha256=sha256)
+
+    # We may or may not want to preserve this behavior, but it is what the
+    # download() function has done in the past.
+    assert output_path.exists()
+    output_path.unlink()
 
     download(url, output_path, size=size, sha256=sha256)
 
