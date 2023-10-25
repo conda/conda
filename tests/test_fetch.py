@@ -298,8 +298,8 @@ def test_resume_partial(tmp_path: Path, package_repository_base, package_server)
 
     # We may or may not want to preserve this behavior, but it is what the
     # download() function has done in the past.
-    assert output_path.exists()
-    output_path.unlink()
+    assert not output_path.exists()
+    # output_path.unlink()
 
     download(url, output_path, size=size, sha256=sha256)
 

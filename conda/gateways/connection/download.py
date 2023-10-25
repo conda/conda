@@ -68,38 +68,6 @@ def download(
             url, target_full_path, md5, sha256, size, progress_update_callback
         )
 
-    with Path(target_full_path).open("rb") as target:
-        if md5 or sha256:
-            checksum_type = "sha256" if sha256 else "md5"
-            checksum = sha256 if sha256 else md5
-            hasher = hashlib.new(checksum_type)
-            target.seek(0)
-            while read := target.read(CHUNK_SIZE):
-                hasher.update(read)
-
-            actual_checksum = hasher.hexdigest()
-
-            if actual_checksum != checksum:
-                log.debug(
-                    "%s mismatch for download: %s (%s != %s)",
-                    checksum_type,
-                    url,
-                    actual_checksum,
-                    checksum,
-                )
-                raise ChecksumMismatchError(
-                    url, target_full_path, checksum_type, checksum, actual_checksum
-                )
-        if size is not None:
-            actual_size = os.fstat(target.fileno()).st_size
-            if actual_size != size:
-                log.debug(
-                    "size mismatch for download: %s (%s != %s)", url, actual_size, size
-                )
-                raise ChecksumMismatchError(
-                    url, target_full_path, "size", size, actual_size
-                )
-
 
 def download_inner(url, target_full_path, md5, sha256, size, progress_update_callback):
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -114,7 +82,9 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
 
     # Use `.partial` even for full downloads. Avoid creating incomplete files
     # with the final filename.
-    with download_partial_file(target_full_path) as target:
+    with download_partial_file(
+        target_full_path, url=url, md5=md5, sha256=sha256, size=size
+    ) as target:
         stat_result = os.fstat(target.fileno())
         if size is not None and stat_result.st_size >= size:
             return  # moves partial onto target_path, checksum will be checked
@@ -189,7 +159,9 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
 
 
 @contextmanager
-def download_partial_file(target_full_path: str | Path):
+def download_partial_file(
+    target_full_path: str | Path, *, url: str, sha256: str, md5: str, size: int
+):
     """
     Create or open locked partial download file, moving onto target_full_path
     when finished. Preserve partial file on exception.
@@ -200,10 +172,62 @@ def download_partial_file(target_full_path: str | Path):
     partial_name = f"{name}.partial"
     partial_path = parent / partial_name
 
-    with partial_path.open(mode="a+b") as partial, lock(partial):
-        yield partial
+    def check(target):
+            target.seek(0)
+            if md5 or sha256:
+                checksum_type = "sha256" if sha256 else "md5"
+                checksum = sha256 if sha256 else md5
+                hasher = hashlib.new(checksum_type)
+                target.seek(0)
+                while read := target.read(CHUNK_SIZE):
+                    hasher.update(read)
 
-    partial_path.rename(target_full_path)
+                actual_checksum = hasher.hexdigest()
+
+                if actual_checksum != checksum:
+                    log.debug(
+                        "%s mismatch for download: %s (%s != %s)",
+                        checksum_type,
+                        url,
+                        actual_checksum,
+                        checksum,
+                    )
+                    raise ChecksumMismatchError(
+                        url, target_full_path, checksum_type, checksum, actual_checksum
+                    )
+            if size is not None:
+                actual_size = os.fstat(target.fileno()).st_size
+                if actual_size != size:
+                    log.debug(
+                        "size mismatch for download: %s (%s != %s)",
+                        url,
+                        actual_size,
+                        size,
+                    )
+                    raise ChecksumMismatchError(
+                        url, target_full_path, "size", size, actual_size
+                    )
+
+    try:
+        with partial_path.open(mode="a+b") as partial, lock(partial):
+            yield partial
+            check(partial)
+    except CondaHTTPError as e:
+        # Don't keep `.partial` for errors like 404 not found, or 'Range not
+        # Satisfiable' that will never succeed
+        status_code = getattr(e._caused_by, 'status_code')
+        if isinstance(status_code, int) and 400 <= status_code < 500:
+            partial_path.unlink()
+        raise
+    except ChecksumMismatchError:
+        partial_path.unlink()
+        raise
+
+    try:
+        partial_path.rename(target_full_path)
+    except OSError: # Windows doesn't rename onto existing pathsÍ
+        target_full_path.unlink()
+        partial_path.rename(target_full_path)
 
 
 @contextmanager
