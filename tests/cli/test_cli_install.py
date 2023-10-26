@@ -3,6 +3,7 @@
 import pytest
 from pytest_mock import MockerFixture
 
+from conda.base.context import context
 from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -35,6 +36,9 @@ def test_find_conflicts_called_once(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
 ):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver handles conflicts differently")
+
     bad_deps = {
         "python": {
             (
