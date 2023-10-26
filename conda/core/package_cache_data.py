@@ -791,8 +791,6 @@ class ProgressiveFetchExtract:
         progress_bars = {}
         futures = []
 
-        print("FETCH_THREADS=", context.fetch_threads)
-
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
         ), ThreadPoolExecutor(
