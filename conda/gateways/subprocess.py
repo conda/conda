@@ -95,15 +95,12 @@ def subprocess_call(
         stdout=pipe,
         stderr=pipe,
         env=env,
+        text=True,  # open streams in text mode so that we don't have to decode
     )
     ACTIVE_SUBPROCESSES.add(process)
 
     # decode output, if not PIPE, stdout/stderr will be None
     stdout, stderr = process.communicate(input=stdin)
-    if hasattr(stdout, "decode"):
-        stdout = stdout.decode("utf-8", errors="replace")
-    if hasattr(stderr, "decode"):
-        stderr = stderr.decode("utf-8", errors="replace")
     rc = process.returncode
     ACTIVE_SUBPROCESSES.remove(process)
 
