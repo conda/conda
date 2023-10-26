@@ -734,8 +734,17 @@ class ProgressiveFetchExtract:
         if self._prepared:
             return
 
+        # Download largest first
+        def by_size(prec: PackageRecord):
+            try:
+                return int(prec.size)   # type: ignore
+            except (LookupError, ValueError):
+                return 0
+
+        largest_first = sorted(self.link_precs, key=by_size, reverse=True)
+
         self.paired_actions.update(
-            (prec, self.make_actions_for_record(prec)) for prec in self.link_precs
+            (prec, self.make_actions_for_record(prec)) for prec in largest_first
         )
         self._prepared = True
 
@@ -781,6 +790,8 @@ class ProgressiveFetchExtract:
         exceptions = []
         progress_bars = {}
         futures = []
+
+        print("FETCH_THREADS=", context.fetch_threads)
 
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
