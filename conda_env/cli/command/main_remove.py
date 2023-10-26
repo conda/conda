@@ -44,11 +44,11 @@ def configure_parser(sub_parsers):
     add_parser_solver(p)
     add_output_and_prompt_options(p)
 
-    p.set_defaults(func=".main_remove.execute")
+    p.set_defaults(func=".command.main_remove.execute")
 
 
 def execute(args, parser):
-    import conda.cli.main_remove
+    import conda.cli.command.main_remove
 
     args = vars(args)
     args.update(
@@ -69,4 +69,4 @@ def execute(args, parser):
 
     context.__init__(argparse_args=args)
 
-    conda.cli.main_remove.execute(args, parser)
+    conda.cli.command.main_remove.execute(args, parser)

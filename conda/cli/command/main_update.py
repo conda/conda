@@ -7,18 +7,18 @@ Updates the specified packages in an existing environment.
 import sys
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
-from ..notices import notices
+from conda.notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..common.constants import NULL
-    from .helpers import (
+    from conda.auxlib.ish import dals
+    from conda.cli.helpers import (
         add_parser_create_install_update,
         add_parser_prune,
         add_parser_solver,
         add_parser_update_modifiers,
     )
+    from conda.common.constants import NULL
 
     summary = "Update conda packages to the latest compatible version."
     description = dals(
@@ -74,15 +74,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Allow clobbering of overlapping file paths within packages, "
         "and suppress related warnings.",
     )
-    p.set_defaults(func="conda.cli.main_update.execute")
+    p.set_defaults(func="conda.cli.command.main_update.execute")
 
     return p
 
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from .install import install
+    from conda.base.context import context
+    from conda.cli.install import install
 
     if context.force:
         print(

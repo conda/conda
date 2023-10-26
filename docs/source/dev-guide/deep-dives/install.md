@@ -85,7 +85,7 @@ the corresponding command function. These four steps are implemented in four fun
 4. [`conda.cli.conda_argparse:do_call()`][conda.cli.conda_argparse:do_call]: The argument parsing
    will populate a `func` value that contains the import path to the function responsible for that
    subcommand. For example, `conda install` is [taken care of][conda_install_delegation] by
-   [`conda.cli.main_install`][conda.cli.main_install]. By design, all the modules reported by `func`
+   [`conda.cli.command.main_install`][conda.cli.command.main_install]. By design, all the modules reported by `func`
    must contain an `execute()` function that implements the command logic. `execute()` takes the
    parsed arguments and the parser itself as arguments. For example, in the case of `conda install`,
    `execute()` only [redirects][conda_main_install_delegation] to a certain mode in

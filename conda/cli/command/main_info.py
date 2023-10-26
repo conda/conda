@@ -22,14 +22,14 @@ from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import Iterable
 
-from ..deprecations import deprecated
+from conda.deprecations import deprecated
 
 log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..common.constants import NULL
-    from .helpers import add_parser_json
+    from conda.cli.helpers import add_parser_json
+    from conda.common.constants import NULL
 
     summary = "Display information about current conda install."
     description = summary
@@ -103,13 +103,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help=SUPPRESS,
     )
 
-    p.set_defaults(func="conda.cli.main_info.execute")
+    p.set_defaults(func="conda.cli.command.main_info.execute")
 
     return p
 
 
 def get_user_site():  # pragma: no cover
-    from ..common.compat import on_win
+    from conda.common.compat import on_win
 
     site_dirs = []
     try:
@@ -153,7 +153,7 @@ def dump_record(pkg):
 
 
 def pretty_package(prec):
-    from ..utils import human_bytes
+    from conda.utils import human_bytes
 
     pkg = dump_record(prec)
     d = {
@@ -180,11 +180,11 @@ def pretty_package(prec):
 
 
 def print_package_info(packages):
-    from ..base.context import context
-    from ..core.subdir_data import SubdirData
-    from ..deprecations import deprecated
-    from ..models.match_spec import MatchSpec
-    from .common import stdout_json
+    from conda.base.context import context
+    from conda.cli.common import stdout_json
+    from conda.core.subdir_data import SubdirData
+    from conda.deprecations import deprecated
+    from conda.models.match_spec import MatchSpec
 
     results = {}
     for package in packages:
@@ -207,13 +207,13 @@ def print_package_info(packages):
 
 
 def get_info_dict(system=False):
-    from .. import CONDA_PACKAGE_ROOT
-    from .. import __version__ as conda_version
-    from ..base.context import context, env_name, sys_rc_path, user_rc_path
-    from ..common.compat import on_win
-    from ..common.url import mask_anaconda_token
-    from ..core.index import _supplement_index_with_system
-    from ..models.channel import all_channel_urls, offline_keep
+    from conda import CONDA_PACKAGE_ROOT
+    from conda import __version__ as conda_version
+    from conda.base.context import context, env_name, sys_rc_path, user_rc_path
+    from conda.common.compat import on_win
+    from conda.common.url import mask_anaconda_token
+    from conda.core.index import _supplement_index_with_system
+    from conda.models.channel import all_channel_urls, offline_keep
 
     try:
         from requests import __version__ as requests_version
@@ -290,7 +290,7 @@ def get_info_dict(system=False):
         virtual_pkgs=virtual_pkgs,
     )
     if on_win:
-        from ..common._os.windows import is_admin_on_windows
+        from conda.common._os.windows import is_admin_on_windows
 
         info_dict["is_windows_admin"] = is_admin_on_windows()
     else:
@@ -346,7 +346,7 @@ def get_env_vars_str(info_dict):
 
 
 def get_main_info_str(info_dict):
-    from ..common.compat import on_win
+    from conda.common.compat import on_win
 
     def flatten(lines: Iterable[str]) -> str:
         return ("\n" + 26 * " ").join(map(str, lines))
@@ -392,8 +392,8 @@ def get_main_info_str(info_dict):
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from .common import print_envs_list, stdout_json
+    from conda.base.context import context
+    from conda.cli.common import print_envs_list, stdout_json
 
     if args.base:
         if context.json:
@@ -403,13 +403,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         return 0
 
     if args.packages:
-        from ..resolve import ResolvePackageNotFound
+        from conda.resolve import ResolvePackageNotFound
 
         try:
             print_package_info(args.packages)
             return 0
         except ResolvePackageNotFound as e:  # pragma: no cover
-            from ..exceptions import PackagesNotFoundError
+            from conda.exceptions import PackagesNotFoundError
 
             raise PackagesNotFoundError(e.bad_deps)
 
@@ -433,14 +433,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         print(get_main_info_str(info_dict) + "\n")
 
     if args.envs:
-        from ..core.envs_manager import list_all_known_prefixes
+        from conda.core.envs_manager import list_all_known_prefixes
 
         info_dict["envs"] = list_all_known_prefixes()
         print_envs_list(info_dict["envs"], not context.json)
 
     if args.system:
         if not context.json:
-            from .find_commands import find_commands, find_executable
+            from conda.cli.find_commands import find_commands, find_executable
 
             print("sys.version: %s..." % (sys.version[:40]))
             print("sys.prefix: %s" % sys.prefix)

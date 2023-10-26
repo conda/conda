@@ -11,10 +11,10 @@ from logging import getLogger
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..common.constants import NULL
-    from .actions import NullCountAction
-    from .helpers import add_parser_prefix, add_parser_verbose
+    from conda.auxlib.ish import dals
+    from conda.cli.actions import NullCountAction
+    from conda.cli.helpers import add_parser_prefix, add_parser_verbose
+    from conda.common.constants import NULL
 
     summary = "Run an executable in a conda environment."
     description = summary
@@ -79,18 +79,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "on invocation.",
     )
 
-    p.set_defaults(func="conda.cli.main_run.execute")
+    p.set_defaults(func="conda.cli.command.main_run.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from ..common.compat import encode_environment
-    from ..gateways.disk.delete import rm_rf
-    from ..gateways.subprocess import subprocess_call
-    from ..utils import wrap_subprocess_call
-    from .common import validate_prefix
+    from conda.base.context import context
+    from conda.cli.common import validate_prefix
+    from conda.common.compat import encode_environment
+    from conda.gateways.disk.delete import rm_rf
+    from conda.gateways.subprocess import subprocess_call
+    from conda.utils import wrap_subprocess_call
 
     # create run script
     script, command = wrap_subprocess_call(

@@ -48,7 +48,7 @@ environment variables back to the shell session (and not just temporarily in the
 process). This will be discussed in the next section.
 
 So how is initialization performed? This is the job of the `conda init` subcommand, driven by
-the `conda.cli.main_init` module, which depends direcly on the `conda.core.initialize` module. Let's
+the `conda.cli.command.main_init` module, which depends direcly on the `conda.core.initialize` module. Let's
 see how this is implemented.
 
 `conda init` will initialize a shell permanently by writing some shell code in the relevant

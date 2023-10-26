@@ -109,7 +109,7 @@ class ExceptionHandler:
             # get info_dict, but if we get an exception here too, record it without trampling
             # the original exception
             try:
-                from .cli.main_info import get_info_dict
+                from .cli.command.main_info import get_info_dict
 
                 info_dict = get_info_dict()
             except Exception as info_e:
@@ -156,7 +156,7 @@ class ExceptionHandler:
             message_builder.append("`$ %s`" % error_report["command"])
             message_builder.append("")
             if error_report["conda_info"]:
-                from .cli.main_info import get_env_vars_str, get_main_info_str
+                from .cli.command.main_info import get_env_vars_str, get_main_info_str
 
                 try:
                     # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
@@ -204,7 +204,7 @@ class ExceptionHandler:
             message_builder.append("`$ %s`" % error_report["command"])
             message_builder.append("")
             if error_report["conda_info"]:
-                from .cli.main_info import get_env_vars_str, get_main_info_str
+                from .cli.command.main_info import get_env_vars_str, get_main_info_str
 
                 try:
                     # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)

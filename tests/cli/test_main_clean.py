@@ -15,7 +15,7 @@ from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
     CONDA_TEMP_EXTENSIONS,
 )
-from conda.cli.main_clean import _get_size
+from conda.cli.command.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_verbosity
 from conda.testing import CondaCLIFixture, TmpEnvFixture

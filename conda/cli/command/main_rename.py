@@ -11,12 +11,12 @@ from argparse import ArgumentParser, Namespace, _SubParsersAction
 from functools import partial
 from pathlib import Path
 
-from ..deprecations import deprecated
+from conda.deprecations import deprecated
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from .helpers import add_parser_prefix
+    from conda.auxlib.ish import dals
+    from conda.cli.helpers import add_parser_prefix
 
     summary = "Rename an existing environment."
     description = dals(
@@ -70,7 +70,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         default=False,
     )
-    p.set_defaults(func="conda.cli.main_rename.execute")
+    p.set_defaults(func="conda.cli.command.main_rename.execute")
 
     return p
 
@@ -82,8 +82,8 @@ def validate_src() -> str:
     Validate that we are receiving at least one value for --name or --prefix
     and ensure that the "base" environment is not being renamed
     """
-    from ..base.context import context
-    from ..exceptions import CondaEnvException
+    from conda.base.context import context
+    from conda.exceptions import CondaEnvException
 
     if Path(context.target_prefix).samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
@@ -96,9 +96,9 @@ def validate_src() -> str:
 
 def validate_destination(dest: str, force: bool = False) -> str:
     """Ensure that our destination does not exist"""
-    from ..base.context import context, validate_prefix_name
-    from ..common.path import expand
-    from ..exceptions import CondaEnvException
+    from conda.base.context import context, validate_prefix_name
+    from conda.common.path import expand
+    from conda.exceptions import CondaEnvException
 
     if os.sep in dest:
         dest = expand(dest)
@@ -115,11 +115,11 @@ def validate_destination(dest: str, force: bool = False) -> str:
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Executes the command for renaming an existing environment."""
-    from ..base.constants import DRY_RUN_PREFIX
-    from ..base.context import context
-    from ..cli import install
-    from ..gateways.disk.delete import rm_rf
-    from ..gateways.disk.update import rename_context
+    from conda.base.constants import DRY_RUN_PREFIX
+    from conda.base.context import context
+    from conda.cli import install
+    from conda.gateways.disk.delete import rm_rf
+    from conda.gateways.disk.update import rename_context
 
     source = validate_src()
     destination = validate_destination(args.destination, force=args.force)

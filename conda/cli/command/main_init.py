@@ -11,11 +11,11 @@ log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..base.constants import COMPATIBLE_SHELLS
-    from ..common.compat import on_win
-    from ..common.constants import NULL
-    from .helpers import add_parser_json
+    from conda.auxlib.ish import dals
+    from conda.base.constants import COMPATIBLE_SHELLS
+    from conda.cli.helpers import add_parser_json
+    from conda.common.compat import on_win
+    from conda.common.constants import NULL
 
     summary = "Initialize conda for shell interaction."
     description = summary
@@ -123,17 +123,17 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Only display what would have been done.",
     )
-    p.set_defaults(func="conda.cli.main_init.execute")
+    p.set_defaults(func="conda.cli.command.main_init.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.constants import COMPATIBLE_SHELLS
-    from ..base.context import context
-    from ..common.compat import on_win
-    from ..core.initialize import initialize, initialize_dev, install
-    from ..exceptions import ArgumentError
+    from conda.base.constants import COMPATIBLE_SHELLS
+    from conda.base.context import context
+    from conda.common.compat import on_win
+    from conda.core.initialize import initialize, initialize_dev, install
+    from conda.exceptions import ArgumentError
 
     if args.install:
         return install(context.conda_prefix)

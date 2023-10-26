@@ -25,10 +25,9 @@ from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.notices import notices
-
-from .. import specs
-from ..installers.base import InvalidInstaller, get_installer
-from .common import get_filename, print_result
+from conda_env import specs
+from conda_env.cli.common import get_filename, print_result
+from conda_env.installers.base import InvalidInstaller, get_installer
 
 description = """
 Create an environment based on an environment definition file.
@@ -99,7 +98,7 @@ def configure_parser(sub_parsers):
     add_parser_platform(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)
-    p.set_defaults(func=".main_create.execute")
+    p.set_defaults(func=".command.main_create.execute")
 
 
 @notices

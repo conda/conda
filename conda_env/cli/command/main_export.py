@@ -9,8 +9,7 @@ from argparse import RawDescriptionHelpFormatter
 from conda.base.context import context, determine_target_prefix, env_name
 from conda.cli.common import stdout_json
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
-
-from ..env import from_environment
+from conda_env.env import from_environment
 
 description = """
 Export a given environment
@@ -82,7 +81,7 @@ def configure_parser(sub_parsers):
         required=False,
         help="Build environment spec from explicit specs in history",
     )
-    p.set_defaults(func=".main_export.execute")
+    p.set_defaults(func=".command.main_export.execute")
 
 
 # TODO Make this aware of channels that were used to install packages

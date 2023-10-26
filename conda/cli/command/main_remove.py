@@ -12,10 +12,9 @@ log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..common.constants import NULL
-    from .actions import NullCountAction
-    from .helpers import (
+    from conda.auxlib.ish import dals
+    from conda.cli.actions import NullCountAction
+    from conda.cli.helpers import (
         add_output_and_prompt_options,
         add_parser_channels,
         add_parser_networking,
@@ -24,6 +23,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_pscheck,
         add_parser_solver,
     )
+    from conda.common.constants import NULL
 
     summary = "Remove a list of packages from a specified conda environment. "
     description = dals(
@@ -122,26 +122,26 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=NULL,
     )
 
-    p.set_defaults(func="conda.cli.main_remove.execute")
+    p.set_defaults(func="conda.cli.command.main_remove.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from ..core.envs_manager import unregister_env
-    from ..core.link import PrefixSetup, UnlinkLinkTransaction
-    from ..core.prefix_data import PrefixData
-    from ..exceptions import (
+    from conda.base.context import context
+    from conda.cli.common import check_non_admin, specs_from_args
+    from conda.cli.install import handle_txn
+    from conda.core.envs_manager import unregister_env
+    from conda.core.link import PrefixSetup, UnlinkLinkTransaction
+    from conda.core.prefix_data import PrefixData
+    from conda.exceptions import (
         CondaEnvironmentError,
         CondaValueError,
         DirectoryNotACondaEnvironmentError,
         PackagesNotFoundError,
     )
-    from ..gateways.disk.delete import path_is_clean, rm_rf
-    from ..models.match_spec import MatchSpec
-    from .common import check_non_admin, specs_from_args
-    from .install import handle_txn
+    from conda.gateways.disk.delete import path_is_clean, rm_rf
+    from conda.models.match_spec import MatchSpec
 
     if not (args.all or args.package_names):
         raise CondaValueError(

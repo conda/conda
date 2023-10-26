@@ -11,7 +11,7 @@ from pytest_mock import MockerFixture
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context
 from conda.cli import conda_argparse
-from conda.cli import main_notices as notices
+from conda.cli.command import main_notices as notices
 from conda.exceptions import CondaError, PackagesNotFoundError
 from conda.notices import fetch
 from conda.testing import CondaCLIFixture

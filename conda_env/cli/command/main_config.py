@@ -27,7 +27,7 @@ def configure_parser(sub_parsers):
         help=config_description,
         epilog=config_example,
     )
-    config_parser.set_defaults(func=".main_config.execute")
+    config_parser.set_defaults(func=".command.main_config.execute")
     config_subparser = config_parser.add_subparsers()
     configure_vars_parser(config_subparser)
 

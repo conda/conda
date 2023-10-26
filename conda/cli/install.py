@@ -4,8 +4,9 @@
 
 Core logic for `conda [create|install|update|remove]` commands.
 
-See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
-conda.cli.main_remove for the entry points into this module.
+See conda.cli.command.main_create, conda.cli.command.main_install,
+conda.cli.command.main_update,and conda.cli.command.main_remove
+for the entry points into this module.
 """
 import os
 from logging import getLogger

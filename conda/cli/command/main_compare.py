@@ -15,8 +15,8 @@ log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from .helpers import add_parser_json, add_parser_prefix
+    from conda.auxlib.ish import dals
+    from conda.cli.helpers import add_parser_json, add_parser_prefix
 
     summary = "Compare packages between conda environments."
     description = summary
@@ -51,14 +51,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store",
         help="Path to the environment file that is to be compared against.",
     )
-    p.set_defaults(func="conda.cli.main_compare.execute")
+    p.set_defaults(func="conda.cli.command.main_compare.execute")
 
     return p
 
 
 def get_packages(prefix):
-    from ..core.prefix_data import PrefixData
-    from ..exceptions import EnvironmentLocationNotFound
+    from conda.core.prefix_data import PrefixData
+    from conda.exceptions import EnvironmentLocationNotFound
 
     if not os.path.isdir(prefix):
         raise EnvironmentLocationNotFound(prefix)
@@ -70,7 +70,7 @@ def get_packages(prefix):
 
 
 def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
-    from ..models.match_spec import MatchSpec
+    from conda.models.match_spec import MatchSpec
 
     output = []
     miss = False
@@ -96,13 +96,12 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from conda.base.context import context
+    from conda.cli.common import stdout_json
+    from conda.exceptions import EnvironmentLocationNotFound, SpecNotFound
+    from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+    from conda.gateways.disk.test import is_conda_environment
     from conda_env import specs
-
-    from ..base.context import context
-    from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
-    from ..gateways.connection.session import CONDA_SESSION_SCHEMES
-    from ..gateways.disk.test import is_conda_environment
-    from .common import stdout_json
 
     prefix = context.target_prefix
     if not is_conda_environment(prefix):

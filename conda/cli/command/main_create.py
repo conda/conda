@@ -8,21 +8,21 @@ from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
 from os.path import isdir
 
-from ..notices import notices
+from conda.notices import notices
 
 log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..common.constants import NULL
-    from .actions import NullCountAction
-    from .helpers import (
+    from conda.auxlib.ish import dals
+    from conda.cli.actions import NullCountAction
+    from conda.cli.helpers import (
         add_parser_create_install_update,
         add_parser_default_packages,
         add_parser_platform,
         add_parser_solver,
     )
+    from conda.common.constants import NULL
 
     summary = "Create a new conda environment from a list of specified packages. "
     description = dals(
@@ -81,20 +81,20 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         dest="dev",
         default=NULL,
     )
-    p.set_defaults(func="conda.cli.main_create.execute")
+    p.set_defaults(func="conda.cli.command.main_create.execute")
 
     return p
 
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from ..common.path import paths_equal
-    from ..exceptions import CondaValueError
-    from ..gateways.disk.delete import rm_rf
-    from ..gateways.disk.test import is_conda_environment
-    from .common import confirm_yn
-    from .install import install
+    from conda.base.context import context
+    from conda.cli.common import confirm_yn
+    from conda.cli.install import install
+    from conda.common.path import paths_equal
+    from conda.exceptions import CondaValueError
+    from conda.gateways.disk.delete import rm_rf
+    from conda.gateways.disk.test import is_conda_environment
 
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):

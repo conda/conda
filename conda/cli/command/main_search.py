@@ -10,14 +10,14 @@ from datetime import datetime, timezone
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..common.constants import NULL
-    from .helpers import (
+    from conda.auxlib.ish import dals
+    from conda.cli.helpers import (
         add_parser_channels,
         add_parser_json,
         add_parser_known,
         add_parser_networking,
     )
+    from conda.common.constants import NULL
 
     summary = "Search for packages and display associated information using the MatchSpec format."
     description = dals(
@@ -135,21 +135,21 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_channels(p)
     add_parser_networking(p)
     add_parser_json(p)
-    p.set_defaults(func="conda.cli.main_search.execute")
+    p.set_defaults(func="conda.cli.command.main_search.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from ..cli.common import stdout_json
-    from ..common.io import Spinner
-    from ..core.envs_manager import query_all_prefixes
-    from ..core.index import calculate_channel_urls
-    from ..core.subdir_data import SubdirData
-    from ..models.match_spec import MatchSpec
-    from ..models.records import PackageRecord
-    from ..models.version import VersionOrder
+    from conda.base.context import context
+    from conda.cli.common import stdout_json
+    from conda.common.io import Spinner
+    from conda.core.envs_manager import query_all_prefixes
+    from conda.core.index import calculate_channel_urls
+    from conda.core.subdir_data import SubdirData
+    from conda.models.match_spec import MatchSpec
+    from conda.models.records import PackageRecord
+    from conda.models.version import VersionOrder
 
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value("subdir"):
@@ -241,7 +241,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 use_local=args.use_local,
             )
         )
-        from ..exceptions import PackagesNotFoundError
+        from conda.exceptions import PackagesNotFoundError
 
         raise PackagesNotFoundError((str(spec),), channels_urls)
 
@@ -280,8 +280,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
 
 def pretty_record(record):
-    from ..common.io import dashlist
-    from ..utils import human_bytes
+    from conda.common.io import dashlist
+    from conda.utils import human_bytes
 
     def push_line(display_name, attr_name):
         value = getattr(record, attr_name, None)

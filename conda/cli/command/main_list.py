@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from .helpers import (
+    from conda.auxlib.ish import dals
+    from conda.cli.helpers import (
         add_parser_json,
         add_parser_prefix,
         add_parser_show_channel_urls,
@@ -120,7 +120,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         nargs="?",
         help="List only packages matching this regular expression.",
     )
-    p.set_defaults(func="conda.cli.main_list.execute")
+    p.set_defaults(func="conda.cli.command.main_list.execute")
 
     return p
 
@@ -146,10 +146,10 @@ def list_packages(
     reverse=False,
     show_channel_urls=None,
 ):
-    from ..base.constants import DEFAULTS_CHANNEL_NAME
-    from ..base.context import context
-    from ..core.prefix_data import PrefixData
-    from .common import disp_features
+    from conda.base.constants import DEFAULTS_CHANNEL_NAME
+    from conda.base.context import context
+    from conda.cli.common import disp_features
+    from conda.core.prefix_data import PrefixData
 
     res = 0
 
@@ -207,11 +207,11 @@ def print_packages(
     json=False,
     show_channel_urls=None,
 ):
-    from ..base.context import context
-    from .common import stdout_json
+    from conda.base.context import context
+    from conda.cli.common import stdout_json
 
     if not isdir(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
+        from conda.exceptions import EnvironmentLocationNotFound
 
         raise EnvironmentLocationNotFound(prefix)
 
@@ -236,12 +236,12 @@ def print_packages(
 
 
 def print_explicit(prefix, add_md5=False):
-    from ..base.constants import UNKNOWN_CHANNEL
-    from ..base.context import context
-    from ..core.prefix_data import PrefixData
+    from conda.base.constants import UNKNOWN_CHANNEL
+    from conda.base.context import context
+    from conda.core.prefix_data import PrefixData
 
     if not isdir(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
+        from conda.exceptions import EnvironmentLocationNotFound
 
         raise EnvironmentLocationNotFound(prefix)
     print_export_header(context.subdir)
@@ -256,14 +256,14 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from ..gateways.disk.test import is_conda_environment
-    from ..history import History
-    from .common import stdout_json
+    from conda.base.context import context
+    from conda.cli.common import stdout_json
+    from conda.gateways.disk.test import is_conda_environment
+    from conda.history import History
 
     prefix = context.target_prefix
     if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
+        from conda.exceptions import EnvironmentLocationNotFound
 
         raise EnvironmentLocationNotFound(prefix)
 
@@ -279,7 +279,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             else:
                 stdout_json(h.object_log())
         else:
-            from ..exceptions import PathNotFoundError
+            from conda.exceptions import PathNotFoundError
 
             raise PathNotFoundError(h.path)
         return 0

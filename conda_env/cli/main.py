@@ -16,7 +16,14 @@ from conda.cli.main import init_loggers
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
 
-from . import main_config, main_create, main_export, main_list, main_remove, main_update
+from .command import (
+    main_config,
+    main_create,
+    main_export,
+    main_list,
+    main_remove,
+    main_update,
+)
 
 
 # TODO: This belongs in a helper library somewhere

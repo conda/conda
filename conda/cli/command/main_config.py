@@ -16,11 +16,11 @@ from textwrap import wrap
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..base.constants import CONDA_HOMEPAGE_URL
-    from ..base.context import context, sys_rc_path, user_rc_path
-    from ..common.constants import NULL
-    from .helpers import add_parser_json
+    from conda.auxlib.ish import dals
+    from conda.base.constants import CONDA_HOMEPAGE_URL
+    from conda.base.context import context, sys_rc_path, user_rc_path
+    from conda.cli.helpers import add_parser_json
+    from conda.common.constants import NULL
 
     escaped_user_rc_path = user_rc_path.replace("%", "%%")
     escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
@@ -215,14 +215,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help=SUPPRESS,  # TODO: No longer used.  Remove in a future release.
     )
 
-    p.set_defaults(func="conda.cli.main_config.execute")
+    p.set_defaults(func="conda.cli.command.main_config.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from .. import CondaError
-    from ..exceptions import CouldntParseError
+    from conda import CondaError
+    from conda.exceptions import CouldntParseError
 
     try:
         return execute_config(args, parser)
@@ -231,8 +231,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
 
 def format_dict(d):
-    from ..common.compat import isiterable
-    from ..common.configuration import pretty_list, pretty_map
+    from conda.common.compat import isiterable
+    from conda.common.configuration import pretty_list, pretty_map
 
     lines = []
     for k, v in d.items():
@@ -254,9 +254,9 @@ def format_dict(d):
 
 
 def parameter_description_builder(name):
-    from ..auxlib.entity import EntityEncoder
-    from ..base.context import context
-    from ..common.serialize import yaml_round_trip_dump
+    from conda.auxlib.entity import EntityEncoder
+    from conda.base.context import context
+    from conda.common.serialize import yaml_round_trip_dump
 
     builder = []
     details = context.describe_parameter(name)
@@ -298,7 +298,7 @@ def parameter_description_builder(name):
 
 
 def describe_all_parameters():
-    from ..base.context import context
+    from conda.base.context import context
 
     builder = []
     skip_categories = ("CLI-only", "Hidden and Undocumented")
@@ -347,9 +347,9 @@ def print_config_item(key, value):
 
 
 def execute_config(args, parser):
-    from .. import CondaError
-    from ..auxlib.entity import EntityEncoder
-    from ..base.constants import (
+    from conda import CondaError
+    from conda.auxlib.entity import EntityEncoder
+    from conda.base.constants import (
         ChannelPriority,
         DepsModifier,
         PathConflict,
@@ -357,10 +357,10 @@ def execute_config(args, parser):
         SatSolverChoice,
         UpdateModifier,
     )
-    from ..base.context import context, sys_rc_path, user_rc_path
-    from ..common.io import timeout
-    from ..common.iterators import groupby_to_dict as groupby
-    from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
+    from conda.base.context import context, sys_rc_path, user_rc_path
+    from conda.common.io import timeout
+    from conda.common.iterators import groupby_to_dict as groupby
+    from conda.common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -396,8 +396,8 @@ def execute_config(args, parser):
             all_names = context.list_parameters()
             not_params = set(paramater_names) - set(all_names)
             if not_params:
-                from ..common.io import dashlist
-                from ..exceptions import ArgumentError
+                from conda.common.io import dashlist
+                from conda.exceptions import ArgumentError
 
                 raise ArgumentError(
                     "Invalid configuration parameters: %s" % dashlist(not_params)
@@ -424,7 +424,7 @@ def execute_config(args, parser):
                     for channel in d["custom_channels"].values()
                 }
             if "custom_multichannels" in d:
-                from ..common.io import dashlist
+                from conda.common.io import dashlist
 
                 d["custom_multichannels"] = {
                     multichannel_name: dashlist(channels, indent=4)
@@ -447,8 +447,8 @@ def execute_config(args, parser):
             all_names = context.list_parameters()
             not_params = set(paramater_names) - set(all_names)
             if not_params:
-                from ..common.io import dashlist
-                from ..exceptions import ArgumentError
+                from conda.common.io import dashlist
+                from conda.exceptions import ArgumentError
 
                 raise ArgumentError(
                     "Invalid configuration parameters: %s" % dashlist(not_params)
@@ -590,7 +590,7 @@ def execute_config(args, parser):
             parsed = yaml_round_trip_load(content)
             rc_config.update(parsed)
         except Exception:  # pragma: no cover
-            from ..exceptions import ParseError
+            from conda.exceptions import ParseError
 
             raise ParseError("invalid yaml content:\n%s" % content)
 
@@ -605,13 +605,13 @@ def execute_config(args, parser):
             elif key in map_parameters:
                 arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
             else:
-                from ..exceptions import CondaValueError
+                from conda.exceptions import CondaValueError
 
                 raise CondaValueError(
                     "Key '%s' is not a known sequence parameter." % key
                 )
             if not (isinstance(arglist, Sequence) and not isinstance(arglist, str)):
-                from ..exceptions import CouldntParseError
+                from conda.exceptions import CouldntParseError
 
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
@@ -641,7 +641,7 @@ def execute_config(args, parser):
             argmap = rc_config.setdefault(key, {})
             argmap[subkey] = item
         else:
-            from ..exceptions import CondaValueError
+            from conda.exceptions import CondaValueError
 
             raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
 
@@ -650,12 +650,12 @@ def execute_config(args, parser):
         key, subkey = key.split(".", 1) if "." in key else (key, None)
         if key not in rc_config:
             if key != "channels":
-                from ..exceptions import CondaKeyError
+                from conda.exceptions import CondaKeyError
 
                 raise CondaKeyError(key, "key %r is not in the config file" % key)
             rc_config[key] = ["defaults"]
         if item not in rc_config[key]:
-            from ..exceptions import CondaKeyError
+            from conda.exceptions import CondaKeyError
 
             raise CondaKeyError(
                 key, f"{item!r} is not in the {key!r} key of the config file"
@@ -666,7 +666,7 @@ def execute_config(args, parser):
     for (key,) in args.remove_key:
         key, subkey = key.split(".", 1) if "." in key else (key, None)
         if key not in rc_config:
-            from ..exceptions import CondaKeyError
+            from conda.exceptions import CondaKeyError
 
             raise CondaKeyError(key, "key %r is not in the config file" % key)
         del rc_config[key]
@@ -708,6 +708,6 @@ def execute_config(args, parser):
             )
 
     if context.json:
-        from .common import stdout_json_success
+        from conda.cli.common import stdout_json_success
 
         stdout_json_success(rc_path=rc_path, warnings=json_warnings, get=json_get)

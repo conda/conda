@@ -17,9 +17,9 @@ log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from .actions import ExtendConstAction
-    from .helpers import add_output_and_prompt_options
+    from conda.auxlib.ish import dals
+    from conda.cli.actions import ExtendConstAction
+    from conda.cli.helpers import add_output_and_prompt_options
 
     summary = "Remove unused packages and caches."
     description = summary
@@ -94,7 +94,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     add_output_and_prompt_options(p)
 
-    p.set_defaults(func="conda.cli.main_clean.execute")
+    p.set_defaults(func="conda.cli.command.main_clean.execute")
 
     return p
 
@@ -128,7 +128,7 @@ def _get_total_size(pkg_sizes: dict[str, dict[str, int]]) -> int:
 
 
 def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
-    from ..gateways.disk.delete import rm_rf
+    from conda.gateways.disk.delete import rm_rf
 
     path = join(*parts)
     try:
@@ -145,7 +145,7 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
+    from conda.base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
 
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
@@ -215,9 +215,9 @@ def rm_pkgs(
     dry_run: bool,
     name: str,
 ) -> None:
-    from ..base.context import context
-    from ..utils import human_bytes
-    from .common import confirm_yn
+    from conda.base.context import context
+    from conda.cli.common import confirm_yn
+    from conda.utils import human_bytes
 
     if not quiet and warnings:
         for warning in warnings:
@@ -265,7 +265,7 @@ def find_index_cache() -> list[str]:
 
 
 def find_pkgs_dirs() -> list[str]:
-    from ..core.package_cache_data import PackageCacheData
+    from conda.core.package_cache_data import PackageCacheData
 
     return [
         pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)
@@ -273,7 +273,7 @@ def find_pkgs_dirs() -> list[str]:
 
 
 def find_tempfiles(paths: Iterable[str]) -> list[str]:
-    from ..base.constants import CONDA_TEMP_EXTENSIONS
+    from conda.base.constants import CONDA_TEMP_EXTENSIONS
 
     tempfiles = []
     for path in sorted(set(paths or [sys.prefix])):
@@ -290,7 +290,7 @@ def find_tempfiles(paths: Iterable[str]) -> list[str]:
 
 
 def find_logfiles() -> list[str]:
-    from ..base.constants import CONDA_LOGS_DIR
+    from conda.base.constants import CONDA_LOGS_DIR
 
     files = []
     for pkgs_dir in find_pkgs_dirs():
@@ -318,8 +318,8 @@ def rm_items(
     dry_run: bool,
     name: str,
 ) -> None:
-    from ..base.context import context
-    from .common import confirm_yn
+    from conda.base.context import context
+    from conda.cli.common import confirm_yn
 
     if not items:
         if not quiet:
@@ -345,7 +345,7 @@ def rm_items(
 
 
 def _execute(args, parser):
-    from ..base.context import context
+    from conda.base.context import context
 
     json_result = {"success": True}
     kwargs = {
@@ -370,7 +370,7 @@ def _execute(args, parser):
         or args.tempfiles
         or args.logfiles
     ):
-        from ..exceptions import ArgumentError
+        from conda.exceptions import ArgumentError
 
         raise ArgumentError(
             "At least one removal target must be given. See 'conda clean --help'."
@@ -401,14 +401,14 @@ def _execute(args, parser):
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from .common import stdout_json
+    from conda.base.context import context
+    from conda.cli.common import stdout_json
 
     json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)
     if args.dry_run:
-        from ..exceptions import DryRunExit
+        from conda.exceptions import DryRunExit
 
         raise DryRunExit
     return 0

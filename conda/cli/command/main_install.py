@@ -7,19 +7,19 @@ Installs the specified packages into an existing environment.
 import sys
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
-from ..notices import notices
+from conda.notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from ..common.constants import NULL
-    from .actions import NullCountAction
-    from .helpers import (
+    from conda.auxlib.ish import dals
+    from conda.cli.actions import NullCountAction
+    from conda.cli.helpers import (
         add_parser_create_install_update,
         add_parser_prune,
         add_parser_solver,
         add_parser_update_modifiers,
     )
+    from conda.common.constants import NULL
 
     summary = "Install a list of packages into a specified conda environment."
     description = dals(
@@ -117,15 +117,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         dest="dev",
         default=NULL,
     )
-    p.set_defaults(func="conda.cli.main_install.execute")
+    p.set_defaults(func="conda.cli.command.main_install.execute")
 
     return p
 
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from .install import install
+    from conda.base.context import context
+    from conda.cli.install import install
 
     if context.force:
         print(

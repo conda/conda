@@ -23,6 +23,27 @@ from ..common.compat import on_win
 from ..common.constants import NULL
 from ..deprecations import deprecated
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
+from .command.main_clean import configure_parser as configure_parser_clean
+from .command.main_compare import configure_parser as configure_parser_compare
+from .command.main_config import configure_parser as configure_parser_config
+from .command.main_create import configure_parser as configure_parser_create
+from .command.main_info import configure_parser as configure_parser_info
+from .command.main_init import configure_parser as configure_parser_init
+from .command.main_install import configure_parser as configure_parser_install
+from .command.main_list import configure_parser as configure_parser_list
+from .command.main_mock_activate import (
+    configure_parser as configure_parser_mock_activate,
+)
+from .command.main_mock_deactivate import (
+    configure_parser as configure_parser_mock_deactivate,
+)
+from .command.main_notices import configure_parser as configure_parser_notices
+from .command.main_package import configure_parser as configure_parser_package
+from .command.main_remove import configure_parser as configure_parser_remove
+from .command.main_rename import configure_parser as configure_parser_rename
+from .command.main_run import configure_parser as configure_parser_run
+from .command.main_search import configure_parser as configure_parser_search
+from .command.main_update import configure_parser as configure_parser_update
 from .find_commands import find_commands, find_executable
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
@@ -44,23 +65,6 @@ from .helpers import (  # noqa: F401
     add_parser_update_modifiers,
     add_parser_verbose,
 )
-from .main_clean import configure_parser as configure_parser_clean
-from .main_compare import configure_parser as configure_parser_compare
-from .main_config import configure_parser as configure_parser_config
-from .main_create import configure_parser as configure_parser_create
-from .main_info import configure_parser as configure_parser_info
-from .main_init import configure_parser as configure_parser_init
-from .main_install import configure_parser as configure_parser_install
-from .main_list import configure_parser as configure_parser_list
-from .main_mock_activate import configure_parser as configure_parser_mock_activate
-from .main_mock_deactivate import configure_parser as configure_parser_mock_deactivate
-from .main_notices import configure_parser as configure_parser_notices
-from .main_package import configure_parser as configure_parser_package
-from .main_remove import configure_parser as configure_parser_remove
-from .main_rename import configure_parser as configure_parser_rename
-from .main_run import configure_parser as configure_parser_run
-from .main_search import configure_parser as configure_parser_search
-from .main_update import configure_parser as configure_parser_update
 
 log = getLogger(__name__)
 

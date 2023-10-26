@@ -15,7 +15,7 @@ from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .helpers import add_parser_prefix
+    from conda.cli.helpers import add_parser_prefix
 
     summary = "Create low-level conda packages. (EXPERIMENTAL)"
     description = summary
@@ -67,7 +67,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=0,
         help="Designate package build number of the package being created.",
     )
-    p.set_defaults(func="conda.cli.main_package.execute")
+    p.set_defaults(func="conda.cli.command.main_package.execute")
 
     return p
 
@@ -88,8 +88,8 @@ def remove(prefix, files):
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
-    from ..misc import untracked
+    from conda.base.context import context
+    from conda.misc import untracked
 
     prefix = context.target_prefix
 
@@ -122,7 +122,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
 
 def get_installed_version(prefix, name):
-    from ..core.prefix_data import PrefixData
+    from conda.core.prefix_data import PrefixData
 
     for info in PrefixData(prefix).iter_records():
         if info["name"] == name:
@@ -131,7 +131,7 @@ def get_installed_version(prefix, name):
 
 
 def create_info(name, version, build_number, requires_py):
-    from ..base.context import context
+    from conda.base.context import context
 
     d = dict(
         name=name,
@@ -152,7 +152,7 @@ shebang_pat = re.compile(r"^#!.+$", re.M)
 
 
 def fix_shebang(tmp_dir, path):
-    from ..base.constants import PREFIX_PLACEHOLDER
+    from conda.base.constants import PREFIX_PLACEHOLDER
 
     if open(path, "rb").read(2) != "#!":
         return False
@@ -172,7 +172,7 @@ def fix_shebang(tmp_dir, path):
 
 
 def _add_info_dir(t, tmp_dir, files, has_prefix, info):
-    from ..auxlib.entity import EntityEncoder
+    from conda.auxlib.entity import EntityEncoder
 
     info_dir = join(tmp_dir, "info")
     os.mkdir(info_dir)
@@ -194,7 +194,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
 
 def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     """Create a conda package and return a list of warnings."""
-    from ..gateways.disk.delete import rmtree
+    from conda.gateways.disk.delete import rmtree
 
     files = sorted(files)
     warnings = []
@@ -234,8 +234,8 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
 
 
 def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=None):
-    from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
-    from ..misc import untracked
+    from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1
+    from conda.misc import untracked
 
     if files is None:
         files = untracked(prefix)
@@ -266,13 +266,13 @@ def which_package(path):
     the conda packages the file came from. Usually the iteration yields
     only one package.
     """
-    from ..common.path import paths_equal
-    from ..core.prefix_data import PrefixData
+    from conda.common.path import paths_equal
+    from conda.core.prefix_data import PrefixData
 
     path = abspath(path)
     prefix = which_prefix(path)
     if prefix is None:
-        from ..exceptions import CondaVerificationError
+        from conda.exceptions import CondaVerificationError
 
         raise CondaVerificationError("could not determine conda prefix from: %s" % path)
 

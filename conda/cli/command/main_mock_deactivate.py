@@ -4,7 +4,7 @@
 
 A mock implementation of the deactivate shell command for better UX.
 """
-from .. import CondaError
+from conda import CondaError
 
 
 def configure_parser(sub_parsers):
@@ -12,7 +12,7 @@ def configure_parser(sub_parsers):
         "deactivate",
         help="Deactivate the current active conda environment.",
     )
-    p.set_defaults(func="conda.cli.main_mock_deactivate.execute")
+    p.set_defaults(func="conda.cli.command.main_mock_deactivate.execute")
 
 
 def execute(args, parser):

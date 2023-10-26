@@ -6,7 +6,7 @@ A mock implementation of the activate shell command for better UX.
 """
 from argparse import SUPPRESS
 
-from .. import CondaError
+from conda import CondaError
 
 
 def configure_parser(sub_parsers):
@@ -14,7 +14,7 @@ def configure_parser(sub_parsers):
         "activate",
         help="Activate a conda environment.",
     )
-    p.set_defaults(func="conda.cli.main_mock_activate.execute")
+    p.set_defaults(func="conda.cli.command.main_mock_activate.execute")
     p.add_argument("args", action="store", nargs="*", help=SUPPRESS)
 
 

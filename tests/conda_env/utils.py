@@ -7,10 +7,16 @@ from tempfile import mkdtemp
 from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
+from conda_env.cli.command.main_create import (
+    configure_parser as create_configure_parser,
+)
+from conda_env.cli.command.main_export import (
+    configure_parser as export_configure_parser,
+)
+from conda_env.cli.command.main_update import (
+    configure_parser as update_configure_parser,
+)
 from conda_env.cli.main import do_call as do_call_conda_env
-from conda_env.cli.main_create import configure_parser as create_configure_parser
-from conda_env.cli.main_export import configure_parser as export_configure_parser
-from conda_env.cli.main_update import configure_parser as update_configure_parser
 
 
 class Commands:

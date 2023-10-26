@@ -8,8 +8,8 @@ from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from .helpers import add_parser_channels
+    from conda.auxlib.ish import dals
+    from conda.cli.helpers import add_parser_channels
 
     summary = "Retrieve latest channel notifications."
     description = dals(
@@ -41,15 +41,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
     add_parser_channels(p)
-    p.set_defaults(func="conda.cli.main_notices.execute")
+    p.set_defaults(func="conda.cli.command.main_notices.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Command that retrieves channel notifications, caches them and displays them."""
-    from ..exceptions import CondaError
-    from ..notices import core as notices
+    from conda.exceptions import CondaError
+    from conda.notices import core as notices
 
     try:
         channel_notice_set = notices.retrieve_notices()
