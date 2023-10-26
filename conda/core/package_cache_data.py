@@ -782,6 +782,14 @@ class ProgressiveFetchExtract:
         progress_bars = {}
         futures = []
 
+        cancelled_flag = False
+        def cancelled():
+            """
+            Used to cancel download threads.
+            """
+            nonlocal cancelled_flag
+            return cancelled_flag
+
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
         ), ThreadPoolExecutor(
@@ -802,7 +810,7 @@ class ProgressiveFetchExtract:
                 progress_bars[prec_or_spec] = progress_bar
 
                 future = fetch_executor.submit(
-                    do_cache_action, prec_or_spec, cache_action, progress_bar
+                    do_cache_action, prec_or_spec, cache_action, progress_bar, cancelled=cancelled
                 )
 
                 future.add_done_callback(
@@ -816,40 +824,48 @@ class ProgressiveFetchExtract:
                 )
                 futures.append(future)
 
-            for completed_future in as_completed(futures):
+            while futures:
                 try:
-                    prec_or_spec = completed_future.result()
-                except BaseException as e:
-                    # Special handling for exceptions thrown inside future, not
-                    # by futures handling code. Cancel any download that has not
-                    # been started. In-progress futures will continue.
-                    # Could use executor.shutdown(cancel_futures=True) instead?
-                    for future in futures:
-                        future.cancel()
+                    for completed_future in as_completed(futures, timeout=1):
+                        try:
+                            futures.remove(completed_future)
+                            prec_or_spec = completed_future.result()
+                            print("COMPLETED FUTURE", prec_or_spec)
+                        except BaseException as e:
+                            # Special handling for exceptions thrown inside future, not
+                            # by futures handling code. Cancel any download that has not
+                            # been started. In-progress futures will continue.
+                            # Could use executor.shutdown(cancel_futures=True) instead?
+                            print("FUTURE MADE AN EXCEPTION")
+                            cancelled_flag = True
+                            for future in futures:
+                                future.cancel()
 
-                    # faster handling of KeyboardInterrupt e.g.
-                    if not isinstance(e, Exception):
-                        raise
+                            # faster handling of KeyboardInterrupt e.g.
+                            if not isinstance(e, Exception):
+                                raise
 
-                    # break, not raise. CondaMultiError() raised if exceptions.
-                    break
+                            # break, not raise. CondaMultiError() raised if exceptions.
+                            break
 
-                cache_action, extract_action = self.paired_actions[prec_or_spec]
-                extract_future = extract_executor.submit(
-                    do_extract_action,
-                    prec_or_spec,
-                    extract_action,
-                    progress_bars[prec_or_spec],
-                )
-                extract_future.add_done_callback(
-                    partial(
-                        done_callback,
-                        actions=(cache_action, extract_action),
-                        exceptions=exceptions,
-                        progress_bar=progress_bars[prec_or_spec],
-                        finish=True,
-                    )
-                )
+                        cache_action, extract_action = self.paired_actions[prec_or_spec]
+                        extract_future = extract_executor.submit(
+                            do_extract_action,
+                            prec_or_spec,
+                            extract_action,
+                            progress_bars[prec_or_spec],
+                        )
+                        extract_future.add_done_callback(
+                            partial(
+                                done_callback,
+                                actions=(cache_action, extract_action),
+                                exceptions=exceptions,
+                                progress_bar=progress_bars[prec_or_spec],
+                                finish=True,
+                            )
+                        )
+                except TimeoutError:
+                    continue
 
         for bar in progress_bars.values():
             bar.close()
@@ -894,7 +910,7 @@ class ProgressiveFetchExtract:
         return hash(self) == hash(other)
 
 
-def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
+def do_cache_action(prec, cache_action, progress_bar, download_total=1.0, *, cancelled):
     """This function gets called from `ProgressiveFetchExtract.execute`."""
     # pass None if already cached (simplifies code)
     if not cache_action:
@@ -904,6 +920,11 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
     if not cache_action.url.startswith("file:/"):
 
         def progress_update_cache_action(pct_completed):
+            if cancelled():
+                """
+                Used to cancel dowload threads when parent thread is interrupted.
+                """
+                raise CondaError("Cancelled")
             progress_bar.update_to(pct_completed * download_total)
 
     else:
