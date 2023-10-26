@@ -20,6 +20,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     from conda.common.constants import NULL
 
+    kwargs.setdefault("aliases", ["upgrade"])
+
     summary = "Update conda packages to the latest compatible version."
     description = dals(
         f"""

@@ -25,6 +25,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     from conda.common.constants import NULL
 
+    kwargs.setdefault("aliases", ["uninstall"])
+
     summary = "Remove a list of packages from a specified conda environment. "
     description = dals(
         f"""

@@ -150,11 +150,11 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_list(sub_parsers)
     configure_parser_notices(sub_parsers)
     configure_parser_package(sub_parsers)
-    configure_parser_remove(sub_parsers, aliases=["uninstall"])
+    configure_parser_remove(sub_parsers)
     configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers, aliases=["upgrade"])
+    configure_parser_update(sub_parsers)
     configure_parser_plugins(sub_parsers)
 
     return parser
