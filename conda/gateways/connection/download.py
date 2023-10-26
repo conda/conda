@@ -217,7 +217,7 @@ def download_partial_file(
         # Satisfiable' that will never succeed
         try:
             status_code = e.response.status_code
-        except LookupError:
+        except AttributeError:
             status_code = None
         if isinstance(status_code, int) and 400 <= status_code < 500:
             partial_path.unlink()
