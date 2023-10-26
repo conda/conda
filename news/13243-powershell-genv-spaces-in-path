@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix spaces in path with Get-CondaEnvironment or genv in a Powershell instance using conda-hook.ps1
+* Fix spaces in path with Get-CondaEnvironment or genv in a Powershell instance using conda-hook.ps1 (#13243)
 
 ### Deprecations
 
