@@ -22,28 +22,8 @@ from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import on_win
 from ..common.constants import NULL
 from ..deprecations import deprecated
+from . import command as cli_command
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
-from .command.main_clean import configure_parser as configure_parser_clean
-from .command.main_compare import configure_parser as configure_parser_compare
-from .command.main_config import configure_parser as configure_parser_config
-from .command.main_create import configure_parser as configure_parser_create
-from .command.main_info import configure_parser as configure_parser_info
-from .command.main_init import configure_parser as configure_parser_init
-from .command.main_install import configure_parser as configure_parser_install
-from .command.main_list import configure_parser as configure_parser_list
-from .command.main_mock_activate import (
-    configure_parser as configure_parser_mock_activate,
-)
-from .command.main_mock_deactivate import (
-    configure_parser as configure_parser_mock_deactivate,
-)
-from .command.main_notices import configure_parser as configure_parser_notices
-from .command.main_package import configure_parser as configure_parser_package
-from .command.main_remove import configure_parser as configure_parser_remove
-from .command.main_rename import configure_parser as configure_parser_rename
-from .command.main_run import configure_parser as configure_parser_run
-from .command.main_search import configure_parser as configure_parser_search
-from .command.main_update import configure_parser as configure_parser_update
 from .find_commands import find_commands, find_executable
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
@@ -119,6 +99,9 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
 
 
 def generate_parser(**kwargs) -> ArgumentParser:
+    from conda import utils
+    from conda.cli import constants
+
     parser = generate_pre_parser(**kwargs)
 
     parser.add_argument(
@@ -138,23 +121,17 @@ def generate_parser(**kwargs) -> ArgumentParser:
         required=True,
     )
 
-    configure_parser_mock_activate(sub_parsers)
-    configure_parser_mock_deactivate(sub_parsers)
-    configure_parser_clean(sub_parsers)
-    configure_parser_compare(sub_parsers)
-    configure_parser_config(sub_parsers)
-    configure_parser_create(sub_parsers)
-    configure_parser_info(sub_parsers)
-    configure_parser_init(sub_parsers)
-    configure_parser_install(sub_parsers)
-    configure_parser_list(sub_parsers)
-    configure_parser_notices(sub_parsers)
-    configure_parser_package(sub_parsers)
-    configure_parser_remove(sub_parsers)
-    configure_parser_rename(sub_parsers)
-    configure_parser_run(sub_parsers)
-    configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers)
+    # Automatically get submodules (configure subcommands)
+    submodule_names = [
+        x
+        for x in utils.list_submodules(cli_command, prefixed=True)
+        if x.rsplit(".")[-1].startswith(constants.SUB_COMMAND_FILE_PREFIX)
+    ]
+    for module_name in submodule_names:
+        module = import_module(module_name)
+        configure_parser = getattr(module, constants.SUB_COMMAND_CONFIGURE_FUNC_NAME)
+        configure_parser(sub_parsers)
+
     configure_parser_plugins(sub_parsers)
 
     return parser

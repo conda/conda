@@ -562,3 +562,34 @@ def safe_open(*args, **kwargs):
         )
 
     fp.close()
+
+
+def list_submodules(module, prefixed: bool = False) -> list[str]:
+    """
+    Args:
+        module: The module to list submodules from.
+        prefixed: return submodule with `module` prefix.
+
+    Source: https://stackoverflow.com/a/77154867/7341454
+    """
+
+    def add_prefixs(submodules: list[str]):
+        if not prefixed:
+            return submodules
+        return [f"{module.__name__}.{x}" for x in submodules]
+
+    # We first respect __all__ attribute if it already defined.
+    submodules = getattr(module, "__all__", None)
+    if submodules:
+        return add_prefixs(submodules)
+
+    # Finally we can just scan for submodules via pkgutil.
+    import pkgutil
+
+    # pkgutill will invoke `importlib.machinery.all_suffixes()` to determine
+    # whether a file is a module, so if you get anysubmoudles that are
+    # unexpected to get, you need to check this function to confirm.
+    # If you want to retrive a directory as a submoudle, you will need to
+    # clarify this by putting a `__init__.py` file in the folder, even for
+    # Python3.
+    return add_prefixs([x.name for x in pkgutil.iter_modules(module.__path__)])
