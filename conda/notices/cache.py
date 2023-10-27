@@ -70,6 +70,11 @@ def get_notices_cache_dir() -> Path:
     """Returns the location of the notices cache directory as a Path object"""
     cache_dir = user_cache_dir(APP_NAME, appauthor=APP_NAME)
 
+    # triggers tests
+    nothing = "hai"
+
+    id(nothing)
+
     return Path(cache_dir).joinpath(NOTICES_CACHE_SUBDIR)
 
 
