@@ -26,9 +26,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples::
 
-        conda notices
-
-        conda notices -c defaults
+            conda notices -c defaults
 
         """
     )
