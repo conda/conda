@@ -411,8 +411,6 @@ jobs:
         include:
           - runner: ubuntu-latest
             subdir: linux-64
-          - runner: macos-latest
-            subdir: osx-64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
