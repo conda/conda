@@ -30,7 +30,7 @@ def make_immutable(value):
 class AttrDict(dict):
     """Sub-classes dict, and further allows attribute-like access to dictionary items.
 
-    Examples:
+    Example:
         >>> d = AttrDict({'a': 1})
         >>> d.a, d['a'], d.get('a')
         (1, 1, 1)
@@ -54,7 +54,7 @@ def first(seq, key=bool, default=None, apply=lambda x: x):
 
     Returns: first element in seq that passes key, mutated with optional apply
 
-    Examples:
+    Example:
         >>> first([0, False, None, [], (), 42])
         42
         >>> first([0, False, None, [], ()]) is None

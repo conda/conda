@@ -457,7 +457,7 @@ Before comparison, version strings are parsed as follows:
     to keep numbers and strings in phase, resulting in ``1.1.a1' == 1.1.0a1'``.
   * The same is repeated for the local version part.
 
-Examples:
+Example:
 
   ``1.2g.beta15.rc  =>  [[0], [1], [2, 'g'], [0, 'beta', 15], [0, 'rc']]``
 

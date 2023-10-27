@@ -54,7 +54,7 @@ def expand(path):
 
 def paths_equal(path1, path2):
     """
-    Examples:
+    Example:
         >>> paths_equal('/a/b/c', '/a/b/c/d/..')
         True
 
@@ -250,7 +250,7 @@ def win_path_backout(path):
 def ensure_pad(name, pad="_"):
     """
 
-    Examples:
+    Example:
         >>> ensure_pad('conda')
         '_conda_'
         >>> ensure_pad('_conda')
@@ -268,7 +268,7 @@ def ensure_pad(name, pad="_"):
 def is_private_env_name(env_name):
     """
 
-    Examples:
+    Example:
         >>> is_private_env_name("_conda")
         False
         >>> is_private_env_name("_conda_")
@@ -281,7 +281,7 @@ def is_private_env_name(env_name):
 def is_private_env_path(env_path):
     """
 
-    Examples:
+    Example:
         >>> is_private_env_path('/some/path/to/envs/_conda_')
         True
         >>> is_private_env_path('/not/an/envs_dir/_conda_')
@@ -369,7 +369,7 @@ def which(executable):
 
 def strip_pkg_extension(path: str):
     """
-    Examples:
+    Example:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
         ('/path/_license-1.1-py27_1', '.tar.bz2')
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.conda")
@@ -387,7 +387,7 @@ def strip_pkg_extension(path: str):
 
 def is_package_file(path):
     """
-    Examples:
+    Example:
         >>> is_package_file("/path/_license-1.1-py27_1.tar.bz2")
         True
         >>> is_package_file("/path/_license-1.1-py27_1.conda")

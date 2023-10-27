@@ -42,7 +42,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         See `conda config --describe` or {CONDA_HOMEPAGE_URL}/docs/config.html
         for details on all the options that can go in .condarc.
 
-        Examples:
+        Example:
 
         Display all configuration values as calculated and compiled::
 

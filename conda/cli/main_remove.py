@@ -41,7 +41,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     epilog = dals(
         """
-        Examples:
+        Example:
 
         Remove the package 'scipy' from the currently-active environment::
 

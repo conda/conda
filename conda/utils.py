@@ -71,7 +71,7 @@ def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
 
-    Examples:
+    Example:
         >>> human_bytes(42)
         '42 B'
         >>> human_bytes(1042)

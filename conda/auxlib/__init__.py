@@ -51,7 +51,7 @@ __summary__ = """auxiliary library to the python standard library"""
 
 class _Null:
     """
-    Examples:
+    Example:
         >>> len(_Null())
         0
         >>> bool(_Null())

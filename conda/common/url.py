@@ -240,7 +240,7 @@ def urlparse(url: str) -> Url:
 def url_to_s3_info(url):
     """Convert an s3 url to a tuple of bucket and key.
 
-    Examples:
+    Example:
         >>> url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
         ('bucket-name.bucket', '/here/is/the/key')
     """
@@ -252,7 +252,7 @@ def url_to_s3_info(url):
 
 def is_url(url):
     """
-    Examples:
+    Example:
         >>> is_url(None)
         False
         >>> is_url("s3://some/bucket")
@@ -268,7 +268,7 @@ def is_url(url):
 
 def is_ipv4_address(string_ip):
     """
-    Examples:
+    Example:
         >>> [is_ipv4_address(ip) for ip in ('8.8.8.8', '192.168.10.10', '255.255.255.255')]
         [True, True, True]
         >>> [is_ipv4_address(ip) for ip in ('8.8.8', '192.168.10.10.20', '256.255.255.255', '::1')]
@@ -283,7 +283,7 @@ def is_ipv4_address(string_ip):
 
 def is_ipv6_address(string_ip):
     """
-    Examples:
+    Example:
         >> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
         [True, True, True]
         >> [is_ipv6_address(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
@@ -298,7 +298,7 @@ def is_ipv6_address(string_ip):
 
 def is_ip_address(string_ip):
     """
-    Examples:
+    Example:
         >> is_ip_address('192.168.10.10')
         True
         >> is_ip_address('::1')
@@ -323,7 +323,7 @@ def has_scheme(value):
 
 def strip_scheme(url):
     """
-    Examples:
+    Example:
         >>> strip_scheme("https://www.conda.io")
         'www.conda.io'
         >>> strip_scheme("s3://some.bucket/plus/a/path.ext")
@@ -339,7 +339,7 @@ def mask_anaconda_token(url):
 
 def split_anaconda_token(url):
     """
-    Examples:
+    Example:
         >>> split_anaconda_token("https://1.2.3.4/t/tk-123-456/path")
         (u'https://1.2.3.4/path', u'tk-123-456')
         >>> split_anaconda_token("https://1.2.3.4/t//path")
@@ -362,7 +362,7 @@ def split_anaconda_token(url):
 def split_platform(known_subdirs, url):
     """
 
-    Examples:
+    Example:
         >>> from conda.base.constants import KNOWN_SUBDIRS
         >>> split_platform(KNOWN_SUBDIRS, "https://1.2.3.4/t/tk-123/linux-ppc64le/path")
         (u'https://1.2.3.4/t/tk-123/path', u'linux-ppc64le')
@@ -392,7 +392,7 @@ def has_platform(url, known_subdirs):
 
 def split_scheme_auth_token(url):
     """
-    Examples:
+    Example:
         >>> split_scheme_auth_token("https://u:p@conda.io/t/x1029384756/more/path")
         ('conda.io/more/path', 'https', 'u:p', 'x1029384756')
         >>> split_scheme_auth_token(None)
@@ -464,7 +464,7 @@ def maybe_add_auth(url: str, auth: str, force=False) -> str:
     By default, does not replace auth if it already exists.  Setting ``force`` to ``True``
     overrides this behavior.
 
-    Examples:
+    Example:
         >>> maybe_add_auth("https://www.conda.io", "user:passwd")
         'https://user:passwd@www.conda.io'
         >>> maybe_add_auth("https://www.conda.io", "")

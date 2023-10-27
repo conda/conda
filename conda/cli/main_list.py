@@ -24,7 +24,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Examples:
+        Example:
 
         List all packages in the current environment::
 

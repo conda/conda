@@ -107,7 +107,7 @@ _REGEX = _Regex()
 def numberify(value):
     """
 
-    Examples:
+    Example:
         >>> [numberify(x) for x in ('1234', 1234, '0755', 0o0755, False, 0, '0', True, 1, '1')]
           [1234, 1234, 755, 493, 0, 0, 0, 1, 1, 1]
         >>> [numberify(x) for x in ('12.34', 12.34, 1.2+3.5j, '1.2+3.5j')]
@@ -133,7 +133,7 @@ def boolify(value, nullable=False, return_string=False):
     Returns:
         bool: boolean representation of the given value
 
-    Examples:
+    Example:
         >>> [boolify(x) for x in ('yes', 'no')]
         [True, False]
         >>> [boolify(x) for x in (0.1, 0+0j, True, '0', '0.0', '0.1', '2')]
@@ -192,7 +192,7 @@ def typify(value, type_hint=None):
         value (Any): Usually a string, not a sequence
         type_hint (type or tuple[type]):
 
-    Examples:
+    Example:
         >>> typify('32')
         32
         >>> typify('32', float)
@@ -277,7 +277,7 @@ def maybecall(value):
 @deprecated("24.3", "24.9")
 def listify(val, return_type=tuple):
     """
-    Examples:
+    Example:
         >>> listify('abc', return_type=list)
         ['abc']
         >>> listify(None)

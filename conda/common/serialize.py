@@ -37,7 +37,7 @@ def yaml_round_trip_load(string):
 
 def yaml_safe_load(string):
     """
-    Examples:
+    Example:
         >>> yaml_safe_load("key: value")
         {'key': 'value'}
 

@@ -304,7 +304,7 @@ def get_status_code_from_code_response(code):
     - getting it from the 3 first digits in the code
     After a comparison between the two values,
     we can safely set the code or raise a warning.
-    Examples:
+    Example:
         - get_status_code_from_code_response('200 Welcome') == 200
         - multi_line_code = '226-File successfully transferred\n226 0.000 seconds'
           get_status_code_from_code_response(multi_line_code) == 226

@@ -19,7 +19,7 @@ INTERRUPT_SIGNALS = (
 
 def get_signal_name(signum):
     """
-    Examples:
+    Example:
         >>> from signal import SIGINT
         >>> get_signal_name(SIGINT)
         'SIGINT'

@@ -68,7 +68,7 @@ def run_command(command, *arguments, **kwargs):
         a tuple of stdout, stderr, and return_code.
         stdout, stderr are either strings, None or the corresponding file-like function argument.
 
-    Examples:
+    Example:
         >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask", \
                         use_exception_handler=True)
         >>> run_command(Commands.CREATE, "-n", "newenv", "python=3", "flask")

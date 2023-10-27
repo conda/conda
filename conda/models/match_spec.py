@@ -128,7 +128,7 @@ class MatchSpec(metaclass=MatchSpecType):
       - Otherwise, an exact match to the string is sought.
 
 
-    Examples:
+    Example:
         >>> str(MatchSpec(name='foo', build='py2*', channel='conda-forge'))
         'conda-forge::foo[build=py2*]'
         >>> str(MatchSpec('foo 1.0 py27_0'))
@@ -531,7 +531,7 @@ class MatchSpec(metaclass=MatchSpecType):
 
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
-    Examples:
+    Example:
         >>> _parse_version_plus_build("=1.2.3 0")
         ('=1.2.3', '0')
         >>> _parse_version_plus_build("1.2.3=0")
@@ -562,7 +562,7 @@ def _parse_version_plus_build(v_plus_b):
 
 def _parse_legacy_dist(dist_str):
     """
-    Examples:
+    Example:
         >>> _parse_legacy_dist("_license-1.1-py27_1.tar.bz2")
         ('_license', '1.1', 'py27_1')
         >>> _parse_legacy_dist("_license-1.1-py27_1")

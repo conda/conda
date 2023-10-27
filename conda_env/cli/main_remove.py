@@ -24,7 +24,7 @@ environment before you can remove it.
 
 _example = """
 
-Examples:
+Example:
 
     conda env remove --name FOO
     conda env remove -n FOO

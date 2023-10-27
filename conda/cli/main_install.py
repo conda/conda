@@ -50,7 +50,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     epilog = dals(
         """
-        Examples:
+        Example:
 
         Install the package 'scipy' into the currently-active environment::
 

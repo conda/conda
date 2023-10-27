@@ -26,7 +26,7 @@ def find_or_none(key, search_maps, aliases=(), _map_index=0):
     """Return the value of the first key found in the list of search_maps,
     otherwise return None.
 
-    Examples:
+    Example:
         >>> from .collection import AttrDict
         >>> d1 = AttrDict({'a': 1, 'b': 2, 'c': 3, 'e': None})
         >>> d2 = AttrDict({'b': 5, 'e': 6, 'f': 7})
