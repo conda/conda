@@ -198,13 +198,10 @@ def get_archspec_name():
 
     if native_plat != target_plat or platform.machine() != machine:
         return machine
-
-    try:
+    else:
         import archspec.cpu
 
         return str(archspec.cpu.host())
-    except ImportError:
-        return machine
 
 
 def calculate_channel_urls(
