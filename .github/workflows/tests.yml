@@ -410,7 +410,7 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-latest
-            subdir: linux-64
+            subdir: noarch
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
