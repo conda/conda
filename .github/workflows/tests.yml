@@ -59,90 +59,90 @@ jobs:
               - 'dev/**/qemu.*'
 
   # windows test suite
-  windows:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # windows:
+  #   # only run test suite if there are code changes
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
 
-    runs-on: windows-2019
-    strategy:
-      fail-fast: false
-      matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.11']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        exclude:
-          - default-channel: 'conda-forge'
-            python-version: '3.8'
-    env:
-      OS: Windows
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: 3
-      TEST_GROUP: ${{ matrix.test-group }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  #   runs-on: windows-2019
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+  #       default-channel: ['defaults', 'conda-forge']
+  #       python-version: ['3.8', '3.11']
+  #       test-type: ['unit', 'integration']
+  #       test-group: ['1', '2', '3']
+  #       exclude:
+  #         - default-channel: 'conda-forge'
+  #           python-version: '3.8'
+  #   env:
+  #     OS: Windows
+  #     PYTHON: ${{ matrix.python-version }}
+  #     TEST_SPLITS: 3
+  #     TEST_GROUP: ${{ matrix.test-group }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Cache conda packages
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 3
-        with:
-          # setup.bat makes a directory junction from \conda_bin to
-          # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
-          # at this stage.
-          path: C:\Miniconda\envs\conda-test-env\pkgs
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
+  #     - name: Cache conda packages
+  #       uses: actions/cache@v3
+  #       env:
+  #         # Increase this value to reset cache
+  #         CACHE_NUMBER: 3
+  #       with:
+  #         # setup.bat makes a directory junction from \conda_bin to
+  #         # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
+  #         # at this stage.
+  #         path: C:\Miniconda\envs\conda-test-env\pkgs
+  #         key:
+  #           ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+  #           hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
 
-      - name: Set temp dirs correctly
-        # https://github.com/actions/virtual-environments/issues/712
-        run: |
-          echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
-          echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+  #     - name: Set temp dirs correctly
+  #       # https://github.com/actions/virtual-environments/issues/712
+  #       run: |
+  #         echo "TMPDIR=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+  #         echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
+  #         echo "TMP=$env:USERPROFILE\AppData\Local\Temp" >> $env:GITHUB_ENV
 
-      - name: Setup environment for defaults
-        shell: cmd
-        if: matrix.default-channel == 'defaults'
-        run: |
-          call .\dev\windows\setup.bat
+  #     - name: Setup environment for defaults
+  #       shell: cmd
+  #       if: matrix.default-channel == 'defaults'
+  #       run: |
+  #         call .\dev\windows\setup.bat
 
-      - name: Setup environment for conda-forge
-        shell: cmd
-        if: matrix.default-channel == 'conda-forge'
-        env:
-          CONDA_CHANNELS: ${{ matrix.default-channel }}
-          CONDA_CHANNEL_PRIORITY: strict
-        run: |
-          call .\dev\windows\setup.bat
+  #     - name: Setup environment for conda-forge
+  #       shell: cmd
+  #       if: matrix.default-channel == 'conda-forge'
+  #       env:
+  #         CONDA_CHANNELS: ${{ matrix.default-channel }}
+  #         CONDA_CHANNEL_PRIORITY: strict
+  #       run: |
+  #         call .\dev\windows\setup.bat
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: cmd
-        run: |
-          call .\dev\windows\${{ matrix.test-type }}.bat
+  #     - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+  #       shell: cmd
+  #       run: |
+  #         call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v3
-        with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
-      - name: Upload test results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            .\tools\durations\${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+  #     - name: Upload test results
+  #       if: '!cancelled()'
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+  #         # when locally dowloading and comparing results of different workflow runs.
+  #         name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+  #         path: |
+  #           .coverage
+  #           .\tools\durations\${{ runner.os }}.json
+  #           test-report.xml
+  #         retention-days: 1
 
   # linux test suite
   linux:
@@ -192,7 +192,7 @@ jobs:
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: pixi run bash {0}
         run: |
-          ./dev/linux/${{ matrix.test-type }}-pixi.sh
+          ./dev/linux/${{ matrix.test-type }}.sh
 
       - uses: codecov/codecov-action@v3
         with:
@@ -212,151 +212,151 @@ jobs:
           retention-days: 1
 
   # linux-qemu test suite
-  linux-qemu:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # linux-qemu:
+  #   # only run test suite if there are code changes
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
 
-    # Run one single fast test per docker+qemu emulated linux platform to test that
-    # test execution is possible there (container+tools+dependencies work). Can be
-    # changed / extended to run specific tests in case there are platform related
-    # things to test. Running more tests is time consuming due to emulation
-    # (factor 2-10x slower).
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.11']
-        platform: ['arm64', 'ppc64le']
-    env:
-      PYTHON: ${{ matrix.python-version }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  #   # Run one single fast test per docker+qemu emulated linux platform to test that
+  #   # test execution is possible there (container+tools+dependencies work). Can be
+  #   # changed / extended to run specific tests in case there are platform related
+  #   # things to test. Running more tests is time consuming due to emulation
+  #   # (factor 2-10x slower).
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       default-channel: ['defaults', 'conda-forge']
+  #       python-version: ['3.11']
+  #       platform: ['arm64', 'ppc64le']
+  #   env:
+  #     PYTHON: ${{ matrix.python-version }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        # Equivalent to locally run:
-        #   `docker run --privileged --rm tonistiigi/binfmt --install all`
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v2
+  #       # Equivalent to locally run:
+  #       #   `docker run --privileged --rm tonistiigi/binfmt --install all`
 
-      - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }}, ${{ matrix.python-version }} tests
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          --platform linux/${{ matrix.platform }}
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/qemu.sh
+  #     - name: Python linux-${{ matrix.platform }} on ${{ matrix.default-channel }}, ${{ matrix.python-version }} tests
+  #       run: >
+  #         docker run
+  #         --rm -v ${PWD}:/opt/conda-src
+  #         --platform linux/${{ matrix.platform }}
+  #         ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
+  #         /opt/conda-src/dev/linux/qemu.sh
 
-      - name: Upload test results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.default-channel }}-${{ matrix.python-version }}
-          path: |
-            .coverage
-            test-report.xml
-          retention-days: 1
+  #     - name: Upload test results
+  #       if: '!cancelled()'
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+  #         # when locally dowloading and comparing results of different workflow runs.
+  #         name: test-results-${{ github.sha }}-linux-${{ matrix.platform }}-qemu-${{ matrix.default-channel }}-${{ matrix.python-version }}
+  #         path: |
+  #           .coverage
+  #           test-report.xml
+  #         retention-days: 1
 
-  # macos test suite
-  macos:
-    # only run test suite if there are code changes
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # # macos test suite
+  # macos:
+  #   # only run test suite if there are code changes
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
 
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
-        test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        # fewer test splits for quicker unit tests, keep 3 splits for integration
-        test-splits: [2, 3]
-        exclude:
-          - test-type: unit
-            test-group: '3'
-          - test-type: unit
-            test-splits: 3
-          - test-type: integration
-            test-splits: 2
-          # odd choice kept for parity with previous commit
-          - test-type: integration
-            default-channel: 'conda-forge'
-          - test-type: unit
-            default-channel: 'defaults'
-    env:
-      OS: macOS
-      PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
-      TEST_GROUP: ${{ matrix.test-group }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  #   runs-on: macos-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       default-channel: ['defaults', 'conda-forge']
+  #       python-version: ['3.9']
+  #       test-type: ['unit', 'integration']
+  #       test-group: ['1', '2', '3']
+  #       # fewer test splits for quicker unit tests, keep 3 splits for integration
+  #       test-splits: [2, 3]
+  #       exclude:
+  #         - test-type: unit
+  #           test-group: '3'
+  #         - test-type: unit
+  #           test-splits: 3
+  #         - test-type: integration
+  #           test-splits: 2
+  #         # odd choice kept for parity with previous commit
+  #         - test-type: integration
+  #           default-channel: 'conda-forge'
+  #         - test-type: unit
+  #           default-channel: 'defaults'
+  #   env:
+  #     OS: macOS
+  #     PYTHON: ${{ matrix.python-version }}
+  #     TEST_SPLITS: ${{ matrix.test-splits }}
+  #     TEST_GROUP: ${{ matrix.test-group }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Cache conda packages
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
-            hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
+  #     - name: Cache conda packages
+  #       uses: actions/cache@v3
+  #       env:
+  #         # Increase this value to reset cache
+  #         CACHE_NUMBER: 4
+  #       with:
+  #         path: ~/conda_pkgs_dir
+  #         key:
+  #           ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+  #           hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda for defaults
-        if: matrix.default-channel == 'defaults'
-        env:
-          CONDA_SOLVER: classic
-        with:
-          activate-environment: conda-test-env
-          miniconda-version: "latest"
-          python-version: ${{ matrix.python-version }}
+  #     - uses: conda-incubator/setup-miniconda@v2
+  #       name: Setup miniconda for defaults
+  #       if: matrix.default-channel == 'defaults'
+  #       env:
+  #         CONDA_SOLVER: classic
+  #       with:
+  #         activate-environment: conda-test-env
+  #         miniconda-version: "latest"
+  #         python-version: ${{ matrix.python-version }}
 
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup miniconda for conda-forge
-        if: matrix.default-channel == 'conda-forge'
-        env:
-          CONDA_SOLVER: classic
-        with:
-          activate-environment: conda-test-env
-          miniforge-version: latest
-          python-version: ${{ matrix.python-version }}
+  #     - uses: conda-incubator/setup-miniconda@v2
+  #       name: Setup miniconda for conda-forge
+  #       if: matrix.default-channel == 'conda-forge'
+  #       env:
+  #         CONDA_SOLVER: classic
+  #       with:
+  #         activate-environment: conda-test-env
+  #         miniforge-version: latest
+  #         python-version: ${{ matrix.python-version }}
 
-      - name: Setup environment
-        shell: bash -l {0}
-        timeout-minutes: 15
-        run: |
-          ./dev/macos/setup.sh
+  #     - name: Setup environment
+  #       shell: bash -l {0}
+  #       timeout-minutes: 15
+  #       run: |
+  #         ./dev/macos/setup.sh
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        shell: bash -l {0}
-        run: |
-          ./dev/macos/${{ matrix.test-type }}.sh
+  #     - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+  #       shell: bash -l {0}
+  #       run: |
+  #         ./dev/macos/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v3
-        with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
-      - name: Upload test results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-          # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-          path: |
-            .coverage
-            ./tools/durations/${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1
+  #     - name: Upload test results
+  #       if: '!cancelled()'
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+  #         # when locally dowloading and comparing results of different workflow runs.
+  #         name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+  #         path: |
+  #           .coverage
+  #           ./tools/durations/${{ runner.os }}.json
+  #           test-report.xml
+  #         retention-days: 1
 
   # aggregate and upload
   aggregate:

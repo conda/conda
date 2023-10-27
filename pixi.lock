@@ -306,6 +306,82 @@ package:
   size: 230476
   timestamp: 1660066945969
 - platform: linux-64
+  name: archspec
+  version: 0.2.1
+  category: main
+  manager: conda
+  dependencies:
+  - python >=3.6
+  url: https://conda.anaconda.org/conda-forge/noarch/archspec-0.2.1-pyhd8ed1ab_1.conda
+  hash:
+    md5: aae3d4ea593ef245ea19d192623f0593
+    sha256: af1dc5bee3b83aa167ad5991e7a98a3bd058b15847fef37424b8ea668a7c7ce6
+  build: pyhd8ed1ab_1
+  arch: x86_64
+  subdir: linux-64
+  build_number: 1
+  license: MIT OR Apache-2.0
+  noarch: python
+  size: 41138
+  timestamp: 1697661333027
+- platform: osx-64
+  name: archspec
+  version: 0.2.1
+  category: main
+  manager: conda
+  dependencies:
+  - python >=3.6
+  url: https://conda.anaconda.org/conda-forge/noarch/archspec-0.2.1-pyhd8ed1ab_1.conda
+  hash:
+    md5: aae3d4ea593ef245ea19d192623f0593
+    sha256: af1dc5bee3b83aa167ad5991e7a98a3bd058b15847fef37424b8ea668a7c7ce6
+  build: pyhd8ed1ab_1
+  arch: x86_64
+  subdir: osx-64
+  build_number: 1
+  license: MIT OR Apache-2.0
+  noarch: python
+  size: 41138
+  timestamp: 1697661333027
+- platform: osx-arm64
+  name: archspec
+  version: 0.2.1
+  category: main
+  manager: conda
+  dependencies:
+  - python >=3.6
+  url: https://conda.anaconda.org/conda-forge/noarch/archspec-0.2.1-pyhd8ed1ab_1.conda
+  hash:
+    md5: aae3d4ea593ef245ea19d192623f0593
+    sha256: af1dc5bee3b83aa167ad5991e7a98a3bd058b15847fef37424b8ea668a7c7ce6
+  build: pyhd8ed1ab_1
+  arch: aarch64
+  subdir: osx-arm64
+  build_number: 1
+  license: MIT OR Apache-2.0
+  noarch: python
+  size: 41138
+  timestamp: 1697661333027
+- platform: win-64
+  name: archspec
+  version: 0.2.1
+  category: main
+  manager: conda
+  dependencies:
+  - python >=3.6
+  url: https://conda.anaconda.org/conda-forge/noarch/archspec-0.2.1-pyhd8ed1ab_1.conda
+  hash:
+    md5: aae3d4ea593ef245ea19d192623f0593
+    sha256: af1dc5bee3b83aa167ad5991e7a98a3bd058b15847fef37424b8ea668a7c7ce6
+  build: pyhd8ed1ab_1
+  arch: x86_64
+  subdir: win-64
+  build_number: 1
+  license: MIT OR Apache-2.0
+  noarch: python
+  size: 41138
+  timestamp: 1697661333027
+- platform: linux-64
   name: attrs
   version: 23.1.0
   category: main
@@ -737,13 +813,13 @@ package:
   dependencies:
   - libgcc-ng >=12
   - libstdcxx-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/brotli-python-1.1.0-py312h30efb56_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/brotli-python-1.1.0-py311hb755f60_1.conda
   hash:
-    md5: 45801a89533d3336a365284d93298e36
-    sha256: b68706698b6ac0d31196a8bcb061f0d1f35264bcd967ea45e03e108149a74c6f
-  build: py312h30efb56_1
+    md5: cce9e7c3f1c307f2a5fb08a2922d6164
+    sha256: 559093679e9fdb6061b7b80ca0f9a31fe6ffc213f1dae65bc5c82e2cd1a94107
+  build: py311hb755f60_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
@@ -751,8 +827,8 @@ package:
   - libbrotlicommon 1.1.0 hd590300_1
   license: MIT
   license_family: MIT
-  size: 350604
-  timestamp: 1695990206327
+  size: 351340
+  timestamp: 1695990160360
 - platform: osx-64
   name: brotli-python
   version: 1.1.0
@@ -760,13 +836,13 @@ package:
   manager: conda
   dependencies:
   - libcxx >=15.0.7
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/brotli-python-1.1.0-py312heafc425_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/brotli-python-1.1.0-py311hdf8f085_1.conda
   hash:
-    md5: a288b88f06b8bfe0dedaf5c4b6ac6b7a
-    sha256: fc55988f9bc05a938ea4b8c20d6545bed6e9c6c10aa5147695f981136ca894c1
-  build: py312heafc425_1
+    md5: 546fdccabb90492fbaf2da4ffb78f352
+    sha256: 0f5e0a7de58006f349220365e32db521a1fe494c37ee455e5ecf05b8fe567dcc
+  build: py311hdf8f085_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
@@ -774,8 +850,8 @@ package:
   - libbrotlicommon 1.1.0 h0dc2134_1
   license: MIT
   license_family: MIT
-  size: 366883
-  timestamp: 1695990710194
+  size: 366864
+  timestamp: 1695990449997
 - platform: osx-arm64
   name: brotli-python
   version: 1.1.0
@@ -783,14 +859,14 @@ package:
   manager: conda
   dependencies:
   - libcxx >=15.0.7
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/brotli-python-1.1.0-py312h9f69965_1.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/brotli-python-1.1.0-py311ha891d26_1.conda
   hash:
-    md5: 1bc01b9ffdf42beb1a9fe4e9222e0567
-    sha256: 3418b1738243abba99e931c017b952771eeaa1f353c07f7d45b55e83bb74fcb3
-  build: py312h9f69965_1
+    md5: 5e802b015e33447d1283d599d21f052b
+    sha256: 2d78c79ccf2c17236c52ef217a4c34b762eb7908a6903d94439f787aac1c8f4b
+  build: py311ha891d26_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
@@ -798,8 +874,8 @@ package:
   - libbrotlicommon 1.1.0 hb547adb_1
   license: MIT
   license_family: MIT
-  size: 343435
-  timestamp: 1695990731924
+  size: 343332
+  timestamp: 1695991223439
 - platform: win-64
   name: brotli-python
   version: 1.1.0
@@ -1053,20 +1129,20 @@ package:
   - libffi >=3.4,<4.0a0
   - libgcc-ng >=12
   - pycparser
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/cffi-1.16.0-py312hf06ca03_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/cffi-1.16.0-py311hb3a22ac_0.conda
   hash:
-    md5: 56b0ca764ce23cc54f3f7e2a7b970f6d
-    sha256: 5a36e2c254603c367d26378fa3a205bd92263e30acf195f488749562b4c44251
-  build: py312hf06ca03_0
+    md5: b3469563ac5e808b0cd92810d0697043
+    sha256: b71c94528ca0c35133da4b7ef69b51a0b55eeee570376057f3d2ad60c3ab1444
+  build: py311hb3a22ac_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 294523
-  timestamp: 1696001868949
+  size: 300207
+  timestamp: 1696001873452
 - platform: osx-64
   name: cffi
   version: 1.16.0
@@ -1075,20 +1151,20 @@ package:
   dependencies:
   - libffi >=3.4,<4.0a0
   - pycparser
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/cffi-1.16.0-py312h38bf5a0_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/cffi-1.16.0-py311hc0b63fd_0.conda
   hash:
-    md5: a45759c013ab20b9017ef9539d234dd7
-    sha256: 8b856583b56fc30f064a7cb286f85e4b5725f2bd4fda8ba0c4e94bffe258741e
-  build: py312h38bf5a0_0
+    md5: 15d07b82223cac96af629e5e747ba27a
+    sha256: 1f13a5fa7f310fdbd27f5eddceb9e62cfb10012c58a58c923dd6f51fa979748a
+  build: py311hc0b63fd_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 282370
-  timestamp: 1696002004433
+  size: 289932
+  timestamp: 1696002096156
 - platform: osx-arm64
   name: cffi
   version: 1.16.0
@@ -1097,21 +1173,21 @@ package:
   dependencies:
   - libffi >=3.4,<4.0a0
   - pycparser
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/cffi-1.16.0-py312h8e38eb3_0.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/cffi-1.16.0-py311h4a08483_0.conda
   hash:
-    md5: 960ecbd65860d3b1de5e30373e1bffb1
-    sha256: 1544403cb1a5ca2aeabf0dac86d9ce6066d6fb4363493643b33ffd1b78038d18
-  build: py312h8e38eb3_0
+    md5: cbdde0484a47b40e6ce2a4e5aaeb48d7
+    sha256: 9430416328fe2a28e206e703de771817064c8613a79a6a21fe7107f6a783104c
+  build: py311h4a08483_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 284245
-  timestamp: 1696002181644
+  size: 292511
+  timestamp: 1696002194472
 - platform: win-64
   name: cffi
   version: 1.16.0
@@ -1222,61 +1298,61 @@ package:
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/chardet-5.2.0-py312h7900ff3_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/chardet-5.2.0-py311h38be061_1.conda
   hash:
-    md5: af3980cc4690716a5510c8a08cb06238
-    sha256: 584804790b465c8e28b3c3fcea8e774cb659fe479afd8adc0d39406e8c220194
-  build: py312h7900ff3_1
+    md5: b8cfb13de4dbe349a41800644391de6a
+    sha256: 80b547150fc6d125fe034bcc3e820222faa0136463b32b82d7cbe965cc5dec77
+  build: py311h38be061_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
   license: LGPL-2.1-only
   license_family: GPL
-  size: 260197
-  timestamp: 1695468803539
+  size: 264886
+  timestamp: 1695468797136
 - platform: osx-64
   name: chardet
   version: 5.2.0
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/chardet-5.2.0-py312hb401068_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/chardet-5.2.0-py311h6eed73b_1.conda
   hash:
-    md5: 488080e6ee9bc087762669d1f6d2dc8a
-    sha256: ba2ebeb6d05a3cdd94dbd7a52dabc0686192e4337774c4f7c32da7ef0e04dd10
-  build: py312hb401068_1
+    md5: dd58f7f16513cea1fea710651e4df728
+    sha256: 5826e13627594bafa2f0b4074d9233b0de74227835d249641f216423b3dc8dfc
+  build: py311h6eed73b_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
   license: LGPL-2.1-only
   license_family: GPL
-  size: 259854
-  timestamp: 1695468947554
+  size: 267330
+  timestamp: 1695468986364
 - platform: osx-arm64
   name: chardet
   version: 5.2.0
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/chardet-5.2.0-py312h81bd7bf_1.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/chardet-5.2.0-py311h267d04e_1.conda
   hash:
-    md5: ea728c39b7453cb5f7177bc44ee22c73
-    sha256: 2451501ec933017ff77c18436884baa90b289420c43ad4bdb4fe60d55e5dcdfd
-  build: py312h81bd7bf_1
+    md5: 2aa7eb0b906818f900e2075fc244976f
+    sha256: 69541a0c834baa0b404cb55f8389bb53f8e9d6962055d68285635d6fbc04334c
+  build: py311h267d04e_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
   license: LGPL-2.1-only
   license_family: GPL
-  size: 263585
-  timestamp: 1695469015195
+  size: 269754
+  timestamp: 1695469210623
 - platform: win-64
   name: chardet
   version: 5.2.0
@@ -1969,64 +2045,64 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - tomli
-  url: https://conda.anaconda.org/conda-forge/linux-64/coverage-7.3.2-py312h98912ed_0.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/coverage-7.3.2-py311h459d7ec_0.conda
   hash:
-    md5: b248b512221477e79e600c3b9368c7d0
-    sha256: 08c8f270851ce244e6e416d15022463076e94bdaf25002e85bc87e2a7ae7b00c
-  build: py312h98912ed_0
+    md5: 7b3145fed7adc7c63a0e08f6f29f5480
+    sha256: 8b56edd4336e7fc6ff9b73436a3a270cf835f57cf4d0565c6e240c40f1981085
+  build: py311h459d7ec_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: Apache-2.0
   license_family: APACHE
-  size: 346876
-  timestamp: 1696281826215
+  size: 355132
+  timestamp: 1696281925482
 - platform: osx-64
   name: coverage
   version: 7.3.2
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - tomli
-  url: https://conda.anaconda.org/conda-forge/osx-64/coverage-7.3.2-py312h104f124_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/coverage-7.3.2-py311h2725bcf_0.conda
   hash:
-    md5: 1e98139a6dc6e29569dff47a1895a40c
-    sha256: 14adc346b2c1437543669ddf2bd163f2595fbac63a02bb689136c92e43896759
-  build: py312h104f124_0
+    md5: 0ce651c68a0322a6eacef726025b938a
+    sha256: ada34f95907fe0cd98d4d12e439bd1508363738f8b0fbe88d14cb398f4235af6
+  build: py311h2725bcf_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: Apache-2.0
   license_family: APACHE
-  size: 345557
-  timestamp: 1696282123278
+  size: 352862
+  timestamp: 1696282084699
 - platform: osx-arm64
   name: coverage
   version: 7.3.2
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - tomli
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/coverage-7.3.2-py312h02f2b3b_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/coverage-7.3.2-py311heffc1b2_0.conda
   hash:
-    md5: e24bb86144df711266255703328ce03d
-    sha256: 44c9e3bd2f2e137bc9a7fb6a5b34b21dfe89b4f17edec21944d0b95cbfbe9bc5
-  build: py312h02f2b3b_0
+    md5: 75928ad6625a73ff93f08be98014248c
+    sha256: 88d116c4c51a106c43937b950d3fd14007800fb7b3945573a5a117533c450e6b
+  build: py311heffc1b2_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: Apache-2.0
   license_family: APACHE
-  size: 345467
-  timestamp: 1696282123227
+  size: 353390
+  timestamp: 1696282185517
 - platform: win-64
   name: coverage
   version: 7.3.2
@@ -2060,20 +2136,20 @@ package:
   - cffi >=1.12
   - libgcc-ng >=12
   - openssl >=3.1.4,<4.0a0
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/cryptography-41.0.5-py312h241aef2_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/cryptography-41.0.5-py311h63ff55d_0.conda
   hash:
-    md5: 123356abefc00c74a9f241382a37930c
-    sha256: c0567f165aeb95dfc9462394ddc266d5c62cb676c6a3db47c603d34b24a4843f
-  build: py312h241aef2_0
+    md5: 22584e5c97ed8f1a6b63a0ff43dba827
+    sha256: 236ed2218fb857fecaa11fc7fee23574f683b3d03576f8f26f628b7fd2ced5fa
+  build: py311h63ff55d_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: Apache-2.0 AND BSD-3-Clause AND PSF-2.0 AND MIT
   license_family: BSD
-  size: 2038475
-  timestamp: 1698192317014
+  size: 2036192
+  timestamp: 1698192294727
 - platform: osx-64
   name: cryptography
   version: 41.0.5
@@ -2082,20 +2158,20 @@ package:
   dependencies:
   - cffi >=1.12
   - openssl >=3.1.4,<4.0a0
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/cryptography-41.0.5-py312h68f415e_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/cryptography-41.0.5-py311hd51016d_0.conda
   hash:
-    md5: f99b60a2c6ee58bf9866e02558acd044
-    sha256: 68d8988b2bd056a9c07336c89414d644cd4e0b10c76bf72751770e589bc71b9b
-  build: py312h68f415e_0
+    md5: 99f1edef251a9fe4edf620b527ee70ea
+    sha256: 26ee22b99771f0d338eca6299cbe866f695c544d855d5eab82539497b0a24fc1
+  build: py311hd51016d_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: Apache-2.0 AND BSD-3-Clause AND PSF-2.0 AND MIT
   license_family: BSD
-  size: 1275010
-  timestamp: 1698192555023
+  size: 1277365
+  timestamp: 1698192535949
 - platform: osx-arm64
   name: cryptography
   version: 41.0.5
@@ -2104,21 +2180,21 @@ package:
   dependencies:
   - cffi >=1.12
   - openssl >=3.1.4,<4.0a0
-  - python >=3.12,<3.13.0a0
-  - python >=3.12,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/cryptography-41.0.5-py312h99f8e83_0.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/cryptography-41.0.5-py311h71175c2_0.conda
   hash:
-    md5: 54b2da3e94a0fd1409d0eab4c2987aee
-    sha256: f7ae66e2fc81f6ae10bd064fa6ad9bc89409829e52f05d0dcaee345b294d8def
-  build: py312h99f8e83_0
+    md5: adc55f424334b834098d50e57efe0789
+    sha256: 00c9b389b51b6e951a1f639aa04dceca9e329e144275c79b4f6baacd3fb90345
+  build: py311h71175c2_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: Apache-2.0 AND BSD-3-Clause AND PSF-2.0 AND MIT
   license_family: BSD
-  size: 1257476
-  timestamp: 1698192565341
+  size: 1261215
+  timestamp: 1698192716956
 - platform: win-64
   name: cryptography
   version: 41.0.5
@@ -3478,61 +3554,61 @@ package:
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/jsonpointer-2.4-py312h7900ff3_3.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/jsonpointer-2.4-py311h38be061_3.conda
   hash:
-    md5: 50f62bdb9b60b13c2f6ae69957342e4d
-    sha256: c211a79cff8aa001a6e14e923c37278231dca7f0970d8db155c4b9e48ac87a5a
-  build: py312h7900ff3_3
+    md5: 41d52d822edf991bf0e6b08c1921a8ec
+    sha256: 976f7bf3c3a49c3066f36b67c12ae06b31542e53b843bb4362f31c9e449c6c46
+  build: py311h38be061_3
   arch: x86_64
   subdir: linux-64
   build_number: 3
   license: BSD-3-Clause
   license_family: BSD
-  size: 18033
-  timestamp: 1695397448370
+  size: 18389
+  timestamp: 1695397377176
 - platform: osx-64
   name: jsonpointer
   version: '2.4'
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/jsonpointer-2.4-py312hb401068_3.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/jsonpointer-2.4-py311h6eed73b_3.conda
   hash:
-    md5: 637aa8f6c1c61f659f1496e9b2dc7552
-    sha256: 883f6d635e58f49359f393e853e4e0043731fb0ce671283a2024db02a1ebc8f6
-  build: py312hb401068_3
+    md5: ed1c23d0e55abd27d8b9e31c58105140
+    sha256: b0ba738e1dbf3b69558557cd1e63310364e045b8c8e7f73fdce7e71928b5f22a
+  build: py311h6eed73b_3
   arch: x86_64
   subdir: osx-64
   build_number: 3
   license: BSD-3-Clause
   license_family: BSD
-  size: 18184
-  timestamp: 1695397820416
+  size: 18557
+  timestamp: 1695397765266
 - platform: osx-arm64
   name: jsonpointer
   version: '2.4'
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/jsonpointer-2.4-py312h81bd7bf_3.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/jsonpointer-2.4-py311h267d04e_3.conda
   hash:
-    md5: 327361b24f5348cab04ad9b1f74e831d
-    sha256: 6cb2d17da9083e05f5ead7902a5cd6ec9567cd3da972c65c03f090515c9fa176
-  build: py312h81bd7bf_3
+    md5: b6008a5b9180e58a235f5e45432dfe2e
+    sha256: 807d6c44f3e34139bfd25db4409381a6ce37fad2902c58f10fa7e1c30a64333d
+  build: py311h267d04e_3
   arch: aarch64
   subdir: osx-arm64
   build_number: 3
   license: BSD-3-Clause
   license_family: BSD
-  size: 18542
-  timestamp: 1695397720755
+  size: 18841
+  timestamp: 1695397944650
 - platform: win-64
   name: jsonpointer
   version: '2.4'
@@ -3752,21 +3828,21 @@ package:
   manager: conda
   dependencies:
   - platformdirs >=2.5
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - traitlets >=5.3
-  url: https://conda.anaconda.org/conda-forge/linux-64/jupyter_core-5.4.0-py312h7900ff3_0.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/jupyter_core-5.4.0-py311h38be061_0.conda
   hash:
-    md5: 85c796a688c14972b07e471a414a5c78
-    sha256: bad607401e5e3f7dd91aa202d1b59cabf7e8727d3da849834a49c8df6853896a
-  build: py312h7900ff3_0
+    md5: eb4ab2a92a2cc9715226382abb8ebaee
+    sha256: ae94a409cdbf60c3b6960bae099d4143c7f67beb122db87b61ccd1663d6a1b9d
+  build: py311h38be061_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: BSD-3-Clause
   license_family: BSD
-  size: 91469
-  timestamp: 1696972579527
+  size: 94167
+  timestamp: 1696974354029
 - platform: osx-64
   name: jupyter_core
   version: 5.4.0
@@ -3774,21 +3850,21 @@ package:
   manager: conda
   dependencies:
   - platformdirs >=2.5
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - traitlets >=5.3
-  url: https://conda.anaconda.org/conda-forge/osx-64/jupyter_core-5.4.0-py312hb401068_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/jupyter_core-5.4.0-py311h6eed73b_0.conda
   hash:
-    md5: f0d40364029746a6cc16b59f6aa367c6
-    sha256: 459e90a95437d5ade575b6da7a97b1addd34dbacbc10f25859aecdb7e9d55510
-  build: py312hb401068_0
+    md5: 6adbf7dcbccbb8bb38e8e3797e55c25e
+    sha256: c6cd0b962743e6a8d518c60391c414bd18dc05c55f4d72042575972f4310f571
+  build: py311h6eed73b_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: BSD-3-Clause
   license_family: BSD
-  size: 92117
-  timestamp: 1696972651033
+  size: 94493
+  timestamp: 1696972640490
 - platform: osx-arm64
   name: jupyter_core
   version: 5.4.0
@@ -3796,22 +3872,22 @@ package:
   manager: conda
   dependencies:
   - platformdirs >=2.5
-  - python >=3.12,<3.13.0a0
-  - python >=3.12,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - traitlets >=5.3
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/jupyter_core-5.4.0-py312h81bd7bf_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/jupyter_core-5.4.0-py311h267d04e_0.conda
   hash:
-    md5: 5379051cda42f293221d6243e604d49a
-    sha256: 57d70af504df16f748b1d4dbee4bac440b8d9bc257f5151b996af005cf0caaab
-  build: py312h81bd7bf_0
+    md5: 9467a6c8e51ebf4defe3b513534ac1e9
+    sha256: e22bb5c58bac1bd357da0fe1331bb3d9e0fd271d85095c3fd9db34a413fe5b3b
+  build: py311h267d04e_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: BSD-3-Clause
   license_family: BSD
-  size: 91592
-  timestamp: 1696972736987
+  size: 94815
+  timestamp: 1696972745070
 - platform: win-64
   name: jupyter_core
   version: 5.4.0
@@ -5074,13 +5150,13 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/markupsafe-2.1.3-py312h98912ed_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/markupsafe-2.1.3-py311h459d7ec_1.conda
   hash:
-    md5: 79d118a8f1da01773dd5b334af5ce8d4
-    sha256: 2da8fc396399cd3dec8e1464d6b592adca0498e353dc3cdfac34f7eb563956c9
-  build: py312h98912ed_1
+    md5: 71120b5155a0c500826cf81536721a15
+    sha256: e1a9930f35e39bf65bc293e24160b83ebf9f800f02749f65358e1c04882ee6b0
+  build: py311h459d7ec_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
@@ -5088,21 +5164,21 @@ package:
   - jinja2 >=3.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 26655
-  timestamp: 1695367675021
+  size: 27174
+  timestamp: 1695367575909
 - platform: osx-64
   name: markupsafe
   version: 2.1.3
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/markupsafe-2.1.3-py312h104f124_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/markupsafe-2.1.3-py311h2725bcf_1.conda
   hash:
-    md5: 75ef15f68d5ed9890b0047faac90e3c2
-    sha256: 8133ad1fe532ac2c06e02b9cdd1cc0a744c6eadc231a3726ed2f584d1034e661
-  build: py312h104f124_1
+    md5: 52ee86f482b552e547e2b1d6c01adf55
+    sha256: 5a8f8caa89eeba6ea6e9e96d3e7c109b675bc3c6ed4b109b8931757da2411d48
+  build: py311h2725bcf_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
@@ -5110,22 +5186,22 @@ package:
   - jinja2 >=3.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 25397
-  timestamp: 1695367877868
+  size: 25917
+  timestamp: 1695367980802
 - platform: osx-arm64
   name: markupsafe
   version: 2.1.3
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/markupsafe-2.1.3-py312h02f2b3b_1.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/markupsafe-2.1.3-py311heffc1b2_1.conda
   hash:
-    md5: b96439c0c4c8b5e098629d1a4211a996
-    sha256: 5d1505cbc95f7c41c229e7e7db61e1faf9fcd174d8f09debbf113fe7ee174062
-  build: py312h02f2b3b_1
+    md5: 5a7b68cb9eea46bea31aaf2d11d0dd2f
+    sha256: 307c1e3b2e4a2a992a6c94975910adff88cc523e2c9a41e81b2d506d8c9e7359
+  build: py311heffc1b2_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
@@ -5133,8 +5209,8 @@ package:
   - jinja2 >=3.0.0
   license: BSD-3-Clause
   license_family: BSD
-  size: 26318
-  timestamp: 1695368020481
+  size: 26764
+  timestamp: 1695368008221
 - platform: win-64
   name: markupsafe
   version: 2.1.3
@@ -5856,20 +5932,20 @@ package:
   - libxcb >=1.15,<1.16.0a0
   - libzlib >=1.2.13,<1.3.0a0
   - openjpeg >=2.5.0,<3.0a0
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - tk >=8.6.13,<8.7.0a0
-  url: https://conda.anaconda.org/conda-forge/linux-64/pillow-10.1.0-py312hf3581a9_0.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/pillow-10.1.0-py311ha6c5da5_0.conda
   hash:
-    md5: c04d3de9d831a69a5fdfab1413ec2fb6
-    sha256: b8ca07308602b12c533f09e00d1ecb75288367d1f1506e34d0f12dd7abb01726
-  build: py312hf3581a9_0
+    md5: 83a988daf5c49e57f7d2086fb6781fe8
+    sha256: 5b037243f76644fe2e565aa6a3764039dba47cddf8bbef8ef01643775a459b60
+  build: py311ha6c5da5_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: HPND
-  size: 46418602
-  timestamp: 1697423804634
+  size: 46400469
+  timestamp: 1697423839735
 - platform: osx-64
   name: pillow
   version: 10.1.0
@@ -5884,20 +5960,20 @@ package:
   - libxcb >=1.15,<1.16.0a0
   - libzlib >=1.2.13,<1.3.0a0
   - openjpeg >=2.5.0,<3.0a0
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - tk >=8.6.13,<8.7.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-64/pillow-10.1.0-py312h0c70c2f_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/pillow-10.1.0-py311hea5c87a_0.conda
   hash:
-    md5: 50fc3446a464ff986aa4496e1eebf60b
-    sha256: b108b032f4ef7ddc34e12d357977c5a0eaf87ca916cc5fd9596d8ecd582820b3
-  build: py312h0c70c2f_0
+    md5: ffff517d90b21a5d44ef907a5a01f695
+    sha256: 44bb951ae60cc96ab9273592ede9ee94a422857e857e52c55c261ad5f1525686
+  build: py311hea5c87a_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: HPND
-  size: 45453994
-  timestamp: 1697423996936
+  size: 46474850
+  timestamp: 1697423945362
 - platform: osx-arm64
   name: pillow
   version: 10.1.0
@@ -5912,21 +5988,21 @@ package:
   - libxcb >=1.15,<1.16.0a0
   - libzlib >=1.2.13,<1.3.0a0
   - openjpeg >=2.5.0,<3.0a0
-  - python >=3.12,<3.13.0a0
-  - python >=3.12,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - tk >=8.6.13,<8.7.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/pillow-10.1.0-py312hac22aec_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/pillow-10.1.0-py311hb9c5795_0.conda
   hash:
-    md5: bd269d9481143d3dda73a1c136d8844a
-    sha256: 3fa3a5a45ce000c3dc37419d38a469272984b2d5d600e5c24ea4cab192ddae97
-  build: py312hac22aec_0
+    md5: 90fd1f60da9f3d5eccdece0945043037
+    sha256: 9699ba6886e94e32eb949009195ed78c2c949f74450235af491cd4cbe390d7b4
+  build: py311hb9c5795_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: HPND
-  size: 47015006
-  timestamp: 1697424032123
+  size: 45850858
+  timestamp: 1697424033737
 - platform: win-64
   name: pillow
   version: 10.1.0
@@ -6393,61 +6469,61 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/psutil-5.9.5-py312h98912ed_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/psutil-5.9.5-py311h459d7ec_1.conda
   hash:
-    md5: 2cbc379aed0482f51e7a3477e8a91ecc
-    sha256: ef5af757dd7a5f5ee97df4189937a1536b7a6f43565caaae5261c39d35d03f1e
-  build: py312h98912ed_1
+    md5: 490d7fa8675afd1aa6f1b2332d156a45
+    sha256: e92d2120fc4b98fe838b3d52d4907fae97808bdd504fb84aa33aea8c4be7bc61
+  build: py311h459d7ec_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
   license: BSD-3-Clause
   license_family: BSD
-  size: 481280
-  timestamp: 1695367314196
+  size: 498698
+  timestamp: 1695367306421
 - platform: osx-64
   name: psutil
   version: 5.9.5
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/psutil-5.9.5-py312h104f124_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/psutil-5.9.5-py311h2725bcf_1.conda
   hash:
-    md5: 3f9a16e777cc6efcf5ef6a04492f7db4
-    sha256: 44f4472eb794c1f702a402229df7cbd246c607f3c6b69b6d643c5224ea839adf
-  build: py312h104f124_1
+    md5: 16221cd0488a32152a6b3f1a301ccf19
+    sha256: 2eee900e0e5a103cff0159cdd81d401b67ccfb919be6cd868fc34c22dab981f1
+  build: py311h2725bcf_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
   license: BSD-3-Clause
   license_family: BSD
-  size: 489190
-  timestamp: 1695367517429
+  size: 506611
+  timestamp: 1695367402674
 - platform: osx-arm64
   name: psutil
   version: 5.9.5
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/psutil-5.9.5-py312h02f2b3b_1.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/psutil-5.9.5-py311heffc1b2_1.conda
   hash:
-    md5: da7fbd956111473b106daf37d1a45b5f
-    sha256: 6e86f17a5a6fb6bcf48b0b3aa455b530faee306809ae6e4107ff072fccdc5c9d
-  build: py312h02f2b3b_1
+    md5: a40123b40642b8b08b3830a3f6bc7fd9
+    sha256: a12a525d3bcaed04e0885b2bd00f4f626c80c19d7c0ae8bb7cf7121aefb39e52
+  build: py311heffc1b2_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
   license: BSD-3-Clause
   license_family: BSD
-  size: 491988
-  timestamp: 1695367619913
+  size: 506971
+  timestamp: 1695367619126
 - platform: win-64
   name: psutil
   version: 5.9.5
@@ -6628,61 +6704,61 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/pycosat-0.6.6-py312h98912ed_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/pycosat-0.6.6-py311h459d7ec_0.conda
   hash:
-    md5: 8f1c372e7b843167be885dc8229931c1
-    sha256: b973d39eb9fd9625fe97e2fbb4b6f758ea47aa288f5f8c7769e3f36a3acbb5da
-  build: py312h98912ed_0
+    md5: 9a5b1fabf02c6c91da7203d7d5d53ffd
+    sha256: a4cfda3897fc7bd2b23e1eac1a6e9d8847e1e9ef42cb5948d7c1e244c884a799
+  build: py311h459d7ec_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 88549
-  timestamp: 1696355931150
+  size: 88071
+  timestamp: 1696355908348
 - platform: osx-64
   name: pycosat
   version: 0.6.6
   category: main
   manager: conda
   dependencies:
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/pycosat-0.6.6-py312h104f124_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/pycosat-0.6.6-py311h2725bcf_0.conda
   hash:
-    md5: 106c2d37708757f4c23ff1f487bf5a3f
-    sha256: b37afbc13d4216dde3a613ded3a1688adae3d74ab98ea55cc6914b39d2417d55
-  build: py312h104f124_0
+    md5: 47b4652f8a7e6222786663c757815dd5
+    sha256: 1899b863919c949d38634dbdaec7af2ddb52326a496dd68751ab4f4fe0e8f36a
+  build: py311h2725bcf_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 89221
-  timestamp: 1696356180943
+  size: 88031
+  timestamp: 1696356171531
 - platform: osx-arm64
   name: pycosat
   version: 0.6.6
   category: main
   manager: conda
   dependencies:
-  - python >=3.12,<3.13.0a0
-  - python >=3.12,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/pycosat-0.6.6-py312h02f2b3b_0.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/pycosat-0.6.6-py311heffc1b2_0.conda
   hash:
-    md5: 4d07092345b6e66e580ce3cd9141c6da
-    sha256: 79622e905c3185fe96c57bf6c57b20c545e86b3a6e7da88f24dc50d03ddbe3a6
-  build: py312h02f2b3b_0
+    md5: d60b2f87d7b8dd1623fb1baf91a0e311
+    sha256: 4451971678bbc4fb314201f786c5c3640d429985d195e7d940bfd7d33a384560
+  build: py311heffc1b2_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 86424
-  timestamp: 1696356256622
+  size: 85652
+  timestamp: 1696356197481
 - platform: win-64
   name: pycosat
   version: 0.6.6
@@ -7609,7 +7685,7 @@ package:
   timestamp: 1695495262467
 - platform: linux-64
   name: python
-  version: 3.12.0
+  version: 3.11.6
   category: main
   manager: conda
   dependencies:
@@ -7628,22 +7704,22 @@ package:
   - tk >=8.6.13,<8.7.0a0
   - tzdata
   - xz >=5.2.6,<6.0a0
-  url: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.0-hab00c5b_0_cpython.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/python-3.11.6-hab00c5b_0_cpython.conda
   hash:
-    md5: 7f97faab5bebcc2580f4f299285323da
-    sha256: 5398ebae6a1ccbfd3f76361eac75f3ac071527a8072627c4bf9008c689034f48
+    md5: b0dfbe2fcbfdb097d321bfd50ecddab1
+    sha256: 84f13bd70cff5dcdaee19263b2d4291d5793856a718efc1b63a9cfa9eb6e2ca1
   build: hab00c5b_0_cpython
   arch: x86_64
   subdir: linux-64
   build_number: 0
   constrains:
-  - python_abi 3.12.* *_cp312
+  - python_abi 3.11.* *_cp311
   license: Python-2.0
-  size: 32123473
-  timestamp: 1696324522323
+  size: 30720625
+  timestamp: 1696331287478
 - platform: osx-64
   name: python
-  version: 3.12.0
+  version: 3.11.6
   category: main
   manager: conda
   dependencies:
@@ -7658,22 +7734,22 @@ package:
   - tk >=8.6.13,<8.7.0a0
   - tzdata
   - xz >=5.2.6,<6.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-64/python-3.12.0-h30d4d87_0_cpython.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/python-3.11.6-h30d4d87_0_cpython.conda
   hash:
-    md5: d11dc8f4551011fb6baa2865f1ead48f
-    sha256: 0a1ed3983acbd0528bef5216179e46170f024f4409032875b27865568fef46a1
+    md5: 4d66c5fc01e9be526afe5d828d4de24d
+    sha256: e3ed331204fbeb03a9a2c2fa834e74997ad4f732ba2124b36f327d38b0cded93
   build: h30d4d87_0_cpython
   arch: x86_64
   subdir: osx-64
   build_number: 0
   constrains:
-  - python_abi 3.12.* *_cp312
+  - python_abi 3.11.* *_cp311
   license: Python-2.0
-  size: 14529683
-  timestamp: 1696323482650
+  size: 15393521
+  timestamp: 1696330855485
 - platform: osx-arm64
   name: python
-  version: 3.12.0
+  version: 3.11.6
   category: main
   manager: conda
   dependencies:
@@ -7688,19 +7764,19 @@ package:
   - tk >=8.6.13,<8.7.0a0
   - tzdata
   - xz >=5.2.6,<6.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/python-3.12.0-h47c9636_0_cpython.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/python-3.11.6-h47c9636_0_cpython.conda
   hash:
-    md5: ed8ae98b1b510de68392971b9367d18c
-    sha256: eb66f8f249caa9d5a956c3a407f079e4779d652ebfc2a4b4f50dcea078e84fa8
+    md5: 2271df1db9534f5cac7c2d0820c3359d
+    sha256: 77054fa9a8fc30f71a18f599ee2897905a3c515202b614fa0f793add7a04a155
   build: h47c9636_0_cpython
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   constrains:
-  - python_abi 3.12.* *_cp312
+  - python_abi 3.11.* *_cp311
   license: Python-2.0
-  size: 13306758
-  timestamp: 1696322682581
+  size: 14626958
+  timestamp: 1696329727433
 - platform: win-64
   name: python
   version: 3.11.6
@@ -7898,64 +7974,64 @@ package:
   timestamp: 1696171963080
 - platform: linux-64
   name: python_abi
-  version: '3.12'
+  version: '3.11'
   category: main
   manager: conda
   dependencies: []
-  url: https://conda.anaconda.org/conda-forge/linux-64/python_abi-3.12-4_cp312.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/python_abi-3.11-4_cp311.conda
   hash:
-    md5: dccc2d142812964fcc6abdc97b672dff
-    sha256: 182a329de10a4165f6e8a3804caf751f918f6ea6176dd4e5abcdae1ed3095bf6
-  build: 4_cp312
+    md5: d786502c97404c94d7d58d258a445a65
+    sha256: 0be3ac1bf852d64f553220c7e6457e9c047dfb7412da9d22fbaa67e60858b3cf
+  build: 4_cp311
   arch: x86_64
   subdir: linux-64
   build_number: 4
   constrains:
-  - python 3.12.* *_cpython
+  - python 3.11.* *_cpython
   license: BSD-3-Clause
   license_family: BSD
   size: 6385
-  timestamp: 1695147396604
+  timestamp: 1695147338551
 - platform: osx-64
   name: python_abi
-  version: '3.12'
+  version: '3.11'
   category: main
   manager: conda
   dependencies: []
-  url: https://conda.anaconda.org/conda-forge/osx-64/python_abi-3.12-4_cp312.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/python_abi-3.11-4_cp311.conda
   hash:
-    md5: 87201ac4314b911b74197e588cca3639
-    sha256: 82c154d95c1637604671a02a89e72f1382e89a4269265a03506496bd928f6f14
-  build: 4_cp312
+    md5: fef7a52f0eca6bae9e8e2e255bc86394
+    sha256: f56dfe2a57b3b27bad3f9527f943548e8b2526e949d9d6fc0a383020d9359afe
+  build: 4_cp311
   arch: x86_64
   subdir: osx-64
   build_number: 4
   constrains:
-  - python 3.12.* *_cpython
+  - python 3.11.* *_cpython
   license: BSD-3-Clause
   license_family: BSD
-  size: 6496
-  timestamp: 1695147498447
+  size: 6478
+  timestamp: 1695147518012
 - platform: osx-arm64
   name: python_abi
-  version: '3.12'
+  version: '3.11'
   category: main
   manager: conda
   dependencies: []
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/python_abi-3.12-4_cp312.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/python_abi-3.11-4_cp311.conda
   hash:
-    md5: bbb3a02c78b2d8219d7213f76d644a2a
-    sha256: db25428e4f24f8693ffa39f3ff6dfbb8fd53bc298764b775b57edab1c697560f
-  build: 4_cp312
+    md5: 8d3751bc73d3bbb66f216fa2331d5649
+    sha256: 4837089c477b9b84fa38a17f453e6634e68237267211b27a8a2f5ccd847f4e55
+  build: 4_cp311
   arch: aarch64
   subdir: osx-arm64
   build_number: 4
   constrains:
-  - python 3.12.* *_cpython
+  - python 3.11.* *_cpython
   license: BSD-3-Clause
   license_family: BSD
-  size: 6508
-  timestamp: 1695147497048
+  size: 6492
+  timestamp: 1695147509940
 - platform: win-64
   name: python_abi
   version: '3.11'
@@ -8086,64 +8162,64 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - yaml >=0.2.5,<0.3.0a0
-  url: https://conda.anaconda.org/conda-forge/linux-64/pyyaml-6.0.1-py312h98912ed_1.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/pyyaml-6.0.1-py311h459d7ec_1.conda
   hash:
-    md5: e3fd78d8d490af1d84763b9fe3f2e552
-    sha256: 7f347a10a7121b08d79d21cd4f438c07c23479ea0c74dfb89d6dc416f791bb7f
-  build: py312h98912ed_1
+    md5: 52719a74ad130de8fb5d047dc91f247a
+    sha256: 28729ef1ffa7f6f9dfd54345a47c7faac5d34296d66a2b9891fb147f4efe1348
+  build: py311h459d7ec_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
   license: MIT
   license_family: MIT
-  size: 196583
-  timestamp: 1695373632212
+  size: 200626
+  timestamp: 1695373818537
 - platform: osx-64
   name: pyyaml
   version: 6.0.1
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - yaml >=0.2.5,<0.3.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-64/pyyaml-6.0.1-py312h104f124_1.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/pyyaml-6.0.1-py311h2725bcf_1.conda
   hash:
-    md5: 260ed90aaf06061edabd7209638cf03b
-    sha256: 04aa180782cb675b960c0bf4aad439b4a7a08553c6af74d0b8e5df9a0c7cc4f4
-  build: py312h104f124_1
+    md5: 9283f991b5e5856a99f8aabba9927df5
+    sha256: 8ce2ba443414170a2570514d0ce6d03625a847e91af9763d48dc58c338e6f7f3
+  build: py311h2725bcf_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
   license: MIT
   license_family: MIT
-  size: 185636
-  timestamp: 1695373742454
+  size: 188606
+  timestamp: 1695373840022
 - platform: osx-arm64
   name: pyyaml
   version: 6.0.1
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - yaml >=0.2.5,<0.3.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/pyyaml-6.0.1-py312h02f2b3b_1.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/pyyaml-6.0.1-py311heffc1b2_1.conda
   hash:
-    md5: a0c843e52a1c4422d8657dd76e9eb994
-    sha256: b6b4027b89c17b9bbd8089aec3e44bc29f802a7d5668d5a75b5358d7ed9705ca
-  build: py312h02f2b3b_1
+    md5: d310bfbb8230b9175c0cbc10189ad804
+    sha256: b155f5c27f0e2951256774628c4b91fdeee3267018eef29897a74e3d1316c8b0
+  build: py311heffc1b2_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
   license: MIT
   license_family: MIT
-  size: 182705
-  timestamp: 1695373895409
+  size: 187795
+  timestamp: 1695373829282
 - platform: win-64
   name: pyyaml
   version: 6.0.1
@@ -8609,61 +8685,61 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/rpds-py-0.10.6-py312h4b3b743_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/rpds-py-0.10.6-py311h46250e7_0.conda
   hash:
-    md5: 88c4ae39df5d04327f644401c22824ed
-    sha256: 81fc2c417e44992033b43fb7c847e2b3d46548a187118fac8c8021bc484fe5ed
-  build: py312h4b3b743_0
+    md5: b7237977dbca779aaaab65f42f5558d9
+    sha256: bae3ab277fcced822c959affbcf5ff67c00825227e5f1993e3ec1b9af79483dd
+  build: py311h46250e7_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 992297
-  timestamp: 1697072465971
+  size: 993336
+  timestamp: 1697072450334
 - platform: osx-64
   name: rpds-py
   version: 0.10.6
   category: main
   manager: conda
   dependencies:
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/rpds-py-0.10.6-py312h6e28e45_0.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/rpds-py-0.10.6-py311h5e0f0e4_0.conda
   hash:
-    md5: d2a750014d8c39843e26dc4e5cbe07e1
-    sha256: 50aa8fc972de24d0b1a3a43556e09d64734e0a3c8254f6e9550efedbf7610e31
-  build: py312h6e28e45_0
+    md5: 12f23532175f05b674c561cadf08c78f
+    sha256: 94196c21d68271b5610aedbcfc5d68514b934530a45d6ea760e57290359cc4d2
+  build: py311h5e0f0e4_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 288102
-  timestamp: 1697072654629
+  size: 289556
+  timestamp: 1697072573863
 - platform: osx-arm64
   name: rpds-py
   version: 0.10.6
   category: main
   manager: conda
   dependencies:
-  - python >=3.12,<3.13.0a0
-  - python >=3.12,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/rpds-py-0.10.6-py312h5280bc4_0.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/rpds-py-0.10.6-py311h94f323b_0.conda
   hash:
-    md5: 02fbb1fb04b7e5c1eab777713148f9db
-    sha256: ea51fe837d29d01c6c965524d3faf822f4afdfc920a2ad132746d613d3b6526e
-  build: py312h5280bc4_0
+    md5: 814b726b8664360bcfeaaeeb2c54f54a
+    sha256: a55963933ee3a9949987f43ec09f71560649c531c22702bd9f9ef09e081d6658
+  build: py311h94f323b_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 287071
-  timestamp: 1697072680665
+  size: 289070
+  timestamp: 1697072780815
 - platform: win-64
   name: rpds-py
   version: 0.10.6
@@ -8694,67 +8770,67 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - ruamel.yaml.clib >=0.1.2
   - setuptools
-  url: https://conda.anaconda.org/conda-forge/linux-64/ruamel.yaml-0.17.40-py312h98912ed_0.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/ruamel.yaml-0.17.40-py311h459d7ec_0.conda
   hash:
-    md5: 1891f7aff0ff36c09fc78f263a9a6dfd
-    sha256: 6a218e5683d99615713406daf414ac259446dc9a379bffe33b870eb52cb29f2d
-  build: py312h98912ed_0
+    md5: 59518a18bdf00ee4379797459d2c76ee
+    sha256: b33e0e83f834b948ce5c77c0df727b6cd027a388c3b4e4498b34b83751ba7c05
+  build: py311h459d7ec_0
   arch: x86_64
   subdir: linux-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 271112
-  timestamp: 1698138812691
+  size: 275662
+  timestamp: 1698138796303
 - platform: osx-64
   name: ruamel.yaml
   version: 0.17.40
   category: main
   manager: conda
   dependencies:
-  - python >=3.12,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - ruamel.yaml.clib >=0.1.2
   - setuptools
-  url: https://conda.anaconda.org/conda-forge/osx-64/ruamel.yaml-0.17.40-py312h41838bb_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/ruamel.yaml-0.17.40-py311he705e18_0.conda
   hash:
-    md5: af3df50dbbc56f705db99a02849f6720
-    sha256: a7cbeac7432328eed265db7e1041efccdeff41d476c19d61a10e2fe8162c6443
-  build: py312h41838bb_0
+    md5: 4796cc1d45c88ace8f5bb7950167a568
+    sha256: 0260c295cdfae417f107fe2fae66bae4eb260195885d81d8b1cd4fc6d81c849b
+  build: py311he705e18_0
   arch: x86_64
   subdir: osx-64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 272192
-  timestamp: 1698139046443
+  size: 277064
+  timestamp: 1698138918002
 - platform: osx-arm64
   name: ruamel.yaml
   version: 0.17.40
   category: main
   manager: conda
   dependencies:
-  - python >=3.12,<3.13.0a0
-  - python >=3.12,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - ruamel.yaml.clib >=0.1.2
   - setuptools
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel.yaml-0.17.40-py312he37b823_0.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel.yaml-0.17.40-py311h05b510d_0.conda
   hash:
-    md5: e8a467ffaa97f0604ad8aced43b731bf
-    sha256: 81b7bf31a63ebb11e8ae4c47621b9799ccbd6a6147a9ecd6cbdd462cf66976ec
-  build: py312he37b823_0
+    md5: 640b6933c680860877b32a4c11076ab9
+    sha256: bf44774cbd03eb8d396a078b4af1b194f8600f8ca7ea7ca0e3d61dc16b400cb4
+  build: py311h05b510d_0
   arch: aarch64
   subdir: osx-arm64
   build_number: 0
   license: MIT
   license_family: MIT
-  size: 272511
-  timestamp: 1698139049097
+  size: 276178
+  timestamp: 1698139045095
 - platform: win-64
   name: ruamel.yaml
   version: 0.17.40
@@ -8787,61 +8863,61 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/ruamel.yaml.clib-0.2.7-py312h98912ed_2.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/ruamel.yaml.clib-0.2.7-py311h459d7ec_2.conda
   hash:
-    md5: 17591efb6a03e1dea6567cb15c619d1c
-    sha256: 79c06eba98ed5f2ef44b41140c0eba5bf263ddc556dce57017a9c748d377e3d0
-  build: py312h98912ed_2
+    md5: 56bc3fe5180c0b23e05c7a5708153ac7
+    sha256: cfd060725d39f136618547ecb8a593d82d460725fb447849815c26418c360c35
+  build: py311h459d7ec_2
   arch: x86_64
   subdir: linux-64
   build_number: 2
   license: MIT
   license_family: MIT
-  size: 134659
-  timestamp: 1695996979046
+  size: 134322
+  timestamp: 1695997009048
 - platform: osx-64
   name: ruamel.yaml.clib
   version: 0.2.7
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/ruamel.yaml.clib-0.2.7-py312h104f124_2.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/ruamel.yaml.clib-0.2.7-py311h2725bcf_2.conda
   hash:
-    md5: 07c5b620686d2fa9629374e8b4cf29ec
-    sha256: 22ff425b0de25ff28920174acf600732dede397ba2a5dd0953a7ef8b1c8308d2
-  build: py312h104f124_2
+    md5: cd953388469a8890dda83779d6ef6ffd
+    sha256: b529c2caf941ac1050d160f0b9c53202d634954dd7cc7f1469731e1bb6f2cccc
+  build: py311h2725bcf_2
   arch: x86_64
   subdir: osx-64
   build_number: 2
   license: MIT
   license_family: MIT
-  size: 118792
-  timestamp: 1695997338028
+  size: 117447
+  timestamp: 1695997294294
 - platform: osx-arm64
   name: ruamel.yaml.clib
   version: 0.2.7
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel.yaml.clib-0.2.7-py312h02f2b3b_2.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel.yaml.clib-0.2.7-py311heffc1b2_2.conda
   hash:
-    md5: 39478f82c46bd2fa4e974ef11cf2c0ae
-    sha256: e3b93abf4255fe1880435328e523b7147c5cf5859c731f643e00e0e598bb891c
-  build: py312h02f2b3b_2
+    md5: c167b931a12c70f9c1fbf927da7ff0be
+    sha256: 0c2d1a27afa009d3630b5944ac5fd10df95b92ab5c91c7390ddfc93ee5488349
+  build: py311heffc1b2_2
   arch: aarch64
   subdir: osx-arm64
   build_number: 2
   license: MIT
   license_family: MIT
-  size: 113319
-  timestamp: 1695997421799
+  size: 113666
+  timestamp: 1695997356455
 - platform: win-64
   name: ruamel.yaml.clib
   version: 0.2.7
@@ -8872,64 +8948,64 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - yaml >=0.2.5,<0.3.0a0
-  url: https://conda.anaconda.org/conda-forge/linux-64/ruamel_yaml-0.15.80-py312h98912ed_1009.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/ruamel_yaml-0.15.80-py311h459d7ec_1009.conda
   hash:
-    md5: 43741df34be5495f7ec8b286749ffe81
-    sha256: 8248a5c0ad5a8218a5b1ab51c5b656c23f2bfebdc8d523b6e3e863b50fb6bd79
-  build: py312h98912ed_1009
+    md5: 799197f6c21be0b366d1a593d1015a5c
+    sha256: 3bc1ee8e536710a4c4cb38dee98923ade62def7dc92fb646de6df01b913c1ae8
+  build: py311h459d7ec_1009
   arch: x86_64
   subdir: linux-64
   build_number: 1009
   license: MIT
   license_family: MIT
-  size: 317386
-  timestamp: 1695546357539
+  size: 325700
+  timestamp: 1695546344673
 - platform: osx-64
   name: ruamel_yaml
   version: 0.15.80
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - yaml >=0.2.5,<0.3.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-64/ruamel_yaml-0.15.80-py312h104f124_1009.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/ruamel_yaml-0.15.80-py311h2725bcf_1009.conda
   hash:
-    md5: 46a9827a8f2dbbb93f9480e5fe397364
-    sha256: b620a6ddb70ea72a7bc06495c9b15abb6ca47e7dcb8f75ac6b4f01a7c45e2fb9
-  build: py312h104f124_1009
+    md5: 73f2352190b9b03c0f77ba2bf9b33cba
+    sha256: ed860931a99adb4e38efd33702f06bce0423fa0bbce6605f222b4d8347f650f6
+  build: py311h2725bcf_1009
   arch: x86_64
   subdir: osx-64
   build_number: 1009
   license: MIT
   license_family: MIT
-  size: 304025
-  timestamp: 1695546575758
+  size: 310401
+  timestamp: 1695546561757
 - platform: osx-arm64
   name: ruamel_yaml
   version: 0.15.80
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - yaml >=0.2.5,<0.3.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel_yaml-0.15.80-py312h02f2b3b_1009.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/ruamel_yaml-0.15.80-py311heffc1b2_1009.conda
   hash:
-    md5: ae4f17a90c7bc47c3a6d2f9443cff4c1
-    sha256: 8928724cf5ae55d954706bfd0ead78573f9bb1db371b05dec0ae11874e3e865a
-  build: py312h02f2b3b_1009
+    md5: 25c86bb2591db0ef24978f9da81d6004
+    sha256: aa3343d295b15ef8adba9418b58ea9faa3567744d3a628c4aa5417f1e542d665
+  build: py311heffc1b2_1009
   arch: aarch64
   subdir: osx-arm64
   build_number: 1009
   license: MIT
   license_family: MIT
-  size: 302200
-  timestamp: 1695546685361
+  size: 311585
+  timestamp: 1695546655554
 - platform: win-64
   name: ruamel_yaml
   version: 0.15.80
@@ -9620,61 +9696,61 @@ package:
   manager: conda
   dependencies:
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/tornado-6.3.3-py312h98912ed_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/tornado-6.3.3-py311h459d7ec_1.conda
   hash:
-    md5: 5bd63a3bf512694536cee3e48463a47c
-    sha256: 970d4e3e0b9b34dc8383055a956d4a9158a9f527264bc7ece769ba284d2395ff
-  build: py312h98912ed_1
+    md5: a700fcb5cedd3e72d0c75d095c7a6eda
+    sha256: 3f0640415c6f50c6b31b5ce41a870ac48c130fda8921aae11afea84c54a6ba84
+  build: py311h459d7ec_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
   license: Apache-2.0
   license_family: Apache
-  size: 829585
-  timestamp: 1695373731705
+  size: 843714
+  timestamp: 1695373626426
 - platform: osx-64
   name: tornado
   version: 6.3.3
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/tornado-6.3.3-py312h104f124_1.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/tornado-6.3.3-py311h2725bcf_1.conda
   hash:
-    md5: 6835d4940d6fbd41e1a32d58dfae8f06
-    sha256: 7f4f2a3a43c0bf62025b46f28366598aa04e0d4a32c87bfe4a275b4df562eba3
-  build: py312h104f124_1
+    md5: daf5f053a40c2b0b8f86b605e302b7a4
+    sha256: e3e4c12236b0a59e6568a9dc839116776eda408ca12bc0ad4e7a9dba4d66912f
+  build: py311h2725bcf_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
   license: Apache-2.0
   license_family: Apache
-  size: 827934
-  timestamp: 1695373724352
+  size: 843855
+  timestamp: 1695373925218
 - platform: osx-arm64
   name: tornado
   version: 6.3.3
   category: main
   manager: conda
   dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/tornado-6.3.3-py312h02f2b3b_1.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/tornado-6.3.3-py311heffc1b2_1.conda
   hash:
-    md5: 3ec18cacdeb6f7a87fee073b28bc7118
-    sha256: f59281be797e9cfa2f1cfd5bff89a8268823e98fe49aaa6bede9a91b27e887ab
-  build: py312h02f2b3b_1
+    md5: a3a94203d225faec0d6bd000ea30b0a1
+    sha256: 65e96fcaa2fad8013fdfd1c7cbdc4684b253541c10091fa7acd55b4a3daa87e6
+  build: py311heffc1b2_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
   license: Apache-2.0
   license_family: Apache
-  size: 826881
-  timestamp: 1695374110756
+  size: 843751
+  timestamp: 1695373818353
 - platform: win-64
   name: tornado
   version: 6.3.3
@@ -10275,20 +10351,20 @@ package:
   - cffi
   - libgcc-ng >=12
   - libstdcxx-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/linux-64/ukkonen-1.0.1-py312h8572e83_4.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/linux-64/ukkonen-1.0.1-py311h9547e67_4.conda
   hash:
-    md5: 52c9e25ee0a32485a102eeecdb7eef52
-    sha256: f9a4384d466f4d8b5b497d951329dd4407ebe02f8f93456434e9ab789d6e23ce
-  build: py312h8572e83_4
+    md5: 586da7df03b68640de14dc3e8bcbf76f
+    sha256: c2d33e998f637b594632eba3727529171a06eb09896e36aa42f1ebcb03779472
+  build: py311h9547e67_4
   arch: x86_64
   subdir: linux-64
   build_number: 4
   license: MIT
   license_family: MIT
-  size: 14050
-  timestamp: 1695549556745
+  size: 13961
+  timestamp: 1695549513130
 - platform: osx-64
   name: ukkonen
   version: 1.0.1
@@ -10297,20 +10373,20 @@ package:
   dependencies:
   - cffi
   - libcxx >=15.0.7
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-64/ukkonen-1.0.1-py312h49ebfd2_4.conda
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-64/ukkonen-1.0.1-py311h5fe6e05_4.conda
   hash:
-    md5: 4e6b5a8025cd8fd97b3cfe103ffce6b1
-    sha256: efca19a5e73e4aacfc5e90a5389272b2508e41dc4adab9eb5353c5200ba37041
-  build: py312h49ebfd2_4
+    md5: 8f750b84128d48dc8376572c5eace61e
+    sha256: b273782a1277042a54e12411beebd378d2a2a69e503bcf147766e98628e91c91
+  build: py311h5fe6e05_4
   arch: x86_64
   subdir: osx-64
   build_number: 4
   license: MIT
   license_family: MIT
-  size: 13246
-  timestamp: 1695549689363
+  size: 13193
+  timestamp: 1695549883822
 - platform: osx-arm64
   name: ukkonen
   version: 1.0.1
@@ -10319,21 +10395,21 @@ package:
   dependencies:
   - cffi
   - libcxx >=15.0.7
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/ukkonen-1.0.1-py312h389731b_4.conda
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/ukkonen-1.0.1-py311he4fd1f5_4.conda
   hash:
-    md5: 6407429e0969b58b8717dbb4c6c15513
-    sha256: 7336cf66feba973207f4903c20b05c3c82e351246df4b6113f72d92b9ee55b81
-  build: py312h389731b_4
+    md5: 5d5ab5c5af32931e03608034f4a5fd75
+    sha256: 384fc81a34e248019d43a115386f77859ab63e0e6f12dade486d76359703743f
+  build: py311he4fd1f5_4
   arch: aarch64
   subdir: osx-arm64
   build_number: 4
   license: MIT
   license_family: MIT
-  size: 13948
-  timestamp: 1695549890285
+  size: 13958
+  timestamp: 1695549884615
 - platform: win-64
   name: ukkonen
   version: 1.0.1
@@ -11249,22 +11325,22 @@ package:
   dependencies:
   - cffi >=1.11
   - libgcc-ng >=12
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - zstd >=1.5.5,<1.5.6.0a0
   - zstd >=1.5.5,<1.6.0a0
-  url: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.21.0-py312hd58854c_1.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.21.0-py311haa97af0_1.conda
   hash:
-    md5: da2ad0b62287fd1725d72f65ed82dda6
-    sha256: 546a5dccf9555d02cdf757635c738b6e5b5dff2ad25016ea4f96cf073cd81ed4
-  build: py312hd58854c_1
+    md5: 780c131e9c40cd78194f21bfd9b13c22
+    sha256: 2d582e91c781692a2aa884ef6693f18c11374963ce77901143ccd4ec29f6b207
+  build: py311haa97af0_1
   arch: x86_64
   subdir: linux-64
   build_number: 1
   license: BSD-3-Clause
   license_family: BSD
-  size: 414231
-  timestamp: 1695403201269
+  size: 415185
+  timestamp: 1695403101437
 - platform: osx-64
   name: zstandard
   version: 0.21.0
@@ -11272,22 +11348,22 @@ package:
   manager: conda
   dependencies:
   - cffi >=1.11
-  - python >=3.12.0rc3,<3.13.0a0
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
   - zstd >=1.5.5,<1.5.6.0a0
   - zstd >=1.5.5,<1.6.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-64/zstandard-0.21.0-py312hac425b3_1.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/zstandard-0.21.0-py311h26cfcfc_1.conda
   hash:
-    md5: d40e972cfcaa9e86832ae3de69a55759
-    sha256: 653e038221cf4e951f78f9191797697720a4ac59c2ec60c17ea55fbbd27de2c5
-  build: py312hac425b3_1
+    md5: e724eae2a03abaa3f51f02f130635baf
+    sha256: b117ece763e82ae11caa558f902392f8c3063642e3a7519f4d4496068408596b
+  build: py311h26cfcfc_1
   arch: x86_64
   subdir: osx-64
   build_number: 1
   license: BSD-3-Clause
   license_family: BSD
-  size: 419626
-  timestamp: 1695403309136
+  size: 420223
+  timestamp: 1695403405182
 - platform: osx-arm64
   name: zstandard
   version: 0.21.0
@@ -11295,23 +11371,23 @@ package:
   manager: conda
   dependencies:
   - cffi >=1.11
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
   - zstd >=1.5.5,<1.5.6.0a0
   - zstd >=1.5.5,<1.6.0a0
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/zstandard-0.21.0-py312ha7e2508_1.conda
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/zstandard-0.21.0-py311hae4035a_1.conda
   hash:
-    md5: 7266c4f8b1a0581a37483612dd8e7c3b
-    sha256: 822d89503d3dd647875f6bdc5308e023c6210081e59d09bb5dc1061c335ba6e8
-  build: py312ha7e2508_1
+    md5: 9222c4cb0a43dbddf2856f45ab84c694
+    sha256: 560f90dca1e424b7c51f5e463f96d57d7d277bf7ff349646e49a8fc6f2869a0c
+  build: py311hae4035a_1
   arch: aarch64
   subdir: osx-arm64
   build_number: 1
   license: BSD-3-Clause
   license_family: BSD
-  size: 340485
-  timestamp: 1695403503774
+  size: 341461
+  timestamp: 1695403451205
 - platform: win-64
   name: zstandard
   version: 0.21.0
