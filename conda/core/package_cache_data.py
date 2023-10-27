@@ -821,7 +821,11 @@ class ProgressiveFetchExtract:
                 progress_bars[prec_or_spec] = progress_bar
 
                 future = fetch_executor.submit(
-                    do_cache_action, prec_or_spec, cache_action, progress_bar, cancelled=cancelled
+                    do_cache_action,
+                    prec_or_spec,
+                    cache_action,
+                    progress_bar,
+                    cancelled=cancelled,
                 )
 
                 future.add_done_callback(
@@ -835,48 +839,38 @@ class ProgressiveFetchExtract:
                 )
                 futures.append(future)
 
-            while futures:
-                try:
-                    for completed_future in as_completed(futures, timeout=1):
-                        try:
-                            futures.remove(completed_future)
-                            prec_or_spec = completed_future.result()
-                            print("COMPLETED FUTURE", prec_or_spec)
-                        except BaseException as e:
-                            # Special handling for exceptions thrown inside future, not
-                            # by futures handling code. Cancel any download that has not
-                            # been started. In-progress futures will continue.
-                            # Could use executor.shutdown(cancel_futures=True) instead?
-                            print("FUTURE MADE AN EXCEPTION")
-                            cancelled_flag = True
-                            for future in futures:
-                                future.cancel()
+            try:
+                for completed_future in as_completed(futures):
+                    futures.remove(completed_future)
+                    prec_or_spec = completed_future.result()
 
-                            # faster handling of KeyboardInterrupt e.g.
-                            if not isinstance(e, Exception):
-                                raise
-
-                            # break, not raise. CondaMultiError() raised if exceptions.
-                            break
-
-                        cache_action, extract_action = self.paired_actions[prec_or_spec]
-                        extract_future = extract_executor.submit(
-                            do_extract_action,
-                            prec_or_spec,
-                            extract_action,
-                            progress_bars[prec_or_spec],
+                    cache_action, extract_action = self.paired_actions[prec_or_spec]
+                    extract_future = extract_executor.submit(
+                        do_extract_action,
+                        prec_or_spec,
+                        extract_action,
+                        progress_bars[prec_or_spec],
+                    )
+                    extract_future.add_done_callback(
+                        partial(
+                            done_callback,
+                            actions=(cache_action, extract_action),
+                            exceptions=exceptions,
+                            progress_bar=progress_bars[prec_or_spec],
+                            finish=True,
                         )
-                        extract_future.add_done_callback(
-                            partial(
-                                done_callback,
-                                actions=(cache_action, extract_action),
-                                exceptions=exceptions,
-                                progress_bar=progress_bars[prec_or_spec],
-                                finish=True,
-                            )
-                        )
-                except TimeoutError:
-                    continue
+                    )
+            except BaseException as e:
+                # We are interested in KeyboardInterrupt delivered to
+                # as_completed() while waiting, or any exception raised from
+                # completed_future.result()
+                cancelled_flag = True
+                for future in futures:
+                    future.cancel()
+
+                # faster handling of KeyboardInterrupt e.g.
+                if not isinstance(e, Exception):
+                    raise
 
         for bar in progress_bars.values():
             bar.close()
