@@ -1,0 +1,63 @@
+[project]
+name = "conda"
+version = "23.10.0"
+description = "OS-agnostic, system-level binary package manager."
+authors = ["Anaconda, Inc. conda@continuum.io"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
+license-file = "LICENSE"
+readme = "README.md"
+
+[tasks]
+# Run this first; it will install conda-auth as a local package
+develop = "pip install -e ."
+
+# Test commands
+test = "pytest --doctest-modules"
+testcov = "pytest --cov=conda_auth --cov-report=xml --doctest-modules"
+testhtml = "pytest --cov=conda_auth --cov-report=html --doctest-modules"
+
+[dependencies]
+boltons = ">=23.0.0"
+conda-package-handling = ">=2.2.0"
+jsonpatch = ">=1.32"
+packaging =  ">=23.0"
+pluggy = ">=1.0.0"
+pycosat = ">=0.6.3"
+python = ">=3.8"
+requests = ">=2.27.0,<3"
+"ruamel.yaml" = ">=0.11.14,<0.18"
+setuptools = ">=60.0.0"
+tqdm = ">=4"
+truststore = ">=0.8.0"
+
+# development dependencies
+boto3 = "*"
+chardet = "*"  # see fallbacks in conda.common.compat
+conda-content-trust = "*"
+anaconda-client = "*"
+pytest-split = "*"
+pytest-xprocess = "*"
+xdoctest = "*"
+flask = ">=2.2"  # jlap pytest fixture
+minio-server = "*"
+pexpect = "*"
+pip = "*"
+pre-commit = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+pytest-rerunfailures = "*"
+pytest-timeout = "*"
+pytest-xdist = "*"
+responses = "*"
+setuptools_scm = "*" # for devenv version detection
+tomli = "*"  # [py<3.11] for coverage pyproject.toml
+werkzeug = ">=2.2"  # jlap pytest fixture
+
+[target.win-64.dependencies]
+menuinst = ">=1.4.11,<2"
+pywin32 = "*"
+
+[activation]
+scripts = ["dev/pixi-setup.sh"]

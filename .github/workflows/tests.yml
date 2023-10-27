@@ -155,7 +155,7 @@ jobs:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['defaults', 'conda-forge']
+        # default-channel: ['defaults', 'conda-forge']
         python-version: ['3.8', '3.9', '3.10', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
@@ -176,14 +176,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-        run: >
-          docker run
-          --rm -v ${PWD}:/opt/conda-src
-          -e TEST_SPLITS
-          -e TEST_GROUP
-          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
-          /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
+      - uses: prefix-dev/setup-pixi@v0.3.0
+        with:
+          pixi-version: v0.6.0
+          cache: true
+
+      - name: Install Python
+        shell: pixi run bash {0}
+        run: |
+          pixi add python=${{ matrix.python-version }}
+          pixi install
+
+      - name: Run tests
+        shell: pixi run bash {0}
+        run: |
+          ./dev/linux/${{ matrix.test-type }}-pixi.sh
 
       - uses: codecov/codecov-action@v3
         with:

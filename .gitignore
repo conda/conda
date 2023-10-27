@@ -41,3 +41,6 @@ test-report.xml
 
 # Rever
 rever/
+
+# pixi
+.pixi/
