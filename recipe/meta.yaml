@@ -7,6 +7,7 @@ source:
   git_url: ../
 
 build:
+  noarch: python
   script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files
@@ -23,7 +24,7 @@ requirements:
   build:
     - git  # for source/git_url above
   host:
-    - python
+    - python >=3.8
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
@@ -34,6 +35,7 @@ requirements:
     - ruamel.yaml >=0.11.14,<0.18
     - tqdm >=4
   run:
+    - __{{ target_os }}
     - archspec
     - boltons >=23.0.0
     - conda-package-handling >=2.2.0
@@ -42,7 +44,7 @@ requirements:
     - packaging >=23.0
     - pluggy >=1.0.0
     - pycosat >=0.6.3
-    - python
+    - python >=3.8
     - requests >=2.27.0,<3
     - ruamel.yaml >=0.11.14,<0.18
     - setuptools >=60.0.0
