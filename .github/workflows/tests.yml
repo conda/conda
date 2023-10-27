@@ -97,11 +97,13 @@ jobs:
           pixi-version: v0.6.0
           cache: true
 
-      - name: Install Python
+      - name: Install python and initialize conda
         shell: pixi run bash {0}
         run: |
           pixi add python=${{ matrix.python-version }}
           pixi install
+          pixi run develop
+          conda init
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: pixi run bash {0}

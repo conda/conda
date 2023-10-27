@@ -41,27 +41,38 @@ def test_list_reverse(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 
 # conda list --json
-def test_list_json(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("list", "--json")
-    parsed = json.loads(stdout.strip())
-    assert isinstance(parsed, list)
+def test_list_json(
+    tmp_envs_dirs: Path, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
+):
+    with tmp_env() as prefix:
+        stdout, _, _ = conda_cli("list", "--json", "--prefix", prefix)
+        parsed = json.loads(stdout.strip())
+        assert isinstance(parsed, list)
 
-    with pytest.raises(EnvironmentLocationNotFound):
-        conda_cli("list", "--name", "nonexistent", "--json")
+        with pytest.raises(EnvironmentLocationNotFound):
+            conda_cli("list", "--name", "nonexistent", "--json")
 
 
 # conda list --revisions --json
-def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("list", "--revisions", "--json")
-    parsed = json.loads(stdout.strip())
-    assert isinstance(parsed, list) or (isinstance(parsed, dict) and "error" in parsed)
+def test_list_revisions(
+    tmp_envs_dirs: Path, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
+):
+    with tmp_env() as prefix:
+        stdout, _, _ = conda_cli("list", "--revisions", "--json", "--prefix", prefix)
+        parsed = json.loads(stdout.strip())
+        assert isinstance(parsed, list) or (
+            isinstance(parsed, dict) and "error" in parsed
+        )
 
-    with pytest.raises(EnvironmentLocationNotFound):
-        conda_cli("list", "--name", "nonexistent", "--revisions", "--json")
+        with pytest.raises(EnvironmentLocationNotFound):
+            conda_cli("list", "--name", "nonexistent", "--revisions", "--json")
 
 
 # conda list PACKAGE
-def test_list_package(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("list", "ipython", "--json")
-    parsed = json.loads(stdout.strip())
-    assert isinstance(parsed, list)
+def test_list_package(
+    tmp_envs_dirs: Path, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
+):
+    with tmp_env() as prefix:
+        stdout, _, _ = conda_cli("list", "ipython", "--json", "--prefix", prefix)
+        parsed = json.loads(stdout.strip())
+        assert isinstance(parsed, list)

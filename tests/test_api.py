@@ -21,6 +21,7 @@ from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
 from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
+from conda.testing import TmpEnvFixture
 
 
 class PositionalArgument:
@@ -262,25 +263,28 @@ def test_PrefixData_contract():
     inspect_arguments(PrefixData.reload, reload_args)
 
 
-def test_PrefixData_return_value_contract():
-    pd = PrefixData(context.conda_prefix)
+def test_PrefixData_return_value_contract(tmp_env: TmpEnvFixture):
+    package = "ca-certificates"
 
-    single_prefix_rec = next(pd.iter_records())
-    get_result = pd.get(PackageRecord.from_objects(single_prefix_rec))
-    assert isinstance(get_result, PrefixRecord)
+    with tmp_env(package) as prefix:
+        pd = PrefixData(prefix)
 
-    query_result = pd.query("openssl")
-    assert isinstance(query_result, tuple)
-    assert all(isinstance(prefix_rec, PrefixRecord) for prefix_rec in query_result)
+        single_prefix_rec = next(pd.iter_records())
+        get_result = pd.get(PackageRecord.from_objects(single_prefix_rec))
+        assert isinstance(get_result, PrefixRecord)
 
-    iter_records_result = pd.iter_records()
-    assert isiterable(iter_records_result)
-    assert all(
-        isinstance(prefix_rec, PrefixRecord) for prefix_rec in iter_records_result
-    )
+        query_result = pd.query("openssl")
+        assert isinstance(query_result, tuple)
+        assert all(isinstance(prefix_rec, PrefixRecord) for prefix_rec in query_result)
 
-    is_writable_result = pd.is_writable
-    assert is_writable_result is True or is_writable_result is False
+        iter_records_result = pd.iter_records()
+        assert isiterable(iter_records_result)
+        assert all(
+            isinstance(prefix_rec, PrefixRecord) for prefix_rec in iter_records_result
+        )
 
-    reload_result = pd.reload()
-    assert isinstance(reload_result, PrefixData)
+        is_writable_result = pd.is_writable
+        assert is_writable_result is True or is_writable_result is False
+
+        reload_result = pd.reload()
+        assert isinstance(reload_result, PrefixData)
