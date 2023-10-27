@@ -99,8 +99,7 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
 
 
 def generate_parser(**kwargs) -> ArgumentParser:
-    from conda import utils
-    from conda.cli import constants
+    from conda.cli import constants, helpers
 
     parser = generate_pre_parser(**kwargs)
 
@@ -124,7 +123,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
     # Automatically get submodules (configure subcommands)
     submodule_names = [
         x
-        for x in utils.list_submodules(cli_command, prefixed=True)
+        for x in helpers.list_submodules(cli_command, prefixed=True)
         if x.rsplit(".")[-1].startswith(constants.SUB_COMMAND_FILE_PREFIX)
     ]
     for module_name in submodule_names:
