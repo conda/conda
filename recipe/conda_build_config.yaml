@@ -1,3 +1,5 @@
-target_os:
-  - unix  # [unix]
-  - win   # [win]
+python:   # [win]
+  - 3.8   # [win]
+  - 3.9   # [win]
+  - 3.10  # [win]
+  - 3.11  # [win]
