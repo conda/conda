@@ -107,6 +107,7 @@ line-length = 99
 # D = pydocstyle
 select = ["E", "W", "F", "I", "D1"]
 # E402 module level import not at top of file
+# E501 line too long
 # E722 do not use bare 'except'
 # E731 do not assign a lambda expression, use a def
 # D101 Missing docstring in public class
@@ -115,7 +116,7 @@ select = ["E", "W", "F", "I", "D1"]
 # D104 Missing docstring in public package
 # D105 Missing docstring in magic method
 # D107 Missing docstring in `__init__`
-ignore = ["E731", "E722", "E402", "F821", "E501", "D101", "D102", "D103", "D104", "D105", "D107"]
+ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
 exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
 # Use PEP 257-style docstrings.

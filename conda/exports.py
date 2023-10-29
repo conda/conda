@@ -119,7 +119,13 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
-IndexRecord = PackageRecord
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "IndexRecord",
+    PackageRecord,
+    addendum="Use `conda.models.records.PackageRecord` instead.",
+)
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
@@ -229,6 +235,7 @@ def get_index(
     return {Dist(prec): prec for prec in index.values()}
 
 
+@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
 def fetch_index(channel_urls, use_cache=False, index=None):
     index = _fetch_index(channel_urls, use_cache, index)
     return {Dist(prec): prec for prec in index.values()}

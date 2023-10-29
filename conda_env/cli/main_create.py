@@ -16,6 +16,7 @@ from conda.cli.conda_argparse import (
     add_output_and_prompt_options,
     add_parser_default_packages,
     add_parser_networking,
+    add_parser_platform,
     add_parser_prefix,
     add_parser_solver,
 )
@@ -95,6 +96,7 @@ def configure_parser(sub_parsers):
         default=False,
     )
     add_parser_default_packages(p)
+    add_parser_platform(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)
     p.set_defaults(func=".main_create.execute")
