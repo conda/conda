@@ -16,7 +16,7 @@ In short: to make conda faster and more accurate.
 
 A "solver" is the core component of most package managers; it calculates which dependencies (and which version of those dependencies) to install when a user requests to install a package from a package repository. To address growth-related challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced [a new conda dependency solver based on the Mamba project](https://mamba.readthedocs.io) in December 2022.
 
-Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in and automatically installed with all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), _with the default solver configuration unchanged_.
+Since July 2023, the [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), but was disabled by default. As soon as these installers are updated to contain conda 23.10.0 or later, they will automatically default to using the conda-libmamba-solver plugin.
 
 #### How can I opt-out?
 
