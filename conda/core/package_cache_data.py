@@ -6,7 +6,7 @@ from __future__ import annotations
 import codecs
 import os
 from collections import defaultdict
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -861,18 +861,15 @@ class ProgressiveFetchExtract:
                             finish=True,
                         )
                     )
-                    # keyboardInterrupt -> CondaError translation skips additional problems below
-                    raise KeyboardInterrupt("goodbye")
             except BaseException as e:
                 # We are interested in KeyboardInterrupt delivered to
                 # as_completed() while waiting, or any exception raised from
-                # completed_future.result()
+                # completed_future.result(). cancelled_flag is checked in the
+                # progress callback to stop running transfers,
+                # shutdown(cancel_futures=True) should prevent new downloads
+                # from starting.
                 cancelled_flag = True
-                for future in futures:
-                    future.cancel()
                 fetch_executor.shutdown(wait=False, cancel_futures=True)
-
-                # conda being conda
                 exceptions.append(e)
 
         for bar in progress_bars.values():
@@ -885,7 +882,9 @@ class ProgressiveFetchExtract:
                 print(" done")
 
         if exceptions:
-            raise CondaMultiError(exceptions)
+            # avoid printing one CancelledError() per pending download
+            not_cancelled = [e for e in exceptions if not isinstance(e, CancelledError)]
+            raise CondaMultiError(not_cancelled)
 
         self._executed = True
 
@@ -932,7 +931,7 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0, *, can
                 """
                 Used to cancel dowload threads when parent thread is interrupted.
                 """
-                raise CondaError("Cancelled")
+                raise CancelledError()
             progress_bar.update_to(pct_completed * download_total)
 
     else:
