@@ -206,9 +206,9 @@ class Context(Configuration):
     _repodata_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("repodata_threads",)
     )
-    # download packages; determined experimentally
+    # download packages
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
@@ -567,6 +567,11 @@ class Context(Configuration):
 
     @property
     def fetch_threads(self) -> int | None:
+        """
+        If both are not overriden (0), return experimentally-determined value of 5
+        """
+        if self._fetch_threads == 0 and self._default_threads == 0:
+            return 5
         return self._fetch_threads or self.default_threads
 
     @property
