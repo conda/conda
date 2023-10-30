@@ -116,34 +116,42 @@ def get_virtual_precs() -> Iterable[PackageRecord]:
     "subdir,expected",
     [
         # see conda.base.constants.KNOWN_SUBDIRS
-        ("emscripten-wasm32", []),
-        ("freebsd-64", ["__archspec", "__unix"]),
-        ("linux-32", ["__archspec", "__linux", "__unix"]),
-        ("linux-64", ["__archspec", "__linux", "__unix"]),
-        ("linux-aarch64", ["__archspec", "__linux", "__unix"]),
-        ("linux-armv6l", ["__archspec", "__linux", "__unix"]),
-        ("linux-armv7l", ["__archspec", "__linux", "__unix"]),
-        ("linux-ppc64", ["__archspec", "__linux", "__unix"]),
-        ("linux-ppc64le", ["__archspec", "__linux", "__unix"]),
-        ("linux-riscv64", ["__archspec", "__linux", "__unix"]),
-        ("linux-s390x", ["__archspec", "__linux", "__unix"]),
-        ("osx-64", ["__archspec", "__osx", "__unix"]),
-        ("osx-aarch64", ["__archspec", "__osx", "__unix"]),
-        ("osx-arm64", ["__archspec", "__osx", "__unix"]),
-        ("wasi-wasm32", []),
-        ("win-32", ["__archspec", "__win"]),
-        ("win-64", ["__archspec", "__win"]),
-        ("win-64", ["__archspec", "__win"]),
-        ("win-arm64", ["__archspec", "__win"]),
-        ("zos-z", []),
+        pytest.param("emscripten-wasm32", [], id="emscripten-wasm32"),
+        pytest.param("freebsd-64", ["__unix"], id="freebsd-64"),
+        pytest.param("linux-32", ["__linux", "__unix"], id="linux-32"),
+        pytest.param("linux-64", ["__linux", "__unix"], id="linux-64"),
+        pytest.param("linux-aarch64", ["__linux", "__unix"], id="linux-aarch64"),
+        pytest.param("linux-armv6l", ["__linux", "__unix"], id="linux-armv6l"),
+        pytest.param("linux-armv7l", ["__linux", "__unix"], id="linux-armv7l"),
+        pytest.param("linux-ppc64", ["__linux", "__unix"], id="linux-ppc64"),
+        pytest.param("linux-ppc64le", ["__linux", "__unix"], id="linux-ppc64le"),
+        pytest.param("linux-riscv64", ["__linux", "__unix"], id="linux-riscv64"),
+        pytest.param("linux-s390x", ["__linux", "__unix"], id="linux-s390x"),
+        pytest.param("osx-64", ["__osx", "__unix"], id="osx-64"),
+        pytest.param("osx-aarch64", ["__osx", "__unix"], id="osx-aarch64"),
+        pytest.param("osx-arm64", ["__osx", "__unix"], id="osx-arm64"),
+        pytest.param("wasi-wasm32", [], id="wasi-wasm32"),
+        pytest.param("win-32", ["__win"], id="win-32"),
+        pytest.param("win-64", ["__win"], id="win-64"),
+        pytest.param("win-64", ["__win"], id="win-64"),
+        pytest.param("win-arm64", ["__win"], id="win-arm64"),
+        pytest.param("zos-z", [], id="zos-z"),
     ],
 )
-def test_subdir_override(monkeypatch: MonkeyPatch, subdir: str, expected: list[str]):
+def test_subdir_override(
+    monkeypatch: MonkeyPatch,
+    subdir: str,
+    expected: list[str],
+    clear_cuda_version: None,
+):
     """
     Conda should create virtual packages for the appropriate platform, following
     context.subdir instead of the host operating system.
     """
     monkeypatch.setenv("CONDA_SUBDIR", subdir)
+    monkeypatch.setenv("CONDA_OVERRIDE_ARCHSPEC", "")
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "")
     reset_context()
     assert context.subdir == subdir
     assert {prec.name for prec in get_virtual_precs()} == {
