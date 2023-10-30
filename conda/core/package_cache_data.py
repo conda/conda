@@ -791,9 +791,10 @@ class ProgressiveFetchExtract:
 
         exceptions = []
         progress_bars = {}
-        futures = []
+        futures: list[Future] = []
 
         cancelled_flag = False
+
         def cancelled():
             """
             Used to cancel download threads.
@@ -860,6 +861,8 @@ class ProgressiveFetchExtract:
                             finish=True,
                         )
                     )
+                    # keyboardInterrupt -> CondaError translation skips additional problems below
+                    raise KeyboardInterrupt("goodbye")
             except BaseException as e:
                 # We are interested in KeyboardInterrupt delivered to
                 # as_completed() while waiting, or any exception raised from
@@ -867,10 +870,10 @@ class ProgressiveFetchExtract:
                 cancelled_flag = True
                 for future in futures:
                     future.cancel()
+                fetch_executor.shutdown(wait=False, cancel_futures=True)
 
-                # faster handling of KeyboardInterrupt e.g.
-                if not isinstance(e, Exception):
-                    raise
+                # conda being conda
+                exceptions.append(e)
 
         for bar in progress_bars.values():
             bar.close()
@@ -975,6 +978,9 @@ def done_callback(
     try:
         future.result()
     except Exception as e:
+        # if it was interrupted with CTRL-C this might be BaseException and not
+        # get caught here, but conda's signal handler also converts that to
+        # CondaError which is just Exception.
         do_reverse(reversed(actions))
         exceptions.append(e)
     else:
