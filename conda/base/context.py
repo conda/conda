@@ -206,9 +206,9 @@ class Context(Configuration):
     _repodata_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("repodata_threads",)
     )
-    # download packages; determined experimentally
+    # download packages
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
@@ -567,6 +567,11 @@ class Context(Configuration):
 
     @property
     def fetch_threads(self) -> int | None:
+        """
+        If both are not overriden (0), return experimentally-determined value of 5
+        """
+        if self._fetch_threads == 0 and self._default_threads == 0:
+            return 5
         return self._fetch_threads or self.default_threads
 
     @property
@@ -1046,14 +1051,18 @@ class Context(Configuration):
 
     @memoizedproperty
     def requests_version(self):
+        # used in User-Agent as "requests/<version>"
+        # if unable to detect a version we expect "requests/unknown"
         try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+            from requests import __version__ as requests_version
+        except ImportError as err:
+            # ImportError: requests is not installed
+            log.error("Unable to import requests: %s", err)
+            requests_version = "unknown"
+        except Exception as err:
+            log.error("Error importing requests: %s", err)
+            requests_version = "unknown"
+        return requests_version
 
     @memoizedproperty
     def python_implementation_name_version(self):
