@@ -16,4 +16,4 @@
 
 ### Other
 
-* Constrain minimum conda-build >=3.27 (#13177)
+* Constrain minimum conda-build version to `>=3.27`. (#13177)

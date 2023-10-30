@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Provide `--platform` and `--subdir` flags to create environments for non-native platforms, remembering that choice in future operations (#11505 via #11794)
+* Provide `--platform` and `--subdir` flags to create environments for non-native platforms, remembering that choice in future operations. (#11505 via #11794)
 
 ### Bug fixes
 

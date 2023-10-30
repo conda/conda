@@ -4,8 +4,7 @@
 
 ### Bug fixes
 
-* Check name of symlink, not its target against valid configuration file names
-  (`condarc`, `.condarc`, or `*.yml/yaml`). (#12956)
+* Check name of symlink, not its target against valid configuration file names (`condarc`, `.condarc`, or `*.yml/yaml`). (#12956)
 
 ### Deprecations
 

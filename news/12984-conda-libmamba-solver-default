@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Make `solver: libmamba` the new default. (#12984)
+* IMPORTANT: Set `solver: libmamba` as the new default solver. (#12984)
 
 ### Bug fixes
 
