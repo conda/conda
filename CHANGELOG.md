@@ -2,15 +2,15 @@
 
 ## 23.10.0 (2023-10-30)
 
-## ✨ Special announcement ✨
+### ✨ Special announcement ✨
 
 This is an announcement about an important change in conda's functionality:
 
-### **With this 23.10.0 release we are changing the default solver of conda to [`conda-libmamba-solver`](https://conda.github.io/conda-libmamba-solver/)!** 🥳 🚀
+#### **With this 23.10.0 release we are changing the default solver of conda to [`conda-libmamba-solver`](https://conda.github.io/conda-libmamba-solver/)!** 🥳 🚀
 
 The previously "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the foreseeable future, a fallback is possible and available.
 
-### Why are we switching the solver?
+#### Why are we switching the solver?
 
 In short: to make conda faster and more accurate.
 
@@ -18,7 +18,7 @@ A "solver" is the core component of most package managers; it calculates which d
 
 Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in and automatically installed with all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), _with the default solver configuration unchanged_.
 
-### How can I opt-out?
+#### How can I opt-out?
 
 Use one of the following options to configure conda to use the "classic" solver:
 
@@ -26,11 +26,11 @@ Use one of the following options to configure conda to use the "classic" solver:
 - Set the environment variable `CONDA_SOLVER=classic` **_or_**
 - Use the conda configuration system: `conda config --set solver classic`
 
-### Where should I file bug reports or feature requests?
+#### Where should I file bug reports or feature requests?
 
 Please [head over to the _separate_ conda-libmamba-solver repository](https://github.com/conda/conda-libmamba-solver/issues/new/choose) to file bug reports or feature requests.
 
-### Where can I learn more about conda-libmamba-solver?
+#### Where can I learn more about conda-libmamba-solver?
 
 The documentation of the `conda-libmamba-solver` plugin can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/).
 
