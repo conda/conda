@@ -18,17 +18,16 @@ A "solver" is the core component of most package managers; it calculates which d
 
 Since July 2023, the [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), but was disabled by default. As soon as these installers are updated to contain conda 23.10.0 or later, they will automatically default to using the conda-libmamba-solver plugin.
 
-#### How can I opt-out?
+#### What can I do if this update doesn't work for me?
 
-Use one of the following options to configure conda to use the "classic" solver:
+If the new solver is not working as you expect:
 
-- Pass the command line option `--solver=classic` to your conda calls **_or_**
-- Set the environment variable `CONDA_SOLVER=classic` **_or_**
-- Use the conda configuration system: `conda config --set solver classic`
-
-#### Where should I file bug reports or feature requests?
-
-Please [head over to the _separate_ conda-libmamba-solver repository](https://github.com/conda/conda-libmamba-solver/issues/new/choose) to file bug reports or feature requests.
+- Check if the behavior you are observing is a [known issue](https://github.com/conda/conda-libmamba-solver/issues/283) or a [deliberate change](https://conda.github.io/conda-libmamba-solver/libmamba-vs-classic/#intentional-deviations-from-classic). 
+- If that's not the case, please consider submitting a bug report or feature request in the [conda-libmamba-solver repository](https://github.com/conda/conda-libmamba-solver/issues/new/choose). 
+- If necessary, you can go back to using the `classic` solver without modifying your conda installation:
+  - When possible, pass the command line option `--solver=classic` to your `conda` calls.
+  - Otherwise (e.g. for `conda build ...` or `constructor ...`), set the environment variable `CONDA_SOLVER=classic`.
+  - For permanent changes, use the conda configuration system: `conda config --set solver classic`.
 
 #### Where can I learn more about conda-libmamba-solver?
 
