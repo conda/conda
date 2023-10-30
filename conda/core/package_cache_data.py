@@ -869,6 +869,8 @@ class ProgressiveFetchExtract:
                 # shutdown(cancel_futures=True) should prevent new downloads
                 # from starting.
                 cancelled_flag = True
+                for future in futures:  # needed on top of .shutdown()
+                    future.cancel()
                 fetch_executor.shutdown(wait=False, cancel_futures=True)
                 exceptions.append(e)
 
