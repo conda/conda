@@ -5,6 +5,7 @@ Collection of helper functions to standardize reused CLI arguments.
 """
 from __future__ import annotations
 
+import sys
 from argparse import (
     SUPPRESS,
     ArgumentParser,
@@ -12,6 +13,11 @@ from argparse import (
     _HelpAction,
     _MutuallyExclusiveGroup,
 )
+
+
+def show_help_on_empty_command():
+    if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
+        sys.argv.append("--help")
 
 
 def add_parser_create_install_update(p, prefix_required=False):

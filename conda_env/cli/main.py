@@ -20,17 +20,10 @@ from conda.cli import (
     main_env_update,
 )
 from conda.cli.conda_argparse import ArgumentParser
+from conda.cli.helpers import show_help_on_empty_command
 from conda.cli.main import init_loggers
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
-
-
-# TODO: This belongs in a helper library somewhere
-# Note: This only works with `conda-env` as a sub-command.  If this gets
-# merged into conda-env, this needs to be adjusted.
-def show_help_on_empty_command():
-    if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
-        sys.argv.append("--help")
 
 
 def create_parser():
