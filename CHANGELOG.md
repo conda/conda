@@ -1,5 +1,51 @@
 [//]: # (current developments)
 
+## 23.10.0 (2023-10-30)
+
+### Enhancements
+
+* Provide `--platform` and `--subdir` flags to create environments for non-native platforms, remembering that choice in future operations. (#11505 via #11794)
+* IMPORTANT: Set `solver: libmamba` as the new default solver. (#12984)
+
+### Bug fixes
+
+* Check name of symlink, not its target against valid configuration file names (`condarc`, `.condarc`, or `*.yml/yaml`). (#12956)
+* Have `conda doctor` ignore blank lines in `~/.conda/environments.txt`. (#12984)
+
+### Deprecations
+
+* Mark `conda.cli.main.generate_parser` as pending deprecation. Use `conda.cli.conda_argparse.generate_parser` instead. (#13144)
+* Mark `conda.auxlib.collection.firstitem` as pending deprecation. (#13144)
+* Mark `conda.auxlib.collection.call_each` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.NoneType` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.primative_types` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.utf8_writer` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.AuthenticationError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.NotFoundError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.InitializationError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.SenderError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.AssignmentError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.type_coercion.boolify_truthy_string_ok` as pending deprecation. (#13144)
+* Mark `conda.auxlib.type_coercion.listify` as pending deprecation. (#13144)
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
+* Mark `conda.exports.fetch_index` as pending deprecation for removal in 24.9. Use `conda.core.index.fetch_index` instead. (#13194)
+
+### Other
+
+* Constrain minimum conda-build version to `>=3.27`. (#13177)
+
+### Contributors
+
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @timhoffm
+* @pre-commit-ci[bot]
+
+
+
 ## 23.9.0 (2023-09-27)
 
 ### Special announcement
