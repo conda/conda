@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Allow `CONDA_FETCH_THREADS`/`fetch_threads`, which sets parallel package
-  downloads, to be overridden from its default value of `5`.
+  downloads, to be overridden from its default value of `5`. (#13263)
 
 ### Deprecations
 
