@@ -149,4 +149,4 @@ class CondaHealthChecks(NamedTuple):
     """
 
     name: str
-    action: Callable[[], None]
+    action: Callable[[str, bool], None]

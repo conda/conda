@@ -231,8 +231,8 @@ class CondaSpecs:
 
 
                 @plugins.hookimpl
-                def conda_doctor():
-                    yield CondaDoctor(
+                def conda_health_checks():
+                    yield CondaHealthChecks(
                         name="example-health-check",
                         action=example_health_check,
                     )

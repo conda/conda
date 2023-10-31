@@ -11,6 +11,8 @@ from conda.core.envs_manager import get_user_environments_txt_file
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
 
+from ... import CondaHealthChecks, hookimpl
+
 logger = getLogger(__name__)
 
 OK_MARK = "✅"
@@ -102,7 +104,12 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
 def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
     display_report_heading(prefix)
-    print("1. Missing Files:\n")
+    if verbose:
+        print("")
+
+
+def missing_files(prefix: str, verbose: bool) -> None:
+    print("Missing Files:\n")
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:
         for package_name, missing_files in missing_files.items():
@@ -114,9 +121,9 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
     else:
         print(f"{OK_MARK} There are no packages with missing files.\n")
 
-    if verbose:
-        print("")
-    print("2. Altered Files:\n")
+
+def altered_files(prefix: str, verbose: bool) -> None:
+    print("Altered Files:\n")
     altered_packages = find_altered_packages(prefix)
     if altered_packages:
         for package_name, altered_files in altered_packages.items():
@@ -128,5 +135,20 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
     else:
         print(f"{OK_MARK} There are no packages with altered files.\n")
 
+
+def env_txt_check(prefix: str, verbose: bool) -> None:
     present = OK_MARK if check_envs_txt_file(prefix) else X_MARK
-    print(f"3. Environment listed in environments.txt file: {present}\n")
+    print(f"Environment listed in environments.txt file: {present}\n")
+
+
+@hookimpl
+def conda_health_checks():
+    yield CondaHealthChecks(
+        name="Missing Files",
+        action=missing_files,
+    )
+    yield CondaHealthChecks(
+        name="Altered Files",
+        action=altered_files,
+    )
+    yield CondaHealthChecks(name="Environment.txt File Check", action=env_txt_check)

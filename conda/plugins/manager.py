@@ -24,6 +24,7 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
     CondaHealthChecks,
@@ -325,7 +326,10 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers, *virtual_packages.plugins, *subcommands.plugins
+        solvers,
+        *virtual_packages.plugins,
+        *subcommands.plugins,
+        health_checks,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
