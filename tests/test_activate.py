@@ -164,13 +164,6 @@ def changeps1(monkeypatch: MonkeyPatch) -> None:
     assert context.changeps1
 
 
-@pytest.fixture
-def no_changeps1(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("CONDA_CHANGEPS1", "false")
-    reset_context()
-    assert not context.changeps1
-
-
 def write_pkg_env_vars(prefix):
     activate_pkg_env_vars = join(prefix, PACKAGE_ENV_VARS_DIR)
     mkdir_p(activate_pkg_env_vars)
@@ -202,7 +195,15 @@ def test_PS1(reset_environ: None, tmp_path: Path):
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == f"({ROOT_ENV_NAME}) "
 
 
-def test_PS1_no_changeps1(reset_environ: None, no_changeps1: None, tmp_path: Path):
+def test_PS1_no_changeps1(
+    reset_environ: None,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+):
+    monkeypatch.setenv("CONDA_CHANGEPS1", "false")
+    reset_context()
+    assert not context.changeps1
+
     activator = PosixActivator()
     assert activator._prompt_modifier(tmp_path, "root") == ""
 
