@@ -593,6 +593,10 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
+        return self._native_subdir()
+
+    @lru_cache(maxsize=None)
+    def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
@@ -1042,14 +1046,18 @@ class Context(Configuration):
 
     @memoizedproperty
     def requests_version(self):
+        # used in User-Agent as "requests/<version>"
+        # if unable to detect a version we expect "requests/unknown"
         try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+            from requests import __version__ as requests_version
+        except ImportError as err:
+            # ImportError: requests is not installed
+            log.error("Unable to import requests: %s", err)
+            requests_version = "unknown"
+        except Exception as err:
+            log.error("Error importing requests: %s", err)
+            requests_version = "unknown"
+        return requests_version
 
     @memoizedproperty
     def python_implementation_name_version(self):

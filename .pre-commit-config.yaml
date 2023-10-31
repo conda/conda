@@ -21,7 +21,7 @@ exclude: |
 repos:
   # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -51,14 +51,14 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.13.0
+    rev: v3.15.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
         args: [--py38-plus]
         exclude: ^conda/exports.py
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 23.10.1
     hooks:
       # auto format Python codes
       - id: black
@@ -69,7 +69,7 @@ repos:
       - id: blacken-docs
         additional_dependencies: [black]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.291
+    rev: v0.1.3
     hooks:
       - id: ruff
         args: [--fix]

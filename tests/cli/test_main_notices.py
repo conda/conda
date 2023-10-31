@@ -208,8 +208,8 @@ def test_main_notices_help(capsys):
     captured = capsys.readouterr()
 
     assert captured.err == ""
-    assert conda_argparse.NOTICES_HELP in captured.out
-    assert conda_argparse.NOTICES_DESCRIPTION in captured.out
+    assert "Retrieve latest channel notifications." in captured.out
+    assert "maintainers have the option of setting messages" in captured.out
 
 
 def test_cache_names_appear_as_expected(
