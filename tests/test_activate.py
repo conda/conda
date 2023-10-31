@@ -2318,7 +2318,11 @@ class InteractiveShellType(type):
             "init_command": (
                 f"{sys.executable} -m conda shell.powershell hook --dev "
                 "| Out-String "
-                "| Invoke-Expression"
+                "| Invoke-Expression "
+                "; conda deactivate "
+                "; conda deactivate "
+                "; conda deactivate "
+                "; conda deactivate"
             ),
             "print_env_var": "$Env:%s",
             "exit_cmd": "exit",
