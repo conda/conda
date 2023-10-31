@@ -4,7 +4,7 @@ import pytest
 
 from conda import plugins
 from conda.plugins.subcommands import doctor
-from conda.plugins.types import CondaHealthChecks
+from conda.plugins.types import CondaHealthCheck
 
 
 class HealthCheckPlugin:
@@ -12,8 +12,8 @@ class HealthCheckPlugin:
         pass
 
     @plugins.hookimpl
-    def conda_health_checks(self):
-        yield CondaHealthChecks(
+    def conda_health_check(self):
+        yield CondaHealthCheck(
             name="test-health-check",
             action=self.health_check_action,
         )

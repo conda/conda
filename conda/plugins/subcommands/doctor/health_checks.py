@@ -11,7 +11,7 @@ from conda.core.envs_manager import get_user_environments_txt_file
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
 
-from ... import CondaHealthChecks, hookimpl
+from ... import CondaHealthCheck, hookimpl
 
 logger = getLogger(__name__)
 
@@ -101,13 +101,6 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
-# def display_health_checks(prefix: str, verbose: bool = False) -> None:
-#     """Prints health report."""
-#     display_report_heading(prefix)
-#     if verbose:
-#         print("")
-
-
 def missing_files(prefix: str, verbose: bool) -> None:
     print("Missing Files:\n")
     missing_files = find_packages_with_missing_files(prefix)
@@ -143,12 +136,12 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 @hookimpl
 def conda_health_checks():
-    yield CondaHealthChecks(
+    yield CondaHealthCheck(
         name="Missing Files",
         action=missing_files,
     )
-    yield CondaHealthChecks(
+    yield CondaHealthCheck(
         name="Altered Files",
         action=altered_files,
     )
-    yield CondaHealthChecks(name="Environment.txt File Check", action=env_txt_check)
+    yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)

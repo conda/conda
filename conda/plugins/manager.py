@@ -27,7 +27,7 @@ from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
-    CondaHealthChecks,
+    CondaHealthCheck,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -173,7 +173,7 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(
         self, name: Literal["health_checks"]
-    ) -> list[CondaHealthChecks]:
+    ) -> list[CondaHealthCheck]:
         ...
 
     def get_hook_results(self, name):
@@ -311,7 +311,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
-    def get_health_checks(self) -> tuple[CondaHealthChecks]:
+    def get_health_checks(self) -> tuple[CondaHealthCheck]:
         # for hook in self.get_hook_results("health_checks"):
         #     hook.action()
         return tuple(self.get_hook_results("health_checks"))
