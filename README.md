@@ -34,13 +34,13 @@ that only includes conda and its dependencies.
 ## Getting Started
 
 If you install the Anaconda Distribution, you will already have hundreds of packages
-installed. You can see what packages are installed by running
+installed. You can see what packages are installed by running:
 
 ```bash
 $ conda list
 ```
 
-to see all the packages that are available, use
+to see all the packages that are available, use:
 
 ```bash
 $ conda search
@@ -76,7 +76,7 @@ $ conda activate ml-project
 This puts the `bin` directory of the `ml-project` environment in the front of the `PATH`,
 and sets it as the default environment for all subsequent conda commands.
 
-To go back to the base environment, use
+To go back to the base environment, use:
 
 ```bash
 $ conda deactivate
@@ -93,14 +93,14 @@ See [AnacondaRecipes](https://github.com/AnacondaRecipes) for the recipes that m
 [Conda-forge](https://conda-forge.org/feedstocks/) and [Bioconda](https://github.com/bioconda/bioconda-recipes) are community-driven conda-based distributions.
 
 To upload to anaconda.org, create an account. Then, install the
-anaconda-client and login
+anaconda-client and login:
 
 ```bash
 $ conda install anaconda-client
 $ anaconda login
 ```
 
-Then, after you build your recipe
+Then, after you build your recipe:
 
 ```bash
 $ conda build <recipe-dir>
@@ -109,7 +109,7 @@ $ conda build <recipe-dir>
 you will be prompted to upload to anaconda.org.
 
 To add your anaconda.org channel, or other's channels, to conda so
-that `conda install` will find and install their packages, run
+that `conda install` will find and install their packages, run:
 
 ```bash
 $ conda config --add channels https://conda.anaconda.org/username
