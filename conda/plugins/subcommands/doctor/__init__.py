@@ -18,7 +18,7 @@ from ....cli.conda_argparse import (
 )
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
-from .health_checks import display_health_checks
+from .health_checks import display_report_heading
 
 
 @deprecated(
@@ -36,8 +36,8 @@ def configure_parser(parser: ArgumentParser):
 
 
 def execute(args: argparse.Namespace) -> None:
-    """Run conda doctor subcommand."""
-    display_health_checks(context.target_prefix, verbose=context.verbose)
+    """Run registered health_check plugins."""
+    display_report_heading(context.target_prefix)
     for health_check in context.plugin_manager.get_health_checks():
         health_check.action(context.target_prefix, verbose=context.verbose)
 
