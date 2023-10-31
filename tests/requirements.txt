@@ -23,7 +23,7 @@ pytest-timeout
 pytest-xdist
 requests >=2.18.4,<3
 responses
-ruamel.yaml >=0.11.14,<0.18
+ruamel.yaml >=0.11.14,<0.19
 setuptools >=60.0.0
 setuptools_scm  # for devenv version detection
 tomli  # [py<3.11] for coverage pyproject.toml
