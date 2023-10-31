@@ -865,13 +865,14 @@ class ProgressiveFetchExtract:
                 # We are interested in KeyboardInterrupt delivered to
                 # as_completed() while waiting, or any exception raised from
                 # completed_future.result(). cancelled_flag is checked in the
-                # progress callback to stop running transfers,
-                # shutdown(cancel_futures=True) should prevent new downloads
-                # from starting.
+                # progress callback to stop running transfers, shutdown() should
+                # prevent new downloads from starting.
                 cancelled_flag = True
                 for future in futures:  # needed on top of .shutdown()
                     future.cancel()
-                fetch_executor.shutdown(wait=False, cancel_futures=True)
+                # Has a Python >=3.9 cancel_futures= parameter that does not
+                # replace the above loop:
+                fetch_executor.shutdown(wait=False)
                 exceptions.append(e)
 
         for bar in progress_bars.values():
