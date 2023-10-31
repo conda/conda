@@ -2380,9 +2380,9 @@ class InteractiveShell(metaclass=InteractiveShellType):
                 "CONDA_AUTO_STACK": "0",
                 "CONDA_CHANGEPS1": "true",
                 # "CONDA_ENV_PROMPT": "({default_env}) ",
-                "PYTHONPATH": self.activator.path_conversion(CONDA_SOURCE_ROOT),
+                "PYTHONPATH": self.path_conversion(CONDA_SOURCE_ROOT),
                 "PATH": self.activator.pathsep_join(
-                    self.activator.path_conversion(
+                    self.path_conversion(
                         (
                             *self.activator._get_starting_path_list(),
                             self.shell_dir,
@@ -2461,6 +2461,9 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.sendline(f"echo {marker}")
         self.expect(rf"{marker}\r?\n")
 
+    def path_conversion(self, *args, **kwargs):
+        return self.activator.path_conversion(*args, **kwargs)
+
 
 def which_powershell():
     r"""
@@ -2518,11 +2521,10 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     deactivate = f" deactivate {dev_arg} "
     install = f" install {dev_arg} "
 
-    activator = PosixActivator()
-    num_paths_added = len(tuple(activator._get_path_dirs(prefix)))
-    prefix_p = activator.path_conversion(prefix)
-    prefix2_p = activator.path_conversion(prefix2)
-    activator.path_conversion(prefix3)
+    num_paths_added = len(tuple(shell.activator._get_path_dirs(prefix)))
+    prefix_p = shell.path_conversion(prefix)
+    prefix2_p = shell.path_conversion(prefix2)
+    shell.path_conversion(prefix3)
 
     PATH0 = shell.get_env_var("PATH", "")
     assert any(path.endswith("condabin") for path in PATH0.split(":"))
@@ -2534,8 +2536,8 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     # We can no longer check this since we'll replace e.g. between 1 and N path
     # entries with N of them in _replace_prefix_in_path() now. It is debatable
     # whether it should be here at all too.
-    if PATH0.startswith(activator.path_conversion(sys.prefix) + ":"):
-        PATH0 = PATH0[len(activator.path_conversion(sys.prefix)) + 1 :]
+    if PATH0.startswith(shell.path_conversion(sys.prefix) + ":"):
+        PATH0 = PATH0[len(shell.path_conversion(sys.prefix)) + 1 :]
         shell.sendline(f'export PATH="{PATH0}"')
         PATH0 = shell.get_env_var("PATH", "")
     shell.sendline("type conda")
@@ -3066,10 +3068,9 @@ def test_legacy_activate_deactivate_bash(
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
     with InteractiveShell("bash") as shell:
-        activator = PosixActivator()
-        CONDA_PACKAGE_ROOT_p = activator.path_conversion(CONDA_PACKAGE_ROOT)
-        prefix2_p = activator.path_conversion(prefix2)
-        prefix3_p = activator.path_conversion(prefix3)
+        CONDA_PACKAGE_ROOT_p = shell.path_conversion(CONDA_PACKAGE_ROOT)
+        prefix2_p = shell.path_conversion(prefix2)
+        prefix3_p = shell.path_conversion(prefix3)
         shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT_p)
         shell.sendline(
             f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"'
