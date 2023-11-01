@@ -103,9 +103,9 @@ def arg2spec(arg, json=False, update=False):
         from ..exceptions import CondaValueError
 
         raise CondaValueError(
-            """version specifications not allowed with 'update'; use
-    conda update  {}{}  or
-    conda install {}""".format(name, " " * (len(arg) - len(name)), arg)
+            "version specifications not allowed with 'update'; use\n"
+            f"    conda update  {name:<{len(arg)}}  or\n"
+            f"    conda install {arg:<{len(name)}}"
         )
 
     return str(spec)
