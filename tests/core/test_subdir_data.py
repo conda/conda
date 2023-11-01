@@ -28,7 +28,6 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
 from conda.testing.integration import make_temp_env
-from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 
 log = getLogger(__name__)
 
