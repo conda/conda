@@ -718,7 +718,7 @@ class ProgressiveFetchExtract:
         self.link_precs = link_prefs
 
         log.debug(
-            "instantiating ProgressiveFetchExtract with\n" "  %s\n",
+            "instantiating ProgressiveFetchExtract with\n  %s\n",
             "\n  ".join(pkg_rec.dist_str() for pkg_rec in link_prefs),
         )
 

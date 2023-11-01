@@ -132,13 +132,15 @@ class InvalidTypeError(ValidationError):
 
 class CustomValidationError(ValidationError):
     def __init__(self, parameter_name, parameter_value, source, custom_message):
-        msg = "Parameter %s = %r declared in %s is invalid.\n" "%s" % (
+        super().__init__(
             parameter_name,
             parameter_value,
             source,
-            custom_message,
+            msg=(
+                f"Parameter {parameter_name} = {parameter_value!r} declared in "
+                f"{source} is invalid.\n{custom_message}"
+            ),
         )
-        super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class MultiValidationError(CondaMultiError, ConfigurationError):

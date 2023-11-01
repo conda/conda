@@ -408,7 +408,7 @@ class Solver:
 
         ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
-            "solved prefix %s\n" "  solved_linked_dists:\n" "    %s\n",
+            "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
             "\n    ".join(prec.dist_str() for prec in ssc.solution_precs),
         )

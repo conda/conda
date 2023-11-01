@@ -704,7 +704,7 @@ def execute_config(args, parser):
                 rc.write(yaml_round_trip_dump(rc_config))
         except OSError as e:
             raise CondaError(
-                "Cannot write to condarc file at %s\n" "Caused by %r" % (rc_path, e)
+                f"Cannot write to condarc file at {rc_path}\nCaused by {e!r}"
             )
 
     if context.json:

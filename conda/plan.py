@@ -631,9 +631,7 @@ def _update_old_plan(old_plan):  # pragma: no cover
         if " " not in line:
             from .exceptions import ArgumentError
 
-            raise ArgumentError(
-                "The instruction '%s' takes at least" " one argument" % line
-            )
+            raise ArgumentError(f"The instruction {line!r} takes at least one argument")
 
         instruction, arg = line.split(" ", 1)
         plan.append((instruction, arg))
