@@ -68,10 +68,10 @@ def has_pkg(name: str, contents: Iterable[str | Path]) -> bool:
 
 # conda clean --force-pkgs-dirs
 def test_clean_force_pkgs_dirs(
-    clear_cache: None,
+    clear_cache,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -92,10 +92,10 @@ def test_clean_force_pkgs_dirs(
 
 # conda clean --packages
 def test_clean_and_packages(
-    clear_cache: None,
+    clear_cache,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -126,10 +126,10 @@ def test_clean_and_packages(
 
 # conda clean --tarballs
 def test_clean_tarballs(
-    clear_cache: None,
+    clear_cache,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     pkg = "zlib"
 
     with make_temp_package_cache() as pkgs_dir:
@@ -153,10 +153,10 @@ def test_clean_tarballs(
 
 # conda clean --index-cache
 def test_clean_index_cache(
-    clear_cache: None,
+    clear_cache,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     pkg = "zlib"
 
     with make_temp_package_cache():
@@ -179,10 +179,10 @@ def test_clean_index_cache(
 
 # conda clean --tempfiles
 def test_clean_tempfiles(
-    clear_cache: None,
+    clear_cache,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     """Tempfiles are either suffixed with .c~ or .trash.
 
     .c~ is used to indicate that conda is actively using that file. If the conda process is
@@ -223,10 +223,10 @@ def test_clean_tempfiles(
 
 # conda clean --logfiles
 def test_clean_logfiles(
-    clear_cache: None,
+    clear_cache,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     """Logfiles are found in pkgs_dir/.logs.
 
     Since these log files were uniquely created during the experimental
@@ -262,13 +262,13 @@ def test_clean_logfiles(
 # conda clean --all [--verbose]
 @pytest.mark.parametrize("verbose", [True, False])
 def test_clean_all(
-    clear_cache: None,
+    clear_cache,
     verbose: bool,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     pkg = "zlib"
-    args: tuple[str, ...] = ("--yes", "--json")
+    args = ("--yes", "--json")
     if verbose:
         args = (*args, "--verbose")
 
@@ -323,14 +323,14 @@ def test_clean_all(
 # conda clean --all --verbose
 @pytest.mark.parametrize("as_json", [True, False])
 def test_clean_all_mock_lstat(
-    clear_cache: None,
+    clear_cache,
     mocker: MockerFixture,
     as_json: bool,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-) -> None:
+):
     pkg = "zlib"
-    args: tuple[str, ...] = ("--yes", "--verbose")
+    args = ("--yes", "--verbose")
     if as_json:
         args = (*args, "--json")
 
@@ -341,10 +341,9 @@ def test_clean_all_mock_lstat(
         assert has_pkg(pkg, tars)
         assert cache
 
-        conda_cli("remove", "--prefix", prefix, pkg, *args)
-
         mocker.patch("os.lstat", side_effect=OSError)
 
+        conda_cli("remove", "--prefix", prefix, pkg, *args)
         stdout, _, _ = conda_cli("clean", "--packages", *args)
         assert "WARNING:" in stdout
         if as_json:
@@ -360,7 +359,7 @@ def test_clean_all_mock_lstat(
 
 
 # _get_size unittest, valid file
-def test_get_size(tmp_path: Path) -> None:
+def test_get_size(tmp_path: Path):
     warnings: list[str] = []
     path = tmp_path / "file"
     path.write_text("hello")
@@ -369,13 +368,13 @@ def test_get_size(tmp_path: Path) -> None:
 
 
 # _get_size unittest, invalid file
-def test_get_size_None() -> None:
+def test_get_size_None():
     with pytest.raises(OSError):
         _get_size("not-a-file", warnings=None)
 
 
 # _get_size unittest, invalid file and collect warnings
-def test_get_size_list() -> None:
+def test_get_size_list():
     warnings: list[str] = []
     with pytest.raises(NotImplementedError):
         _get_size("not-a-file", warnings=warnings)
