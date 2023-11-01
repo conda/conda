@@ -259,7 +259,7 @@ def test_repodata_state(
         repo_cls = CondaRepoInterface
 
     with env_vars(
-        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
+        {"CONDA_PLATFORM": "osx-64", "CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         SubdirData.clear_cached_local_channel_data(
@@ -320,7 +320,7 @@ def test_repodata_info_jsondecodeerror(
         repo_cls = CondaRepoInterface
 
     with env_vars(
-        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
+        {"CONDA_PLATFORM": "osx-64", "CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         SubdirData.clear_cached_local_channel_data(
@@ -367,11 +367,12 @@ def test_repodata_info_jsondecodeerror(
 def test_jlap_flag(use_jlap):
     """Test that CONDA_EXPERIMENTAL is a comma-delimited list."""
     with env_vars(
-        {"CONDA_EXPERIMENTAL": use_jlap},
+        {"CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        expected = "jlap" in use_jlap.split(",")
-        assert ("jlap" in context.experimental) is expected
+        # expected = "jlap" in use_jlap.split(",")
+        # assert ("jlap" in context.experimental) is expected
+        expected = use_jlap
 
         expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
         assert get_repo_interface() is expected_cls
@@ -392,7 +393,7 @@ def test_jlap_sought(
     with env_vars(
         {
             "CONDA_PLATFORM": "osx-64",
-            "CONDA_EXPERIMENTAL": "jlap",
+            "CONDA_NO_JLAP": False,
             "CONDA_PKGS_DIRS": str(tmp_path),
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
