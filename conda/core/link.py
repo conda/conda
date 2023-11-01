@@ -1560,9 +1560,8 @@ def run_script(
                     #   create_env function
                     message = f"{action} failed for: {prec}"
                 else:
-                    message = (
-                        dals(
-                            """
+                    message = dals(
+                        """
                     %s script failed for package %s
                     location of failed script: %s
                     ==> script messages <==
@@ -1572,16 +1571,14 @@ def run_script(
                     stderr: %s
                     return code: %s
                     """
-                        )
-                        % (
-                            action,
-                            prec.dist_str(),
-                            path,
-                            m or "<None>",
-                            response.stdout,
-                            response.stderr,
-                            response.rc,
-                        )
+                    ) % (
+                        action,
+                        prec.dist_str(),
+                        path,
+                        m or "<None>",
+                        response.stdout,
+                        response.stderr,
+                        response.rc,
                     )
                 raise LinkError(message)
             else:

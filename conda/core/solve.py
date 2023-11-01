@@ -1221,7 +1221,7 @@ class Solver:
                     self.subdirs,
                     repodata_fn=self._repodata_fn,
                 ),
-                key=lambda x: VersionOrder(x.version)
+                key=lambda x: VersionOrder(x.version),
                 # VersionOrder is fine here rather than r.version_key because all precs
                 # should come from the same channel
             )

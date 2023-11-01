@@ -876,12 +876,9 @@ class Resolve:
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if (
-                                    "track_features" not in new_ms
-                                    and not self._broader(
-                                        new_ms,
-                                        tuple(specs_by_name.get(new_ms.name, ())),
-                                    )
+                                if "track_features" not in new_ms and not self._broader(
+                                    new_ms,
+                                    tuple(specs_by_name.get(new_ms.name, ())),
                                 ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:

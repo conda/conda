@@ -1579,9 +1579,9 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
         with make_temp_env("console_shortcut", prefix=prefix):
             assert package_is_installed(prefix, "console_shortcut")
             assert isfile(shortcut_file), (
-                "Shortcut not found in menu dir. "
-                "Contents of dir:\n"
-                "{}".format(os.listdir(shortcut_dir))
+                "Shortcut not found in menu dir. " "Contents of dir:\n" "{}".format(
+                    os.listdir(shortcut_dir)
+                )
             )
 
             # make sure that cleanup without specifying --shortcuts still removes shortcuts

@@ -1450,7 +1450,7 @@ class Configuration(metaclass=ConfigurationType):
             items = argparse_args.items()
 
         self._argparse_args = argparse_args = AttrDict(
-            {k: v for k, v, in items if v is not NULL}
+            {k: v for k, v in items if v is not NULL}
         )
 
         # remove existing source so "insert" order is correct

@@ -249,7 +249,8 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher), closefd=True  # type: ignore
+                HashWriter(dest_path.open("wb"), hasher),
+                closefd=True,
             )
         else:
             writer = HashWriter(dest_path.open("wb"), hasher)

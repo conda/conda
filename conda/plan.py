@@ -127,11 +127,9 @@ def display_actions(
         channels[pkg][1] = channel_str(prec)
         packages[pkg][1] = prec["version"] + "-" + prec["build"]
         records[pkg][1] = prec
-        linktypes[
-            pkg
-        ] = (
-            LinkType.hardlink
-        )  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
+        # TODO: this is a lie; may have to give this report after
+        # UnlinkLinkTransaction.verify()
+        linktypes[pkg] = LinkType.hardlink
         features[pkg][1] = ",".join(prec.get("features") or ())
     for prec in actions.get(UNLINK, []):
         assert isinstance(prec, PackageRecord)

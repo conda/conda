@@ -722,9 +722,7 @@ class ProgressiveFetchExtract:
             "\n  ".join(pkg_rec.dist_str() for pkg_rec in link_prefs),
         )
 
-        self.paired_actions = (
-            {}
-        )  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
+        self.paired_actions = {}  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
         self._prepared = False
         self._executed = False
@@ -806,9 +804,7 @@ class ProgressiveFetchExtract:
             "fetch_extract_execute"
         ), ThreadPoolExecutor(
             context.fetch_threads
-        ) as fetch_executor, ThreadPoolExecutor(
-            EXTRACT_THREADS
-        ) as extract_executor:
+        ) as fetch_executor, ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor:
             for prec_or_spec, (
                 cache_action,
                 extract_action,
