@@ -1,6 +1,7 @@
 ### Enhancements
 
-* Inject a new detailed output verbosity level (i.e., the old debug level `-vv` is now `-vvv`). (#12985, #12977, #12420, #13036)
+* Download largest packages first, preventing smaller packages from having to
+  wait for larger packages. (#13248)
 
 ### Bug fixes
 

@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Catch a `NotWritableError` when trying to find the first writable package cache dir. (#9609)
+* Check name of symlink, not its target against valid configuration file names
+  (`condarc`, `.condarc`, or `*.yml/yaml`). (#12956)
 
 ### Deprecations
 

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Import boto3 only when s3 channels are used, saving startup time. (#12914)
+* Add `activate` and `deactivate` to `--help` command list. (#13191)
 
 ### Bug fixes
 

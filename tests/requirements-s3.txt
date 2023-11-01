@@ -1,0 +1,2 @@
+boto3
+conda-forge::minio-server

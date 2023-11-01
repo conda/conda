@@ -173,6 +173,7 @@ Authors are sorted alphabetically.
 * Jan-Benedikt Jagusch
 * Jan-Philipp Igla
 * Jannis Leidel
+* Jason Carpenter
 * Jason Grout
 * Jason Vestuto
 * Javier Rovegno
@@ -282,6 +283,7 @@ Authors are sorted alphabetically.
 * Mike Croucher
 * MinRK
 * Minh Phan
+* Monius
 * Morgan Parry
 * Morten Enemark Lund
 * Murray Read
@@ -312,6 +314,7 @@ Authors are sorted alphabetically.
 * Pavel Zwerschke
 * Pete Bachant
 * Peter Cable
+* Peter Talley
 * Peter Williams
 * Phil Elson
 * Philip Thomas
@@ -353,6 +356,7 @@ Authors are sorted alphabetically.
 * Scott Evtuch
 * Sean Ross-Ross
 * Sebastien Awwad
+* Sergio Oller
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
@@ -377,6 +381,7 @@ Authors are sorted alphabetically.
 * Stijn Verstraeten
 * Stuart Berg
 * Tadeu Manoel
+* Tarcisio
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
@@ -399,6 +404,7 @@ Authors are sorted alphabetically.
 * Troy Powell
 * Tyler Kim
 * Tyrone Grandison
+* Udo-Peter Steyer
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
@@ -410,6 +416,7 @@ Authors are sorted alphabetically.
 * Will Warner
 * Willy Chen
 * Winston Sebastian Pais
+* Wolf Vollprecht
 * Wolfgang Ulmer
 * Xuehai Pan
 * Xylar Asay-Davis

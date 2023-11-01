@@ -39,6 +39,10 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.reader import ReaderError
+from ruamel.yaml.scanner import ScannerError
+
 from .. import CondaError, CondaMultiError
 from .._vendor.frozendict import frozendict
 from ..auxlib.collection import AttrDict, first, last, make_immutable
@@ -48,20 +52,6 @@ from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
-
-try:
-    from ruamel.yaml.comments import CommentedMap, CommentedSeq
-    from ruamel.yaml.reader import ReaderError
-    from ruamel.yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    try:
-        from ruamel_yaml.comments import CommentedMap, CommentedSeq
-        from ruamel_yaml.reader import ReaderError
-        from ruamel_yaml.scanner import ScannerError
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
 
 log = getLogger(__name__)
 
@@ -195,9 +185,9 @@ class RawParameter(metaclass=ABCMeta):
         self.source = source
         self.key = key
         try:
-            # ignore flake8 on this because it finds an error on py3 even though it is guarded
-            self._raw_value = unicode(raw_value.decode("utf-8"))  # NOQA
-        except:
+            self._raw_value = raw_value.decode("utf-8")
+        except AttributeError:
+            # AttributeError: raw_value is not encoded
             self._raw_value = raw_value
 
     def __repr__(self):
@@ -1394,7 +1384,7 @@ class Configuration(metaclass=ConfigurationType):
                 path = search
             else:
                 template = custom_expandvars(search, environ, **kwargs)
-                path = Path(template).expanduser().resolve()
+                path = Path(template).expanduser()
 
             if path.is_file() and (
                 path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS

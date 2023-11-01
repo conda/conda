@@ -141,7 +141,7 @@ def conda_check_versions_aligned():
     else:
         version_from_file = None
 
-    git_exe = "git.exe" if sys.platform == "win32" else "git"
+    git_exe = "git.exe" if on_win else "git"
     version_from_git = None
     for pe in os.environ.get("PATH", "").split(os.pathsep):
         if isfile(join(pe, git_exe)):

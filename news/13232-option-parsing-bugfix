@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Default `--json` and `--debug` to `NULL` so as to not overriding `CONDA_JSON` and `CONDA_DEBUG` environment variables. (#12987)
+* Fixes a bug where not providing a command but providing an option like `--debug` results in an error (#13232)
 
 ### Deprecations
 

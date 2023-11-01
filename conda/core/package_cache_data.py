@@ -734,8 +734,19 @@ class ProgressiveFetchExtract:
         if self._prepared:
             return
 
+        # Download largest first
+        def by_size(prec: PackageRecord | MatchSpec):
+            # the test suite passes MatchSpec in here, is that an intentional
+            # feature?
+            try:
+                return int(prec.size)  # type: ignore
+            except (LookupError, ValueError, AttributeError):
+                return 0
+
+        largest_first = sorted(self.link_precs, key=by_size, reverse=True)
+
         self.paired_actions.update(
-            (prec, self.make_actions_for_record(prec)) for prec in self.link_precs
+            (prec, self.make_actions_for_record(prec)) for prec in largest_first
         )
         self._prepared = True
 

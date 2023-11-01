@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Resume interrupted package downloads (#8695)
 
 ### Bug fixes
 
-* Disallow ability to create a conda environment with a colon in the prefix. (#13044)
+* <news item>
 
 ### Deprecations
 
