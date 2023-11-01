@@ -95,7 +95,7 @@ class Response304ContentUnchanged(Exception):
 
 
 def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
+    if not context.no_jlap:
         try:
             from .jlap.interface import JlapRepoInterface
 

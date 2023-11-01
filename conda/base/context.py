@@ -401,6 +401,7 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
+    no_jlap = ParameterLoader(PrimitiveParameter(False))
 
     ####################################################
     #               Solver Configuration               #
@@ -1141,6 +1142,7 @@ class Context(Configuration):
                 "fetch_threads",
                 "experimental",
                 "no_lock",
+                "no_jlap",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1804,6 +1806,12 @@ class Context(Configuration):
             no_lock=dals(
                 """
                 Disable index cache lock (defaults to enabled).
+                """
+            ),
+            no_jlap=dals(
+                """
+                Disable `repodata.json.zst` and `repodata.jlap` incremental
+                index updates when supplied by the remote (defaults to enabled).
                 """
             ),
         )
