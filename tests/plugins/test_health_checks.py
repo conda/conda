@@ -12,7 +12,7 @@ class HealthCheckPlugin:
         pass
 
     @plugins.hookimpl
-    def conda_health_check(self):
+    def conda_health_checks(self):
         yield CondaHealthCheck(
             name="test-health-check",
             action=self.health_check_action,

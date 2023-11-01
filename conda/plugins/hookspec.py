@@ -211,7 +211,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_health_check(self) -> Iterable[CondaHealthCheck]:
+    def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
         """
         Register health checks for conda doctor.
 
@@ -231,7 +231,7 @@ class CondaSpecs:
 
 
                 @plugins.hookimpl
-                def conda_health_check():
+                def s():
                     yield CondaHealthCheck(
                         name="example-health-check",
                         action=example_health_check,

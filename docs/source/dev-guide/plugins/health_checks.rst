@@ -10,4 +10,4 @@ The ``action`` option is where you specify the code you want to be executed with
    :members:
    :undoc-members:
 
-.. autoapifunction:: conda.plugins.hookspec.CondaSpecs.conda_health_check
+.. autoapifunction:: conda.plugins.hookspec.CondaSpecs.conda_health_checks
