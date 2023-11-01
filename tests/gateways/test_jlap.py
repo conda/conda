@@ -16,7 +16,7 @@ import requests
 import zstandard
 
 import conda.gateways.repodata
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError, CondaSSLError

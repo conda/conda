@@ -20,11 +20,11 @@ from conda.core.subdir_data import (
 from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
 from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
+from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
 from conda.testing.integration import make_temp_env
-from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 
 log = getLogger(__name__)
 
