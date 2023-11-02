@@ -359,9 +359,7 @@ def test_jlap_flag(use_jlap):
         {"CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        # expected = "jlap" in use_jlap.split(",")
-        # assert ("jlap" in context.experimental) is expected
-        expected = use_jlap
+        assert context.no_jlap is not use_jlap
 
         # now using a subclass of JlapRepoInterface for "check zstd but not jlap"
         if expected:
