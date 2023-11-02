@@ -88,10 +88,12 @@ BUILTIN_COMMANDS = {
     "upgrade",
     "notices",
 }
+HELP_INDENT = "  "
 
 
-def generate_pre_parser(**kwargs) -> ArgumentParser:
-    pre_parser = ArgumentParser(
+def generate_pre_parser(clean_help: bool = True, **kwargs) -> ArgumentParser:
+    parser_class = CleanHelpArgumentParser if clean_help else ArgumentParser
+    pre_parser = parser_class(
         description="conda is a tool for managing and deploying applications,"
         " environments and packages.",
         **kwargs,
@@ -114,8 +116,8 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
     return pre_parser
 
 
-def generate_parser(**kwargs) -> ArgumentParser:
-    parser = generate_pre_parser(**kwargs)
+def generate_parser(clean_help: bool = True, **kwargs) -> ArgumentParser:
+    parser = generate_pre_parser(clean_help, **kwargs)
 
     parser.add_argument(
         "-V",
@@ -154,6 +156,10 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_plugins(sub_parsers)
 
     return parser
+
+
+def generate_parser_sphinx(**kwargs) -> ArgumentParser:
+    return generate_parser(clean_help=False, **kwargs)
 
 
 def do_call(args: argparse.Namespace, parser: ArgumentParser):
@@ -224,6 +230,46 @@ class ArgumentParser(ArgumentParserBase):
             if value is not NULL and getattr(parsed_args, name, NULL) is NULL:
                 setattr(parsed_args, name, value)
         return parsed_args
+
+
+class CleanHelpArgumentParser(ArgumentParser):
+    def __init__(self, *args, add_help=True, **kwargs):
+        super().__init__(*args, add_help=add_help, **kwargs)
+
+    def _clean_help_text(self, text):
+        if not text:
+            return text
+        in_literal_block = False
+        literal_block_indent = -1
+        cleaned_text = ""
+        print(text.split("\n"))
+        for line in text.split("\n"):
+            if line:
+                lstrip_line = line.lstrip()
+                indent_len = len(line) - len(lstrip_line)
+                if indent_len == 0:
+                    in_literal_block = False
+                    literal_block_indent = -1
+                if in_literal_block:
+                    # Remove leading spaces
+                    if literal_block_indent == -1:
+                        literal_block_indent = indent_len
+                    line = (
+                        HELP_INDENT * (indent_len // literal_block_indent)
+                    ) + lstrip_line
+                elif line.endswith("::"):
+                    # Remove trailing double-colon
+                    in_literal_block = True
+                    line = line[:-1]
+            cleaned_text += line + "\n"
+        return cleaned_text[:-1]
+
+    def format_help(self):
+        if not self.epilog:
+            return super().format_help()
+        self.description = self._clean_help_text(self.description)
+        self.epilog = self._clean_help_text(self.epilog)
+        return super().format_help()
 
 
 class _GreedySubParsersAction(argparse._SubParsersAction):
