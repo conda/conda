@@ -21,7 +21,7 @@ from conda.misc import touch_nonadmin
 from conda.notices import notices
 
 sys.path.append("..")
-from conda_env import specs as install_specs
+from conda.env import specs as install_specs
 
 from ..env.installers.base import InvalidInstaller, get_installer
 from .common import get_filename, print_result

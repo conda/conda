@@ -12,8 +12,8 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing import CondaCLIFixture
 from conda.testing.integration import package_is_installed
+from tests.env import support_file
 
-from . import support_file
 from .utils import make_temp_envs_dir
 
 
@@ -203,7 +203,6 @@ def test_create_update_remote_env_file(
 
         env_name = str(uuid4())[:8]
         prefix = Path(envs_dir, env_name)
-
         conda_cli(
             *("env", "create"),
             *("--name", env_name),

@@ -96,7 +96,7 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from conda_env import specs
+    from conda.env import specs
 
     from ..base.context import context
     from ..exceptions import EnvironmentLocationNotFound, SpecNotFound

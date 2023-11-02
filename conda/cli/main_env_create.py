@@ -21,13 +21,13 @@ from conda.cli.conda_argparse import (
 )
 from conda.core.prefix_data import PrefixData
 from conda.deprecations import deprecated
+from conda.env import (
+    specs,
+)
 from conda.env.installers.base import InvalidInstaller, get_installer
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.notices import notices
-from conda_env import (
-    specs,
-)
 
 from .common import get_filename, print_result
 

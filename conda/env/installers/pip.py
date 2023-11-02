@@ -8,8 +8,8 @@ from logging import getLogger
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context
 from conda.common.io import Spinner
+from conda.env.pip_util import get_pip_installed_packages, pip_subprocess
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
-from conda_env.pip_util import get_pip_installed_packages, pip_subprocess
 
 log = getLogger(__name__)
 

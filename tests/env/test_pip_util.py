@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import importlib
 
 import pytest
 
@@ -80,17 +79,3 @@ def test_get_pip_installed_packages(pip_output, expected):
 def test_get_pip_installed_packages_none(pip_output):
     result = get_pip_installed_packages(pip_output)
     assert result is None
-
-
-@pytest.mark.parametrize(
-    "conda_env_module, conda_module, function_name",
-    [
-        ("conda_env.pip_util", "conda.env.pip_util", "get_pip_installed_packages"),
-        ("conda_env.pip_util", "conda.env.pip_util", "pip_subprocess"),
-    ],
-)
-def test_pip_util_imports(conda_env_module, conda_module, function_name):
-    deprecated = importlib.import_module(conda_env_module)
-    redirect_module = importlib.import_module(conda_module)
-
-    assert getattr(deprecated, function_name) is getattr(redirect_module, function_name)
