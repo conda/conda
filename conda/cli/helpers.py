@@ -210,12 +210,10 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
             "conda config --describe repodata_fns."
         ),
     )
+    # Land additional experimental options here as needed; don't fail if old
+    # ones passed.
     channel_customization_options.add_argument(
-        "--experimental",
-        action="append",
-        choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        "--experimental", action="append", choices=["jlap", "lock"], help=SUPPRESS
     )
     channel_customization_options.add_argument(
         "--no-lock",
