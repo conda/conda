@@ -10,7 +10,7 @@ from conda.cli.main_env_update import configure_parser as update_configure_parse
 from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import massage_arguments
-from conda_env.cli.main import do_call as do_call_conda_env
+from conda_env.cli.main import execute as execute_conda_env
 
 
 class Commands:
@@ -45,4 +45,4 @@ def run_command(command, env_name, *arguments):
     parser_config[command](sub_parsers)
     args = p.parse_args(args)
 
-    do_call_conda_env(args, p)
+    execute_conda_env(args, p)

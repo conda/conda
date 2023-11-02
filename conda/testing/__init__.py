@@ -185,12 +185,12 @@ class CondaCLIFixture:
 
         # mock legacy subcommands
         if argv[0] == "env":
-            from conda_env.cli.main import create_parser, do_call
+            from conda.cli.main_env import configure_parser, execute
 
             argv = argv[1:]
 
             # parse arguments
-            parser = create_parser()
+            parser = configure_parser()
             args = parser.parse_args(argv)
 
             # initialize context and loggers
@@ -198,7 +198,7 @@ class CondaCLIFixture:
             init_loggers()
 
             # run command
-            code = do_call(args, parser)
+            code = execute(args, parser)
 
         # all other subcommands
         else:
