@@ -370,11 +370,9 @@ def test_jlap_flag(use_jlap):
         {"CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        # expected = "jlap" in use_jlap.split(",")
-        # assert ("jlap" in context.experimental) is expected
-        expected = use_jlap
+        assert context.no_jlap is not use_jlap
 
-        expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
+        expected_cls = interface.JlapRepoInterface if use_jlap else CondaRepoInterface
         assert get_repo_interface() is expected_cls
 
 
