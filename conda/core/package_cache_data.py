@@ -17,8 +17,6 @@ from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
@@ -31,6 +29,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url

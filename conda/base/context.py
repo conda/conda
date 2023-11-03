@@ -1093,7 +1093,7 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from conda._vendor.distro import id, version
+            from .._vendor.distro import id, version
 
             try:
                 distinfo = id(), version(best=True)

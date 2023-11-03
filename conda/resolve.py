@@ -14,14 +14,13 @@ from logging import DEBUG, getLogger
 
 from tqdm import tqdm
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from .auxlib.decorators import memoizemethod
 from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .common.logic import (
     TRUE,
     Clauses,

@@ -20,7 +20,17 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.gateways.repodata import (
+from ..auxlib.ish import dals
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
+from ..base.context import context
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
+from ..common.iterators import groupby_to_dict as groupby
+from ..common.path import url_to_path
+from ..common.url import join_url
+from ..deprecations import deprecated
+from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
+from ..gateways.disk.delete import rm_rf
+from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
@@ -32,20 +42,9 @@ from conda.gateways.repodata import (
     create_cache_dir,
     get_repo_interface,
 )
-from conda.gateways.repodata import (
+from ..gateways.repodata import (
     get_cache_control_max_age as _get_cache_control_max_age,
 )
-
-from ..auxlib.ish import dals
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
-from ..base.context import context
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
-from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import url_to_path
-from ..common.url import join_url
-from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
-from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
