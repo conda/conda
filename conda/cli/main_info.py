@@ -209,7 +209,7 @@ def print_package_info(packages):
 def get_info_dict(system=False):
     from .. import CONDA_PACKAGE_ROOT
     from .. import __version__ as conda_version
-    from ..base.context import context, env_name, sys_rc_path, user_rc_path
+    from ..base.context import context, env_name, sys_rc_path, user_rc_path, DEFAULT_SOLVER
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
     from ..core.index import _supplement_index_with_system
@@ -242,6 +242,12 @@ def get_info_dict(system=False):
 
     active_prefix_name = env_name(context.active_prefix)
 
+    solver = {
+        "name": context.solver,
+        "user_agent": context.solver_user_agent,
+        "default": context.solver == DEFAULT_SOLVER,
+    }
+
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
@@ -272,6 +278,7 @@ def get_info_dict(system=False):
         config_files=context.config_files,
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
+        solver=solver,
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -350,6 +357,10 @@ def get_main_info_str(info_dict):
         yield ("conda version", info_dict["conda_version"])
         yield ("conda-build version", info_dict["conda_build_version"])
         yield ("python version", info_dict["python_version"])
+        yield (
+            "solver",
+            f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}"
+        )
         yield (
             "virtual packages",
             flatten("=".join(pkg) for pkg in info_dict["virtual_pkgs"]),
