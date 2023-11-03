@@ -79,19 +79,24 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @deprecated.argument("24.3", "24.9", "prefix")
 def validate_src() -> str:
     """
-    Validate that we are receiving at least one value for --name or --prefix
-    and ensure that the "base" environment is not being renamed
+    Validate that we are receiving at least one legitimate value for --name or
+    --prefix and ensure that the "base" environment is not being renamed
     """
     from ..base.context import context
     from ..exceptions import CondaEnvException
 
-    if Path(context.target_prefix).samefile(context.root_prefix):
-        raise CondaEnvException("The 'base' environment cannot be renamed")
-    env_dir = Path(context.root_prefix) / "envs"
-    if Path(context.target_prefix).samefile(env_dir):
-        raise CondaEnvException("The environment directory cannot be renamed")
-    if Path(context.target_prefix).samefile(context.active_prefix):
-        raise CondaEnvException("Cannot rename the active environment")
+    if Path(context.target_prefix).exists():
+        if Path(context.target_prefix).samefile(context.root_prefix):
+            raise CondaEnvException("The 'base' environment cannot be renamed")
+        env_dir = Path(context.root_prefix) / "envs"
+        if Path(context.target_prefix).samefile(env_dir):
+            raise CondaEnvException("The environment directory cannot be renamed")
+        if Path(context.target_prefix).samefile(context.active_prefix):
+            raise CondaEnvException("Cannot rename the active environment")
+    else:
+        raise CondaEnvException(
+            "The environment you are trying to rename does not exist"
+        )
 
     return context.target_prefix
 
