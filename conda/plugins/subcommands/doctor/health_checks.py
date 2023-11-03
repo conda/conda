@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import json
+import warnings
 from logging import getLogger
 from pathlib import Path
 
+from conda.base.context import context
 from conda.core.envs_manager import get_user_environments_txt_file
 from conda.exceptions import CondaError
 from conda.gateways.disk.read import compute_sum
@@ -99,6 +101,17 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
                 altered_packages.setdefault(file.stem, []).append(_path)
 
     return altered_packages
+
+
+def display_health_checks(prefix: str, verbose: bool = False) -> None:
+    """Prints health report."""
+    warnings.warn(
+        "The `display_health_checks` function is pending deprecation and will be removed in a future release. ",
+        PendingDeprecationWarning,
+    )
+    display_report_heading(prefix)
+    for health_check in context.plugin_manager.get_health_checks():
+        health_check.action(prefix, verbose=verbose)
 
 
 def missing_files(prefix: str, verbose: bool) -> None:
