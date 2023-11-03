@@ -60,16 +60,16 @@ class PrefixDataType(type):
 
 
 class PrefixData(metaclass=PrefixDataType):
-    _cache_ = {}
+    _cache_: dict[Path, PrefixData] = {}
 
     def __init__(
         self,
-        prefix_path: str | os.PathLike | Path,
+        prefix_path: Path,
         pip_interop_enabled: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
-        self.prefix_path = Path(prefix_path)
+        self.prefix_path = prefix_path
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (

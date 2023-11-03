@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import sys
 from pathlib import Path
 from uuid import uuid4
 
@@ -92,9 +91,7 @@ def test_create_host_port(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_create_advanced_pip(
-    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, capsys
-):
+def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
     with make_temp_envs_dir() as envs_dir:
         monkeypatch.setenv("CONDA_ENVS_DIRS", envs_dir)
         reset_context()
@@ -108,10 +105,6 @@ def test_create_advanced_pip(
             *("--name", env_name),
             *("--file", support_file("advanced-pip/environment.yml")),
         )
-
-        with capsys.disabled():
-            print(stdout)
-            print(stdout, file=sys.stderr)
 
         PrefixData._cache_.clear()
         assert prefix.exists()
