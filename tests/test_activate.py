@@ -2254,6 +2254,9 @@ class InteractiveShellType(type):
             "activator": "posix",
             "init_command": (
                 f'eval "$({EXE} -m conda shell.posix hook {dev_arg})" '
+                # want CONDA_SHLVL=0 before running tests so deactivate any active environments
+                # since we do not know how many environments have been activated by the user/CI
+                # just to be safe deactivate a few times
                 "&& conda deactivate "
                 "&& conda deactivate "
                 "&& conda deactivate "
@@ -2319,6 +2322,9 @@ class InteractiveShellType(type):
                 f"{sys.executable} -m conda shell.powershell hook --dev "
                 "| Out-String "
                 "| Invoke-Expression "
+                # want CONDA_SHLVL=0 before running tests so deactivate any active environments
+                # since we do not know how many environments have been activated by the user/CI
+                # just to be safe deactivate a few times
                 "; conda deactivate "
                 "; conda deactivate "
                 "; conda deactivate "
