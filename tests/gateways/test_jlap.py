@@ -363,15 +363,13 @@ def test_repodata_info_jsondecodeerror(
         assert any(record[0].startswith("JSONDecodeError") for record in records)
 
 
-@pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
+@pytest.mark.parametrize("use_jlap", [True, False])
 def test_jlap_flag(use_jlap):
-    """Test that CONDA_EXPERIMENTAL is a comma-delimited list."""
+    """Test that CONDA_NO_JLAP controls the repo interface class."""
     with env_vars(
         {"CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        assert context.no_jlap is not use_jlap
-
         expected_cls = interface.JlapRepoInterface if use_jlap else CondaRepoInterface
         assert get_repo_interface() is expected_cls
 
