@@ -209,7 +209,13 @@ def print_package_info(packages):
 def get_info_dict(system=False):
     from .. import CONDA_PACKAGE_ROOT
     from .. import __version__ as conda_version
-    from ..base.context import context, env_name, sys_rc_path, user_rc_path, DEFAULT_SOLVER
+    from ..base.context import (
+        DEFAULT_SOLVER,
+        context,
+        env_name,
+        sys_rc_path,
+        user_rc_path,
+    )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
     from ..core.index import _supplement_index_with_system
@@ -359,7 +365,7 @@ def get_main_info_str(info_dict):
         yield ("python version", info_dict["python_version"])
         yield (
             "solver",
-            f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}"
+            f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}",
         )
         yield (
             "virtual packages",
