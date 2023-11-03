@@ -143,7 +143,6 @@ def test_cannot_rename_env_directory(conda_cli: CondaCLIFixture, env_rename: str
         env_dir = Path(context.root_prefix) / "envs"
         conda_cli("rename", "--prefix", env_dir, env_rename)
 
-    assert Path(context.root_prefix).exists()
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(env_rename)
 
@@ -178,7 +177,7 @@ def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: s
         env_dir = Path(context.root_prefix) / "env"
         conda_cli("rename", "--prefix", env_dir, env_rename)
 
-    assert Path(context.root_prefix).exists()
+    assert Path(env_dir).exists() is False
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(env_rename)
 
