@@ -250,7 +250,7 @@ def get_info_dict(system=False):
 
     solver = {
         "name": context.solver,
-        "user_agent": context.solver_user_agent,
+        "user_agent": context.solver_user_agent(),
         "default": context.solver == DEFAULT_SOLVER,
     }
 

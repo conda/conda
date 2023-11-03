@@ -1005,7 +1005,6 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
-    @memoizedproperty
     def solver_user_agent(self):
         user_agent = "solver/%s" % self.solver
         try:
@@ -1029,7 +1028,7 @@ class Context(Configuration):
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
         if self.solver != "classic":
-            builder.append(self.solver_user_agent)
+            builder.append(self.solver_user_agent())
         return " ".join(builder)
 
     @contextmanager
