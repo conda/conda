@@ -1,8 +1,8 @@
 ### Enhancements
 
-* Fetch `repodata.json.zst` and os updates `repodata.jlap` by
-  default, to reduce index fetch bandwidth. Pass `--no-jlap` to
-  disable. (#13120)
+* Fetch `repodata.json.zst`, and for updates `repodata.jlap` by
+  default, when present on the server, to reduce index fetch
+  bandwidth. Pass `--no-jlap` to disable. (#13120)
 
 ### Bug fixes
 
