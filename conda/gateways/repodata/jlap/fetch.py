@@ -258,7 +258,7 @@ def download_and_hash(
                 repodata.write(block)
     if response.request:
         try:
-            length = int(response.request.headers['Content-Length'])
+            length = int(response.headers["Content-Length"])
         except (KeyError, ValueError, AttributeError):
             pass
         log.info("Download %d bytes %r", length, response.request.headers)
@@ -431,7 +431,7 @@ def request_url_jlap_state(
                 with timeme("Write changed "), temp_path.open("wb") as repodata:
                     hasher = hash()
                     HashWriter(repodata, hasher).write(
-                        json.dumps(repodata_json, separators=(',', ":")).encode("utf-8")
+                        json.dumps(repodata_json, separators=(",", ":")).encode("utf-8")
                     )
 
                     # actual hash of serialized json
