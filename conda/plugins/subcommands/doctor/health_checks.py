@@ -23,6 +23,10 @@ X_MARK = "❌"
 
 def display_report_heading(prefix: str) -> None:
     """Displays our report heading."""
+    warnings.warn(
+        "The `display_report_heading` function is pending deprecation and will be removed in a future release. ",
+        PendingDeprecationWarning,
+    )
     print(f"Environment Health Report for: {Path(prefix)}\n")
 
 
@@ -109,7 +113,7 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
         "The `display_health_checks` function is pending deprecation and will be removed in a future release. ",
         PendingDeprecationWarning,
     )
-    display_report_heading(prefix)
+    print(f"Environment Health Report for: {Path(prefix)}\n")
     for health_check in context.plugin_manager.get_health_checks():
         health_check.action(prefix, verbose=verbose)
 

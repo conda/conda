@@ -8,6 +8,7 @@ corruption.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from ....base.context import context
 from ....cli.conda_argparse import (
@@ -18,7 +19,6 @@ from ....cli.conda_argparse import (
 )
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
-from .health_checks import display_report_heading
 
 
 @deprecated(
@@ -37,7 +37,7 @@ def configure_parser(parser: ArgumentParser):
 
 def execute(args: argparse.Namespace) -> None:
     """Run registered health_check plugins."""
-    display_report_heading(context.target_prefix)
+    print(f"Environment Health Report for: {Path(context.target_prefix)}\n")
     for health_check in context.plugin_manager.get_health_checks():
         health_check.action(context.target_prefix, verbose=context.verbose)
 
