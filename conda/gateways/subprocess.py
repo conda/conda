@@ -8,9 +8,8 @@ from logging import getLogger
 from os.path import abspath
 from subprocess import PIPE, CalledProcessError, Popen
 
-from conda.auxlib.compat import shlex_split_unicode
-
 from .. import ACTIVE_SUBPROCESSES
+from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_arguments, encode_environment, isiterable
