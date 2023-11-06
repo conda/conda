@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from logging import getLogger
 from pathlib import Path
+import re
 
 import pytest
 from pytest import MonkeyPatch
@@ -66,3 +68,15 @@ def clear_cuda_version():
 def do_not_register_envs(monkeypatch):
     """Do not register environments created during tests"""
     monkeypatch.setenv("CONDA_REGISTER_ENVS", "false")
+
+
+@pytest.fixture(autouse=True)
+def filter_retry_log_warning():
+    """Filter urllib3 connection retry warning logs"""
+    def log_filter(record):
+        return not re.match("^Retrying .* after connection broken by", record.msg)
+
+    logger = getLogger("urllib3.connectionpool")
+    logger.addFilter(log_filter)
+    yield
+    logger.removeFilter(log_filter)
