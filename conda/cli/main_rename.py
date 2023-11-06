@@ -79,7 +79,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @deprecated.argument("24.3", "24.9", "prefix")
 def validate_src() -> str:
     """
-    Validate that we are receiving at least one legitimate value for --name or
+    Validate that we are receiving at least one valid value for --name or
     --prefix and ensure that the "base" environment is not being renamed
     """
     from ..base.context import context
