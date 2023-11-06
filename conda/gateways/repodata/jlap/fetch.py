@@ -18,15 +18,14 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from conda.base.context import context
-from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import (
+from ....base.context import context
+from ...connection import Response, Session
+from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     RepodataCache,
     RepodataState,
 )
-
 from .core import JLAP
 
 log = logging.getLogger(__name__)

@@ -7,9 +7,9 @@ import json
 from logging import getLogger
 from pathlib import Path
 
-from conda.core.envs_manager import get_user_environments_txt_file
-from conda.exceptions import CondaError
-from conda.gateways.disk.read import compute_sum
+from ....core.envs_manager import get_user_environments_txt_file
+from ....exceptions import CondaError
+from ....gateways.disk.read import compute_sum
 
 logger = getLogger(__name__)
 

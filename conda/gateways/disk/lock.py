@@ -9,7 +9,7 @@ import time
 import warnings
 from contextlib import contextmanager
 
-from conda.base.context import context
+from ...base.context import context
 
 LOCK_BYTE = 21  # mamba interop
 LOCK_ATTEMPTS = 10
