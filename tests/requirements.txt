@@ -16,6 +16,7 @@ pluggy >=1.0.0
 pre-commit
 pycosat >=0.6.3
 pytest
+pytest-benchmark
 pytest-cov
 pytest-mock
 pytest-rerunfailures
