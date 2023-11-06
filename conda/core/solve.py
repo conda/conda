@@ -15,8 +15,6 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
@@ -25,6 +23,7 @@ from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateM
 from ..base.context import context
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     PackagesNotFoundError,

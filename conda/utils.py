@@ -383,7 +383,7 @@ def wrap_subprocess_call(
     if on_win:
         comspec = get_comspec()  # fail early with KeyError if undefined
         if dev_mode:
-            from conda import CONDA_PACKAGE_ROOT
+            from . import CONDA_PACKAGE_ROOT
 
             conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
         else:
