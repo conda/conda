@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* `conda env update --prune` uses only the specs coming from `environment.yml` file and ignores the history specs. (#9614)
+* Fixes a bug where not providing a command but providing an option like `--debug` results in an error (#13232)
 
 ### Deprecations
 

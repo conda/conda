@@ -16,5 +16,4 @@
 
 ### Other
 
-* Remove unused cache_path arguments from RepoInterface/JlapRepoInterface;
-  replaced by cache object. (#12927)
+* Update `ruamel.yaml` upper bound to `<0.19` now that `0.18` has been released.

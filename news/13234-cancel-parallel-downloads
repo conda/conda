@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Default `--json` and `--debug` to `NULL` so as to not overriding `CONDA_JSON` and `CONDA_DEBUG` environment variables. (#12987)
+* Improve CTRL-C (cancellation) handling of parallel dowload threads (#13234)
 
 ### Deprecations
 

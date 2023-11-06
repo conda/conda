@@ -47,7 +47,7 @@ from ..connection import (
 )
 from ..connection.session import get_session
 from ..disk import mkdir_p_sudo_safe
-from .lock import lock
+from ..disk.lock import lock
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
@@ -287,9 +287,7 @@ will need to
     (b) provide conda with a valid token directly.
 
 Further configuration help can be found at <%s>.
-""" % join_url(
-                    CONDA_HOMEPAGE_URL, "docs/config.html"
-                )
+""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
 
             else:
                 help_message = """\
@@ -298,9 +296,7 @@ The credentials you have provided for this URL are invalid.
 You will need to modify your conda configuration to proceed.
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <%s>.
-""" % join_url(
-                    CONDA_HOMEPAGE_URL, "docs/config.html"
-                )
+""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = """\
@@ -322,18 +318,14 @@ If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
 %s
-""" % maybe_unquote(
-                    repr(url)
-                )
+""" % maybe_unquote(repr(url))
 
             else:
                 help_message = """\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 %s
-""" % maybe_unquote(
-                    repr(url)
-                )
+""" % maybe_unquote(repr(url))
 
         raise CondaHTTPError(
             help_message,
@@ -468,7 +460,7 @@ class RepodataState(UserDict):
         if key in self._aliased:
             key = key[1:]  # strip underscore
         if key in self._strings and not isinstance(item, str):
-            log.warn(f'Replaced non-str RepodataState[{key}] with ""')
+            log.debug('Replaced non-str RepodataState[%s] with ""', key)
             item = ""
         return super().__setitem__(key, item)
 

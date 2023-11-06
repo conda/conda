@@ -156,11 +156,12 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not isfile(value) and not isdir(value):
+        if not value == "truststore" and not isfile(value) and not isdir(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
-                "certificate bundle file, or a path to a directory containing "
-                "certificates of trusted CAs." % value
+                "certificate bundle file, a path to a directory containing "
+                "certificates of trusted CAs, or 'truststore' to use the "
+                "operating system certificate store." % value
             )
     return True
 
@@ -205,9 +206,9 @@ class Context(Configuration):
     _repodata_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("repodata_threads",)
     )
-    # download packages; determined experimentally
+    # download packages
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
@@ -566,6 +567,11 @@ class Context(Configuration):
 
     @property
     def fetch_threads(self) -> int | None:
+        """
+        If both are not overriden (0), return experimentally-determined value of 5
+        """
+        if self._fetch_threads == 0 and self._default_threads == 0:
+            return 5
         return self._fetch_threads or self.default_threads
 
     @property
@@ -592,6 +598,10 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
+        return self._native_subdir()
+
+    @lru_cache(maxsize=None)
+    def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
@@ -1000,6 +1010,20 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    def solver_user_agent(self):
+        user_agent = "solver/%s" % self.solver
+        try:
+            solver_backend = self.plugin_manager.get_cached_solver_backend()
+            # Solver.user_agent has to be a static or class method
+            user_agent += f" {solver_backend.user_agent()}"
+        except Exception as exc:
+            log.debug(
+                "User agent could not be fetched from solver class '%s'.",
+                self.solver,
+                exc_info=exc,
+            )
+        return user_agent
+
     @memoizedproperty
     def user_agent(self):
         builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
@@ -1009,18 +1033,7 @@ class Context(Configuration):
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
         if self.solver != "classic":
-            user_agent_str = "solver/%s" % self.solver
-            try:
-                solver_backend = self.plugin_manager.get_cached_solver_backend()
-                # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {solver_backend.user_agent()}"
-            except Exception as exc:
-                log.debug(
-                    "User agent could not be fetched from solver class '%s'.",
-                    self.solver,
-                    exc_info=exc,
-                )
-            builder.append(user_agent_str)
+            builder.append(self.solver_user_agent())
         return " ".join(builder)
 
     @contextmanager
@@ -1041,14 +1054,18 @@ class Context(Configuration):
 
     @memoizedproperty
     def requests_version(self):
+        # used in User-Agent as "requests/<version>"
+        # if unable to detect a version we expect "requests/unknown"
         try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+            from requests import __version__ as requests_version
+        except ImportError as err:
+            # ImportError: requests is not installed
+            log.error("Unable to import requests: %s", err)
+            requests_version = "unknown"
+        except Exception as err:
+            log.error("Error importing requests: %s", err)
+            requests_version = "unknown"
+        return requests_version
 
     @memoizedproperty
     def python_implementation_name_version(self):
@@ -1076,7 +1093,7 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from conda._vendor.distro import id, version
+            from .._vendor.distro import id, version
 
             try:
                 distinfo = id(), version(best=True)
@@ -1701,8 +1718,9 @@ class Context(Configuration):
                 browser. By default, SSL verification is enabled, and conda operations will
                 fail if a required url's certificate cannot be verified. Setting ssl_verify to
                 False disables certification verification. The value for ssl_verify can also
-                be (1) a path to a CA bundle file, or (2) a path to a directory containing
-                certificates of trusted CA.
+                be (1) a path to a CA bundle file, (2) a path to a directory containing
+                certificates of trusted CA, or (3) 'truststore' to use the
+                operating system certificate store.
                 """
             ),
             track_features=dals(

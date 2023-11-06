@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds a new "auth handler" plugin hook for conda (#12911)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add lighter weight s3 test; update embedded test package index. (#13085)

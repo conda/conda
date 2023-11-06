@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix S3 bucket name. (#12989)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Replace `black` with `ruff format` in pre-commit. (#13272)

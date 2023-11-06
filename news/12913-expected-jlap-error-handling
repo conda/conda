@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Do not show progress bars in non interactive runs for cleaner logs. (#12982)
+* Log expected JLAP range-request errors, which can happen when the remote file
+  has rolled over, at `info` level. (#12913)
 
 ### Deprecations
 

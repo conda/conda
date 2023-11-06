@@ -21,7 +21,7 @@ exclude: |
 repos:
   # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -33,6 +33,10 @@ repos:
         exclude: ^(conda\.)?recipe/meta.yaml
       # catch git merge/rebase problems
       - id: check-merge-conflict
+      # sort requirements files
+      - id: file-contents-sorter
+        files: ^tests/requirements.*\.txt
+        args: [--unique]
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.4
@@ -46,31 +50,29 @@ repos:
             conda/gateways/disk/link.py  # MIT
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.11.0
-    hooks:
-      # upgrade standard Python codes
-      - id: pyupgrade
-        args: [--py38-plus]
-        exclude: ^conda/exports.py
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      # auto format Python codes
-      - id: black
   - repo: https://github.com/adamchainz/blacken-docs
     rev: 1.16.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
-        additional_dependencies: [black]
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.289
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.4
     hooks:
+      # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff
         args: [--fix]
+      # compatible replacement for black
+      - id: ruff-format
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
+  - repo: local
+    hooks:
+      - id: git-diff
+        name: git diff
+        entry: git diff --exit-code
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -1,5 +1,143 @@
 [//]: # (current developments)
 
+## 23.9.0 (2023-09-27)
+
+### Special announcement
+
+This is an announcement about an important and positive future change in conda's functionality:
+
+> We will change the default solver of conda to [`conda-libmamba-solver`](https://conda.github.io/conda-libmamba-solver/) in a __special 23.10.0 release__ in the near future!
+
+You can already benefit from it _today_ by [configuring your conda installation to use it](https://conda.github.io/conda-libmamba-solver/getting-started/#usage) (e.g. by running `conda config --set solver libmamba`).
+
+The current "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the foreseeable future, a fallback is possible and available (see below).
+
+#### Plan to change the default solver
+
+Here is our updated plan to change the default solver, to better follow [CEP 8](https://github.com/conda-incubator/ceps/blob/main/cep-8.md) and reduce the potential impact on conda users:
+
+- The upcoming, special 23.10.0 release will be dedicated to the switch of the default solver to `libmamba`.
+- Users will be able to opt out of the `libmamba` solver and use the `classic` solver instead, by using one of these options:
+  - the `--solver=classic` command line option,
+  - the `CONDA_SOLVER=classic` environment variable or
+  - running `conda config --set solver classic`.
+- All development of `conda-libmamba-solver` plugin happens in the [conda-libmamba-solver repo](https://github.com/conda/conda-libmamba-solver), including issue tracking.
+- The documentation of the `conda-libmamba-solver` plugin can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/).
+
+For more information about the `conda-libmamba-solver` rollout plan, please also see our [blog post from earlier this year](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout).
+
+#### Context
+
+A "solver" is the core component of most package managers; it calculates which dependencies (and which version of those dependencies) to install when a user requests to install a package from a package repository. To address growth-related challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced [a new conda dependency solver based on the Mamba project](https://mamba.readthedocs.io) in December 2022.
+
+Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in and automatically installed with all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), _with the default solver configuration unchanged_.
+
+### Enhancements
+
+* Improve speed of `fish` shell initialization. (#12811)
+* Directly suppress use of binstar (conda) token when fetching trust metadata. (#12889)
+* Add a new "auth handler" plugin hook for conda. (#12911)
+* Lock index cache metadata by default. Added `--no-lock` option in case of
+  problems, should not be necessary. Older `--experimental=lock` no longer has
+  an effect. (#12920)
+* Add `context.register_envs` option to control whether to register environments
+  in `~/.conda/environments.txt` when they are created. Defaults to true. (#12924)
+* Inject a new detailed output verbosity level (i.e., the old debug level `-vv` is now `-vvv`). (#12985, #12977, #12420, #13036)
+* Add support for `truststore` to the `ssl_verify` config option, enabling conda to use the operating system certificate store (requires Python 3.10 or later). (#13075 and #13149)
+* Add `emscripten-wasm32` and `wasi-wasm32` platforms to known platforms. (#13095)
+* Adds the `py.typed` marker file to the `conda` package for compliance with PEP-561. (#13107)
+* Import `boto3` only when S3 channels are used, saving startup time. (#12914)
+
+### Bug fixes
+
+* When using pip dependencies with `conda env create`, check the directory permissions before writing to disk. (#11610)
+* Hide `InsecureRequestWarning` for JLAP when `CONDA_SSL_VERIFY=false`, matching
+  non-JLAP behavior. (#12731)
+* Disallow ability to create a conda environment with a colon in the prefix. (#13044)
+* Fix `AttributeError` logging response with nonexistent request when using JLAP
+  with `file:///` URIs. (#12966)
+* Do not show progress bars in non-interactive runs for cleaner logs. (#12982)
+* Fix S3 bucket name. (#12989)
+* Default `--json` and `--debug` to `NULL` so as to not override `CONDA_JSON` and `CONDA_DEBUG` environment variables. (#12987)
+* ``XonshActivator`` now uses ``source-bash`` in non-interactive mode to avoid
+  side-effects from interactively loaded RC files. (#13012)
+* Fix `conda remove --all --json` output. (#13019)
+* Update test data to stop triggering security scanners' false-positives. (#13034)
+* Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
+* Configure conda to ignore "Retry-After" header to avoid the scenarios when this value is very large and causes conda to hang indefinitely. (#13050)
+* Treat `JSONDecodeError` on `repodata.info.json` as a warning, equivalent to a
+  missing `repodata.info.json`. (#13056)
+* Fix sorting error for `conda config --show-sources --json`. (#13076)
+* Catch `OSError` in `find_commands` to account for incorrect `PATH` entries on
+  Windows. (#13125)
+* Catch a `NotWritableError` when trying to find the first writable package cache dir. (#9609)
+* `conda env update --prune` uses only the specs coming from `environment.yml` file and ignores the history specs. (#9614)
+
+### Deprecations
+
+* Removed `conda.another_unicode()`. (#12948)
+* Removed `conda._vendor.toolz`. (#12948, #13141)
+* Removed `conda._vendor.tqdm`. (#12948)
+* Removed `conda.auxlib.decorators.memoized` decorator. (#12948)
+* Removed `conda.base.context.Context.experimental_solver`. (#12948)
+* Removed `conda.base.context.Context.conda_private`. (#12948)
+* Removed `conda.base.context.Context.cuda_version`. (#12948)
+* Removed `conda.base.context.get_prefix()`. (#12948)
+* Removed `conda.cli.common.ensure_name_or_prefix()`. (#12948)
+* Removed `--experimental-solver` command line option. (#12948)
+* Removed `conda.common.cuda` module. (#12948)
+* Removed `conda.common.path.explode_directories(already_split)`. (#12948)
+* Removed `conda.common.url.escape_channel_url()`. (#12948)
+* Removed `conda.core.index.check_whitelist()`. (#12948)
+* Removed `conda.core.solve._get_solver_class()`. (#12948)
+* Removed `conda.core.subdir_data.read_mod_and_etag()`. (#12948)
+* Removed `conda.gateways.repodata.RepodataState.load()`. (#12948)
+* Removed `conda.gateways.repodata.RepodataState.save()`. (#12948)
+* Removed `conda.lock` module. (#12948)
+* Removed `conda_env.cli.common.stdout_json()`. (#12948)
+* Removed `conda_env.cli.common.get_prefix()`. (#12948)
+* Removed `conda_env.cli.common.find_prefix_name()`. (#12948)
+* Remove import of deprecated cgi module by deprecating ftp STOR support.
+  (#13013)
+* Require `boto3` for S3 support and drop support for the older `boto` as it
+  doesn't support our minimum required version of Python. (#13112)
+* Reduce startup delay from deprecations module by using `sys._getframe()`
+  instead of `inspect.stack()`. (#12919)
+
+### Other
+
+* Use Ruff linter in pre-commit configuration (#12279)
+* Remove unused `cache_path` arguments from `RepoInterface`/`JlapRepoInterface`;
+  replaced by cache object. (#12927)
+
+### Contributors
+
+* @beenje
+* @beeankha
+* @chbrandt
+* @chenghlee
+* @conda-bot
+* @dbast
+* @dholth
+* @duncanmmacleod
+* @gforsyth
+* @eltociear
+* @jaimergp
+* @jezdez
+* @jmcarpenter2 made their first contribution in https://github.com/conda/conda/pull/13034
+* @kenodegard
+* @ForgottenProgramme
+* @Mon-ius made their first contribution in https://github.com/conda/conda/pull/12811
+* @otaithleigh made their first contribution in https://github.com/conda/conda/pull/13035
+* @psteyer made their first contribution in https://github.com/conda/conda/pull/11610
+* @tarcisioe made their first contribution in https://github.com/conda/conda/pull/9614
+* @travishathaway
+* @wolfv made their first contribution in https://github.com/conda/conda/pull/13095
+* @zeehio made their first contribution in https://github.com/conda/conda/pull/13075
+* @pre-commit-ci[bot]
+
+
+
 ## 23.7.4 (2023-09-12)
 
 ### Enhancements
@@ -1753,7 +1891,7 @@ Please read that CEP for more information, but here is a quick synopsis. We hope
 * Improve unsatisfiable hints  (#8638)
 * Add capability to use custom repodata filename, for smaller subsets of repodata  (#8670)
 * Parallelize SubdirData readup  (#8670)
-* Parallelize transacation verification and execution  (#8670)
+* Parallelize transaction verification and execution  (#8670)
 
 ### Bug fixes
 

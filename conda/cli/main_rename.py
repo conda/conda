@@ -7,17 +7,72 @@ Renames an existing environment by cloning it and then removing the original env
 from __future__ import annotations
 
 import os
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from functools import partial
 from pathlib import Path
 
-from ..base.constants import DRY_RUN_PREFIX
-from ..base.context import context, validate_prefix_name
-from ..cli import install
-from ..common.path import expand
 from ..deprecations import deprecated
-from ..exceptions import CondaEnvException
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.update import rename_context
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from .helpers import add_parser_prefix
+
+    summary = "Rename an existing environment."
+    description = dals(
+        f"""
+        {summary}
+
+        This command renames a conda environment via its name (-n/--name) or
+        its prefix (-p/--prefix).
+
+        The base environment and the currently-active environment cannot be renamed.
+        """
+    )
+    epilog = dals(
+        """
+        Examples::
+
+            conda rename -n test123 test321
+
+            conda rename --name test123 test321
+
+            conda rename -p path/to/test123 test321
+
+            conda rename --prefix path/to/test123 test321
+
+        """
+    )
+
+    p = sub_parsers.add_parser(
+        "rename",
+        help=summary,
+        description=description,
+        epilog=epilog,
+        **kwargs,
+    )
+    # Add name and prefix args
+    add_parser_prefix(p)
+
+    p.add_argument("destination", help="New name for the conda environment.")
+    # TODO: deprecate --force in favor of --yes
+    p.add_argument(
+        "--force",
+        help="Force rename of an environment.",
+        action="store_true",
+        default=False,
+    )
+    p.add_argument(
+        "-d",
+        "--dry-run",
+        help="Only display what would have been done by the current command, arguments, "
+        "and other flags.",
+        action="store_true",
+        default=False,
+    )
+    p.set_defaults(func="conda.cli.main_rename.execute")
+
+    return p
 
 
 @deprecated.argument("24.3", "24.9", "name")
@@ -27,6 +82,9 @@ def validate_src() -> str:
     Validate that we are receiving at least one value for --name or --prefix
     and ensure that the "base" environment is not being renamed
     """
+    from ..base.context import context
+    from ..exceptions import CondaEnvException
+
     if Path(context.target_prefix).samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
 
@@ -38,6 +96,10 @@ def validate_src() -> str:
 
 def validate_destination(dest: str, force: bool = False) -> str:
     """Ensure that our destination does not exist"""
+    from ..base.context import context, validate_prefix_name
+    from ..common.path import expand
+    from ..exceptions import CondaEnvException
+
     if os.sep in dest:
         dest = expand(dest)
     else:
@@ -51,12 +113,18 @@ def validate_destination(dest: str, force: bool = False) -> str:
     return dest
 
 
-def execute(args, _):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Executes the command for renaming an existing environment."""
+    from ..base.constants import DRY_RUN_PREFIX
+    from ..base.context import context
+    from ..cli import install
+    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.update import rename_context
+
     source = validate_src()
     destination = validate_destination(args.destination, force=args.force)
 
-    def clone_and_remove():
+    def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (
             partial(
                 install.clone,
@@ -80,3 +148,4 @@ def execute(args, _):
             clone_and_remove()
     else:
         clone_and_remove()
+    return 0

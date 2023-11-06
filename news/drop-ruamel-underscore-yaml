@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `emscripten-wasm32` and `wasi-wasm32` platforms to known platforms. (#13095)
+* <news item>
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Remove `ruamel_yaml` fallbacks; continue to use `ruamel.yaml` only.
 
 ### Docs
 

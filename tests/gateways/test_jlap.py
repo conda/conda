@@ -5,7 +5,6 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 """
 import datetime
 import json
-import logging
 import time
 from pathlib import Path
 from socket import socket
@@ -808,6 +807,13 @@ def make_test_jlap(original: bytes, changes=1):
 
             yield json.dumps(row).encode("utf-8")
 
+        # Coverage for the branch that skips irrelevant patches in the series,
+        # when deciding which patches take us from our current to desired
+        # state.
+        yield json.dumps(
+            {"from": core.DEFAULT_IV.hex(), "to": core.DEFAULT_IV.hex(), "patch": []}
+        ).encode("utf-8")
+
         footer = {"url": "repodata.json", "latest": starting_digest}
         yield json.dumps(footer).encode("utf-8")
 
@@ -829,3 +835,54 @@ def test_hashwriter():
     with writer:
         pass
     assert closed
+
+
+def test_request_url_jlap_state(tmp_path, package_server, package_repository_base):
+    """
+    Code coverage for case intended to catch "repodata.json written while we
+    were downloading its patches".
+
+    When this happens, we do not write a new repodata.json and instruct the
+    caller to defer to the on-disk cache.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    url = f"{base}/osx-64/repodata.json"
+
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+    cache.state.set_has_format("jlap", True)
+    cache.save(json.dumps({"info": {}}))
+
+    test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
+    test_jlap.terminate()
+    test_jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+    test_jlap.write(test_jlap_path)
+
+    temp_path = tmp_path / "new_repodata.json"
+
+    # correct hash must appear here and in test_jlap to reach desired condition
+    outdated_state = cache.load_state()
+    hasher = fetch.hash()
+    hasher.update(cache.cache_path_json.read_bytes())
+    outdated_state[fetch.NOMINAL_HASH] = hasher.hexdigest()
+    outdated_state[fetch.ON_DISK_HASH] = hasher.hexdigest()
+
+    # Simulate a peculiar "request_url_jlap_state uses state object, but later
+    # re-fetches state from disk" condition where the initial state and the
+    # on-disk state were inconsistent. This is done to avoid unnecessary reads
+    # of repodata.json. The failure will happen in the wild when another process
+    # writes repodata.json while we are downloading ours.
+    on_disk_state = json.loads(cache.cache_path_state.read_text())
+    on_disk_state[fetch.NOMINAL_HASH] = "0" * 64
+    on_disk_state[fetch.ON_DISK_HASH] = "0" * 64
+    cache.cache_path_state.write_text(json.dumps(on_disk_state))
+
+    result = fetch.request_url_jlap_state(
+        url,
+        outdated_state,
+        session=CondaSession(),
+        cache=cache,
+        temp_path=temp_path,
+    )
+
+    assert result is None

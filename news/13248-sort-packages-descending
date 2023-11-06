@@ -1,6 +1,7 @@
 ### Enhancements
 
-* Adds the `py.typed` marker file to the `conda` package for compliance with PEP-561 (#13107)
+* Download largest packages first, preventing smaller packages from having to
+  wait for larger packages. (#13248)
 
 ### Bug fixes
 

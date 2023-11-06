@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* Fix sorting error for `conda config --show-sources --json`. (#13076)
+* <news item>
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
 
 ### Docs
 
