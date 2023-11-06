@@ -349,14 +349,18 @@ class SubdirData(metaclass=SubdirDataType):
         """Throw away the pickle if these don't all match."""
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
-        yield "_add_pip", pickled_state.get(
-            "_add_pip"
-        ), context.add_pip_as_python_dependency
+        yield (
+            "_add_pip",
+            pickled_state.get("_add_pip"),
+            context.add_pip_as_python_dependency,
+        )
         yield "_mod", pickled_state.get("_mod"), mod
         yield "_etag", pickled_state.get("_etag"), etag
-        yield "_pickle_version", pickled_state.get(
-            "_pickle_version"
-        ), REPODATA_PICKLE_VERSION
+        yield (
+            "_pickle_version",
+            pickled_state.get("_pickle_version"),
+            REPODATA_PICKLE_VERSION,
+        )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
     def _read_pickled(self, state: RepodataState):
