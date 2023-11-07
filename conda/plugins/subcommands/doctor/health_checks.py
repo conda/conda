@@ -7,12 +7,11 @@ import json
 from logging import getLogger
 from pathlib import Path
 
-from conda.base.context import context
-from conda.core.envs_manager import get_user_environments_txt_file
-from conda.deprecations import deprecated
-from conda.exceptions import CondaError
-from conda.gateways.disk.read import compute_sum
-
+from ....base.context import context
+from ....core.envs_manager import get_user_environments_txt_file
+from ....deprecations import deprecated
+from ....exceptions import CondaError
+from ....gateways.disk.read import compute_sum
 from ... import CondaHealthCheck, hookimpl
 
 logger = getLogger(__name__)
