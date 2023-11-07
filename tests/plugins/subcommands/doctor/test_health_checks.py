@@ -140,30 +140,44 @@ def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
     assert find_altered_packages(prefix) == {package: [lib_doctor]}
 
 
-def test_missing_files_action(env_missing_files: tuple[Path, str, str, str], capsys):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_missing_files_action(
+    env_missing_files: tuple[Path, str, str, str], capsys, verbose
+):
     prefix, bin_doctor, _, package = env_missing_files
-    missing_files(prefix, verbose=True)
+    missing_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
-    assert str(bin_doctor) in captured.out
+    if verbose:
+        assert str(bin_doctor) in captured.out
+    else:
+        assert f"{package}: 1" in captured.out
 
 
-def test_no_missing_files_action(env_ok: tuple[Path, str, str, str], capsys):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_no_missing_files_action(env_ok: tuple[Path, str, str, str], capsys, verbose):
     prefix, _, _, _ = env_ok
-    missing_files(prefix, verbose=True)
+    missing_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with missing files." in captured.out
 
 
-def test_altered_files_action(env_altered_files: tuple[Path, str, str, str], capsys):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_altered_files_action(
+    env_altered_files: tuple[Path, str, str, str], capsys, verbose
+):
     prefix, _, lib_doctor, package = env_altered_files
-    altered_files(prefix, verbose=True)
+    altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
-    assert str(lib_doctor) in captured.out
+    if verbose:
+        assert str(lib_doctor) in captured.out
+    else:
+        assert f"{package}: 1" in captured.out
 
 
-def test_no_altered_files_action(env_ok: tuple[Path, str, str, str], capsys):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_no_altered_files_action(env_ok: tuple[Path, str, str, str], capsys, verbose):
     prefix, _, _, _ = env_ok
-    altered_files(prefix, verbose=True)
+    altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with altered files." in captured.out
 
