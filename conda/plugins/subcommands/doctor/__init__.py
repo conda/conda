@@ -8,7 +8,6 @@ corruption.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 from ....base.context import context
 from ....cli.conda_argparse import (
@@ -37,7 +36,7 @@ def configure_parser(parser: ArgumentParser):
 
 def execute(args: argparse.Namespace) -> None:
     """Run registered health_check plugins."""
-    print(f"Environment Health Report for: {Path(context.target_prefix)}\n")
+    print(f"Environment Health Report for: {context.target_prefix}\n")
     for health_check in context.plugin_manager.get_health_checks():
         health_check.action(context.target_prefix, verbose=context.verbose)
 
