@@ -20,7 +20,7 @@ OK_MARK = "✅"
 X_MARK = "❌"
 
 
-@deprecated("23.12", "24.4")
+@deprecated("24.3", "24.9")
 def display_report_heading(prefix: str) -> None:
     """Displays our report heading."""
     print(f"Environment Health Report for: {Path(prefix)}\n")
@@ -103,12 +103,11 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
-@deprecated("23.12", "24.4")
+@deprecated("24.3", "24.9")
 def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
-    print(f"Environment Health Report for: {Path(prefix)}\n")
-    for health_check in context.plugin_manager.get_health_checks():
-        health_check.action(prefix, verbose=verbose)
+    print(f"Environment Health Report for: {prefix}\n")
+    context.plugin_manager.get_health_checks(prefix, verbose=verbose)
 
 
 def missing_files(prefix: str, verbose: bool) -> None:

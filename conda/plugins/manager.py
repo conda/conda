@@ -311,10 +311,9 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
-    def get_health_checks(self) -> tuple[CondaHealthCheck]:
-        # for hook in self.get_hook_results("health_checks"):
-        #     hook.action()
-        return tuple(self.get_hook_results("health_checks"))
+    def get_health_checks(self, prefix: str, verbose: bool) -> tuple[CondaHealthCheck]:
+        for hook in self.get_hook_results("health_checks"):
+            hook.action(prefix, verbose)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

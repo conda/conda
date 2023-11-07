@@ -43,9 +43,7 @@ def test_health_check_ran(mocker, health_check_plugin, conda_cli):
     """
     Test for the case when the health check successfully ran.
     """
-    mocker.patch("conda.plugins.subcommands.doctor.display_health_checks")
     conda_cli("doctor")
-
     assert len(health_check_plugin.health_check_action.mock_calls) == 1
 
 
