@@ -622,6 +622,8 @@ def test_list_with_pip_no_binary(
             for line in stdout.split("\n")
             if line.lower().startswith("flask")
         )
+        assert not stderr
+        assert not err
 
         # regression test for #5847
         #   when using rm_rf on a directory
@@ -630,42 +632,46 @@ def test_list_with_pip_no_binary(
         assert prefix not in PrefixData._cache_
 
 
-def test_list_with_pip_wheel(clear_package_cache: None):
+def test_list_with_pip_wheel(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python=3.10", "pip") as prefix:
+        check_call(
+            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
+            cwd=prefix,
+            shell=True,
+        )
+
+        PrefixData._cache_.clear()
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        assert any(
+            line.endswith("pypi")
+            for line in stdout.split("\n")
+            if line.lower().startswith("flask")
+        )
+        assert not stderr
+        assert not err
+
+        # regression test for #3433
+        conda_cli("install", f"--prefix={prefix}", "python=3.9", "--yes")
+        assert package_is_installed(prefix, "python=3.9")
+
+
+def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
+    # regression test for #5980, related to #5847
     from conda.exports import rm_rf as _rm_rf
 
     py_ver = "3.10"
-    with make_temp_env("python=" + py_ver, "pip") as prefix:
-        evs = {"PYTHONUTF8": "1"}
-        # This test does not activate the env.
-        if on_win:
-            evs["CONDA_DLL_SEARCH_MODIFICATION_ENABLE"] = "1"
-        with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            check_call(
-                PYTHON_BINARY + " -m pip install flask==1.0.2",
-                cwd=prefix,
-                shell=True,
-            )
-            PrefixData._cache_.clear()
-            stdout, stderr, _ = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split("\n")
-            assert any(
-                line.endswith("pypi")
-                for line in stdout_lines
-                if line.lower().startswith("flask")
-            )
+    with tmp_env(f"python={py_ver}") as prefix:
+        # regression test for #5847
+        #   when using rm_rf on a file
+        assert prefix in PrefixData._cache_
+        _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
+        assert prefix not in PrefixData._cache_
 
-            # regression test for #3433
-            run_command(Commands.INSTALL, prefix, "python=3.9", no_capture=True)
-            assert package_is_installed(prefix, "python=3.9")
-
-            # regression test for #5847
-            #   when using rm_rf on a file
-            assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path("3.9")), "os.py")
-            assert prefix not in PrefixData._cache_
-
-    # regression test for #5980, related to #5847
-    with make_temp_env() as prefix:
+    with tmp_env() as prefix:
         assert isdir(prefix)
         assert prefix in PrefixData._cache_
 
