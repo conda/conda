@@ -30,9 +30,9 @@ from uuid import uuid4
 import pytest
 import requests
 from pytest import CaptureFixture, MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaMultiError
-from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
@@ -79,7 +79,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
@@ -113,62 +113,48 @@ def clear_package_cache() -> None:
     PackageCacheData.clear()
 
 
-@pytest.mark.skipif(
-    context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
-    reason="Skip unsupported platforms",
-)
-def test_install_python2_and_search():
-    with Utf8NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
-        log.warning(f"Creating empty temporary environment txt file {env_txt}")
-        environment_txt = env_txt.name
-
-    with patch(
+def test_install_python_and_search(
+    path_factory: PathFactoryFixture,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    environment_txt = path_factory(suffix=".txt")
+    environment_txt.touch()
+    mocker.patch(
         "conda.core.envs_manager.get_user_environments_txt_file",
         return_value=environment_txt,
-    ) as _:
-        with env_vars(
-            {
-                "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
-                "CONDA_REGISTER_ENVS": "true",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-                assert exists(join(prefix, PYTHON_BINARY))
-                assert package_is_installed(prefix, "python=2")
-                run_command(
-                    Commands.CONFIG,
-                    prefix,
-                    "--add",
-                    "channels",
-                    "https://repo.continuum.io/pkgs/not-a-channel",
-                )
+    )
 
-                # regression test for #4513
-                run_command(
-                    Commands.CONFIG,
-                    prefix,
-                    "--add",
-                    "channels",
-                    "https://repo.continuum.io/pkgs/not-a-channel",
-                )
-                stdout, stderr, _ = run_command(
-                    Commands.SEARCH, prefix, "python", "--json"
-                )
-                packages = json.loads(stdout)
-                assert len(packages) == 1
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
+    # regression test for #4513
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "true")
+    not_a_channel = "https://repo.continuum.io/pkgs/not-a-channel"
+    monkeypatch.setenv("CONDA_CHANNELS", f"{not_a_channel},defaults")
+    reset_context()
+    assert context.register_envs
+    assert context.allow_non_channel_urls
+    assert context.channels == (not_a_channel, "defaults")
 
-                stdout, stderr, _ = run_command(
-                    Commands.SEARCH, prefix, "python", "--json", "--envs"
-                )
-                envs_result = json.loads(stdout)
-                assert any(match["location"] == prefix for match in envs_result)
+    with tmp_env("python") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
+        assert package_is_installed(prefix, "python")
 
-                stdout, stderr, _ = run_command(
-                    Commands.SEARCH, prefix, "python", "--envs"
-                )
-                assert prefix in stdout
-    os.unlink(environment_txt)
+        stdout, stderr, err = conda_cli("search", "python", "--json")
+        assert len(json.loads(stdout)) == 1
+        assert not stderr
+        assert not err
+
+        stdout, stderr, err = conda_cli("search", "python", "--json", "--envs")
+        assert any(prefix.samefile(env["location"]) for env in json.loads(stdout))
+        assert not stderr
+        assert not err
+
+        stdout, stderr, err = conda_cli("search", "python", "--envs")
+        assert str(prefix) in stdout
+        assert not stderr
+        assert not err
 
 
 def test_run_preserves_arguments():
