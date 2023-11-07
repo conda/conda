@@ -312,9 +312,9 @@ def test_signature_verification_not_enabled(
 @pytest.mark.parametrize(
     "package,trusted",
     [
-        ("_anaconda_depends-2018.12-py27_0.tar.bz2", True),
-        ("zstd-1.3.7-h0b5b093_0.conda", True),
-        ("zstd-1.4.4-h0b5b093_3.conda", True),
+        ("first.tar.bz2", True),
+        ("second.conda", True),
+        ("third.conda", True),
         # bad key_mgr.json pubkey
         ("broken-0.0.1-broken.tar.bz2", False),
         # bad signature
@@ -328,6 +328,13 @@ def test_signature_verification(
     package: str,
     trusted: bool,
 ):
+    # mock out the signature verification root path
+    mocker.patch(
+        "conda.base.context.Context.av_data_dir",
+        new_callable=mocker.PropertyMock,
+        return_value=_TESTDATA / "signed",
+    )
+
     # mock out the cache path base
     cache_path_base = path_factory()
     cache_path_base.mkdir()
@@ -338,7 +345,7 @@ def test_signature_verification(
     )
 
     # load repodata.json with signatures
-    src = _TESTDATA / "repodata_short_signed_sample.json"
+    src = _TESTDATA / "signed" / "repodata_short_signed_sample.json"
     repodata = json.loads(src.read_text())
 
     # copy repodata.json to cache path
