@@ -63,19 +63,6 @@ def mock_fetch_channel_signing_data(
     return inner
 
 
-@pytest.fixture
-def sig_ver(monkeypatch: MonkeyPatch) -> _SignatureVerification:
-    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
-    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
-    reset_context()
-    assert context.extra_safety_checks
-    assert context.signing_metadata_url_base == url
-
-    sig_ver = _SignatureVerification()
-    assert sig_ver.enabled
-    return sig_ver
-
-
 def test_trusted_root_no_new_metadata(
     av_data_dir: Path,
     initial_trust_root: dict,
@@ -322,8 +309,8 @@ def test_signature_verification_not_enabled(
     ],
 )
 def test_signature_verification(
-    sig_ver: _SignatureVerification,
     mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
     path_factory: PathFactoryFixture,
     package: str,
     trusted: bool,
@@ -344,6 +331,13 @@ def test_signature_verification(
         return_value=cache_path_base,
     )
 
+    # enable signature verification
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    reset_context()
+    assert context.extra_safety_checks
+    assert context.signing_metadata_url_base == url
+
     # load repodata.json with signatures
     src = _TESTDATA / "signed" / "repodata_short_signed_sample.json"
     repodata = json.loads(src.read_text())
@@ -361,6 +355,11 @@ def test_signature_verification(
         channel=Channel.from_value(f"file://{cache_path_base}/{subdir}"),
         fn=package,
     )
+
+    sig_ver = _SignatureVerification()
+    assert sig_ver.trusted_root
+    assert sig_ver.key_mgr
+    assert sig_ver.enabled
 
     # ensure signature is valid
     sig_ver.verify(REPODATA_FN, record)
