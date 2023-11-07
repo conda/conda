@@ -20,7 +20,17 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.gateways.repodata import (
+from ..auxlib.ish import dals
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
+from ..base.context import context
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
+from ..common.iterators import groupby_to_dict as groupby
+from ..common.path import url_to_path
+from ..common.url import join_url
+from ..deprecations import deprecated
+from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
+from ..gateways.disk.delete import rm_rf
+from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataCache,
@@ -32,20 +42,9 @@ from conda.gateways.repodata import (
     create_cache_dir,
     get_repo_interface,
 )
-from conda.gateways.repodata import (
+from ..gateways.repodata import (
     get_cache_control_max_age as _get_cache_control_max_age,
 )
-
-from ..auxlib.ish import dals
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
-from ..base.context import context
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
-from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import url_to_path
-from ..common.url import join_url
-from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
-from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
@@ -350,14 +349,18 @@ class SubdirData(metaclass=SubdirDataType):
         """Throw away the pickle if these don't all match."""
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
-        yield "_add_pip", pickled_state.get(
-            "_add_pip"
-        ), context.add_pip_as_python_dependency
+        yield (
+            "_add_pip",
+            pickled_state.get("_add_pip"),
+            context.add_pip_as_python_dependency,
+        )
         yield "_mod", pickled_state.get("_mod"), mod
         yield "_etag", pickled_state.get("_etag"), etag
-        yield "_pickle_version", pickled_state.get(
-            "_pickle_version"
-        ), REPODATA_PICKLE_VERSION
+        yield (
+            "_pickle_version",
+            pickled_state.get("_pickle_version"),
+            REPODATA_PICKLE_VERSION,
+        )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
     def _read_pickled(self, state: RepodataState):

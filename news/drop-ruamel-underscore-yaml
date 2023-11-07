@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `ruamel_yaml` fallbacks; continue to use `ruamel.yaml` only.
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

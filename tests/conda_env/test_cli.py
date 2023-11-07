@@ -305,7 +305,7 @@ def test_update(env_name_1: None, conda_cli: CondaCLIFixture):
 def test_name(env_name_1: None, conda_cli: CondaCLIFixture):
     """
     # smoke test for gh-254
-    Test that --name can overide the `name` key inside an environment.yml
+    Test that --name can override the `name` key inside an environment.yml
     """
     create_env(ENVIRONMENT_1)
     env_name = "smoke-gh-254"

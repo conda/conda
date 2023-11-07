@@ -31,10 +31,12 @@ requirements:
     # for `conda init` in build/script above
     - menuinst >=1.4.11,<2         # [win]
     - requests >=2.27.0,<3
-    - ruamel.yaml >=0.11.14,<0.18
+    - ruamel.yaml >=0.11.14,<0.19
     - tqdm >=4
   run:
+    - archspec
     - boltons >=23.0.0
+    - charset-normalizer
     - conda-libmamba-solver >=23.11.0
     - conda-package-handling >=2.2.0
     - jsonpatch >=1.32
@@ -44,7 +46,7 @@ requirements:
     - pycosat >=0.6.3
     - python
     - requests >=2.27.0,<3
-    - ruamel.yaml >=0.11.14,<0.18
+    - ruamel.yaml >=0.11.14,<0.19
     - setuptools >=60.0.0
     - tqdm >=4
     - truststore >=0.8.0           # [py>=310]

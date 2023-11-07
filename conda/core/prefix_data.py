@@ -410,7 +410,7 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
         if len(anchor_paths) > 1:
             anchor_path = sorted(anchor_paths, key=len)[0]
             log.info(
-                "Package %s has multiple python anchor files.\n" "  Using %s",
+                "Package %s has multiple python anchor files.\n  Using %s",
                 prefix_record.record_id(),
                 anchor_path,
             )

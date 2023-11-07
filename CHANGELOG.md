@@ -89,7 +89,7 @@ This is an announcement about an important and positive future change in conda's
 
 You can already benefit from it _today_ by [configuring your conda installation to use it](https://conda.github.io/conda-libmamba-solver/getting-started/#usage) (e.g. by running `conda config --set solver libmamba`).
 
-The current "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the forseeable future, a fallback is possible and available (see below).
+The current "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the foreseeable future, a fallback is possible and available (see below).
 
 #### Plan to change the default solver
 
@@ -1970,7 +1970,7 @@ Please read that CEP for more information, but here is a quick synopsis. We hope
 * Improve unsatisfiable hints  (#8638)
 * Add capability to use custom repodata filename, for smaller subsets of repodata  (#8670)
 * Parallelize SubdirData readup  (#8670)
-* Parallelize transacation verification and execution  (#8670)
+* Parallelize transaction verification and execution  (#8670)
 
 ### Bug fixes
 
