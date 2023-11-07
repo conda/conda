@@ -1,15 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import codecs
-import sys
 import warnings
 from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
 
+from conda.common.compat import on_mac
 from conda.core.subdir_data import cache_fn_url
 from conda.misc import explicit, url_pat, walk_prefix
-from conda.testing.integration import Commands, make_temp_env, run_command
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.utils import Utf8NamedTemporaryFile
 
 
@@ -48,7 +49,7 @@ def test_cache_fn_url():
 
 def test_url_pat_1():
     match = url_pat.match(
-        "http://test/pkgs/linux-64/foo.tar.bz2" "#d6918b03927360aa1e57c0188dcb781b"
+        "http://test/pkgs/linux-64/foo.tar.bz2#d6918b03927360aa1e57c0188dcb781b"
     )
     assert match.group("url_p") == "http://test/pkgs/linux-64"
     assert match.group("fn") == "foo.tar.bz2"
@@ -82,17 +83,21 @@ def test_explicit_no_cache(ProgressiveFetchExtract):
         )
 
 
-def test_explicit_missing_cache_entries(mocker):
+def test_explicit_missing_cache_entries(
+    mocker: MockerFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
     """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
     from conda.core.package_cache_data import PackageCacheData
 
-    with make_temp_env() as prefix:  # ensure writable env
+    with tmp_env() as prefix:  # ensure writable env
         if len(PackageCacheData.get_all_extracted_entries()) == 0:
             # Package cache e.g. ./devenv/Darwin/x86_64/envs/devenv-3.9-c/pkgs/ can
             # be empty in certain cases (Noted in OSX with Python 3.9, when
             # Miniconda installs Python 3.10). Install a small package.
             warnings.warn("test_explicit_missing_cache_entries: No packages in cache.")
-            run_command(Commands.INSTALL, prefix, "heapdict")
+            conda_cli("install", "--prefix", prefix, "heapdict", "--yes")
 
         # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
         # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
@@ -143,7 +148,7 @@ def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
         "testdir1/testfile",
         "testdir1/testdir2/testfile",
     }
-    if sys.platform != "darwin":
+    if not on_mac:
         answer.add("python.app")
 
     assert walk_prefix(tmpdir.strpath) == answer

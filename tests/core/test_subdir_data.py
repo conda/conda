@@ -17,16 +17,9 @@ from conda.core.subdir_data import (
     cache_fn_url,
     fetch_repodata_remote_request,
 )
-from conda.exceptions import CondaSSLError, CondaUpgradeError, UnavailableInvalidChannel
+from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
-from conda.gateways.connection import SSLError
-from conda.gateways.connection.session import CondaSession
-from conda.gateways.repodata import (
-    CondaRepoInterface,
-    RepodataCache,
-    RepodataFetch,
-    Response304ContentUnchanged,
-)
+from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -52,25 +45,19 @@ def platform_in_record(platform, record):
 
 @pytest.mark.integration
 def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
-    import conda.core.subdir_data
-
     with env_vars(
         {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        with patch.object(
-            conda.core.subdir_data, "read_mod_and_etag"
-        ) as read_mod_and_etag:
-            read_mod_and_etag.return_value = {}
-            channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
+        channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
 
-            this_platform = context.subdir
-            index = get_index(channel_urls=channel_urls, prepend=False)
-            for dist, record in index.items():
-                assert platform_in_record(this_platform, record), (
-                    this_platform,
-                    record.url,
-                )
+        this_platform = context.subdir
+        index = get_index(channel_urls=channel_urls, prepend=False)
+        for dist, record in index.items():
+            assert platform_in_record(this_platform, record), (
+                this_platform,
+                record.url,
+            )
 
     # When unknown=True (which is implicitly engaged when context.offline is
     # True), there may be additional items in the cache that are included in
@@ -83,32 +70,22 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         with env_var(
             "CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
         ):
-            # note `fetch_repodata_remote_request` will no longer be called
-            # by conda code, and is only there for backwards compatibility.
-            with patch.object(
-                conda.core.subdir_data, "fetch_repodata_remote_request"
-            ) as remote_request:
-                index2 = get_index(
-                    channel_urls=channel_urls, prepend=False, unknown=unknown
-                )
-                assert all(index2.get(k) == rec for k, rec in index.items())
-                assert unknown is not False or len(index) == len(index2)
-                assert remote_request.call_count == 0
+            index2 = get_index(
+                channel_urls=channel_urls, prepend=False, unknown=unknown
+            )
+            assert all(index2.get(k) == rec for k, rec in index.items())
+            assert unknown is not False or len(index) == len(index2)
 
     for unknown in (False, True):
         with env_vars(
             {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": "linux-64"},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            with patch.object(
-                conda.core.subdir_data, "fetch_repodata_remote_request"
-            ) as remote_request:
-                remote_request.side_effect = Response304ContentUnchanged()
-                index3 = get_index(
-                    channel_urls=channel_urls, prepend=False, unknown=unknown
-                )
-                assert all(index3.get(k) == rec for k, rec in index.items())
-                assert unknown or len(index) == len(index3)
+            index3 = get_index(
+                channel_urls=channel_urls, prepend=False, unknown=unknown
+            )
+            assert all(index3.get(k) == rec for k, rec in index.items())
+            assert unknown or len(index) == len(index3)
 
     # only works if CONDA_PLATFORM exists in tests/data/conda_format_repo
     # (test will not pass on newer platforms with default CONDA_PLATFORM =
@@ -173,27 +150,6 @@ def test_fetch_repodata_remote_request_invalid_arch():
     assert result is None
 
 
-def test_fetch_repodata_remote_request_invalid_noarch():
-    url = "file:///fake/fake/fake/noarch"
-    etag = None
-    mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
-    with pytest.raises(UnavailableInvalidChannel):
-        fetch_repodata_remote_request(url, etag, mod_stamp)
-
-
-def test_no_ssl(mocker):
-    def CondaSession_get(*args, **kwargs):
-        raise SSLError("Got an SSL error")
-
-    mocker.patch.object(CondaSession, "get", CondaSession_get)
-
-    url = "https://www.fake.fake/fake/fake/noarch"
-    etag = None
-    mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
-    with pytest.raises(CondaSSLError):
-        fetch_repodata_remote_request(url, etag, mod_stamp)
-
-
 def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_vars(
@@ -247,9 +203,6 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
 
         sd.reload()
         assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
-
-        # newly deprecated, run them anyway
-        sd._save_state(sd._load_state())
 
 
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
@@ -351,10 +304,10 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
             )
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
-    sd = BadCacheSubdirData(channel=local_channel)
+    sd: SubdirData = BadCacheSubdirData(channel=local_channel)
 
     with pytest.raises(CondaError):
-        state = sd._load_state()
+        state = sd.repo_cache.load_state()
         # tortured way to get to old ValueError handler
         bad_cache.write_text("NOT JSON")
         sd._read_local_repodata(state)

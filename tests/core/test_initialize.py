@@ -35,6 +35,7 @@ from conda.core.initialize import (
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
+from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
 
 
@@ -419,7 +420,7 @@ def test_install_conda_sh(verbose):
 
         from conda.activate import PosixActivator
 
-        activator = PosixActivator()
+        PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
         if on_win:
@@ -1099,3 +1100,12 @@ def test_init_sh_system(verbose):
 
         init_sh_system(target_path, conda_prefix, reverse=True)
         assert not isfile(target_path)
+
+
+def test_init_all(conda_cli: CondaCLIFixture):
+    # TODO: run this test without cygpath being available (on win)
+    stdout, stderr, err = conda_cli("init", "--all", "--dry-run")
+
+    assert stdout
+    assert not stderr
+    assert not err

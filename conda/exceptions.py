@@ -15,8 +15,6 @@ from traceback import format_exception, format_exception_only
 import requests
 from requests.exceptions import JSONDecodeError
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
@@ -24,10 +22,11 @@ from .auxlib.logz import stringify
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import on_win
 from .common.io import dashlist
+from .common.iterators import groupby_to_dict as groupby
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
-from .deprecations import DeprecatedError  # noqa: 401
-from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: 401
+from .deprecations import DeprecatedError  # noqa: F401
+from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
 
 log = getLogger(__name__)
@@ -292,10 +291,9 @@ class CommandNotFoundError(CondaError):
             "render",
             "skeleton",
         }
-        from .base.context import context
         from .cli.main import init_loggers
 
-        init_loggers(context)
+        init_loggers()
         if command in activate_commands:
             # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = [
@@ -1245,11 +1243,7 @@ def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
 
     rc = getattr(exc_val, "return_code", None)
-    if (
-        context.debug
-        or context.verbosity > 2
-        or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)
-    ):
+    if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
         if isinstance(exc_val, DryRunExit):

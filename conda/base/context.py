@@ -7,6 +7,7 @@ into one global stateful object to be used across all of conda.
 """
 from __future__ import annotations
 
+import logging
 import os
 import platform
 import struct
@@ -15,7 +16,6 @@ from contextlib import contextmanager
 from errno import ENOENT
 from functools import lru_cache
 from itertools import chain
-from logging import getLogger
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
@@ -45,6 +45,7 @@ from ..common.iterators import unique
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
+from ..gateways.logging import TRACE
 from .constants import (
     APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -57,6 +58,7 @@ from .constants import (
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
+    NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
@@ -80,7 +82,7 @@ except OSError as e:
     else:
         raise
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 _platform_map = {
     "freebsd13": "freebsd",
@@ -154,11 +156,12 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not isfile(value) and not isdir(value):
+        if not value == "truststore" and not isfile(value) and not isdir(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
-                "certificate bundle file, or a path to a directory containing "
-                "certificates of trusted CAs." % value
+                "certificate bundle file, a path to a directory containing "
+                "certificates of trusted CAs, or 'truststore' to use the "
+                "operating system certificate store." % value
             )
     return True
 
@@ -181,6 +184,7 @@ class Context(Configuration):
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
+    register_envs = ParameterLoader(PrimitiveParameter(True))
     default_python = ParameterLoader(
         PrimitiveParameter(
             default_python_default(),
@@ -192,7 +196,6 @@ class Context(Configuration):
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
-
     pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
 
     # multithreading in various places
@@ -203,9 +206,9 @@ class Context(Configuration):
     _repodata_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("repodata_threads",)
     )
-    # download packages; determined experimentally
+    # download packages
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
@@ -378,7 +381,8 @@ class Context(Configuration):
     always_yes = ParameterLoader(
         PrimitiveParameter(None, element_type=(bool, NoneType)), aliases=("yes",)
     )
-    debug = ParameterLoader(PrimitiveParameter(False))
+    _debug = ParameterLoader(PrimitiveParameter(False), aliases=["debug"])
+    _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
@@ -396,6 +400,7 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    no_lock = ParameterLoader(PrimitiveParameter(False))
 
     ####################################################
     #               Solver Configuration               #
@@ -408,11 +413,6 @@ class Context(Configuration):
         PrimitiveParameter(DEFAULT_SOLVER),
         aliases=("experimental_solver",),
     )
-
-    @property
-    @deprecated("23.3", "23.9", addendum="Use `context.solver` instead.")
-    def experimental_solver(self):
-        return self.solver
 
     # # CLI-only
     # no_deps = ParameterLoader(PrimitiveParameter(NULL, element_type=(type(NULL), bool)))
@@ -443,6 +443,12 @@ class Context(Configuration):
         MapParameter(PrimitiveParameter("", element_type=str)),
         aliases=("conda-build", "conda_build"),
     )
+
+    ####################################################
+    #               Plugin Configuration               #
+    ####################################################
+
+    no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
 
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(argparse_args=argparse_args)
@@ -548,15 +554,6 @@ class Context(Configuration):
             return _arch_names[self.bits]
 
     @property
-    @deprecated(
-        "23.3",
-        "23.9",
-        addendum="It's meaningless and any special meaning it may have held is now void.",
-    )
-    def conda_private(self):
-        return False
-
-    @property
     def platform(self):
         return _platform_map.get(sys.platform, "unknown")
 
@@ -570,6 +567,11 @@ class Context(Configuration):
 
     @property
     def fetch_threads(self) -> int | None:
+        """
+        If both are not overriden (0), return experimentally-determined value of 5
+        """
+        if self._fetch_threads == 0 and self._default_threads == 0:
+            return 5
         return self._fetch_threads or self.default_threads
 
     @property
@@ -596,6 +598,10 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
+        return self._native_subdir()
+
+    @lru_cache(maxsize=None)
+    def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
@@ -948,8 +954,75 @@ class Context(Configuration):
         return self.anaconda_upload
 
     @property
-    def verbosity(self):
-        return 2 if self.debug else self._verbosity
+    def trace(self) -> bool:
+        """Alias for context.verbosity >=4."""
+        return self.verbosity >= 4
+
+    @property
+    def debug(self) -> bool:
+        """Alias for context.verbosity >=3."""
+        return self.verbosity >= 3
+
+    @property
+    def info(self) -> bool:
+        """Alias for context.verbosity >=2."""
+        return self.verbosity >= 2
+
+    @property
+    def verbose(self) -> bool:
+        """Alias for context.verbosity >=1."""
+        return self.verbosity >= 1
+
+    @property
+    def verbosity(self) -> int:
+        """Verbosity level.
+
+        For cleaner and readable code it is preferable to use the following alias properties:
+            context.trace
+            context.debug
+            context.info
+            context.verbose
+            context.log_level
+        """
+        #                   0 → logging.WARNING, standard output
+        #           -v    = 1 → logging.WARNING, detailed output
+        #           -vv   = 2 → logging.INFO
+        # --debug = -vvv  = 3 → logging.DEBUG
+        # --trace = -vvvv = 4 → conda.gateways.logging.TRACE
+        if self._trace:
+            return 4
+        elif self._debug:
+            return 3
+        else:
+            return self._verbosity
+
+    @property
+    def log_level(self) -> int:
+        """Map context.verbosity to logging level."""
+        if 4 < self.verbosity:
+            return logging.NOTSET  # 0
+        elif 3 < self.verbosity <= 4:
+            return TRACE  # 5
+        elif 2 < self.verbosity <= 3:
+            return logging.DEBUG  # 10
+        elif 1 < self.verbosity <= 2:
+            return logging.INFO  # 20
+        else:
+            return logging.WARNING  # 30
+
+    def solver_user_agent(self):
+        user_agent = "solver/%s" % self.solver
+        try:
+            solver_backend = self.plugin_manager.get_cached_solver_backend()
+            # Solver.user_agent has to be a static or class method
+            user_agent += f" {solver_backend.user_agent()}"
+        except Exception as exc:
+            log.debug(
+                "User agent could not be fetched from solver class '%s'.",
+                self.solver,
+                exc_info=exc,
+            )
+        return user_agent
 
     @memoizedproperty
     def user_agent(self):
@@ -960,18 +1033,7 @@ class Context(Configuration):
         if self.libc_family_version[0]:
             builder.append("%s/%s" % self.libc_family_version)
         if self.solver != "classic":
-            user_agent_str = "solver/%s" % self.solver
-            try:
-                solver_backend = self.plugin_manager.get_cached_solver_backend()
-                # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {solver_backend.user_agent()}"
-            except Exception as exc:
-                log.debug(
-                    "User agent could not be fetched from solver class '%s'.",
-                    self.solver,
-                    exc_info=exc,
-                )
-            builder.append(user_agent_str)
+            builder.append(self.solver_user_agent())
         return " ".join(builder)
 
     @contextmanager
@@ -992,14 +1054,18 @@ class Context(Configuration):
 
     @memoizedproperty
     def requests_version(self):
+        # used in User-Agent as "requests/<version>"
+        # if unable to detect a version we expect "requests/unknown"
         try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+            from requests import __version__ as requests_version
+        except ImportError as err:
+            # ImportError: requests is not installed
+            log.error("Unable to import requests: %s", err)
+            requests_version = "unknown"
+        except Exception as err:
+            log.error("Error importing requests: %s", err)
+            requests_version = "unknown"
+        return requests_version
 
     @memoizedproperty
     def python_implementation_name_version(self):
@@ -1027,7 +1093,7 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from conda._vendor.distro import id, version
+            from .._vendor.distro import id, version
 
             try:
                 distinfo = id(), version(best=True)
@@ -1056,19 +1122,6 @@ class Context(Configuration):
         info = _get_cpu_info()
         return info["flags"]
 
-    @memoizedproperty
-    @deprecated(
-        "23.3",
-        "23.9",
-        addendum="Use `conda.plugins.virtual_packages.cuda.cuda_version` instead.",
-        stack=+1,
-    )
-    def cuda_version(self) -> str | None:
-        """Retrieves the current cuda version."""
-        from conda.plugins.virtual_packages import cuda
-
-        return cuda.cuda_version()
-
     @property
     def category_map(self):
         return {
@@ -1090,6 +1143,7 @@ class Context(Configuration):
                 "repodata_threads",
                 "fetch_threads",
                 "experimental",
+                "no_lock",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1175,6 +1229,7 @@ class Context(Configuration):
                 "add_pip_as_python_dependency",
                 "channel_settings",
                 "debug",
+                "trace",
                 "dev",
                 "default_python",
                 "enable_private_envs",
@@ -1189,7 +1244,10 @@ class Context(Configuration):
                 # I don't think this documentation is correct any longer. # NOQA
                 "target_prefix_override",
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                "register_envs",
+                # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
+            "Plugin Configuration": ("no_plugins",),
         }
 
     def get_descriptions(self):
@@ -1499,6 +1557,11 @@ class Context(Configuration):
             #     environments and inconsistent behavior. Use at your own risk.
             #     """
             # ),
+            no_plugins=dals(
+                """
+                Disable all currently-registered plugins, except built-in conda plugins.
+                """
+            ),
             non_admin_enabled=dals(
                 """
                 Allows completion of conda's create, install, update, and remove operations, for
@@ -1655,8 +1718,9 @@ class Context(Configuration):
                 browser. By default, SSL verification is enabled, and conda operations will
                 fail if a required url's certificate cannot be verified. Setting ssl_verify to
                 False disables certification verification. The value for ssl_verify can also
-                be (1) a path to a CA bundle file, or (2) a path to a directory containing
-                certificates of trusted CA.
+                be (1) a path to a CA bundle file, (2) a path to a directory containing
+                certificates of trusted CA, or (3) 'truststore' to use the
+                operating system certificate store.
                 """
             ),
             track_features=dals(
@@ -1738,6 +1802,11 @@ class Context(Configuration):
             experimental=dals(
                 """
                 List of experimental features to enable.
+                """
+            ),
+            no_lock=dals(
+                """
+                Disable index cache lock (defaults to enabled).
                 """
             ),
         )
@@ -1991,14 +2060,6 @@ def _first_writable_envs_dir():
     from ..exceptions import NoWritableEnvsDirError
 
     raise NoWritableEnvsDirError(context.envs_dirs)
-
-
-# backward compatibility for conda-build
-@deprecated(
-    "23.3", "23.9", addendum="Use `conda.base.context.determine_target_prefix` instead."
-)
-def get_prefix(ctx, args, search=True):  # pragma: no cover
-    return determine_target_prefix(ctx or context, args)
 
 
 try:

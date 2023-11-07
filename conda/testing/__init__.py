@@ -28,10 +28,9 @@ from typing import Iterator
 import pytest
 from pytest import CaptureFixture
 
-from conda.base.context import context, reset_context
-from conda.cli.main import init_loggers
-from conda.common.compat import on_win
-
+from ..base.context import context, reset_context
+from ..cli.main import init_loggers
+from ..common.compat import on_win
 from ..deprecations import deprecated
 
 
@@ -73,7 +72,7 @@ def conda_ensure_sys_python_is_base_env_python():
 
 def conda_move_to_front_of_PATH():
     if "CONDA_PREFIX" in os.environ:
-        from conda.activate import CmdExeActivator, PosixActivator
+        from ..activate import CmdExeActivator, PosixActivator
 
         if os.name == "nt":
             activator_cls = CmdExeActivator
@@ -140,14 +139,14 @@ def conda_check_versions_aligned():
     else:
         version_from_file = None
 
-    git_exe = "git.exe" if sys.platform == "win32" else "git"
+    git_exe = "git.exe" if on_win else "git"
     version_from_git = None
     for pe in os.environ.get("PATH", "").split(os.pathsep):
         if isfile(join(pe, git_exe)):
             try:
                 cmd = join(pe, git_exe) + " describe --tags --long"
                 version_from_git = check_output(cmd).decode("utf-8").split("\n")[0]
-                from conda.auxlib.packaging import _get_version_from_git_tag
+                from ..auxlib.packaging import _get_version_from_git_tag
 
                 version_from_git = _get_version_from_git_tag(version_from_git)
                 break
@@ -178,28 +177,37 @@ class CondaCLIFixture:
         :return: Command results
         :rtype: tuple[stdout, stdout, exitcode]
         """
-        # extra checks to handle legacy subcommands
-        if argv[0] == "env":
-            from conda_env.cli.main import create_parser as generate_parser
-            from conda_env.cli.main import do_call
-
-            argv = argv[1:]
-        else:
-            from conda.cli.conda_argparse import do_call, generate_parser
+        # clear output
+        self.capsys.readouterr()
 
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
-        # parse arguments
-        parser = generate_parser()
-        args = parser.parse_args(argv)
+        # mock legacy subcommands
+        if argv[0] == "env":
+            from conda_env.cli.main import create_parser, do_call
 
-        # initialize context and loggers
-        context.__init__(argparse_args=args)
-        init_loggers(context)
+            argv = argv[1:]
 
-        # run command
-        code = do_call(args, parser)
+            # parse arguments
+            parser = create_parser()
+            args = parser.parse_args(argv)
+
+            # initialize context and loggers
+            context.__init__(argparse_args=args)
+            init_loggers()
+
+            # run command
+            code = do_call(args, parser)
+
+        # all other subcommands
+        else:
+            from ..cli.main import main_subshell
+
+            # run command
+            code = main_subshell(*argv)
+
+        # capture output
         out, err = self.capsys.readouterr()
 
         # restore to prior state

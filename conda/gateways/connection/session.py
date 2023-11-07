@@ -1,9 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Requests session configured with all accepted scheme adapters."""
+from __future__ import annotations
+
+from functools import lru_cache
 from logging import getLogger
 from threading import local
 
+from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
@@ -14,11 +18,11 @@ from ...common.url import (
     urlparse,
 )
 from ...exceptions import ProxyError
+from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
     BaseAdapter,
-    HTTPAdapter,
     Retry,
     Session,
     _basic_auth_str,
@@ -27,6 +31,7 @@ from . import (
     get_netrc_auth,
 )
 from .adapters.ftp import FTPAdapter
+from .adapters.http import HTTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 
@@ -60,6 +65,61 @@ class EnforceUnusedAdapter(BaseAdapter):
         raise NotImplementedError()
 
 
+def get_channel_name_from_url(url: str) -> str | None:
+    """
+    Given a URL, determine the channel it belongs to and return its name.
+    """
+    return Channel.from_url(url).canonical_name
+
+
+@lru_cache(maxsize=None)
+def get_session(url: str):
+    """
+    Function that determines the correct Session object to be returned
+    based on the URL that is passed in.
+    """
+    channel_name = get_channel_name_from_url(url)
+
+    # If for whatever reason a channel name can't be determined, (should be unlikely)
+    # we just return the default session object.
+    if channel_name is None:
+        return CondaSession()
+
+    # We ensure here if there are duplicates defined, we choose the last one
+    channel_settings = {}
+    for settings in context.channel_settings:
+        if settings.get("channel") == channel_name:
+            channel_settings = settings
+
+    auth_handler = channel_settings.get("auth", "").strip() or None
+
+    # Return default session object
+    if auth_handler is None:
+        return CondaSession()
+
+    auth_handler_cls = context.plugin_manager.get_auth_handler(auth_handler)
+
+    if not auth_handler_cls:
+        return CondaSession()
+
+    return CondaSession(auth=auth_handler_cls(channel_name))
+
+
+def get_session_storage_key(auth) -> str:
+    """
+    Function that determines which storage key to use for our CondaSession object caching
+    """
+    if auth is None:
+        return "default"
+
+    if isinstance(auth, tuple):
+        return hash(auth)
+
+    auth_type = type(auth)
+
+    return f"{auth_type.__module__}.{auth_type.__qualname__}::{auth.channel_name}"
+
+
 class CondaSessionType(type):
     """
     Takes advice from https://github.com/requests/requests/issues/1871#issuecomment-33327847
@@ -70,23 +130,49 @@ class CondaSessionType(type):
         dct["_thread_local"] = local()
         return super().__new__(mcs, name, bases, dct)
 
-    def __call__(cls):
+    def __call__(cls, **kwargs):
+        storage_key = get_session_storage_key(kwargs.get("auth"))
+
         try:
-            return cls._thread_local.session
+            return cls._thread_local.sessions[storage_key]
         except AttributeError:
-            session = cls._thread_local.session = super().__call__()
-            return session
+            session = super().__call__(**kwargs)
+            cls._thread_local.sessions = {storage_key: session}
+        except KeyError:
+            session = cls._thread_local.sessions[storage_key] = super().__call__(
+                **kwargs
+            )
+
+        return session
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-    def __init__(self):
+    def __init__(self, auth: AuthBase | tuple[str, str] | None = None):
+        """
+        :param auth: Optionally provide ``requests.AuthBase`` compliant objects
+        """
         super().__init__()
 
-        self.auth = (
-            CondaHttpAuth()
-        )  # TODO: should this just be for certain protocol adapters?
+        self.auth = auth or CondaHttpAuth()
 
         self.proxies.update(context.proxy_servers)
+
+        ssl_context = None
+        if context.ssl_verify == "truststore":
+            try:
+                import ssl
+
+                import truststore
+
+                ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            except ImportError:
+                raise CondaError(
+                    "The `ssl_verify: truststore` setting is only supported on"
+                    + "Python 3.10 or later."
+                )
+            self.verify = True
+        else:
+            self.verify = context.ssl_verify
 
         if context.offline:
             unused_adapter = EnforceUnusedAdapter()
@@ -102,8 +188,9 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 backoff_factor=context.remote_backoff_factor,
                 status_forcelist=[413, 429, 500, 503],
                 raise_on_status=False,
+                respect_retry_after_header=False,
             )
-            http_adapter = HTTPAdapter(max_retries=retry)
+            http_adapter = HTTPAdapter(max_retries=retry, ssl_context=ssl_context)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
@@ -112,8 +199,6 @@ class CondaSession(Session, metaclass=CondaSessionType):
         self.mount("file://", LocalFSAdapter())
 
         self.headers["User-Agent"] = context.user_agent
-
-        self.verify = context.ssl_verify
 
         if context.client_ssl_cert_key:
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
@@ -195,9 +280,7 @@ class CondaHttpAuth(AuthBase):
             Could not find a proxy for {!r}. See
             {}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """.format(
-                        proxy_scheme, CONDA_HOMEPAGE_URL
-                    )
+            """.format(proxy_scheme, CONDA_HOMEPAGE_URL)
                 )
             )
 

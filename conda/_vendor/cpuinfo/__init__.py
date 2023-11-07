@@ -1,5 +1,5 @@
 
 import sys
-from conda._vendor.cpuinfo.cpuinfo import *
+from .cpuinfo import *
 
 

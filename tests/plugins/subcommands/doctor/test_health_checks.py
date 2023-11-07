@@ -9,15 +9,15 @@ from typing import Iterable
 
 import pytest
 from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda.base.context import reset_context
-from conda.common.io import env_vars
 from conda.plugins.subcommands.doctor.health_checks import (
+    check_envs_txt_file,
     display_health_checks,
     find_altered_packages,
     find_packages_with_missing_files,
 )
-from conda.testing.integration import make_temp_env
 
 
 @pytest.fixture
@@ -83,6 +83,36 @@ def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, st
     return env_ok
 
 
+def test_listed_on_envs_txt_file(
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str]
+):
+    """Test that runs for the case when the env is listed on the environments.txt file"""
+    prefix, _, _, _ = env_ok
+    tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text(f"{prefix}")
+
+    mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        return_value=tmp_envs_txt_file,
+    )
+    assert check_envs_txt_file(prefix)
+
+
+def test_not_listed_on_envs_txt_file(
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str]
+):
+    """Test that runs for the case when the env is not listed on the environments.txt file"""
+    prefix, _, _, _ = env_ok
+    tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text("Not environment name")
+
+    mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        return_value=tmp_envs_txt_file,
+    )
+    assert not check_envs_txt_file(prefix)
+
+
 def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
     """Test that runs for the case with no missing files"""
     prefix, _, _, _ = env_ok
@@ -135,7 +165,6 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str]):
     """Test that runs for the case when json file is missing"""
     prefix, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
-    package = None
     assert find_altered_packages(prefix) == {}
 
 
@@ -145,7 +174,7 @@ def test_display_health_checks(
 ):
     """Test that runs display_health_checks without missing or altered files."""
     prefix, bin_doctor, lib_doctor, package = env_ok
-    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
@@ -162,7 +191,7 @@ def test_display_health_checks_missing_files(
 ):
     """Test that runs display_health_checks with missing files"""
     prefix, bin_doctor, _, package = env_missing_files
-    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
@@ -181,7 +210,7 @@ def test_display_health_checks_altered_files(
 ):
     """Test that runs display_health_checks with altered files"""
     prefix, _, lib_doctor, package = env_altered_files
-    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()

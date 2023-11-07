@@ -3,6 +3,7 @@
 """Tools to aid in deprecating code."""
 from __future__ import annotations
 
+import sys
 import warnings
 from argparse import Action
 from functools import wraps
@@ -280,8 +281,8 @@ class DeprecationHandler:
         import inspect  # expensive
 
         try:
-            frame = inspect.stack()[2 + stack]
-            module = inspect.getmodule(frame[0])
+            frame = sys._getframe(2 + stack)
+            module = inspect.getmodule(frame)
             return (module, module.__name__)
         except (IndexError, AttributeError):
             raise DeprecatedError("unable to determine the calling module") from None

@@ -13,7 +13,6 @@ from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
@@ -76,17 +75,6 @@ def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
     return True
 
 
-@deprecated("23.3", "23.9")
-def ensure_name_or_prefix(args, command):
-    if not (args.name or args.prefix):
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(
-            "either -n NAME or -p PREFIX option required,\n"
-            'try "conda %s -h" for more details' % command
-        )
-
-
 def is_active_prefix(prefix: str) -> bool:
     """
     Determines whether the args we pass in are pointing to the active prefix.
@@ -115,11 +103,9 @@ def arg2spec(arg, json=False, update=False):
         from ..exceptions import CondaValueError
 
         raise CondaValueError(
-            """version specifications not allowed with 'update'; use
-    conda update  {}{}  or
-    conda install {}""".format(
-                name, " " * (len(arg) - len(name)), arg
-            )
+            "version specifications not allowed with 'update'; use\n"
+            f"    conda update  {name:<{len(arg)}}  or\n"
+            f"    conda install {arg:<{len(name)}}"
         )
 
     return str(spec)

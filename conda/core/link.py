@@ -263,7 +263,7 @@ class UnlinkLinkTransaction:
 
         with Spinner(
             "Preparing transaction",
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             for stp in self.prefix_setups.values():
@@ -293,7 +293,7 @@ class UnlinkLinkTransaction:
 
         with Spinner(
             "Verifying transaction",
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
@@ -844,7 +844,7 @@ class UnlinkLinkTransaction:
             exceptions = []
             with Spinner(
                 "Executing transaction",
-                not context.verbosity and not context.quiet,
+                not context.verbose and not context.quiet,
                 context.json,
             ):
                 # Execute unlink actions
@@ -954,7 +954,7 @@ class UnlinkLinkTransaction:
                 if context.rollback_enabled:
                     with Spinner(
                         "Rolling back transaction",
-                        not context.verbosity and not context.quiet,
+                        not context.verbose and not context.quiet,
                         context.json,
                     ):
                         reverse_actions = reversed(tuple(all_action_groups))
@@ -989,14 +989,14 @@ class UnlinkLinkTransaction:
         try:
             if axngroup.type == "unlink":
                 log.info(
-                    "===> UNLINKING PACKAGE: %s <===\n" "  prefix=%s\n",
+                    "===> UNLINKING PACKAGE: %s <===\n  prefix=%s\n",
                     prec.dist_str(),
                     target_prefix,
                 )
 
             elif axngroup.type == "link":
                 log.info(
-                    "===> LINKING PACKAGE: %s <===\n" "  prefix=%s\n" "  source=%s\n",
+                    "===> LINKING PACKAGE: %s <===\n  prefix=%s\n  source=%s\n",
                     prec.dist_str(),
                     target_prefix,
                     prec.extracted_package_dir,
@@ -1052,14 +1052,14 @@ class UnlinkLinkTransaction:
 
         if axngroup.type == "unlink":
             log.info(
-                "===> REVERSING PACKAGE UNLINK: %s <===\n" "  prefix=%s\n",
+                "===> REVERSING PACKAGE UNLINK: %s <===\n  prefix=%s\n",
                 prec.dist_str(),
                 target_prefix,
             )
 
         elif axngroup.type == "link":
             log.info(
-                "===> REVERSING PACKAGE LINK: %s <===\n" "  prefix=%s\n",
+                "===> REVERSING PACKAGE LINK: %s <===\n  prefix=%s\n",
                 prec.dist_str(),
                 target_prefix,
             )
@@ -1560,9 +1560,8 @@ def run_script(
                     #   create_env function
                     message = f"{action} failed for: {prec}"
                 else:
-                    message = (
-                        dals(
-                            """
+                    message = dals(
+                        """
                     %s script failed for package %s
                     location of failed script: %s
                     ==> script messages <==
@@ -1572,16 +1571,14 @@ def run_script(
                     stderr: %s
                     return code: %s
                     """
-                        )
-                        % (
-                            action,
-                            prec.dist_str(),
-                            path,
-                            m or "<None>",
-                            response.stdout,
-                            response.stderr,
-                            response.rc,
-                        )
+                    ) % (
+                        action,
+                        prec.dist_str(),
+                        path,
+                        m or "<None>",
+                        response.stdout,
+                        response.stderr,
+                        response.rc,
                     )
                 raise LinkError(message)
             else:

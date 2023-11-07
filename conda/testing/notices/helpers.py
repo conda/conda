@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Sequence
 from unittest import mock
 
-from conda.base.context import Context
-from conda.models.channel import get_channel_objs
-from conda.notices.cache import get_notices_cache_file
-from conda.notices.core import get_channel_name_and_urls
-from conda.notices.types import ChannelNoticeResponse
+from ...base.context import Context
+from ...models.channel import get_channel_objs
+from ...notices.cache import get_notices_cache_file
+from ...notices.core import get_channel_name_and_urls
+from ...notices.types import ChannelNoticeResponse
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
@@ -60,7 +60,7 @@ def add_resp_to_mock(
         yield MockResponse(status_code, messages_json, raise_exc=raise_exc)
 
     chn = chain(one_200(), forever_404())
-    mock_session.side_effect = tuple(next(chn) for _ in range(100))
+    mock_session().get.side_effect = tuple(next(chn) for _ in range(100))
 
 
 def create_notice_cache_files(

@@ -20,6 +20,7 @@ from os.path import (
     lexists,
     relpath,
 )
+from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
@@ -28,6 +29,7 @@ from uuid import uuid4
 
 import pytest
 import requests
+from pytest import CaptureFixture, MonkeyPatch
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
@@ -77,6 +79,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
+from conda.testing import CondaCLIFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
@@ -123,12 +126,14 @@ def test_install_python2_and_search(clear_package_cache: None):
         "conda.core.envs_manager.get_user_environments_txt_file",
         return_value=environment_txt,
     ) as _:
-        with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
-            with env_var(
-                "CONDA_ALLOW_NON_CHANNEL_URLS",
-                "true",
-                stack_callback=conda_tests_ctxt_mgmt_def_pol,
-            ):
+        with env_vars(
+            {
+                "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
+                "CONDA_REGISTER_ENVS": "true",
+            },
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
+            with make_temp_env("python=2", use_restricted_unicode=on_win) as prefix:
                 assert exists(join(prefix, PYTHON_BINARY))
                 assert package_is_installed(prefix, "python=2")
                 run_command(
@@ -722,7 +727,9 @@ def test_compare_fail(clear_package_cache: None):
         rmtree(prefix, ignore_errors=True)
 
 
-def test_install_tarball_from_local_channel(clear_package_cache: None):
+def test_install_tarball_from_local_channel(
+    clear_package_cache: None, tmp_path: Path, monkeypatch: MonkeyPatch
+):
     # Regression test for #2812
     # install from local channel
     """
@@ -741,6 +748,10 @@ def test_install_tarball_from_local_channel(clear_package_cache: None):
     assert type(path) == type(path2)
     # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
     """
+    monkeypatch.setenv("CONDA_BLD_PATH", str(tmp_path))
+    reset_context()
+    assert context.bld_path == str(tmp_path)
+
     with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
         run_command(Commands.INSTALL, prefix, "-c", channel, "flask=2.1.3", "--json")
         assert package_is_installed(prefix, channel + "::" + "flask")
@@ -753,17 +764,16 @@ def test_install_tarball_from_local_channel(clear_package_cache: None):
 
         # Regression test for 2970
         # install from build channel as a tarball
-        tar_path = join(PackageCacheData.first_writable().pkgs_dir, flask_fname)
-        if not os.path.isfile(tar_path):
-            tar_path = tar_path.replace(".conda", ".tar.bz2")
-        conda_bld = join(
-            dirname(PackageCacheData.first_writable().pkgs_dir), "conda-bld"
-        )
-        conda_bld_sub = join(conda_bld, context.subdir)
-        if not isdir(conda_bld_sub):
-            os.makedirs(conda_bld_sub)
-        tar_bld_path = join(conda_bld_sub, basename(tar_path))
+        tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
+        if not tar_path.is_file():
+            tar_path = tar_path.with_suffix(".tar.bz2")
+
+        # create a temporary conda-bld
+        conda_bld_sub = tmp_path / context.subdir
+        conda_bld_sub.mkdir(exist_ok=True)
+        tar_bld_path = str(conda_bld_sub / tar_path.name)
         copyfile(tar_path, tar_bld_path)
+
         run_command(Commands.INSTALL, prefix, tar_bld_path)
         assert package_is_installed(prefix, "flask")
 
@@ -1248,7 +1258,7 @@ def test_conda_config_validate(clear_package_cache: None):
             assert len(exc.value.errors) == 2
             str_exc_value = str(exc.value)
             assert (
-                "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs"
+                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the operating system certificate store."
                 in str_exc_value
             )
             assert (
@@ -1257,6 +1267,18 @@ def test_conda_config_validate(clear_package_cache: None):
             )
         finally:
             reset_context()
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Skip truststore on earlier python versions",
+)
+def test_conda_config_validate_sslverify_truststore(clear_package_cache: None):
+    with make_temp_env() as prefix:
+        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "truststore")
+        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
+        assert not stdout
+        assert not stderr
 
 
 @pytest.mark.skipif(
@@ -1548,7 +1570,7 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1556,10 +1578,10 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     try:
         with make_temp_env("console_shortcut", prefix=prefix):
             assert package_is_installed(prefix, "console_shortcut")
-            assert isfile(shortcut_file), (
-                "Shortcut not found in menu dir. "
-                "Contents of dir:\n"
-                "{}".format(os.listdir(shortcut_dir))
+            assert isfile(
+                shortcut_file
+            ), "Shortcut not found in menu dir. Contents of dir:\n{}".format(
+                os.listdir(shortcut_dir)
             )
 
             # make sure that cleanup without specifying --shortcuts still removes shortcuts
@@ -1577,7 +1599,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1605,7 +1627,7 @@ def test_shortcut_absent_when_condarc_set(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2337,72 +2359,35 @@ def test_bad_anaconda_token_infinite_loop(clear_package_cache: None):
         reset_context()
 
 
-def test_anaconda_token_with_private_package(clear_package_cache: None):
+@pytest.mark.skipif(
+    read_binstar_tokens(),
+    reason="binstar token found in global configuration",
+)
+def test_anaconda_token_with_private_package(
+    clear_package_cache: None,
+    conda_cli: CondaCLIFixture,
+    capsys: CaptureFixture,
+):
     # TODO: should also write a test to use binstar_client to set the token,
     # then let conda load the token
+    package = "private-package"
 
-    # Step 0. xfail if a token is set, for example when testing locally
-    tokens = read_binstar_tokens()
-    if tokens:
-        pytest.xfail("binstar token found in global configuration")
+    # Step 1. Make sure without the token we don't see the package
+    channel_url = "https://conda-web.anaconda.org/conda-test"
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--channel", channel_url, package)
+    # flush stdout/stderr
+    capsys.readouterr()
 
-    # Step 1. Make sure without the token we don't see the anyjson package
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        channel_url = "https://conda.anaconda.org/kalefranz"
-        payload, _, _ = run_command(
-            Commands.CONFIG, prefix, "--get", "channels", "--json"
-        )
-        default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
-        run_command(Commands.CONFIG, prefix, "--append", "channels", channel_url)
-        # config --append on an empty key pre-populates it with the hardcoded default value!
-        for channel in default_channels:
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
-        output, _, _ = run_command(Commands.CONFIG, prefix, "--show")
-        print(output)
-        yml_obj = yaml_round_trip_load(output)
-        assert yml_obj["channels"] == [channel_url]
-
-        output, _, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "anyjson",
-            "--platform",
-            "linux-64",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json_loads(output)
-        assert json_obj["exception_name"] == "PackagesNotFoundError"
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        reset_context()
-
-    # Step 2. Now with the token make sure we can see the anyjson package
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
-        payload, _, _ = run_command(
-            Commands.CONFIG, prefix, "--get", "channels", "--json"
-        )
-        default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
-        run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-        for channel in default_channels:
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-
-        assert yml_obj["channels"] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
-
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH, prefix, "anyjson", "--platform", "linux-64", "--json"
-        )
-        json_obj = json_loads(stdout)
-        assert "anyjson" in json_obj
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    # Step 2. Now with the token make sure we can see the package
+    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
+    stdout, _, _ = conda_cli(
+        "search",
+        *("--channel", channel_url),
+        package,
+        "--json",
+    )
+    assert package in json_loads(stdout)
 
 
 def test_use_index_cache(clear_package_cache: None):
@@ -2751,6 +2736,40 @@ def test_multiline_run_command(clear_package_cache: None):
         )
     assert env_which_etc
     assert not errs_etc
+
+
+def _check_create_xz_env_different_platform(prefix, platform):
+    assert exists(join(prefix, "bin", "xz"))
+    # make sure we read the config from PREFIX/.condarc
+    prefix_condarc = Path(prefix, ".condarc")
+    reset_context([prefix_condarc])
+    config_sources = context.collect_all()
+    assert config_sources[prefix_condarc]["subdir"] == platform
+
+    stdout, _, _ = run_command(
+        Commands.INSTALL,
+        prefix,
+        "python",
+        "--dry-run",
+        "--json",
+        use_exception_handler=True,
+    )
+    result = json.loads(stdout)
+    assert result["success"]
+    python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
+    assert python["platform"] == platform
+
+
+def test_create_env_different_platform_cli_flag():
+    platform = "linux-64" if on_mac else "osx-64"
+    with make_temp_env("xz", "--platform", platform) as prefix:
+        _check_create_xz_env_different_platform(prefix, platform)
+
+
+def test_create_env_different_platform_env_var():
+    platform = "linux-64" if on_mac else "osx-64"
+    with env_var("CONDA_SUBDIR", platform), make_temp_env("xz") as prefix:
+        _check_create_xz_env_different_platform(prefix, platform)
 
 
 @pytest.mark.skip("Test is flaky")

@@ -18,15 +18,14 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from conda.base.context import context
-from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import (
+from ....base.context import context
+from ...connection import Response, Session
+from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     RepodataCache,
     RepodataState,
 )
-
 from .core import JLAP
 
 log = logging.getLogger(__name__)
@@ -128,7 +127,10 @@ def request_jlap(
     response = session.get(url, stream=True, headers=headers, timeout=timeout)
     response.raise_for_status()
 
-    log.debug("request headers: %s", pprint.pformat(response.request.headers))
+    if response.request:
+        log.debug("request headers: %s", pprint.pformat(response.request.headers))
+    else:
+        log.debug("response without request.")
     log.debug(
         "response headers: %s",
         pprint.pformat(
@@ -246,7 +248,8 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher), closefd=True  # type: ignore
+                HashWriter(dest_path.open("wb"), hasher),
+                closefd=True,
             )
         else:
             writer = HashWriter(dest_path.open("wb"), hasher)
@@ -355,9 +358,9 @@ def request_url_jlap_state(
             state.set_has_format("jlap", True)
             need_jlap = False
         except ValueError:
-            log.info("Checksum not OK")
-        except IndexError as e:
-            log.info("Incomplete file?", exc_info=e)
+            log.info("Checksum not OK on JLAP range request. Retry with complete JLAP.")
+        except IndexError:
+            log.exception("IndexError reading JLAP. Invalid file?")
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
@@ -371,7 +374,10 @@ def request_url_jlap_state(
                     cache=cache,
                     temp_path=temp_path,
                 )
-            log.exception("Requests error")
+            log.info(
+                "Response code %d on JLAP range request. Retry with complete JLAP.",
+                e.response.status_code,
+            )
 
         if need_jlap:  # retry whole file, if range failed
             try:

@@ -7,17 +7,37 @@ import json
 from logging import getLogger
 from pathlib import Path
 
-from conda.exceptions import CondaError
-from conda.gateways.disk.read import compute_sum
+from ....core.envs_manager import get_user_environments_txt_file
+from ....exceptions import CondaError
+from ....gateways.disk.read import compute_sum
 
 logger = getLogger(__name__)
 
 OK_MARK = "✅"
+X_MARK = "❌"
 
 
 def display_report_heading(prefix: str) -> None:
     """Displays our report heading."""
     print(f"Environment Health Report for: {Path(prefix)}\n")
+
+
+def check_envs_txt_file(prefix: str | Path) -> bool:
+    """Checks whether the environment is listed in the environments.txt file"""
+    prefix = Path(prefix)
+    envs_txt_file = Path(get_user_environments_txt_file())
+    try:
+        with envs_txt_file.open() as f:
+            for line in f.readlines():
+                if prefix.samefile(line.strip()):
+                    return True
+            return False
+
+    except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
+        logger.error(
+            f"{envs_txt_file} could not be "
+            f"accessed because of the following error: {err}"
+        )
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
@@ -79,7 +99,7 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
-def display_health_checks(prefix: str, verbose: bool) -> None:
+def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
     display_report_heading(prefix)
     print("1. Missing Files:\n")
@@ -104,6 +124,9 @@ def display_health_checks(prefix: str, verbose: bool) -> None:
                 delimiter = "\n  "
                 print(f"{package_name}:{delimiter}{delimiter.join(altered_files)}\n")
             else:
-                print(f"{package_name}: {len(altered_files)}")
+                print(f"{package_name}: {len(altered_files)}\n")
     else:
         print(f"{OK_MARK} There are no packages with altered files.\n")
+
+    present = OK_MARK if check_envs_txt_file(prefix) else X_MARK
+    print(f"3. Environment listed in environments.txt file: {present}\n")

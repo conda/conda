@@ -1,14 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import subprocess
 from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 
-from conda.testing import conda_cli, path_factory, tmp_env
+from conda.base.context import context, reset_context
+from conda.testing import conda_cli, path_factory, tmp_env  # noqa: F401
 
 from . import http_test_server
-from .fixtures_jlap import package_repository_base, package_server  # NOQA
+from .fixtures_jlap import (  # noqa: F401
+    package_repository_base,
+    package_server,
+    package_server_ssl,
+)
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -17,23 +22,14 @@ pytest_plugins = (
     "conda.testing.fixtures",
 )
 
-
-def _conda_build_recipe(recipe):
-    subprocess.run(
-        ["conda-build", str(Path(__file__).resolve().parent / "test-recipes" / recipe)],
-        check=True,
-    )
-    return recipe
+TEST_RECIPES_CHANNEL = str(Path(__file__).resolve().parent / "test-recipes")
 
 
-@pytest.fixture(scope="session")
-def activate_deactivate_package():
-    return _conda_build_recipe("activate_deactivate_package")
-
-
-@pytest.fixture(scope="session")
-def pre_link_messages_package():
-    return _conda_build_recipe("pre_link_messages_package")
+@pytest.fixture
+def test_recipes_channel(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_BLD_PATH", TEST_RECIPES_CHANNEL)
+    reset_context()
+    assert context.bld_path == TEST_RECIPES_CHANNEL
 
 
 @pytest.fixture
@@ -64,3 +60,9 @@ def clear_cuda_version():
     from conda.plugins.virtual_packages import cuda
 
     cuda.cached_cuda_version.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def do_not_register_envs(monkeypatch):
+    """Do not register environments created during tests"""
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "false")

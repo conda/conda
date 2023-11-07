@@ -8,19 +8,95 @@ from __future__ import annotations
 
 import os
 import sys
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
 from os.path import isdir, join
 from typing import Any, Iterable
 
-from ..base.constants import (
-    CONDA_LOGS_DIR,
-    CONDA_PACKAGE_EXTENSIONS,
-    CONDA_TEMP_EXTENSIONS,
-)
-from ..base.context import context
-
 log = getLogger(__name__)
-_EXTS = (*CONDA_PACKAGE_EXTENSIONS, *(f"{e}.part" for e in CONDA_PACKAGE_EXTENSIONS))
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from .actions import ExtendConstAction
+    from .helpers import add_output_and_prompt_options
+
+    summary = "Remove unused packages and caches."
+    description = summary
+    epilog = dals(
+        """
+        Examples::
+
+            conda clean --tarballs
+        """
+    )
+
+    p = sub_parsers.add_parser(
+        "clean",
+        help=summary,
+        description=description,
+        epilog=epilog,
+        **kwargs,
+    )
+
+    removal_target_options = p.add_argument_group("Removal Targets")
+    removal_target_options.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
+    )
+    removal_target_options.add_argument(
+        "-i",
+        "--index-cache",
+        action="store_true",
+        help="Remove index cache.",
+    )
+    removal_target_options.add_argument(
+        "-p",
+        "--packages",
+        action="store_true",
+        help="Remove unused packages from writable package caches. "
+        "WARNING: This does not check for packages installed using "
+        "symlinks back to the package cache.",
+    )
+    removal_target_options.add_argument(
+        "-t",
+        "--tarballs",
+        action="store_true",
+        help="Remove cached package tarballs.",
+    )
+    removal_target_options.add_argument(
+        "-f",
+        "--force-pkgs-dirs",
+        action="store_true",
+        help="Remove *all* writable package caches. This option is not included with the --all "
+        "flag. WARNING: This will break environments with packages installed using symlinks "
+        "back to the package cache.",
+    )
+    removal_target_options.add_argument(
+        "-c",  # for tempfile extension (.c~)
+        "--tempfiles",
+        const=sys.prefix,
+        action=ExtendConstAction,
+        help=(
+            "Remove temporary files that could not be deleted earlier due to being in-use.  "
+            "The argument for the --tempfiles flag is a path (or list of paths) to the "
+            "environment(s) where the tempfiles should be found and removed."
+        ),
+    )
+    removal_target_options.add_argument(
+        "-l",
+        "--logfiles",
+        action="store_true",
+        help="Remove log files.",
+    )
+
+    add_output_and_prompt_options(p)
+
+    p.set_defaults(func="conda.cli.main_clean.execute")
+
+    return p
 
 
 def _get_size(*parts: str, warnings: list[str] | None) -> int:
@@ -43,7 +119,7 @@ def _get_size(*parts: str, warnings: list[str] | None) -> int:
         return stat.st_size
 
 
-def _get_pkgs_dirs(pkg_sizes: dict[str, dict[str, int]]) -> dict[str, tuple[str]]:
+def _get_pkgs_dirs(pkg_sizes: dict[str, dict[str, int]]) -> dict[str, tuple[str, ...]]:
     return {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()}
 
 
@@ -51,24 +127,26 @@ def _get_total_size(pkg_sizes: dict[str, dict[str, int]]) -> int:
     return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
 
 
-def _rm_rf(*parts: str, verbose: bool, verbosity: bool) -> None:
+def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
     from ..gateways.disk.delete import rm_rf
 
     path = join(*parts)
     try:
         if rm_rf(path):
-            if verbose and verbosity:
+            if not quiet and verbose:
                 print(f"Removed {path}")
-        elif verbose:
+        elif not quiet:
             print(f"WARNING: cannot remove, file permissions: {path}")
     except OSError as e:
-        if verbose:
+        if not quiet:
             print(f"WARNING: cannot remove, file permissions: {path}\n{e!r}")
         else:
             log.info("%r", e)
 
 
 def find_tarballs() -> dict[str, Any]:
+    from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
+
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
@@ -76,7 +154,7 @@ def find_tarballs() -> dict[str, Any]:
         _, _, tars = next(os.walk(pkgs_dir))
         for tar in tars:
             # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
-            if not tar.endswith(_EXTS):
+            if not tar.endswith((*CONDA_PACKAGE_EXTENSIONS, *CONDA_PACKAGE_PARTS)):
                 continue
 
             # get size
@@ -132,25 +210,26 @@ def rm_pkgs(
     total_size: int,
     pkg_sizes: dict[str, dict[str, int]],
     *,
+    quiet: bool,
     verbose: bool,
-    verbosity: bool,
     dry_run: bool,
     name: str,
 ) -> None:
+    from ..base.context import context
     from ..utils import human_bytes
     from .common import confirm_yn
 
-    if verbose and warnings:
+    if not quiet and warnings:
         for warning in warnings:
             print(warning)
 
     if not any(pkgs for pkgs in pkg_sizes.values()):
-        if verbose:
+        if not quiet:
             print(f"There are no unused {name} to remove.")
         return
 
-    if verbose:
-        if verbosity:
+    if not quiet:
+        if verbose:
             print(f"Will remove the following {name}:")
             for pkgs_dir, pkgs in pkg_sizes.items():
                 print(f"  {pkgs_dir}")
@@ -172,7 +251,7 @@ def rm_pkgs(
 
     for pkgs_dir, pkgs in pkg_sizes.items():
         for pkg in pkgs:
-            _rm_rf(pkgs_dir, pkg, verbose=verbose, verbosity=verbosity)
+            _rm_rf(pkgs_dir, pkg, quiet=quiet, verbose=verbose)
 
 
 def find_index_cache() -> list[str]:
@@ -194,6 +273,8 @@ def find_pkgs_dirs() -> list[str]:
 
 
 def find_tempfiles(paths: Iterable[str]) -> list[str]:
+    from ..base.constants import CONDA_TEMP_EXTENSIONS
+
     tempfiles = []
     for path in sorted(set(paths or [sys.prefix])):
         # tempfiles are files in path
@@ -209,6 +290,8 @@ def find_tempfiles(paths: Iterable[str]) -> list[str]:
 
 
 def find_logfiles() -> list[str]:
+    from ..base.constants import CONDA_LOGS_DIR
+
     files = []
     for pkgs_dir in find_pkgs_dirs():
         # .logs are directories in pkgs_dir
@@ -216,9 +299,13 @@ def find_logfiles() -> list[str]:
         if not isdir(path):
             continue
 
-        # logfiles are files in .logs
-        _, _, logs = next(os.walk(path), [None, None, []])
-        files.extend([join(path, log) for log in logs])
+        try:
+            # logfiles are files in .logs
+            _, _, logs = next(os.walk(path))
+            files.extend([join(path, log) for log in logs])
+        except StopIteration:
+            # StopIteration: .logs is empty
+            pass
 
     return files
 
@@ -226,20 +313,21 @@ def find_logfiles() -> list[str]:
 def rm_items(
     items: list[str],
     *,
+    quiet: bool,
     verbose: bool,
-    verbosity: bool,
     dry_run: bool,
     name: str,
 ) -> None:
+    from ..base.context import context
     from .common import confirm_yn
 
     if not items:
-        if verbose:
+        if not quiet:
             print(f"There are no {name} to remove.")
         return
 
-    if verbose:
-        if verbosity:
+    if not quiet:
+        if verbose:
             print(f"Will remove the following {name}:")
             for item in items:
                 print(f"  - {item}")
@@ -253,15 +341,17 @@ def rm_items(
         confirm_yn()
 
     for item in items:
-        _rm_rf(item, verbose=verbose, verbosity=verbosity)
+        _rm_rf(item, quiet=quiet, verbose=verbose)
 
 
 def _execute(args, parser):
+    from ..base.context import context
+
     json_result = {"success": True}
     kwargs = {
-        "verbose": not (context.json or context.quiet),
-        "verbosity": args.verbosity,
-        "dry_run": args.dry_run,
+        "quiet": context.json or context.quiet,
+        "verbose": context.verbose,
+        "dry_run": context.dry_run,
     }
 
     if args.force_pkgs_dirs:
@@ -310,7 +400,8 @@ def _execute(args, parser):
     return json_result
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..base.context import context
     from .common import stdout_json
 
     json_result = _execute(args, parser)
@@ -320,3 +411,4 @@ def execute(args, parser):
         from ..exceptions import DryRunExit
 
         raise DryRunExit
+    return 0

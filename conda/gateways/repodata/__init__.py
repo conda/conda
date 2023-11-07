@@ -26,7 +26,6 @@ from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
-from ...deprecations import deprecated
 from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -46,9 +45,9 @@ from ..connection import (
     Response,
     SSLError,
 )
-from ..connection.session import CondaSession
+from ..connection.session import get_session
 from ..disk import mkdir_p_sudo_safe
-from .lock import lock
+from ..disk.lock import lock
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
@@ -128,7 +127,7 @@ class CondaRepoInterface(RepoInterface):
         if not context.ssl_verify:
             warnings.simplefilter("ignore", InsecureRequestWarning)
 
-        session = CondaSession()
+        session = get_session(self._url)
 
         headers = {}
         etag = state.etag
@@ -288,9 +287,7 @@ will need to
     (b) provide conda with a valid token directly.
 
 Further configuration help can be found at <%s>.
-""" % join_url(
-                    CONDA_HOMEPAGE_URL, "docs/config.html"
-                )
+""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
 
             else:
                 help_message = """\
@@ -299,9 +296,7 @@ The credentials you have provided for this URL are invalid.
 You will need to modify your conda configuration to proceed.
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <%s>.
-""" % join_url(
-                    CONDA_HOMEPAGE_URL, "docs/config.html"
-                )
+""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = """\
@@ -323,18 +318,14 @@ If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
 %s
-""" % maybe_unquote(
-                    repr(url)
-                )
+""" % maybe_unquote(repr(url))
 
             else:
                 help_message = """\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 %s
-""" % maybe_unquote(
-                    repr(url)
-                )
+""" % maybe_unquote(repr(url))
 
         raise CondaHTTPError(
             help_message,
@@ -374,50 +365,6 @@ class RepodataState(UserDict):
         self.cache_path_state = pathlib.Path(cache_path_state)
         # XXX may not be that useful/used compared to the full URL
         self.repodata_fn = repodata_fn
-
-    @deprecated("23.3", "23.9", addendum="use RepodataCache")
-    def load(self):
-        """
-        Cache headers and additional data needed to keep track of the cache are
-        stored separately, instead of the previous "added to repodata.json"
-        arrangement.
-        """
-        try:
-            state_path = self.cache_path_state
-            log.debug("Load %s cache from %s", self.repodata_fn, state_path)
-            state = json.loads(state_path.read_text())
-            # json and state files should match
-            json_stat = self.cache_path_json.stat()
-            if not (
-                state.get("mtime_ns") == json_stat.st_mtime_ns
-                and state.get("size") == json_stat.st_size
-            ):
-                # clear mod, etag, cache_control to encourage re-download
-                state.update(
-                    {
-                        ETAG_KEY: "",
-                        LAST_MODIFIED_KEY: "",
-                        CACHE_CONTROL_KEY: "",
-                        "size": 0,
-                    }
-                )
-            self.update(state)  # allow all fields
-        except (json.JSONDecodeError, OSError):
-            log.debug("Could not load state", exc_info=True)
-            self.clear()
-        return self
-
-    @deprecated("23.3", "23.9", addendum="use RepodataCache")
-    def save(self):
-        """Must be called after writing cache_path_json, since mtime is in another file."""
-        serialized = dict(self)
-        json_stat = self.cache_path_json.stat()
-        serialized.update(
-            {"mtime_ns": json_stat.st_mtime_ns, "size": json_stat.st_size}
-        )
-        return pathlib.Path(self.cache_path_state).write_text(
-            json.dumps(serialized, indent=True)
-        )
 
     @property
     def mod(self) -> str:
@@ -513,7 +460,7 @@ class RepodataState(UserDict):
         if key in self._aliased:
             key = key[1:]  # strip underscore
         if key in self._strings and not isinstance(item, str):
-            log.warn(f'Replaced non-str RepodataState[{key}] with ""')
+            log.debug('Replaced non-str RepodataState[%s] with ""', key)
             item = ""
         return super().__setitem__(key, item)
 
@@ -624,7 +571,9 @@ class RepodataCache:
         """
         try:
             self.load(state_only=True)
-        except FileNotFoundError:
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            if isinstance(e, json.JSONDecodeError):
+                log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
             self.state.clear()
         return self.state
 
@@ -652,7 +601,7 @@ class RepodataCache:
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
-            # "a+" avoids trunctating file before we have the lock and creates
+            # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
@@ -672,8 +621,9 @@ class RepodataCache:
         """
         Update access time in cache info file to indicate a HTTP 304 Not Modified response.
         """
+        # Note this is not thread-safe.
         with self.cache_path_state.open("a+") as state_file, lock(state_file):
-            # "a+" avoids trunctating file before we have the lock and creates
+            # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             self.state["refresh_ns"] = refresh_ns or time.time_ns()
@@ -776,22 +726,14 @@ class RepodataFetch:
 
     @property
     def cache_path_json(self):
-        return Path(
-            str(self.cache_path_base)
-            + ("1" if context.use_only_tar_bz2 else "")
-            + ".json"
-        )
+        return self.repo_cache.cache_path_json
 
     @property
     def cache_path_state(self):
         """
         Out-of-band etag and other state needed by the RepoInterface.
         """
-        return Path(
-            str(self.cache_path_base)
-            + ("1" if context.use_only_tar_bz2 else "")
-            + CACHE_STATE_SUFFIX
-        )
+        return self.repo_cache.cache_path_state
 
     @property
     def repo_cache(self) -> RepodataCache:
@@ -805,8 +747,6 @@ class RepodataFetch:
         return self.repo_interface_cls(
             self.url_w_credentials,
             repodata_fn=self.repodata_fn,
-            cache_path_json=self.cache_path_json,
-            cache_path_state=self.cache_path_state,
             cache=self.repo_cache,
         )
 
@@ -893,8 +833,6 @@ class RepodataFetch:
                 self.url_w_repodata_fn,
             )
             cache.refresh()
-            # touch(self.cache_path_json) # not anymore, or the a separate file is invalid
-            # self._save_state(mod_etag_headers)
             _internal_state = self.read_cache()
             return _internal_state
         else:
