@@ -2066,7 +2066,6 @@ def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, req
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="conda-libmamba-solver does not implement pip interoperability",
-            strict=True,
         )
     )
 

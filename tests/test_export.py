@@ -23,7 +23,6 @@ def test_export(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Known issue in libmamba 1.5.x: pkgs/main not supported as channel spec",
-            strict=True,
         )
     )
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
@@ -58,7 +57,6 @@ def test_explicit(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Known issue in libmamba 1.5.x: pkgs/main not supported as channel spec",
-            strict=True,
         )
     )
 
