@@ -19,7 +19,7 @@ export TMP=$HOME/pytesttmp
 mkdir -p $TMP
 python -m pytest \
     --cov=conda \
-    --durations-path=./tools/durations/${OS}.json \
+    --durations-path=./tools/durations/Linux.json \
     --basetemp=$TMP \
     -m "not integration" \
     --splits=${TEST_SPLITS} \

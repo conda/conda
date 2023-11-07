@@ -18,12 +18,11 @@ from os import scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 from posixpath import normpath as posix_normpath
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from ... import CondaError
 from ..._vendor.frozendict import frozendict
 from ...auxlib.decorators import memoizedproperty
 from ..compat import open
+from ..iterators import groupby_to_dict as groupby
 from ..path import (
     get_major_minor_version,
     get_python_site_packages_short_path,

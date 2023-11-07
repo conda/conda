@@ -6,8 +6,8 @@ from unittest import mock
 
 import pytest
 
-from conda.base.constants import NOTICES_CACHE_SUBDIR
-from conda.cli import conda_argparse
+from ...base.constants import NOTICES_CACHE_SUBDIR
+from ...cli import conda_argparse
 
 
 @pytest.fixture(scope="function")

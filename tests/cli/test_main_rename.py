@@ -179,9 +179,7 @@ def test_rename_with_force_with_errors(
     Additionally, in this test, we mock an exception to recreate a failure condition.
     """
     error_message = uuid.uuid4().hex
-    mocker.patch(
-        "conda.cli.main_rename.install.clone", side_effect=CondaError(error_message)
-    )
+    mocker.patch("conda.cli.install.clone", side_effect=CondaError(error_message))
     with pytest.raises(CondaError, match=error_message):
         conda_cli("rename", "--name", env_one, env_two, "--force")
 
@@ -201,9 +199,7 @@ def test_rename_with_force_with_errors_prefix(
     Specifically targets environments created using the -p flag.
     """
     error_message = uuid.uuid4().hex
-    mocker.patch(
-        "conda.cli.main_rename.install.clone", side_effect=CondaError(error_message)
-    )
+    mocker.patch("conda.cli.install.clone", side_effect=CondaError(error_message))
     with tmp_env() as prefix:
         with pytest.raises(CondaError, match=error_message):
             conda_cli("rename", "--prefix", prefix, tmp_path, "--force")

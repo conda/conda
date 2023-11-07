@@ -6,10 +6,9 @@ from __future__ import annotations
 import logging
 import os
 
-from conda.base.context import context
-from conda.gateways.connection.download import disable_ssl_verify_warning
-from conda.gateways.connection.session import get_session
-
+from ....base.context import context
+from ...connection.download import disable_ssl_verify_warning
+from ...connection.session import get_session
 from .. import (
     CACHE_CONTROL_KEY,
     ETAG_KEY,
