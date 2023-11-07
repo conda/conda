@@ -147,12 +147,6 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 @hookimpl
 def conda_health_checks():
-    yield CondaHealthCheck(
-        name="Missing Files",
-        action=missing_files,
-    )
-    yield CondaHealthCheck(
-        name="Altered Files",
-        action=altered_files,
-    )
+    yield CondaHealthCheck(name="Missing Files", action=missing_files)
+    yield CondaHealthCheck(name="Altered Files", action=altered_files)
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
