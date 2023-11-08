@@ -7,5 +7,5 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def urllib3_logger_error(caplog):
-    "Increasing the level to error to prevent retries show up in the stderr"
+    """Increase log level to error to prevent retries from polluting stderr."""
     caplog.set_level(logging.ERROR, logger="urllib3.connectionpool")
