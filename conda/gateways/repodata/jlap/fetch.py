@@ -18,15 +18,14 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from conda.base.context import context
-from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import (
+from ....base.context import context
+from ...connection import Response, Session
+from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     RepodataCache,
     RepodataState,
 )
-
 from .core import JLAP
 
 log = logging.getLogger(__name__)
@@ -249,7 +248,8 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher), closefd=True  # type: ignore
+                HashWriter(dest_path.open("wb"), hasher),
+                closefd=True,
             )
         else:
             writer = HashWriter(dest_path.open("wb"), hasher)

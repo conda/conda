@@ -49,7 +49,7 @@ def test_cache_fn_url():
 
 def test_url_pat_1():
     match = url_pat.match(
-        "http://test/pkgs/linux-64/foo.tar.bz2" "#d6918b03927360aa1e57c0188dcb781b"
+        "http://test/pkgs/linux-64/foo.tar.bz2#d6918b03927360aa1e57c0188dcb781b"
     )
     assert match.group("url_p") == "http://test/pkgs/linux-64"
     assert match.group("fn") == "foo.tar.bz2"

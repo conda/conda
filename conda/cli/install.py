@@ -248,7 +248,7 @@ def install(args, parser, command="install"):
             return
         else:
             raise CondaValueError(
-                "cannot mix specifications with conda package" " filenames"
+                "cannot mix specifications with conda package filenames"
             )
 
     specs = []
@@ -270,7 +270,7 @@ def install(args, parser, command="install"):
         get_revision(args.revision, json=context.json)
     elif isinstall and not (args.file or args_packages):
         raise CondaValueError(
-            "too few arguments, " "must supply command line package specs or --file"
+            "too few arguments, must supply command line package specs or --file"
         )
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
