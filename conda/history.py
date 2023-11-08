@@ -17,13 +17,12 @@ from operator import itemgetter
 from os.path import isdir, isfile, join
 from textwrap import dedent
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
 from .common.compat import ensure_text_type, open
+from .common.iterators import groupby_to_dict as groupby
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
 from .exceptions import CondaHistoryError, NotWritableError
@@ -240,35 +239,29 @@ class History:
             minimum_major_minor = ".".join(islice(minimum_conda_version.split("."), 2))
             current_major_minor = ".".join(islice(CONDA_VERSION.split("."), 2))
             if VersionOrder(current_major_minor) < VersionOrder(minimum_major_minor):
-                message = (
-                    dals(
-                        """
+                message = dals(
+                    """
                 This environment has previously been operated on by a conda version that's newer
                 than the conda currently being used. A newer version of conda is required.
                   target environment location: %(target_prefix)s
                   current conda version: %(conda_version)s
                   minimum conda version: %(minimum_version)s
                 """
-                    )
-                    % {
-                        "target_prefix": self.prefix,
-                        "conda_version": CONDA_VERSION,
-                        "minimum_version": minimum_major_minor,
-                    }
-                )
+                ) % {
+                    "target_prefix": self.prefix,
+                    "conda_version": CONDA_VERSION,
+                    "minimum_version": minimum_major_minor,
+                }
                 if not paths_equal(self.prefix, context.root_prefix):
-                    message += (
-                        dedent(
-                            """
+                    message += dedent(
+                        """
                     Update conda and try again.
                         $ conda install -p "%(base_prefix)s" "conda>=%(minimum_version)s"
                     """
-                        )
-                        % {
-                            "base_prefix": context.root_prefix,
-                            "minimum_version": minimum_major_minor,
-                        }
-                    )
+                    ) % {
+                        "base_prefix": context.root_prefix,
+                        "minimum_version": minimum_major_minor,
+                    }
                 message += dedent(
                     """
                 To work around this restriction, one can also set the config parameter

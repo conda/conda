@@ -6,7 +6,7 @@ from __future__ import annotations
 import codecs
 import os
 from collections import defaultdict
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -16,8 +16,6 @@ from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
-
-from conda.common.iterators import groupby_to_dict as groupby
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -31,6 +29,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.constants import NULL
 from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -718,13 +717,11 @@ class ProgressiveFetchExtract:
         self.link_precs = link_prefs
 
         log.debug(
-            "instantiating ProgressiveFetchExtract with\n" "  %s\n",
+            "instantiating ProgressiveFetchExtract with\n  %s\n",
             "\n  ".join(pkg_rec.dist_str() for pkg_rec in link_prefs),
         )
 
-        self.paired_actions = (
-            {}
-        )  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
+        self.paired_actions = {}  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
         self._prepared = False
         self._executed = False
@@ -791,15 +788,22 @@ class ProgressiveFetchExtract:
 
         exceptions = []
         progress_bars = {}
-        futures = []
+        futures: list[Future] = []
+
+        cancelled_flag = False
+
+        def cancelled():
+            """
+            Used to cancel download threads.
+            """
+            nonlocal cancelled_flag
+            return cancelled_flag
 
         with signal_handler(conda_signal_handler), time_recorder(
             "fetch_extract_execute"
         ), ThreadPoolExecutor(
             context.fetch_threads
-        ) as fetch_executor, ThreadPoolExecutor(
-            EXTRACT_THREADS
-        ) as extract_executor:
+        ) as fetch_executor, ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor:
             for prec_or_spec, (
                 cache_action,
                 extract_action,
@@ -813,7 +817,11 @@ class ProgressiveFetchExtract:
                 progress_bars[prec_or_spec] = progress_bar
 
                 future = fetch_executor.submit(
-                    do_cache_action, prec_or_spec, cache_action, progress_bar
+                    do_cache_action,
+                    prec_or_spec,
+                    cache_action,
+                    progress_bar,
+                    cancelled=cancelled,
                 )
 
                 future.add_done_callback(
@@ -827,40 +835,40 @@ class ProgressiveFetchExtract:
                 )
                 futures.append(future)
 
-            for completed_future in as_completed(futures):
-                try:
+            try:
+                for completed_future in as_completed(futures):
+                    futures.remove(completed_future)
                     prec_or_spec = completed_future.result()
-                except BaseException as e:
-                    # Special handling for exceptions thrown inside future, not
-                    # by futures handling code. Cancel any download that has not
-                    # been started. In-progress futures will continue.
-                    # Could use executor.shutdown(cancel_futures=True) instead?
-                    for future in futures:
-                        future.cancel()
 
-                    # faster handling of KeyboardInterrupt e.g.
-                    if not isinstance(e, Exception):
-                        raise
-
-                    # break, not raise. CondaMultiError() raised if exceptions.
-                    break
-
-                cache_action, extract_action = self.paired_actions[prec_or_spec]
-                extract_future = extract_executor.submit(
-                    do_extract_action,
-                    prec_or_spec,
-                    extract_action,
-                    progress_bars[prec_or_spec],
-                )
-                extract_future.add_done_callback(
-                    partial(
-                        done_callback,
-                        actions=(cache_action, extract_action),
-                        exceptions=exceptions,
-                        progress_bar=progress_bars[prec_or_spec],
-                        finish=True,
+                    cache_action, extract_action = self.paired_actions[prec_or_spec]
+                    extract_future = extract_executor.submit(
+                        do_extract_action,
+                        prec_or_spec,
+                        extract_action,
+                        progress_bars[prec_or_spec],
                     )
-                )
+                    extract_future.add_done_callback(
+                        partial(
+                            done_callback,
+                            actions=(cache_action, extract_action),
+                            exceptions=exceptions,
+                            progress_bar=progress_bars[prec_or_spec],
+                            finish=True,
+                        )
+                    )
+            except BaseException as e:
+                # We are interested in KeyboardInterrupt delivered to
+                # as_completed() while waiting, or any exception raised from
+                # completed_future.result(). cancelled_flag is checked in the
+                # progress callback to stop running transfers, shutdown() should
+                # prevent new downloads from starting.
+                cancelled_flag = True
+                for future in futures:  # needed on top of .shutdown()
+                    future.cancel()
+                # Has a Python >=3.9 cancel_futures= parameter that does not
+                # replace the above loop:
+                fetch_executor.shutdown(wait=False)
+                exceptions.append(e)
 
         for bar in progress_bars.values():
             bar.close()
@@ -872,7 +880,9 @@ class ProgressiveFetchExtract:
                 print(" done")
 
         if exceptions:
-            raise CondaMultiError(exceptions)
+            # avoid printing one CancelledError() per pending download
+            not_cancelled = [e for e in exceptions if not isinstance(e, CancelledError)]
+            raise CondaMultiError(not_cancelled)
 
         self._executed = True
 
@@ -905,7 +915,7 @@ class ProgressiveFetchExtract:
         return hash(self) == hash(other)
 
 
-def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
+def do_cache_action(prec, cache_action, progress_bar, download_total=1.0, *, cancelled):
     """This function gets called from `ProgressiveFetchExtract.execute`."""
     # pass None if already cached (simplifies code)
     if not cache_action:
@@ -915,6 +925,11 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0):
     if not cache_action.url.startswith("file:/"):
 
         def progress_update_cache_action(pct_completed):
+            if cancelled():
+                """
+                Used to cancel dowload threads when parent thread is interrupted.
+                """
+                raise CancelledError()
             progress_bar.update_to(pct_completed * download_total)
 
     else:
@@ -960,6 +975,9 @@ def done_callback(
     try:
         future.result()
     except Exception as e:
+        # if it was interrupted with CTRL-C this might be BaseException and not
+        # get caught here, but conda's signal handler also converts that to
+        # CondaError which is just Exception.
         do_reverse(reversed(actions))
         exceptions.append(e)
     else:

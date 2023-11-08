@@ -333,7 +333,9 @@ def test_local_identifier():
     """The separator for the local identifier should be either `.` or `+`"""
     # a valid versionstr should match itself
     versions = (
-        "1.7.0" "1.7.0.post123" "1.7.0.post123.gabcdef9",
+        "1.7.0",
+        "1.7.0.post123",
+        "1.7.0.post123.gabcdef9",
         "1.7.0.post123+gabcdef9",
     )
     for version in versions:

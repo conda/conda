@@ -12,8 +12,6 @@ from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 from pathlib import Path
 
-from conda.gateways.disk.lock import lock
-
 from ... import CondaError
 from ...auxlib.ish import dals
 from ...auxlib.logz import stringify
@@ -29,6 +27,7 @@ from ...exceptions import (
     maybe_raise,
 )
 from ..disk.delete import rm_rf
+from ..disk.lock import lock
 from . import (
     ConnectionError,
     HTTPError,

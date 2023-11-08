@@ -587,8 +587,9 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
-            result[url] = channel.canonical_name, min(
-                priority_counter, MAX_CHANNEL_PRIORITY - 1
+            result[url] = (
+                channel.canonical_name,
+                min(priority_counter, MAX_CHANNEL_PRIORITY - 1),
             )
     return result
 

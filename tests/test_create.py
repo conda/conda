@@ -1575,7 +1575,7 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1583,10 +1583,10 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     try:
         with make_temp_env("console_shortcut", prefix=prefix):
             assert package_is_installed(prefix, "console_shortcut")
-            assert isfile(shortcut_file), (
-                "Shortcut not found in menu dir. "
-                "Contents of dir:\n"
-                "{}".format(os.listdir(shortcut_dir))
+            assert isfile(
+                shortcut_file
+            ), "Shortcut not found in menu dir. Contents of dir:\n{}".format(
+                os.listdir(shortcut_dir)
             )
 
             # make sure that cleanup without specifying --shortcuts still removes shortcuts
@@ -1604,7 +1604,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1632,7 +1632,7 @@ def test_shortcut_absent_when_condarc_set(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])

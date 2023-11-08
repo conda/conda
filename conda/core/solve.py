@@ -15,8 +15,6 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
@@ -25,6 +23,7 @@ from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateM
 from ..base.context import context
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     PackagesNotFoundError,
@@ -408,7 +407,7 @@ class Solver:
 
         ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
-            "solved prefix %s\n" "  solved_linked_dists:\n" "    %s\n",
+            "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
             "\n    ".join(prec.dist_str() for prec in ssc.solution_precs),
         )
@@ -1221,7 +1220,7 @@ class Solver:
                     self.subdirs,
                     repodata_fn=self._repodata_fn,
                 ),
-                key=lambda x: VersionOrder(x.version)
+                key=lambda x: VersionOrder(x.version),
                 # VersionOrder is fine here rather than r.version_key because all precs
                 # should come from the same channel
             )
