@@ -94,8 +94,6 @@ html_theme_options = {
     "show_prev_next": False,
     # Navbar icon links
     "navbar_start": ["navbar-logo"],
-    "switcher": {"json_url": "_static/switcher.json", "version_match": "23.9.x"},
-    # "header_links_before_dropdown": 4,
 }
 
 
