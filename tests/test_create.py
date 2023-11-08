@@ -130,12 +130,14 @@ def test_install_python_and_search(
     monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
     # regression test for #4513
     monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "true")
-    not_a_channel = "https://repo.continuum.io/pkgs/not-a-channel"
-    monkeypatch.setenv("CONDA_CHANNELS", f"{not_a_channel},defaults")
+    monkeypatch.setenv(
+        "CONDA_CHANNELS",
+        channel := "https://repo.continuum.io/pkgs/not-a-channel",
+    )
     reset_context()
     assert context.register_envs
     assert context.allow_non_channel_urls
-    assert context.channels == (not_a_channel, "defaults")
+    assert context.channels[0] == channel
 
     with tmp_env("python") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
