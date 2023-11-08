@@ -20,4 +20,5 @@ sphinxcontrib-plantuml
 sphinxcontrib-programoutput
 sphinxcontrib-qthelp
 sphinxcontrib-serializinghtml
+sphinx-design
 tqdm>=4
