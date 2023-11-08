@@ -59,7 +59,19 @@ class ObserverDict(UserDict):
 
 
 class RepodataPatchAccumulator(ObserverDict):
-    groups = "packages", "packages.conda"
+    groups = "packages", "packages.conda", "signatures"
+
+    # conda-content-trust adds another filename/packages object at the top level.
+    # "signatures": {
+    # "_anaconda_depends-2018.12-py27_0.tar.bz2": {
+    # "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
+    #     "signature": "a0ffab3f954c3dc64373ba16bee5e9ba9683a625fa3e4a6c4263d9de550bcafd233c2522789c9b31b40c35a87775d6f8fa2498a3bec3647c36c0a2f5cd2eb10c"
+    # }
+    # },
+    # "zstd-1.3.7-h0b5b093_0.conda": {
+    # "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
+    #     "signature": "ea1f11a74c081298fe243c6982f676d9838bfee81e74a24bef6474f3be1243b4624f6d12dc8196f8db909cf049e9e344151e44c5b950cbab8583641c7b661a0d"
+    # }...
 
     def __init__(self, repodata, previous=None):
         """
