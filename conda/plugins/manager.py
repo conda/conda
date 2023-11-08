@@ -313,7 +313,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
-            hook.action(prefix, verbose)
+            try:
+                hook.action(prefix, verbose)
+            except Exception as err:
+                log.warning(f"Error running health check: {hook.name} ({err})")
+                continue
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
