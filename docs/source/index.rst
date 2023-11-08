@@ -54,12 +54,12 @@ that approach may not be as up to date.
    :maxdepth: 1
    :titlesonly:
 
-   user-guide/index
-   configuration
-   api/index
-   commands/index
-   glossary
-   dev-guide/index
-   release-notes
+   User Guide <user-guide/index>
+   Configuration <configuration>
+   Commands <commands/index>
+   Release Notes <release-notes>
+   Glossary <glossary>
+   Developers <dev-guide/index>
+   API <api/index>
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

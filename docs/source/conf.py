@@ -26,8 +26,8 @@ version = release = conda.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "autoapi.extension",
-    "conda_umls",
+    # "autoapi.extension",
+    # "conda_umls",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -44,6 +44,8 @@ extensions = [
     "sphinxcontrib.programoutput",
 ]
 
+templates_path = ["_templates"]
+
 # Leave double dashes as they are in the docs. Don't replace -- with -
 smartquotes = False
 
@@ -56,18 +58,13 @@ add_module_names = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "sphinx_rtd_theme"
+html_theme = "conda_sphinx_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_style = "css/custom.css"
-
-# The name of an image file (relative to this directory) to use as a favicon of
-# the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-html_favicon = "img/conda-logo.png"
+# html_style = "css/custom.css"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -93,6 +90,11 @@ html_theme_options = {
     # The maximum depth of the table of contents tree. Set this to -1 to allow
     # unlimited depth.
     "navigation_depth": -1,
+    "show_prev_next": False,
+    # Navbar icon links
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "switcher": {"json_url": "_static/switcher.json", "version_match": "23.9.x"},
+    # "header_links_before_dropdown": 4,
 }
 
 
@@ -137,12 +139,17 @@ myst_enable_extensions = [
 
 # -- For autoapi.extension -------------------------------------------------
 
-autoapi_dirs = ["../../conda", "../../conda_env"]
-autoapi_root = "dev-guide/api"
-# Manually inserted into TOC in dev-guide/api.rst for proper integration into
-# folder-view
-autoapi_add_toctree_entry = False
-autoapi_template_dir = "_templates/autoapi"
+# autoapi_dirs = ["../../conda", "../../conda_env"]
+# autoapi_root = "dev-guide/api"
+# # Manually inserted into TOC in dev-guide/api.rst for proper integration into
+# # folder-view
+# autoapi_add_toctree_entry = False
+# autoapi_template_dir = "_templates/autoapi"
+
+
+suppress_warnings = [
+    "autosectionlabel.*",
+]
 
 
 def skip_log(app, what, name, obj, skip, options):
@@ -152,7 +159,14 @@ def skip_log(app, what, name, obj, skip, options):
 
 
 def setup(sphinx):
-    sphinx.connect("autoapi-skip-member", skip_log)
+    """"""
+    # sphinx.connect("autoapi-skip-member", skip_log)
+
+
+# -----------------------------------------------------------------------------
+# Source code links
+# -----------------------------------------------------------------------------
+link_github = True
 
 
 # -- For sphinx_reredirects ------------------------------------------------
