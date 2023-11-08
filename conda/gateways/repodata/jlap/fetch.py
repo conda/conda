@@ -40,8 +40,6 @@ HEADERS = "headers"
 NOMINAL_HASH = "blake2_256_nominal"
 ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
-JLAP_UNAVAILABLE = "jlap_unavailable"
-ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 # save these headers. at least etag, last-modified, cache-control plus a few
 # useful extras.
@@ -317,7 +315,6 @@ def request_url_jlap_state(
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
                     state.set_has_format("zst", False)
-                    state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
                     hasher,
                     withext(url, ".json"),
@@ -522,7 +519,6 @@ def request_url_jlap_state_plus_overlay(
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
                     state.set_has_format("zst", False)
-                    state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
                     hasher,
                     withext(url, ".json"),
