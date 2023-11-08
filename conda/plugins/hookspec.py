@@ -226,7 +226,7 @@ class CondaSpecs:
                 from conda import plugins
 
 
-                def example_health_check(args):
+                def example_health_check(prefix: str, verbose: bool):
                     print("This is an example health check!")
 
 
