@@ -15,10 +15,14 @@ write-patched strategy is still faster than downloading `repodata.json` with
 `Content-Encoding: gzip`.
 
 We observe that the overwhelming bulk of `repodata.json` is in one of three
-top-level dictionaries `packages`, `packages.conda` or the less common
-`signatures` (for `conda-content-trust`); all with a key per package filename
-and a value holding metadata. Patches will usually add, and sometimes remove or
-modify, keys in these objects.
+top-level objects `packages`, `packages.conda` or the less common `signatures`
+(for `conda-content-trust`); all with a key per package filename and a value
+holding metadata. Patches will usually add, and sometimes remove or modify, keys
+in these objects.
+
+By employing a simple copy-on-write technique for these objects and the
+top-level object, conda can accumulate relevant patches into a single, much
+smaller overlay that is trivial to read in the solver.
 
 ## Collect patches
 
