@@ -13,9 +13,9 @@ from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
 @pytest.fixture(autouse=True)
-def urllib3_logger_critical(caplog):
-    "Increasing the level to critical to prevent retries show up in the stderr"
-    caplog.set_level(logging.CRITICAL, logger="urllib3.connectionpool")
+def urllib3_logger_error(caplog):
+    "Increasing the level to error to prevent retries show up in the stderr"
+    caplog.set_level(logging.ERROR, logger="urllib3.connectionpool")
 
 
 @pytest.fixture
