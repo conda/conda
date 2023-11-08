@@ -1,0 +1,9 @@
+### Docs
+
+* Updated recommended .condarc path for administering multi-user installation.
+
+### Other
+
+* The default location for system-level configuration files is no longer inside the base environment.  The new location depends on the operating system:
+  * Windows: ``C:/ProgramData/conda/.condarc``
+  * All others: ``/etc/conda/.condarc``
