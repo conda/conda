@@ -1258,7 +1258,7 @@ def test_conda_config_validate(clear_package_cache: None):
             assert len(exc.value.errors) == 2
             str_exc_value = str(exc.value)
             assert (
-                "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs"
+                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the operating system certificate store."
                 in str_exc_value
             )
             assert (
@@ -1267,6 +1267,18 @@ def test_conda_config_validate(clear_package_cache: None):
             )
         finally:
             reset_context()
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Skip truststore on earlier python versions",
+)
+def test_conda_config_validate_sslverify_truststore(clear_package_cache: None):
+    with make_temp_env() as prefix:
+        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "truststore")
+        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
+        assert not stdout
+        assert not stderr
 
 
 @pytest.mark.skipif(
@@ -1558,7 +1570,7 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1566,10 +1578,10 @@ def test_shortcut_creation_installs_shortcut(clear_package_cache: None):
     try:
         with make_temp_env("console_shortcut", prefix=prefix):
             assert package_is_installed(prefix, "console_shortcut")
-            assert isfile(shortcut_file), (
-                "Shortcut not found in menu dir. "
-                "Contents of dir:\n"
-                "{}".format(os.listdir(shortcut_dir))
+            assert isfile(
+                shortcut_file
+            ), "Shortcut not found in menu dir. Contents of dir:\n{}".format(
+                os.listdir(shortcut_dir)
             )
 
             # make sure that cleanup without specifying --shortcuts still removes shortcuts
@@ -1587,7 +1599,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1615,7 +1627,7 @@ def test_shortcut_absent_when_condarc_set(clear_package_cache: None):
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)" "".format(sys.version_info.major, context.bits),
+        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2724,6 +2736,40 @@ def test_multiline_run_command(clear_package_cache: None):
         )
     assert env_which_etc
     assert not errs_etc
+
+
+def _check_create_xz_env_different_platform(prefix, platform):
+    assert exists(join(prefix, "bin", "xz"))
+    # make sure we read the config from PREFIX/.condarc
+    prefix_condarc = Path(prefix, ".condarc")
+    reset_context([prefix_condarc])
+    config_sources = context.collect_all()
+    assert config_sources[prefix_condarc]["subdir"] == platform
+
+    stdout, _, _ = run_command(
+        Commands.INSTALL,
+        prefix,
+        "python",
+        "--dry-run",
+        "--json",
+        use_exception_handler=True,
+    )
+    result = json.loads(stdout)
+    assert result["success"]
+    python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
+    assert python["platform"] == platform
+
+
+def test_create_env_different_platform_cli_flag():
+    platform = "linux-64" if on_mac else "osx-64"
+    with make_temp_env("xz", "--platform", platform) as prefix:
+        _check_create_xz_env_different_platform(prefix, platform)
+
+
+def test_create_env_different_platform_env_var():
+    platform = "linux-64" if on_mac else "osx-64"
+    with env_var("CONDA_SUBDIR", platform), make_temp_env("xz") as prefix:
+        _check_create_xz_env_different_platform(prefix, platform)
 
 
 @pytest.mark.skip("Test is flaky")

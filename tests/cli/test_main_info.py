@@ -5,7 +5,7 @@ from os.path import isdir
 
 from pytest import MonkeyPatch
 
-from conda.base.context import context, reset_context
+from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.testing import CondaCLIFixture
 
@@ -50,6 +50,7 @@ def test_info(conda_cli: CondaCLIFixture):
     assert "channel URLs" in stdout_basic
     assert "config file" in stdout_basic
     assert "offline mode" in stdout_basic
+    assert "solver" in stdout_basic
     assert not stderr
     assert not err
 
@@ -95,6 +96,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "rc_path",
         "root_prefix",
         "root_writable",
+        "solver",
     } <= set(parsed)
 
 

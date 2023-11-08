@@ -16,5 +16,4 @@
 
 ### Other
 
-* Remove unused cache_path arguments from RepoInterface/JlapRepoInterface;
-  replaced by cache object. (#12927)
+* Constrain minimum conda-build >=3.27 (#13177)

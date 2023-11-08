@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix performance regression of basic commands (e.g., `conda info`) on WSL. (#13035)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Replace `black` with `ruff format` in pre-commit. (#13272)

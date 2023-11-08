@@ -68,6 +68,8 @@ DEFAULTS_CHANNEL_NAME = "defaults"
 
 KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "noarch",
+    "emscripten-wasm32",
+    "wasi-wasm32",
     "freebsd-64",
     "linux-32",
     "linux-64",
@@ -153,7 +155,8 @@ CONDA_PACKAGE_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
+CONDA_PACKAGE_PARTS = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
+CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 CONDA_TEMP_EXTENSION = ".c~"
 CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR = ".logs"

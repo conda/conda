@@ -17,4 +17,4 @@ mkdir -p "$TMP"
 python -m pytest \
     --cov=conda \
     --basetemp="$TMP" \
-    -k test_DepsModifier_contract
+    tests/test_api.py::test_DepsModifier_contract

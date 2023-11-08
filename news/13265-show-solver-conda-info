@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Inject a new detailed output verbosity level (i.e., the old debug level `-vv` is now `-vvv`). (#12985, #12977, #12420, #13036)
+* Show the used solver in `conda info` output to simplify debugging. (#13265)
 
 ### Bug fixes
 

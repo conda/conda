@@ -3,7 +3,6 @@
 import pytest
 from pytest import MonkeyPatch
 
-from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 

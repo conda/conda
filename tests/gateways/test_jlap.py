@@ -15,6 +15,7 @@ import pytest
 import requests
 import zstandard
 
+import conda.gateways.repodata
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
@@ -300,6 +301,66 @@ def test_repodata_state(
         ):
             assert field in state
             assert f"_{field}" not in state
+
+
+@pytest.mark.parametrize("use_jlap", [True, False])
+def test_repodata_info_jsondecodeerror(
+    package_server: socket,
+    use_jlap: bool,
+    monkeypatch,
+):
+    """Test that cache metadata file works correctly."""
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    channel_url = f"{base}/osx-64"
+
+    if use_jlap:
+        repo_cls = interface.JlapRepoInterface
+    else:
+        repo_cls = CondaRepoInterface
+
+    with env_vars(
+        {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        SubdirData.clear_cached_local_channel_data(
+            exclude_file=False
+        )  # definitely clears them, including normally-excluded file:// urls
+
+        test_channel = Channel(channel_url)
+        sd = SubdirData(channel=test_channel)
+
+        # parameterize whether this is used?
+        assert isinstance(sd._repo, repo_cls)
+
+        print(sd.repodata_fn)
+
+        assert sd._loaded is False
+        # shoud automatically fetch and load
+        assert len(list(sd.iter_records()))
+        assert sd._loaded is True
+
+        # Corrupt the cache state. Double json could happen when (unadvisably)
+        # running conda in parallel, before we added locks-by-default.
+        sd.cache_path_state.write_text(sd.cache_path_state.read_text() * 2)
+
+        # now try to re-download
+        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+        sd2 = SubdirData(channel=test_channel)
+
+        # caplog fixture was able to capture urllib3 logs but not conda's. Could
+        # be due to setting propagate=False on conda's root loggers. Instead,
+        # mock warning() to save messages.
+        records = []
+
+        def warning(*args, **kwargs):
+            records.append(args)
+
+        monkeypatch.setattr(conda.gateways.repodata.log, "warning", warning)
+
+        sd2.load()
+
+        assert any(record[0].startswith("JSONDecodeError") for record in records)
 
 
 @pytest.mark.parametrize("use_jlap", ["jlap", "jlapopotamus", "jlap,another", ""])
@@ -746,6 +807,13 @@ def make_test_jlap(original: bytes, changes=1):
 
             yield json.dumps(row).encode("utf-8")
 
+        # Coverage for the branch that skips irrelevant patches in the series,
+        # when deciding which patches take us from our current to desired
+        # state.
+        yield json.dumps(
+            {"from": core.DEFAULT_IV.hex(), "to": core.DEFAULT_IV.hex(), "patch": []}
+        ).encode("utf-8")
+
         footer = {"url": "repodata.json", "latest": starting_digest}
         yield json.dumps(footer).encode("utf-8")
 
@@ -767,3 +835,54 @@ def test_hashwriter():
     with writer:
         pass
     assert closed
+
+
+def test_request_url_jlap_state(tmp_path, package_server, package_repository_base):
+    """
+    Code coverage for case intended to catch "repodata.json written while we
+    were downloading its patches".
+
+    When this happens, we do not write a new repodata.json and instruct the
+    caller to defer to the on-disk cache.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    url = f"{base}/osx-64/repodata.json"
+
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+    cache.state.set_has_format("jlap", True)
+    cache.save(json.dumps({"info": {}}))
+
+    test_jlap = make_test_jlap(cache.cache_path_json.read_bytes(), 8)
+    test_jlap.terminate()
+    test_jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
+    test_jlap.write(test_jlap_path)
+
+    temp_path = tmp_path / "new_repodata.json"
+
+    # correct hash must appear here and in test_jlap to reach desired condition
+    outdated_state = cache.load_state()
+    hasher = fetch.hash()
+    hasher.update(cache.cache_path_json.read_bytes())
+    outdated_state[fetch.NOMINAL_HASH] = hasher.hexdigest()
+    outdated_state[fetch.ON_DISK_HASH] = hasher.hexdigest()
+
+    # Simulate a peculiar "request_url_jlap_state uses state object, but later
+    # re-fetches state from disk" condition where the initial state and the
+    # on-disk state were inconsistent. This is done to avoid unnecessary reads
+    # of repodata.json. The failure will happen in the wild when another process
+    # writes repodata.json while we are downloading ours.
+    on_disk_state = json.loads(cache.cache_path_state.read_text())
+    on_disk_state[fetch.NOMINAL_HASH] = "0" * 64
+    on_disk_state[fetch.ON_DISK_HASH] = "0" * 64
+    cache.cache_path_state.write_text(json.dumps(on_disk_state))
+
+    result = fetch.request_url_jlap_state(
+        url,
+        outdated_state,
+        session=CondaSession(),
+        cache=cache,
+        temp_path=temp_path,
+    )
+
+    assert result is None

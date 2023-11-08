@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Remove import of deprecated cgi module by deprecating ftp STOR support
-  (#13013)
+* Mark `conda.exports.fetch_index` as pending deprecation for removal in 24.9. Use `conda.core.index.fetch_index` instead. (#13194)
 
 ### Docs
 

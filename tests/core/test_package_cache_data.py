@@ -469,10 +469,13 @@ def test_cover_reverse():
         def finish(self):
             pass
 
+    def not_cancelled():
+        return True
+
     exceptions = []
 
     package_cache_data.done_callback(f(), (action(),), progress(), exceptions)  # type: ignore
-    package_cache_data.do_cache_action("dummy", None, None)
+    package_cache_data.do_cache_action("dummy", None, None, cancelled=not_cancelled)
     package_cache_data.do_extract_action("dummy", None, None)
 
 

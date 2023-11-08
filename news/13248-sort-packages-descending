@@ -1,6 +1,7 @@
 ### Enhancements
 
-* Import boto3 only when s3 channels are used, saving startup time. (#12914)
+* Download largest packages first, preventing smaller packages from having to
+  wait for larger packages. (#13248)
 
 ### Bug fixes
 

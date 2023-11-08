@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common compatiblity code."""
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.
@@ -117,15 +118,9 @@ def ensure_text_type(value) -> str:
         # In this case assume already text_type and do nothing
         return value
     except UnicodeDecodeError:  # pragma: no cover
-        try:
-            from chardet import detect
-        except ImportError:
-            try:
-                from requests.packages.chardet import detect
-            except ImportError:  # pragma: no cover
-                from pip._vendor.requests.packages.chardet import detect
-        encoding = detect(value).get("encoding") or "utf-8"
-        return value.decode(encoding, errors="replace")
+        from charset_normalizer import from_bytes
+
+        return str(from_bytes(value).best())
     except UnicodeEncodeError:  # pragma: no cover
         # it's already str, so ignore?
         # not sure, surfaced with tests/models/test_match_spec.py test_tarball_match_specs

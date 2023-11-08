@@ -15,7 +15,7 @@ from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import on_win
+from ...common.compat import on_linux, on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
@@ -236,7 +236,7 @@ def extract_tarball(
     if hasattr(conda_package_handling.api, "THREADSAFE_EXTRACT"):
         return  # indicates conda-package-handling 2.x, which implements --no-same-owner
 
-    if sys.platform.startswith("linux") and os.getuid() == 0:  # pragma: no cover
+    if on_linux and os.getuid() == 0:  # pragma: no cover
         # When extracting as root, tarfile will by restore ownership
         # of extracted files.  However, we want root to be the owner
         # (our implementation of --no-same-owner).
@@ -427,11 +427,11 @@ def compile_multiple_pyc(
         command[0:0] = [python_exe_full_path]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
-        from conda.gateways.subprocess import any_subprocess
+        from ..subprocess import any_subprocess
 
-        # from conda.common.io import env_vars
+        # from ...common.io import env_vars
         # This stack does not maintain its _argparse_args correctly?
-        # from conda.base.context import stack_context_default
+        # from ...base.context import stack_context_default
         # with env_vars({}, stack_context_default):
         #     stdout, stderr, rc = run_command(Commands.RUN, *command)
         stdout, stderr, rc = any_subprocess(command, prefix)

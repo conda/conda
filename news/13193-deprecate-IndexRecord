@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Reduce startup delay from deprecations module by using `sys._getframe()`
-  instead of `inspect.stack()`. (#12919)
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
 
 ### Docs
 

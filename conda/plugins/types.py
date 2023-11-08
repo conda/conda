@@ -49,7 +49,7 @@ class CondaVirtualPackage(NamedTuple):
 
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
-    :param version: Virtual package build string (e.g., ``x86_64``).
+    :param build: Virtual package build string (e.g., ``x86_64``).
     """
 
     name: str
@@ -141,3 +141,12 @@ class CondaAuthHandler(NamedTuple):
 
     name: str
     handler: type[ChannelAuthBase]
+
+
+class CondaHealthCheck(NamedTuple):
+    """
+    Return type to use when defining conda health checks plugin hook.
+    """
+
+    name: str
+    action: Callable[[str, bool], None]

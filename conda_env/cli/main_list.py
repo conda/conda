@@ -41,3 +41,4 @@ def execute(args, parser):
 
     if args.json:
         common.stdout_json(info_dict)
+    return 0

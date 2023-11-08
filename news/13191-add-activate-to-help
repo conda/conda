@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Add `activate` and `deactivate` to `--help` command list. (#13191)
 
 ### Bug fixes
 
-* Fix S3 bucket name. (#12989)
+* <news item>
 
 ### Deprecations
 

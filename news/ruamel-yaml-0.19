@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Improve speed of fish shell initialization. (#12811)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Update `ruamel.yaml` upper bound to `<0.19` now that `0.18` has been released.

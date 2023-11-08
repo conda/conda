@@ -4,20 +4,51 @@
 from __future__ import annotations
 
 import json
+import os
 from logging import getLogger
 from pathlib import Path
 
-from conda.exceptions import CondaError
-from conda.gateways.disk.read import compute_sum
+from ....base.context import context
+from ....core.envs_manager import get_user_environments_txt_file
+from ....deprecations import deprecated
+from ....exceptions import CondaError
+from ....gateways.disk.read import compute_sum
+from ... import CondaHealthCheck, hookimpl
 
 logger = getLogger(__name__)
 
 OK_MARK = "✅"
+X_MARK = "❌"
 
 
+@deprecated("24.3", "24.9")
 def display_report_heading(prefix: str) -> None:
     """Displays our report heading."""
     print(f"Environment Health Report for: {Path(prefix)}\n")
+
+
+def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
+    """Checks whether the environment is listed in the environments.txt file"""
+    prefix = Path(prefix)
+    envs_txt_file = Path(get_user_environments_txt_file())
+
+    def samefile(path1: Path, path2: Path) -> bool:
+        try:
+            return path1.samefile(path2)
+        except FileNotFoundError:
+            # FileNotFoundError: path doesn't exist
+            return path1 == path2
+
+    try:
+        for line in envs_txt_file.read_text().splitlines():
+            if samefile(prefix, Path(line.strip())):
+                return True
+    except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
+        logger.error(
+            f"{envs_txt_file} could not be "
+            f"accessed because of the following error: {err}"
+        )
+    return False
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
@@ -79,10 +110,15 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
+@deprecated("24.3", "24.9")
 def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
-    display_report_heading(prefix)
-    print("1. Missing Files:\n")
+    print(f"Environment Health Report for: {prefix}\n")
+    context.plugin_manager.invoke_health_checks(prefix, verbose)
+
+
+def missing_files(prefix: str, verbose: bool) -> None:
+    print("Missing Files:\n")
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:
         for package_name, missing_files in missing_files.items():
@@ -94,9 +130,9 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
     else:
         print(f"{OK_MARK} There are no packages with missing files.\n")
 
-    if verbose:
-        print("")
-    print("2. Altered Files:\n")
+
+def altered_files(prefix: str, verbose: bool) -> None:
+    print("Altered Files:\n")
     altered_packages = find_altered_packages(prefix)
     if altered_packages:
         for package_name, altered_files in altered_packages.items():
@@ -104,6 +140,18 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
                 delimiter = "\n  "
                 print(f"{package_name}:{delimiter}{delimiter.join(altered_files)}\n")
             else:
-                print(f"{package_name}: {len(altered_files)}")
+                print(f"{package_name}: {len(altered_files)}\n")
     else:
         print(f"{OK_MARK} There are no packages with altered files.\n")
+
+
+def env_txt_check(prefix: str, verbose: bool) -> None:
+    present = OK_MARK if check_envs_txt_file(prefix) else X_MARK
+    print(f"Environment listed in environments.txt file: {present}\n")
+
+
+@hookimpl
+def conda_health_checks():
+    yield CondaHealthCheck(name="Missing Files", action=missing_files)
+    yield CondaHealthCheck(name="Altered Files", action=altered_files)
+    yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)

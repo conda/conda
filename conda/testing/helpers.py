@@ -15,18 +15,17 @@ from uuid import uuid4
 
 import pytest
 
-from conda.auxlib.compat import shlex_split_unicode
-from conda.deprecations import deprecated
 from conda_env.cli import main as conda_env_cli
 
 from .. import cli
+from ..auxlib.compat import shlex_split_unicode
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..common.compat import encode_arguments
-from ..common.io import argv
+from ..common.io import argv, env_var
 from ..common.io import captured as common_io_captured
-from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
+from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..gateways.logging import initialize_logging
