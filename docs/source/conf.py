@@ -26,8 +26,8 @@ version = release = conda.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # "autoapi.extension",
-    # "conda_umls",
+    "autoapi.extension",
+    "conda_umls",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -65,7 +65,7 @@ html_theme = "conda_sphinx_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-# html_style = "css/custom.css"
+html_style = "css/custom.css"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -140,12 +140,12 @@ myst_enable_extensions = [
 
 # -- For autoapi.extension -------------------------------------------------
 
-# autoapi_dirs = ["../../conda", "../../conda_env"]
-# autoapi_root = "dev-guide/api"
-# # Manually inserted into TOC in dev-guide/api.rst for proper integration into
-# # folder-view
-# autoapi_add_toctree_entry = False
-# autoapi_template_dir = "_templates/autoapi"
+autoapi_dirs = ["../../conda", "../../conda_env"]
+autoapi_root = "dev-guide/api"
+# Manually inserted into TOC in dev-guide/api.rst for proper integration into
+# folder-view
+autoapi_add_toctree_entry = False
+autoapi_template_dir = "_templates/autoapi"
 
 
 suppress_warnings = [
@@ -160,8 +160,7 @@ def skip_log(app, what, name, obj, skip, options):
 
 
 def setup(sphinx):
-    """"""
-    # sphinx.connect("autoapi-skip-member", skip_log)
+    sphinx.connect("autoapi-skip-member", skip_log)
 
 
 # -----------------------------------------------------------------------------
