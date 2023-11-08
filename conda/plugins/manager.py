@@ -26,8 +26,10 @@ from ..models.match_spec import MatchSpecSequence
 from ..models.records import PackageRecordSequence
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
+    CondaHealthCheck,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -170,6 +172,12 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaAuthHandler]:
         ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["health_checks"]
+    ) -> list[CondaHealthCheck]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -305,6 +313,14 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
+    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
+        for hook in self.get_hook_results("health_checks"):
+            try:
+                hook.action(prefix, verbose)
+            except Exception as err:
+                log.warning(f"Error running health check: {hook.name} ({err})")
+                continue
+
     def invoke_pre_solves(
         self,
         specs_to_add: MatchSpecSequence,
@@ -348,6 +364,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
+        health_checks,
         *post_solves.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
