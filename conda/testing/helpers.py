@@ -15,7 +15,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda_env.cli import main as conda_env_cli
+from conda.cli import main as conda_env_cli
 
 from .. import cli
 from ..auxlib.compat import shlex_split_unicode
