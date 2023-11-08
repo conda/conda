@@ -203,6 +203,7 @@ def test_not_env_txt_check_action(
 ):
     prefix, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text("Not environment name")
 
     mocker.patch(
         "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
