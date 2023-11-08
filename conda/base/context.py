@@ -108,7 +108,7 @@ _arch_names = {
 }
 
 user_rc_path = abspath(expanduser("~/.condarc"))
-sys_rc_path = join(sys.prefix, ".condarc")
+sys_rc_path = SEARCH_PATH[0]
 
 
 def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
