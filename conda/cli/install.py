@@ -56,6 +56,10 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
         )
+    if prefix.endswith("/envs"):
+        raise CondaValueError(
+            "Cannot create a conda environment with '/envs' at the end of the prefix. Aborting."
+        )
     name = basename(prefix)
     error = None
     if name == ROOT_ENV_NAME:
