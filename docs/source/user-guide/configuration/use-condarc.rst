@@ -63,11 +63,12 @@ EXAMPLE:
 
 Alternatively, you can open a text editor such as Notepad
 on Windows, TextEdit on macOS, or VS Code. Name the new file
-``.condarc`` and save it to your user home directory or root
-directory. To edit the ``.condarc`` file, open it from your
-home or root directory and make edits in the same way you would
-with any other text file. If the ``.condarc`` file is in the root
-environment, it will override any in the home directory.
+``.condarc`` and save it to your user home directory or 
+:ref:`system conda directory <system_config_location>`.
+To edit the ``.condarc`` file, open it from your
+home or system conda directory and make edits in the same way you would
+with any other text file. If the ``.condarc`` file is in the
+system conda directory, it will override any in the home directory.
 
 You can find information about your ``.condarc`` file by typing
 ``conda info`` in your terminal or Anaconda Prompt.
@@ -76,7 +77,7 @@ including where it is located.
 
 You can also download a :doc:`sample .condarc file
 <sample-condarc>` to edit in your editor and save to your user
-home directory or root directory.
+home directory or system conda directory.
 
 To set configuration options, edit the ``.condarc`` file directly
 or use the ``conda config --set`` command.
