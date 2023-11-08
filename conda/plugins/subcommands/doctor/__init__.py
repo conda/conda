@@ -37,9 +37,7 @@ def configure_parser(parser: ArgumentParser):
 def execute(args: argparse.Namespace) -> None:
     """Run registered health_check plugins."""
     print(f"Environment Health Report for: {context.target_prefix}\n")
-    context.plugin_manager.get_health_checks(context.target_prefix, context.verbose)
-    # for health_check in context.plugin_manager.get_health_checks():
-    #     health_check.action(context.target_prefix, verbose=context.verbose)
+    context.plugin_manager.invoke_health_checks(context.target_prefix, context.verbose)
 
 
 @hookimpl

@@ -107,7 +107,7 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
 def display_health_checks(prefix: str, verbose: bool = False) -> None:
     """Prints health report."""
     print(f"Environment Health Report for: {prefix}\n")
-    context.plugin_manager.get_health_checks(prefix, verbose=verbose)
+    context.plugin_manager.invoke_health_checks(prefix, verbose)
 
 
 def missing_files(prefix: str, verbose: bool) -> None:
