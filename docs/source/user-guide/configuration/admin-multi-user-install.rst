@@ -60,12 +60,15 @@ System configuration file
    - **Windows**: ``C:/ProgramData/conda/.condarc``
    - **All others**: ``/etc/conda/.condarc``
 
-   The paths listed above are recommended, but the system configuration
-   file can be at any :ref:`valid search path <condarc_search_precedence>`.
+   Configuration files at the above paths will affect all installations
+   of conda on the machine.  Other possible paths that you may place
+   the .condarc file can be seen :ref:`here <_condarc_search_precedence>`.
 
-   It is not recommended to use the base environment directory to store
-   system-level configurations, as enforcement of parameters with ``#!final``
-   is not guaranteed across all other environments.
+   If you want to configure individual installations of conda,
+   place the .condarc file inside the base environment directory of the
+   installation.  This is not recommended for securely administering 
+   multi-user installations as enforcement of `#!final` parameters
+   is unreliable.
 
 #. View the contents of the ``.condarc`` file in the
    administrator's directory:
