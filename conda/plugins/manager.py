@@ -309,7 +309,7 @@ class CondaPluginManager(pluggy.PluginManager):
             subcommand.name.lower(): subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
-      
+
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 

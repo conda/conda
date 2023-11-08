@@ -211,7 +211,7 @@ class CondaSpecs:
                     auth_handler=EnvironmentHeaderAuth,
                 )
         """
-        
+
     @_hookspec
     def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
         """
@@ -276,7 +276,7 @@ class CondaSpecs:
         Register post-solve functions in conda that are used in the
         general solver API, after the solver has provided the package
         records to add or remove from the conda environment.
-        
+
         **Example:**
 
         .. code-block:: python
