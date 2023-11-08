@@ -3,19 +3,12 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 
 import pytest
 
 from conda.common.compat import on_win
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
-
-
-@pytest.fixture(autouse=True)
-def urllib3_logger_error(caplog):
-    "Increasing the level to error to prevent retries show up in the stderr"
-    caplog.set_level(logging.ERROR, logger="urllib3.connectionpool")
 
 
 @pytest.fixture
