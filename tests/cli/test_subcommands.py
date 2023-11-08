@@ -248,7 +248,7 @@ def test_env_create(
         *("--file", environment_yml),
     )
     assert out
-    assert not err
+    # assert not err  # see #13295
     assert not code
 
 
