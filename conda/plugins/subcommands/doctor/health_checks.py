@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 from logging import getLogger
 from pathlib import Path
 
@@ -22,22 +23,28 @@ def display_report_heading(prefix: str) -> None:
     print(f"Environment Health Report for: {Path(prefix)}\n")
 
 
-def check_envs_txt_file(prefix: str | Path) -> bool:
+def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
     """Checks whether the environment is listed in the environments.txt file"""
     prefix = Path(prefix)
     envs_txt_file = Path(get_user_environments_txt_file())
-    try:
-        with envs_txt_file.open() as f:
-            for line in f.readlines():
-                if prefix.samefile(line.strip()):
-                    return True
-            return False
 
+    def samefile(path1: Path, path2: Path) -> bool:
+        try:
+            return path1.samefile(path2)
+        except FileNotFoundError:
+            # FileNotFoundError: path doesn't exist
+            return path1 == path2
+
+    try:
+        for line in envs_txt_file.read_text().splitlines():
+            if samefile(prefix, Path(line.strip())):
+                return True
     except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
         logger.error(
             f"{envs_txt_file} could not be "
             f"accessed because of the following error: {err}"
         )
+    return False
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
