@@ -66,7 +66,7 @@ System configuration file
 
    If you want to configure individual installations of conda,
    place the .condarc file inside the base environment directory of the
-   installation.  This is not recommended for securely administering 
+   installation.  This is not recommended for securely administering
    multi-user installations as enforcement of `#!final` parameters
    is unreliable.
 
