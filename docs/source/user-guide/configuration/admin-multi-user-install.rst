@@ -19,7 +19,7 @@ from installing unwanted packages with conda:
 #. Create a
    :doc:`.condarc system configuration file <use-condarc>` in
    the appropriate folder for your operating system.
-   This system-level configuration file will override any 
+   This system-level configuration file will override any
    user-level configuration files installed by the user.
 
 Each user accesses the central conda installation, which reads
@@ -54,7 +54,7 @@ access the channels allowed by the administrator.
 System configuration file
 -------------------------
 
-#. The system configuration file should be in the system conda directory, 
+#. The system configuration file should be in the system conda directory,
    which is installation-invariant, and varies by operating system:
 
    - **Windows**: ``C:/ProgramData/conda/.condarc``
@@ -62,9 +62,9 @@ System configuration file
 
    The paths listed above are recommended, but the system configuration
    file can be at any :ref:`valid search path <condarc_search_precedence>`.
-   
+
    It is not recommended to use the base environment directory to store
-   system-level configurations, as enforcement of parameters with ``#!final`` 
+   system-level configurations, as enforcement of parameters with ``#!final``
    is not guaranteed across all other environments.
 
 #. View the contents of the ``.condarc`` file in the

@@ -63,7 +63,7 @@ EXAMPLE:
 
 Alternatively, you can open a text editor such as Notepad
 on Windows, TextEdit on macOS, or VS Code. Name the new file
-``.condarc`` and save it to your user home directory or 
+``.condarc`` and save it to your user home directory or
 :ref:`system conda directory <system_config_location>`.
 To edit the ``.condarc`` file, open it from your
 home or system conda directory and make edits in the same way you would
