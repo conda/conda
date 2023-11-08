@@ -79,7 +79,7 @@ def user_data_dir(appname, appauthor=None, version=None, roaming=False):
 
 
 def site_data_dir(appname, appauthor=None, version=None):
-    """Return full path to the user-shared data dir for this application.
+    r"""Return full path to the user-shared data dir for this application.
 
         "appname" is the name of application.
         "appauthor" (only required and used on Windows) is the name of the
