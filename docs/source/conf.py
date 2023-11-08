@@ -26,8 +26,8 @@ version = release = conda.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # "autoapi.extension",
-    # "conda_umls",
+    "autoapi.extension",
+    "conda_umls",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -92,7 +92,7 @@ html_theme_options = {
     "navigation_depth": -1,
     "show_prev_next": False,
     # Navbar icon links
-    "navbar_start": ["navbar-logo", "version-switcher"],
+    "navbar_start": ["navbar-logo"],
     "switcher": {"json_url": "_static/switcher.json", "version_match": "23.9.x"},
     # "header_links_before_dropdown": 4,
 }
@@ -139,12 +139,12 @@ myst_enable_extensions = [
 
 # -- For autoapi.extension -------------------------------------------------
 
-# autoapi_dirs = ["../../conda", "../../conda_env"]
-# autoapi_root = "dev-guide/api"
-# # Manually inserted into TOC in dev-guide/api.rst for proper integration into
-# # folder-view
-# autoapi_add_toctree_entry = False
-# autoapi_template_dir = "_templates/autoapi"
+autoapi_dirs = ["../../conda", "../../conda_env"]
+autoapi_root = "dev-guide/api"
+# Manually inserted into TOC in dev-guide/api.rst for proper integration into
+# folder-view
+autoapi_add_toctree_entry = False
+autoapi_template_dir = "_templates/autoapi"
 
 
 suppress_warnings = [
