@@ -14,9 +14,6 @@ from pathlib import Path
 from jsonpatch import JsonPatchException
 from jsonpointer import JsonPointerException
 
-from conda.gateways.repodata.jlap.core import JLAP
-from conda.gateways.repodata.jlap.fetch import apply_patches, find_patches, hash, timeme
-
 
 class ObserverDict(UserDict):
     """
@@ -112,6 +109,9 @@ class RepodataPatchAccumulator(ObserverDict):
 
 
 def demonstration():
+    from conda.gateways.repodata.jlap.core import JLAP
+    from conda.gateways.repodata.jlap.fetch import apply_patches, find_patches, hash, timeme
+
     repodata = REPODATA_PATH.read_bytes()
     with timeme("Parse repodata.json"):
         repodata_parsed = json.loads(repodata)
@@ -132,7 +132,7 @@ def demonstration():
         jlap = JLAP.from_path(REPODATA_JLAP_PATH)
         patches = list(json.loads(patch) for _, patch, _ in jlap.body)
 
-        if False:
+        if True:
             # overview of used jsonpatch features
             for patch in patches:
                 for step in patch["patch"]:
