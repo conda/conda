@@ -113,13 +113,13 @@ Conda looks in the following locations for a ``.condarc`` file:
 
   if on_win:
       SEARCH_PATH = (
-          "C:/ProgramData/conda/.condarc",
+          "C:/ProgramData/conda/.condarc", # System-level configuration
           "C:/ProgramData/conda/condarc",
           "C:/ProgramData/conda/condarc.d",
       )
   else:
       SEARCH_PATH = (
-          "/etc/conda/.condarc",
+          "/etc/conda/.condarc", # System-level configuration
           "/etc/conda/condarc",
           "/etc/conda/condarc.d/",
           "/var/lib/conda/.condarc",
@@ -128,10 +128,10 @@ Conda looks in the following locations for a ``.condarc`` file:
       )
 
   SEARCH_PATH += (
-      "$CONDA_ROOT/.condarc",
+      "$CONDA_ROOT/.condarc", # Installation-level configuration
       "$CONDA_ROOT/condarc",
       "$CONDA_ROOT/condarc.d/",
-      "$XDG_CONFIG_HOME/conda/.condarc",
+      "$XDG_CONFIG_HOME/conda/.condarc", # User-level configuration
       "$XDG_CONFIG_HOME/conda/condarc",
       "$XDG_CONFIG_HOME/conda/condarc.d/",
       "~/.config/conda/.condarc",
@@ -141,7 +141,7 @@ Conda looks in the following locations for a ``.condarc`` file:
       "~/.conda/condarc",
       "~/.conda/condarc.d/",
       "~/.condarc",
-      "$CONDA_PREFIX/.condarc",
+      "$CONDA_PREFIX/.condarc", # Environment-level configuration
       "$CONDA_PREFIX/condarc",
       "$CONDA_PREFIX/condarc.d/",
       "$CONDARC",
