@@ -18,8 +18,6 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from .accumulate import RepodataPatchAccumulator
-
 from ....base.context import context
 from ...connection import Response, Session
 from .. import (
@@ -28,6 +26,7 @@ from .. import (
     RepodataCache,
     RepodataState,
 )
+from .accumulate import RepodataPatchAccumulator
 from .core import JLAP
 
 log = logging.getLogger(__name__)
@@ -644,7 +643,11 @@ def request_url_jlap_state_plus_overlay(
 
                     apply_patches(repodata_json_changes, apply)
 
-                    patch_path.write_text(json.dumps(repodata_json_changes.into_plain(), separators=(",", ":")))
+                    patch_path.write_text(
+                        json.dumps(
+                            repodata_json_changes.into_plain(), separators=(",", ":")
+                        )
+                    )
 
                     # hash of equivalent upstream json
                     state[NOMINAL_HASH] = want

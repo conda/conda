@@ -16,9 +16,9 @@ import socket
 import time
 from pathlib import Path
 
-from flask import request
 import flask
 import pytest
+from flask import request
 from werkzeug.serving import WSGIRequestHandler, generate_adhoc_ssl_context, make_server
 
 app = flask.Flask(__name__)
@@ -29,6 +29,7 @@ base = TEST_REPOSITORY  # set to per-test-run value
 
 LATENCY = 0
 LATENCY_PER_FILE = {}
+
 
 @app.route("/shutdown")
 def shutdown():
@@ -50,7 +51,7 @@ def latency(delay):
     Set delay before each file is returned, to simulate bandwidth, file size or
     streaming compression delays.
     """
-    LATENCY_PER_FILE[request.args.get('name')] = delay
+    LATENCY_PER_FILE[request.args.get("name")] = delay
     return "OK"
 
 

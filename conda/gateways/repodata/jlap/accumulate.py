@@ -1,17 +1,21 @@
 #!/usr/bin/env python
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Accumulate jlap patches in a single separate file, to avoid overhead of
 rewriting large file each time.
 """
 
 import json
-from pathlib import Path
-from conda.gateways.repodata.jlap.core import JLAP
-from conda.gateways.repodata.jlap.fetch import apply_patches, find_patches, hash, timeme
+import logging
 from collections import UserDict
+from pathlib import Path
+
 from jsonpatch import JsonPatchException
 from jsonpointer import JsonPointerException
-import logging
+
+from conda.gateways.repodata.jlap.core import JLAP
+from conda.gateways.repodata.jlap.fetch import apply_patches, find_patches, hash, timeme
 
 
 class ObserverDict(UserDict):
