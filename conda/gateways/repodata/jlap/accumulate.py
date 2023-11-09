@@ -7,18 +7,17 @@ rewriting large file each time.
 """
 
 from __future__ import annotations
-from contextlib import contextmanager
 
 import json
 import logging
+import time
 from collections import UserDict
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
 from jsonpatch import JsonPatchException
 from jsonpointer import JsonPointerException
-import time
-
-from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class JSONLoader:
 
     def __call__(self) -> Any:
         if self._backing is object:
-            with timeme("Lazy load JSON "):
+            with timeme(f"Lazy load {self.backing_path.name} "):
                 self._backing = json.loads(self.backing_path.read_text())
         return self._backing
 
@@ -182,15 +181,11 @@ def demonstration():
     assert isinstance(patched_repodata["packages"], UserDict)
     assert isinstance(patched_repodata["packages.conda"], UserDict)
 
-    for key in patched_repodata:
-        print(key, type(patched_repodata[key]))
-    print(patched_repodata)
-
     # will into_plain() or apply() mutate the loader so that it should no longer
     # be used?
     def repodata_stats(repodata, note):
         log.info(
-            f"{note} repodata has {len(repodata)} keys, {len(repodata['packages'])} packages, {len(repodata['packages.conda'])} packages.conda, signatures? {'signatures' in repodata}"
+            f"{note} has {len(repodata)} keys, {len(repodata['packages'])} packages, {len(repodata['packages.conda'])} packages.conda, signatures? {'signatures' in repodata}"
         )
 
     repodata_stats(patched_repodata.backing, "backing before apply()")
@@ -232,12 +227,12 @@ def demonstration():
     print(f"{len(repodata)} base length")
     print(f"{len(collected_patches)} overlay length")
 
-    with timeme("Write collected changes to file"):
+    with timeme("Write collected changes to file "):
         REPODATA_PATH.with_suffix(".patch.json").write_text(
             json.dumps(patched_repodata.into_plain(), indent=2, sort_keys=True)
         )
 
-    with timeme("If we wrote the original back to a file"):
+    with timeme("Write the original back to a file "):
         REPODATA_PATH.with_suffix(".time_write").write_text(
             json.dumps(
                 patched_repodata.loader(), check_circular=True, separators=(":", ",")
@@ -278,7 +273,7 @@ if __name__ == "__main__":
     large = True
     if large:
         REPODATA_PATH = Path(__file__).parent / "linux-64-repodata.json"
-        REPODATA_JLAP_PATH = Path(__file__).parent / "linux-64-repodata-2.jlap"
+        REPODATA_JLAP_PATH = Path(__file__).parent / "linux-64-repodata-3.jlap"
     else:
         REPODATA_PATH = Path("noarch-repodata.json")
         REPODATA_JLAP_PATH = Path("noarch-repodata.jlap")
