@@ -19,12 +19,6 @@ def test_export(
     request,
 ):
     """Test that `conda list --export` output can be used to create a similar environment."""
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Known issue in libmamba 1.5.x: pkgs/main not supported as channel spec",
-        )
-    )
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
     reset_context()
     # assert context.channels == ("defaults",)
@@ -53,13 +47,6 @@ def test_explicit(
     request,
 ):
     """Test that `conda list --explicit` output can be used to recreate an identical environment."""
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Known issue in libmamba 1.5.x: pkgs/main not supported as channel spec",
-        )
-    )
-
     # use "cheap" packages with no dependencies
     with tmp_env("pkgs/main::zlib", "conda-forge::ca-certificates") as prefix:
         assert package_is_installed(prefix, "pkgs/main::zlib")

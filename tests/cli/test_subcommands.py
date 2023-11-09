@@ -35,12 +35,6 @@ def test_clean(conda_cli: CondaCLIFixture):
 
 
 def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, request):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     out, err, code = conda_cli("create", "--prefix", path_factory(), "--yes")
     assert out
     assert not err
@@ -102,12 +96,6 @@ def test_init(conda_cli: CondaCLIFixture):
 
 
 def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     with tmp_env() as prefix:
         out, err, code = conda_cli(
             "install",
@@ -197,12 +185,6 @@ def test_search(conda_cli: CondaCLIFixture):
 def test_update(
     subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request
 ):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
         assert out
@@ -235,12 +217,6 @@ def test_env_create(
     environment_yml: Path,
     request,
 ):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     out, err, code = conda_cli(
         "env",
         "create",
@@ -258,12 +234,6 @@ def test_env_update(
     environment_yml: Path,
     request,
 ):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(
             "env",
