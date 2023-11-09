@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda-env subcommands."""
+import sys
 from argparse import ArgumentParser
 from importlib import import_module
 
@@ -19,7 +20,6 @@ from . import (
     main_env_remove,
     main_env_update,
 )
-from .helpers import show_help_on_empty_command
 
 
 def configure_parser():
@@ -35,7 +35,9 @@ def configure_parser():
     main_env_update.configure_parser(sub_parsers)
     main_env_config.configure_parser(sub_parsers)
 
-    show_help_on_empty_command()
+    if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
+        sys.argv.append("--help")
+
     return p
 
 
