@@ -3,7 +3,7 @@
 import pytest
 from pytest import MonkeyPatch
 
-from conda.base.context import context, reset_context
+from conda.base.context import reset_context
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
 
