@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 import os
-import platform
 import re
 import sys
 from glob import glob
@@ -508,7 +507,9 @@ def test_noarch_python_package_without_entry_points(
         assert not (prefix / pyc_file).is_file()
 
 
-@pytest.mark.skipif(context.subdir == "osx-64", reason="Legacy Python not available on macOS ARM")
+@pytest.mark.skipif(
+    context.subdir == "osx-64", reason="Legacy Python not available on macOS ARM"
+)
 def test_noarch_python_package_reinstall_on_pyver_change(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
@@ -940,7 +941,9 @@ def test_tarball_install_and_bad_metadata():
 
 
 @pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
-@pytest.mark.skipif(context.subdir == "osx-64", reason="Legacy Python not available on macOS ARM")
+@pytest.mark.skipif(
+    context.subdir == "osx-64", reason="Legacy Python not available on macOS ARM"
+)
 def test_update_with_pinned_packages():
     # regression test for #6914
     with make_temp_env(
@@ -1930,7 +1933,9 @@ def test_conda_pip_interop_dependency_satisfied_by_pip():
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="metadata is wrong; give python2.7"
 )
-def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_conda_pip_interop_pip_clobbers_conda(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     # 1. conda install old six
     # 2. pip install -U six
     # 3. conda list shows new six and deletes old conda record
@@ -1951,7 +1956,9 @@ def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli:
         # On Windows, it's more than prefix.lower(), we get differently shortened paths too.
         # If only we could use pathlib.
         if not on_win:
-            output, _, _ = conda_cli("run", "--prefix", prefix, which_or_where, "python")
+            output, _, _ = conda_cli(
+                "run", "--prefix", prefix, which_or_where, "python"
+            )
 
             assert str(prefix).lower() in output.lower(), (
                 f"We should be running python in {prefix}\n"
@@ -1960,7 +1967,15 @@ def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli:
                 "for a likely place to add more fixes"
             )
         output, _, _ = conda_cli(
-            "run", "--prefix", prefix, "python", "-m", "pip", "list", "--format", "freeze"
+            "run",
+            "--prefix",
+            prefix,
+            "python",
+            "-m",
+            "pip",
+            "list",
+            "--format",
+            "freeze",
         )
         pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
         assert "six==1.14.0" in pkgs
@@ -1969,7 +1984,15 @@ def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli:
         sp_dir = get_python_site_packages_short_path(py_ver)
 
         output, _, _ = conda_cli(
-            "run", "--prefix", prefix, "python", "-m", "pip", "install", "-U", "six==1.15"
+            "run",
+            "--prefix",
+            prefix,
+            "python",
+            "-m",
+            "pip",
+            "install",
+            "-U",
+            "six==1.15",
         )
         assert "Successfully installed six-1.15.0" in ensure_text_type(output)
         PrefixData._cache_.clear()
@@ -1988,7 +2011,17 @@ def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli:
             "version": "1.15.0",
         }
         assert package_is_installed(prefix, "six=1.15.0")
-        output, _, _ = conda_cli("run", "--prefix", prefix, "python", "-m", "pip", "list", "--format", "freeze")
+        output, _, _ = conda_cli(
+            "run",
+            "--prefix",
+            prefix,
+            "python",
+            "-m",
+            "pip",
+            "list",
+            "--format",
+            "freeze",
+        )
 
         pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
         assert "six==1.15.0" in pkgs
@@ -2086,13 +2119,27 @@ def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli:
         assert "All requested packages already installed." in stdout
 
         stdout, stderr, _ = conda_cli(
-            "install", "--prefix", prefix, "--yes", "six", "--repodata-fn", "repodata.json"
+            "install",
+            "--prefix",
+            prefix,
+            "--yes",
+            "six",
+            "--repodata-fn",
+            "repodata.json",
         )
         assert not stderr
         PrefixData._cache_.clear()
         assert package_is_installed(prefix, "six>=1.16.0")
         output, _, _ = conda_cli(
-            "run", "--prefix", prefix, "python", "-m", "pip", "list", "--format", "freeze"
+            "run",
+            "--prefix",
+            prefix,
+            "python",
+            "-m",
+            "pip",
+            "list",
+            "--format",
+            "freeze",
         )
         pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
 
@@ -2103,7 +2150,15 @@ def test_conda_pip_interop_pip_clobbers_conda(tmp_env: TmpEnvFixture, conda_cli:
         assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
 
         output, _, _ = conda_cli(
-            "run", "--prefix", prefix, "python", "-m", "pip", "install", "-U", "six==1.16"
+            "run",
+            "--prefix",
+            prefix,
+            "python",
+            "-m",
+            "pip",
+            "install",
+            "-U",
+            "six==1.16",
         )
 
         assert "Requirement already satisfied: six==1.16" in ensure_text_type(output)
