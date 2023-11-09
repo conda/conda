@@ -21,7 +21,7 @@ def replace_first_api_with_conda(url):
     return re.sub(r"([./])api([./]|$)", r"\1conda\2", url, count=1)
 
 
-@deprecated("23.11", "24.5", addendum="Use `platformdirs` instead.")
+@deprecated("24.3", "24.9", addendum="Use `platformdirs` instead.")
 class EnvAppDirs:
     def __init__(self, appname, appauthor, root_path):
         self.appname = appname
