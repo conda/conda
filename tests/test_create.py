@@ -5,7 +5,7 @@ import os
 import re
 import sys
 from glob import glob
-from itertools import chain
+from itertools import chain, zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
@@ -166,20 +166,23 @@ def test_install_python_and_search(
         assert not err
 
 
-def test_run_preserves_arguments():
-    with make_temp_env("python=3") as prefix:
-        echo_args_py = os.path.join(prefix, "echo-args.py")
-        with open(echo_args_py, "w") as echo_args:
-            echo_args.write("import sys\n")
-            echo_args.write("for arg in sys.argv[1:]: print(arg)\n")
+def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3") as prefix:
+        echo_args_py = prefix / "echo-args.py"
+        echo_args_py.write_text("import sys\nfor arg in sys.argv[1:]: print(arg)")
         # If 'two two' were 'two' this test would pass.
         args = ("one", "two two", "three")
-        output, _, _ = run_command(Commands.RUN, prefix, "python", echo_args_py, *args)
-        os.unlink(echo_args_py)
-        lines = output.split("\n")
-        for i, line in enumerate(lines):
-            if i < len(args):
-                assert args[i] == line.replace("\r", "")
+        stdout, stderr, code = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            echo_args_py,
+            *args,
+        )
+        for value, expected in zip_longest(stdout.strip().splitlines(), args):
+            assert value == expected
+        assert not stderr
+        assert not code
 
 
 def test_create_install_update_remove_smoketest():
