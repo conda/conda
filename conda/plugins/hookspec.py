@@ -15,6 +15,7 @@ import pluggy
 
 from .types import (
     CondaAuthHandler,
+    CondaHealthCheck,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -207,4 +208,32 @@ class CondaSpecs:
                     name="environment-header-auth",
                     auth_handler=EnvironmentHeaderAuth,
                 )
+        """
+
+    @_hookspec
+    def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
+        """
+        Register health checks for conda doctor.
+
+        This plugin hook allows you to add more "health checks" to conda doctor
+        that you can write to diagnose problems in your conda environment.
+        Check out the health checks already shipped with conda for inspiration.
+
+        **Example:**
+
+        .. code-block:: python
+
+                from conda import plugins
+
+
+                def example_health_check(prefix: str, verbose: bool):
+                    print("This is an example health check!")
+
+
+                @plugins.hookimpl
+                def conda_health_checks():
+                    yield CondaHealthCheck(
+                        name="example-health-check",
+                        action=example_health_check,
+                    )
         """

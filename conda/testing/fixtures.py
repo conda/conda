@@ -83,3 +83,35 @@ def temp_package_cache(tmp_path_factory):
         {"CONDA_PKGS_DIRS": str(pkgs_dir)}, stack_callback=conda_tests_ctxt_mgmt_def_pol
     ):
         yield pkgs_dir
+
+
+@pytest.fixture(params=["libmamba", "classic"])
+def parametrized_solver_fixture(request, monkeypatch):
+    """
+    A parameterized fixture that sets the solver backend to (1) libmamba
+    and (2) classic for each test. It's using autouse=True, so only import it in
+    modules that actually need it.
+
+    Note that skips and xfails need to be done _inside_ the test body.
+    Decorators can't be used because they are evaluated before the
+    fixture has done its work!
+
+    So, instead of:
+
+        @pytest.mark.skipif(context.solver == "libmamba", reason="...")
+        def test_foo():
+            ...
+
+    Do:
+
+        def test_foo():
+            if context.solver == "libmamba":
+                pytest.skip("...")
+            ...
+    """
+    monkeypatch.setattr(context, "solver", request.param)
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "get_cached_solver_backend",
+        context.plugin_manager.get_solver_backend,
+    )

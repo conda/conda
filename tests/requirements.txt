@@ -6,6 +6,7 @@ conda-forge::anaconda-client
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
+conda-libmamba-solver >=23.11.0
 conda-package-handling >=2.2.0
 flask >=2.2  # jlap pytest fixture
 jsonpatch >=1.32  # jlap
