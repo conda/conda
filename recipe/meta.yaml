@@ -41,6 +41,7 @@ requirements:
     - jsonpatch >=1.32
     - menuinst >=1.4.11,<2         # [win]
     - packaging >=23.0
+    - platformdirs >=3.10.0
     - pluggy >=1.0.0
     - pycosat >=0.6.3
     - python

@@ -28,6 +28,7 @@ dependencies = [
   "jsonpatch >=1.32",
   "menuinst >=1.4.11,<2 ; platform_system=='Windows'",
   "packaging",
+  "platformdirs >=3.10.0",
   "pluggy >=1.0.0",
   "pycosat >=0.6.3",
   "requests >=2.27.0,<3",
