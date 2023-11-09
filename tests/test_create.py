@@ -622,6 +622,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
         assert prefix not in PrefixData._cache_
 
+
 def test_list_with_pip_wheel(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env("python=3.10", "pip") as prefix:
         check_call(
