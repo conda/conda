@@ -1116,7 +1116,8 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
+    @property
+    @deprecated("24.3", "24.9")
     def cpu_flags(self):
         # DANGER: This is rather slow
         info = _get_cpu_info()
@@ -1919,6 +1920,7 @@ def replace_context_default(pushing=None, argparse_args=None):
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
+@deprecated("24.3", "24.9")
 @lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
