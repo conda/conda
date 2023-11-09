@@ -129,7 +129,7 @@ class LazyCOWDict(UserDict):
             elif value is not None:
                 applied[key] = value
             else:
-                del self.backing[key]
+                del applied[key]
         return applied
 
 
