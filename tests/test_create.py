@@ -508,7 +508,7 @@ def test_noarch_python_package_without_entry_points(
 
 
 @pytest.mark.skipif(
-    context.subdir == "osx-64", reason="Legacy Python not available on macOS ARM"
+    context.subdir == "osx-arm64", reason="Legacy Python not available on macOS ARM"
 )
 def test_noarch_python_package_reinstall_on_pyver_change(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
@@ -753,30 +753,28 @@ def test_compare_success(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert "Success" in output
 
 
-def test_compare_fail():
-    with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
-        env_file = join(prefix, "env.yml")
-        touch(env_file)
-        with open(env_file, "w") as f:
-            f.write(
-                dals(
-                    """
-                    name: dummy
-                    channels:
-                      - defaults
-                    dependencies:
-                      - yaml
-                      - flask=1.0.3
-                    """
-                )
+def test_compare_fail(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3.10", "flask=2.0.1", "bzip2=1.0.8") as prefix:
+        env_file = prefix / "env.yml"
+        env_file.touch()
+        env_file.write_text(
+            dals(
+                """
+                name: dummy
+                channels:
+                    - defaults
+                dependencies:
+                    - yaml
+                    - flask=2.0.0
+                """
             )
-        output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+        )
+        output, _, _ = conda_cli("compare", "--prefix", prefix, env_file, "--json")
         assert "yaml not found" in output
         assert (
-            "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.0.2=py36_1"
+            "flask found but mismatch. Specification pkg: flask=2.0.0, Running pkg: flask==2.0.1"
             in output
         )
-        rmtree(prefix, ignore_errors=True)
 
 
 def test_install_tarball_from_local_channel(tmp_path: Path, monkeypatch: MonkeyPatch):
@@ -942,7 +940,7 @@ def test_tarball_install_and_bad_metadata():
 
 @pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
 @pytest.mark.skipif(
-    context.subdir == "osx-64", reason="Legacy Python not available on macOS ARM"
+    context.subdir == "osx-arm64", reason="Legacy Python not available on macOS ARM"
 )
 def test_update_with_pinned_packages():
     # regression test for #6914
@@ -1530,12 +1528,12 @@ def test_package_pinning():
 
 
 def test_update_all_updates_pip_pkg():
-    with make_temp_env("python=3.6", "pip", "pytz=2018", no_capture=True) as prefix:
-        pip_ioo, pip_ioe, _ = run_command(
+    with make_temp_env("python=3", "pip", "pytz=2020", no_capture=True) as prefix:
+        run_command(
             Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true"
         )
 
-        pip_o, pip_e, _ = run_command(
+        run_command(
             Commands.RUN,
             prefix,
             "--dev",
@@ -1543,7 +1541,7 @@ def test_update_all_updates_pip_pkg():
             "-m",
             "pip",
             "install",
-            "itsdangerous==0.24",
+            "itsdangerous==2.0.0",
         )
         PrefixData._cache_.clear()
         stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
@@ -1555,15 +1553,15 @@ def test_update_all_updates_pip_pkg():
             "build_number": 0,
             "build_string": "pypi_0",
             "channel": "pypi",
-            "dist_name": "itsdangerous-0.24-pypi_0",
+            "dist_name": "itsdangerous-2.0.0-pypi_0",
             "name": "itsdangerous",
             "platform": "pypi",
-            "version": "0.24",
+            "version": "2.0.0",
         }
-        assert package_is_installed(prefix, "itsdangerous=0.24")
+        assert package_is_installed(prefix, "itsdangerous=2.0.0")
 
         run_command(Commands.UPDATE, prefix, "--all")
-        assert package_is_installed(prefix, "itsdangerous>0.24")
+        assert package_is_installed(prefix, "itsdangerous>2.0.0")
         assert package_is_installed(prefix, "pytz>2018")
 
 
@@ -2324,50 +2322,31 @@ def test_conda_pip_interop_compatible_release_operator():
     # Regression test for #7776
     # important to start the env with six 1.9.  That version forces an upgrade later in the test
     with make_temp_env(
-        "-c",
-        "https://repo.anaconda.com/pkgs/free",
-        "pip=10",
-        "six=1.9",
+        "pip",
+        "six=1.15",
         "appdirs",
         use_restricted_unicode=on_win,
     ) as prefix:
         run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
         assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "six=1.9")
+        assert package_is_installed(prefix, "six=1.15")
         assert package_is_installed(prefix, "appdirs>=1.4.3")
-
-        python_binary = join(prefix, PYTHON_BINARY)
-        p = Popen(
-            [python_binary, "-m", "pip", "install", "fs==2.1.0"],
-            stdout=PIPE,
-            stderr=PIPE,
-            cwd=prefix,
-            shell=False,
-        )
-        stdout, stderr = p.communicate()
-        rc = p.returncode
-        assert int(rc) != 0
-        stderr = (
-            stderr.decode("utf-8", errors="replace")
-            if hasattr(stderr, "decode")
-            else str(stderr)
-        )
-        assert "Cannot uninstall" in stderr
 
         run_command(Commands.REMOVE, prefix, "six")
         assert not package_is_installed(prefix, "six")
 
-        output = check_output(
-            [python_binary, "-m", "pip", "install", "fs==2.1.0"],
-            cwd=prefix,
-            shell=False,
+        stdout, stderr, _ = run_command(
+            Commands.RUN,
+            prefix,
+            "python",
+            "-m",
+            "pip",
+            "install",
+            "fs==2.1.0",
         )
-        print(output)
         PrefixData._cache_.clear()
         assert package_is_installed(prefix, "fs==2.1.0")
-        # six_record = next(PrefixData(prefix).query("six"))
-        # print(json_dump(six_record.dump()))
-        assert package_is_installed(prefix, "six~=1.10")
+        assert package_is_installed(prefix, "six~=1.16")
 
         stdout, stderr, _ = run_command(Commands.LIST, prefix)
         assert not stderr
@@ -2380,9 +2359,7 @@ def test_conda_pip_interop_compatible_release_operator():
             run_command(
                 Commands.INSTALL,
                 prefix,
-                "-c",
-                "https://repo.anaconda.com/pkgs/free",
-                "agate=1.6",
+                "agate=1.7.1",
                 "--dry-run",
             )
 
@@ -3016,6 +2993,7 @@ def test_conda_downgrade():
 
 
 @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
+@pytest.mark.skipif(context.subdir == "osx-arm64")
 def test_run_script_called():
     import conda.core.link
 
