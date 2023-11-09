@@ -25,6 +25,7 @@ from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
@@ -32,7 +33,7 @@ from ..exceptions import (
 )
 from ..models.match_spec import MatchSpec
 
-base_env_name = "base"
+deprecated.constant("24.3", "24.9", "base_env_name", "base")
 
 
 def get_filename(filename):
