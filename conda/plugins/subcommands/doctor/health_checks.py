@@ -41,7 +41,8 @@ def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
 
     try:
         for line in envs_txt_file.read_text().splitlines():
-            if samefile(prefix, Path(line.strip())):
+            stripped_line = line.strip()
+            if stripped_line and samefile(prefix, Path(stripped_line)):
                 return True
     except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
         logger.error(
