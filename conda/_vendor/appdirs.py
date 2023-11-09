@@ -11,7 +11,7 @@ See <http://github.com/ActiveState/appdirs> for details and usage.
 # - Mac OS X: http://developer.apple.com/documentation/MacOSX/Conceptual/BPFileSystem/index.html
 # - XDG spec for Un*x: http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 from ..deprecations import deprecated
-deprecated.module("23.11", "24.5", addendum="Use `platformdirs` instead.")
+deprecated.module("24.3", "24.9", addendum="Use `platformdirs` instead.")
 
 
 __version_info__ = (1, 2, 0)
