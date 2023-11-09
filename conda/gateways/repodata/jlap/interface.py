@@ -121,6 +121,10 @@ class JlapRepoInterface(RepoInterface):
             repodata_json_or_none = accumulate.RepodataPatchAccumulator(
                 accumulate.JSONLoader(json_path), existing_patches
             ).apply()
+            # XXX this is probably the right layer (not the caller) to manage
+            # the complete cache; but the "legacy" repodata fetch doesn't handle
+            # the cache.
+            self._cache.refresh()
         finally:
             # Clean up the temporary file. In the successful case it raises
             # OSError as self._cache_replace() removed temp_file.

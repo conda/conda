@@ -145,8 +145,15 @@ includes changes from the overlay or applies them on demand.
 
 ```python
 def fetch_latest_parsed(self) -> tuple[dict, RepodataState]:
+    pass
+
+
 def fetch_latest_path(self) -> tuple[Path, RepodataState]:
+    pass
+
+
 def fetch_latest_path_and_overlay(self) -> tuple[Path, Path, RepodataState]:
+    pass
 ```
 
 ### Additional `*.info.json` metadata

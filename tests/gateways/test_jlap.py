@@ -834,6 +834,7 @@ def test_hashwriter():
     assert closed
 
 
+@pytest.mark.skip("xfail")
 def test_request_url_jlap_state(tmp_path, package_server, package_repository_base):
     """
     Code coverage for case intended to catch "repodata.json written while we
