@@ -161,6 +161,8 @@ jobs:
         test-group: ['1', '2', '3']
         exclude:
           - default-channel: 'conda-forge'
+            python-version: '3.8'
+          - default-channel: 'conda-forge'
             python-version: '3.9'
           - default-channel: 'conda-forge'
             python-version: '3.10'
