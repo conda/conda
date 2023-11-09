@@ -454,7 +454,8 @@ def request_url_jlap_state(
                 # XXX or skip jlap at top of fn; make sure it is not
                 # possible to download the complete json twice
                 log.info(
-                    "Current repodata.json %s not found in patchset. Re-download repodata.json"
+                    "Current repodata.json %s not found in patchset. Re-download repodata.json",
+                    have,
                 )
 
             assert not full_download, "Recursion error"  # pragma: no cover
