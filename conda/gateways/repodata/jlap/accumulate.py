@@ -6,6 +6,9 @@ Accumulate jlap patches in a single separate file, to avoid overhead of
 rewriting large file each time.
 """
 
+from __future__ import annotations
+from contextlib import contextmanager
+
 import json
 import logging
 from collections import UserDict
@@ -13,10 +16,47 @@ from pathlib import Path
 
 from jsonpatch import JsonPatchException
 from jsonpointer import JsonPointerException
+import time
+
+from typing import Any
+
+log = logging.getLogger(__name__)
+
+SHOW_PATCH_STEPS = False
 
 
-class ObserverDict(UserDict):
+@contextmanager
+def timeme(message):
+    begin = time.monotonic_ns()
+    yield
+    end = time.monotonic_ns()
+    log.debug("%sTook %0.02fs", message, (end - begin) / 1e9)
+
+
+class JSONLoader:
     """
+    Load JSON on demand.
+    """
+
+    backing_path: Path
+    _backing: Any
+
+    def __init__(self, backing_path):
+        self.backing_path = backing_path
+        self._backing = object  # sentinel
+
+    def __call__(self) -> Any:
+        if self._backing is object:
+            with timeme("Lazy load JSON "):
+                self._backing = json.loads(self.backing_path.read_text())
+        return self._backing
+
+
+class LazyCOWDict(UserDict):
+    """
+    Support copy-on-write dictionary access from the root of an object or
+    one-level-deep, reading only when necessary.
+
     Copy elements from a backing dictionary to this one as accessed.
 
     Substitute None for deleted item.
@@ -25,9 +65,27 @@ class ObserverDict(UserDict):
     self.backing.
     """
 
-    def __init__(self, backing):
+    key: str | None
+    _backing: Any
+
+    def __init__(self, loader, key=None):
         super().__init__()
-        self.backing = backing
+        self.loader = loader
+        self.key = key
+        self._backing = object  # sentinel
+
+    @property
+    def backing(self) -> Any:
+        """
+        Lazily load backing data.
+        """
+        if self._backing is object:
+            new_backing = self.loader()
+            if self.key:
+                # placeholder for missing "signatures" e.g.
+                new_backing = new_backing.get(self.key, {})
+            self._backing = new_backing
+        return self._backing
 
     def __getitem__(self, key):
         try:
@@ -44,14 +102,31 @@ class ObserverDict(UserDict):
         # Store None as a deletion marker to avoid checking self.backing
         self.data[key] = None
 
+    def into_plain(self):
+        """
+        Return shallow copy of changes only.
+        """
+        plain = self.data.copy()
+        for key, value in self.data.items():
+            if isinstance(value, LazyCOWDict):
+                # faster to value.data.copy() (non-recursive)?
+                plain[key] = value.into_plain()
+        return plain
+
     def apply(self):
         """
         Return shallow copy of backing with changes applied.
         """
-        applied = self.backing.copy()
+        try:
+            applied = self.backing.copy()
+        except KeyError:  # when backing has no repodata["signatures"] e.g.
+            applied = {}
         for key, value in self.items():
-            if isinstance(value, ObserverDict):
-                applied[key] = value.apply()
+            if isinstance(value, LazyCOWDict):
+                applied_value = value.apply()
+                # only set "signatures" or other missing parent key if changed
+                if "key" in applied or applied_value:
+                    applied[key] = applied_value
             elif value is not None:
                 applied[key] = value
             else:
@@ -59,27 +134,20 @@ class ObserverDict(UserDict):
         return applied
 
 
-class RepodataPatchAccumulator(ObserverDict):
+class RepodataPatchAccumulator(LazyCOWDict):
     groups = "packages", "packages.conda", "signatures"
 
     # conda-content-trust adds another filename/packages object at the top level.
     # "signatures": {
     # "_anaconda_depends-2018.12-py27_0.tar.bz2": {
-    # "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
-    #     "signature": "a0ffab3f954c3dc64373ba16bee5e9ba9683a625fa3e4a6c4263d9de550bcafd233c2522789c9b31b40c35a87775d6f8fa2498a3bec3647c36c0a2f5cd2eb10c"
-    # }
-    # },
-    # "zstd-1.3.7-h0b5b093_0.conda": {
-    # "4a044c3445b9d8bc5429a2b1d7d42bdb4d8404285b76322e8eacdfdae8b0e4cd": {
-    #     "signature": "ea1f11a74c081298fe243c6982f676d9838bfee81e74a24bef6474f3be1243b4624f6d12dc8196f8db909cf049e9e344151e44c5b950cbab8583641c7b661a0d"
-    # }...
+    # ...
 
-    def __init__(self, repodata, previous=None):
+    def __init__(self, loader, previous=None):
         """
-        repodata: Backing data.
+        loader: Function loading or returning cached repodata.json
         previous: Accumulated patches from an earlier run.
         """
-        super().__init__(repodata)
+        super().__init__(loader)
 
         if not previous:
             previous = {}
@@ -88,56 +156,49 @@ class RepodataPatchAccumulator(ObserverDict):
 
         for group in self.groups:
             try:
-                self.data[group] = ObserverDict(repodata[group])
+                self.data[group] = LazyCOWDict(loader, group)
                 self.data[group].update(previous.get(group, {}))
             except KeyError:
-                self.data[group] = ObserverDict({})
+                self.data[group] = LazyCOWDict(loader, group)
                 self.data[group].update(previous.get(group, {}))
-
-    def into_plain(self):
-        """
-        Return dict shallow copy without backing.
-        """
-        plain_dict = self.data.copy()
-        for group in self.groups:
-            try:
-                plain_dict[group] = self.data[group].data.copy()
-            except KeyError:
-                # not uncommon for a patch series to modify only "packages.conda"
-                pass
-        return plain_dict
 
 
 def demonstration():
+    global patched_repodata
+
     from conda.gateways.repodata.jlap.core import JLAP
-    from conda.gateways.repodata.jlap.fetch import apply_patches, find_patches, hash, timeme
+    from conda.gateways.repodata.jlap.fetch import (
+        apply_patches,
+        find_patches,
+        hash,
+    )
 
     repodata = REPODATA_PATH.read_bytes()
-    with timeme("Parse repodata.json"):
-        repodata_parsed = json.loads(repodata)
     repodata_hash = hash()
     repodata_hash.update(repodata)
     have_hash = repodata_hash.hexdigest()
     print(f"Unpatched repodata hash is {have_hash}")
 
-    patched_repodata = RepodataPatchAccumulator(repodata_parsed)
-    assert isinstance(patched_repodata["packages"], ObserverDict)
-    assert isinstance(patched_repodata["packages.conda"], ObserverDict)
+    patched_repodata = RepodataPatchAccumulator(JSONLoader(REPODATA_PATH))
+    assert isinstance(patched_repodata["packages"], UserDict)
+    assert isinstance(patched_repodata["packages.conda"], UserDict)
 
     for key in patched_repodata:
         print(key, type(patched_repodata[key]))
     print(patched_repodata)
 
+    # will into_plain() or apply() mutate the loader so that it should no longer
+    # be used?
+    def repodata_stats(repodata, note):
+        log.info(
+            f"{note} repodata has {len(repodata)} keys, {len(repodata['packages'])} packages, {len(repodata['packages.conda'])} packages.conda, signatures? {'signatures' in repodata}"
+        )
+
+    repodata_stats(patched_repodata.backing, "backing before apply()")
+
     with timeme("Parse JLAP and apply patches"):
         jlap = JLAP.from_path(REPODATA_JLAP_PATH)
         patches = list(json.loads(patch) for _, patch, _ in jlap.body)
-
-        if True:
-            # overview of used jsonpatch features
-            for patch in patches:
-                for step in patch["patch"]:
-                    print(step["op"], step["path"])
-                    # now properly split jsonpointer into bits (the first two)
 
         footer = json.loads(jlap.penultimate[1])
         print(footer)
@@ -149,18 +210,21 @@ def demonstration():
         # apply_patches() pops patches off the end of its list. Reverse when
         # applying patches one-by-one for debugging.
         for patch in reversed(needed_patches):
-            for step in patch["patch"]:
-                print(step["op"], step["path"])
-                pass
+            if SHOW_PATCH_STEPS:
+                for step in patch["patch"]:
+                    log.info("%s %s", step["op"], step["path"])
             try:
+                # apply_patches expects a jlap-format wrapper and may not
+                # operate in SHOW_PATCH_STEPS order, above; for single patches
+                # (or single patches broken further down into steps which are
+                # also valid jsonpatch), try data =
+                # jsonpatch.JsonPatch(patch["patch"]).apply(data, in_place=True)
                 apply_patches(patched_repodata, [patch])
             except (JsonPointerException, JsonPatchException) as e:
                 # Exception tends to print entire "packages" or "packages.conda".
                 # Just print the class, maybe the op and path?
                 print(f"Patch failed with {type(e)}. Download repodata.json.zst?")
                 break
-            # pprint.pprint(patched_repodata.data)
-            print()
 
     collected_patches = json.dumps(
         patched_repodata.into_plain(), separators=(":", ","), sort_keys=True
@@ -176,18 +240,46 @@ def demonstration():
 
     with timeme("If we wrote the original back to a file"):
         REPODATA_PATH.with_suffix(".time_write").write_text(
-            json.dumps(repodata_parsed, check_circular=True, separators=(":", ","))
+            json.dumps(
+                patched_repodata.loader(), check_circular=True, separators=(":", ",")
+            )
         )
+
+    repodata_stats(patched_repodata.backing, "backing before apply()")
+
+    repodata_stats(
+        patched_repodata.into_plain(),
+        "plain dictionary patches-only before apply() was called",
+    )
+
+    # what we'd write for compat with single-cache-file users or hand to
+    # SubdirData
+    applied = patched_repodata.apply()
+
+    repodata_stats(patched_repodata.backing, "backing after apply()")
+
+    repodata_stats(applied, "patched repodata")
+
+    repodata_stats(
+        patched_repodata.into_plain(),
+        "plain dictionary 'without'? patches, after apply() was called",
+    )
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger("conda.gateways.repodata").setLevel(logging.DEBUG)
+    # log with millisecond timestamps
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)-8s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S.%f",
+    )
+    # logging.getLogger("conda.gateways.repodata").setLevel(logging.DEBUG)
+    log.setLevel(logging.DEBUG)
 
     large = True
     if large:
-        REPODATA_PATH = Path("linux-64-repodata.json")
-        REPODATA_JLAP_PATH = Path("linux-64-repodata-2.jlap")
+        REPODATA_PATH = Path(__file__).parent / "linux-64-repodata.json"
+        REPODATA_JLAP_PATH = Path(__file__).parent / "linux-64-repodata-2.jlap"
     else:
         REPODATA_PATH = Path("noarch-repodata.json")
         REPODATA_JLAP_PATH = Path("noarch-repodata.jlap")
