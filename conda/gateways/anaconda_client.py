@@ -9,7 +9,7 @@ from stat import S_IREAD, S_IWRITE
 
 from platformdirs import user_data_dir
 
-from ...deprecations import deprecated
+from ..deprecations import deprecated
 from ..common.url import quote_plus, unquote_plus
 from .disk.delete import rm_rf
 
