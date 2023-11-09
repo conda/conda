@@ -168,7 +168,7 @@ class RepodataPatchAccumulator(LazyCOWDict):
             self.data[group].update(previous.get(group, {}))
 
 
-def demonstration():
+def demonstration():  # pragma: no cover
     global patched_repodata
 
     from conda.gateways.repodata.jlap.core import JLAP
