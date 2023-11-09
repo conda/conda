@@ -54,8 +54,7 @@ class JSONLoader:
 
 class LazyCOWDict(UserDict):
     """
-    Support copy-on-write dictionary access from the root of an object or
-    one-level-deep, reading only when necessary.
+    Support copy-on-write dictionary access, reading only when necessary.
 
     Copy elements from a backing dictionary to this one as accessed.
 
@@ -65,13 +64,11 @@ class LazyCOWDict(UserDict):
     self.backing.
     """
 
-    key: str | None
     _backing: Any
 
-    def __init__(self, loader, key=None):
+    def __init__(self, loader):
         super().__init__()
         self.loader = loader
-        self.key = key
         self._backing = object  # sentinel
 
     @property
@@ -80,11 +77,7 @@ class LazyCOWDict(UserDict):
         Lazily load backing data.
         """
         if self._backing is object:
-            new_backing = self.loader()
-            if self.key:
-                # placeholder for missing "signatures" e.g.
-                new_backing = new_backing.get(self.key, {})
-            self._backing = new_backing
+            self._backing = self.loader()
         return self._backing
 
     def __getitem__(self, key):
@@ -154,13 +147,19 @@ class RepodataPatchAccumulator(LazyCOWDict):
 
         self.data.update(previous)
 
+        def sub_loader(key):
+            """
+            Function returning value or empty placeholder from loader().
+            """
+
+            def load():
+                return loader().get(key, {})
+
+            return load
+
         for group in self.groups:
-            try:
-                self.data[group] = LazyCOWDict(loader, group)
-                self.data[group].update(previous.get(group, {}))
-            except KeyError:
-                self.data[group] = LazyCOWDict(loader, group)
-                self.data[group].update(previous.get(group, {}))
+            self.data[group] = LazyCOWDict(sub_loader(group))
+            self.data[group].update(previous.get(group, {}))
 
 
 def demonstration():
