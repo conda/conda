@@ -655,3 +655,4 @@ def test_invalid_extensions(
 
     with pytest.raises(EnvironmentFileExtensionNotValid):
         conda_cli("env", "create", "--file", env_yml, "--yes")
+
