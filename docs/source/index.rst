@@ -39,7 +39,9 @@ We recommend the following methods to install conda:
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
 
-For a full more detailed instructions, see `Miniconda's installation guide <https://docs.conda.io/projects/miniconda/en/latest/>`_.
+.. raw:: html
+
+    <p class="text-muted text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/en/latest/">Miniconda's installation guide</a></p>
 
 New to conda? :octicon:`rocket;1em;sd-text-primary`
 ...................................................
