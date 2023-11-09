@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
   "boltons >=23.0.0",
   "charset-normalizer",
+  "conda-libmamba-solver >=23.11.0",
   "conda-package-handling >=1.3.0",
   "jsonpatch >=1.32",
   "menuinst >=1.4.11,<2 ; platform_system=='Windows'",
@@ -63,9 +64,6 @@ include = ["conda", "conda_env"]
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/__version__.py"
 
-[tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311']
-
 [tool.coverage.run]
 # store relative paths in coverage information
 relative_files = true
@@ -100,7 +98,6 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-line-length = 99
 # E, W = pycodestyle errors and warnings
 # F = pyflakes
 # I = isort
@@ -119,7 +116,7 @@ select = ["E", "W", "F", "I", "D1"]
 ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
 exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
-# Use PEP 257-style docstrings.
+target-version = "py38"
 pydocstyle = {convention = "pep257"}
 
 [tool.pytest.ini_options]

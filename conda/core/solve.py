@@ -407,7 +407,7 @@ class Solver:
 
         ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
-            "solved prefix %s\n" "  solved_linked_dists:\n" "    %s\n",
+            "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
             "\n    ".join(prec.dist_str() for prec in ssc.solution_precs),
         )
@@ -1220,7 +1220,7 @@ class Solver:
                     self.subdirs,
                     repodata_fn=self._repodata_fn,
                 ),
-                key=lambda x: VersionOrder(x.version)
+                key=lambda x: VersionOrder(x.version),
                 # VersionOrder is fine here rather than r.version_key because all precs
                 # should come from the same channel
             )

@@ -35,10 +35,9 @@ def configure_parser(parser: ArgumentParser):
 
 
 def execute(args: argparse.Namespace) -> None:
-    """Run conda doctor subcommand."""
-    from .health_checks import display_health_checks
-
-    display_health_checks(context.target_prefix, verbose=context.verbose)
+    """Run registered health_check plugins."""
+    print(f"Environment Health Report for: {context.target_prefix}\n")
+    context.plugin_manager.invoke_health_checks(context.target_prefix, context.verbose)
 
 
 @hookimpl

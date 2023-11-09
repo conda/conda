@@ -556,11 +556,7 @@ def test_pydist_check_files():
 
 def test_python_dist_info():
     test_files = (
-        (
-            "",
-            "METADATA",
-            ("Name: zoom\n" "Requires-Python: ==2.7\n" "Requires-External: C\n"),
-        ),
+        ("", "METADATA", "Name: zoom\nRequires-Python: ==2.7\nRequires-External: C\n"),
         ("", "RECORD", 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'),
         ("", "INSTALLER", ""),
     )
