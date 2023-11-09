@@ -152,6 +152,11 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_update(sub_parsers, aliases=["upgrade"])
     configure_parser_plugins(sub_parsers)
 
+    # avoid circular import
+    from .main_env import configure_parser as configure_parser_env
+
+    configure_parser_env()
+
     return parser
 
 

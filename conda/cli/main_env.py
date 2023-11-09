@@ -5,10 +5,6 @@ import sys
 from argparse import ArgumentParser
 from importlib import import_module
 
-# pip_util.py import on_win from conda.exports
-# conda.exports resets the context
-# we need to import conda.exports here so that the context is not lost
-# when importing pip (and pip_util)
 import conda.exports  # noqa
 from conda.base.context import context
 
@@ -43,7 +39,6 @@ def configure_parser():
 
 def execute(args, parser):
     relative_mod, func_name = args.func.rsplit(".", 1)
-    # func_name should always be 'execute'
 
     # Run the pre_command actions
     command = relative_mod.replace(".main_", "")
