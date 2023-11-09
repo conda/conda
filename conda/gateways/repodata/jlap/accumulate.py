@@ -32,6 +32,13 @@ def timeme(message):
     log.debug("%sTook %0.02fs", message, (end - begin) / 1e9)
 
 
+def dumps(obj):
+    """
+    Desired dumps() parameters for this module.
+    """
+    return json.dumps(obj, separators=(",", ":"), sort_keys=True, check_circular=False)
+
+
 class JSONLoader:
     """
     Load JSON on demand.
@@ -220,8 +227,8 @@ def demonstration():
                 print(f"Patch failed with {type(e)}. Download repodata.json.zst?")
                 break
 
-    collected_patches = json.dumps(
-        patched_repodata.into_plain(), separators=(":", ","), sort_keys=True
+    collected_patches = dumps(
+        patched_repodata.into_plain(),
     )
     # need human_bytes function
     print(f"{len(repodata)} base length")
@@ -229,14 +236,12 @@ def demonstration():
 
     with timeme("Write collected changes to file "):
         REPODATA_PATH.with_suffix(".patch.json").write_text(
-            json.dumps(patched_repodata.into_plain(), indent=2, sort_keys=True)
+            dumps(patched_repodata.into_plain())
         )
 
     with timeme("Write the original back to a file "):
         REPODATA_PATH.with_suffix(".time_write").write_text(
-            json.dumps(
-                patched_repodata.loader(), check_circular=True, separators=(":", ",")
-            )
+            dumps(patched_repodata.loader())
         )
 
     repodata_stats(patched_repodata.backing, "backing before apply()")
