@@ -39,6 +39,10 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.reader import ReaderError
+from ruamel.yaml.scanner import ScannerError
+
 from .. import CondaError, CondaMultiError
 from .._vendor.frozendict import frozendict
 from ..auxlib.collection import AttrDict, first, last, make_immutable
@@ -48,20 +52,6 @@ from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
-
-try:
-    from ruamel.yaml.comments import CommentedMap, CommentedSeq
-    from ruamel.yaml.reader import ReaderError
-    from ruamel.yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    try:
-        from ruamel_yaml.comments import CommentedMap, CommentedSeq
-        from ruamel_yaml.reader import ReaderError
-        from ruamel_yaml.scanner import ScannerError
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
 
 log = getLogger(__name__)
 
@@ -142,13 +132,15 @@ class InvalidTypeError(ValidationError):
 
 class CustomValidationError(ValidationError):
     def __init__(self, parameter_name, parameter_value, source, custom_message):
-        msg = "Parameter %s = %r declared in %s is invalid.\n" "%s" % (
+        super().__init__(
             parameter_name,
             parameter_value,
             source,
-            custom_message,
+            msg=(
+                f"Parameter {parameter_name} = {parameter_value!r} declared in "
+                f"{source} is invalid.\n{custom_message}"
+            ),
         )
-        super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class MultiValidationError(CondaMultiError, ConfigurationError):
@@ -1460,7 +1452,7 @@ class Configuration(metaclass=ConfigurationType):
             items = argparse_args.items()
 
         self._argparse_args = argparse_args = AttrDict(
-            {k: v for k, v, in items if v is not NULL}
+            {k: v for k, v in items if v is not NULL}
         )
 
         # remove existing source so "insert" order is correct

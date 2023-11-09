@@ -24,8 +24,10 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from . import solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
+from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
+    CondaHealthCheck,
     CondaPostCommand,
     CondaPreCommand,
     CondaSolver,
@@ -168,6 +170,12 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaAuthHandler]:
         ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["health_checks"]
+    ) -> list[CondaHealthCheck]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -303,6 +311,14 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
+    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
+        for hook in self.get_hook_results("health_checks"):
+            try:
+                hook.action(prefix, verbose)
+            except Exception as err:
+                log.warning(f"Error running health check: {hook.name} ({err})")
+                continue
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -313,7 +329,10 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers, *virtual_packages.plugins, *subcommands.plugins
+        solvers,
+        *virtual_packages.plugins,
+        *subcommands.plugins,
+        health_checks,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

@@ -44,12 +44,12 @@ class ValidationError(AuxlibError, TypeError):
         if msg is not None:
             super().__init__(msg)
         elif value is None:
-            super().__init__("Value for {} cannot be None." "".format(key))
+            super().__init__(f"Value for {key} cannot be None.")
         elif valid_types is None:
-            super().__init__("Invalid value {} for {}" "".format(value, key))
+            super().__init__(f"Invalid value {value} for {key}")
         else:
             super().__init__(
-                "{} must be of type {}, not {}" "".format(key, valid_types, repr(value))
+                f"{key} must be of type {valid_types}, not {value!r}"
             )
 
 

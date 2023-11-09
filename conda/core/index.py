@@ -180,7 +180,7 @@ def _supplement_index_with_system(index):
 
 
 def get_archspec_name():
-    from conda.base.context import _arch_names, _platform_map, non_x86_machines
+    from ..base.context import _arch_names, _platform_map, non_x86_machines
 
     target_plat, target_arch = context.subdir.split("-")
     # This has to reverse what Context.subdir is doing
@@ -198,13 +198,10 @@ def get_archspec_name():
 
     if native_plat != target_plat or platform.machine() != machine:
         return machine
-
-    try:
+    else:
         import archspec.cpu
 
         return str(archspec.cpu.host())
-    except ImportError:
-        return machine
 
 
 def calculate_channel_urls(

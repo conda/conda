@@ -15,14 +15,13 @@ from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
 from ..common.compat import isiterable
 from ..common.io import dashlist
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec

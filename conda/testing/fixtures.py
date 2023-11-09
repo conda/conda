@@ -6,13 +6,13 @@ import warnings
 import py
 import pytest
 
-from conda.auxlib.ish import dals
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.configuration import YamlRawParameter
-from conda.common.io import env_vars
-from conda.common.serialize import yaml_round_trip_load
-from conda.core.subdir_data import SubdirData
-from conda.gateways.disk.create import TemporaryDirectory
+from ..auxlib.ish import dals
+from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..common.configuration import YamlRawParameter
+from ..common.io import env_vars
+from ..common.serialize import yaml_round_trip_load
+from ..core.subdir_data import SubdirData
+from ..gateways.disk.create import TemporaryDirectory
 
 
 @pytest.fixture(autouse=True)
