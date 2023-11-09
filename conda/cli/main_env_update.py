@@ -26,27 +26,31 @@ from conda.env import specs as install_specs
 from ..env.installers.base import InvalidInstaller, get_installer
 from .common import get_filename, print_result
 
-description = """
-Update the current environment based on environment file
-"""
-
-example = """
-examples:
-    conda env update
-    conda env update -n=foo
-    conda env update -f=/path/to/environment.yml
-    conda env update --name=foo --file=environment.yml
-    conda env update vader/deathstar
-"""
-
 
 def configure_parser(sub_parsers):
+    from ..auxlib.ish import dals
+
+    summary = "Update the current environment based on environment file."
+    description = summary
+    epilog = dals(
+        """
+        Examples::
+
+            conda env update
+            conda env update -n=foo
+            conda env update -f=/path/to/environment.yml
+            conda env update --name=foo --file=environment.yml
+            conda env update vader/deathstar
+
+        """
+    )
+
     p = sub_parsers.add_parser(
         "update",
         formatter_class=RawDescriptionHelpFormatter,
+        help=summary,
         description=description,
-        help=description,
-        epilog=example,
+        epilog=epilog,
     )
     add_parser_prefix(p)
     p.add_argument(

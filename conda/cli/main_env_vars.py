@@ -13,73 +13,75 @@ from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 
-var_description = """
-Interact with environment variables associated with Conda environments
-"""
-
-var_example = """
-examples:
-    conda env config vars list -n my_env
-    conda env config vars set MY_VAR=something OTHER_THING=ohhhhya
-    conda env config vars unset MY_VAR
-"""
-
-list_description = """
-List environment variables for a conda environment
-"""
-
-list_example = """
-examples:
-    conda env config vars list -n my_env
-"""
-
-set_description = """
-Set environment variables for a conda environment
-"""
-
-set_example = """
-example:
-    conda env config vars set MY_VAR=weee
-"""
-
-unset_description = """
-Unset environment variables for a conda environment
-"""
-
-unset_example = """
-example:
-    conda env config vars unset MY_VAR
-"""
-
 
 def configure_parser(sub_parsers):
+    from ..auxlib.ish import dals
+
+    var_summary = (
+        "Interact with environment variables associated with Conda environments."
+    )
+    var_description = var_summary
+    var_epilog = dals(
+        """
+        Examples::
+
+            conda env config vars list -n my_env
+            conda env config vars set MY_VAR=something OTHER_THING=ohhhhya
+            conda env config vars unset MY_VAR
+
+        """
+    )
+
     var_parser = sub_parsers.add_parser(
         "vars",
         formatter_class=RawDescriptionHelpFormatter,
+        help=var_summary,
         description=var_description,
-        help=var_description,
-        epilog=var_example,
+        epilog=var_epilog,
     )
     var_subparser = var_parser.add_subparsers()
+
+    list_summary = "List environment variables for a conda environment."
+    list_description = list_summary
+    list_epilog = dals(
+        """
+        Example::
+
+            conda env config vars list -n my_env
+
+        """
+    )
 
     list_parser = var_subparser.add_parser(
         "list",
         formatter_class=RawDescriptionHelpFormatter,
+        help=list_summary,
         description=list_description,
-        help=list_description,
-        epilog=list_example,
+        epilog=list_epilog,
     )
     add_parser_prefix(list_parser)
     add_parser_json(list_parser)
     list_parser.set_defaults(func=".main_vars.execute_list")
 
+    set_summary = "Set environment variables for a conda environment."
+    set_description = set_summary
+    set_epilog = dals(
+        """
+        Example::
+
+            conda env config vars set MY_VAR=weee
+
+        """
+    )
+
     set_parser = var_subparser.add_parser(
         "set",
         formatter_class=RawDescriptionHelpFormatter,
+        help=set_summary,
         description=set_description,
-        help=set_description,
-        epilog=set_example,
+        epilog=set_epilog,
     )
+
     set_parser.add_argument(
         "vars",
         action="store",
@@ -89,12 +91,22 @@ def configure_parser(sub_parsers):
     add_parser_prefix(set_parser)
     set_parser.set_defaults(func=".main_vars.execute_set")
 
+    unset_summary = "Unset environment variables for a conda environment."
+    unset_description = unset_summary
+    unset_epilog = dals(
+        """
+        Example::
+
+            conda env config vars unset MY_VAR
+
+        """
+    )
     unset_parser = var_subparser.add_parser(
         "unset",
         formatter_class=RawDescriptionHelpFormatter,
+        help=unset_summary,
         description=unset_description,
-        help=unset_description,
-        epilog=unset_example,
+        epilog=unset_epilog,
     )
     unset_parser.add_argument(
         "vars",

@@ -8,24 +8,28 @@ from argparse import RawDescriptionHelpFormatter
 
 from .main_env_vars import configure_parser as configure_vars_parser
 
-config_description = """
-Configure a conda environment
-"""
-
-config_example = """
-examples:
-    conda env config vars list
-    conda env config --append channels conda-forge
-"""
-
 
 def configure_parser(sub_parsers):
+    from ..auxlib.ish import dals
+
+    summary = "Configure a conda environment."
+    description = summary
+    epilog = dals(
+        """
+        Examples::
+
+            conda env config vars list
+            conda env config --append channels conda-forge
+
+        """
+    )
+
     config_parser = sub_parsers.add_parser(
         "config",
         formatter_class=RawDescriptionHelpFormatter,
-        description=config_description,
-        help=config_description,
-        epilog=config_example,
+        help=summary,
+        description=description,
+        epilog=epilog,
     )
     config_parser.set_defaults(func=".main_config.execute")
     config_subparser = config_parser.add_subparsers()

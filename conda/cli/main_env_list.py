@@ -10,24 +10,27 @@ from conda.cli import common
 from conda.cli.conda_argparse import add_parser_json
 from conda.core.envs_manager import list_all_known_prefixes
 
-description = """
-List the Conda environments
-"""
-
-example = """
-examples:
-    conda env list
-    conda env list --json
-"""
-
 
 def configure_parser(sub_parsers):
+    from ..auxlib.ish import dals
+
+    summary = "List the Conda environments."
+    description = summary
+    epilog = dals(
+        """
+        Examples::
+
+            conda env list
+            conda env list --json
+
+        """
+    )
     list_parser = sub_parsers.add_parser(
         "list",
         formatter_class=RawDescriptionHelpFormatter,
+        help=summary,
         description=description,
-        help=description,
-        epilog=example,
+        epilog=epilog,
     )
 
     add_parser_json(list_parser)

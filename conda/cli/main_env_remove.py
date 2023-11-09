@@ -12,32 +12,36 @@ from conda.cli.conda_argparse import (
     add_parser_solver,
 )
 
-_help = "Remove an environment"
-_description = (
-    _help
-    + """
-
-Removes a provided environment.  You must deactivate the existing
-environment before you can remove it.
-""".lstrip()
-)
-
-_example = """
-
-Examples:
-
-    conda env remove --name FOO
-    conda env remove -n FOO
-"""
-
 
 def configure_parser(sub_parsers):
+    from ..auxlib.ish import dals
+
+    summary = "Remove an environment."
+    description = dals(
+        f"""
+        {summary}
+
+        Removes a provided environment.  You must deactivate the existing
+        environment before you can remove it.
+
+        """
+    )
+    epilog = dals(
+        """
+        Examples::
+
+            conda env remove --name FOO
+            conda env remove -n FOO
+
+        """
+    )
+
     p = sub_parsers.add_parser(
         "remove",
         formatter_class=RawDescriptionHelpFormatter,
-        description=_description,
-        help=_help,
-        epilog=_example,
+        help=summary,
+        description=description,
+        epilog=epilog,
     )
 
     add_parser_prefix(p)

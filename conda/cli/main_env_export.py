@@ -11,24 +11,28 @@ from conda.cli.common import stdout_json
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.env.env import from_environment
 
-description = """
-Export a given environment
-"""
-
-example = """
-examples:
-    conda env export
-    conda env export --file SOME_FILE
-"""
-
 
 def configure_parser(sub_parsers):
+    from ..auxlib.ish import dals
+
+    summary = "Export a given environment"
+    description = summary
+    epilog = dals(
+        """
+        Examples::
+
+            conda env export
+            conda env export --file SOME_FILE
+
+        """
+    )
+
     p = sub_parsers.add_parser(
         "export",
         formatter_class=RawDescriptionHelpFormatter,
+        help=summary,
         description=description,
-        help=description,
-        epilog=example,
+        epilog=epilog,
     )
 
     p.add_argument(
