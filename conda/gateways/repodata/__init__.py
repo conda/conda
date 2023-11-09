@@ -858,6 +858,8 @@ class RepodataFetch:
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
                 elif isinstance(raw_repodata, dict):
+                    # XXX dict shouldn't have to mean "we checked the network"
+
                     # repo implementation cached it, and parsed it
                     # XXX check size upstream for locking reasons
                     stat = self.cache_path_json.stat()

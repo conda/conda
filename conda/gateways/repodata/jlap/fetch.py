@@ -26,7 +26,8 @@ from .. import (
     RepodataCache,
     RepodataState,
 )
-from .accumulate import RepodataPatchAccumulator
+from . import accumulate
+from .accumulate import JSONLoader, RepodataPatchAccumulator
 from .core import JLAP
 
 log = logging.getLogger(__name__)
@@ -484,6 +485,7 @@ def request_url_jlap_state_plus_overlay(
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
     json_path = cache.cache_path_json
+    patch_path = cache.cache_path_json.with_suffix(".patch.json")
 
     buffer = JLAP()  # type checks
 
@@ -619,10 +621,6 @@ def request_url_jlap_state_plus_overlay(
 
             if apply:
                 with timeme("Load "):
-                    # we haven't loaded repodata yet; it could fail to parse, or
-                    # have the wrong hash.
-                    # if this fails, then we also need to fetch again from 0
-                    repodata_json_base = json.loads(cache.load())
                     # XXX cache.state must equal what we started with, otherwise
                     # bail with 'repodata on disk' (indicating another process
                     # downloaded repodata.json in parallel with us)
@@ -630,31 +628,29 @@ def request_url_jlap_state_plus_overlay(
                         log.warn("repodata cache changed during jlap fetch.")
                         return None
 
-                with timeme("Write changed "), cache.lock() as state_file:
-                    patch_path = cache.cache_path_json.with_suffix(".patch")
+                with timeme("Write changed "), cache.lock():
                     # Merge relevant patches into a smaller file. Its "packages"
                     # and "packages.conda" keys will contain any changed
                     # packages from the base download.
                     try:
                         existing_patches = json.loads(patch_path.read_text())
-                    except:
+                    except FileNotFoundError:
                         existing_patches = {}
-                    repodata_json_changes = RepodataPatchAccumulator(repodata_json_base)
-                    repodata_json_changes.update(existing_patches)
+                    patched_repodata = RepodataPatchAccumulator(
+                        JSONLoader(json_path), existing_patches
+                    )
 
-                    apply_patches(repodata_json_changes, apply)
+                    apply_patches(patched_repodata, apply)
 
                     patch_path.write_text(
-                        json.dumps(
-                            repodata_json_changes.into_plain(), separators=(",", ":")
-                        )
+                        accumulate.dumps(patched_repodata.into_plain())
                     )
 
                     # hash of equivalent upstream json
                     state[NOMINAL_HASH] = want
 
                 # avoid duplicate parsing
-                return repodata_json_changes.apply()
+                return patched_repodata.apply()
             else:
                 assert state[NOMINAL_HASH] == want
 

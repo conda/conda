@@ -18,7 +18,6 @@ from pathlib import Path
 
 import flask
 import pytest
-from flask import request
 from werkzeug.serving import WSGIRequestHandler, generate_adhoc_ssl_context, make_server
 
 app = flask.Flask(__name__)
@@ -45,14 +44,14 @@ def latency(delay):
     return "OK"
 
 
-@app.route("/latency_per_file/<float:delay>")
-def latency(delay):
-    """
-    Set delay before each file is returned, to simulate bandwidth, file size or
-    streaming compression delays.
-    """
-    LATENCY_PER_FILE[request.args.get("name")] = delay
-    return "OK"
+# @app.route("/latency_per_file/<float:delay>")
+# def latency(delay):
+#     """
+#     Set delay before each file is returned, to simulate bandwidth, file size or
+#     streaming compression delays.
+#     """
+#     LATENCY_PER_FILE[request.args.get("name")] = delay
+#     return "OK"
 
 
 # flask.send_from_directory(directory, path, **kwargs)

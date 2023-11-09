@@ -3,8 +3,11 @@
 """JLAP interface for repodata."""
 from __future__ import annotations
 
+import json
 import logging
 import os
+
+from conda.gateways.repodata.jlap import accumulate
 
 from ....base.context import context
 from ...connection.download import disable_ssl_verify_warning
@@ -18,7 +21,6 @@ from .. import (
     RepodataOnDisk,
     RepodataState,
     RepoInterface,
-    Response304ContentUnchanged,
     conda_http_errors,
 )
 from . import fetch
@@ -80,7 +82,7 @@ class JlapRepoInterface(RepoInterface):
         )
         try:
             with conda_http_errors(self._url, self._repodata_fn):
-                repodata_json_or_none = fetch.request_url_jlap_state(
+                repodata_json_or_none = fetch.request_url_jlap_state_plus_overlay(
                     repodata_url,
                     state_,
                     session=session,
@@ -107,7 +109,18 @@ class JlapRepoInterface(RepoInterface):
             if temp_path.exists():
                 self._cache.replace(temp_path)
         except fetch.Jlap304NotModified:
-            raise Response304ContentUnchanged()
+            # XXX 304-ness should be communicated a different way with overlay system
+            # raise Response304ContentUnchanged()
+            log.debug("Load patched repodata.json after 304")
+            json_path = self._cache.cache_path_json
+            patch_path = self._cache.cache_path_json.with_suffix(".patch.json")
+            try:
+                existing_patches = json.loads(patch_path.read_text())
+            except FileNotFoundError:
+                existing_patches = {}
+            repodata_json_or_none = accumulate.RepodataPatchAccumulator(
+                accumulate.JSONLoader(json_path), existing_patches
+            ).apply()
         finally:
             # Clean up the temporary file. In the successful case it raises
             # OSError as self._cache_replace() removed temp_file.
@@ -117,7 +130,17 @@ class JlapRepoInterface(RepoInterface):
                 pass
 
         if repodata_json_or_none is None:  # common
-            # Indicate that subdir_data mustn't rewrite cache_path_json
-            raise RepodataOnDisk()
-        else:
-            return repodata_json_or_none
+            # XXX Indicate that subdir_data mustn't rewrite cache_path_json
+            # raise RepodataOnDisk() # removed for json + patch test
+            log.debug("Load patched repodata.json after repodata_json_or_none is None")
+            json_path = self._cache.cache_path_json
+            patch_path = self._cache.cache_path_json.with_suffix(".patch.json")
+            try:
+                existing_patches = json.loads(patch_path.read_text())
+            except FileNotFoundError:
+                existing_patches = {}
+            repodata_json_or_none = accumulate.RepodataPatchAccumulator(
+                accumulate.JSONLoader(json_path), existing_patches
+            ).apply()
+
+        return repodata_json_or_none
