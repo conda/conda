@@ -159,3 +159,21 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert isinstance(parsed, list)  # can be [] if package not found
     assert len(parsed), "empty search result"
     assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
+
+
+@pytest.mark.flaky(reruns=5)
+def test_search_inflexible(conda_cli: CondaCLIFixture):
+    # verify skipping flexible search
+    stdout, stderr, err = conda_cli(
+        "search",
+        "--platform",
+        "linux-64",
+        "--override-channels",
+        "--channel",
+        "defaults",
+        "--no-flexible-search",
+        "r-rcpparmadill",
+    )
+    assert "No match found for: r-rcpparmadill. Search: *r-rcpparmadill*" not in stdout
+    assert "PackagesNotFoundError" in stderr
+    assert err
