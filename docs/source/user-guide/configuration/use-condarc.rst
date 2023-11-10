@@ -355,7 +355,7 @@ here overrides that default:
       https: http://user:pass@corp.com:8080
 
 ```{admonition} Mixing HTTPS and HTTP
-The protocol in the URL (either ``http://`` or ``https://``) should match the actual protocol of your proxy server. The keys ``http`` and ``https`` merely indicate the type of traffic to route, not the protocol of the proxy server itself. Ensure that both keys use the correct protocol based on your proxy server's configuration.
+The protocol in the URL (either ``http://`` or ``https://``) should match the actual protocol of your proxy server. The keys ``http`` and ``https`` in the above example merely indicate the type of traffic to route, not the protocol of the proxy server itself. Ensure that both keys use the correct protocol based on your proxy server's configuration.
 ```
 
 To give a proxy for a specific scheme and host, use the
