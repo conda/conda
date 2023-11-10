@@ -645,7 +645,7 @@
   github: bradsaracik
 - name: Jaime Rodríguez-Guerra
   email: jaime.rogue@gmail.com
-  num_commits: 45
+  num_commits: 47
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
@@ -1957,7 +1957,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 302
+  num_commits: 312
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2003,7 +2003,7 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
-  num_commits: 87
+  num_commits: 90
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
@@ -2022,7 +2022,7 @@
   github: pre-commit-ci[bot]
   aliases:
   - pre-commit-ci[bot]
-  num_commits: 65
+  num_commits: 66
   first_commit: 2021-11-16 10:37:29
 - name: Yuvi Panda
   email: yuvipanda@gmail.com
@@ -2041,7 +2041,7 @@
   first_commit: 2021-11-29 23:03:32
 - name: Conda Bot
   email: 18747875+conda-bot@users.noreply.github.com
-  num_commits: 68
+  num_commits: 72
   first_commit: 2022-01-17 20:22:29
   github: conda-bot
   aliases:
@@ -2118,7 +2118,7 @@
 - name: Tim Hoffmann
   email: 2836374+timhoffm@users.noreply.github.com
   github: timhoffm
-  num_commits: 2
+  num_commits: 3
   first_commit: 2022-07-07 15:16:53
 - name: Samuel Walters-Nevet
   email: SamuelWN@users.noreply.github.com

@@ -1,5 +1,84 @@
 [//]: # (current developments)
 
+## 23.10.0 (2023-10-30)
+
+### ✨ Special announcement ✨
+
+This is an announcement about an important change in conda's functionality:
+
+#### **With this 23.10.0 release we are changing the default solver of conda to [`conda-libmamba-solver`](https://conda.github.io/conda-libmamba-solver/)!** 🥳 🚀
+
+The previously "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the foreseeable future, a fallback is possible and available.
+
+#### Why are we switching the solver?
+
+In short: to make conda faster and more accurate.
+
+A "solver" is the core component of most package managers; it calculates which dependencies (and which version of those dependencies) to install when a user requests to install a package from a package repository. To address growth-related challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced [a new conda dependency solver based on the Mamba project](https://mamba.readthedocs.io) in December 2022.
+
+Since July 2023, the [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), but was disabled by default. As soon as these installers are updated to contain conda 23.10.0 or later, they will automatically default to using the conda-libmamba-solver plugin.
+
+#### What can I do if this update doesn't work for me?
+
+If the new solver is not working as you expect:
+
+- Check if the behavior you are observing is a [known issue](https://github.com/conda/conda-libmamba-solver/issues/283) or a [deliberate change](https://conda.github.io/conda-libmamba-solver/libmamba-vs-classic/#intentional-deviations-from-classic).
+- If that's not the case, please consider submitting a bug report or feature request in the [conda-libmamba-solver repository](https://github.com/conda/conda-libmamba-solver/issues/new/choose).
+- If necessary, you can go back to using the `classic` solver without modifying your conda installation:
+  - When possible, pass the command line option `--solver=classic` to your `conda` calls.
+  - Otherwise (e.g. for `conda build ...` or `constructor ...`), set the environment variable `CONDA_SOLVER=classic`.
+  - For permanent changes, use the conda configuration system: `conda config --set solver classic`.
+
+#### Where can I learn more about conda-libmamba-solver?
+
+The documentation of the `conda-libmamba-solver` plugin can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/).
+
+For more information about the `conda-libmamba-solver` rollout plan, please also see our [blog post from earlier this year](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout).
+
+### Enhancements
+
+* Provide `--platform` and `--subdir` flags to create environments for non-native platforms, remembering that choice in future operations. (#11505 via #11794)
+* IMPORTANT: Set `solver: libmamba` as the new default solver. (#12984)
+
+### Bug fixes
+
+* Check name of symlink, not its target against valid configuration file names (`condarc`, `.condarc`, or `*.yml/yaml`). (#12956)
+* Have `conda doctor` ignore blank lines in `~/.conda/environments.txt`. (#12984)
+
+### Deprecations
+
+* Mark `conda.cli.main.generate_parser` as pending deprecation. Use `conda.cli.conda_argparse.generate_parser` instead. (#13144)
+* Mark `conda.auxlib.collection.firstitem` as pending deprecation. (#13144)
+* Mark `conda.auxlib.collection.call_each` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.NoneType` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.primative_types` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.utf8_writer` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.AuthenticationError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.NotFoundError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.InitializationError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.SenderError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.AssignmentError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.type_coercion.boolify_truthy_string_ok` as pending deprecation. (#13144)
+* Mark `conda.auxlib.type_coercion.listify` as pending deprecation. (#13144)
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
+* Mark `conda.exports.fetch_index` as pending deprecation for removal in 24.9. Use `conda.core.index.fetch_index` instead. (#13194)
+
+### Other
+
+* Constrain minimum conda-build version to `>=3.27`. (#13177)
+
+### Contributors
+
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @timhoffm
+* @pre-commit-ci[bot]
+
+
+
 ## 23.9.0 (2023-09-27)
 
 ### Special announcement

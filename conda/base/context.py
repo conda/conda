@@ -19,6 +19,8 @@ from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
+from platformdirs import user_data_dir
+
 try:
     from boltons.setutils import IndexedSet
 except ImportError:  # pragma: no cover
@@ -26,7 +28,6 @@ except ImportError:  # pragma: no cover
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
-from .._vendor.appdirs import user_data_dir
 from .._vendor.frozendict import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
