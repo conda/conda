@@ -1096,6 +1096,7 @@ class Context(Configuration):
         if platform_name == "Linux":
             try:
                 import distro
+
                 distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
                 log.debug("%r", e, exc_info=True)
