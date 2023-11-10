@@ -2,10 +2,6 @@
 Managing virtual packages
 =========================
 
-.. contents::
-   :local:
-   :depth: 1
-
 "Virtual" packages are injected into the conda solver to allow real packages
 to depend on features present on the system that cannot be managed directly by
 conda, like system driver versions or CPU features. Virtual packages are not

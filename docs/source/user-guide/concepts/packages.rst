@@ -2,10 +2,6 @@
 Conda packages
 ==============
 
-.. contents::
-   :local:
-   :depth: 2
-
 .. _concept-conda-package:
 
 What is a conda package?

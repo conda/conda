@@ -2,10 +2,6 @@
 Command reference
 =================
 
-.. contents::
-   :local:
-   :depth: 1
-
 Conda provides many commands for managing packages and environments.
 The links on this page provide help for each command.
 You can also access help from the command line with the

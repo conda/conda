@@ -2,11 +2,6 @@
 Troubleshooting
 ===============
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 Using conda in Windows Batch script exits early
 ===============================================
 

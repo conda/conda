@@ -2,11 +2,6 @@
 Downloading conda
 =================
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 You have 3 conda download options:
 
 * `Download Anaconda <https://www.anaconda.com/download/>`_---free.
