@@ -19,6 +19,8 @@ from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
+from platformdirs import user_data_dir
+
 try:
     from boltons.setutils import IndexedSet
 except ImportError:  # pragma: no cover
@@ -26,7 +28,6 @@ except ImportError:  # pragma: no cover
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
-from .._vendor.appdirs import user_data_dir
 from .._vendor.frozendict import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
@@ -1116,7 +1117,8 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
+    @property
+    @deprecated("24.3", "24.9")
     def cpu_flags(self):
         # DANGER: This is rather slow
         info = _get_cpu_info()
@@ -1919,6 +1921,7 @@ def replace_context_default(pushing=None, argparse_args=None):
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
+@deprecated("24.3", "24.9")
 @lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
