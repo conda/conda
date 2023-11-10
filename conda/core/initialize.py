@@ -353,7 +353,7 @@ def make_install_plan(conda_prefix):
             "kwargs": {
                 "target_path": conda_env_exe_path,
                 "conda_prefix": conda_prefix,
-                "module": "conda_env.cli.main",
+                "module": "conda.cli.main_env",
                 "func": "main",
             },
         }

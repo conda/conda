@@ -102,7 +102,7 @@ def test_make_install_plan(verbose, mocker):
                 "kwargs": {
                     "conda_prefix": "/darwin",
                     "func": "main",
-                    "module": "conda_env.cli.main",
+                    "module": "conda.cli.main_env",
                     "target_path": "/darwin\\Scripts\\conda-env-script.py",
                 },
             },
@@ -251,7 +251,7 @@ def test_make_install_plan(verbose, mocker):
                 "kwargs": {
                     "conda_prefix": "/darwin",
                     "func": "main",
-                    "module": "conda_env.cli.main",
+                    "module": "conda.cli.main_env",
                     "target_path": "/darwin/bin/conda-env",
                 },
             },
