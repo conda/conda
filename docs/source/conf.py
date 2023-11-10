@@ -94,8 +94,15 @@ html_theme_options = {
     "show_prev_next": False,
     # Navbar icon links
     "navbar_start": ["navbar-logo"],
+    "use_edit_page_button": True,
 }
 
+html_context = {
+    "github_user": "conda",
+    "github_repo": "conda",
+    "github_version": "main",
+    "doc_path": "docs/source",
+}
 
 # -- sphinxcontrib.plantuml ------------------------------------------------
 
