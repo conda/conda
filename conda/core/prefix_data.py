@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing the packages installed within an environment."""
+from __future__ import annotations
+
 import json
 import os
 import re
 from logging import getLogger
-from os.path import basename, isdir, isfile, join, lexists
+from os.path import basename, lexists
+from pathlib import Path
 
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
@@ -20,6 +23,7 @@ from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
+from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
@@ -40,11 +44,15 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
-    def __call__(cls, prefix_path, pip_interop_enabled=None):
-        if prefix_path in PrefixData._cache_:
-            return PrefixData._cache_[prefix_path]
-        elif isinstance(prefix_path, PrefixData):
+    def __call__(
+        cls,
+        prefix_path: str | os.PathLike | Path,
+        pip_interop_enabled: bool | None = None,
+    ):
+        if isinstance(prefix_path, PrefixData):
             return prefix_path
+        elif (prefix_path := Path(prefix_path)) in PrefixData._cache_:
+            return PrefixData._cache_[prefix_path]
         else:
             prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
             PrefixData._cache_[prefix_path] = prefix_data_instance
@@ -52,9 +60,13 @@ class PrefixDataType(type):
 
 
 class PrefixData(metaclass=PrefixDataType):
-    _cache_ = {}
+    _cache_: dict[Path, PrefixData] = {}
 
-    def __init__(self, prefix_path, pip_interop_enabled=None):
+    def __init__(
+        self,
+        prefix_path: Path,
+        pip_interop_enabled: bool | None = None,
+    ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = prefix_path
@@ -69,7 +81,7 @@ class PrefixData(metaclass=PrefixDataType):
     @time_recorder(module_name=__name__)
     def load(self):
         self.__prefix_records = {}
-        _conda_meta_dir = join(self.prefix_path, "conda-meta")
+        _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
                 p
@@ -106,8 +118,8 @@ class PrefixData(metaclass=PrefixDataType):
             "https://github.com/conda/conda/issues" % prefix_record.name
         )
 
-        prefix_record_json_path = join(
-            self.prefix_path, "conda-meta", self._get_json_fn(prefix_record)
+        prefix_record_json_path = (
+            self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
         )
         if lexists(prefix_record_json_path):
             maybe_raise(
@@ -129,14 +141,11 @@ class PrefixData(metaclass=PrefixDataType):
 
         prefix_record = self._prefix_records[package_name]
 
-        prefix_record_json_path = join(
-            self.prefix_path, "conda-meta", self._get_json_fn(prefix_record)
-        )
-        conda_meta_full_path = join(
-            self.prefix_path, "conda-meta", prefix_record_json_path
+        prefix_record_json_path = (
+            self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
         )
         if self.is_writable:
-            rm_rf(conda_meta_full_path)
+            rm_rf(prefix_record_json_path)
 
         del self._prefix_records[package_name]
 
@@ -224,15 +233,15 @@ class PrefixData(metaclass=PrefixDataType):
     @property
     def is_writable(self):
         if self.__is_writable == NULL:
-            test_path = join(self.prefix_path, PREFIX_MAGIC_FILE)
-            if not isfile(test_path):
+            test_path = self.prefix_path / PREFIX_MAGIC_FILE
+            if not test_path.is_file():
                 is_writable = None
             else:
                 is_writable = file_path_is_writable(test_path)
             self.__is_writable = is_writable
         return self.__is_writable
 
-    # # REMOVE: ?
+    @deprecated("24.3", "24.9")
     def _has_python(self):
         return "python" in self._prefix_records
 
@@ -269,9 +278,9 @@ class PrefixData(metaclass=PrefixDataType):
         site_packages_dir = get_python_site_packages_short_path(
             python_pkg_record.version
         )
-        site_packages_path = join(self.prefix_path, win_path_ok(site_packages_dir))
+        site_packages_path = self.prefix_path / win_path_ok(site_packages_dir)
 
-        if not isdir(site_packages_path):
+        if not site_packages_path.is_dir():
             return {}
 
         # Get anchor files for corresponding conda (handled) python packages
@@ -304,8 +313,8 @@ class PrefixData(metaclass=PrefixDataType):
                 extracted_package_dir = "-".join(
                     (prefix_rec.name, prefix_rec.version, prefix_rec.build)
                 )
-            prefix_rec_json_path = join(
-                self.prefix_path, "conda-meta", "%s.json" % extracted_package_dir
+            prefix_rec_json_path = (
+                self.prefix_path / "conda-meta" / f"{extracted_package_dir}.json"
             )
             try:
                 rm_rf(prefix_rec_json_path)
@@ -351,7 +360,7 @@ class PrefixData(metaclass=PrefixDataType):
         return new_packages
 
     def _get_environment_state_file(self):
-        env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
+        env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         if lexists(env_vars_file):
             with open(env_vars_file) as f:
                 prefix_state = json.loads(f.read())
@@ -360,9 +369,10 @@ class PrefixData(metaclass=PrefixDataType):
         return prefix_state
 
     def _write_environment_state_file(self, state):
-        env_vars_file = join(self.prefix_path, PREFIX_STATE_FILE)
-        with open(env_vars_file, "w") as f:
-            f.write(json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__))
+        env_vars_file = self.prefix_path / PREFIX_STATE_FILE
+        env_vars_file.write_text(
+            json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__)
+        )
 
     def get_environment_env_vars(self):
         prefix_state = self._get_environment_state_file()
@@ -440,17 +450,15 @@ def get_python_version_for_prefix(prefix):
         return record.version[:3]
 
 
-def delete_prefix_from_linked_data(path):
+def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
     """Here, path may be a complete prefix or a dist inside a prefix"""
-    linked_data_path = next(
-        (
-            key
-            for key in sorted(PrefixData._cache_, reverse=True)
-            if path.startswith(key)
-        ),
-        None,
-    )
-    if linked_data_path:
-        del PrefixData._cache_[linked_data_path]
-        return True
+    path = Path(path)
+    for prefix in sorted(PrefixData._cache_, reverse=True):
+        try:
+            path.relative_to(prefix)
+            del PrefixData._cache_[prefix]
+            return True
+        except ValueError:
+            # ValueError: path is not relative to prefix
+            continue
     return False
