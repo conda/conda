@@ -1095,7 +1095,10 @@ class Context(Configuration):
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
             try:
-                import distro
+                try:
+                    import distro
+                except ImportError:
+                    from .._vendor import distro
 
                 distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
