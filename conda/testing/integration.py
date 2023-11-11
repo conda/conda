@@ -22,14 +22,14 @@ from uuid import uuid4
 
 import pytest
 
-from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.auxlib.entity import EntityEncoder
-from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.cli.conda_argparse import do_call, generate_parser
-from conda.cli.main import init_loggers
-from conda.common.compat import encode_arguments, on_win
-from conda.common.io import (
+from ..auxlib.compat import Utf8NamedTemporaryFile
+from ..auxlib.entity import EntityEncoder
+from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
+from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..cli.conda_argparse import do_call, generate_parser
+from ..cli.main import init_loggers
+from ..common.compat import encode_arguments, on_win
+from ..common.io import (
     argv,
     captured,
     dashlist,
@@ -37,19 +37,19 @@ from conda.common.io import (
     env_var,
     stderr_log_level,
 )
-from conda.common.url import path_to_url
-from conda.core.package_cache_data import PackageCacheData
-from conda.core.prefix_data import PrefixData
-from conda.deprecations import deprecated
-from conda.exceptions import conda_exception_handler
-from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.link import link
-from conda.gateways.disk.update import touch
-from conda.gateways.logging import DEBUG
-from conda.models.match_spec import MatchSpec
-from conda.models.records import PackageRecord
-from conda.utils import massage_arguments
+from ..common.url import path_to_url
+from ..core.package_cache_data import PackageCacheData
+from ..core.prefix_data import PrefixData
+from ..deprecations import deprecated
+from ..exceptions import conda_exception_handler
+from ..gateways.disk.create import mkdir_p
+from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.link import link
+from ..gateways.disk.update import touch
+from ..gateways.logging import DEBUG
+from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
+from ..utils import massage_arguments
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
@@ -265,7 +265,7 @@ def run_command(command, prefix, *arguments, **kwargs):
         arguments.insert(1, "--debug-wrapper-scripts")
 
     # It would be nice at this point to re-use:
-    # from conda.cli.python_api import run_command as python_api_run_command
+    # from ..cli.python_api import run_command as python_api_run_command
     # python_api_run_command
     # .. but that does not support no_capture and probably more stuff.
 

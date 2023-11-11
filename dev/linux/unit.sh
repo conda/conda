@@ -9,7 +9,7 @@ TEST_SPLITS="${TEST_SPLITS:-1}"
 TEST_GROUP="${TEST_GROUP:-1}"
 
 # make sure all test requirements are installed
-sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt "conda-forge::menuinst>=2"
+sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt "conda-forge::menuinst>=2" --repodata-fn=repodata.json
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
@@ -19,7 +19,7 @@ export TMP=$HOME/pytesttmp
 mkdir -p $TMP
 python -m pytest \
     --cov=conda \
-    --durations-path=./tools/durations/${OS}.json \
+    --durations-path=./tools/durations/Linux.json \
     --basetemp=$TMP \
     -m "not integration" \
     --splits=${TEST_SPLITS} \

@@ -209,37 +209,27 @@ def print_package_info(packages):
 def get_info_dict(system=False):
     from .. import CONDA_PACKAGE_ROOT
     from .. import __version__ as conda_version
-    from ..base.context import context, env_name, sys_rc_path, user_rc_path
+    from ..base.context import (
+        DEFAULT_SOLVER,
+        context,
+        env_name,
+        sys_rc_path,
+        user_rc_path,
+    )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
     from ..core.index import _supplement_index_with_system
     from ..models.channel import all_channel_urls, offline_keep
 
     try:
-        from requests import __version__ as requests_version
-
-        # These environment variables can influence requests' behavior, along with configuration
-        # in a .netrc file
-        #   CURL_CA_BUNDLE
-        #   REQUESTS_CA_BUNDLE
-        #   HTTP_PROXY
-        #   HTTPS_PROXY
-    except ImportError:  # pragma: no cover
-        try:
-            from pip._vendor.requests import __version__ as requests_version
-        except Exception as e:  # pragma: no cover
-            requests_version = "Error %r" % e
-    except Exception as e:  # pragma: no cover
-        requests_version = "Error %r" % e
-
-    try:
-        import conda_build
-    except ImportError:  # pragma: no cover
+        from conda_build import __version__ as conda_build_version
+    except ImportError as err:
+        # ImportError: conda-build is not installed
+        log.debug("Unable to import conda-build: %s", err)
         conda_build_version = "not installed"
-    except Exception as e:  # pragma: no cover
-        conda_build_version = "Error %s" % e
-    else:  # pragma: no cover
-        conda_build_version = conda_build.__version__
+    except Exception as err:
+        log.error("Error importing conda-build: %s", err)
+        conda_build_version = "error"
 
     virtual_pkg_index = {}
     _supplement_index_with_system(virtual_pkg_index)
@@ -257,6 +247,12 @@ def get_info_dict(system=False):
             netrc_file = user_netrc
 
     active_prefix_name = env_name(context.active_prefix)
+
+    solver = {
+        "name": context.solver,
+        "user_agent": context.solver_user_agent(),
+        "default": context.solver == DEFAULT_SOLVER,
+    }
 
     info_dict = dict(
         platform=context.subdir,
@@ -282,12 +278,13 @@ def get_info_dict(system=False):
         offline=context.offline,
         envs=[],
         python_version=".".join(map(str, sys.version_info)),
-        requests_version=requests_version,
+        requests_version=context.requests_version,
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
         config_files=context.config_files,
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
+        solver=solver,
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -366,6 +363,10 @@ def get_main_info_str(info_dict):
         yield ("conda version", info_dict["conda_version"])
         yield ("conda-build version", info_dict["conda_build_version"])
         yield ("python version", info_dict["python_version"])
+        yield (
+            "solver",
+            f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}",
+        )
         yield (
             "virtual packages",
             flatten("=".join(pkg) for pkg in info_dict["virtual_pkgs"]),

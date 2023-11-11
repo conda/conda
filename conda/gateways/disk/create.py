@@ -430,11 +430,11 @@ def compile_multiple_pyc(
         command[0:0] = [python_exe_full_path]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
-        from conda.gateways.subprocess import any_subprocess
+        from ..subprocess import any_subprocess
 
-        # from conda.common.io import env_vars
+        # from ...common.io import env_vars
         # This stack does not maintain its _argparse_args correctly?
-        # from conda.base.context import stack_context_default
+        # from ...base.context import stack_context_default
         # with env_vars({}, stack_context_default):
         #     stdout, stderr, rc = run_command(Commands.RUN, *command)
         stdout, stderr, rc = any_subprocess(command, prefix)

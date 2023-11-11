@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
+* <news item>
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Replace `black` with `ruff format` in pre-commit. (#13272)

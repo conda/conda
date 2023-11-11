@@ -1,10 +1,12 @@
+archspec
 boltons >=23.0.0
-chardet  # see fallbacks in conda.common.compat
+charset-normalizer
 conda-content-trust
 conda-forge::anaconda-client
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
+conda-libmamba-solver >=23.11.0
 conda-package-handling >=2.2.0
 flask >=2.2  # jlap pytest fixture
 jsonpatch >=1.32  # jlap
@@ -22,7 +24,7 @@ pytest-timeout
 pytest-xdist
 requests >=2.18.4,<3
 responses
-ruamel.yaml >=0.11.14,<0.18
+ruamel.yaml >=0.11.14,<0.19
 setuptools >=60.0.0
 setuptools_scm  # for devenv version detection
 tomli  # [py<3.11] for coverage pyproject.toml

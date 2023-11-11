@@ -1,0 +1,19 @@
+### Enhancements
+
+* Switch from `appdirs` to `platformdirs`. (#13306)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Deprecate `conda.gateways.anaconda_client.EnvAppDirs` in favor of `platformdirs`. (#13306)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
