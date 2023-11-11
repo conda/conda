@@ -93,7 +93,10 @@ def test_explicit_missing_cache_entries(
 
     def one_url_from_packagecache():
         "some entries in the package cache might have a null URL"
-        return next((pkg for pkg in PackageCacheData.get_all_extracted_entries() if pkg.url), None)
+        return next(
+            (pkg for pkg in PackageCacheData.get_all_extracted_entries() if pkg.url),
+            None,
+        )
 
     with tmp_env() as prefix:  # ensure writable env
         if (
