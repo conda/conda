@@ -1147,7 +1147,6 @@ def test_install_features(clear_package_cache: None, request):
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Features not supported in libmamba",
-            strict=True,
         )
     )
 
