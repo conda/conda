@@ -2970,7 +2970,7 @@ def test_run_script_called():
     with patch.object(conda.core.link, "subprocess_call") as rs:
         rs.return_value = Response(None, None, 0)
         with make_temp_env(
-            "python.app=3",
+            "graphviz",
             "--no-deps",
         ) as prefix:
             assert package_is_installed(prefix, "python.app")
