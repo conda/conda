@@ -13,11 +13,11 @@ We recommend the following methods to install conda:
 
 .. tab-set::
 
-    .. tab-item:: Windows
+    .. tab-item:: Windows :fab:`windows`
 
         Download and run the `Miniconda installer for Windows <https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe>`_
 
-    .. tab-item:: MacOS
+    .. tab-item:: MacOS :fab:`apple`
 
         Download and run one of the following installers based on your Mac's architecture:
 
@@ -29,7 +29,7 @@ We recommend the following methods to install conda:
             `Miniconda3 macOS Intel x86 64-bit pkg <https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg>`_ `Miniconda3 macOS Apple M1 64-bit pkg <https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg>`_
             ================================================================================================================== ================================================================================================================
 
-    .. tab-item:: Linux
+    .. tab-item:: Linux :fab:`linux`
 
         Download and run the installer via the terminal:
 
@@ -38,6 +38,23 @@ We recommend the following methods to install conda:
             curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
+
+    .. tab-item:: Homebrew :fa:`beer-mug-empty`
+
+        Run the following `Homebrew <https://brew.sh/>`_ command:
+
+        .. code-block:: bash
+
+            brew install miniconda
+
+    .. tab-item:: Chocolatey :octicon:`terminal` :fab:`windows`
+
+        Run the following `Chocolatey <https://chocolatey.org/>`_ command:
+
+        .. code-block:: bash
+
+            choco install miniconda3
+
 
 .. raw:: html
 
