@@ -30,8 +30,8 @@ from . import (
 from .adapters.ftp import FTPAdapter  # noqa
 from .adapters.http import HTTPAdapter  # noqa
 from .adapters.localfs import LocalFSAdapter  # noqa
-from .adapters.s3 import S3Adapter  # noqa
 from .adapters.offline import OfflineAdapter
+from .adapters.s3 import S3Adapter  # noqa
 
 log = getLogger(__name__)
 RETRIES = 3
