@@ -16,7 +16,8 @@ from functools import wraps
 from pathlib import Path
 from typing import Sequence
 
-from .._vendor.appdirs import user_cache_dir
+from platformdirs import user_cache_dir
+
 from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
 from ..utils import ensure_dir_exists
 from .types import ChannelNotice, ChannelNoticeResponse

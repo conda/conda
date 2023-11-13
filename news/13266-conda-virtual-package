@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add `__conda` virtual package. (#13266)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Constrain minimum conda-build >=3.27 (#13177)
+* <news item>
