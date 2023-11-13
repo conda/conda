@@ -7,6 +7,8 @@ from conda.base.context import reset_context
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
+
 
 @pytest.mark.integration
 def test_export(
@@ -14,6 +16,7 @@ def test_export(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     monkeypatch: MonkeyPatch,
+    request,
 ):
     """Test that `conda list --export` output can be used to create a similar environment."""
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
@@ -41,6 +44,7 @@ def test_explicit(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
+    request,
 ):
     """Test that `conda list --explicit` output can be used to recreate an identical environment."""
     # use "cheap" packages with no dependencies
