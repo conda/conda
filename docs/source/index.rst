@@ -128,12 +128,12 @@ making your own contributions.
    :maxdepth: 1
    :titlesonly:
 
-   User Guide <user-guide/index>
-   Configuration <configuration>
-   Commands <commands/index>
-   Release Notes <release-notes>
-   Glossary <glossary>
-   Developers <dev-guide/index>
-   API <api/index>
+   user-guide/index
+   configuration
+   commands/index
+   release-notes
+   glossary
+   dev-guide/index
+   api/index
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

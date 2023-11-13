@@ -1,5 +1,5 @@
 ``conda env config vars unset``
-*****************
+*******************************
 
 .. argparse::
    :module: conda_env.cli.main

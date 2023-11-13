@@ -26,8 +26,8 @@ version = release = conda.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # "autoapi.extension",
-    # "conda_umls",
+    "autoapi.extension",
+    "conda_umls",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -65,7 +65,6 @@ html_theme = "conda_sphinx_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_style = "css/custom.css"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -82,7 +81,10 @@ html_js_files = [
     "js/panzoom.js",
 ]
 
-html_css_files = ["https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css"]
+html_css_files = [
+    "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css",
+    "css/custom.css",
+]
 
 # Setting the prod URL of the site here as the base URL.
 html_baseurl = f"https://docs.conda.io/projects/{project}/"
@@ -164,8 +166,8 @@ def skip_log(app, what, name, obj, skip, options):
     return skip
 
 
-# def setup(sphinx):
-#     sphinx.connect("autoapi-skip-member", skip_log)
+def setup(sphinx):
+    sphinx.connect("autoapi-skip-member", skip_log)
 
 
 # -----------------------------------------------------------------------------
