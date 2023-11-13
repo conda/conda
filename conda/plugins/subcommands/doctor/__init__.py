@@ -10,8 +10,8 @@ from __future__ import annotations
 import argparse
 
 from ....base.context import context
+from ....cli.conda_argparse import ArgumentParser
 from ....cli.helpers import (
-    ArgumentParser,
     add_parser_help,
     add_parser_prefix,
     add_parser_verbose,
