@@ -4,12 +4,15 @@
 
 Allows for programmatically interacting with conda-env's configuration files (e.g., `~/.condarc`).
 """
-from argparse import RawDescriptionHelpFormatter
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+    _SubParsersAction,
+)
 
-from .main_env_vars import configure_parser as configure_vars_parser
 
-
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
 
     summary = "Configure a conda environment."
@@ -24,17 +27,19 @@ def configure_parser(sub_parsers):
         """
     )
 
-    config_parser = sub_parsers.add_parser(
+    p = sub_parsers.add_parser(
         "config",
         formatter_class=RawDescriptionHelpFormatter,
         help=summary,
         description=description,
         epilog=epilog,
     )
-    config_parser.set_defaults(func=".main_config.execute")
-    config_subparser = config_parser.add_subparsers()
-    configure_vars_parser(config_subparser)
+    p.set_defaults(func="conda.cli.main_env_config.execute")
+
+    return p
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     parser.parse_args(["config", "--help"])
+
+    return 0

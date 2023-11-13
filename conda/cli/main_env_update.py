@@ -7,14 +7,14 @@ Updates the conda environments with the specified packages.
 import os
 import sys
 import textwrap
-from argparse import RawDescriptionHelpFormatter
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+    _SubParsersAction,
+)
 
 from conda.base.context import context, determine_target_prefix
-from conda.cli.conda_argparse import (
-    add_parser_json,
-    add_parser_prefix,
-    add_parser_solver,
-)
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaEnvException
 from conda.misc import touch_nonadmin
@@ -27,8 +27,13 @@ from ..env.installers.base import InvalidInstaller, get_installer
 from .common import get_filename, print_result
 
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .helpers import (
+        add_parser_json,
+        add_parser_prefix,
+        add_parser_solver,
+    )
 
     summary = "Update the current environment based on environment file."
     description = summary
@@ -75,11 +80,13 @@ def configure_parser(sub_parsers):
     )
     add_parser_json(p)
     add_parser_solver(p)
-    p.set_defaults(func=".main_update.execute")
+    p.set_defaults(func="conda.cli.main_env_update.execute")
+
+    return p
 
 
 @notices
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     spec = install_specs.detect(
         name=args.name,
         filename=get_filename(args.file),
@@ -154,3 +161,5 @@ def execute(args, parser):
 
     touch_nonadmin(prefix)
     print_result(args, prefix, result)
+
+    return 0

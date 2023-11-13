@@ -4,18 +4,24 @@
 
 Allows for configuring conda-env's vars.
 """
-from argparse import RawDescriptionHelpFormatter
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+    _SubParsersAction,
+)
 from os.path import lexists
 
 from conda.base.context import context, determine_target_prefix
-from conda.cli import common
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 
+from . import common
 
-def configure_parser(sub_parsers):
+
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .helpers import add_parser_json, add_parser_prefix
 
     var_summary = (
         "Interact with environment variables associated with Conda environments."
@@ -61,7 +67,7 @@ def configure_parser(sub_parsers):
     )
     add_parser_prefix(list_parser)
     add_parser_json(list_parser)
-    list_parser.set_defaults(func=".main_vars.execute_list")
+    list_parser.set_defaults(func="conda.cli.main_env_vars.execute_list")
 
     set_summary = "Set environment variables for a conda environment."
     set_description = set_summary
@@ -89,7 +95,7 @@ def configure_parser(sub_parsers):
         help="Environment variables to set in the form <KEY>=<VALUE> separated by spaces",
     )
     add_parser_prefix(set_parser)
-    set_parser.set_defaults(func=".main_vars.execute_set")
+    set_parser.set_defaults(func="conda.cli.main_env_vars.execute_set")
 
     unset_summary = "Unset environment variables for a conda environment."
     unset_description = unset_summary
@@ -115,10 +121,10 @@ def configure_parser(sub_parsers):
         help="Environment variables to unset in the form <KEY> separated by spaces",
     )
     add_parser_prefix(unset_parser)
-    unset_parser.set_defaults(func=".main_vars.execute_unset")
+    unset_parser.set_defaults(func="conda.cli.main_env_vars.execute_unset")
 
 
-def execute_list(args, parser):
+def execute_list(args: Namespace, parser: ArgumentParser) -> int:
     prefix = determine_target_prefix(context, args)
     if not lexists(prefix):
         raise EnvironmentLocationNotFound(prefix)
@@ -132,8 +138,10 @@ def execute_list(args, parser):
         for k, v in env_vars.items():
             print(f"{k} = {v}")
 
+    return 0
 
-def execute_set(args, parser):
+
+def execute_set(args: Namespace, parser: ArgumentParser) -> int:
     prefix = determine_target_prefix(context, args)
     pd = PrefixData(prefix)
     if not lexists(prefix):
@@ -147,8 +155,10 @@ def execute_set(args, parser):
     if prefix == context.active_prefix:
         print("To make your changes take effect please reactivate your environment")
 
+    return 0
 
-def execute_unset(args, parser):
+
+def execute_unset(args: Namespace, parser: ArgumentParser) -> int:
     prefix = determine_target_prefix(context, args)
     pd = PrefixData(prefix)
     if not lexists(prefix):
@@ -158,3 +168,5 @@ def execute_unset(args, parser):
     pd.unset_environment_env_vars(vars_to_unset)
     if prefix == context.active_prefix:
         print("To make your changes take effect please reactivate your environment")
+
+    return 0

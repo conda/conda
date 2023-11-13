@@ -8,17 +8,15 @@ import json
 import os
 import sys
 import textwrap
-from argparse import RawDescriptionHelpFormatter, _StoreTrueAction
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+    _StoreTrueAction,
+    _SubParsersAction,
+)
 
 from conda.base.context import context, determine_target_prefix
-from conda.cli import install as cli_install
-from conda.cli.conda_argparse import (
-    add_output_and_prompt_options,
-    add_parser_default_packages,
-    add_parser_networking,
-    add_parser_prefix,
-    add_parser_solver,
-)
 from conda.core.prefix_data import PrefixData
 from conda.deprecations import deprecated
 from conda.env import (
@@ -29,11 +27,19 @@ from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.notices import notices
 
+from . import install as cli_install
 from .common import get_filename, print_result
 
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .helpers import (
+        add_output_and_prompt_options,
+        add_parser_default_packages,
+        add_parser_networking,
+        add_parser_prefix,
+        add_parser_solver,
+    )
 
     summary = "Create an environment based on an environment definition file."
     description = dals(
@@ -108,11 +114,14 @@ def configure_parser(sub_parsers):
     add_parser_default_packages(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)
-    p.set_defaults(func=".main_create.execute")
+
+    p.set_defaults(func="conda.cli.main_env_create.execute")
+
+    return p
 
 
 @notices
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     spec = specs.detect(
         name=args.name,
         filename=get_filename(args.file),
@@ -196,3 +205,5 @@ def execute(args, parser):
 
         touch_nonadmin(prefix)
         print_result(args, prefix, result)
+
+    return 0

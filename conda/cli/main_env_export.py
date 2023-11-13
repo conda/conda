@@ -4,16 +4,22 @@
 
 Dumps specified environment package specifications to the screen.
 """
-from argparse import RawDescriptionHelpFormatter
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+    _SubParsersAction,
+)
 
 from conda.base.context import context, determine_target_prefix, env_name
-from conda.cli.common import stdout_json
-from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.env.env import from_environment
 
+from .common import stdout_json
 
-def configure_parser(sub_parsers):
+
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .helpers import add_parser_json, add_parser_prefix
 
     summary = "Export a given environment"
     description = summary
@@ -85,11 +91,13 @@ def configure_parser(sub_parsers):
         required=False,
         help="Build environment spec from explicit specs in history",
     )
-    p.set_defaults(func=".main_export.execute")
+    p.set_defaults(func="conda.cli.main_env_export.execute")
+
+    return p
 
 
 # TODO Make this aware of channels that were used to install packages
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = determine_target_prefix(context, args)
     env = from_environment(
         env_name(prefix),
@@ -111,3 +119,5 @@ def execute(args, parser):
         fp = open(args.file, "wb")
         env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
         fp.close()
+
+    return 0

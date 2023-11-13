@@ -4,15 +4,16 @@
 
 Lists available conda environments.
 """
-from argparse import RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, _SubParsersAction
 
-from conda.cli import common
-from conda.cli.conda_argparse import add_parser_json
 from conda.core.envs_manager import list_all_known_prefixes
 
+from . import common
 
-def configure_parser(sub_parsers):
+
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .helpers import add_parser_json
 
     summary = "List the Conda environments."
     description = summary
@@ -25,7 +26,7 @@ def configure_parser(sub_parsers):
 
         """
     )
-    list_parser = sub_parsers.add_parser(
+    p = sub_parsers.add_parser(
         "list",
         formatter_class=RawDescriptionHelpFormatter,
         help=summary,
@@ -33,9 +34,11 @@ def configure_parser(sub_parsers):
         epilog=epilog,
     )
 
-    add_parser_json(list_parser)
+    add_parser_json(p)
 
-    list_parser.set_defaults(func=".main_list.execute")
+    p.set_defaults(func="conda.cli.main_env_list.execute")
+
+    return p
 
 
 def execute(args, parser):
@@ -44,4 +47,5 @@ def execute(args, parser):
 
     if args.json:
         common.stdout_json(info_dict)
+
     return 0

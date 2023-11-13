@@ -4,17 +4,21 @@
 
 Removes the specified conda environment.
 """
-from argparse import Namespace, RawDescriptionHelpFormatter
-
-from conda.cli.conda_argparse import (
-    add_output_and_prompt_options,
-    add_parser_prefix,
-    add_parser_solver,
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+    _SubParsersAction,
 )
 
 
-def configure_parser(sub_parsers):
+def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .helpers import (
+        add_output_and_prompt_options,
+        add_parser_prefix,
+        add_parser_solver,
+    )
 
     summary = "Remove an environment."
     description = dals(
@@ -48,10 +52,12 @@ def configure_parser(sub_parsers):
     add_parser_solver(p)
     add_output_and_prompt_options(p)
 
-    p.set_defaults(func=".main_remove.execute")
+    p.set_defaults(func="conda.cli.main_env_remove.execute")
+
+    return p
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
     import conda.cli.main_remove
 
     args = vars(args)
@@ -74,3 +80,5 @@ def execute(args, parser):
     context.__init__(argparse_args=args)
 
     conda.cli.main_remove.execute(args, parser)
+
+    return 0
