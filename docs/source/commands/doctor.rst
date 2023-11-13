@@ -4,7 +4,7 @@
 .. argparse::
    :module: conda.cli.conda_argparse
    :func: generate_parser
-   :prog: conda doctor
+   :prog: conda
    :path: doctor
    :nodefault:
    :nodefaultconst:
