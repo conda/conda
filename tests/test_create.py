@@ -2970,10 +2970,10 @@ def test_run_script_called():
     with patch.object(conda.core.link, "subprocess_call") as rs:
         rs.return_value = Response(None, None, 0)
         with make_temp_env(
-            "graphviz",
+            "nb_conda",
             "--no-deps",
         ) as prefix:
-            assert package_is_installed(prefix, "graphviz")
+            assert package_is_installed(prefix, "nb_conda")
             assert rs.call_count == 1
 
 
