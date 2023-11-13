@@ -502,12 +502,13 @@ class RepodataCache:
         )
 
     @property
+    def cache_path_patch(self):
+        return self.cache_path_json.with_suffix(".patch.json")
+
+    @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
-        return pathlib.Path(
-            self.cache_dir,
-            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX,
-        )
+        return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
     def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
@@ -730,6 +731,20 @@ class RepodataFetch:
         _, state = self.fetch_latest()
         return self.cache_path_json, state
 
+    def fetch_latest_path_and_overly(self) -> tuple[Path, Path | None, RepodataState]:
+        """
+        Retrieve latest or latest-cached repodata plus an optional overlay with
+        repodata changes; update cache.
+
+        Prefer packages, packages.conda and signatures from the overlay. Load
+        keys not in the overlay from the base index. Null/None values in the
+        overlay mark deletions compared to the base index.
+
+        :return: (index Path, overlay Path | None, RepodataState)
+        """
+        _, state = self.fetch_latest()
+        return self.cache_path_json, self.cache_path_patch, state
+
     @property
     def url_w_repodata_fn(self):
         return self.url_w_subdir + "/" + self.repodata_fn
@@ -744,6 +759,10 @@ class RepodataFetch:
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return self.repo_cache.cache_path_state
+
+    @property
+    def cache_path_patch(self):
+        return self.repo_cache.cache_path_patch
 
     @property
     def repo_cache(self) -> RepodataCache:

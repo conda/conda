@@ -113,7 +113,7 @@ class JlapRepoInterface(RepoInterface):
             # raise Response304ContentUnchanged()
             log.debug("Load patched repodata.json after 304")
             json_path = self._cache.cache_path_json
-            patch_path = self._cache.cache_path_json.with_suffix(".patch.json")
+            patch_path = self._cache.cache_path_patch
             try:
                 existing_patches = json.loads(patch_path.read_text())
             except FileNotFoundError:
@@ -138,7 +138,7 @@ class JlapRepoInterface(RepoInterface):
             # raise RepodataOnDisk() # removed for json + patch test
             log.debug("Load patched repodata.json after repodata_json_or_none is None")
             json_path = self._cache.cache_path_json
-            patch_path = self._cache.cache_path_json.with_suffix(".patch.json")
+            patch_path = self._cache.cache_path_patch
             try:
                 existing_patches = json.loads(patch_path.read_text())
             except FileNotFoundError:

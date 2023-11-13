@@ -486,7 +486,7 @@ def request_url_jlap_state_plus_overlay(
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
     json_path = cache.cache_path_json
-    patch_path = cache.cache_path_json.with_suffix(".patch.json")
+    patch_path = cache.cache_path_patch
 
     buffer = JLAP()  # type checks
 
