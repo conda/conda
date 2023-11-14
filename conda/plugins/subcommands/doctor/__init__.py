@@ -7,10 +7,9 @@ corruption.
 
 from __future__ import annotations
 
-import argparse
+from argparse import ArgumentParser, Namespace
 
 from ....base.context import context
-from ....cli.conda_argparse import ArgumentParser
 from ....cli.helpers import (
     add_parser_help,
     add_parser_prefix,
@@ -23,7 +22,7 @@ from ... import CondaSubcommand, hookimpl
 @deprecated(
     "24.3", "24.9", addendum="Use `conda.base.context.context.target_prefix` instead."
 )
-def get_prefix(args: argparse.Namespace) -> str:
+def get_prefix(args: Namespace) -> str:
     context.__init__(argparse_args=args)
     return context.target_prefix
 
@@ -34,7 +33,7 @@ def configure_parser(parser: ArgumentParser):
     add_parser_prefix(parser)
 
 
-def execute(args: argparse.Namespace) -> None:
+def execute(args: Namespace) -> None:
     """Run registered health_check plugins."""
     print(f"Environment Health Report for: {context.target_prefix}\n")
     context.plugin_manager.invoke_health_checks(context.target_prefix, context.verbose)
