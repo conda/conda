@@ -5,8 +5,8 @@ import re
 
 import pytest
 
-from conda.testing import CondaCLIFixture
 from conda.exceptions import PackagesNotFoundError
+from conda.testing import CondaCLIFixture
 
 # all tests in this file are integration tests
 pytestmark = [pytest.mark.integration]
