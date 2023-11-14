@@ -6,11 +6,11 @@ import pytest
 import requests
 from pytest import CaptureFixture
 from requests.models import Response
-from conda.gateways.connection.download import download_text
-from conda.gateways.connection.adapters.http import HTTPAdapter
 
 from conda import plugins
 from conda.exceptions import PluginError
+from conda.gateways.connection.adapters.http import HTTPAdapter
+from conda.gateways.connection.download import download_text
 
 PLUGIN_NAME = "http+test"
 
@@ -24,7 +24,6 @@ class TestHTTPAdapter(HTTPAdapter):
         response.encoding = "utf-8"
         print(f"Response: {response}")
         return response
-
 
     def close(self):
         print("Closing connection: {self}")

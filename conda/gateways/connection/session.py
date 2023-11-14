@@ -21,7 +21,6 @@ from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
-    BaseAdapter,
     Session,
     _basic_auth_str,
     extract_cookies_to_jar,
