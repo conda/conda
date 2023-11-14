@@ -11,6 +11,7 @@ from conda import plugins
 from conda.exceptions import PluginError
 from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_text
+from conda.gateways.connection.session import get_session
 
 PLUGIN_NAME = "http+test"
 
