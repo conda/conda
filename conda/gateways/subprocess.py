@@ -8,9 +8,8 @@ from logging import getLogger
 from os.path import abspath
 from subprocess import PIPE, CalledProcessError, Popen
 
-from conda.auxlib.compat import shlex_split_unicode
-
 from .. import ACTIVE_SUBPROCESSES
+from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_arguments, encode_environment, isiterable
@@ -23,9 +22,8 @@ Response = namedtuple("Response", ("stdout", "stderr", "rc"))
 
 
 def _format_output(command_str, cwd, rc, stdout, stderr):
-    return (
-        dals(
-            """
+    return dals(
+        """
     $ %s
     ==> cwd: %s <==
     ==> exit code: %d <==
@@ -34,9 +32,7 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
     ==> stderr <==
     %s
     """
-        )
-        % (command_str, cwd, rc, stdout, stderr)
-    )
+    ) % (command_str, cwd, rc, stdout, stderr)
 
 
 def any_subprocess(args, prefix, env=None, cwd=None):

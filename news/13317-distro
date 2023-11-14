@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
+* Deprecate `conda._vendor.distro` in favor of the `distro` package. (#13317)
 
 ### Docs
 

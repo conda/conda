@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Show the used solver in `conda info` output to simplify debugging. (#13265)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Constrain minimum conda-build >=3.27 (#13177)
+* <news item>

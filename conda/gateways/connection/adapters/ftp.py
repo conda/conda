@@ -22,9 +22,8 @@ from base64 import b64decode
 from io import BytesIO, StringIO
 from logging import getLogger
 
-from conda.deprecations import deprecated
-
 from ....common.url import urlparse
+from ....deprecations import deprecated
 from ....exceptions import AuthenticationError
 from .. import BaseAdapter, Response, dispatch_hook
 

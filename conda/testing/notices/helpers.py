@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Sequence
 from unittest import mock
 
-from conda.base.context import Context
-from conda.models.channel import get_channel_objs
-from conda.notices.cache import get_notices_cache_file
-from conda.notices.core import get_channel_name_and_urls
-from conda.notices.types import ChannelNoticeResponse
+from ...base.context import Context
+from ...models.channel import get_channel_objs
+from ...notices.cache import get_notices_cache_file
+from ...notices.core import get_channel_name_and_urls
+from ...notices.types import ChannelNoticeResponse
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
