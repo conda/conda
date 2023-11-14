@@ -1,4 +1,4 @@
-# Contributing to Conda
+# Contributing to conda
 
 Thank you for your interest in improving conda! Below, we describe how our
 development process works and how you can be a part of it.
