@@ -534,7 +534,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
         if vspec_str[0] == "^" or vspec_str[-1] == "$":
             if vspec_str[0] != "^" or vspec_str[-1] != "$":
                 raise InvalidVersionSpec(
-                    vspec_str, "regex specs must start " "with '^' and end with '$'"
+                    vspec_str, "regex specs must start with '^' and end with '$'"
                 )
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match
@@ -664,7 +664,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
         elif vspec_str[0] == "^" or vspec_str[-1] == "$":
             if vspec_str[0] != "^" or vspec_str[-1] != "$":
                 raise InvalidVersionSpec(
-                    vspec_str, "regex specs must start " "with '^' and end with '$'"
+                    vspec_str, "regex specs must start with '^' and end with '$'"
                 )
             self.regex = re.compile(vspec_str)
 

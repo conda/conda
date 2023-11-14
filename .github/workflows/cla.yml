@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check CLA
-        uses: conda/actions/check-cla@v23.7.0
+        uses: conda/actions/check-cla@v23.10.0
         with:
           # [required]
           # A token with ability to comment, label, and modify the commit status
@@ -31,6 +31,6 @@ jobs:
           label: cla-signed
 
           # [required]
-          # Token for opening singee PR in the provided `cla_repo`
+          # Token for opening signee PR in the provided `cla_repo`
           # (`pull_request: write` for fine-grained PAT; `repo` and `workflow` for classic PAT)
           cla_token: ${{ secrets.CLA_FORK_TOKEN }}

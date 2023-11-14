@@ -7,8 +7,10 @@ from logging import getLogger
 from os.path import isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 
-from .._vendor.appdirs import AppDirs
+from platformdirs import user_data_dir
+
 from ..common.url import quote_plus, unquote_plus
+from ..deprecations import deprecated
 from .disk.delete import rm_rf
 
 log = getLogger(__name__)
@@ -19,6 +21,7 @@ def replace_first_api_with_conda(url):
     return re.sub(r"([./])api([./]|$)", r"\1conda\2", url, count=1)
 
 
+@deprecated("24.3", "24.9", addendum="Use `platformdirs` instead.")
 class EnvAppDirs:
     def __init__(self, appname, appauthor, root_path):
         self.appname = appname
@@ -44,11 +47,9 @@ class EnvAppDirs:
 
 def _get_binstar_token_directory():
     if "BINSTAR_CONFIG_DIR" in os.environ:
-        return EnvAppDirs(
-            "binstar", "ContinuumIO", os.environ["BINSTAR_CONFIG_DIR"]
-        ).user_data_dir
+        return os.path.join(os.environ["BINSTAR_CONFIG_DIR"], "data")
     else:
-        return AppDirs("binstar", "ContinuumIO").user_data_dir
+        return user_data_dir(appname="binstar", appauthor="ContinuumIO")
 
 
 def read_binstar_tokens():

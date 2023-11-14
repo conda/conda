@@ -104,7 +104,7 @@ Conda in the middle of a sentence:
 
 #### In titles and headers
 
-Titles and headers should use the same capitalization and formmating standards as sentences.
+Titles and headers should use the same capitalization and formatting standards as sentences.
 
 #### In links
 

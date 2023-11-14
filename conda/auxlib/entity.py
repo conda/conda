@@ -591,7 +591,7 @@ class ListField(Field):
             return None
         elif isinstance(val, str):
             raise ValidationError(
-                "Attempted to assign a string to ListField {}" "".format(self.name)
+                f"Attempted to assign a string to ListField {self.name}"
             )
         elif isiterable(val):
             et = self._element_type
@@ -601,7 +601,7 @@ class ListField(Field):
                 return make_immutable(val) if self.immutable else self._type(val)
         else:
             raise ValidationError(
-                val, msg="Cannot assign a non-iterable value to " "{}".format(self.name)
+                val, msg=f"Cannot assign a non-iterable value to {self.name}"
             )
 
     def unbox(self, instance, instance_type, val):
@@ -652,12 +652,12 @@ class MapField(Field):
             val = make_immutable(val)
             if not isinstance(val, Mapping):
                 raise ValidationError(
-                    val, msg="Cannot assign a non-iterable value to " "{}".format(self.name)
+                    val, msg=f"Cannot assign a non-iterable value to {self.name}"
                 )
             return val
         else:
             raise ValidationError(
-                val, msg="Cannot assign a non-iterable value to " "{}".format(self.name)
+                val, msg=f"Cannot assign a non-iterable value to {self.name}"
             )
 
 
