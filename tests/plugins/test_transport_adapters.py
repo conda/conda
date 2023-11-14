@@ -36,7 +36,7 @@ class CustomTransportAdapterPlugin:
         yield plugins.CondaTransportAdapter(
             name=PLUGIN_NAME,
             prefix=f"{PLUGIN_NAME}://",
-            adapter=TestHTTPAdapter,
+            adapter=TestHTTPAdapter(),
         )
 
 
@@ -72,7 +72,7 @@ def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
     plugin = CustomTransportAdapterPlugin()
     plugin_manager.register(plugin)
 
-    test_url = f"{PLUGIN_NAME}://example.com/some-file"
+    \ = f"{PLUGIN_NAME}://example.com/some-file"
     text = download_text(test_url)
     assert text == "testing"
 
