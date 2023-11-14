@@ -165,7 +165,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
             if context.offline and transport_adapter.prefix != "file://":
                 adapter = offline_adapter
             else:
-                adapter = transport_adapter.adapter
+                adapter = transport_adapter.adapter()
             self.mount(transport_adapter.prefix, adapter)
 
 

@@ -228,7 +228,7 @@ class CondaSpecs:
 
             import os
             from conda import plugins
-            from requests.adapters import HTTPAdapter
+            from conda.gateways.connection.adapters.http import HTTPAdapter
 
 
             class DebugHTTPAdapter(HTTPAdapter):
