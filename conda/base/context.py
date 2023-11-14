@@ -1094,10 +1094,13 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from .._vendor.distro import id, version
-
             try:
-                distinfo = id(), version(best=True)
+                try:
+                    import distro
+                except ImportError:
+                    from .._vendor import distro
+
+                distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
                 log.debug("%r", e, exc_info=True)
                 distinfo = ("Linux", "unknown")
