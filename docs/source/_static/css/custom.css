@@ -34,3 +34,7 @@
     display: flex;
     align-items: center;
 }
+
+#conda-documentation .sd-tab-content {
+    min-height: 9rem;
+}

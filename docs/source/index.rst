@@ -15,29 +15,51 @@ We recommend the following methods to install conda:
 
     .. tab-item:: Windows :fab:`windows`
 
-        Download and run the `Miniconda installer for Windows <https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe>`_
+        .. grid:: 2
+
+            .. grid-item::
+
+                Miniconda installer for **Windows x86 64-bit**:
+
+                .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
+                    :color: primary
+
+                    Download :octicon:`download`
 
     .. tab-item:: MacOS :fab:`apple`
 
-        Download and run one of the following installers based on your Mac's architecture:
+        .. grid:: 2
 
-        .. table::
+            .. grid-item::
 
-            ================================================================================================================== ================================================================================================================
-            Apple Intel x86 64-bit                                                                                             Apple M1 64-bit
-            ================================================================================================================== ================================================================================================================
-            `Miniconda3 macOS Intel x86 64-bit pkg <https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg>`_ `Miniconda3 macOS Apple M1 64-bit pkg <https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg>`_
-            ================================================================================================================== ================================================================================================================
+                Miniconda installer for **MacOS x86 64-bit**:
+
+                .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+                    :color: primary
+
+                    Download :octicon:`download`
+
+            .. grid-item::
+
+                Miniconda installer for **MacOS M1 64-bit**:
+
+                .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
+                    :color: primary
+
+                    Download :octicon:`download`
 
     .. tab-item:: Linux :fab:`linux`
 
-        Download and run the installer via the terminal:
+        .. grid:: 2
 
-        .. code-block:: bash
+            .. grid-item::
 
-            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
-            bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-            ~/miniconda3/bin/conda init bash
+                Miniconda installer for **Linux x86 64-bit**:
+
+                .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+                    :color: primary
+
+                    Download :octicon:`download`
 
     .. tab-item:: Homebrew :fa:`beer-mug-empty`
 
