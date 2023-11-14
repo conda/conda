@@ -12,8 +12,8 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing import CondaCLIFixture
 from conda.testing.integration import package_is_installed
-from tests.env import support_file
 
+from . import support_file
 from .utils import make_temp_envs_dir
 
 

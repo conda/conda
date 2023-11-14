@@ -18,6 +18,11 @@ from conda.gateways.logging import initialize_logging
 deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env` instead.")
 
 
+def show_help_on_empty_command():
+    if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
+        sys.argv.append("--help")
+
+
 def do_call(arguments, parser):
     relative_mod, func_name = arguments.func.rsplit(".", 1)
     # func_name should always be 'execute'

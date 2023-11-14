@@ -33,7 +33,7 @@ from ..exceptions import (
 )
 from ..models.match_spec import MatchSpec
 
-deprecated.constant("24.3", "24.9", "base_env_name", "base")
+deprecated.constant("24.3", "24.9", "base_env_name", ROOT_ENV_NAME)
 
 
 def get_filename(filename):
