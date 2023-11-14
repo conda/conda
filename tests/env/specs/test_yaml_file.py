@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import importlib
 import random
 from unittest import mock
 
@@ -32,12 +31,3 @@ def test_filename():
         spec = YamlFileSpec(filename=filename)
         spec.environment
     from_file.assert_called_with(filename)
-
-
-def test_yaml_file_import():
-    deprecated = importlib.import_module("conda_env.specs.yaml_file")
-    redirect_module = importlib.import_module("conda.env.specs.yaml_file")
-
-    assert getattr(deprecated, "YamlFileSpec") is getattr(
-        redirect_module, "YamlFileSpec"
-    )

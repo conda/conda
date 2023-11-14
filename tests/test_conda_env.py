@@ -33,6 +33,12 @@ import pytest
         ("conda_env.env", "conda.env.env", "validate_keys"),
         ("conda_env.pip_util", "conda.env.pip_util", "get_pip_installed_packages"),
         ("conda_env.pip_util", "conda.env.pip_util", "pip_subprocess"),
+        (
+            "conda_env.specs.requirements",
+            "conda.env.specs.requirements",
+            "RequirementsSpec",
+        ),
+        ("conda_env.specs.yaml_file", "conda.env.specs.yaml_file", "YamlFileSpec"),
     ],
 )
 def test_moved_conda_env_module_imports(
