@@ -6,7 +6,7 @@ set -o errtrace -o pipefail -o errexit
 git config --global --add safe.directory /opt/conda-src
 
 # make sure all test requirements are installed
-sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt
+sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt --file requirements-s3.txt
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 conda info
 # remove the pkg cache.  We can't hardlink from here anyway.  Having it around causes log problems.
