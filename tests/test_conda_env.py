@@ -39,6 +39,7 @@ import pytest
             "RequirementsSpec",
         ),
         ("conda_env.specs.yaml_file", "conda.env.specs.yaml_file", "YamlFileSpec"),
+        ("conda_env.specs.binstar", "conda.env.specs.binstar", "BinstarSpec"),
     ],
 )
 def test_moved_conda_env_module_imports(

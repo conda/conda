@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import importlib
 
 from binstar_client.errors import NotFound
 from pytest_mock import MockerFixture
@@ -132,10 +131,3 @@ def test_binstar_not_installed(mocker: MockerFixture):
         "Anaconda Client is required to interact with anaconda.org or an Anaconda API. "
         "Please run `conda install anaconda-client -n base`."
     )
-
-
-def test_binstar_import():
-    deprecated = importlib.import_module("conda_env.specs.binstar")
-    redirect_module = importlib.import_module("conda.env.specs.binstar")
-
-    assert getattr(deprecated, "BinstarSpec") is getattr(redirect_module, "BinstarSpec")
