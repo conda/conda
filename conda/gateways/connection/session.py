@@ -140,7 +140,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         self.proxies.update(context.proxy_servers)
 
-        self.mount_adapters()
+        self.mount_plugin_adapters()
 
         # setting the SSL verify value depending on whether an adapter
         # as decreed it so by setting context.ssl_verify, or by relying on
@@ -154,7 +154,11 @@ class CondaSession(Session, metaclass=CondaSessionType):
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
 
-    def mount_adapters(self) -> None:
+    def mount_plugin_adapters(self) -> None:
+        """
+        Registers the transport adapters to a prefix as registered
+        via the transport_adapters plugin hook.
+        """
         offline_adapter = OfflineAdapter()
         transport_adapters = context.plugin_manager.get_transport_adapters()
         for transport_adapter in transport_adapters.values():

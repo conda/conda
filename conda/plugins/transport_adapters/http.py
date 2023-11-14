@@ -3,7 +3,8 @@
 """The default HTTP/HTTPS transport adapter plugins"""
 from ... import CondaError
 from ...base.context import context
-from ...gateways.connection import HTTPAdapter, Retry
+from ...gateways.connection import Retry
+from ...gateways.connection.adapters.http import HTTPAdapter
 from .. import CondaTransportAdapter, hookimpl
 
 
