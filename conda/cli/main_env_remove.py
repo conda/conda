@@ -12,7 +12,7 @@ from argparse import (
 )
 
 
-def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
         add_output_and_prompt_options,
@@ -46,6 +46,7 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         help=summary,
         description=description,
         epilog=epilog,
+        **kwargs,
     )
 
     add_parser_prefix(p)

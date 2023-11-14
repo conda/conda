@@ -140,7 +140,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
-    configure_parser_env()
+    configure_parser_env(sub_parsers)
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)

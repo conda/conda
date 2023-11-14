@@ -1,15 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda-env subcommands."""
-import sys
-from argparse import ArgumentParser, Namespace
-from importlib import import_module
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 import conda.exports  # noqa
-from conda.base.context import context
 
 
-def configure_parser() -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..cli import (
         main_env_config,
         main_env_create,
@@ -19,33 +16,31 @@ def configure_parser() -> ArgumentParser:
         main_env_update,
     )
 
-    p = ArgumentParser()
-    sub_parsers = p.add_subparsers(
+    if sub_parsers is None:
+        p = ArgumentParser()
+
+    else:
+        p = sub_parsers.add_parser(
+            "env",
+            **kwargs,
+        )
+
+    env_parsers = p.add_subparsers(
         metavar="command",
         dest="cmd",
     )
-    main_env_config.configure_parser(sub_parsers)
-    main_env_create.configure_parser(sub_parsers)
-    main_env_export.configure_parser(sub_parsers)
-    main_env_list.configure_parser(sub_parsers)
-    main_env_remove.configure_parser(sub_parsers)
-    main_env_update.configure_parser(sub_parsers)
+    main_env_config.configure_parser(env_parsers)
+    main_env_create.configure_parser(env_parsers)
+    main_env_export.configure_parser(env_parsers)
+    main_env_list.configure_parser(env_parsers)
+    main_env_remove.configure_parser(env_parsers)
+    main_env_update.configure_parser(env_parsers)
 
-    if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
-        sys.argv.append("--help")
-
+    p.set_defaults(func="conda.cli.main_env.execute")
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    relative_mod, func_name = args.func.rsplit(".", 1)
+    parser.print_help()
 
-    # Run the pre_command actions
-    command = relative_mod.replace(".main_env_", "")
-
-    context.plugin_manager.invoke_pre_commands(f"env_{command}")
-    module = import_module(relative_mod, "conda.cli")
-    exit_code = getattr(module, func_name)(args, parser)
-    context.plugin_manager.invoke_post_commands(f"env_{command}")
-
-    return exit_code
+    return 0

@@ -11,7 +11,7 @@ from conda.core.envs_manager import list_all_known_prefixes
 from . import common
 
 
-def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import add_parser_json
 
@@ -32,6 +32,7 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         help=summary,
         description=description,
         epilog=epilog,
+        **kwargs,
     )
 
     add_parser_json(p)
