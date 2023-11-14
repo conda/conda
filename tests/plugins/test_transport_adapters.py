@@ -71,6 +71,7 @@ def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
     plugin = CustomTransportAdapterPlugin()
     plugin_manager.register(plugin)
 
+    get_session.cache_clear()  # ensuring cleanup
     test_url = f"{PLUGIN_NAME}://example.com/some-file"
     text = download_text(test_url)
     assert text == "testing"
