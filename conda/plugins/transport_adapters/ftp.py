@@ -7,5 +7,4 @@ from .. import CondaTransportAdapter, hookimpl
 
 @hookimpl
 def conda_transport_adapters():
-    ftp_adapter = FTPAdapter()
-    yield CondaTransportAdapter(name="ftp", prefix="ftp://", adapter=ftp_adapter)
+    yield CondaTransportAdapter(name="ftp", prefix="ftp://", adapter=FTPAdapter)

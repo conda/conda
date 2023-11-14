@@ -21,6 +21,7 @@ from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
+    BaseAdapter,
     Session,
     _basic_auth_str,
     extract_cookies_to_jar,
@@ -166,6 +167,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 adapter = offline_adapter
             else:
                 adapter = transport_adapter.adapter
+                if callable(adapter):
+                    adapter = adapter()
             self.mount(transport_adapter.prefix, adapter)
 
 

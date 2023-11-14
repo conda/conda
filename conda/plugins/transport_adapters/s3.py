@@ -7,4 +7,4 @@ from .. import CondaTransportAdapter, hookimpl
 
 @hookimpl
 def conda_transport_adapters():
-    yield CondaTransportAdapter(name="s3", prefix="s3://", adapter=S3Adapter())
+    yield CondaTransportAdapter(name="s3", prefix="s3://", adapter=S3Adapter)

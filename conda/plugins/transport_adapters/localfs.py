@@ -7,6 +7,4 @@ from .. import CondaTransportAdapter, hookimpl
 
 @hookimpl(tryfirst=True)
 def conda_transport_adapters():
-    yield CondaTransportAdapter(
-        name="localfs", prefix="file://", adapter=LocalFSAdapter()
-    )
+    yield CondaTransportAdapter(name="localfs", prefix="file://", adapter=LocalFSAdapter)
