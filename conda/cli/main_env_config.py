@@ -7,7 +7,6 @@ Allows for programmatically interacting with conda-env's configuration files (e.
 from argparse import (
     ArgumentParser,
     Namespace,
-    RawDescriptionHelpFormatter,
     _SubParsersAction,
 )
 
@@ -29,7 +28,6 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
 
     p = sub_parsers.add_parser(
         "config",
-        formatter_class=RawDescriptionHelpFormatter,
         help=summary,
         description=description,
         epilog=epilog,

@@ -8,6 +8,7 @@ import os
 import sys
 from argparse import (
     SUPPRESS,
+    RawDescriptionHelpFormatter,
 )
 from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
@@ -204,6 +205,13 @@ def find_builtin_commands(parser):
 
 
 class ArgumentParser(ArgumentParserBase):
+    def __init__(self, *args, add_help=True, **kwargs):
+        kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
+        super().__init__(*args, add_help=False, **kwargs)
+
+        if add_help:
+            add_parser_help(self)
+
     def _check_value(self, action, value):
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):

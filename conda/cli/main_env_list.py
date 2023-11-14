@@ -4,7 +4,7 @@
 
 Lists available conda environments.
 """
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, _SubParsersAction
+from argparse import ArgumentParser, _SubParsersAction
 
 from conda.core.envs_manager import list_all_known_prefixes
 
@@ -28,7 +28,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     p = sub_parsers.add_parser(
         "list",
-        formatter_class=RawDescriptionHelpFormatter,
         help=summary,
         description=description,
         epilog=epilog,

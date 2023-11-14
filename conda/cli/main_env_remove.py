@@ -7,7 +7,6 @@ Removes the specified conda environment.
 from argparse import (
     ArgumentParser,
     Namespace,
-    RawDescriptionHelpFormatter,
     _SubParsersAction,
 )
 
@@ -42,7 +41,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     p = sub_parsers.add_parser(
         "remove",
-        formatter_class=RawDescriptionHelpFormatter,
         help=summary,
         description=description,
         epilog=epilog,

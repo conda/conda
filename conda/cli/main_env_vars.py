@@ -7,7 +7,6 @@ Allows for configuring conda-env's vars.
 from argparse import (
     ArgumentParser,
     Namespace,
-    RawDescriptionHelpFormatter,
     _SubParsersAction,
 )
 from os.path import lexists
@@ -40,7 +39,6 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
 
     var_parser = sub_parsers.add_parser(
         "vars",
-        formatter_class=RawDescriptionHelpFormatter,
         help=var_summary,
         description=var_description,
         epilog=var_epilog,
@@ -60,7 +58,6 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
 
     list_parser = var_subparser.add_parser(
         "list",
-        formatter_class=RawDescriptionHelpFormatter,
         help=list_summary,
         description=list_description,
         epilog=list_epilog,
@@ -82,7 +79,6 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
 
     set_parser = var_subparser.add_parser(
         "set",
-        formatter_class=RawDescriptionHelpFormatter,
         help=set_summary,
         description=set_description,
         epilog=set_epilog,
@@ -109,7 +105,6 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     )
     unset_parser = var_subparser.add_parser(
         "unset",
-        formatter_class=RawDescriptionHelpFormatter,
         help=unset_summary,
         description=unset_description,
         epilog=unset_epilog,

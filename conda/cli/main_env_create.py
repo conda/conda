@@ -11,7 +11,6 @@ import textwrap
 from argparse import (
     ArgumentParser,
     Namespace,
-    RawDescriptionHelpFormatter,
     _StoreTrueAction,
     _SubParsersAction,
 )
@@ -74,7 +73,6 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
 
     p = sub_parsers.add_parser(
         "create",
-        formatter_class=RawDescriptionHelpFormatter,
         help=summary,
         description=description,
         epilog=epilog,
