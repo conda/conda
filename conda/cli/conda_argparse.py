@@ -326,10 +326,11 @@ def configure_parser_plugins(sub_parsers) -> None:
     # `conda env` subcommand is a first-party conda subcommand even though it uses the legacy
     # subcommand framework, so `conda env` must still be allowed when plugins are disabled
     legacy = (
-        ["env"]
+        set()
         if context.no_plugins
         else set(find_commands()).difference(plugin_subcommands)
     )
+    legacy.discard("env")
     for name in legacy:
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error

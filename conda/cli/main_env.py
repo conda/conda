@@ -41,6 +41,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    parser.print_help()
+    parser.parse_args(["env", "--help"])
 
     return 0

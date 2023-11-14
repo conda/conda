@@ -28,8 +28,7 @@ from typing import Iterator
 import pytest
 from pytest import CaptureFixture
 
-from ..base.context import context, reset_context
-from ..cli.main import init_loggers
+from ..base.context import reset_context
 from ..common.compat import on_win
 from ..deprecations import deprecated
 
@@ -183,29 +182,10 @@ class CondaCLIFixture:
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
-        # mock legacy subcommands
-        if argv[0] == "env":
-            from conda.cli.main_env import configure_parser, execute
+        from ..cli.main import main_subshell
 
-            argv = argv[1:]
-
-            # parse arguments
-            parser = configure_parser()
-            args = parser.parse_args(argv)
-
-            # initialize context and loggers
-            context.__init__(argparse_args=args)
-            init_loggers()
-
-            # run command
-            code = execute(args, parser)
-
-        # all other subcommands
-        else:
-            from ..cli.main import main_subshell
-
-            # run command
-            code = main_subshell(*argv)
+        # run command
+        code = main_subshell(*argv)
 
         # capture output
         out, err = self.capsys.readouterr()
