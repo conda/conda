@@ -265,3 +265,16 @@ def test_fail_to_create_env_in_dir_with_colon(
         match="Cannot create a conda environment with ':' in the prefix.",
     ):
         conda_cli("create", f"--prefix={colon_dir}/tester")
+
+
+@pytest.mark.skipif(on_win, reason="Test is invalid on Windows")
+def test_fail_to_create_env_dir(tmp_path: Path, conda_cli: CondaCLIFixture):
+    # Attempt to create an env with "/envs" at the end of the prefix
+    env_dir = tmp_path / "envs"
+    env_dir.mkdir()
+
+    with pytest.raises(
+        CondaValueError,
+        match="Cannot create a conda environment with '/envs' at the end of the prefix.",
+    ):
+        conda_cli("create", f"--prefix={env_dir}", "-y")
