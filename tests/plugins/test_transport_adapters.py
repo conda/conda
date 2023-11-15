@@ -13,10 +13,10 @@ from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import get_session
 
-PLUGIN_NAME = "http+test"
+PLUGIN_NAME = "http+custom"
 
 
-class TestHTTPAdapter(HTTPAdapter):
+class CustomHTTPAdapter(HTTPAdapter):
     def send(self, request, *args, **kwargs):
         print(f"Requesting: {request.url}")
         response = Response()
@@ -36,7 +36,7 @@ class CustomTransportAdapterPlugin:
         yield plugins.CondaTransportAdapter(
             name=PLUGIN_NAME,
             prefix=f"{PLUGIN_NAME}://",
-            adapter=TestHTTPAdapter,
+            adapter=CustomHTTPAdapter,
         )
 
 
@@ -49,7 +49,7 @@ def test_get_transport_adapters(plugin_manager):
 
     transport_adapters = plugin_manager.get_transport_adapters()
     assert len(transport_adapters) == 1
-    assert transport_adapters[PLUGIN_NAME].adapter is TestHTTPAdapter
+    assert transport_adapters[PLUGIN_NAME].adapter is CustomHTTPAdapter
 
 
 def test_duplicated(plugin_manager):

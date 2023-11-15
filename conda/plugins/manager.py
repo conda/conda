@@ -22,13 +22,9 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-<<<<<<< HEAD
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from . import post_solves, solvers, subcommands, virtual_packages
-=======
-from . import solvers, subcommands, transport_adapters, virtual_packages
->>>>>>> af43d37fc (First stab at adding a new transport-adapters pluing hook.)
+from . import post_solves, solvers, subcommands, transport_adapters, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
