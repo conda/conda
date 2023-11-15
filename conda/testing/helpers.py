@@ -228,6 +228,7 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     state = subdir_data._internal_state
     subdir = subdir_data.channel.subdir
     packages = {}
+    packages_conda = {}
     for pkg in subdir_data.iter_records():
         data = pkg.dump()
         if subdir == "noarch" and getattr(pkg, "noarch", None):
@@ -243,7 +244,10 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
             # tests pass
             data["track_features"] = data["features"]
             del data["features"]
-        packages[pkg.fn] = data
+        if pkg.fn.endswith(".conda"):
+            packages_conda[pkg.fn] = data
+        else:
+            packages[pkg.fn] = data
     return {
         "_cache_control": state["_cache_control"],
         "_etag": state["_etag"],
@@ -254,6 +258,7 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
             "subdir": subdir,
         },
         "packages": packages,
+        "packages.conda": packages_conda,
     }
 
 
