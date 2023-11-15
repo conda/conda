@@ -35,6 +35,7 @@ requirements:
     - tqdm >=4
   run:
     - boltons >=23.0.0
+    - conda-libmamba-solver >=23.11.0
     - conda-package-handling >=2.2.0
     - jsonpatch >=1.32
     - menuinst >=1.4.11,<2         # [win]
@@ -51,7 +52,6 @@ requirements:
     - conda-build >=3.27
     - conda-content-trust >=0.1.1
     - conda-env >=2.6
-    - conda-libmamba-solver >=22.12.0
 
 test:
   imports:

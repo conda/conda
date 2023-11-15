@@ -277,11 +277,21 @@ def test_notices_appear_once_when_running_decorated_commands(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     )
 
+    if context.solver == "libmamba":
+        PACKAGE_MISSING_MESSAGE = (
+            "The following packages are not available from current channels"
+        )
+    else:
+        # https://github.com/conda/conda/issues/12197
+        PACKAGE_MISSING_MESSAGE = (
+            "The following packages are missing from the target environment"
+        )
+
     # First run of install; notices should be retrieved; it's okay that this function fails
     # to install anything.
     with pytest.raises(
         PackagesNotFoundError,
-        match="The following packages are missing from the target environment",
+        match=PACKAGE_MISSING_MESSAGE,
     ):
         conda_cli(
             "install",
@@ -307,7 +317,7 @@ def test_notices_appear_once_when_running_decorated_commands(
     # Second run of install; notices should not be retrieved; also okay that this fails.
     with pytest.raises(
         PackagesNotFoundError,
-        match="The following packages are missing from the target environment",
+        match=PACKAGE_MISSING_MESSAGE,
     ):
         conda_cli(
             "install",

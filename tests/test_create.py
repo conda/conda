@@ -64,6 +64,8 @@ from conda.exceptions import (
     PackageNotInstalledError,
     PackagesNotFoundError,
     RemoveError,
+    SpecsConfigurationConflictError,
+    UnsatisfiableError,
 )
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import compile_multiple_pyc
@@ -105,7 +107,10 @@ stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 
 # all tests in this file are integration tests
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.usefixtures("parametrized_solver_fixture"),
+]
 
 
 @pytest.fixture
@@ -909,11 +914,19 @@ def test_update_with_pinned_packages(clear_package_cache: None):
 
 def test_pinned_override_with_explicit_spec(clear_package_cache: None):
     with make_temp_env("python=3.9") as prefix:
+        pyver = next(PrefixData(prefix).query("python")).version
         run_command(
-            Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.9.16"
+            Commands.CONFIG, prefix, "--add", "pinned_packages", f"python={pyver}"
         )
-        run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
-        assert package_is_installed(prefix, "python=3.10")
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # Incompatible pin overrides forbidden in conda-libmamba-solver 23.9.0+
+            # See https://github.com/conda/conda-libmamba-solver/pull/294
+            with pytest.raises(SpecsConfigurationConflictError):
+                run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
+        else:
+            run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
+            assert package_is_installed(prefix, "python=3.10")
 
 
 def test_remove_all(clear_package_cache: None):
@@ -959,7 +972,15 @@ def test_allow_softlinks(hardlink_supported_mock, clear_package_cache: None):
 
 
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-def test_remove_features(clear_package_cache: None):
+def test_remove_features(clear_package_cache: None, request):
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
     with make_temp_env("python=2", "numpy=1.13", "nomkl") as prefix:
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "numpy")
@@ -1132,7 +1153,16 @@ def test_install_update_deps_only_deps_flags(clear_package_cache: None):
 
 
 @pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
-def test_install_features(clear_package_cache: None):
+def test_install_features(clear_package_cache: None, request):
+    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
     with make_temp_env("python=2", "numpy=1.13", "nomkl", no_capture=True) as prefix:
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
@@ -2031,12 +2061,20 @@ def test_conda_pip_interop_pip_clobbers_conda(clear_package_cache: None):
     context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
     reason="Skip unsupported platforms",
 )
-def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
+def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, request):
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="conda-libmamba-solver does not implement pip interoperability",
+        )
+    )
+
     with env_vars(
         {
             "CONDA_REPORT_ERRORS": "false",
             "CONDA_RESTORE_FREE_CHANNEL": True,
             "CONDA_CHANNELS": "defaults",
+            "CONDA_PIP_INTEROP_ENABLED": "true",
         },
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
@@ -2045,7 +2083,6 @@ def test_conda_pip_interop_conda_editable_package(clear_package_cache: None):
         ) as prefix:
             workdir = prefix
 
-            run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
@@ -2484,10 +2521,8 @@ def test_offline_with_empty_index_cache(clear_package_cache: None):
 
                         SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
-                        # This first install passes because flask and its dependencies are in the
-                        # package cache.
                         assert not package_is_installed(prefix, "flask")
-                        run_command(
+                        command = (
                             Commands.INSTALL,
                             prefix,
                             "-c",
@@ -2495,13 +2530,24 @@ def test_offline_with_empty_index_cache(clear_package_cache: None):
                             "flask",
                             "--offline",
                         )
-                        assert package_is_installed(prefix, "flask")
+                        if context.solver == "libmamba":
+                            # libmamba solver expects repodata to be loaded into Repo objects
+                            # It doesn't use the info from the tarball cache as conda does
+                            with pytest.raises((RuntimeError, UnsatisfiableError)):
+                                run_command(*command)
+                        else:
+                            # This first install passes because flask and its dependencies are in the
+                            # package cache.
+                            run_command(*command)
+                            assert package_is_installed(prefix, "flask")
 
-                        # The mock should have been called with our local channel URL though.
-                        assert result_dict.get("local_channel_seen")
+                            # The mock should have been called with our local channel URL though.
+                            assert result_dict.get("local_channel_seen")
 
                         # Fails because pytz cannot be found in available channels.
-                        with pytest.raises(PackagesNotFoundError):
+                        # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
+                        # We can remove it when 23.9.2 is out with a fix
+                        with pytest.raises((PackagesNotFoundError, RuntimeError)):
                             run_command(
                                 Commands.INSTALL,
                                 prefix,
