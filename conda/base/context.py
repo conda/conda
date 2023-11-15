@@ -19,7 +19,10 @@ from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
-from platformdirs import user_data_dir
+try:
+    from platformdirs import user_data_dir
+except ImportError:  # pragma: no cover
+    from .._vendor.appdirs import user_data_dir
 
 try:
     from boltons.setutils import IndexedSet
