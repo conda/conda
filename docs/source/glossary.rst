@@ -2,10 +2,6 @@
 Glossary
 ========
 
-.. contents::
-   :local:
-   :depth: 1
-
 .. _condarc-glossary:
 
 .condarc
