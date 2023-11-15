@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda._vendor.cpuinfo` as pending deprecation. (#13313)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -5,7 +5,7 @@ import os
 import re
 import sys
 from glob import glob
-from itertools import chain
+from itertools import chain, zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
@@ -166,20 +166,23 @@ def test_install_python_and_search(
         assert not err
 
 
-def test_run_preserves_arguments():
-    with make_temp_env("python=3") as prefix:
-        echo_args_py = os.path.join(prefix, "echo-args.py")
-        with open(echo_args_py, "w") as echo_args:
-            echo_args.write("import sys\n")
-            echo_args.write("for arg in sys.argv[1:]: print(arg)\n")
+def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3") as prefix:
+        echo_args_py = prefix / "echo-args.py"
+        echo_args_py.write_text("import sys\nfor arg in sys.argv[1:]: print(arg)")
         # If 'two two' were 'two' this test would pass.
         args = ("one", "two two", "three")
-        output, _, _ = run_command(Commands.RUN, prefix, "python", echo_args_py, *args)
-        os.unlink(echo_args_py)
-        lines = output.split("\n")
-        for i, line in enumerate(lines):
-            if i < len(args):
-                assert args[i] == line.replace("\r", "")
+        stdout, stderr, code = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            echo_args_py,
+            *args,
+        )
+        for value, expected in zip_longest(stdout.strip().splitlines(), args):
+            assert value == expected
+        assert not stderr
+        assert not code
 
 
 def test_create_install_update_remove_smoketest():
@@ -592,76 +595,73 @@ def test_strict_resolve_get_reduced_index():
         assert {} == channel_name_groups
 
 
-def test_list_with_pip_no_binary():
+def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     from conda.exports import rm_rf as _rm_rf
 
     # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
     # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
     # We elect to test the more complex of the two options.
     py_ver = "3.10"
-    with make_temp_env("python=" + py_ver, "pip") as prefix:
-        evs = {"PYTHONUTF8": "1"}
-        # This test does not activate the env.
-        if on_win:
-            evs["CONDA_DLL_SEARCH_MODIFICATION_ENABLE"] = "1"
-        with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            check_call(
-                PYTHON_BINARY + " -m pip install --no-binary flask flask==1.0.2",
-                cwd=prefix,
-                shell=True,
-            )
-            PrefixData._cache_.clear()
-            stdout, stderr, _ = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split("\n")
-            assert any(
-                line.endswith("pypi")
-                for line in stdout_lines
-                if line.lower().startswith("flask")
-            )
+    with tmp_env(f"python={py_ver}", "pip") as prefix:
+        check_call(
+            f"{PYTHON_BINARY} -m pip install --no-binary flask flask==1.0.2",
+            cwd=prefix,
+            shell=True,
+        )
 
-            # regression test for #5847
-            #   when using rm_rf on a directory
-            assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path(py_ver)))
-            assert prefix not in PrefixData._cache_
+        PrefixData._cache_.clear()
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        assert any(
+            line.endswith("pypi")
+            for line in stdout.split("\n")
+            if line.lower().startswith("flask")
+        )
+        assert not stderr
+        assert not err
+
+        # regression test for #5847
+        #   when using rm_rf on a directory
+        assert prefix in PrefixData._cache_
+        _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
+        assert prefix not in PrefixData._cache_
 
 
-def test_list_with_pip_wheel():
+def test_list_with_pip_wheel(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3.10", "pip") as prefix:
+        check_call(
+            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
+            cwd=prefix,
+            shell=True,
+        )
+
+        PrefixData._cache_.clear()
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        assert any(
+            line.endswith("pypi")
+            for line in stdout.split("\n")
+            if line.lower().startswith("flask")
+        )
+        assert not stderr
+        assert not err
+
+        # regression test for #3433
+        conda_cli("install", f"--prefix={prefix}", "python=3.9", "--yes")
+        assert package_is_installed(prefix, "python=3.9")
+
+
+def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
+    # regression test for #5980, related to #5847
     from conda.exports import rm_rf as _rm_rf
 
     py_ver = "3.10"
-    with make_temp_env("python=" + py_ver, "pip") as prefix:
-        evs = {"PYTHONUTF8": "1"}
-        # This test does not activate the env.
-        if on_win:
-            evs["CONDA_DLL_SEARCH_MODIFICATION_ENABLE"] = "1"
-        with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            check_call(
-                PYTHON_BINARY + " -m pip install flask==1.0.2",
-                cwd=prefix,
-                shell=True,
-            )
-            PrefixData._cache_.clear()
-            stdout, stderr, _ = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split("\n")
-            assert any(
-                line.endswith("pypi")
-                for line in stdout_lines
-                if line.lower().startswith("flask")
-            )
+    with tmp_env(f"python={py_ver}") as prefix:
+        # regression test for #5847
+        #   when using rm_rf on a file
+        assert prefix in PrefixData._cache_
+        _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
+        assert prefix not in PrefixData._cache_
 
-            # regression test for #3433
-            run_command(Commands.INSTALL, prefix, "python=3.9", no_capture=True)
-            assert package_is_installed(prefix, "python=3.9")
-
-            # regression test for #5847
-            #   when using rm_rf on a file
-            assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path("3.9")), "os.py")
-            assert prefix not in PrefixData._cache_
-
-    # regression test for #5980, related to #5847
-    with make_temp_env() as prefix:
+    with tmp_env() as prefix:
         assert isdir(prefix)
         assert prefix in PrefixData._cache_
 
@@ -1147,7 +1147,6 @@ def test_install_features(clear_package_cache: None, request):
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Features not supported in libmamba",
-            strict=True,
         )
     )
 

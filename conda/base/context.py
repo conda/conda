@@ -19,7 +19,10 @@ from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
-from platformdirs import user_data_dir
+try:
+    from platformdirs import user_data_dir
+except ImportError:  # pragma: no cover
+    from .._vendor.appdirs import user_data_dir
 
 try:
     from boltons.setutils import IndexedSet
@@ -1095,10 +1098,13 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from .._vendor.distro import id, version
-
             try:
-                distinfo = id(), version(best=True)
+                try:
+                    import distro
+                except ImportError:
+                    from .._vendor import distro
+
+                distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
                 log.debug("%r", e, exc_info=True)
                 distinfo = ("Linux", "unknown")
@@ -1118,7 +1124,8 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
+    @property
+    @deprecated("24.3", "24.9")
     def cpu_flags(self):
         # DANGER: This is rather slow
         info = _get_cpu_info()
@@ -1928,6 +1935,7 @@ def replace_context_default(pushing=None, argparse_args=None):
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
+@deprecated("24.3", "24.9")
 @lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow
