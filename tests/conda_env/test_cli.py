@@ -25,7 +25,6 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 # Environment names we use during our tests
 TEST_ENV_NAME_1 = "env-1"
-TEST_ENV_NAME_2 = "snowflakes"
 TEST_ENV_NAME_42 = "env-42"
 TEST_ENV_NAME_PIP = "env-pip"
 
@@ -522,102 +521,92 @@ def env_is_created(env_name):
 
 
 @pytest.fixture
-def env_name_2(conda_cli: CondaCLIFixture) -> None:
-    # It *can* happen that this does not remove the env directory and then
-    # the CREATE fails. Keep your eyes out! We could use rm_rf, but do we
-    # know which conda install we're talking about? Now? Forever? I'd feel
-    # safer adding an `rm -rf` if we had a `Commands.ENV_NAME_TO_PREFIX` to
-    # tell us which folder to remove.
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-
-    yield
-
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
+def env2(conda_cli: CondaCLIFixture) -> str:
+    env = "env2"
+    conda_cli("remove", f"--name={env}", "--all", "--yes")
+    yield env
+    conda_cli("remove", f"--name={env}", "--all", "--yes")
 
 
 @pytest.mark.integration
 def test_env_export(
-    env_name_2: None, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    env2: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """Test conda env export."""
-    conda_cli("create", "--name", TEST_ENV_NAME_2, "flask", "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    conda_cli("create", "--name", env2, "flask", "--yes")
+    assert env_is_created(env2)
 
-    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2)
+    stdout, _, _ = conda_cli("env", "export", "--name", env2)
 
     env_yml = path_factory(suffix=".yml")
     env_yml.write_text(stdout)
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
     conda_cli("env", "create", "--file", env_yml, "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    assert env_is_created(env2)
 
     # regression test for #6220
-    stdout, stderr, _ = conda_cli(
-        "env", "export", "--name", TEST_ENV_NAME_2, "--no-builds"
-    )
+    stdout, stderr, _ = conda_cli("env", "export", "--name", env2, "--no-builds")
     assert not stderr
     env_description = yaml_safe_load(stdout)
     assert len(env_description["dependencies"])
     for spec_str in env_description["dependencies"]:
         assert spec_str.count("=") == 1
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
 
 
 @pytest.mark.integration
 def test_env_export_with_variables(
-    env_name_2: None, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    env2: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """Test conda env export."""
-    conda_cli("create", "--name", TEST_ENV_NAME_2, "flask", "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    conda_cli("create", "--name", env2, "flask", "--yes")
+    assert env_is_created(env2)
 
     conda_cli(
         *("env", "config", "vars", "set"),
-        *("--name", TEST_ENV_NAME_2),
+        *("--name", env2),
         "DUDE=woah",
         "SWEET=yaaa",
     )
 
-    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2)
+    stdout, _, _ = conda_cli("env", "export", "--name", env2)
 
     env_yml = path_factory(suffix=".yml")
     env_yml.write_text(stdout)
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
     conda_cli("env", "create", "--file", env_yml, "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    assert env_is_created(env2)
 
-    stdout, stderr, _ = conda_cli(
-        "env", "export", "--name", TEST_ENV_NAME_2, "--no-builds"
-    )
+    stdout, stderr, _ = conda_cli("env", "export", "--name", env2, "--no-builds")
     assert not stderr
     env_description = yaml_safe_load(stdout)
     assert len(env_description["variables"])
     assert env_description["variables"].keys()
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
 
 
 @pytest.mark.integration
-def test_env_export_json(env_name_2: None, conda_cli: CondaCLIFixture):
+def test_env_export_json(env2: str, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    conda_cli("create", "--name", TEST_ENV_NAME_2, "flask", "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    conda_cli("create", "--name", env2, "flask", "--yes")
+    assert env_is_created(env2)
 
-    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2, "--json")
+    stdout, _, _ = conda_cli("env", "export", "--name", env2, "--json")
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
 
     # regression test for #6220
     stdout, stderr, _ = conda_cli(
-        "env", "export", "--name", TEST_ENV_NAME_2, "--no-builds", "--json"
+        "env", "export", "--name", env2, "--no-builds", "--json"
     )
     assert not stderr
 
@@ -626,78 +615,75 @@ def test_env_export_json(env_name_2: None, conda_cli: CondaCLIFixture):
     for spec_str in env_description["dependencies"]:
         assert spec_str.count("=") == 1
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
 
 
 @pytest.mark.integration
-def test_list(
-    env_name_2: None, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
-):
+def test_list(env2: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture):
     """Test conda list -e and conda create from txt."""
-    conda_cli("create", "--name", TEST_ENV_NAME_2, "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    conda_cli("create", "--name", env2, "--yes")
+    assert env_is_created(env2)
 
-    stdout, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--export")
+    stdout, _, _ = conda_cli("list", "--name", env2, "--export")
 
     env_txt = path_factory(suffix=".txt")
     env_txt.write_text(stdout)
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
-    conda_cli("create", "--name", TEST_ENV_NAME_2, "--file", env_txt, "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
+    conda_cli("create", "--name", env2, "--file", env_txt, "--yes")
+    assert env_is_created(env2)
 
-    stdout2, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--export")
+    stdout2, _, _ = conda_cli("list", "--name", env2, "--export")
     assert stdout == stdout2
 
 
 @pytest.mark.integration
 def test_export_multi_channel(
-    env_name_2: None, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    env2: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """Test conda env export."""
     from conda.core.prefix_data import PrefixData
 
     PrefixData._cache_.clear()
-    conda_cli("create", "--name", TEST_ENV_NAME_2, "python", "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    conda_cli("create", "--name", env2, "python", "--yes")
+    assert env_is_created(env2)
 
     # install something from other channel not in config file
     conda_cli(
         "install",
-        *("--name", TEST_ENV_NAME_2),
+        *("--name", env2),
         *("--channel", "conda-test"),
         "test_timestamp_sort",
         "--yes",
     )
-    stdout, _, _ = conda_cli("env", "export", "--name", TEST_ENV_NAME_2)
+    stdout, _, _ = conda_cli("env", "export", "--name", env2)
     assert "conda-test" in stdout
 
-    stdout1, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--explicit")
+    stdout1, _, _ = conda_cli("list", "--name", env2, "--explicit")
 
     env_yml = path_factory(suffix=".yml")
     env_yml.write_text(stdout)
 
-    conda_cli("env", "remove", "--name", TEST_ENV_NAME_2, "--yes")
-    assert not env_is_created(TEST_ENV_NAME_2)
+    conda_cli("env", "remove", "--name", env2, "--yes")
+    assert not env_is_created(env2)
     conda_cli("env", "create", "--file", env_yml, "--yes")
-    assert env_is_created(TEST_ENV_NAME_2)
+    assert env_is_created(env2)
 
     # check explicit that we have same file
-    stdout2, _, _ = conda_cli("list", "--name", TEST_ENV_NAME_2, "--explicit")
+    stdout2, _, _ = conda_cli("list", "--name", env2, "--explicit")
     assert stdout1 == stdout2
 
 
 @pytest.mark.integration
-def test_non_existent_file(env_name_2: None, conda_cli: CondaCLIFixture):
+def test_non_existent_file(conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentFileNotFound):
         conda_cli("env", "create", "--file", "i_do_not_exist.yml", "--yes")
 
 
 @pytest.mark.integration
 def test_invalid_extensions(
-    env_name_2: None,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
 ):
