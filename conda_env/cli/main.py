@@ -10,7 +10,7 @@ from importlib import import_module
 
 from conda.base.context import context
 from conda.cli.main import init_loggers
-from conda.cli.main_env import configure_parser as create_parser  # noqa
+from conda.cli.main_env import configure_parser  # noqa
 from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
@@ -21,6 +21,14 @@ deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env` instead.")
 def show_help_on_empty_command():
     if len(sys.argv) == 1:  # sys.argv == ['/path/to/bin/conda-env']
         sys.argv.append("--help")
+
+
+def create_parser():
+    # Ensure that if a downstream project invokes
+    # conda_env.cli.main.create_parser() WITH NO
+    # ARGUMENTS that the function will succeed and
+    # return a valid ArgumentParser
+    return configure_parser(None)
 
 
 def do_call(arguments, parser):
@@ -40,7 +48,7 @@ def do_call(arguments, parser):
 
 def main():
     initialize_logging()
-    parser = create_parser(sub_parsers=None)
+    parser = create_parser()
     args = parser.parse_args()
     os.environ["CONDA_AUTO_UPDATE_CONDA"] = "false"
     context.__init__(argparse_args=args)

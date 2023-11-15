@@ -17,12 +17,15 @@ from conda.env.env import (
     Environment,
     from_environment,
     from_file,
-    load_from_directory,
 )
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
+
+# Note: The conda_env.env module is getting deprecated in 24.3,
+#       this is the only place that it's utilized in the codebase
+from conda_env.env import load_from_directory
 
 from . import support_file
 from .utils import make_temp_envs_dir

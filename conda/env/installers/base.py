@@ -3,8 +3,6 @@
 """Dynamic installer loading."""
 import importlib
 
-ENTRY_POINT = "conda_env.installers"
-
 
 class InvalidInstaller(Exception):
     def __init__(self, name):
@@ -14,6 +12,7 @@ class InvalidInstaller(Exception):
 
 def get_installer(name):
     try:
+        ENTRY_POINT = "conda_env.installers"
         return importlib.import_module(ENTRY_POINT + "." + name)
     except ImportError:
         raise InvalidInstaller(name)

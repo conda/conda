@@ -29,6 +29,7 @@ import pytest
 from pytest import CaptureFixture
 
 from ..base.context import reset_context
+from ..cli.main import main_subshell
 from ..common.compat import on_win
 from ..deprecations import deprecated
 
@@ -181,8 +182,6 @@ class CondaCLIFixture:
 
         # ensure arguments are string
         argv = tuple(map(str, argv))
-
-        from ..cli.main import main_subshell
 
         # run command
         code = main_subshell(*argv)

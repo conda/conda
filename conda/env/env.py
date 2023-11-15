@@ -12,7 +12,6 @@ from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.iterators import unique
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.prefix_data import PrefixData
-from conda.deprecations import deprecated
 from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -62,23 +61,6 @@ def validate_keys(data, kwargs):
             new_data["dependencies"].insert(0, "pip")
             break
     return new_data
-
-
-@deprecated("23.9", "24.3")
-def load_from_directory(directory):
-    """Load and return an ``Environment`` from a given ``directory``"""
-    files = ["environment.yml", "environment.yaml"]
-    while True:
-        for f in files:
-            try:
-                return from_file(os.path.join(directory, f))
-            except EnvironmentFileNotFound:
-                pass
-        old_directory = directory
-        directory = os.path.dirname(directory)
-        if directory == old_directory:
-            break
-    raise EnvironmentFileNotFound(files[0])
 
 
 def from_environment(
