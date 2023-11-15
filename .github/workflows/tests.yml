@@ -263,7 +263,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
+        python-version: ['3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         # fewer test splits for quicker unit tests, keep 3 splits for integration
