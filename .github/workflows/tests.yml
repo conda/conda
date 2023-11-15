@@ -294,9 +294,9 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 4
+          CACHE_NUMBER: 5
         with:
-          path: ~/conda_pkgs_dir
+          path: ~/.miniconda/pkgs
           key:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
