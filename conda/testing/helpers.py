@@ -272,7 +272,9 @@ def _sync_channel_to_disk(subdir_data: SubdirData):
     subdir_path = base / subdir_data.channel.subdir
     subdir_path.mkdir(parents=True, exist_ok=True)
     with open(subdir_path / "repodata.json", "w") as f:
-        json.dump(_export_subdir_data_to_repodata(subdir_data), f, indent=2, sort_keys=True)
+        json.dump(
+            _export_subdir_data_to_repodata(subdir_data), f, indent=2, sort_keys=True
+        )
         f.flush()
         os.fsync(f.fileno())
 
