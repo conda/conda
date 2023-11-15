@@ -22,7 +22,7 @@ from os.path import (
 )
 from pathlib import Path
 from shutil import copyfile, rmtree
-from subprocess import PIPE, Popen, check_call, check_output
+from subprocess import check_call, check_output
 from textwrap import dedent
 from unittest.mock import patch
 from uuid import uuid4
@@ -1529,9 +1529,7 @@ def test_package_pinning():
 
 def test_update_all_updates_pip_pkg():
     with make_temp_env("python=3", "pip", "pytz=2020", no_capture=True) as prefix:
-        run_command(
-            Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true"
-        )
+        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
 
         run_command(
             Commands.RUN,
