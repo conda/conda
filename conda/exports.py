@@ -25,8 +25,8 @@ from .base.context import (  # noqa: F401
     sys_rc_path,
 )
 from .cli.common import spec_from_line, specs_from_args, specs_from_url  # noqa: F401
+from .cli.conda_argparse import ArgumentParser  # noqa: F401
 from .cli.helpers import (  # noqa: F401
-    ArgumentParser,
     add_parser_channels,
     add_parser_prefix,
 )

@@ -10,6 +10,8 @@ from argparse import (
     _SubParsersAction,
 )
 
+from .main_env_vars import configure_parser as configure_vars_parser
+
 
 def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -33,6 +35,8 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         epilog=epilog,
     )
     p.set_defaults(func="conda.cli.main_env_config.execute")
+    config_subparser = p.add_subparsers()
+    configure_vars_parser(config_subparser)
 
     return p
 

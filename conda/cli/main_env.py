@@ -3,8 +3,6 @@
 """Entry point for all conda-env subcommands."""
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
-import conda.exports  # noqa
-
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..cli import (
