@@ -39,6 +39,7 @@ requirements:
     - charset-normalizer
     - conda-libmamba-solver >=23.11.0
     - conda-package-handling >=2.2.0
+    - distro >=1.5.0
     - jsonpatch >=1.32
     - menuinst >=1.4.11,<2         # [win]
     - packaging >=23.0
