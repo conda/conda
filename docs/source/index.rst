@@ -15,51 +15,49 @@ We recommend the following methods to install conda:
 
     .. tab-item:: Windows :fab:`windows`
 
+        Miniconda installer for:
+
         .. grid:: 2
 
             .. grid-item::
-
-                Miniconda installer for **Windows x86 64-bit**:
 
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
                     :color: primary
 
-                    Download :octicon:`download`
+                    Windows x86 64-bit :octicon:`download`
 
     .. tab-item:: MacOS :fab:`apple`
+
+        Miniconda installer for:
 
         .. grid:: 2
 
             .. grid-item::
-
-                Miniconda installer for **MacOS x86 64-bit**:
 
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
                     :color: primary
 
-                    Download :octicon:`download`
+                    MacOS x86 64-bit :octicon:`download`
 
             .. grid-item::
-
-                Miniconda installer for **MacOS M1 64-bit**:
 
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
                     :color: primary
 
-                    Download :octicon:`download`
+                    MacOS M1 64-bit :octicon:`download`
 
     .. tab-item:: Linux :fab:`linux`
+
+        Miniconda installer for:
 
         .. grid:: 2
 
             .. grid-item::
 
-                Miniconda installer for **Linux x86 64-bit**:
-
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
                     :color: primary
 
-                    Download :octicon:`download`
+                    Linux x86 64-bit :octicon:`download`
 
     .. tab-item:: Homebrew :fa:`beer-mug-empty`
 
@@ -80,23 +78,23 @@ We recommend the following methods to install conda:
 
 .. raw:: html
 
-    <p class="text-muted text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/en/latest/">Miniconda's installation guide</a></p>
+    <p class="text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/en/latest/">Miniconda's installation guide</a></p>
 
 New to conda? :octicon:`rocket;1em;sd-text-primary`
 ...................................................
 
 If you are new to conda, we first recommend the following articles:
 
-.. grid::
+.. grid:: 1 2 2 2
     :gutter: 2
 
-    .. grid-item-card:: Getting started guide
+    .. grid-item-card:: Getting started guide :octicon:`rocket;1em;sd-text-primary`
         :link: /user-guide/getting-started
         :link-type: doc
 
         Learn the basics of using conda such as creating and adding packages to environments
 
-    .. grid-item-card:: Managing environments
+    .. grid-item-card:: Managing environments :octicon:`file-submodule;1em;sd-text-primary`
         :link: /user-guide/tasks/manage-environments
         :link-type: doc
 
@@ -110,28 +108,28 @@ If you are new to conda, we first recommend the following articles:
 Other useful resources :octicon:`light-bulb;1em;sd-text-primary`
 ......................................................................
 
-.. grid:: 2
+.. grid:: 1 2 2 2
     :gutter: 2
 
-    .. grid-item-card:: Command reference
+    .. grid-item-card:: Command reference :octicon:`terminal;1em;sd-text-primary`
         :link: /commands/index
         :link-type: doc
 
         Full reference for all standard commands and options
 
-    .. grid-item-card:: Cheatsheets
+    .. grid-item-card:: Cheatsheets :octicon:`note;1em;sd-text-primary`
         :link: /user-guide/cheatsheet
         :link-type: doc
 
         Get the latest cheatsheet for commonly used commands
 
-    .. grid-item-card:: Configuring conda
+    .. grid-item-card:: Configuring conda :octicon:`gear;1em;sd-text-primary`
         :link: /user-guide/configuration/use-condarc
         :link-type: doc
 
         Learn about the various ways conda's behavior can be configured
 
-    .. grid-item-card:: Glossary
+    .. grid-item-card:: Glossary :octicon:`book;1em;sd-text-primary`
         :link: /glossary
         :link-type: doc
 
@@ -145,16 +143,16 @@ Conda is an open source project and always welcomes new contributions.
 Please read the following guides to get started developing conda and
 making your own contributions.
 
-.. grid:: 2
+.. grid:: 1 2 2 2
     :gutter: 2
 
-    .. grid-item-card:: Contributing 101
+    .. grid-item-card:: Contributing 101 :octicon:`people;1em;sd-text-primary`
         :link: /dev-guide/contributing
         :link-type: doc
 
         Learn more about how the conda project is managed and how to contribute
 
-    .. grid-item-card:: Development environment
+    .. grid-item-card:: Development environment :octicon:`file-code;1em;sd-text-primary`
         :link: /dev-guide/development-environment
         :link-type: doc
 
