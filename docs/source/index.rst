@@ -98,7 +98,7 @@ If you are new to conda, we first recommend the following articles:
         :link: /user-guide/tasks/manage-environments/
         :link-type: doc
 
-        Go in depth about environments and best practices for using them in your projects
+        Learn more about environments and best practices for using them in your projects
 
 .. seealso::
 
