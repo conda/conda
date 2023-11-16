@@ -302,6 +302,8 @@ class _SignatureVerification:
     @classmethod
     def cache_clear(cls) -> None:
         cls.enabled.fget.cache_clear()
+        cls.trusted_root.fget.cache_clear()
+        cls.key_mgr.fget.cache_clear()
 
 
 # singleton for caching

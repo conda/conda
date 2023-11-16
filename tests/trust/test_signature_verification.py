@@ -19,8 +19,15 @@ from conda.testing import PathFactoryFixture
 from conda.trust.constants import KEY_MGR_FILE
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
-_TESTDATA = Path(__file__).parent / "testdata"
+TESTDATA = Path(__file__).parent / "testdata"
 HTTP404 = HTTPError(response=SimpleNamespace(status_code=404))
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    _SignatureVerification.cache_clear()
+    yield
+    _SignatureVerification.cache_clear()
 
 
 @pytest.fixture
@@ -39,14 +46,14 @@ def av_data_dir(mocker: MockerFixture, path_factory: PathFactoryFixture) -> Path
 def initial_trust_root(av_data_dir: Path, mocker: MockerFixture) -> dict:
     mocker.patch(
         "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=(initial_trust_root := json.loads((_TESTDATA / "1.root.json").read_text())),
+        new=(initial_trust_root := json.loads((TESTDATA / "1.root.json").read_text())),
     )
     return initial_trust_root
 
 
 @pytest.fixture
 def key_mgr(av_data_dir: Path, mocker: MockerFixture) -> dict:
-    copyfile(key_mgr := _TESTDATA / "key_mgr.json", av_data_dir / KEY_MGR_FILE)
+    copyfile(key_mgr := TESTDATA / "key_mgr.json", av_data_dir / KEY_MGR_FILE)
     return json.loads(key_mgr.read_text())
 
 
@@ -87,7 +94,7 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     (2.root.json). Use this new version if it is valid.
     """
     # copy 2.root.json to disk
-    copyfile(_TESTDATA / "2.root.json", path := av_data_dir / "2.root.json")
+    copyfile(TESTDATA / "2.root.json", path := av_data_dir / "2.root.json")
 
     # load 2.root.json
     root2 = json.loads(path.read_text())
@@ -111,7 +118,7 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     online. In this case, our deliberate choice is to accept whatever on disk.
     """
     # copy 2.root_invalid.json to disk
-    copyfile(_TESTDATA / "2.root_invalid.json", path := av_data_dir / "2.root.json")
+    copyfile(TESTDATA / "2.root_invalid.json", path := av_data_dir / "2.root.json")
 
     # load 2.root.json
     root2 = json.loads(path.read_text())
@@ -134,7 +141,7 @@ def test_2nd_root_metadata_from_web(
     Test happy case where we get a new valid root metadata from the web
     """
     # load 2.root.json
-    root2 = json.loads((_TESTDATA / "2.root.json").read_text())
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
 
     # return 2.root.json then HTTPError(404)
     mock_fetch_channel_signing_data(root2, HTTP404)
@@ -154,8 +161,8 @@ def test_3rd_root_metadata_from_web(
     Test happy case where we get a chain of valid root metadata from the web
     """
     # load 2.root.json and 3.root.json
-    root2 = json.loads((_TESTDATA / "2.root.json").read_text())
-    root3 = json.loads((_TESTDATA / "3.root.json").read_text())
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+    root3 = json.loads((TESTDATA / "3.root.json").read_text())
 
     # return 2.root.json, 3.root.json, then HTTPError(404)
     mock_fetch_channel_signing_data(root2, root3, HTTP404)
@@ -175,8 +182,8 @@ def test_single_invalid_signature_3rd_root_metadata_from_web(
     Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
     """
     # load 2.root.json and 3.root_invalid.json
-    root2 = json.loads((_TESTDATA / "2.root.json").read_text())
-    root3 = json.loads((_TESTDATA / "3.root_invalid.json").read_text())
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+    root3 = json.loads((TESTDATA / "3.root_invalid.json").read_text())
 
     # return 2.root.json then 3.root.json
     mock_fetch_channel_signing_data(root2, root3)
@@ -232,7 +239,7 @@ def test_trusted_root_new_key_mgr_online(
     We should accept the new key_mgr
     """
     # load key_mgr.json
-    key_mgr = json.loads((_TESTDATA / "key_mgr.json").read_text())
+    key_mgr = json.loads((TESTDATA / "key_mgr.json").read_text())
 
     # return key_mgr.json then HTTPError(404)
     mock_fetch_channel_signing_data(key_mgr, HTTP404)
@@ -257,7 +264,7 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     Instead, we raise a SignatureError
     """
     # load key_mgr_invalid.json
-    key_mgr = json.loads((_TESTDATA / "key_mgr_invalid.json").read_text())
+    key_mgr = json.loads((TESTDATA / "key_mgr_invalid.json").read_text())
 
     # return key_mgr_invalid.json then HTTPError(404)
     mock_fetch_channel_signing_data(key_mgr, HTTP404)
@@ -319,7 +326,7 @@ def test_signature_verification(
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
         new_callable=mocker.PropertyMock,
-        return_value=_TESTDATA / "signed",
+        return_value=TESTDATA,
     )
 
     # mock out the cache path base
@@ -339,7 +346,7 @@ def test_signature_verification(
     assert context.signing_metadata_url_base == url
 
     # load repodata.json with signatures
-    src = _TESTDATA / "signed" / "repodata_short_signed_sample.json"
+    src = TESTDATA / "repodata.json"
     repodata = json.loads(src.read_text())
 
     # copy repodata.json to cache path
