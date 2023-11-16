@@ -2,7 +2,7 @@
 Downloading conda
 =================
 
-You have 3 conda download options:
+You have three conda download options:
 
 * `Download Anaconda <https://www.anaconda.com/download/>`_---free.
 

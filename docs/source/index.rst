@@ -2,7 +2,7 @@
 Conda Documentation
 ===================
 
-Welcome to conda's documentation! Conda provides package, dependency and environment
+Welcome to conda's documentation! Conda provides package, dependency, and environment
 management for any language. Here, you will find everything you need to get started
 using conda in your own projects.
 
@@ -156,7 +156,7 @@ making your own contributions.
         :link: /dev-guide/development-environment
         :link-type: doc
 
-        Follow this guide to get your own development environment set up.
+        Follow this guide to get your own development environment set up
 
 
 
