@@ -1057,6 +1057,8 @@ class RegisterEnvironmentLocationAction(PathAction):
     def execute(self):
         log.trace("registering environment in catalog %s", self.target_prefix)
 
+        if not self._verified:
+            self.verify()
         register_env(self.target_prefix)
         self._execute_successful = True
 
