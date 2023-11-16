@@ -26,7 +26,7 @@ We recommend the following methods to install conda:
 
                     Windows x86 64-bit :octicon:`download`
 
-    .. tab-item:: MacOS :fab:`apple`
+    .. tab-item:: macOS :fab:`apple`
 
         Miniconda installer for:
 
@@ -37,14 +37,14 @@ We recommend the following methods to install conda:
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
                     :color: primary
 
-                    MacOS x86 64-bit :octicon:`download`
+                    macOS x86 64-bit :octicon:`download`
 
             .. grid-item::
 
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
                     :color: primary
 
-                    MacOS M1 64-bit :octicon:`download`
+                    macOS M1 64-bit :octicon:`download`
 
     .. tab-item:: Linux :fab:`linux`
 
@@ -78,7 +78,7 @@ We recommend the following methods to install conda:
 
 .. raw:: html
 
-    <p class="text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/en/latest/">Miniconda's installation guide</a></p>
+    <p class="text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/">Miniconda's installation guide</a></p>
 
 New to conda? :octicon:`rocket;1em;sd-text-primary`
 ...................................................
@@ -89,13 +89,13 @@ If you are new to conda, we first recommend the following articles:
     :gutter: 2
 
     .. grid-item-card:: Getting started guide :octicon:`rocket;1em;sd-text-primary`
-        :link: /user-guide/getting-started
+        :link: /user-guide/getting-started/
         :link-type: doc
 
         Learn the basics of using conda such as creating and adding packages to environments
 
     .. grid-item-card:: Managing environments :octicon:`file-submodule;1em;sd-text-primary`
-        :link: /user-guide/tasks/manage-environments
+        :link: /user-guide/tasks/manage-environments/
         :link-type: doc
 
         Go in depth about environments and best practices for using them in your projects
@@ -112,25 +112,25 @@ Other useful resources :octicon:`light-bulb;1em;sd-text-primary`
     :gutter: 2
 
     .. grid-item-card:: Command reference :octicon:`terminal;1em;sd-text-primary`
-        :link: /commands/index
+        :link: /commands/index/
         :link-type: doc
 
         Full reference for all standard commands and options
 
     .. grid-item-card:: Cheatsheets :octicon:`note;1em;sd-text-primary`
-        :link: /user-guide/cheatsheet
+        :link: /user-guide/cheatsheet/
         :link-type: doc
 
         Get the latest cheatsheet for commonly used commands
 
     .. grid-item-card:: Configuring conda :octicon:`gear;1em;sd-text-primary`
-        :link: /user-guide/configuration/use-condarc
+        :link: /user-guide/configuration/use-condarc/
         :link-type: doc
 
         Learn about the various ways conda's behavior can be configured
 
     .. grid-item-card:: Glossary :octicon:`book;1em;sd-text-primary`
-        :link: /glossary
+        :link: /glossary/
         :link-type: doc
 
         Important vocabulary to know when working with conda
@@ -147,13 +147,13 @@ making your own contributions.
     :gutter: 2
 
     .. grid-item-card:: Contributing 101 :octicon:`people;1em;sd-text-primary`
-        :link: /dev-guide/contributing
+        :link: /dev-guide/contributing/
         :link-type: doc
 
         Learn more about how the conda project is managed and how to contribute
 
     .. grid-item-card:: Development environment :octicon:`file-code;1em;sd-text-primary`
-        :link: /dev-guide/development-environment
+        :link: /dev-guide/development-environment/
         :link-type: doc
 
         Follow this guide to get your own development environment set up
