@@ -304,15 +304,15 @@ def test_signature_verification_not_enabled(
 
 
 @pytest.mark.parametrize(
-    "package,trusted",
+    "package,signed",
     [
         ("first.tar.bz2", True),
         ("second.conda", True),
         ("third.conda", True),
-        # bad key_mgr.json pubkey
-        ("broken-0.0.1-broken.tar.bz2", False),
         # bad signature
-        ("broken-0.0.1-broken.conda", False),
+        ("broken-0.0.1-broken.tar.bz2", False),
+        # no signature
+        ("broken-0.0.1-broken.conda", None),
     ],
 )
 def test_signature_verification(
@@ -320,7 +320,7 @@ def test_signature_verification(
     monkeypatch: MonkeyPatch,
     path_factory: PathFactoryFixture,
     package: str,
-    trusted: bool,
+    signed: bool | None,
 ):
     # mock out the signature verification root path
     mocker.patch(
@@ -355,11 +355,10 @@ def test_signature_verification(
     copyfile(src, dst)
 
     # create record to verify
+    pkg = "packages.conda" if package.endswith(".conda") else "packages"
     record = PackageRecord.from_objects(
-        repodata["packages.conda" if package.endswith(".conda") else "packages"][
-            package
-        ],
-        channel=Channel.from_value(f"file://{cache_path_base}/{subdir}"),
+        repodata[pkg][package],
+        channel=Channel.from_value(f"file:///{cache_path_base}/{subdir}"),
         fn=package,
     )
 
@@ -371,7 +370,9 @@ def test_signature_verification(
     # ensure signature is valid
     sig_ver.verify(REPODATA_FN, record)
 
-    if trusted:
+    if signed:
         assert "(package metadata is TRUSTED)" in record.metadata
-    else:
+    elif signed is False:
         assert "(package metadata is UNTRUSTED)" in record.metadata
+    else:
+        assert f"(no signatures found for {package})" in record.metadata

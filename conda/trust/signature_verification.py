@@ -262,7 +262,7 @@ class _SignatureVerification:
 
         # short-circuit if no signature is defined for this package
         if record.fn not in signatures:
-            record.metadata.add(f"(no signatures found for {repodata.fn})")
+            record.metadata.add(f"(no signatures found for {record.fn})")
             return
         signature = signatures[record.fn]
 

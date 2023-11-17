@@ -151,11 +151,6 @@
   "removed": [],
   "repodata_version": 1,
   "signatures": {
-    "broken-0.0.1-broken.conda": {
-      "01d90fd731eb6f7c16215d23c23674bda7abf56490a03a10753aae99edce1b82": {
-        "signature": "0672358d85a913ee5de3bc6002a8430f1b79ddab63b0b9f43a99fed07f35212a882e9909d81c83c9eca550e93b5ccd5c406105e5f7cb8d39e5de32bdf8ede803"
-      }
-    },
     "broken-0.0.1-broken.tar.bz2": {
       "01d90fd731eb6f7c16215d23c23674bda7abf56490a03a10753aae99edce1b82": {
         "signature": "0672358d85a913ee5de3bc6002a8430f1b79ddab63b0b9f43a99fed07f35212a882e9909d81c83c9eca550e93b5ccd5c406105e5f7cb8d39e5de32bdf8ede803"
