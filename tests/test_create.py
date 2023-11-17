@@ -1001,6 +1001,7 @@ def test_allow_softlinks(hardlink_supported_mock):
 
 
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+@pytest.mark.skipif(context.subdir == "osx-arm64", reason="Skip unsupported platform")
 def test_remove_features(clear_package_cache: None, request):
     request.applymarker(
         pytest.mark.xfail(
@@ -1769,7 +1770,11 @@ def test_create_default_packages(no_default_packages: bool):
         assert not package_is_installed(prefix, "pytz")
         assert not package_is_installed(prefix, "flask")
 
-        with make_temp_env("pytz", "--no-default-packages" if no_default_packages else "", prefix=prefix):
+        args = ["pytz"]
+        if no_default_packages:
+            args += ["--no-default-packages"]
+
+        with make_temp_env(*args, prefix=prefix):
             assert package_is_installed(prefix, "pytz")
             if no_default_packages:
                 assert not package_is_installed(prefix, "flask")
