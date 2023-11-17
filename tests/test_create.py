@@ -2334,24 +2334,22 @@ def test_conda_pip_interop_compatible_release_operator():
 
 
 def test_install_freezes_env_by_default():
-    """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
-    up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
     """
-
+    We pass --no-update-deps/--freeze-installed by default, effectively.
+    This helps speed things up by not considering changes to existing stuff
+    unless the solve ends up unsatisfiable.
+    """
     # create an initial env
     with make_temp_env(
-        "python=2", use_restricted_unicode=on_win, no_capture=True
+        "python=3.11", use_restricted_unicode=on_win, no_capture=True
     ) as prefix:
-        assert package_is_installed(prefix, "python=2.7.*")
+        assert package_is_installed(prefix, "python=3.11")
         # Install a version older than the last one
-        run_command(Commands.INSTALL, prefix, "setuptools=40.*")
-
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
-
+        run_command(Commands.INSTALL, prefix, "setuptools=67.*")
+        stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
         pkgs = json.loads(stdout)
 
-        run_command(Commands.INSTALL, prefix, "imagesize", "--freeze-installed")
-
+        run_command(Commands.INSTALL, prefix, "flask", "--freeze-installed")
         stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
         pkgs_after_install = json.loads(stdout)
 
