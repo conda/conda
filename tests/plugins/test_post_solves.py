@@ -44,7 +44,7 @@ def test_post_solve_invoked(
     path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
-        with tmp_env("zlib", "--dry-run"):
+        with tmp_env("zlib", "--solver=classic", "--dry-run"):
             pass
 
     assert len(post_solve_plugin.post_solve_action.mock_calls) == 1
@@ -68,7 +68,7 @@ def test_post_solve_action_raises_exception(
     post_solve_plugin.post_solve_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):
-        with tmp_env("zlib", "--dry-run"):
+        with tmp_env("zlib", "--solver=classic", "--dry-run"):
             pass
 
     assert len(post_solve_plugin.post_solve_action.mock_calls) == 1

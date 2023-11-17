@@ -18,6 +18,7 @@ from functools import lru_cache
 from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from typing import TYPE_CHECKING
 
 try:
     from platformdirs import user_data_dir
@@ -75,6 +76,10 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
+
+if TYPE_CHECKING:
+    from ..plugins.manager import CondaPluginManager
+
 
 try:
     os.getcwd()
@@ -488,7 +493,7 @@ class Context(Configuration):
         return errors
 
     @property
-    def plugin_manager(self):
+    def plugin_manager(self) -> CondaPluginManager:
         """
         This is the preferred way of accessing the ``PluginManager`` object for this application
         and is located here to avoid problems with cyclical imports elsewhere in the code.
