@@ -364,13 +364,12 @@ jobs:
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.11']
         test-type: ['unit', 'integration']
-        test-group: ['1']
 
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
       TEST_SPLITS: 1
-      TEST_GROUP: ${{ matrix.test-group }}
+      TEST_GROUP: 1
     steps:
       - uses: actions/checkout@v3
         with:
