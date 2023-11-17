@@ -1507,25 +1507,24 @@ def test_clone_offline_multichannel_with_untracked():
 
 def test_package_pinning():
     with make_temp_env(
-        "python=2.7", "itsdangerous=0.24", "pytz=2017.3", no_capture=True
+        "python=3.10", "itsdangerous=2.0.0", "pytz=2020", no_capture=True
     ) as prefix:
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert package_is_installed(prefix, "python=2.7")
-        assert package_is_installed(prefix, "pytz=2017.3")
+        assert package_is_installed(prefix, "itsdangerous=2.0.0")
+        assert package_is_installed(prefix, "python=3.10")
+        assert package_is_installed(prefix, "pytz=2020")
 
         with open(join(prefix, "conda-meta", "pinned"), "w") as fh:
-            fh.write("itsdangerous 0.24\n")
+            fh.write("itsdangerous 2.0.0\n")
 
         run_command(Commands.UPDATE, prefix, "--all", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        # assert not package_is_installed(prefix, "python=3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
-        assert package_is_installed(prefix, "python=2.7")
-        assert not package_is_installed(prefix, "pytz=2017.3")
+        assert package_is_installed(prefix, "itsdangerous=2.0.0")
+        assert package_is_installed(prefix, "python=3.10")
+        assert not package_is_installed(prefix, "pytz=2020")
         assert package_is_installed(prefix, "pytz")
 
         run_command(Commands.UPDATE, prefix, "--all", "--no-pin", no_capture=True)
-        assert package_is_installed(prefix, "python=2.7")
-        assert not package_is_installed(prefix, "itsdangerous=0.24")
+        assert package_is_installed(prefix, "python=3.10")
+        assert not package_is_installed(prefix, "itsdangerous=2.0.0")
 
 
 def test_update_all_updates_pip_pkg():
@@ -1586,14 +1585,14 @@ def test_update_deps_flag_absent():
 
 
 def test_update_deps_flag_present():
-    with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
+    with make_temp_env("python=3", "itsdangerous=2.0.0") as prefix:
+        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "itsdangerous=2.0.0")
         assert not package_is_installed(prefix, "flask")
 
-        run_command(Commands.INSTALL, prefix, "--update-deps", "python=2", "flask")
-        assert package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "itsdangerous=0.24")
+        run_command(Commands.INSTALL, prefix, "--update-deps", "python=3", "flask")
+        assert package_is_installed(prefix, "python=3")
+        assert not package_is_installed(prefix, "itsdangerous=2.0.0")
         assert package_is_installed(prefix, "itsdangerous")
         assert package_is_installed(prefix, "flask")
 
@@ -2985,12 +2984,12 @@ def test_post_link_run_in_env():
 
 
 def test_conda_info_python():
-    output, _, _ = run_command(Commands.INFO, None, "python=3.5")
-    assert "python 3.5.4" in output
+    output, _, _ = run_command(Commands.INFO, None, "python=3.10")
+    assert "python 3.10" in output
 
 
 def test_toolz_cytoolz_package_cache_regression():
-    with make_temp_env("python=3.5", use_restricted_unicode=on_win) as prefix:
+    with make_temp_env("python=3.10", use_restricted_unicode=on_win) as prefix:
         pkgs_dir = join(prefix, "pkgs")
         with env_var(
             "CONDA_PKGS_DIRS",
