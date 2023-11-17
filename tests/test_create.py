@@ -233,7 +233,7 @@ def test_create_install_update_remove_smoketest(
 
 def test_install_broken_post_install_keeps_existing_folders():
     # regression test for https://github.com/conda/conda/issues/8258
-    with make_temp_env("python=3.5") as prefix:
+    with make_temp_env("python=3") as prefix:
         assert exists(join(prefix, BIN_DIRECTORY))
         assert package_is_installed(prefix, "python=3")
 
@@ -1100,9 +1100,9 @@ def test_install_force_reinstall_flag():
 
 
 def test_create_no_deps_flag():
-    with make_temp_env("python=2", "flask", "--no-deps") as prefix:
+    with make_temp_env("python=3", "flask", "--no-deps") as prefix:
         assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=2")
+        assert package_is_installed(prefix, "python=3")
         assert not package_is_installed(prefix, "openssl")
         assert not package_is_installed(prefix, "itsdangerous")
 
@@ -1186,6 +1186,7 @@ def test_install_update_deps_only_deps_flags(
 
 
 @pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
+@pytest.mark.skipif(context.subdir == "osx-arm64", reason="Skip unsupported platform")
 def test_install_features(clear_package_cache: None, request):
     # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
     request.applymarker(
@@ -1755,55 +1756,26 @@ def test_menuinst_v2(monkeypatch: MonkeyPatch):
         raise NotImplementedError(sys.platform)
 
 
-def test_create_default_packages():
+@pytest.mark.parametrize("no_default_packages", [True, False])
+def test_create_default_packages(no_default_packages: bool):
     # Regression test for #3453
     try:
         prefix = make_temp_prefix(str(uuid4())[:7])
-
-        # set packages
-        run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
         run_command(
             Commands.CONFIG, prefix, "--add", "create_default_packages", "flask"
         )
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
+        stdout, _, _ = run_command(Commands.CONFIG, prefix, "--show")
         yml_obj = yaml_round_trip_load(stdout)
-        assert yml_obj["create_default_packages"] == ["flask", "pip"]
-
-        assert not package_is_installed(prefix, "python=2")
+        assert yml_obj["create_default_packages"] == ["flask"]
         assert not package_is_installed(prefix, "pytz")
         assert not package_is_installed(prefix, "flask")
 
-        with make_temp_env("python=2", "pytz", prefix=prefix):
-            assert package_is_installed(prefix, "python=2")
+        with make_temp_env("pytz", "--no-default-packages" if no_default_packages else "", prefix=prefix):
             assert package_is_installed(prefix, "pytz")
-            assert package_is_installed(prefix, "flask")
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
-
-
-def test_create_default_packages_no_default_packages():
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-
-        # set packages
-        run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
-        run_command(
-            Commands.CONFIG, prefix, "--add", "create_default_packages", "flask"
-        )
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert yml_obj["create_default_packages"] == ["flask", "pip"]
-
-        assert not package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "pytz")
-        assert not package_is_installed(prefix, "flask")
-
-        with make_temp_env("python=2", "pytz", "--no-default-packages", prefix=prefix):
-            assert package_is_installed(prefix, "python=2")
-            assert package_is_installed(prefix, "pytz")
-            assert not package_is_installed(prefix, "flask")
-
+            if no_default_packages:
+                assert not package_is_installed(prefix, "flask")
+            else:
+                assert package_is_installed(prefix, "flask")
     finally:
         rmtree(prefix, ignore_errors=True)
 
@@ -2990,20 +2962,16 @@ def test_conda_downgrade():
             assert conda_info["conda_version"] == "4.6.14"
 
 
-@pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
-@pytest.mark.skipif(context.subdir == "osx-arm64")
 def test_run_script_called():
     import conda.core.link
 
     with patch.object(conda.core.link, "subprocess_call") as rs:
         rs.return_value = Response(None, None, 0)
         with make_temp_env(
-            "-c",
-            "http://repo.anaconda.com/pkgs/free",
-            "openssl=1.0.2j",
+            "python.app=3",
             "--no-deps",
         ) as prefix:
-            assert package_is_installed(prefix, "openssl")
+            assert package_is_installed(prefix, "python.app")
             assert rs.call_count == 1
 
 
@@ -3037,7 +3005,7 @@ def test_toolz_cytoolz_package_cache_regression():
 
 
 def test_remove_spellcheck():
-    with make_temp_env("numpy=1.12") as prefix:
+    with make_temp_env("numpy=1.26") as prefix:
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "numpy")
 
@@ -3113,8 +3081,8 @@ def test_cross_channel_incompatibility():
             "-c",
             "conda-forge",
             "python",
-            "boost==1.70.0",
-            "boost-cpp==1.70.0",
+            "boost==1.82.0",
+            "boost-cpp==1.82.0",
             no_capture=True,
         )
 
