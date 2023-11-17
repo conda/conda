@@ -361,29 +361,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        default-channel: ['defaults']
-        python-version: ['3.10']
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.11']
         test-type: ['unit', 'integration']
-        test-group: ['1', '2', '3']
-        # fewer test splits for quicker unit tests, keep 3 splits for integration
-        test-splits: [2, 3]
-        exclude:
-          - test-type: unit
-            test-group: '3'
-          - test-type: unit
-            test-splits: 3
-          - test-type: integration
-            test-splits: 2
-          # odd choice kept for parity with previous commit
-          - test-type: integration
-            default-channel: 'conda-forge'
-          - test-type: unit
-            default-channel: 'defaults'
+        test-group: ['1']
 
     env:
       OS: macOS
       PYTHON: ${{ matrix.python-version }}
-      TEST_SPLITS: ${{ matrix.test-splits }}
+      TEST_SPLITS: 1
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
       - uses: actions/checkout@v3
