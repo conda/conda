@@ -31,6 +31,26 @@ Use [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to bootstrap a m
 that only includes conda and its dependencies.
 
 
+## Updating conda
+
+To update `conda` to the newest version, use the following command.
+
+```
+$ conda update -n base conda
+```
+
+It is possible that `conda update` does not install the newest version
+if the existing `conda` version is far behind the current release.
+In this case, updating needs to be done in stages.
+
+For example, to update from `conda 4.12` to `conda 23.10.0`,
+`conda 22.11.1` needs to be installed first.
+
+```
+$ conda install -n base conda=22.11.1
+$ conda update conda
+```
+
 ## Getting Started
 
 If you install the Anaconda Distribution, you will already have hundreds of packages
