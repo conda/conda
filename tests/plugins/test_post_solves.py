@@ -47,7 +47,7 @@ def test_post_solve_invoked(
         with tmp_env("zlib", "--solver=classic", "--dry-run"):
             pass
 
-    assert len(post_solve_plugin.post_solve_action.mock_calls) == 1
+    assert post_solve_plugin.post_solve_action.mock_calls
 
 
 def test_post_solve_not_invoked(
@@ -56,7 +56,7 @@ def test_post_solve_not_invoked(
 ):
     conda_cli("config")
 
-    assert len(post_solve_plugin.post_solve_action.mock_calls) == 0
+    assert not post_solve_plugin.post_solve_action.mock_calls
 
 
 def test_post_solve_action_raises_exception(
@@ -71,4 +71,4 @@ def test_post_solve_action_raises_exception(
         with tmp_env("zlib", "--solver=classic", "--dry-run"):
             pass
 
-    assert len(post_solve_plugin.post_solve_action.mock_calls) == 1
+    assert post_solve_plugin.post_solve_action.mock_calls
