@@ -1591,7 +1591,7 @@ class Context(Configuration):
             ),
             override_channels_enabled=dals(
                 """
-                Permit use of the --overide-channels command-line flag.
+                Permit use of the --override-channels command-line flag.
                 """
             ),
             path_conflict=dals(

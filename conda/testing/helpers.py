@@ -228,6 +228,7 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     state = subdir_data._internal_state
     subdir = subdir_data.channel.subdir
     packages = {}
+    packages_conda = {}
     for pkg in subdir_data.iter_records():
         data = pkg.dump()
         if subdir == "noarch" and getattr(pkg, "noarch", None):
@@ -243,7 +244,10 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
             # tests pass
             data["track_features"] = data["features"]
             del data["features"]
-        packages[pkg.fn] = data
+        if pkg.fn.endswith(".conda"):
+            packages_conda[pkg.fn] = data
+        else:
+            packages[pkg.fn] = data
     return {
         "_cache_control": state["_cache_control"],
         "_etag": state["_etag"],
@@ -254,6 +258,7 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
             "subdir": subdir,
         },
         "packages": packages,
+        "packages.conda": packages_conda,
     }
 
 
@@ -267,7 +272,9 @@ def _sync_channel_to_disk(subdir_data: SubdirData):
     subdir_path = base / subdir_data.channel.subdir
     subdir_path.mkdir(parents=True, exist_ok=True)
     with open(subdir_path / "repodata.json", "w") as f:
-        json.dump(_export_subdir_data_to_repodata(subdir_data), f, indent=2)
+        json.dump(
+            _export_subdir_data_to_repodata(subdir_data), f, indent=2, sort_keys=True
+        )
         f.flush()
         os.fsync(f.fileno())
 
