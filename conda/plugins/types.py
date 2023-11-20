@@ -15,8 +15,8 @@ from typing import Callable, NamedTuple
 from requests.auth import AuthBase
 
 from ..core.solve import Solver
-from ..models.match_spec import MatchSpecSequence
-from ..models.records import PackageRecordSequence
+from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
 
 
 @dataclass
@@ -167,7 +167,7 @@ class CondaPreSolve:
     """
 
     name: str
-    action: Callable[[MatchSpecSequence, MatchSpecSequence], None]
+    action: Callable[[frozenset[MatchSpec], frozenset[MatchSpec]], None]
 
 
 @dataclass
@@ -183,4 +183,4 @@ class CondaPostSolve:
     """
 
     name: str
-    action: Callable[[str, PackageRecordSequence, PackageRecordSequence], None]
+    action: Callable[[str, tuple[PackageRecord, ...], tuple[PackageRecord, ...]], None]

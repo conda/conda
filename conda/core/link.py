@@ -59,7 +59,7 @@ from ..gateways.disk.test import (
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.package_info import PackageInfo
-from ..models.records import PackageRecord, PackageRecordSequence
+from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
@@ -163,8 +163,8 @@ def match_specs_to_dists(packages_info_to_link, specs):
 
 class PrefixSetup(NamedTuple):
     target_prefix: str
-    unlink_precs: PackageRecordSequence
-    link_precs: PackageRecordSequence
+    unlink_precs: tuple[PackageRecord, ...]
+    link_precs: tuple[PackageRecord, ...]
     remove_specs: tuple[MatchSpec, ...]
     update_specs: tuple[MatchSpec, ...]
     neutered_specs: tuple[MatchSpec, ...]

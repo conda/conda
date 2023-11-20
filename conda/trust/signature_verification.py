@@ -31,7 +31,7 @@ from ..common.url import join_url
 from ..core.subdir_data import SubdirData
 from ..gateways.connection import HTTPError, InsecureRequestWarning
 from ..gateways.connection.session import get_session
-from ..models.records import PackageRecord, PackageRecordSequence
+from ..models.records import PackageRecord
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 log = getLogger(__name__)
@@ -290,8 +290,8 @@ class _SignatureVerification:
     def __call__(
         self,
         repodata_fn: str,
-        unlink_precs: PackageRecordSequence,
-        link_precs: PackageRecordSequence,
+        unlink_precs: tuple[PackageRecord, ...],
+        link_precs: tuple[PackageRecord, ...],
     ) -> None:
         if not self.enabled:
             return

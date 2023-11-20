@@ -15,7 +15,6 @@ Object inheritance:
 from __future__ import annotations
 
 from os.path import basename, join
-from typing import Tuple
 
 try:
     from boltons.timeutils import dt_to_timestamp, isoparse
@@ -421,9 +420,6 @@ class PackageRecord(DictSafeMixin, Entity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.metadata = set()
-
-
-PackageRecordSequence = Tuple[PackageRecord, ...]
 
 
 class Md5Field(StringField):

@@ -251,12 +251,12 @@ class CondaSpecs:
         .. code-block:: python
 
            from conda import plugins
-           from conda.models.match_spec import MatchSpecSequence
+           from conda.models.match_spec import MatchSpec
 
 
            def example_pre_solve(
-               specs_to_add: MatchSpecSequence,
-               specs_to_remove: MatchSpecSequence,
+               specs_to_add: frozenset[MatchSpec],
+               specs_to_remove: frozenset[MatchSpec],
            ):
                print(f"Adding {len(specs_to_add)} packages")
                print(f"Removing {len(specs_to_remove)} packages")
@@ -282,13 +282,13 @@ class CondaSpecs:
         .. code-block:: python
 
            from conda import plugins
-           from conda.models.records import PackageRecordSequence
+           from conda.models.records import PackageRecord
 
 
            def example_post_solve(
                repodata_fn: str,
-               unlink_precs: PackageRecordSequence,
-               link_precs: PackageRecordSequence,
+               unlink_precs: tuple[PackageRecord, ...],
+               link_precs: tuple[PackageRecord, ...],
            ):
                print(f"Uninstalling {len(unlink_precs)} packages")
                print(f"Installing {len(link_precs)} packages")

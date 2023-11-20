@@ -38,7 +38,7 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import PackageRecordSequence
+from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
@@ -184,7 +184,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ) -> tuple[PackageRecordSequence, PackageRecordSequence]:
+    ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -1414,7 +1414,7 @@ def diff_for_unlink_link_precs(
     final_precs,
     specs_to_add=(),
     force_reinstall=NULL,
-) -> tuple[PackageRecordSequence, PackageRecordSequence]:
+) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
         assert hasattr(

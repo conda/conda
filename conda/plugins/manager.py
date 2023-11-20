@@ -22,8 +22,8 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from ..models.match_spec import MatchSpecSequence
-from ..models.records import PackageRecordSequence
+from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
@@ -323,8 +323,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def invoke_pre_solves(
         self,
-        specs_to_add: MatchSpecSequence,
-        specs_to_remove: MatchSpecSequence,
+        specs_to_add: frozenset[MatchSpec],
+        specs_to_remove: frozenset[MatchSpec],
     ) -> None:
         """
         Invokes ``CondaPreSolve.action`` functions registered with ``conda_pre_solves``.
@@ -338,8 +338,8 @@ class CondaPluginManager(pluggy.PluginManager):
     def invoke_post_solves(
         self,
         repodata_fn: str,
-        unlink_precs: PackageRecordSequence,
-        link_precs: PackageRecordSequence,
+        unlink_precs: tuple[PackageRecord, ...],
+        link_precs: tuple[PackageRecord, ...],
     ) -> None:
         """
         Invokes ``CondaPostSolve.action`` functions registered with ``conda_post_solves``.
