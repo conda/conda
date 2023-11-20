@@ -343,10 +343,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :param specs_to_remove:
         """
         for hook in self.get_hook_results("pre_solves"):
-            try:
-                hook.action(specs_to_add, specs_to_remove)
-            except Exception as err:
-                log.warning("Error running pre-solve: %s (%r)", hook.name, err)
+            hook.action(specs_to_add, specs_to_remove)
 
     def invoke_post_solves(
         self,
@@ -362,10 +359,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :param link_precs:
         """
         for hook in self.get_hook_results("post_solves"):
-            try:
-                hook.action(repodata_fn, unlink_precs, link_precs)
-            except Exception as err:
-                log.warning("Error running post-solve: %s (%r)", hook.name, err)
+            hook.action(repodata_fn, unlink_precs, link_precs)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
