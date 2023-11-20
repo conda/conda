@@ -122,31 +122,31 @@ jobs:
         run: |
           call .\dev\windows\setup.bat
       
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 120
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
+      #   timeout-minutes: 120
 
-      # - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
-      #   shell: cmd
-      #   run: |
-      #     call .\dev\windows\${{ matrix.test-type }}.bat
+      - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
+        shell: cmd
+        run: |
+          call .\dev\windows\${{ matrix.test-type }}.bat
 
-      # - uses: codecov/codecov-action@v3
-      #   with:
-      #     flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+      - uses: codecov/codecov-action@v3
+        with:
+          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
-      # - name: Upload test results
-      #   if: '!cancelled()'
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
-      #     # when locally dowloading and comparing results of different workflow runs.
-      #     name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
-      #     path: |
-      #       .coverage
-      #       .\tools\durations\${{ runner.os }}.json
-      #       test-report.xml
-      #     retention-days: 1
+      - name: Upload test results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v3
+        with:
+          # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
+          # when locally dowloading and comparing results of different workflow runs.
+          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          path: |
+            .coverage
+            .\tools\durations\${{ runner.os }}.json
+            test-report.xml
+          retention-days: 1
 
   # linux test suite
   linux:
