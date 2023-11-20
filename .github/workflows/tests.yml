@@ -69,8 +69,8 @@ jobs:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        default-channel: ['conda-forge'] # ['defaults', 'conda-forge']
-        python-version: ['3.11'] # ['3.8', '3.11']
+        default-channel: ['defaults', 'conda-forge']
+        python-version: ['3.8', '3.11']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -121,10 +121,6 @@ jobs:
           CONDA_CHANNEL_PRIORITY: strict
         run: |
           call .\dev\windows\setup.bat
-      
-      # - name: Setup tmate session
-      #   uses: mxschmitt/action-tmate@v3
-      #   timeout-minutes: 120
 
       - name: Python ${{ matrix.python-version }} on ${{ matrix.default-channel }}, ${{ matrix.test-type }} tests, group ${{ matrix.test-group }}
         shell: cmd
@@ -152,7 +148,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: false  # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     strategy:
@@ -210,7 +206,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: false  # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -260,7 +256,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: false   # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: macos-latest
     strategy:
