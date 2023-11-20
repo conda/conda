@@ -71,8 +71,8 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['conda-forge'] # ['defaults', 'conda-forge']
         python-version: ['3.11'] # ['3.8', '3.11']
-        test-type: ['unit'] # ['unit', 'integration']
-        test-group: ['1'] # ['1', '2', '3']
+        test-type: ['unit', 'integration']
+        test-group: ['1', '2', '3']
         exclude:
           - default-channel: 'conda-forge'
             python-version: '3.8'
