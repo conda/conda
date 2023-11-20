@@ -571,7 +571,7 @@ class MakeMenuAction(CreateInPrefixPathAction):
             not context.shortcuts_only
             or (shorcuts_only_lower and package_info.name.lower() in shorcuts_only_lower)
         ):
-            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
+            MENU_RE = re.compile(r"^menu[\\/].*\.json$", re.IGNORECASE)
             return tuple(
                 cls(transaction_context, package_info, target_prefix, spi.path)
                 for spi in package_info.paths_data.paths
