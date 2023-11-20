@@ -19,7 +19,10 @@ from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
 
-from platformdirs import user_data_dir
+try:
+    from platformdirs import user_data_dir
+except ImportError:  # pragma: no cover
+    from .._vendor.appdirs import user_data_dir
 
 try:
     from boltons.setutils import IndexedSet
@@ -1098,10 +1101,13 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from .._vendor.distro import id, version
-
             try:
-                distinfo = id(), version(best=True)
+                try:
+                    import distro
+                except ImportError:
+                    from .._vendor import distro
+
+                distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
                 log.debug("%r", e, exc_info=True)
                 distinfo = ("Linux", "unknown")
@@ -1588,7 +1594,7 @@ class Context(Configuration):
             ),
             override_channels_enabled=dals(
                 """
-                Permit use of the --overide-channels command-line flag.
+                Permit use of the --override-channels command-line flag.
                 """
             ),
             path_conflict=dals(
