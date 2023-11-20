@@ -31,7 +31,9 @@ from .types import (
     CondaAuthHandler,
     CondaHealthCheck,
     CondaPostCommand,
+    CondaPostSolve,
     CondaPreCommand,
+    CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -176,6 +178,14 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["health_checks"]
     ) -> list[CondaHealthCheck]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
         ...
 
     def get_hook_results(self, name):
@@ -333,7 +343,10 @@ class CondaPluginManager(pluggy.PluginManager):
         :param specs_to_remove:
         """
         for hook in self.get_hook_results("pre_solves"):
-            hook.action(specs_to_add, specs_to_remove)
+            try:
+                hook.action(specs_to_add, specs_to_remove)
+            except Exception as err:
+                log.warning("Error running pre-solve: %s (%r)", hook.name, err)
 
     def invoke_post_solves(
         self,
@@ -349,7 +362,10 @@ class CondaPluginManager(pluggy.PluginManager):
         :param link_precs:
         """
         for hook in self.get_hook_results("post_solves"):
-            hook.action(repodata_fn, unlink_precs, link_precs)
+            try:
+                hook.action(repodata_fn, unlink_precs, link_precs)
+            except Exception as err:
+                log.warning("Error running post-solve: %s (%r)", hook.name, err)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
