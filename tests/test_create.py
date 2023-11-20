@@ -1686,6 +1686,9 @@ def test_shortcut_absent_when_condarc_set():
         rmtree(prefix, ignore_errors=True)
         if isfile(shortcut_file):
             os.remove(shortcut_file)
+        # even if the $PREFIX/.condarc is gone,
+        # the context object still has that config in memory
+        reset_context()
 
 
 def test_menuinst_v2(monkeypatch: MonkeyPatch):
