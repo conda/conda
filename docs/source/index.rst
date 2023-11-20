@@ -67,15 +67,6 @@ We recommend the following methods to install conda:
 
             brew install miniconda
 
-    .. tab-item:: Chocolatey :octicon:`terminal` :fab:`windows`
-
-        Run the following `Chocolatey <https://chocolatey.org/>`_ command:
-
-        .. code-block:: bash
-
-            choco install miniconda3
-
-
 .. raw:: html
 
     <p class="text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/">Miniconda's installation guide</a></p>
