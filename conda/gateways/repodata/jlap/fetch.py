@@ -28,7 +28,7 @@ from .. import (
 )
 from . import accumulate
 from .accumulate import JSONLoader, RepodataPatchAccumulator
-from .core import JLAP
+from .core import DEFAULT_IV, JLAP
 
 log = logging.getLogger(__name__)
 
@@ -597,7 +597,7 @@ def request_url_jlap_state_plus_overlay(
                 log.exception("Error parsing jlap", exc_info=e)
                 # a 'latest' hash that we can't achieve, triggering later error handling
                 buffer = JLAP(
-                    [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
+                    [[-1, "", ""], [0, json.dumps({LATEST: DEFAULT_IV.hex()}), ""], [1, "", ""]]
                 )
                 state.set_has_format("jlap", False)
 
