@@ -23,6 +23,11 @@ python:
   install:
     - requirements: docs/requirements.txt
 
+sphinx:
+  configuration: docs/source/conf.py
+  # Fail on all warnings to avoid broken references
+  fail_on_warning: true
+
 # Build PDF, ePub and zipped HTML
 formats:
   - epub

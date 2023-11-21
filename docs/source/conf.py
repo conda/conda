@@ -51,6 +51,12 @@ smartquotes = False
 # unit titles (such as .. function::).
 add_module_names = False
 
+# Warn about all references where the target cannot be found
+nitpicky = True
+
+nitpick_ignore = [
+    ("py:class", "any"),
+]
 
 # -- Options for HTML output ----------------------------------------------
 
