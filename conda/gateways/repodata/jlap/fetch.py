@@ -252,7 +252,7 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher),
+                HashWriter(dest_path.open("wb"), hasher),  # type: ignore
                 closefd=True,
             )
         else:
@@ -594,10 +594,21 @@ def request_url_jlap_state_plus_overlay(
             try:
                 buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
             except (ValueError, IndexError) as e:
-                log.exception("Error parsing jlap", exc_info=e)
+                # Maintain similar error handling to above "partial jlap"
+                # handler. Is there a bug causing this to sometimes raise an
+                # exception, since the complete jlap should always have a good
+                # checksum?
+                if isinstance(e, ValueError):
+                    log.info("Checksum not OK on complete JLAP.")
+                elif isinstance(e, ValueError):
+                    log.exception("IndexError reading complete JLAP. Invalid file?")
                 # a 'latest' hash that we can't achieve, triggering later error handling
                 buffer = JLAP(
-                    [[-1, "", ""], [0, json.dumps({LATEST: DEFAULT_IV.hex()}), ""], [1, "", ""]]
+                    [
+                        [-1, "", ""],
+                        [0, json.dumps({LATEST: DEFAULT_IV.hex()}), ""],
+                        [1, "", ""],
+                    ]
                 )
                 state.set_has_format("jlap", False)
 
