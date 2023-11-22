@@ -54,11 +54,17 @@ add_module_names = False
 # Warn about all references where the target cannot be found
 nitpicky = True
 
-nitpick_ignore = [
-    ("py:class", "any"),
-]
+nitpick_ignore = []
+
+for line in open('nitpick-exceptions'):
+    if line.strip() == "" or line.startswith("#"):
+        continue
+    dtype, target = line.split(None, 1)
+    target = target.strip()
+    nitpick_ignore.append((dtype, target))
 
 suppress_warnings = ["autoapi"]
+
 
 # -- Options for HTML output ----------------------------------------------
 
