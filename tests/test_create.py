@@ -1708,7 +1708,7 @@ def test_menuinst_v2(monkeypatch: MonkeyPatch):
     out, err, _ = run_command(
         Commands.CREATE,
         prefix,
-        "jaimergp/label/menuinst-tests::package_1",
+        "conda-test/label/menuinst-tests::package_1",
         "--no-deps",
     )
     assert package_is_installed(prefix, "package_1")
