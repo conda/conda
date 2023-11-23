@@ -8,11 +8,13 @@ conda-forge::pytest-xprocess
 conda-forge::xdoctest
 conda-libmamba-solver >=23.11.0
 conda-package-handling >=2.2.0
+distro >=1.5.0
 flask >=2.2  # jlap pytest fixture
 jsonpatch >=1.32  # jlap
 packaging
 pexpect
 pip
+platformdirs >=3.10.0
 pluggy >=1.0.0
 pre-commit
 pycosat >=0.6.3
