@@ -56,7 +56,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.5
+    rev: v0.1.6
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff

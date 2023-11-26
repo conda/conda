@@ -200,6 +200,9 @@ def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
     """Fixture returning CondaCLIFixture instance."""
     yield CondaCLIFixture(capsys)
 
+    # restore to prior state
+    reset_context()
+
 
 @dataclass
 class PathFactoryFixture:
