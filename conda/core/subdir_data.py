@@ -73,7 +73,8 @@ class SubdirDataType(type):
         assert type(channel) is Channel
         now = time()
         repodata_fn = repodata_fn or REPODATA_FN
-        cache_key = channel.url(with_credentials=True), repodata_fn
+        add_pip = context.add_pip_as_python_dependency
+        cache_key = channel.url(with_credentials=True), repodata_fn, add_pip
         if cache_key in SubdirData._cache_:
             cache_entry = SubdirData._cache_[cache_key]
             if cache_key[0] and cache_key[0].startswith("file://"):
@@ -85,7 +86,10 @@ class SubdirDataType(type):
             else:
                 return cache_entry
         subdir_data_instance = super().__call__(
-            channel, repodata_fn, RepoInterface=get_repo_interface()
+            channel,
+            repodata_fn,
+            RepoInterface=get_repo_interface(),
+            add_pip=add_pip,
         )
         subdir_data_instance._mtime = now
         SubdirData._cache_[cache_key] = subdir_data_instance
@@ -189,7 +193,11 @@ class SubdirData(metaclass=SubdirDataType):
                     yield prec
 
     def __init__(
-        self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface
+        self,
+        channel,
+        repodata_fn=REPODATA_FN,
+        RepoInterface=CondaRepoInterface,
+        add_pip=None,
     ):
         assert channel.subdir
         # metaclass __init__ asserts no package_filename
@@ -204,6 +212,10 @@ class SubdirData(metaclass=SubdirDataType):
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self.RepoInterface = RepoInterface
+        if add_pip is None:
+            self._add_pip = context.add_pip_as_python_dependency
+        else:
+            self._add_pip = add_pip
         self._loaded = False
         self._key_mgr = None
 
@@ -352,7 +364,7 @@ class SubdirData(metaclass=SubdirDataType):
         yield (
             "_add_pip",
             pickled_state.get("_add_pip"),
-            context.add_pip_as_python_dependency,
+            self._add_pip,
         )
         yield "_mod", pickled_state.get("_mod"), mod
         yield "_etag", pickled_state.get("_etag"), etag
@@ -424,7 +436,6 @@ class SubdirData(metaclass=SubdirDataType):
 
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
         assert subdir == self.channel.subdir
-        add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
         self._package_records = _package_records = PackageRecordList()
@@ -446,7 +457,7 @@ class SubdirData(metaclass=SubdirDataType):
             "_mod": state.get("_mod"),
             "_cache_control": state.get("_cache_control"),
             "_url": state.get("_url"),
-            "_add_pip": add_pip,
+            "_add_pip": self._add_pip,
             "_pickle_version": REPODATA_PICKLE_VERSION,
             "_schannel": schannel,
             "repodata_version": state.get("repodata_version", 0),
@@ -503,7 +514,7 @@ class SubdirData(metaclass=SubdirDataType):
                             "size"
                         )
                 if (
-                    add_pip
+                    self._add_pip
                     and info["name"] == "python"
                     and info["version"].startswith(("2.", "3."))
                 ):
