@@ -1134,15 +1134,18 @@ def test_install_only_deps_flag():
         assert not package_is_installed(prefix, "flask")
 
 
-def test_install_update_deps_only_deps_flags():
-    with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
-        python = join(prefix, PYTHON_BINARY)
+def test_install_update_deps_only_deps_flags(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
+        python = prefix / PYTHON_BINARY
         result_before = subprocess_call_with_clean_env([python, "--version"])
         assert package_is_installed(prefix, "flask=2.0.1")
         assert package_is_installed(prefix, "jinja2=3.0.1")
-        run_command(
-            Commands.INSTALL,
-            prefix,
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
             "flask",
             "python",
             "--update-deps",
