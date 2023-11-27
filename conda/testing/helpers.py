@@ -279,7 +279,9 @@ def _sync_channel_to_disk(subdir_data: SubdirData):
         os.fsync(f.fileno())
 
 
-def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None):
+def _alias_canonical_channel_name_cache_to_file_prefixed(
+    name, add_pip, subdir_data=None
+):
     """
     This function is only temporary and meant to patch wrong / undesirable
     testing behaviour. It should end up being replaced with the new class-based,
@@ -287,12 +289,12 @@ def _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data=None)
     """
     # export repodata state to disk for other solvers to test
     if subdir_data is None:
-        cache_key = Channel(name).url(with_credentials=True), "repodata.json"
+        cache_key = Channel(name).url(with_credentials=True), "repodata.json", add_pip
         subdir_data = SubdirData._cache_.get(cache_key)
     if subdir_data:
         local_proxy_channel = Channel(f"{EXPORTED_CHANNELS_DIR}/{name}")
         SubdirData._cache_[
-            (local_proxy_channel.url(with_credentials=True), "repodata.json")
+            (local_proxy_channel.url(with_credentials=True), "repodata.json", add_pip)
         ] = subdir_data
 
 
@@ -302,7 +304,9 @@ def _patch_for_local_exports(name, subdir_data):
     testing behaviour. It should end up being replaced with the new class-based,
     backend-agnostic solver tests.
     """
-    _alias_canonical_channel_name_cache_to_file_prefixed(name, subdir_data)
+    _alias_canonical_channel_name_cache_to_file_prefixed(
+        name, subdir_data._add_pip, subdir_data
+    )
 
     # we need to override the modification time here so the
     # cache hits this subdir_data object from the local copy too
@@ -353,16 +357,18 @@ def _get_index_r_base(
 
         channel = Channel(f"https://conda.anaconda.org/{channel_name}/{subchannel}")
         channels.append(channel)
-        sd = SubdirData(channel)
-        subdir_datas.append(sd)
         with env_var(
             "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
             str(add_pip).lower(),
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
+            sd = SubdirData(channel)
             sd._process_raw_repodata_str(json.dumps(repodata))
         sd._loaded = True
-        SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        subdir_datas.append(sd)
+        SubdirData._cache_[
+            (channel.url(with_credentials=True), "repodata.json", add_pip)
+        ] = sd
         _patch_for_local_exports(channel_name, sd)
 
     # this is for the classic solver only, which is fine with a single collapsed index
@@ -553,25 +559,25 @@ def _get_solver_base(
     spec_map = {spec.name: spec for spec in history_specs}
     if channel_id == "channel-1":
         get_index_r_1(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-1", add_pip)
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),)
     elif channel_id == "channel-2":
         get_index_r_2(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2", add_pip)
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),)
     elif channel_id == "channel-4":
         get_index_r_4(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4", add_pip)
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),)
     elif channel_id == "channel-5":
         get_index_r_5(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-5", add_pip)
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),)
     elif channel_id == "aggregate-1":
         get_index_r_2(context.subdir, add_pip, merge_noarch)
         get_index_r_4(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2", add_pip)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4", add_pip)
         channels = (
             Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
             Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
@@ -579,8 +585,8 @@ def _get_solver_base(
     elif channel_id == "aggregate-2":
         get_index_r_2(context.subdir, add_pip, merge_noarch)
         get_index_r_4(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-4", add_pip)
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-2", add_pip)
         # This is the only difference with aggregate-1: the priority
         channels = (
             Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
@@ -588,11 +594,11 @@ def _get_solver_base(
         )
     elif channel_id == "must-unfreeze":
         get_index_must_unfreeze(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze", add_pip)
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-freeze"),)
     elif channel_id == "cuda":
         get_index_cuda(context.subdir, add_pip, merge_noarch)
-        _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
+        _alias_canonical_channel_name_cache_to_file_prefixed("channel-1", add_pip)
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),)
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
