@@ -264,6 +264,35 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
         assert precs_b == precs_a
 
 
+def test_metadata_cache_add_pip(platform=OVERRIDE_PLATFORM):
+    """
+    Test SubdirData's cache distinguishes on add_pip_as_python_dependency.
+    """
+    channel = Channel(join(CHANNEL_DIR, platform))
+    SubdirData.clear_cached_local_channel_data()
+
+    with env_vars(
+        {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+        context.add_pip_as_python_dependency = True
+        sd_a = SubdirData(channel)
+        tuple(sd_a.query("zlib"))
+        assert fetcher.call_count == 1
+
+        context.add_pip_as_python_dependency = False
+        sd_b = SubdirData(channel)
+        tuple(sd_b.query("zlib"))
+        assert fetcher.call_count == 2
+
+        context.add_pip_as_python_dependency = True
+        sd_c = SubdirData(channel)
+        tuple(sd_c.query("zlib"))
+        assert fetcher.call_count == 2
+
+        assert sd_b is not sd_a
+        assert sd_c is sd_a
+
+
 def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
     local_channel = Channel(join(CHANNEL_DIR, platform))
     sd = SubdirData(channel=local_channel)
