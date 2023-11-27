@@ -160,10 +160,10 @@ def setup(sphinx):
 redirects = {
     # internal redirects
     "admin": "user-guide/configuration/admin-multi-user-install.html",
-    "api/api": "../../dev-guide/api/conda/api.html",
-    "api/index": "../../dev-guide/api.html",
-    "api/python_api": "../../dev-guide/api/conda/cli/python_api.html",
-    "api/solver": "../../dev-guide/api/conda/api.html#conda.api.Solver",
+    "api/api": "../dev-guide/api/conda/index.html",
+    "api/index": "../dev-guide/api.html",
+    "api/python_api": "../dev-guide/api/conda/cli/python_api/index.html",
+    "api/solver": "../dev-guide/api/conda/api/index.html#conda.api.Solver",
     "changelog": "release-notes.html",
     "channels": "user-guide/tasks/manage-channels.html",
     "commands": "commands/index.html",

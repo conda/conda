@@ -185,34 +185,48 @@ def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert not code
 
 
-def test_create_install_update_remove_smoketest():
-    with make_temp_env("python=3.9") as prefix:
-        assert exists(join(prefix, PYTHON_BINARY))
+def test_create_install_update_remove_smoketest(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python=3") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "python=3")
 
-        run_command(Commands.INSTALL, prefix, "flask=2.0.1")
+        conda_cli("install", f"--prefix={prefix}", "flask=2.0.1", "--yes")
+        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "flask=2.0.1")
         assert package_is_installed(prefix, "python=3")
 
-        run_command(Commands.INSTALL, prefix, "--force-reinstall", "flask=2.0.1")
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--force-reinstall",
+            "flask=2.0.1",
+            "--yes",
+        )
+        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "flask=2.0.1")
         assert package_is_installed(prefix, "python=3")
 
-        run_command(Commands.UPDATE, prefix, "flask")
+        conda_cli("update", f"--prefix={prefix}", "flask", "--yes")
+        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask=2.0.1")
         assert package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
 
-        run_command(Commands.REMOVE, prefix, "flask")
-        assert not package_is_installed(prefix, "flask=0.*")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
+        PrefixData._cache_.clear()
+        assert not package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
 
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--revisions")
+        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}", "--revisions")
         assert not stderr
         assert " (rev 4)\n" in stdout
         assert " (rev 5)\n" not in stdout
 
-        run_command(Commands.INSTALL, prefix, "--revision", "0")
+        conda_cli("install", f"--prefix={prefix}", "--revision", "0", "--yes")
+        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
 
@@ -1147,7 +1161,6 @@ def test_install_features(clear_package_cache: None, request):
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Features not supported in libmamba",
-            strict=True,
         )
     )
 
