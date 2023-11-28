@@ -20,7 +20,7 @@ except ImportError:  # pragma: no cover
     from ._vendor.boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from .base.context import context, stack_context_default
+from .base.context import context, reset_context
 from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
@@ -493,7 +493,7 @@ def install_actions(
             "CONDA_ALLOW_NON_CHANNEL_URLS": "true",
             "CONDA_SOLVER_IGNORE_TIMESTAMPS": "false",
         },
-        stack_callback=stack_context_default,
+        reset_context,
     ):
         from os.path import basename
 
