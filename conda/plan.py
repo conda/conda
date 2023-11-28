@@ -439,12 +439,7 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
 
 
 def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
-    from .common.compat import on_win
-
-    if not on_win:
-        return unlink_dists, link_dists
-
-    # Always link/unlink menuinst first/last on windows in case a subsequent
+    # Always link/unlink menuinst first/last in case a subsequent
     # package tries to import it to create/remove a shortcut
 
     # unlink
