@@ -8,7 +8,7 @@ import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, splitext
+from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
