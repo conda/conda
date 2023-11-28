@@ -1,5 +1,5 @@
 ``conda env config``
-*****************
+********************
 
 .. argparse::
    :module: conda_env.cli.main
