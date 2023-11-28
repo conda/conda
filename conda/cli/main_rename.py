@@ -86,18 +86,16 @@ def validate_src() -> str:
     from ..exceptions import CondaEnvException
 
     prefix = Path(context.target_prefix)
-    if prefix.exists():
-        if prefix.samefile(context.root_prefix):
-            raise CondaEnvException("The 'base' environment cannot be renamed")
-        env_dir = Path(context.root_prefix) / "envs"
-        if prefix.samefile(env_dir):
-            raise CondaEnvException("The environment directory cannot be renamed")
-        if prefix.samefile(context.active_prefix):
-            raise CondaEnvException("Cannot rename the active environment")
-    else:
+
+    if not prefix.exists():
         raise CondaEnvException(
-            "The environment you are trying to rename does not exist"
+            "The environment you are trying to rename does not exist."
         )
+
+    if prefix.samefile(context.root_prefix):
+        raise CondaEnvException("The 'base' environment cannot be renamed")
+    if prefix.samefile(context.active_prefix):
+        raise CondaEnvException("Cannot rename the active environment")
 
     return context.target_prefix
 

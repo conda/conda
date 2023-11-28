@@ -56,37 +56,6 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
         )
-    conda_prefix = os.environ["CONDA_PREFIX"]
-    if prefix == conda_prefix + "/envs":
-        raise CondaValueError(
-            "Creating an environment with the prefix '$CONDA_PREFIX/envs' is not allowed. Aborting."
-        )
-    if prefix in tuple(env_paths for env_paths in context.envs_dirs):
-        raise CondaValueError(
-            "Cannot create a conda environment with a prefix similar to an environment directory path. Aborting."
-        )
-
-    common_conda_dirs = [
-        "/bin",
-        "/cmake",
-        "/conda-meta",
-        "/condabin",
-        "/etc",
-        "/include",
-        "/lib",
-        "/man",
-        "/pkgs",
-        "/sbin",
-        "/share",
-        "/shell",
-        "/ssl",
-    ]
-    for dir in common_conda_dirs:
-        if dir in prefix:
-            raise CondaValueError(
-                f"Cannot create a prefix containing '{dir}'. Aborting."
-            )
-
     name = basename(prefix)
     error = None
     if name == ROOT_ENV_NAME:

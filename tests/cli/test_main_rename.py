@@ -134,19 +134,6 @@ def test_cannot_rename_base_env_by_path(conda_cli: CondaCLIFixture, env_rename: 
         locate_prefix_by_name(env_rename)
 
 
-def test_cannot_rename_env_directory(conda_cli: CondaCLIFixture, env_rename: str):
-    """Ensure that we cannot accidentally rm -rf the '/envs' directory containing other environments"""
-    with pytest.raises(
-        CondaEnvException,
-        match="The environment directory cannot be renamed",
-    ):
-        env_dir = Path(context.root_prefix) / "envs"
-        conda_cli("rename", "--prefix", env_dir, env_rename)
-
-    with pytest.raises(EnvironmentNameNotFound):
-        locate_prefix_by_name(env_rename)
-
-
 def test_cannot_rename_active_env_by_name(
     conda_cli: CondaCLIFixture,
     env_one: str,
@@ -174,7 +161,7 @@ def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: s
         CondaEnvException,
         match="The environment you are trying to rename does not exist",
     ):
-        env_dir = Path(context.root_prefix) / "env"
+        env_dir = Path(context.root_prefix) / "foo"
         conda_cli("rename", "--prefix", env_dir, env_rename)
 
     assert Path(env_dir).exists() is False
