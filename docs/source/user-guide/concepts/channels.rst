@@ -2,10 +2,6 @@
 Conda channels
 ==============
 
-.. contents::
-   :local:
-   :depth: 1
-
 .. _concepts-channels:
 
 What is a "conda channel"?

@@ -2,10 +2,6 @@
 Using the free channel
 ======================
 
-.. contents::
-   :local:
-   :depth: 2
-
 The free channel contains packages created prior to
 September 26, 2017. Prior to conda 4.7, the free
 channel was part of the ``defaults`` channel.
