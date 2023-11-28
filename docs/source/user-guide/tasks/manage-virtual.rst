@@ -15,7 +15,6 @@ corresponds to the package. The currently supported list of virtual packages inc
   * ``__linux``: Available when running on Linux.
   * ``__unix``: Available when running on OSX or Linux.
   * ``__win``: Available when running on Win.
-  * ``__conda``: Version of conda that is being used for solving.
 
 Other virtual packages will be added in future conda releases. These are denoted
 by a leading double-underscore in the package name.
