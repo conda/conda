@@ -39,17 +39,18 @@ To update `conda` to the newest version, use the following command:
 $ conda update -n base conda
 ```
 
-It is possible that `conda update` does not install the newest version
-if the existing `conda` version is far behind the current release.
-In this case, updating needs to be done in stages.
-
-For example, to update from `conda 4.12` to `conda 23.10.0`,
-`conda 22.11.1` needs to be installed first:
-
-```
-$ conda install -n base conda=22.11.1
-$ conda update conda
-```
+> [!TIP]
+> It is possible that `conda update` does not install the newest version
+> if the existing `conda` version is far behind the current release.
+> In this case, updating needs to be done in stages.
+>
+> For example, to update from `conda 4.12` to `conda 23.10.0`,
+> `conda 22.11.1` needs to be installed first:
+>
+> ```
+> $ conda install -n base conda=22.11.1
+> $ conda update conda
+> ```
 
 ## Getting Started
 
