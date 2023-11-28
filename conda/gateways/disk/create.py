@@ -253,12 +253,6 @@ def make_menu(prefix, file_path, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    if basename(prefix).startswith("_"):
-        log.warn(
-            "Environment name starts with underscore '_'. Skipping menu installation."
-        )
-        return
-
     try:
         import menuinst
 

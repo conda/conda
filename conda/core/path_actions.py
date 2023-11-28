@@ -72,6 +72,7 @@ except NameError:
 
 log = getLogger(__name__)
 
+_MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
 REPR_IGNORE_KWARGS = (
     "transaction_context",
     "package_info",
@@ -571,11 +572,10 @@ class MakeMenuAction(CreateInPrefixPathAction):
             not context.shortcuts_only
             or (shorcuts_lower and package_info.name.lower() in shorcuts_lower)
         ):
-            menu_re = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
             return tuple(
                 cls(transaction_context, package_info, target_prefix, spi.path)
                 for spi in package_info.paths_data.paths
-                if bool(menu_re.match(spi.path))
+                if bool(_MENU_RE.match(spi.path))
             )
         else:
             return ()
@@ -1133,11 +1133,10 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 class RemoveMenuAction(RemoveFromPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-        menu_re = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
         return tuple(
             cls(transaction_context, linked_package_data, target_prefix, trgt)
             for trgt in linked_package_data.files
-            if bool(menu_re.match(trgt))
+            if bool(_MENU_RE.match(trgt))
         )
 
     def __init__(
