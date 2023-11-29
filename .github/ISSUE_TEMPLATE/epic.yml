@@ -11,7 +11,7 @@ body:
 
         If you are attempting to report a bug, propose a new feature, or some other code change please use one of the other forms available.
 
-        > **Note**
+        > [!NOTE]
         > Epics that are incomplete or missing information may be closed as inactionable.
 
         Since there are already a lot of open issues, please also take a moment to search existing ones to see if a similar epic has already been opened. If you find something related, please upvote that issue and provide additional details as necessary.
