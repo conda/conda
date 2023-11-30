@@ -7,9 +7,9 @@ Conda is a powerful command line package and environment management tool that ru
 This guide to getting started with conda goes over the basics of starting up and using conda to create environments and install packages.
 
 .. tip::
-   
+
    Anaconda Navigator is a graphical desktop application that enables you to use conda without having to enter commands into the command line.
-   
+
    See `Getting started with Anaconda Navigator <https://docs.anaconda.com/anaconda/navigator/getting-started>`_ to learn more.
 
 Before you start
@@ -36,7 +36,7 @@ Conda is available on Windows, macOS, or Linux. Conda can be used with any termi
       #. Open the Terminal application.
 
    .. tab-item:: Linux
-      
+
       Open a terminal window.
 
 Creating environments
@@ -45,11 +45,11 @@ Creating environments
 Conda allows you to create separate environments, each containing their own files, packages, and package dependencies. The contents of each environment do not interact with one another.
 
 The most basic way to create a new environment is with the following command::
-   
+
    conda create -n <env-name>
 
 To add packages while creating an environment, list them all behind the environment name::
-   
+
    conda create -n myenvironment python numpy pandas
 
 For more information on environments, see :doc:`Managing environments <tasks/manage-environments>`.
@@ -72,7 +72,7 @@ A list of environments appears, similar to the following::
    The active environment is the one with an asterisk (*).
 
 To change your current environment back to the default ``base``::
-      
+
    conda activate
 
 .. tip::
@@ -82,7 +82,7 @@ Installing packages
 ===================
 
 You can also install packages into a previously created environment. To do this, you first need to activate the environment. This changes the environment shown in your shell from ``(base)`` to the name of the environment. **Don’t install packages into your base environment.**::
-   
+
    conda activate myenvironment
    conda install matplotlib
 
@@ -94,7 +94,7 @@ Specifying channels
 Channels are locations (on your own computer or elsewhere on the Internet) where packages are stored. By default, conda searches for packages in its :ref:`default channels <default-channels>`.
 
 If a package you want is somewhere else, such as conda-forge, you can manually specify the channel when installing the package::
-   
+
    conda activate myenvironment
    conda install conda-forge::numpy
 
@@ -104,7 +104,7 @@ Updating conda
 ==============
 
 To see your conda version, use the following command::
-   
+
    conda --version
 
 No matter where in you run this command, conda displays the number of the version that you have installed::
@@ -112,8 +112,8 @@ No matter where in you run this command, conda displays the number of the versio
    conda 23.10.0
 
 .. note::
-   If you get an error message ``command not found: conda``, close and reopen 
-   your terminal window and verify that you are logged 
+   If you get an error message ``command not found: conda``, close and reopen
+   your terminal window and verify that you are logged
    into the same user account that you used to install Anaconda or Miniconda.
 
 To update conda to the current version::
