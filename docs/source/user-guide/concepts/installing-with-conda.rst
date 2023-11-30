@@ -2,41 +2,43 @@
 Installing with conda
 =====================
 
-.. image:: /img/installing-with-conda.png
-    :align: right
-
 .. _installing-with-conda:
 
+Conda packages can be installed by running the following command::
 
-To install conda packages, in the terminal or an Anaconda Prompt, run::
+  conda install <package>
 
-  conda install [packagename]
+When conda installs a package, it is automatically added to your active
+environment. These packages are collections of files and directories
+that make up everything you need to use that particular
+library or software. For Python packages, these are primarily Python
+files that can be imported in other Python applications, but for compiled
+software packages such as ``ffmpeg`` these are typically binary executables
+you use directly on your computer.
 
+.. admonition:: Note
 
-During the install process, files are extracted into the specified
-environment, defaulting to the current environment if none is specified.
-Installing the files of a conda package into an
-environment can be thought of as changing the directory to an
-environment, and then downloading and extracting the artifact
-and its dependencies---all with the single
-``conda install [packagename]`` command.
+    If you would like to learn more about how environments are structured,
+    head over to :doc:`conda environments<../concepts/environments>`.
 
-Read more about :doc:`conda environments and directory structure <../concepts/environments>`.
+Below is more precise overview of everything that happens during the installation
+process for a single package:
 
-* When you ``conda install`` a package that exists in a channel and has no dependencies, conda:
+* Currently configured channels (e.g. ``defaults`` or ``conda-forge``) are read in order of priority
+* Repodata for these configured channels will be downloaded and read
+* The repodata will be searched for the package starting with the highest priority channel first
+* Once the package is found, conda makes a separate download request and then installs it
+* This process will then repeat for each of the packages dependencies if there are any
 
-  * Looks at your configured channels (in priority).
+A graphic illustration of this process is shown below:
 
-  * Reaches out to the repodata associated with your channels/platform.
-
-  * Parses repodata to search for the package.
-
-  * Once the package is found, conda pulls it down and installs.
+.. image:: /img/installing-with-conda.png
+    :align: center
 
 Conda update versus conda install
 =================================
 
-``conda update`` is used to update to the latest compatible version.
+``conda update`` updates packages to the latest compatible version.
 ``conda install`` can be used to install any version.
 
 Example:
