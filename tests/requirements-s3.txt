@@ -1,2 +1,2 @@
-boto3
+boto3!=1.33.0
 conda-forge::minio-server

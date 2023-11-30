@@ -82,6 +82,8 @@ from .portability import generate_shebang_for_entry_point
 if on_win:  # pragma: no cover
     import winreg
 
+    # Use v1 import paths to avoid bootstrapping issues
+    # TODO: Remove once fully deployed (one release after merge)
     from menuinst.knownfolders import FOLDERID, get_folder_path
     from menuinst.winshortcut import create_shortcut
 

@@ -8,7 +8,7 @@ import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, splitext
+from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
@@ -253,18 +253,15 @@ def make_menu(prefix, file_path, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    if not on_win:
-        return
-    elif basename(prefix).startswith("_"):
-        log.warn(
-            "Environment name starts with underscore '_'. Skipping menu installation."
-        )
-        return
-
     try:
         import menuinst
 
-        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
+        menuinst.install(
+            join(prefix, win_path_ok(file_path)),
+            remove=remove,
+            prefix=prefix,
+            root_prefix=context.root_prefix,
+        )
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
