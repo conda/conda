@@ -2,12 +2,6 @@
 Using the .condarc conda configuration file
 ===========================================
 
-.. toctree::
-
-.. contents::
-   :local:
-   :depth: 1
-
 .. _config-overview:
 
 Overview

@@ -8,7 +8,7 @@ import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, splitext
+from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
@@ -253,18 +253,15 @@ def make_menu(prefix, file_path, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    if not on_win:
-        return
-    elif basename(prefix).startswith("_"):
-        log.warn(
-            "Environment name starts with underscore '_'. Skipping menu installation."
-        )
-        return
-
     try:
         import menuinst
 
-        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
+        menuinst.install(
+            join(prefix, win_path_ok(file_path)),
+            remove=remove,
+            prefix=prefix,
+            root_prefix=context.root_prefix,
+        )
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
@@ -427,11 +424,11 @@ def compile_multiple_pyc(
         command[0:0] = [python_exe_full_path]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.trace(command)
-        from conda.gateways.subprocess import any_subprocess
+        from ..subprocess import any_subprocess
 
-        # from conda.common.io import env_vars
+        # from ...common.io import env_vars
         # This stack does not maintain its _argparse_args correctly?
-        # from conda.base.context import stack_context_default
+        # from ...base.context import stack_context_default
         # with env_vars({}, stack_context_default):
         #     stdout, stderr, rc = run_command(Commands.RUN, *command)
         stdout, stderr, rc = any_subprocess(command, prefix)

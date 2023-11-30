@@ -5,16 +5,16 @@ import random
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
-from uuid import uuid4
 
 import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.common.serialize import yaml_round_trip_load
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
 from conda.models.match_spec import MatchSpec
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
 from conda_env.env import (
     VALID_KEYS,
@@ -354,7 +354,11 @@ def test_creates_file_on_save(tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
+def test_create_advanced_pip(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "true")
 
     with make_temp_envs_dir() as envs_dir:
@@ -362,15 +366,15 @@ def test_create_advanced_pip(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixtur
         reset_context()
         assert context.envs_dirs[0] == envs_dir
 
-        env_name = str(uuid4())[:8]
-        prefix = Path(envs_dir, env_name)
-
+        prefix = path_factory()
+        assert not prefix.exists()
         conda_cli(
             *("env", "create"),
-            *("--name", env_name),
+            *("--prefix", prefix),
             *("--file", support_file("pip_argh.yml")),
         )
         assert prefix.exists()
+        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "argh==0.26.2")
 
 

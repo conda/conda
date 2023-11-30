@@ -49,7 +49,7 @@ def test_cache_fn_url():
 
 def test_url_pat_1():
     match = url_pat.match(
-        "http://test/pkgs/linux-64/foo.tar.bz2" "#d6918b03927360aa1e57c0188dcb781b"
+        "http://test/pkgs/linux-64/foo.tar.bz2#d6918b03927360aa1e57c0188dcb781b"
     )
     assert match.group("url_p") == "http://test/pkgs/linux-64"
     assert match.group("fn") == "foo.tar.bz2"
@@ -91,8 +91,22 @@ def test_explicit_missing_cache_entries(
     """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
     from conda.core.package_cache_data import PackageCacheData
 
+    def one_url_from_packagecache():
+        "some entries in the package cache might have a null URL"
+        return next(
+            (
+                pkg.url
+                for pkg in PackageCacheData.get_all_extracted_entries()
+                if pkg.url
+            ),
+            None,
+        )
+
     with tmp_env() as prefix:  # ensure writable env
-        if len(PackageCacheData.get_all_extracted_entries()) == 0:
+        if (
+            len(PackageCacheData.get_all_extracted_entries()) == 0
+            or not one_url_from_packagecache()
+        ):
             # Package cache e.g. ./devenv/Darwin/x86_64/envs/devenv-3.9-c/pkgs/ can
             # be empty in certain cases (Noted in OSX with Python 3.9, when
             # Miniconda installs Python 3.10). Install a small package.
@@ -110,7 +124,7 @@ def test_explicit_missing_cache_entries(
             explicit(
                 [
                     "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",  # does not exist
-                    PackageCacheData.get_all_extracted_entries()[0].url,  # exists
+                    one_url_from_packagecache(),  # exists
                 ],
                 prefix,
             )

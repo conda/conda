@@ -18,7 +18,7 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/lock-threads@v4
+      - uses: dessant/lock-threads@v5
         with:
           # Number of days of inactivity before a closed issue is locked
           issue-inactive-days: 365
@@ -42,5 +42,5 @@ jobs:
           # Reason for locking a pull request, value must be one of resolved, off-topic, too heated, spam or ''
           pr-lock-reason: resolved
 
-          # Limit locking to only issues or pull requests, value must be one of issues, prs or ''
-          process-only: ''
+          # Limit locking to issues, pull requests or discussions, value must be a comma separated list of issues, prs, discussions or ''
+          process-only: issues, prs

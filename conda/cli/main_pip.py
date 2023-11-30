@@ -5,32 +5,27 @@ import os
 import sys
 from logging import getLogger
 
-from .. import CondaError
-from ..auxlib.ish import dals
-from .main import main as main_main
-
 log = getLogger(__name__)
 
 
 def pip_installed_post_parse_hook(args, p):
+    from .. import CondaError
+
     if args.cmd not in ("init", "info"):
         raise CondaError(
-            dals(
-                """
-        Conda has not been initialized.
-
-        To enable full conda functionality, please run 'conda init'.
-        For additional information, see 'conda init --help'.
-
-        """
-            )
+            "Conda has not been initialized.\n"
+            "\n"
+            "To enable full conda functionality, please run 'conda init'.\n"
+            "For additional information, see 'conda init --help'.\n"
         )
 
 
 def main(*args, **kwargs):
+    from .main import main
+
     os.environ["CONDA_PIP_UNINITIALIZED"] = "true"
     kwargs["post_parse_hook"] = pip_installed_post_parse_hook
-    return main_main(*args, **kwargs)
+    return main(*args, **kwargs)
 
 
 if __name__ == "__main__":

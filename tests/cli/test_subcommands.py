@@ -10,6 +10,8 @@ import pytest
 from conda.common.compat import on_win
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
+
 
 @pytest.fixture
 def environment_yml(path_factory: PathFactoryFixture) -> Path:
@@ -31,7 +33,7 @@ def test_clean(conda_cli: CondaCLIFixture):
     assert not code
 
 
-def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture):
+def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, request):
     out, err, code = conda_cli("create", "--prefix", path_factory(), "--yes")
     assert out
     assert not err
@@ -92,7 +94,7 @@ def test_init(conda_cli: CondaCLIFixture):
     assert not code
 
 
-def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
+def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
     with tmp_env() as prefix:
         out, err, code = conda_cli(
             "install",
@@ -179,7 +181,9 @@ def test_search(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.parametrize("subcommand", ["update", "upgrade"])
-def test_update(subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
+def test_update(
+    subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request
+):
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
         assert out
@@ -210,6 +214,7 @@ def test_env_create(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     environment_yml: Path,
+    request,
 ):
     out, err, code = conda_cli(
         "env",
@@ -226,6 +231,7 @@ def test_env_update(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     environment_yml: Path,
+    request,
 ):
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(

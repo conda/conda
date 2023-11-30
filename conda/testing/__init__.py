@@ -28,10 +28,9 @@ from typing import Iterator
 import pytest
 from pytest import CaptureFixture
 
-from conda.base.context import context, reset_context
-from conda.cli.main import init_loggers
-from conda.common.compat import on_win
-
+from ..base.context import context, reset_context
+from ..cli.main import init_loggers
+from ..common.compat import on_win
 from ..deprecations import deprecated
 
 
@@ -73,7 +72,7 @@ def conda_ensure_sys_python_is_base_env_python():
 
 def conda_move_to_front_of_PATH():
     if "CONDA_PREFIX" in os.environ:
-        from conda.activate import CmdExeActivator, PosixActivator
+        from ..activate import CmdExeActivator, PosixActivator
 
         if os.name == "nt":
             activator_cls = CmdExeActivator
@@ -147,7 +146,7 @@ def conda_check_versions_aligned():
             try:
                 cmd = join(pe, git_exe) + " describe --tags --long"
                 version_from_git = check_output(cmd).decode("utf-8").split("\n")[0]
-                from conda.auxlib.packaging import _get_version_from_git_tag
+                from ..auxlib.packaging import _get_version_from_git_tag
 
                 version_from_git = _get_version_from_git_tag(version_from_git)
                 break
@@ -203,7 +202,7 @@ class CondaCLIFixture:
 
         # all other subcommands
         else:
-            from conda.cli.main import main_subshell
+            from ..cli.main import main_subshell
 
             # run command
             code = main_subshell(*argv)
@@ -221,6 +220,9 @@ class CondaCLIFixture:
 def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
     """Fixture returning CondaCLIFixture instance."""
     yield CondaCLIFixture(capsys)
+
+    # restore to prior state
+    reset_context()
 
 
 @dataclass

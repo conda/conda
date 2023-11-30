@@ -155,7 +155,8 @@ CONDA_PACKAGE_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
+CONDA_PACKAGE_PARTS = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
+CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 CONDA_TEMP_EXTENSION = ".c~"
 CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR = ".logs"
@@ -260,8 +261,9 @@ class SatSolverChoice(ValueEnum):
     PYSAT = "pysat"
 
 
-#: The name of the default solver, currently "classic"
-DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"
+#: The name of the default solver, currently "libmamba"
+DEFAULT_SOLVER = "libmamba"
+CLASSIC_SOLVER = "classic"
 
 
 class NoticeLevel(ValueEnum):

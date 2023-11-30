@@ -16,6 +16,7 @@ import os
 import re
 import sys
 from collections.abc import Callable, Iterable
+from logging import getLogger
 from os.path import (
     abspath,
     basename,
@@ -41,6 +42,8 @@ from .base.constants import (
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
+
+log = getLogger(__name__)
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -81,7 +84,7 @@ class _Activator(metaclass=abc.ABCMeta):
     set_var_tmpl: str
     run_script_tmpl: str
 
-    hook_source_path: str
+    hook_source_path: Path | None
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
@@ -177,11 +180,12 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    def hook(self, auto_activate_base=None):
-        builder = []
-        builder.append(self._hook_preamble())
-        with open(self.hook_source_path) as fsrc:
-            builder.append(fsrc.read())
+    def hook(self, auto_activate_base: bool | None = None) -> str:
+        builder: list[str] = []
+        if preamble := self._hook_preamble():
+            builder.append(preamble)
+        if self.hook_source_path:
+            builder.append(self.hook_source_path.read_text())
         if (
             auto_activate_base is None
             and context.auto_activate_base
@@ -847,7 +851,7 @@ def native_path_to_unix(
     # expect the results to work with the other.  It does not.
 
     bash = which("bash")
-    cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
     joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
 
     try:
@@ -861,28 +865,30 @@ def native_path_to_unix(
     except FileNotFoundError:
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
-        def _translation(found_path):
-            found = (
-                found_path.group(1)
+        def _translation(match):
+            return "/" + (
+                match.group(1)
                 .replace("\\", "/")
                 .replace(":", "")
                 .replace("//", "/")
+                .rstrip("/")
             )
-            return "/" + found.rstrip("/")
 
         unix_path = (
-            re.sub(
-                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
-                _translation,
-                joined,
-            )
-            .replace(";/", ":/")
+            re.sub(r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)", _translation, joined)
+            .replace(";", ":")
             .rstrip(";")
         )
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
 
-    unix_path = unix_path.split(":") if unix_path else ()
-
-    return unix_path[0] if isinstance(paths, str) else tuple(unix_path)
+    if isinstance(paths, str):
+        return unix_path
+    elif not unix_path:
+        return ()
+    else:
+        return tuple(unix_path.split(":"))
 
 
 def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
@@ -918,7 +924,7 @@ class PosixActivator(_Activator):
     set_var_tmpl = "%s='%s'"
     run_script_tmpl = '. "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "etc",
@@ -971,7 +977,7 @@ class CshActivator(_Activator):
     set_var_tmpl = "set %s='%s'"
     run_script_tmpl = 'source "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "etc",
@@ -1033,7 +1039,7 @@ class XonshActivator(_Activator):
         else 'source-bash --suppress-skip-message -n "%s"'
     )
 
-    hook_source_path = join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
+    hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
@@ -1074,7 +1080,7 @@ class FishActivator(_Activator):
     set_var_tmpl = 'set -g %s "%s"'
     run_script_tmpl = 'source "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "etc",
@@ -1117,7 +1123,7 @@ class PowerShellActivator(_Activator):
     set_var_tmpl = '$Env:%s = "%s"'
     run_script_tmpl = '. "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "condabin",
