@@ -22,14 +22,15 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
+  "archspec",
   "boltons >=23.0.0",
   "charset-normalizer",
   "conda-libmamba-solver >=23.11.0",
-  "conda-package-handling >=1.3.0",
+  "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "jsonpatch >=1.32",
   "menuinst >=2",
-  "packaging",
+  "packaging >=23.0",
   "platformdirs >=3.10.0",
   "pluggy >=1.0.0",
   "pycosat >=0.6.3",
