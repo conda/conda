@@ -96,6 +96,7 @@ html_theme_options = {
     "show_prev_next": False,
     # Navbar icon links
     "navbar_start": ["navbar-logo"],
+    "footer_center": ["footer_center"],
     "use_edit_page_button": True,
 }
 
