@@ -47,9 +47,9 @@
 
 ### Contributors
 
-* @AniketP04
+* @AniketP04 made their first contribution in https://github.com/conda/conda/pull/13224
 * @beeankha
-* @13rac1
+* @13rac1 made their first contribution in https://github.com/conda/conda/pull/13191
 * @conda-bot
 * @dholth
 * @eltociear
@@ -57,13 +57,13 @@
 * @jezdez
 * @kathatherine
 * @kenodegard
-* @kennethlaskoski
+* @kennethlaskoski made their first contribution in https://github.com/conda/conda/pull/13322
 * @ForgottenProgramme
 * @marcoesters
 * @opoplawski
-* @scruel
+* @scruel made their first contribution in https://github.com/conda/conda/pull/13274
 * @travishathaway
-* @gfggithubleet
+* @gfggithubleet made their first contribution in https://github.com/conda/conda/pull/13270
 * @pre-commit-ci[bot]
 
 
