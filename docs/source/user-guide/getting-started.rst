@@ -2,25 +2,25 @@
 Getting started with conda
 ==========================
 
-Conda is a powerful command line package and environment management tool that runs on Windows, macOS, and Linux.
+Conda is a powerful command line tool for package and environment management that runs on Windows, macOS, and Linux.
 
 This guide to getting started with conda goes over the basics of starting up and using conda to create environments and install packages.
 
 .. tip::
 
-   Anaconda Navigator is a graphical desktop application that enables you to use conda without having to enter commands into the command line.
+   Anaconda Navigator is a graphical desktop application that enables you to use conda without having to run commands at the command line.
 
    See `Getting started with Anaconda Navigator <https://docs.anaconda.com/anaconda/navigator/getting-started>`_ to learn more.
 
 Before you start
 ================
 
-You should have already installed conda before beginning this getting started guide. Conda can be found in many distributions, like `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_ or `Miniconda <https://docs.conda.io/projects/miniconda/en/latest/>`_.
+You should have already installed conda before beginning this getting started guide. Conda can be found in many distributions, like `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_, `Miniconda <https://docs.conda.io/projects/miniconda/en/latest/>`_ or `Miniforge <https://github.com/conda-forge/miniforge>`_.
 
 Starting conda
 ==============
 
-Conda is available on Windows, macOS, or Linux. Conda can be used with any terminal application (or shell) in MacOS/Linux, while in Windows, we recommend using the Anaconda Prompt application provided by the Anaconda Distribution or Miniconda installations.
+Conda is available on Windows, macOS, or Linux and can be used with any terminal application (or shell) in macOS/Linux, while in Windows, we recommend using the Anaconda Prompt application provided by the Anaconda Distribution or Miniconda installations.
 
 .. tab-set::
 
@@ -93,7 +93,7 @@ Specifying channels
 
 Channels are locations (on your own computer or elsewhere on the Internet) where packages are stored. By default, conda searches for packages in its :ref:`default channels <default-channels>`.
 
-If a package you want is somewhere else, such as conda-forge, you can manually specify the channel when installing the package::
+If a package you want is located in another channel, such as conda-forge, you can manually specify the channel when installing the package::
 
    conda activate myenvironment
    conda install conda-forge::numpy
@@ -111,16 +111,16 @@ To see your conda version, use the following command::
 
    conda --version
 
-No matter where in you run this command, conda displays the number of the version that you have installed::
+No matter which environment you run this command in, conda displays its current version::
 
    conda 23.10.0
 
 .. note::
    If you get an error message ``command not found: conda``, close and reopen
    your terminal window and verify that you are logged
-   into the same user account that you used to install Anaconda or Miniconda.
+   into the same user account that you used to install conda.
 
-To update conda to the current version::
+To update conda to the latest version::
 
    conda activate
    conda update conda
@@ -138,5 +138,5 @@ More information
 ================
 
 * :doc:`Conda cheat sheet <cheatsheet>`
-* `Full documentation <https://conda.io/docs/>_`
+* `Full documentation <https://conda.io/docs/>`_
 * `Free community support <https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_
