@@ -12,8 +12,8 @@ When conda installs a package, it is automatically added to your active
 environment. These packages are collections of files and directories
 that make up everything you need to use that particular
 library or software. For Python packages, these are primarily Python
-files that can be imported in other Python applications, but for compiled
-software packages such as ``ffmpeg`` these are typically binary executables
+files that can be imported into other Python applications, but for compiled
+software packages, such as ``ffmpeg``, these are typically binary executables
 you use directly on your computer.
 
 .. admonition:: Note
@@ -21,14 +21,14 @@ you use directly on your computer.
     If you would like to learn more about how environments are structured,
     head over to :doc:`conda environments<../concepts/environments>`.
 
-Below is more precise overview of everything that happens during the installation
+Below is a more precise overview of everything that happens during the installation
 process for a single package:
 
 * Currently configured channels (e.g. ``defaults`` or ``conda-forge``) are read in order of priority
-* Repodata for these configured channels will be downloaded and read
-* The repodata will be searched for the package starting with the highest priority channel first
+* Repodata for these configured channels is downloaded and read
+* The repodata is searched for the package, starting with the highest priority channel first
 * Once the package is found, conda makes a separate download request and then installs it
-* This process will then repeat for each of the packages dependencies if there are any
+* This process then repeats for each of the package's dependencies, if there are any
 
 A graphic illustration of this process is shown below:
 
