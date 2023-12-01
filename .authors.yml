@@ -1375,6 +1375,7 @@
   github: jpgill86
 - name: Orion Poplawski
   email: orion@nwra.com
+  github: opoplawski
   num_commits: 3
   first_commit: 2018-02-05 19:01:23
 - name: Daniel Hook
@@ -2403,3 +2404,20 @@
   github: Mon-ius
   num_commits: 1
   first_commit: 2023-07-20 21:22:41
+- name: Brad Erickson
+  email: 195061+13rac1@users.noreply.github.com
+  github: 13rac1
+- name: Ujjwal Das
+  email: 144522681+gfggithubleet@users.noreply.github.com
+  github: gfggithubleet
+  aliases:
+  - gfggithubleet
+- name: Kenneth Laskoski
+  email: kennethlaskoski@gmail.com
+  github: kennethlaskoski
+- name: Scruel Tao
+  email: scruelt@hotmail.com
+  github: scruel
+- name: Aniket Patil
+  email: 128228805+AniketP04@users.noreply.github.com
+  github: AniketP04
