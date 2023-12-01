@@ -1,0 +1,10 @@
+package:
+  name: failing_post_link
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+
+about:
+  summary: Test that post link failures are handled correctly
