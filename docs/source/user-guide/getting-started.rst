@@ -102,7 +102,7 @@ You can also override the default channels in your `.condarc` file. For a direct
 
 .. tip::
 
-   Find more packages and channels by searching `Anaconda.org <https://www.anaconda.org>`_. To learn more about searching for packages and channels on Anaconda.org, see `Anaconda.org's documentation <https://docs.anaconda.com/free/anacondaorg/user-guide/>`_.
+   Find more packages and channels by searching `Anaconda.org <https://www.anaconda.org>`_. For documentation on searching for packages, see `Anaconda.org's documentation <https://docs.anaconda.com/free/anacondaorg/user-guide/>`_.
 
 Updating conda
 ==============
