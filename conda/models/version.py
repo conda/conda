@@ -155,7 +155,7 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
 
     _cache_ = {}
 
-    def __init__(self, vstr):
+    def __init__(self, vstr: str):
         # version comparison is case-insensitive
         version = vstr.strip().rstrip().lower()
         # basic validity checks
@@ -243,25 +243,29 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.norm_version
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self}")'
 
-    def _eq(self, t1, t2):
+    def _eq(self, t1: list[str], t2: list[str]) -> bool:
         for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
             for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
                 if c1 != c2:
                     return False
         return True
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VersionOrder):
+            return False
         return self._eq(self.version, other.version) and self._eq(
             self.local, other.local
         )
 
-    def startswith(self, other):
+    def startswith(self, other: object) -> bool:
+        if not isinstance(other, VersionOrder):
+            return False
         # Tests if the version lists match up to the last element in "other".
         if other.local:
             if not self._eq(self.version, other.version):
@@ -285,10 +289,12 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
             return isinstance(c1, str) and c1.startswith(c2)
         return c1 == c2
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         return not (self == other)
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, VersionOrder):
+            return False
         for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
             for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
                 for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
@@ -306,13 +312,13 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
         # self == other
         return False
 
-    def __gt__(self, other):
+    def __gt__(self, other: object) -> bool:
         return other < self
 
-    def __le__(self, other):
+    def __le__(self, other: object) -> bool:
         return not (other < self)
 
-    def __ge__(self, other):
+    def __ge__(self, other: object) -> bool:
         return not (self < other)
 
 
