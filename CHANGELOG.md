@@ -25,7 +25,8 @@
 
 ### Deprecations
 
-* Deprecate `display_health_checks` function. (#13186)
+* Deprecate `conda.plugins.subcommands.doctor.health_checks.display_health_checks` function. (#13186)
+* Deprecate `conda.plugins.subcommands.doctor.health_checks.display_report_heading` function. (#13186)
 * Remove `ruamel_yaml` fallback; use `ruamel.yaml` exclusively. (#13218)
 * Deprecate `conda.gateways.anaconda_client.EnvAppDirs` in favor of `platformdirs`. (#13306)
 * Mark `conda._vendor.cpuinfo` for pending deprecation. (#13313)
