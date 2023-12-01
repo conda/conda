@@ -8,6 +8,8 @@ See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
 import os
+import re
+import subprocess
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 
@@ -52,6 +54,32 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
+    # Find all of the environment directories that already exist
+    proc = subprocess.run(
+        ["conda", "info", "--envs"], stdout=subprocess.PIPE, text=True
+    )
+    env_dirs = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+    # See if an attempted prefix path is one of those directories
+    # TODO: This won't take care of all cases (e.g., NTFS junctions), but should take care of
+    #       the most common ones; we can possibly update later to include more edge cases.
+    for dirs in env_dirs:
+        if prefix in dirs:
+            raise CondaValueError(
+                "Using a subdirectory of an environment directory as a prefix is not allowed. Aborting."
+            )
+        # Find all directories within an env directory and prevent a new prefix from being created
+        # with that same directory path (e.g., "bin", "conda-meta", etc.)
+        pattern = re.compile(r"([\/\\].*)")
+        matches = pattern.findall(dirs)
+        for match in matches:
+            for subdir in os.listdir(match):
+                subdir_path = os.path.join(match, subdir)
+                if subdir != "envs":
+                    if prefix == subdir_path:
+                        raise CondaValueError(
+                            f"The target prefix is attempting to override a protected directory, '{subdir}'. Aborting."
+                        )
+
     if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
