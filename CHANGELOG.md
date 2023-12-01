@@ -1,5 +1,73 @@
 [//]: # (current developments)
 
+## 23.11.0 (2023-11-30)
+
+### Enhancements
+
+* Add support for `menuinst` v2. This version enables shortcuts in all platforms (Windows, Linux, macOS) through a new JSON schema (see [CEP-11](https://github.com/conda-incubator/ceps/blob/main/cep-11.md)). Old v1-style JSON menus are still supported. (#11882)
+* Stop using `requests`/`pip` vendored `chardet` package. Instead, explicitly depend on `charset_normalizer`. (#13171)
+* Add a new plugin hook, `CondaHealthCheck`, to be run as part of `conda doctor`. (#13186)
+* Add `activate` and `deactivate` to `--help` command list. (#13191)
+* Download largest packages first, preventing smaller packages from having to wait for larger packages. (#13248)
+* Show the used solver in `conda info` output to simplify debugging. (#13265)
+* Add `__conda` virtual package. (#13266)
+* Switch from `appdirs` to `platformdirs`. (#13306)
+* Resume interrupted package downloads. (#8695)
+
+### Bug fixes
+
+* Log expected JLAP range-request errors, which can happen when the remote file has rolled over, at `info` level. (#12913)
+* Fix a bug where not providing a command but providing an option like `--debug` results in an error. (#13232)
+* Improve CTRL-C (cancellation) handling of parallel download threads. (#13234)
+* Allow `CONDA_FETCH_THREADS`/`fetch_threads`, which sets parallel package downloads, to be overridden from its default value of `5`. (#13263)
+* Require `requests >=2.28` for improved `response.json()` exception handling. (#13346)
+* Use `callback=reset_context` in `conda.plan` to fix several `conda-build` + `conda-libmamba-solver` incompatibilities. ([conda-libmamba-solver#393](https://github.com/conda/conda-libmamba-solver/issues/393) and [conda-libmamba-solver#386](https://github.com/conda/conda-libmamba-solver/issues/386) via #13357)
+
+### Deprecations
+
+* `display_health_checks` function is being deprecated. (#13186)
+* Remove `ruamel_yaml` fallback; continue to use `ruamel.yaml` only.  (#13218)
+* Deprecate `conda.gateways.anaconda_client.EnvAppDirs` in favor of `platformdirs`. (#13306)
+* Mark `conda._vendor.cpuinfo` as pending deprecation. (#13313)
+* Deprecate `conda._vendor.distro` in favor of the `distro` package. (#13317)
+
+### Docs
+
+* Adds the `conda-sphinx-theme` to conda documentation. (#13298)
+* Updates some pages to remove redundant TOC. (#13298)
+* Add instructions on updating `conda` to the main `README.md`. (#13343)
+
+### Other
+
+* Add lighter weight s3 test; update embedded test package index. (#13085)
+* Refactor code to use lazy imports for all relative imports in `conda.cli.main_*` and break up argparse configuration functions from `conda.cli.conda_argparse` to their respective `conda.cli.main_*` modules. (#13173)
+* Move custom `argparse.Actions` into `conda.cli.actions` (e.g., `NullCountAction`) and move all helper argparse functions into `conda.cli.helpers` (e.g., `add_parser_prefix`). (#13173)
+* Update `ruamel.yaml` upper bound to `<0.19` now that `0.18` has been released. (#13258)
+* Replace `black` with `ruff format` in pre-commit. (#13272)
+
+### Contributors
+
+* @AniketP04
+* @beeankha
+* @13rac1
+* @conda-bot
+* @dholth
+* @eltociear
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @kennethlaskoski
+* @ForgottenProgramme
+* @marcoesters
+* @opoplawski
+* @scruel
+* @travishathaway
+* @gfggithubleet
+* @pre-commit-ci[bot]
+
+
+
 ## 23.10.0 (2023-10-30)
 
 ### ✨ Special announcement ✨
