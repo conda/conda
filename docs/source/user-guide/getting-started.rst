@@ -81,7 +81,7 @@ To change your current environment back to the default ``base``::
 Installing packages
 ===================
 
-You can also install packages into a previously created environment. To do this, you first need to activate the environment. This changes the environment shown in your shell from ``(base)`` to the name of the environment. **Don’t install packages into your base environment.**::
+You can also install packages into a previously created environment. To do this, you first need to activate the environment. This changes the environment shown in your shell from ``(base)`` to the name of the environment::
 
    conda activate myenvironment
    conda install matplotlib
@@ -99,6 +99,10 @@ If a package you want is somewhere else, such as conda-forge, you can manually s
    conda install conda-forge::numpy
 
 You can also override the default channels in your `.condarc` file. For a direct example, see :ref:`Channel locations (channels) <config-channels>` or read the entire :doc:`Using the .condarc conda configuration file <configuration/use-condarc>`.
+
+.. tip::
+
+   Find more packages and channels by searching `Anaconda.org <https://www.anaconda.org>`_. For documentation on searching for packages, see `Anaconda.org's documentation <https://docs.anaconda.com/free/anacondaorg/user-guide/>`_.
 
 Updating conda
 ==============
