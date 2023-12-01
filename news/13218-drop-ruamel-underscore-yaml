@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Remove `ruamel_yaml` fallback; continue to use `ruamel.yaml` only.  (#13218)
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Update `ruamel.yaml` upper bound to `<0.19` now that `0.18` has been released.
+* <news item>

@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Add support for `menuinst` v2. This version enables shortcuts in all platforms (Windows, Linux,
-  macOS) through a new JSON schema (see [CEP-11](https://github.com/conda-incubator/ceps/blob/main/cep-11.md)). Old v1-style JSON menus are still supported. (#11882)
+* Add support for `menuinst` v2. This version enables shortcuts in all platforms (Windows, Linux, macOS) through a new JSON schema (see [CEP-11](https://github.com/conda-incubator/ceps/blob/main/cep-11.md)). Old v1-style JSON menus are still supported. (#11882)
 
 ### Bug fixes
 

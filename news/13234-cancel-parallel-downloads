@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Improve CTRL-C (cancellation) handling of parallel dowload threads (#13234)
+* Improve CTRL-C (cancellation) handling of parallel download threads. (#13234)
 
 ### Deprecations
 

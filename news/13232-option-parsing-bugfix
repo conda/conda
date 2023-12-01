@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes a bug where not providing a command but providing an option like `--debug` results in an error (#13232)
+* Fix a bug where not providing a command but providing an option like `--debug` results in an error. (#13232)
 
 ### Deprecations
 

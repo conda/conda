@@ -1,7 +1,6 @@
 ### Enhancements
 
-* Download largest packages first, preventing smaller packages from having to
-  wait for larger packages. (#13248)
+* Download largest packages first, preventing smaller packages from having to wait for larger packages. (#13248)
 
 ### Bug fixes
 

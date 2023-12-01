@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new plugin hook called "CondaHealthCheck". Plugins written using this hook run everytime `conda doctor` command is run.
+* Add a new plugin hook, `CondaHealthCheck`, to be run as part of `conda doctor`. (#13186)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* `display_health_checks` function is being deprecated.
+* `display_health_checks` function is being deprecated. (#13186)
 
 ### Docs
 

@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Adds the conda-sphinx-theme to conda documentation
-* Updates some pages to remove redundant TOC
+* Adds the `conda-sphinx-theme` to conda documentation. (#13298)
+* Updates some pages to remove redundant TOC. (#13298)
 
 ### Other
 
