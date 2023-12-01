@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os.path
 import sys
+from os import getenv
 from pathlib import Path
 
 # expose custom extensions
@@ -105,6 +106,7 @@ html_context = {
     "github_repo": "conda",
     "github_version": "main",
     "doc_path": "docs/source",
+    "use_analytics": "conda.io" in getenv("READTHEDOCS_CANONICAL_URL", ""),
 }
 
 # -- sphinxcontrib.plantuml ------------------------------------------------
