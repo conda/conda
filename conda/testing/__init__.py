@@ -171,13 +171,14 @@ class CondaCLIFixture:
     def __call__(
         self,
         *argv: str | os.PathLike | Path,
-        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+        catch: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str, str, int]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
 
         :param argv: Arguments to parse
+        :param catch: Exception(s) to catch
         :return: Command results
         :rtype: tuple[stdout, stdout, exitcode]
         """
@@ -188,7 +189,7 @@ class CondaCLIFixture:
         argv = tuple(map(str, argv))
 
         code = None
-        with pytest.raises(raises) if raises else nullcontext():
+        with pytest.raises(catch) if catch else nullcontext():
             # mock legacy subcommands
             if argv[0] == "env":
                 from conda_env.cli.main import create_parser, do_call
