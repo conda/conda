@@ -400,6 +400,10 @@ class Context(Configuration):
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
+    shortcuts = ParameterLoader(PrimitiveParameter(True))
+    shortcuts_only = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)), expandvars=True
+    )
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
@@ -1192,6 +1196,7 @@ class Context(Configuration):
                 "extra_safety_checks",
                 "signing_metadata_url_base",
                 "shortcuts",
+                "shortcuts_only",
                 "non_admin_enabled",
                 "separate_format_cache",
                 "verify_threads",
@@ -1713,6 +1718,11 @@ class Context(Configuration):
                 """
                 Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
                 Menu) at install time.
+                """
+            ),
+            shortcuts_only=dals(
+                """
+                Create shortcuts only for the specified package names.
                 """
             ),
             show_channel_urls=dals(

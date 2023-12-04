@@ -2,11 +2,6 @@
 Managing conda
 ==============
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 Verifying that conda is installed
 =================================
 

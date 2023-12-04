@@ -2,10 +2,6 @@
 Installation
 ============
 
-.. contents::
-   :local:
-   :depth: 1
-
 The fastest way to :doc:`obtain <download>` conda is to install
 :ref:`Miniconda <miniconda-glossary>`, a mini version of
 :ref:`Anaconda <anaconda-glossary>` that includes only conda and

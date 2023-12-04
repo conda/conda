@@ -72,6 +72,7 @@ except NameError:
 
 log = getLogger(__name__)
 
+_MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
 REPR_IGNORE_KWARGS = (
     "transaction_context",
     "package_info",
@@ -566,12 +567,15 @@ class MakeMenuAction(CreateInPrefixPathAction):
     def create_actions(
         cls, transaction_context, package_info, target_prefix, requested_link_type
     ):
-        if on_win and context.shortcuts:
-            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
+        shorcuts_lower = [name.lower() for name in (context.shortcuts_only or ())]
+        if context.shortcuts and (
+            not context.shortcuts_only
+            or (shorcuts_lower and package_info.name.lower() in shorcuts_lower)
+        ):
             return tuple(
                 cls(transaction_context, package_info, target_prefix, spi.path)
                 for spi in package_info.paths_data.paths
-                if bool(MENU_RE.match(spi.path))
+                if bool(_MENU_RE.match(spi.path))
             )
         else:
             return ()
@@ -1131,15 +1135,11 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 class RemoveMenuAction(RemoveFromPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-        if on_win:
-            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
-            return tuple(
-                cls(transaction_context, linked_package_data, target_prefix, trgt)
-                for trgt in linked_package_data.files
-                if bool(MENU_RE.match(trgt))
-            )
-        else:
-            return ()
+        return tuple(
+            cls(transaction_context, linked_package_data, target_prefix, trgt)
+            for trgt in linked_package_data.files
+            if bool(_MENU_RE.match(trgt))
+        )
 
     def __init__(
         self, transaction_context, linked_package_data, target_prefix, target_short_path

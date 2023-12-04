@@ -2,10 +2,6 @@
 Managing environments
 =====================
 
-.. contents::
-   :local:
-   :depth: 1
-
 With conda, you can create, export, list, remove, and update
 environments that have different versions of Python and/or
 packages installed in them. Switching or moving between

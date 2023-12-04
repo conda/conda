@@ -1,5 +1,5 @@
 ``conda env export``
-*****************
+********************
 
 .. argparse::
    :module: conda_env.cli.main
