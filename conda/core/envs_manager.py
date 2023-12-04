@@ -47,6 +47,7 @@ def register_env(location):
         return
 
     try:
+        os.makedirs(os.path.dirname(user_environments_txt_file), exist_ok=True)
         with open(user_environments_txt_file, "a") as fh:
             fh.write(ensure_text_type(location))
             fh.write("\n")
