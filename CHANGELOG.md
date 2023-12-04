@@ -2,14 +2,15 @@
 
 ## 23.11.0 (2023-11-30)
 
-**Special note**: new [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0) support!
+### Special announcement
 
-`conda` has supported Start menu items on Windows for a long time.
-This is what allows users to open up their Miniconda prompt on CMD with an initialzied `conda` session. This menu item (or shortcut) creation logic is provided by the `menuinst` package.
+New [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0) support!
 
-With the release of 23.11.0, `conda` now uses [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0), which enables the same experience across Windows, Linux and macOS. This means that package builders will be able to provide desktop icons across all operating systems, which can be specially useful for GUI applications. See the [documentation](https://conda.github.io/menuinst/) for more details.
+`conda` has supported Start menu items on Windows for a long time. This is what allows users to open up their Miniconda prompt on CMD with an initialized `conda` session. This menu item (or shortcut) creation logic is provided by the `menuinst` package.
 
-If you don't want `conda` to create shortcuts for you, you can disable it via:
+With the release of 23.11.0, `conda` now supports [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0), which enables the same experience across Windows, Linux, and macOS. This means package builders will be able to provide desktop icons across all operating systems, which can be especially useful for GUI applications. See the [documentation](https://conda.github.io/menuinst/) for more details.
+
+If you don't want `conda` to create shortcuts, you can disable it via:
 
 - `shortcuts: false` entry in your `.condarc` configuration
 - `CONDA_SHORTCUTS=false` environment variable
