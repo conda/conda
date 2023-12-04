@@ -67,18 +67,17 @@ def check_prefix(prefix, json=False):
             raise CondaValueError(
                 "Using a subdirectory of an environment directory as a prefix is not allowed. Aborting."
             )
-        # Find all directories within an env directory and prevent a new prefix from being created
-        # with that same directory path (e.g., "bin", "conda-meta", etc.)
-        pattern = re.compile(r"([\/\\].*)")
-        matches = pattern.findall(dirs)
-        for match in matches:
-            for subdir in os.listdir(match):
-                subdir_path = os.path.join(match, subdir)
-                if subdir != "envs":
-                    if prefix == subdir_path:
-                        raise CondaValueError(
-                            f"The target prefix is attempting to override a protected directory, '{subdir}'. Aborting."
-                        )
+    # Find all directories within the base env's directory and prevent a new prefix from being created
+    # with that same directory path (e.g., "bin", "conda-meta", etc.)
+    pattern = re.compile(r"([\/\\].*)")
+    matches = pattern.findall(context.root_prefix)
+    for match in matches:
+        for subdir in os.listdir(match):
+            subdir_path = os.path.join(match, subdir)
+            if prefix == subdir_path:
+                raise CondaValueError(
+                    f"The target prefix is attempting to override a protected directory, '{subdir}'. Aborting."
+                )
 
     if os.pathsep in prefix:
         raise CondaValueError(
