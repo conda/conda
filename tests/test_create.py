@@ -254,7 +254,9 @@ def test_install_broken_post_install_keeps_existing_folders():
 # I also had to fix the post-link script in the package by adding quotation marks to handle
 # spaces in path names.
 def test_safety_checks_enabled(
-    tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
         monkeypatch.setenv("CONDA_SAFETY_CHECKS", "enabled")
@@ -284,7 +286,9 @@ def test_safety_checks_enabled(
 
 
 def test_safety_checks_warn(
-    tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
         monkeypatch.setenv("CONDA_SAFETY_CHECKS", "warn")
@@ -318,7 +322,9 @@ def test_safety_checks_warn(
 
 
 def test_safety_checks_disabled(
-    tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
         monkeypatch.setenv("CONDA_SAFETY_CHECKS", "disabled")
@@ -352,7 +358,9 @@ def test_safety_checks_disabled(
 
 
 def test_json_create_install_update_remove(
-    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, capsys: CaptureFixture
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    capsys: CaptureFixture,
 ):
     # regression test for #5384
 
@@ -393,7 +401,11 @@ def test_json_create_install_update_remove(
     assert "dist_name" in dist_dump
 
     stdout, stderr, _ = conda_cli(
-        "create", f"--prefix={prefix}", "zlib", "--json", "--yes"
+        "create",
+        f"--prefix={prefix}",
+        "zlib",
+        "--json",
+        "--yes",
     )
     assert_json_parsable(stdout)
     assert not stderr
@@ -429,7 +441,11 @@ def test_json_create_install_update_remove(
     assert package_is_installed(prefix, "zlib")
 
     stdout, stderr, _ = conda_cli(
-        "update", f"--prefix={prefix}", "ca-certificates", "--json", "--yes"
+        "update",
+        f"--prefix={prefix}",
+        "ca-certificates",
+        "--json",
+        "--yes",
     )
     assert_json_parsable(stdout)
     assert not stderr
@@ -437,7 +453,11 @@ def test_json_create_install_update_remove(
     assert package_is_installed(prefix, "zlib")
 
     stdout, stderr, _ = conda_cli(
-        "remove", f"--prefix={prefix}", "ca-certificates", "--json", "--yes"
+        "remove",
+        f"--prefix={prefix}",
+        "ca-certificates",
+        "--json",
+        "--yes",
     )
     assert_json_parsable(stdout)
     assert not stderr
