@@ -8,7 +8,6 @@ fi
 
 cleanup() {
     unset _ARCH
-    unset _AUTOBASE
     unset _BASEEXE
     unset _CMD
     unset _DEFAULT_ARCH
@@ -21,7 +20,7 @@ cleanup() {
     unset _DRYRUN
     unset _ENV
     unset _ENVEXE
-    unset _EXPORTED
+    unset _INSTALLER
     unset _MACH
     unset _NAME
     unset _PYTHON
@@ -150,8 +149,10 @@ _DEVENV="${_DEVENV}/${_MACH}/${_ARCH}"
 # ensure exists and absolute path
 if [ ${_DRYRUN} = "false" ]; then
     mkdir -p "${_DEVENV}"
-    _DEVENV="$( cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
+    _DEVENV="$(cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
 fi
+# installer location
+_INSTALLER="$(dirname "$(dirname "${_DEVENV}")")"
 
 # other environment values
 _NAME="devenv-${_PYTHON}-c"
@@ -192,11 +193,11 @@ fi
 if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     # downloading miniconda
     if [ "${_MACH}" = "Darwin" ]; then
-        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" -o "${_DEVENV}/miniconda.sh"'
+        [ -f "${_INSTALLER}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" -o "${_INSTALLER}/miniconda.sh"'
     elif [ "${_MACH}" = "Linux" ]; then
-        [ -f "${_DEVENV}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" -o "${_DEVENV}/miniconda.sh"'
+        [ -f "${_INSTALLER}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" -o "${_INSTALLER}/miniconda.sh"'
     else
-        [ -f "${_DEVENV}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_DEVENV}/miniconda.exe' | Out-Null"'
+        [ -f "${_INSTALLER}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_INSTALLER}/miniconda.exe' | Out-Null"'
     fi
     if [ ${_CMD:+0} = 0 ]; then
         echo "Downloading miniconda..."
@@ -210,8 +211,8 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     # installing miniconda
     echo "Installing development environment..."
     case "${_MACH}" in
-        Darwin|Linux) bash "${_DEVENV}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
-                   *) cmd.exe /c "start /wait \"\" \"${_DEVENV}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
+        Darwin|Linux) bash "${_INSTALLER}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
+                   *) cmd.exe /c "start /wait \"\" \"${_INSTALLER}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
     if ! [ $? = 0 ]; then
         echo "Error: failed to install development environment" 1>&2
@@ -255,17 +256,7 @@ fi
 
 # initialize conda command
 echo "Initializing shell integration..."
-_AUTOBASE="${CONDA_AUTO_ACTIVATE_BASE:-undefined}"
-_EXPORTED="$(export -p | grep CONDA_AUTO_ACTIVATE_BASE)"
-export CONDA_AUTO_ACTIVATE_BASE=false
-eval "$(cd "${_SRC}" ; "${_ENVEXE}" init --dev bash)" > /dev/null
-if [ "${_AUTOBASE}" = "undefined" ]; then
-    unset CONDA_AUTO_ACTIVATE_BASE
-elif [ -n ${_EXPORTED+x} ]; then
-    export CONDA_AUTO_ACTIVATE_BASE="${_AUTOBASE}"
-else
-    CONDA_AUTO_ACTIVATE_BASE="${_AUTOBASE}"
-fi
+eval "$("${_ENVEXE}" shell.bash hook)" > /dev/null
 if ! [ $? = 0 ]; then
     echo "Error: failed to initialize shell integration" 1>&2
     return 1
@@ -277,6 +268,8 @@ if ! conda activate "${_ENV}" > /dev/null; then
     echo "Error: failed to activate ${_NAME}" 1>&2
     return 1
 fi
+
+# "install" conda
 export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup
