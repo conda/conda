@@ -1811,22 +1811,24 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     assert not code
 
 
-def test_create_dry_run_json():
-    prefix = "/some/place"
-    with pytest.raises(DryRunExit):
-        run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
-    output, _, _ = run_command(
-        Commands.CREATE,
-        prefix,
+def test_create_dry_run_json(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
+    prefix = path_factory()
+
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
         "flask",
         "--dry-run",
         "--json",
-        use_exception_handler=True,
+        catch=DryRunExit,
     )
-    loaded = json.loads(output)
-    names = {d["name"] for d in loaded["actions"]["LINK"]}
+    names = {link["name"] for link in json.loads(stdout)["actions"]["LINK"]}
     assert "python" in names
     assert "flask" in names
+    assert not stderr
+    assert not code
 
 
 def test_create_dry_run_yes_safety():
