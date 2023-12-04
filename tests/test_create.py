@@ -351,7 +351,9 @@ def test_safety_checks_disabled(
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
 
-def test_json_create_install_update_remove():
+def test_json_create_install_update_remove(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, capsys: CaptureFixture
+):
     # regression test for #5384
 
     def assert_json_parsable(content):
@@ -371,83 +373,100 @@ def test_json_create_install_update_remove():
             )
             raise
 
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
+    prefix = path_factory()
 
-        stdout, stderr, _ = run_command(
-            Commands.CREATE,
-            prefix,
-            "python=3.8",
+    with pytest.raises(DryRunExit):
+        conda_cli(
+            "create",
+            f"--prefix={prefix}",
+            "zlib",
             "--json",
             "--dry-run",
-            use_exception_handler=True,
         )
-        assert_json_parsable(stdout)
+    stdout, stderr = capsys.readouterr()
+    assert_json_parsable(stdout)
 
-        # regression test for #5825
-        # contents of LINK and UNLINK is expected to have Dist format
-        json_obj = json.loads(stdout)
-        dist_dump = json_obj["actions"]["LINK"][0]
-        assert "dist_name" in dist_dump
+    # regression test for #5825
+    # contents of LINK and UNLINK is expected to have dist format
+    json_obj = json.loads(stdout)
+    dist_dump = json_obj["actions"]["LINK"][0]
+    assert "dist_name" in dist_dump
 
-        stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json")
-        assert_json_parsable(stdout)
-        assert not stderr
-        json_obj = json.loads(stdout)
-        dist_dump = json_obj["actions"]["LINK"][0]
-        assert "dist_name" in dist_dump
+    stdout, stderr, _ = conda_cli(
+        "create", f"--prefix={prefix}", "zlib", "--json", "--yes"
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "flask=2.0.1", "--json"
-        )
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+    json_obj = json.loads(stdout)
+    dist_dump = json_obj["actions"]["LINK"][0]
+    assert "dist_name" in dist_dump
 
-        # Test force reinstall
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "--force-reinstall", "flask=2.0.1", "--json"
-        )
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+    stdout, stderr, _ = conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "ca-certificates<2023",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert package_is_installed(prefix, "ca-certificates<2023")
+    assert package_is_installed(prefix, "zlib")
 
-        stdout, stderr, _ = run_command(Commands.UPDATE, prefix, "flask", "--json")
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+    # Test force reinstall
+    stdout, stderr, _ = conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--force-reinstall",
+        "ca-certificates<2023",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert package_is_installed(prefix, "ca-certificates<2023")
+    assert package_is_installed(prefix, "zlib")
 
-        stdout, stderr, _ = run_command(Commands.REMOVE, prefix, "flask", "--json")
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert not package_is_installed(prefix, "flask=2.*")
-        assert package_is_installed(prefix, "python=3")
+    stdout, stderr, _ = conda_cli(
+        "update", f"--prefix={prefix}", "ca-certificates", "--json", "--yes"
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert package_is_installed(prefix, "ca-certificates>=2023")
+    assert package_is_installed(prefix, "zlib")
 
-        # regression test for #5825
-        # contents of LINK and UNLINK is expected to have Dist format
-        json_obj = json.loads(stdout)
-        dist_dump = json_obj["actions"]["UNLINK"][0]
-        assert "dist_name" in dist_dump
+    stdout, stderr, _ = conda_cli(
+        "remove", f"--prefix={prefix}", "ca-certificates", "--json", "--yes"
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert not package_is_installed(prefix, "ca-certificates")
+    assert package_is_installed(prefix, "zlib")
 
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--revisions", "--json")
-        assert not stderr
-        json_obj = json.loads(stdout)
-        assert len(json_obj) == 5
-        assert json_obj[4]["rev"] == 4
+    # regression test for #5825
+    # contents of LINK and UNLINK is expected to have Dist format
+    json_obj = json.loads(stdout)
+    dist_dump = json_obj["actions"]["UNLINK"][0]
+    assert "dist_name" in dist_dump
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "--revision", "0", "--json"
-        )
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--revisions", "--json")
+    assert not stderr
+    json_obj = json.loads(stdout)
+    assert len(json_obj) == 5
+    assert json_obj[4]["rev"] == 4
+
+    stdout, stderr, _ = conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--revision=0",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert not package_is_installed(prefix, "ca-certificates")
+    assert package_is_installed(prefix, "zlib")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError():
