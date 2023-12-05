@@ -118,9 +118,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from subprocess import run
 
     from ..base.constants import DRY_RUN_PREFIX
-
-    # from ..cli import install
-    # from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.update import rename_context
 
     source = validate_src()
@@ -133,14 +130,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
         # We now either run collected actions or print dry run statement
-        for action in actions:
+        for command in actions:
             if args.dry_run:
                 print(
-                    f"{DRY_RUN_PREFIX} clone {destination} {source}\n{DRY_RUN_PREFIX} rm_rf {source}"
+                    f"{DRY_RUN_PREFIX} clone {destination} {source}"
+                    f"\n{DRY_RUN_PREFIX} rm_rf {source}"
                 )
                 break
             else:
-                action()
+                command()
 
     if args.force:
         with rename_context(destination, dry_run=args.dry_run):
