@@ -25,6 +25,7 @@ Authors are sorted alphabetically.
 * Andrew M. Farrell
 * Andy R. Terrel
 * Angela Gloyna
+* Aniket Patil
 * Anthon van der Neut
 * Anthony Scopatz
 * Antoine Gallix
@@ -54,6 +55,7 @@ Authors are sorted alphabetically.
 * Blake Nicholson
 * Bocong Sui
 * Bojan Delic
+* Brad Erickson
 * Brad Nemanich
 * Brad S
 * Bradley Kreider
@@ -211,6 +213,7 @@ Authors are sorted alphabetically.
 * Katherine Abrikian
 * Katherine Kinnaman
 * Ken Odegard
+* Kenneth Laskoski
 * Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
@@ -354,6 +357,7 @@ Authors are sorted alphabetically.
 * Satyam Vyas
 * Sauco Cano Navarro
 * Scott Evtuch
+* Scruel Tao
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
@@ -405,6 +409,7 @@ Authors are sorted alphabetically.
 * Tyler Kim
 * Tyrone Grandison
 * Udo-Peter Steyer
+* Ujjwal Das
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel

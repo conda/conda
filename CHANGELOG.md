@@ -1,5 +1,89 @@
 [//]: # (current developments)
 
+## 23.11.0 (2023-11-30)
+
+### Special announcement
+
+New [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0) support!
+
+`conda` has supported Start menu items on Windows for a long time. This is what allows users to open up their Miniconda prompt on CMD (Command Prompt) with an initialized `conda` session. This menu item (or shortcut) creation logic is provided by the `menuinst` package.
+
+With the release of 23.11.0, `conda` now supports [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0), which enables the same experience across Windows, Linux, and macOS. This means package builders will be able to provide desktop icons across all operating systems, which can be especially useful for GUI applications. See the [documentation](https://conda.github.io/menuinst/) for more details.
+
+If you don't want `conda` to create shortcuts, you can disable it via:
+
+- `shortcuts: false` entry in your `.condarc` configuration
+- `CONDA_SHORTCUTS=false` environment variable
+- `--no-shortcuts` command-line flag
+
+
+### Enhancements
+
+* Add support for `menuinst` v2, enabling shortcuts across all platforms (Windows, Linux, macOS) using a new JSON schema (see [CEP-11](https://github.com/conda-incubator/ceps/blob/main/cep-11.md)). Retain support for old v1-style JSON menus. (#11882)
+* Stop using vendored `chardet` package by `requests`/`pip`; explicitly depend on `charset_normalizer`. (#13171)
+* Introduce a new plugin hook, `CondaHealthCheck`, as part of `conda doctor`. (#13186)
+* Include `activate` and `deactivate` in the `--help` command list. (#13191)
+* Prioritize download of larger packages to prevent smaller ones from waiting. (#13248)
+* Display the used solver in `conda info` output for debugging purposes. (#13265)
+* Add `__conda` virtual package. (#13266)
+* Switch from `appdirs` to `platformdirs`. (#13306)
+* Implement resume capability for interrupted package downloads. (#8695)
+
+### Bug fixes
+
+* Log expected JLAP range-request errors at `info` level, occurring when the remote file has rolled over. (#12913)
+* Fix a bug causing an error when options like `--debug` are used without specifying a command. (#13232)
+* Improve CTRL-C (cancellation) handling for parallel download threads. (#13234)
+* Allow overriding of `CONDA_FETCH_THREADS`/`fetch_threads` to set parallel package downloads beyond the default `5`. (#13263)
+* Require `requests >=2.28` for enhanced `response.json()` exception handling. (#13346)
+* Apply `callback=reset_context` in `conda.plan` to resolve `conda-build` + `conda-libmamba-solver` incompatibilities. ([conda-libmamba-solver#393](https://github.com/conda/conda-libmamba-solver/issues/393) and [conda-libmamba-solver#386](https://github.com/conda/conda-libmamba-solver/issues/386) via #13357)
+
+### Deprecations
+
+* Deprecate `conda.plugins.subcommands.doctor.health_checks.display_health_checks` function. (#13186)
+* Deprecate `conda.plugins.subcommands.doctor.health_checks.display_report_heading` function. (#13186)
+* Remove `ruamel_yaml` fallback; use `ruamel.yaml` exclusively. (#13218)
+* Deprecate `conda.gateways.anaconda_client.EnvAppDirs` in favor of `platformdirs`. (#13306)
+* Mark `conda._vendor.cpuinfo` for pending deprecation. (#13313)
+* Deprecate `conda._vendor.distro` in favor of the `distro` package. (#13317)
+
+### Docs
+
+* Add the `conda-sphinx-theme` to the conda documentation. (#13298)
+* Update specific pages to remove redundant TOC entries. (#13298)
+* Include instructions on updating `conda` in the main `README.md`. (#13343)
+
+### Other
+
+* Add a lighter weight s3 test; update embedded test package index. (#13085)
+* Refactor code to use lazy imports for all relative imports in `conda.cli.main_*`, and separate argparse configuration functions from `conda.cli.conda_argparse` to their respective `conda.cli.main_*` modules. (#13173)
+* Move custom `argparse.Actions` to `conda.cli.actions` (e.g., `NullCountAction`), and relocate helper argparse functions to `conda.cli.helpers` (e.g., `add_parser_prefix`). (#13173)
+* Update upper bound for `ruamel.yaml` to `<0.19` following the release of `0.18`. (#13258)
+* Replace `black` with `ruff format` in pre-commit. (#13272)
+
+### Contributors
+
+* @AniketP04 made their first contribution in https://github.com/conda/conda/pull/13224
+* @beeankha
+* @13rac1 made their first contribution in https://github.com/conda/conda/pull/13191
+* @conda-bot
+* @dholth
+* @eltociear
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @kennethlaskoski made their first contribution in https://github.com/conda/conda/pull/13322
+* @ForgottenProgramme
+* @marcoesters
+* @opoplawski
+* @scruel made their first contribution in https://github.com/conda/conda/pull/13274
+* @travishathaway
+* @gfggithubleet made their first contribution in https://github.com/conda/conda/pull/13270
+* @pre-commit-ci[bot]
+
+
+
 ## 23.10.0 (2023-10-30)
 
 ### ✨ Special announcement ✨
