@@ -1791,7 +1791,7 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
         "create",
         f"--prefix={prefix}",
         "--dry-run",
-        catch=DryRunExit,
+        raises=DryRunExit,
     )
     assert str(prefix) in stdout
     assert not stderr
@@ -1802,7 +1802,7 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
         f"--prefix={prefix}",
         "flask",
         "--dry-run",
-        catch=DryRunExit,
+        raises=DryRunExit,
     )
     assert ":flask" in stdout
     assert ":python" in stdout
@@ -1822,7 +1822,7 @@ def test_create_dry_run_json(
         "flask",
         "--dry-run",
         "--json",
-        catch=DryRunExit,
+        raises=DryRunExit,
     )
     names = {link["name"] for link in json.loads(stdout)["actions"]["LINK"]}
     assert "python" in names
