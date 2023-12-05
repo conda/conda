@@ -115,10 +115,12 @@ def validate_destination(dest: str, force: bool = False) -> str:
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Executes the command for renaming an existing environment."""
+    from subprocess import run
+
     from ..base.constants import DRY_RUN_PREFIX
-    from ..base.context import context
-    from ..cli import install
-    from ..gateways.disk.delete import rm_rf
+
+    # from ..cli import install
+    # from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.update import rename_context
 
     source = validate_src()
@@ -126,22 +128,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (
-            partial(
-                install.clone,
-                source,
-                destination,
-                quiet=context.quiet,
-                json=context.json,
-            ),
-            partial(rm_rf, source),
+            partial(run, ["conda", "create", "-p", destination, "--clone", source]),
+            partial(run, ["conda", "remove", "-p", source, "-y", "--all"]),
         )
 
         # We now either run collected actions or print dry run statement
-        for func in actions:
+        for action in actions:
             if args.dry_run:
-                print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
+                print(
+                    f"{DRY_RUN_PREFIX} clone {destination} {source}\n{DRY_RUN_PREFIX} rm_rf {source}"
+                )
+                break
             else:
-                func()
+                action()
 
     if args.force:
         with rename_context(destination, dry_run=args.dry_run):
