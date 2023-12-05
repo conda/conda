@@ -73,11 +73,12 @@ def check_prefix(prefix, json=False):
     matches = pattern.findall(context.root_prefix)
     for match in matches:
         for subdir in os.listdir(match):
-            subdir_path = os.path.join(match, subdir)
-            if prefix == subdir_path:
-                raise CondaValueError(
-                    f"The target prefix is attempting to override a protected directory, '{subdir}'. Aborting."
-                )
+            if subdir != "envs":
+                subdir_path = os.path.join(match, subdir)
+                if prefix == subdir_path:
+                    raise CondaValueError(
+                        f"The target prefix is attempting to override a protected directory, '{subdir}'. Aborting."
+                    )
 
     if os.pathsep in prefix:
         raise CondaValueError(

@@ -2838,11 +2838,11 @@ def test_disallowed_packages():
 def test_dont_remove_conda_1():
     pkgs_dirs = context.pkgs_dirs
     prefix = make_temp_prefix()
-    with env_vars(
-        {"CONDA_ROOT_PREFIX": prefix, "CONDA_PKGS_DIRS": ",".join(pkgs_dirs)},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with make_temp_env(prefix=prefix):
+    with make_temp_env(prefix=prefix):
+        with env_vars(
+            {"CONDA_ROOT_PREFIX": prefix, "CONDA_PKGS_DIRS": ",".join(pkgs_dirs)},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ):
             _, _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
             assert package_is_installed(prefix, "conda")
             assert package_is_installed(prefix, "pycosat")
