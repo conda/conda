@@ -248,11 +248,6 @@ def test_install_broken_post_install_keeps_existing_folders():
         assert exists(join(prefix, BIN_DIRECTORY))
 
 
-# This test uses https://anaconda.org/conda-test/spiffy-test-app/0.5/download/noarch/spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2
-# which is a modification of https://anaconda.org/conda-test/spiffy-test-app/1.0/download/noarch/spiffy-test-app-1.0-pyh6afabb7_0.tar.bz2
-# as documented in info/README within that package.
-# I also had to fix the post-link script in the package by adding quotation marks to handle
-# spaces in path names.
 def test_safety_checks_enabled(
     tmp_env: TmpEnvFixture,
     monkeypatch: MonkeyPatch,
@@ -274,6 +269,7 @@ def test_safety_checks_enabled(
                 "--yes",
             )
 
+        # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
         assert dals(
             """
             The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
@@ -283,6 +279,7 @@ def test_safety_checks_enabled(
             """
         ) in str(exc.value)
         assert "has a sha256 mismatch." in str(exc.value)
+        assert not package_is_installed(prefix, "spiffy-test-app=0.5")
 
 
 def test_safety_checks_warn(
@@ -305,6 +302,7 @@ def test_safety_checks_warn(
             "--yes",
         )
         assert stdout
+        # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
         assert (
             dals(
                 """
@@ -338,9 +336,9 @@ def test_safety_checks_disabled(
             "--channel=conda-test",
             "spiffy-test-app=0.5",
             "--yes",
-            "--dry-run",
         )
         assert stdout
+        # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
         assert (
             dals(
                 """
