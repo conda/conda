@@ -94,8 +94,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
     from .common import confirm_yn
-    from .install import install
+    from .install import check_prefix, install
 
+    check_prefix(context.target_prefix)
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")

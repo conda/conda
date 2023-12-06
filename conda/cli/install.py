@@ -8,8 +8,7 @@ See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
 import os
-import re
-import subprocess
+import pathlib
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 
@@ -17,6 +16,7 @@ from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
+from ..cli.common import confirm_yn
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
 from ..core.index import calculate_channel_urls, get_index
@@ -54,31 +54,26 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
-    # Find all of the environment directories that already exist
-    proc = subprocess.run(
-        ["conda", "info", "--envs"], stdout=subprocess.PIPE, text=True
-    )
-    env_dirs = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
-    # See if an attempted prefix path is one of those directories
-    # TODO: This won't take care of all cases (e.g., NTFS junctions), but should take care of
-    #       the most common ones; we can possibly update later to include more edge cases.
-    for dirs in env_dirs:
-        if prefix in dirs:
-            raise CondaValueError(
-                "Using a subdirectory of an environment directory as a prefix is not allowed. Aborting."
-            )
     # Find all directories within the base env's directory and prevent a new prefix from being created
     # with that same directory path (e.g., "bin", "conda-meta", etc.)
-    pattern = re.compile(r"([\/\\].*)")
-    matches = pattern.findall(context.root_prefix)
-    for match in matches:
-        for subdir in os.listdir(match):
-            if subdir != "envs":
-                subdir_path = os.path.join(match, subdir)
-                if prefix == subdir_path:
-                    raise CondaValueError(
-                        f"The target prefix is attempting to override a protected directory, '{subdir}'. Aborting."
-                    )
+    for subdir in pathlib.Path(context.root_prefix).iterdir():
+        subdir_path = subdir.as_posix()
+        if prefix == subdir_path:
+            if context.dry_run:
+                raise CondaValueError(
+                    # Take "easy way out" rather than faking creation of an environment that
+                    # overrides a protected directory
+                    f"Cannot conduct a dry run for overriding a protected directory, '{subdir.name}'."
+                )
+            else:
+                # Even though this is a dangerous operation, if someone really wants to override
+                # a "protected" directory, let them proceed after being warned
+                confirm_yn(
+                    f"WARNING: The target prefix is attempting to override a protected directory, '{subdir.name}'.\n"
+                    "Continue to create this environment?",
+                    default="no",
+                    dry_run=False,
+                )
 
     if os.pathsep in prefix:
         raise CondaValueError(
