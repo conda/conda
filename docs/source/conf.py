@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os.path
 import sys
-from os import getenv
 from pathlib import Path
 
 # expose custom extensions
@@ -97,8 +96,8 @@ html_theme_options = {
     "show_prev_next": False,
     # Navbar icon links
     "navbar_start": ["navbar-logo"],
-    "footer_center": ["footer_center"],
     "use_edit_page_button": True,
+    "goatcounter_url": "https://docs-conda-io.goatcounter.com/count",
 }
 
 html_context = {
@@ -106,7 +105,7 @@ html_context = {
     "github_repo": "conda",
     "github_version": "main",
     "doc_path": "docs/source",
-    "use_analytics": "conda.io" in getenv("READTHEDOCS_CANONICAL_URL", ""),
+    "goatcounter_dashboard_url": "https://docs-conda-io.goatcounter.com",
 }
 
 # -- sphinxcontrib.plantuml ------------------------------------------------
