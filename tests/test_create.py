@@ -1812,7 +1812,8 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
 
 
 def test_create_dry_run_json(
-    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
 ):
     prefix = path_factory()
 
@@ -1831,11 +1832,11 @@ def test_create_dry_run_json(
     assert not code
 
 
-def test_create_dry_run_yes_safety():
-    with make_temp_env() as prefix:
+def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
         with pytest.raises(CondaValueError):
-            run_command(Commands.CREATE, prefix, "--dry-run", "--yes")
-        assert exists(prefix)
+            conda_cli("create", f"--prefix={prefix}", "--dry-run", "--yes")
+        assert prefix.exists()
 
 
 def test_packages_not_found():
