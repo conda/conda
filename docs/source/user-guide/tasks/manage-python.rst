@@ -2,11 +2,6 @@
 Managing Python
 ===============
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 

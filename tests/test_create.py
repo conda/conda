@@ -1134,19 +1134,23 @@ def test_install_only_deps_flag():
         assert not package_is_installed(prefix, "flask")
 
 
-def test_install_update_deps_only_deps_flags():
-    with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
-        python = join(prefix, PYTHON_BINARY)
+def test_install_update_deps_only_deps_flags(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("flask=2.0.1", "jinja2=3.0.1", "python>=3.12") as prefix:
+        python = str(prefix / PYTHON_BINARY)
         result_before = subprocess_call_with_clean_env([python, "--version"])
         assert package_is_installed(prefix, "flask=2.0.1")
         assert package_is_installed(prefix, "jinja2=3.0.1")
-        run_command(
-            Commands.INSTALL,
-            prefix,
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
             "flask",
             "python",
             "--update-deps",
             "--only-deps",
+            "--yes",
         )
         result_after = subprocess_call_with_clean_env([python, "--version"])
         assert result_before == result_after
@@ -1569,7 +1573,7 @@ def test_update_deps_flag_present():
 
 
 @pytest.mark.skipif(True, reason="Add this test back someday.")
-# @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+# @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message():
     prefix = make_temp_prefix("_" + str(uuid4())[:7])
     with make_temp_env(prefix=prefix):
@@ -1580,7 +1584,7 @@ def test_shortcut_in_underscore_env_shows_message():
         )
 
 
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_not_attempted_with_no_shortcuts_arg():
     prefix = make_temp_prefix("_" + str(uuid4())[:7])
     shortcut_dir = get_shortcut_dir()
@@ -1596,7 +1600,7 @@ def test_shortcut_not_attempted_with_no_shortcuts_arg():
         assert not isfile(shortcut_file)
 
 
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_creation_installs_shortcut():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
@@ -1625,7 +1629,7 @@ def test_shortcut_creation_installs_shortcut():
             os.remove(shortcut_file)
 
 
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_absent_does_not_barf_on_uninstall():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
@@ -1653,7 +1657,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
             os.remove(shortcut_file)
 
 
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_absent_when_condarc_set():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
@@ -1686,6 +1690,44 @@ def test_shortcut_absent_when_condarc_set():
         rmtree(prefix, ignore_errors=True)
         if isfile(shortcut_file):
             os.remove(shortcut_file)
+        # even if the $PREFIX/.condarc is gone,
+        # the context object still has that config in memory
+        reset_context()
+
+
+def test_menuinst_v2(monkeypatch: MonkeyPatch):
+    called = False
+    from menuinst import install
+
+    def mock_install(*args, **kwargs):
+        nonlocal called, install
+        called = True
+        return install(*args, **kwargs)
+
+    monkeypatch.setattr("menuinst.install", mock_install)
+    prefix = make_temp_prefix(str(uuid4())[:7])
+
+    Path(prefix).mkdir(parents=True, exist_ok=True)
+    Path(prefix).touch(".nonadmin")
+    out, err, _ = run_command(
+        Commands.CREATE,
+        prefix,
+        "conda-test/label/menuinst-tests::package_1",
+        "--no-deps",
+    )
+    assert package_is_installed(prefix, "package_1")
+    assert Path(prefix, "Menu", "package_1.json").is_file()
+    assert called
+    assert "menuinst Exception" not in out + err
+    base_dir = Path(get_shortcut_dir(prefix_for_unix=prefix))
+    if sys.platform == "win32":
+        assert (base_dir / "Package 1" / "A.lnk").is_file()
+    elif sys.platform == "darwin":
+        assert (base_dir / "A.app" / "Contents" / "MacOS" / "a").is_file()
+    elif sys.platform == "linux":
+        assert (base_dir / "package-1_a.desktop").is_file()
+    else:
+        raise NotImplementedError(sys.platform)
 
 
 def test_create_default_packages():
