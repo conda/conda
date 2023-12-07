@@ -18,12 +18,12 @@ import os
 import sys
 import uuid
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
-from typing import Iterator
+from typing import Iterable
 
 import pytest
 from pytest import CaptureFixture
@@ -168,12 +168,17 @@ def conda_check_versions_aligned():
 class CondaCLIFixture:
     capsys: CaptureFixture
 
-    def __call__(self, *argv: str) -> tuple[str, str, int]:
+    def __call__(
+        self,
+        *argv: str | os.PathLike | Path,
+        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+    ) -> tuple[str, str, int]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
 
         :param argv: Arguments to parse
+        :param raises: Expected exception to intercept
         :return: Command results
         :rtype: tuple[stdout, stdout, exitcode]
         """
@@ -246,7 +251,7 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
-    ) -> Iterator[Path]:
+    ) -> Iterable[Path]:
         """Generate a conda environment with the provided packages.
 
         :param packages: The packages to install into environment

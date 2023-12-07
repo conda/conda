@@ -1783,52 +1783,60 @@ def test_create_default_packages_no_default_packages():
         rmtree(prefix, ignore_errors=True)
 
 
-def test_create_dry_run():
-    # Regression test for #3453
-    prefix = "/some/place"
-    with pytest.raises(DryRunExit):
-        run_command(Commands.CREATE, prefix, "--dry-run")
-    output, _, _ = run_command(
-        Commands.CREATE, prefix, "--dry-run", use_exception_handler=True
+def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+    # regression test for #3453
+    prefix = path_factory()
+
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--dry-run",
+        raises=DryRunExit,
     )
-    assert join("some", "place") in output
-    # TODO: This assert passes locally but fails on CI boxes; figure out why and re-enable
-    # assert "The following empty environments will be CREATED" in stdout
+    assert str(prefix) in stdout
+    assert not stderr
+    assert not code
 
-    prefix = "/another/place"
-    with pytest.raises(DryRunExit):
-        run_command(Commands.CREATE, prefix, "flask", "--dry-run")
-    output, _, _ = run_command(
-        Commands.CREATE, prefix, "flask", "--dry-run", use_exception_handler=True
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "flask",
+        "--dry-run",
+        raises=DryRunExit,
     )
-    assert ":flask" in output
-    assert ":python" in output
-    assert join("another", "place") in output
+    assert ":flask" in stdout
+    assert ":python" in stdout
+    assert str(prefix) in stdout
+    assert not stderr
+    assert not code
 
 
-def test_create_dry_run_json():
-    prefix = "/some/place"
-    with pytest.raises(DryRunExit):
-        run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
-    output, _, _ = run_command(
-        Commands.CREATE,
-        prefix,
+def test_create_dry_run_json(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+):
+    prefix = path_factory()
+
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
         "flask",
         "--dry-run",
         "--json",
-        use_exception_handler=True,
+        raises=DryRunExit,
     )
-    loaded = json.loads(output)
-    names = {d["name"] for d in loaded["actions"]["LINK"]}
+    names = {link["name"] for link in json.loads(stdout)["actions"]["LINK"]}
     assert "python" in names
     assert "flask" in names
+    assert not stderr
+    assert not code
 
 
-def test_create_dry_run_yes_safety():
-    with make_temp_env() as prefix:
+def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
         with pytest.raises(CondaValueError):
-            run_command(Commands.CREATE, prefix, "--dry-run", "--yes")
-        assert exists(prefix)
+            conda_cli("create", f"--prefix={prefix}", "--dry-run", "--yes")
+        assert prefix.exists()
 
 
 def test_packages_not_found():
