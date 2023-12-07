@@ -30,7 +30,7 @@ from . import install as cli_install
 from .common import get_filename, print_result
 
 
-def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
         add_output_and_prompt_options,
@@ -76,6 +76,7 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         help=summary,
         description=description,
         epilog=epilog,
+        **kwargs,
     )
     p.add_argument(
         "-f",

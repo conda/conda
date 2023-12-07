@@ -18,7 +18,7 @@ from conda.exceptions import EnvironmentLocationNotFound
 from . import common
 
 
-def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import add_parser_json, add_parser_prefix
 
@@ -42,6 +42,7 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         help=var_summary,
         description=var_description,
         epilog=var_epilog,
+        **kwargs,
     )
     var_subparser = var_parser.add_subparsers()
 

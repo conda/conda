@@ -10,4 +10,10 @@ from conda.cli.common import get_filename, print_result  # noqa: F401
 from conda.deprecations import deprecated
 
 deprecated.module("24.3", "24.9", addendum="Use `conda.cli.common` instead.")
-deprecated.constant("24.3", "24.9", "base_env_name", ROOT_ENV_NAME)
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "base_env_name",
+    ROOT_ENV_NAME,
+    addendum="Use `conda.base.constants.ROOT_ENV_NAME` instead.",
+)

@@ -26,7 +26,7 @@ from ..env.installers.base import InvalidInstaller, get_installer
 from .common import get_filename, print_result
 
 
-def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
         add_parser_json,
@@ -54,6 +54,7 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         help=summary,
         description=description,
         epilog=epilog,
+        **kwargs,
     )
     add_parser_prefix(p)
     p.add_argument(

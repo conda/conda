@@ -13,13 +13,6 @@ from argparse import (
     _MutuallyExclusiveGroup,
 )
 
-from ..deprecations import deprecated
-
-
-@deprecated("24.3", "24.9")
-def show_help_on_empty_command():
-    pass
-
 
 def add_parser_create_install_update(p, prefix_required=False):
     from ..common.constants import NULL

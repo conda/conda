@@ -16,7 +16,7 @@ from conda.env.env import from_environment
 from .common import stdout_json
 
 
-def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import add_parser_json, add_parser_prefix
 
@@ -37,6 +37,7 @@ def configure_parser(sub_parsers: _SubParsersAction) -> ArgumentParser:
         help=summary,
         description=description,
         epilog=epilog,
+        **kwargs,
     )
 
     p.add_argument(
