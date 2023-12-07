@@ -8,8 +8,8 @@ build:
   script:
     - mkdir -p ${PREFIX}/bin
     - echo "echo Hello!" > ${PREFIX}/bin/small
-    - mkdir -p ${PREFIX}/Script
-    - echo "echo Hello!" > ${PREFIX}/Script/small.bat
+    - mkdir -p ${PREFIX}/Scripts
+    - echo "echo Hello!" > ${PREFIX}/Scripts/small.bat
 
 
 about:
