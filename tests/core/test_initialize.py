@@ -73,245 +73,251 @@ def test_make_install_plan(verbose, mocker):
     plan = make_install_plan("/darwin")
     stdout_json(plan)
     if on_win:
-        assert plan == [
-            {
-                "function": "make_entry_point_exe",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\conda.exe",
+        assert (
+            plan
+            == [
+                {
+                    "function": "make_entry_point_exe",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\conda.exe",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point_exe",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\conda-env.exe",
+                {
+                    "function": "make_entry_point_exe",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\conda-env.exe",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli",
-                    "target_path": "/darwin\\Scripts\\conda-script.py",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin\\Scripts\\conda-script.py",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli.main_env",
-                    "target_path": "/darwin\\Scripts\\conda-env-script.py",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda_env.cli.main",  # TODO: Change to "conda.cli.main_env" upon full deprecation in 24.9
+                        "target_path": "/darwin\\Scripts\\conda-env-script.py",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_conda_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\conda.bat",
+                {
+                    "function": "install_condabin_conda_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\conda.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_library_bin_conda_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Library\\bin\\conda.bat",
+                {
+                    "function": "install_library_bin_conda_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Library\\bin\\conda.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_conda_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\_conda_activate.bat",
+                {
+                    "function": "install_condabin_conda_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\_conda_activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_rename_tmp_bat",
-                "kwargs": {
-                    "target_path": "/darwin\\condabin\\rename_tmp.bat",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_condabin_rename_tmp_bat",
+                    "kwargs": {
+                        "target_path": "/darwin\\condabin\\rename_tmp.bat",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_conda_auto_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\conda_auto_activate.bat",
+                {
+                    "function": "install_condabin_conda_auto_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\conda_auto_activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_hook_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\conda_hook.bat",
+                {
+                    "function": "install_condabin_hook_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\conda_hook.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_Scripts_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\activate.bat",
+                {
+                    "function": "install_Scripts_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\activate.bat",
+                {
+                    "function": "install_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_deactivate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\deactivate.bat",
+                {
+                    "function": "install_deactivate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\deactivate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_activate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\activate",
+                {
+                    "function": "install_activate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\activate",
+                    },
                 },
-            },
-            {
-                "function": "install_deactivate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\deactivate",
+                {
+                    "function": "install_deactivate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\deactivate",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_sh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\etc\\profile.d\\conda.sh",
+                {
+                    "function": "install_conda_sh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\profile.d\\conda.sh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_fish",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
+                {
+                    "function": "install_conda_fish",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_psm1",
-                "kwargs": {
-                    "target_path": "/darwin\\shell\\condabin\\Conda.psm1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_psm1",
+                    "kwargs": {
+                        "target_path": "/darwin\\shell\\condabin\\Conda.psm1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_hook_ps1",
-                "kwargs": {
-                    "target_path": "/darwin\\shell\\condabin\\conda-hook.ps1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_hook_ps1",
+                    "kwargs": {
+                        "target_path": "/darwin\\shell\\condabin\\conda-hook.ps1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_xsh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/lib/python2.6/site-packages\\xontrib\\conda.xsh",
+                {
+                    "function": "install_conda_xsh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/lib/python2.6/site-packages\\xontrib\\conda.xsh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_csh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\etc\\profile.d\\conda.csh",
+                {
+                    "function": "install_conda_csh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\profile.d\\conda.csh",
+                    },
                 },
-            },
-        ]
+            ]
+        )
     else:
-        assert plan == [
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli",
-                    "target_path": "/darwin/condabin/conda",
+        assert (
+            plan
+            == [
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin/condabin/conda",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli",
-                    "target_path": "/darwin/bin/conda",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin/bin/conda",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli.main_env",
-                    "target_path": "/darwin/bin/conda-env",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda_env.cli.main",  # TODO: Change to "conda.cli.main_env" upon full deprecation in 24.9
+                        "target_path": "/darwin/bin/conda-env",
+                    },
                 },
-            },
-            {
-                "function": "install_activate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/bin/activate",
+                {
+                    "function": "install_activate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/bin/activate",
+                    },
                 },
-            },
-            {
-                "function": "install_deactivate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/bin/deactivate",
+                {
+                    "function": "install_deactivate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/bin/deactivate",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_sh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/etc/profile.d/conda.sh",
+                {
+                    "function": "install_conda_sh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/etc/profile.d/conda.sh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_fish",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/etc/fish/conf.d/conda.fish",
+                {
+                    "function": "install_conda_fish",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/etc/fish/conf.d/conda.fish",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_psm1",
-                "kwargs": {
-                    "target_path": "/darwin/shell/condabin/Conda.psm1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_psm1",
+                    "kwargs": {
+                        "target_path": "/darwin/shell/condabin/Conda.psm1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_hook_ps1",
-                "kwargs": {
-                    "target_path": "/darwin/shell/condabin/conda-hook.ps1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_hook_ps1",
+                    "kwargs": {
+                        "target_path": "/darwin/shell/condabin/conda-hook.ps1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_xsh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/lib/python2.6/site-packages/xontrib/conda.xsh",
+                {
+                    "function": "install_conda_xsh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/lib/python2.6/site-packages/xontrib/conda.xsh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_csh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/etc/profile.d/conda.csh",
+                {
+                    "function": "install_conda_csh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/etc/profile.d/conda.csh",
+                    },
                 },
-            },
-        ]
+            ]
+        )
 
 
 def test_make_initialize_plan_bash_zsh(verbose):
