@@ -500,9 +500,9 @@ def test_noarch_python_package_reinstall_on_pyver_change():
         assert isfile(join(prefix, pyc_file_py2))
 
 
-def test_noarch_generic_package():
-    with make_temp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
-        assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
+def test_noarch_generic_package(test_recipes_channel: None, tmp_env: TmpEnvFixture):
+    with tmp_env("font-ttf-inconsolata", "--use-local") as prefix:
+        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
 def test_override_channels():
