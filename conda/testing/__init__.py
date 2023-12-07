@@ -18,12 +18,12 @@ import os
 import sys
 import uuid
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
-from typing import Iterator
+from typing import Iterable
 
 import pytest
 from pytest import CaptureFixture
@@ -168,12 +168,17 @@ def conda_check_versions_aligned():
 class CondaCLIFixture:
     capsys: CaptureFixture
 
-    def __call__(self, *argv: str) -> tuple[str, str, int]:
+    def __call__(
+        self,
+        *argv: str | os.PathLike | Path,
+        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+    ) -> tuple[str, str, int]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
 
         :param argv: Arguments to parse
+        :param raises: Expected exception to intercept
         :return: Command results
         :rtype: tuple[stdout, stdout, exitcode]
         """
@@ -183,29 +188,31 @@ class CondaCLIFixture:
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
-        # mock legacy subcommands
-        if argv[0] == "env":
-            from conda_env.cli.main import create_parser, do_call
+        code = None
+        with pytest.raises(raises) if raises else nullcontext():
+            # mock legacy subcommands
+            if argv[0] == "env":
+                from conda_env.cli.main import create_parser, do_call
 
-            argv = argv[1:]
+                argv = argv[1:]
 
-            # parse arguments
-            parser = create_parser()
-            args = parser.parse_args(argv)
+                # parse arguments
+                parser = create_parser()
+                args = parser.parse_args(argv)
 
-            # initialize context and loggers
-            context.__init__(argparse_args=args)
-            init_loggers()
+                # initialize context and loggers
+                context.__init__(argparse_args=args)
+                init_loggers()
 
-            # run command
-            code = do_call(args, parser)
+                # run command
+                code = do_call(args, parser)
 
-        # all other subcommands
-        else:
-            from ..cli.main import main_subshell
+            # all other subcommands
+            else:
+                from ..cli.main import main_subshell
 
-            # run command
-            code = main_subshell(*argv)
+                # run command
+                code = main_subshell(*argv)
 
         # capture output
         out, err = self.capsys.readouterr()
@@ -267,7 +274,7 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
-    ) -> Iterator[Path]:
+    ) -> Iterable[Path]:
         """Generate a conda environment with the provided packages.
 
         :param packages: The packages to install into environment
