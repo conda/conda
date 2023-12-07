@@ -18,7 +18,7 @@ import os
 import sys
 import uuid
 import warnings
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
