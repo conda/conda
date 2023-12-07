@@ -1,0 +1,16 @@
+package:
+  name: small-executable
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p ${PREFIX}/bin
+    - echo "echo Hello!" > ${PREFIX}/bin/small
+    - mkdir -p ${PREFIX}/Script
+    - echo "echo Hello!" > ${PREFIX}/Script/small.bat
+
+
+about:
+  summary: A small executable package

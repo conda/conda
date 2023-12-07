@@ -237,9 +237,9 @@ def test_install_broken_post_install_keeps_existing_folders(
     conda_cli: CondaCLIFixture,
 ):
     # regression test for #8258
-    with tmp_env("curl") as prefix:
+    with tmp_env("small-executable", "--use-local") as prefix:
         assert (prefix / BIN_DIRECTORY).exists()
-        assert package_is_installed(prefix, "curl")
+        assert package_is_installed(prefix, "small-executable")
 
         with pytest.raises(CondaMultiError, match="post-link script failed"):
             conda_cli(
@@ -251,7 +251,7 @@ def test_install_broken_post_install_keeps_existing_folders(
             )
 
         assert (prefix / BIN_DIRECTORY).exists()
-        assert package_is_installed(prefix, "curl")
+        assert package_is_installed(prefix, "small-executable")
 
 
 def test_safety_checks():
