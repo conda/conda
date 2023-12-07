@@ -2,6 +2,21 @@
 
 ## 23.11.0 (2023-11-30)
 
+### Special announcement
+
+New [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0) support!
+
+`conda` has supported Start menu items on Windows for a long time. This is what allows users to open up their Miniconda prompt on CMD (Command Prompt) with an initialized `conda` session. This menu item (or shortcut) creation logic is provided by the `menuinst` package.
+
+With the release of 23.11.0, `conda` now supports [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0), which enables the same experience across Windows, Linux, and macOS. This means package builders will be able to provide desktop icons across all operating systems, which can be especially useful for GUI applications. See the [documentation](https://conda.github.io/menuinst/) for more details.
+
+If you don't want `conda` to create shortcuts, you can disable it via:
+
+- `shortcuts: false` entry in your `.condarc` configuration
+- `CONDA_SHORTCUTS=false` environment variable
+- `--no-shortcuts` command-line flag
+
+
 ### Enhancements
 
 * Add support for `menuinst` v2, enabling shortcuts across all platforms (Windows, Linux, macOS) using a new JSON schema (see [CEP-11](https://github.com/conda-incubator/ceps/blob/main/cep-11.md)). Retain support for old v1-style JSON menus. (#11882)
