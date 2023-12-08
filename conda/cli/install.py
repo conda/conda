@@ -56,24 +56,32 @@ stderrlog = getLogger("conda.stderr")
 def check_prefix(prefix, json=False):
     # Find all directories within the base env's directory and prevent a new prefix from being created
     # with that same directory path (e.g., "bin", "conda-meta", etc.)
-    for subdir in pathlib.Path(context.root_prefix).iterdir():
-        subdir_path = subdir.as_posix()
-        if prefix == subdir_path:
-            if context.dry_run:
-                raise CondaValueError(
-                    # Take "easy way out" rather than faking creation of an environment that
-                    # overrides a protected directory
-                    f"Cannot conduct a dry run for overriding a protected directory, '{subdir.name}'."
-                )
-            else:
-                # Even though this is a dangerous operation, if someone really wants to override
-                # a "protected" directory, let them proceed after being warned
-                confirm_yn(
-                    f"WARNING: The target prefix is attempting to override a protected directory, '{subdir.name}'.\n"
-                    "Continue to create this environment?",
-                    default="no",
-                    dry_run=False,
-                )
+    if (pathlib.Path(context.target_prefix).parent / "conda-meta/history").exists():
+        confirm_yn(
+            f"WARNING: The target prefix is attempting to override a protected directory, '{context.target_prefix}'.\n"
+            "Continue to create this environment?",
+            default="no",
+            dry_run=context.dry_run,
+        )
+
+    # for subdir in pathlib.Path(context.target_prefix).parent.iterdir():
+    #     subdir_path = subdir.as_posix()
+    #     if prefix == subdir_path:
+    #         if context.dry_run:
+    #             raise CondaValueError(
+    #                 # Take "easy way out" rather than faking creation of an environment that
+    #                 # overrides a protected directory
+    #                 f"Cannot conduct a dry run for overriding a protected directory, '{subdir.name}'."
+    #             )
+    #         else:
+    #             # Even though this is a dangerous operation, if someone really wants to override
+    #             # a "protected" directory, let them proceed after being warned
+    #             confirm_yn(
+    #                 f"WARNING: The target prefix is attempting to override a protected directory, '{subdir.name}'.\n"
+    #                 "Continue to create this environment?",
+    #                 default="no",
+    #                 dry_run=False,
+    #             )
 
     if os.pathsep in prefix:
         raise CondaValueError(
