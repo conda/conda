@@ -15,11 +15,9 @@ from uuid import uuid4
 
 import pytest
 
-from conda.cli import main as conda_env_cli
-
-from .. import cli
 from ..auxlib.compat import shlex_split_unicode
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..cli.main import main_subshell
 from ..common.compat import encode_arguments
 from ..common.io import argv, env_var
 from ..common.io import captured as common_io_captured
@@ -131,12 +129,17 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
 
-    # determine whether this is a conda_env command and assign appropriate main function
-    if command.startswith("conda env"):
-        command = command.replace("env", "")  # Remove 'env' because of command parser
-        main_func = conda_env_cli.main
-    else:
-        main_func = cli.main
+    # Original code:
+
+    # # determine whether this is a conda_env command and assign appropriate main function
+    # if command.startswith("conda env"):
+    #     command = command.replace("env", "")  # Remove 'env' because of command parser
+    #     main_func = conda_env_cli.main
+    # else:
+    #     main_func = cli.main
+
+    # Interim code:
+    # main_func = main_subshell
 
     # May want to do this to command:
     with argv(encode_arguments(shlex_split_unicode(command))), captured(
@@ -144,7 +147,9 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     ) as c:
         initialize_logging()
         try:
-            exit_code = main_func()
+            exit_code = (
+                main_subshell()
+            )  # If the above is correct, this does the same with the fewest lines
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
