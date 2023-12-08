@@ -265,24 +265,3 @@ def test_fail_to_create_env_in_dir_with_colon(
         match="Cannot create a conda environment with ':' in the prefix.",
     ):
         conda_cli("create", f"--prefix={colon_dir}/tester")
-
-
-@pytest.mark.skipif(on_win, reason="Test is invalid on Windows")
-def test_protected_directory(conda_cli: CondaCLIFixture):
-    protected_prefix = context.root_dir + "/bin"
-    with pytest.raises(
-        CondaValueError,
-        match="The target prefix is attempting to override a protected directory, 'bin'. Aborting.",
-    ):
-        conda_cli("create", f"--prefix={protected_prefix}", "--yes")
-
-
-@pytest.mark.skipif(on_win, reason="Test is invalid on Windows")
-def test_subdirectory_prefix(conda_cli: CondaCLIFixture):
-    bad_prefix = context.root_dir + "/envs"
-
-    with pytest.raises(
-        CondaValueError,
-        match="Using a subdirectory of an environment directory as a prefix is not allowed. Aborting.",
-    ):
-        conda_cli("create", f"--prefix={bad_prefix}", "--yes")

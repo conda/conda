@@ -16,7 +16,6 @@ from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
-from ..cli.common import confirm_yn
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
 from ..core.index import calculate_channel_urls, get_index
@@ -41,7 +40,8 @@ from ..exceptions import (
     UnsatisfiableError,
 )
 from ..gateways.disk.create import mkdir_p
-from ..gateways.disk.delete import delete_trash, path_is_clean
+from ..gateways.disk.delete import delete_trash, path_is_clean, rm_rf
+from ..gateways.disk.test import is_conda_environment
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
@@ -54,35 +54,8 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
-    # Find all directories within the base env's directory and prevent a new prefix from being created
-    # with that same directory path (e.g., "bin", "conda-meta", etc.)
-    if (pathlib.Path(context.target_prefix).parent / "conda-meta/history").exists():
-        confirm_yn(
-            f"WARNING: The target prefix is attempting to override a protected directory, '{context.target_prefix}'.\n"
-            "Continue to create this environment?",
-            default="no",
-            dry_run=context.dry_run,
-        )
-
-    # for subdir in pathlib.Path(context.target_prefix).parent.iterdir():
-    #     subdir_path = subdir.as_posix()
-    #     if prefix == subdir_path:
-    #         if context.dry_run:
-    #             raise CondaValueError(
-    #                 # Take "easy way out" rather than faking creation of an environment that
-    #                 # overrides a protected directory
-    #                 f"Cannot conduct a dry run for overriding a protected directory, '{subdir.name}'."
-    #             )
-    #         else:
-    #             # Even though this is a dangerous operation, if someone really wants to override
-    #             # a "protected" directory, let them proceed after being warned
-    #             confirm_yn(
-    #                 f"WARNING: The target prefix is attempting to override a protected directory, '{subdir.name}'.\n"
-    #                 "Continue to create this environment?",
-    #                 default="no",
-    #                 dry_run=False,
-    #             )
-
+    # Check to see if a new prefix is in an already-existing environment's protected
+    # directory path (e.g., "bin", "conda-meta", etc.) and warn accordingly
     if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
@@ -109,6 +82,45 @@ def check_prefix(prefix, json=False):
             "make sure you activate your environment before running any executables!\n"
         )
 
+    parent_dir = pathlib.Path(context.target_prefix).parent / "conda-meta/history"
+    if parent_dir.exists():
+        print(f"parent_dir = {parent_dir}\n")
+        for subdir in pathlib.Path(context.target_prefix).parent.iterdir():
+            if context.target_prefix == subdir.as_posix():
+                common.confirm_yn(
+                    f"WARNING: The target prefix is attempting to override a protected directory, '{context.target_prefix}'.\n"
+                    "Continue to create this environment?",
+                    default="no",
+                    dry_run=context.dry_run,
+                )
+
+    if is_conda_environment(context.target_prefix):
+        if paths_equal(context.target_prefix, context.root_prefix):
+            raise CondaValueError("The target prefix is the base prefix. Aborting.")
+        if context.dry_run:
+            # Taking the "easy" way out, rather than trying to fake removing
+            # the existing environment before creating a new one.
+            raise CondaValueError(
+                "Cannot `create --dry-run` with an existing conda environment"
+            )
+        common.confirm_yn(
+            "WARNING: A conda environment already exists at '%s'\n"
+            "Remove existing environment" % context.target_prefix,
+            default="no",
+            dry_run=False,
+        )
+        log.info("Removing existing environment %s", context.target_prefix)
+        rm_rf(context.target_prefix)
+
+    elif isdir(context.target_prefix):
+        common.confirm_yn(
+            "WARNING: A directory already exists at the target location '%s'\n"
+            "but it is not a conda environment.\n"
+            "Continue creating environment" % context.target_prefix,
+            default="no",
+            dry_run=False,
+        )
+
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
@@ -122,6 +134,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         print("Source:      %s" % src_prefix)
         print("Destination: %s" % dst_prefix)
 
+    check_prefix(src_prefix)
     actions, untracked_files = clone_env(
         src_prefix, dst_prefix, verbose=not json, quiet=quiet, index_args=index_args
     )
