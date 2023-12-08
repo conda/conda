@@ -503,6 +503,37 @@ def test_noarch_python_package_without_entry_points(
         assert not isfile(join(prefix, pyc_file))
 
 
+def test_noarch_python_package_reinstall_on_pyver_change(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    When Python changes versions (e.g. from 3.10 to 3.11) it is important to verify that all the previous
+    dependencies were transferred over to the new version in ``lib/python3.x/site-packages/*``.
+    """
+    with tmp_env("itsdangerous", "python=3.10") as prefix:
+        py_ver = get_python_version_for_prefix(prefix)
+        assert py_ver.startswith("3.10")
+        sp_dir = get_python_site_packages_short_path(py_ver)
+        py_file = sp_dir + "/itsdangerous/__init__.py"
+        pyc_file_py310 = pyc_path(py_file, py_ver).replace("/", os.sep)
+        assert isfile(join(prefix, py_file))
+        assert isfile(join(prefix, pyc_file_py310))
+
+        conda_cli("install", f"--prefix={prefix}", "python=3.11", "--yes")
+        assert not isfile(
+            join(prefix, pyc_file_py310)
+        )  # python3 pyc file should be gone
+
+        py_ver = get_python_version_for_prefix(prefix)
+        assert py_ver.startswith("3.11")
+        sp_dir = get_python_site_packages_short_path(py_ver)
+        py_file = sp_dir + "/itsdangerous/__init__.py"
+        pyc_file_py311 = pyc_path(py_file, py_ver).replace("/", os.sep)
+
+        assert isfile(join(prefix, py_file))
+        assert isfile(join(prefix, pyc_file_py311))
+
+
 def test_noarch_generic_package():
     with make_temp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
         assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
