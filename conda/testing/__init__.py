@@ -18,7 +18,7 @@ import os
 import sys
 import uuid
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
@@ -189,7 +189,9 @@ class CondaCLIFixture:
         argv = tuple(map(str, argv))
 
         # run command
-        code = main_subshell(*argv)
+        code = None
+        with pytest.raises(raises) if raises else nullcontext():
+            code = main_subshell(*argv)
 
         # capture output
         out, err = self.capsys.readouterr()
