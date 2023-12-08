@@ -442,10 +442,8 @@ def test_conda_update_package_not_installed(
             raises=PackageNotInstalledError,
         )
 
-        with pytest.raises(CondaError) as conda_error:
+        with pytest.raises(CondaError, match="Invalid spec for 'conda update'"):
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
-
-        assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
 
 
 def test_noarch_python_package_with_entry_points(
