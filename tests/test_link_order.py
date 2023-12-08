@@ -9,7 +9,7 @@ from conda.testing import TmpEnvFixture
 def test_link_order_post_link_actions(
     test_recipes_channel: None, tmp_env: TmpEnvFixture
 ):
-    with tmp_env("c_post_link_package", "--use-local"):
+    with tmp_env("c_post_link_package"):
         pass
 
 
@@ -17,5 +17,5 @@ def test_link_order_post_link_actions(
 def test_link_order_post_link_depend(
     test_recipes_channel: None, tmp_env: TmpEnvFixture
 ):
-    with tmp_env("e_post_link_package", "--use-local"):
+    with tmp_env("e_post_link_package"):
         pass

@@ -237,7 +237,7 @@ def test_install_broken_post_install_keeps_existing_folders(
     conda_cli: CondaCLIFixture,
 ):
     # regression test for #8258
-    with tmp_env("small-executable", "--use-local") as prefix:
+    with tmp_env("small-executable") as prefix:
         assert (prefix / BIN_DIRECTORY).exists()
         assert package_is_installed(prefix, "small-executable")
 
@@ -246,7 +246,6 @@ def test_install_broken_post_install_keeps_existing_folders(
                 "install",
                 f"--prefix={prefix}",
                 "failing_post_link",
-                "--use-local",
                 "--yes",
             )
 
@@ -501,7 +500,7 @@ def test_noarch_python_package_reinstall_on_pyver_change():
 
 
 def test_noarch_generic_package(test_recipes_channel: None, tmp_env: TmpEnvFixture):
-    with tmp_env("font-ttf-inconsolata", "--use-local") as prefix:
+    with tmp_env("font-ttf-inconsolata") as prefix:
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 

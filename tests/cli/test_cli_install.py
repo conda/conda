@@ -23,7 +23,6 @@ def test_pre_link_message(
             "install",
             *("--prefix", prefix),
             "pre_link_messages_package",
-            "--use-local",
             "--yes",
         )
         assert "Lorem ipsum dolor sit amet" in stdout

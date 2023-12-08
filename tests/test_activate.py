@@ -3119,7 +3119,6 @@ def test_activate_deactivate_modify_path(
         "install",
         *("--prefix", prefix),
         "activate_deactivate_package",
-        "--use-local",
         "--yes",
     )
 
