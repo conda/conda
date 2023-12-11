@@ -210,10 +210,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         f"No packages found in {prefix}. Continuing environment removal"
                     )
         if not context.dry_run:
-            rm_rf(prefix, clean_empty_parents=True)
             if "--keep-env" not in args:
-                print("MAHE")
+                rm_rf(prefix, clean_empty_parents=True)
                 unregister_env(prefix)
+                print("MAHE")
 
         return 0
 
