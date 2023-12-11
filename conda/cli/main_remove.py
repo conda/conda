@@ -71,11 +71,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_channels(p)
 
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
-    solver_mode_options.add_argument(
-        "--all",
-        action="store_true",
-        help="Remove all packages, i.e., the entire environment.",
-    )
+    # solver_mode_options.add_argument(
+    #     "--all",
+    #     action="store_true",
+    #     help="Remove all packages, i.e., the entire environment.",
+    # )
     solver_mode_options.add_argument(
         "--features",
         action="store_true",
@@ -105,6 +105,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_networking(p)
     add_output_and_prompt_options(p)
 
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Remove all packages, i.e., the entire environment.",
+    )
+    p.add_argument(
+        "--keep-env",
+        action="store_true",
+        help="Used with `--all`, delete all packages but keep the environment.",
+    )
     p.add_argument(
         "package_names",
         metavar="package_name",
@@ -201,7 +211,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
         if not context.dry_run:
             rm_rf(prefix, clean_empty_parents=True)
-            unregister_env(prefix)
+            if "--keep-env" not in args:
+                print("MAHE")
+                unregister_env(prefix)
 
         return 0
 
