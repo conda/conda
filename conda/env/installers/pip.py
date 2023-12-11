@@ -5,11 +5,11 @@ import os
 import os.path as op
 from logging import getLogger
 
-from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.context import context
-from conda.common.io import Spinner
-from conda.env.pip_util import get_pip_installed_packages, pip_subprocess
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
+from ...auxlib.compat import Utf8NamedTemporaryFile
+from ...base.context import context
+from ...common.io import Spinner
+from ...env.pip_util import get_pip_installed_packages, pip_subprocess
+from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 
 log = getLogger(__name__)
 

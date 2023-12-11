@@ -15,17 +15,14 @@ from argparse import (
     _SubParsersAction,
 )
 
-from conda.base.context import context, determine_target_prefix
-from conda.core.prefix_data import PrefixData
-from conda.deprecations import deprecated
-from conda.env import (
-    specs,
-)
-from conda.env.installers.base import InvalidInstaller, get_installer
-from conda.gateways.disk.delete import rm_rf
-from conda.misc import touch_nonadmin
-from conda.notices import notices
-
+from ..base.context import context, determine_target_prefix
+from ..core.prefix_data import PrefixData
+from ..deprecations import deprecated
+from ..env import specs
+from ..env.installers.base import InvalidInstaller, get_installer
+from ..gateways.disk.delete import rm_rf
+from ..misc import touch_nonadmin
+from ..notices import notices
 from . import install as cli_install
 from .common import get_filename, print_result
 

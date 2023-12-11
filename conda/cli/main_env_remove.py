@@ -57,7 +57,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    import conda.cli.main_remove
+    from ..cli.main_remove import execute as remove
 
     args = vars(args)
     args.update(
@@ -78,6 +78,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     context.__init__(argparse_args=args)
 
-    conda.cli.main_remove.execute(args, parser)
+    remove(args, parser)
 
     return 0

@@ -10,9 +10,8 @@ from argparse import (
     _SubParsersAction,
 )
 
-from conda.base.context import context, determine_target_prefix, env_name
-from conda.env.env import from_environment
-
+from ..base.context import context, determine_target_prefix, env_name
+from ..env.env import from_environment
 from .common import stdout_json
 
 

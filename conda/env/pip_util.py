@@ -10,10 +10,10 @@ import re
 import sys
 from logging import getLogger
 
-from conda.base.context import context
-from conda.exceptions import CondaEnvException
-from conda.exports import on_win
-from conda.gateways.subprocess import any_subprocess
+from ..base.context import context
+from ..exceptions import CondaEnvException
+from ..exports import on_win
+from ..gateways.subprocess import any_subprocess
 
 log = getLogger(__name__)
 

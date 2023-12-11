@@ -1,9 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
-from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-
-from .. import env
+from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from ..env import from_file
 
 
 class YamlFileSpec:
@@ -16,7 +15,7 @@ class YamlFileSpec:
 
     def can_handle(self):
         try:
-            self._environment = env.from_file(self.filename)
+            self._environment = from_file(self.filename)
             return True
         except EnvironmentFileNotFound as e:
             self.msg = str(e)

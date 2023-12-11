@@ -3,7 +3,7 @@
 """Define requirements.txt spec."""
 import os
 
-from .. import env
+from ..env import Environment
 
 
 class RequirementsSpec:
@@ -46,4 +46,4 @@ class RequirementsSpec:
                 if not line or line.startswith("#"):
                     continue
                 dependencies.append(line)
-        return env.Environment(name=self.name, dependencies=dependencies)
+        return Environment(name=self.name, dependencies=dependencies)

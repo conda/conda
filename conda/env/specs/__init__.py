@@ -5,13 +5,12 @@ from __future__ import annotations
 import os
 from typing import Type, Union
 
-from conda.exceptions import (
+from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     SpecNotFound,
 )
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
-
+from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 from .binstar import BinstarSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec

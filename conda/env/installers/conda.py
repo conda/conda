@@ -7,15 +7,14 @@ from os.path import basename
 try:
     from boltons.setutils import IndexedSet
 except ImportError:  # pragma: no cover
-    from conda._vendor.boltons.setutils import IndexedSet
+    from ..._vendor.boltons.setutils import IndexedSet
 
-from conda.base.constants import UpdateModifier
-from conda.base.context import context
-from conda.common.constants import NULL
-from conda.exceptions import UnsatisfiableError
-from conda.models.channel import Channel, prioritize_channels
-
-from ..env import Environment
+from ...base.constants import UpdateModifier
+from ...base.context import context
+from ...common.constants import NULL
+from ...env.env import Environment
+from ...exceptions import UnsatisfiableError
+from ...models.channel import Channel, prioritize_channels
 
 
 def _solve(prefix, specs, args, env, *_, **kwargs):

@@ -6,8 +6,7 @@ Lists available conda environments.
 """
 from argparse import ArgumentParser, _SubParsersAction
 
-from conda.core.envs_manager import list_all_known_prefixes
-
+from ..core.envs_manager import list_all_known_prefixes
 from . import common
 
 

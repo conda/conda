@@ -13,15 +13,14 @@ from argparse import (
     _SubParsersAction,
 )
 
-from conda.base.context import context, determine_target_prefix
-from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaEnvException
-from conda.misc import touch_nonadmin
-from conda.notices import notices
+from ..base.context import context, determine_target_prefix
+from ..core.prefix_data import PrefixData
+from ..exceptions import CondaEnvException
+from ..misc import touch_nonadmin
+from ..notices import notices
 
 sys.path.append("..")
-from conda.env import specs as install_specs
-
+from ..env import specs as install_specs
 from ..env.installers.base import InvalidInstaller, get_installer
 from .common import get_filename, print_result
 

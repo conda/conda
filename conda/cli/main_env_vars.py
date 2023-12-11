@@ -11,10 +11,9 @@ from argparse import (
 )
 from os.path import lexists
 
-from conda.base.context import context, determine_target_prefix
-from conda.core.prefix_data import PrefixData
-from conda.exceptions import EnvironmentLocationNotFound
-
+from ..base.context import context, determine_target_prefix
+from ..core.prefix_data import PrefixData
+from ..exceptions import EnvironmentLocationNotFound
 from . import common
 
 

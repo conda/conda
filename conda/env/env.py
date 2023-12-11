@@ -6,19 +6,19 @@ import os
 import re
 from itertools import chain
 
-from conda.base.context import context
-from conda.cli import common
-from conda.common.iterators import groupby_to_dict as groupby
-from conda.common.iterators import unique
-from conda.common.serialize import yaml_safe_dump, yaml_safe_load
-from conda.core.prefix_data import PrefixData
-from conda.exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-from conda.gateways.connection.download import download_text
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
-from conda.history import History
-from conda.models.enums import PackageType
-from conda.models.match_spec import MatchSpec
-from conda.models.prefix_graph import PrefixGraph
+from ..base.context import context
+from ..cli import common
+from ..common.iterators import groupby_to_dict as groupby
+from ..common.iterators import unique
+from ..common.serialize import yaml_safe_dump, yaml_safe_load
+from ..core.prefix_data import PrefixData
+from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from ..gateways.connection.download import download_text
+from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+from ..history import History
+from ..models.enums import PackageType
+from ..models.match_spec import MatchSpec
+from ..models.prefix_graph import PrefixGraph
 
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
