@@ -4,7 +4,7 @@
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
-def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..cli import (
         main_env_config,
         main_env_create,

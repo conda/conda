@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-from ..env import from_file
+from .. import env
 
 
 class YamlFileSpec:
@@ -15,7 +15,7 @@ class YamlFileSpec:
 
     def can_handle(self):
         try:
-            self._environment = from_file(self.filename)
+            self._environment = env.from_file(self.filename)
             return True
         except EnvironmentFileNotFound as e:
             self.msg = str(e)
