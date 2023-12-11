@@ -328,9 +328,8 @@ def configure_parser_plugins(sub_parsers) -> None:
     legacy = (
         set()
         if context.no_plugins
-        else set(find_commands()).difference(plugin_subcommands)
+        else set(find_commands()).difference(plugin_subcommands) - {"env"}
     )
-    legacy.discard("env")
     for name in legacy:
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
