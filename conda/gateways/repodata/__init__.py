@@ -464,12 +464,16 @@ class RepodataState(UserDict):
             item = ""
         return super().__setitem__(key, item)
 
+    # required for Python 3.12 .get() (https://github.com/python/cpython/issues/105524)
+    def __contains__(self, key: str):
+        return key in self.data or (
+            key in self._aliased and self._aliased[key] in self.data
+        )
+
     def __missing__(self, key: str):
         if key in self._aliased:
             key = self._aliased[key]
-        else:
-            raise KeyError(key)
-        return super().__getitem__(key)
+        return self.data[key]
 
 
 class RepodataCache:
