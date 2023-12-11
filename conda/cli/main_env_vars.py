@@ -14,7 +14,6 @@ from os.path import lexists
 from ..base.context import context, determine_target_prefix
 from ..core.prefix_data import PrefixData
 from ..exceptions import EnvironmentLocationNotFound
-from . import common
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -120,6 +119,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute_list(args: Namespace, parser: ArgumentParser) -> int:
+    from . import common
+
     prefix = determine_target_prefix(context, args)
     if not lexists(prefix):
         raise EnvironmentLocationNotFound(prefix)

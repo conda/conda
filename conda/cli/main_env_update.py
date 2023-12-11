@@ -4,25 +4,13 @@
 
 Updates the conda environments with the specified packages.
 """
-import os
-import sys
-import textwrap
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
 
-from ..base.context import context, determine_target_prefix
-from ..core.prefix_data import PrefixData
-from ..exceptions import CondaEnvException
-from ..misc import touch_nonadmin
 from ..notices import notices
-
-sys.path.append("..")
-from ..env import specs as install_specs
-from ..env.installers.base import InvalidInstaller, get_installer
-from .common import get_filename, print_result
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -85,6 +73,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    import os
+    import sys
+    import textwrap
+
+    from ..base.context import context, determine_target_prefix
+    from ..core.prefix_data import PrefixData
+    from ..env import specs as install_specs
+    from ..env.installers.base import InvalidInstaller, get_installer
+    from ..exceptions import CondaEnvException
+    from ..misc import touch_nonadmin
+    from .common import get_filename, print_result
+
     spec = install_specs.detect(
         name=args.name,
         filename=get_filename(args.file),

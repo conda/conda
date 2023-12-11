@@ -6,9 +6,6 @@ Lists available conda environments.
 """
 from argparse import ArgumentParser, _SubParsersAction
 
-from ..core.envs_manager import list_all_known_prefixes
-from . import common
-
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -41,6 +38,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args, parser):
+    from ..core.envs_manager import list_all_known_prefixes
+    from . import common
+
     info_dict = {"envs": list_all_known_prefixes()}
     common.print_envs_list(info_dict["envs"], not args.json)
 

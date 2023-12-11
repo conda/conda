@@ -10,10 +10,6 @@ from argparse import (
     _SubParsersAction,
 )
 
-from ..base.context import context, determine_target_prefix, env_name
-from ..env.env import from_environment
-from .common import stdout_json
-
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -96,6 +92,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..base.context import context, determine_target_prefix, env_name
+    from ..env.env import from_environment
+    from .common import stdout_json
+
     prefix = determine_target_prefix(context, args)
     env = from_environment(
         env_name(prefix),

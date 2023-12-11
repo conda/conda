@@ -10,11 +10,10 @@ from argparse import (
     _SubParsersAction,
 )
 
-from .main_env_vars import configure_parser as configure_vars_parser
-
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .main_env_vars import configure_parser as configure_vars_parser
 
     summary = "Configure a conda environment."
     description = summary

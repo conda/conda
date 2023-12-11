@@ -4,10 +4,6 @@
 
 Creates new conda environments with the specified packages.
 """
-import json
-import os
-import sys
-import textwrap
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -15,20 +11,12 @@ from argparse import (
     _SubParsersAction,
 )
 
-from ..base.context import context, determine_target_prefix
-from ..core.prefix_data import PrefixData
-from ..deprecations import deprecated
-from ..env import specs
-from ..env.installers.base import InvalidInstaller, get_installer
-from ..gateways.disk.delete import rm_rf
-from ..misc import touch_nonadmin
 from ..notices import notices
-from . import install as cli_install
-from .common import get_filename, print_result
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..deprecations import deprecated
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -118,6 +106,20 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    import json
+    import os
+    import sys
+    import textwrap
+
+    from ..base.context import context, determine_target_prefix
+    from ..core.prefix_data import PrefixData
+    from ..env import specs
+    from ..env.installers.base import InvalidInstaller, get_installer
+    from ..gateways.disk.delete import rm_rf
+    from ..misc import touch_nonadmin
+    from . import install as cli_install
+    from .common import get_filename, print_result
+
     spec = specs.detect(
         name=args.name,
         filename=get_filename(args.file),
