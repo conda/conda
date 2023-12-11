@@ -1,10 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda-env subcommands."""
+from __future__ import annotations
+
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
-def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> ArgumentParser:
     from ..cli import (
         main_env_config,
         main_env_create,
