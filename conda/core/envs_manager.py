@@ -48,6 +48,15 @@ def register_env(location):
 
     try:
         os.makedirs(os.path.dirname(user_environments_txt_file), exist_ok=True)
+    except OSError as exc:
+        log.warn(
+            "Unable to register environment. "
+            "Could not create `.conda` directory in home directory. "
+            f"Reason: {exc}"
+        )
+        return
+
+    try:
         with open(user_environments_txt_file, "a") as fh:
             fh.write(ensure_text_type(location))
             fh.write("\n")

@@ -163,3 +163,24 @@ def test_list_all_known_prefixes_with_none_values_error(
     results = list_all_known_prefixes()
 
     assert results == [mock_context.root_prefix]
+
+
+def test_register_env_directory_creation_error(mocker):
+    """
+    Test for the error case when we are unable to create
+    """
+    mock_makedirs = mocker.patch("conda.core.envs_manager.os.makedirs")
+    mock_log = mocker.patch("conda.core.envs_manager.log")
+    mocker.patch("conda.core.envs_manager.open")
+
+    mock_makedirs.side_effect = OSError("test")
+
+    value = register_env("test")
+
+    assert value is None
+
+    assert len(mock_log.warn.mock_calls) == 1
+
+    mock_call, *_ = mock_log.warn.mock_calls
+
+    assert "Could not create `.conda` directory in home directory" in mock_call.args[0]
