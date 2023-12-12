@@ -23,10 +23,10 @@ from dataclasses import dataclass
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
-from typing import Iterable
+from typing import Iterable, overload
 
 import pytest
-from pytest import CaptureFixture
+from pytest import CaptureFixture, ExceptionInfo
 
 from ..base.context import context, reset_context
 from ..cli.main import init_loggers
@@ -168,19 +168,31 @@ def conda_check_versions_aligned():
 class CondaCLIFixture:
     capsys: CaptureFixture
 
+    @overload
+    def __call__(
+        self,
+        *argv: str | os.PathLike | Path,
+        raises: type[Exception] | tuple[type[Exception], ...],
+    ) -> tuple[str, str, ExceptionInfo]:
+        ...
+
+    @overload
+    def __call__(self, *argv: str | os.PathLike | Path) -> tuple[str, str, int]:
+        ...
+
     def __call__(
         self,
         *argv: str | os.PathLike | Path,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
-    ) -> tuple[str, str, int]:
+    ) -> tuple[str, str, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
 
-        :param argv: Arguments to parse
-        :param raises: Expected exception to intercept
-        :return: Command results
-        :rtype: tuple[stdout, stdout, exitcode]
+        :param argv: Arguments to parse.
+        :param raises: Expected exception to intercept. If provided, the raised exception
+            will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
+        :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
         # clear output
         self.capsys.readouterr()
@@ -189,7 +201,7 @@ class CondaCLIFixture:
         argv = tuple(map(str, argv))
 
         code = None
-        with pytest.raises(raises) if raises else nullcontext():
+        with pytest.raises(raises) if raises else nullcontext() as exception:
             # mock legacy subcommands
             if argv[0] == "env":
                 from conda_env.cli.main import create_parser, do_call
@@ -220,7 +232,7 @@ class CondaCLIFixture:
         # restore to prior state
         reset_context()
 
-        return out, err, code
+        return out, err, code or exception
 
 
 @pytest.fixture

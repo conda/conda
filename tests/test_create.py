@@ -418,8 +418,13 @@ def test_not_writable_env_raises_EnvironmentNotWritableError(
     with tmp_env() as prefix:
         make_read_only(prefix / PREFIX_MAGIC_FILE)
 
-        with pytest.raises(CondaMultiError) as exc:
-            conda_cli("install", f"--prefix={prefix}", "ca-certificates", "--yes")
+        _, _, exc = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "ca-certificates",
+            "--yes",
+            raises=CondaMultiError,
+        )
 
         assert len(exc.value.errors) == 1
         assert isinstance(exc.value.errors[0], EnvironmentNotWritableError)
