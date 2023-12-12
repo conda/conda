@@ -232,7 +232,7 @@ class CondaCLIFixture:
         # restore to prior state
         reset_context()
 
-        return out, err, code or exception
+        return out, err, exception if raises else code
 
 
 @pytest.fixture
