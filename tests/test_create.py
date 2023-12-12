@@ -416,7 +416,7 @@ def test_not_writable_env_raises_EnvironmentNotWritableError(
     environment.
     """
     with tmp_env() as prefix:
-        make_read_only(join(prefix, PREFIX_MAGIC_FILE))
+        make_read_only(prefix / PREFIX_MAGIC_FILE)
 
         with pytest.raises(CondaMultiError) as exc:
             conda_cli("install", f"--prefix={prefix}", "ca-certificates", "--yes")
@@ -459,21 +459,23 @@ def test_noarch_python_package_with_entry_points(
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/pygments/__init__.py"
-        pyc_file = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file))
-        exe_path = join(prefix, get_bin_directory_short_path(), "pygmentize")
-        if on_win:
-            exe_path += ".exe"
-        assert isfile(exe_path)
+        pyc_file = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file).is_file()
+        exe_path = (
+            prefix
+            / get_bin_directory_short_path()
+            / ("pygmentize.exe" if on_win else "pygmentize")
+        )
+        assert exe_path.is_file()
         output = check_output([exe_path, "--help"], text=True)
         assert "usage: pygmentize" in output
 
         conda_cli("remove", f"--prefix={prefix}", "pygments", "--yes")
 
-        assert not isfile(join(prefix, py_file))
-        assert not isfile(join(prefix, pyc_file))
-        assert not isfile(exe_path)
+        assert not (prefix / py_file).is_file()
+        assert not (prefix / pyc_file).is_file()
+        assert not exe_path.is_file()
 
 
 def test_noarch_python_package_without_entry_points(
@@ -491,14 +493,14 @@ def test_noarch_python_package_without_entry_points(
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
-        pyc_file = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file))
+        pyc_file = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file).is_file()
 
         conda_cli("remove", f"--prefix={prefix}", "itsdangerous", "--yes")
 
-        assert not isfile(join(prefix, py_file))
-        assert not isfile(join(prefix, pyc_file))
+        assert not (prefix / py_file).is_file()
+        assert not (prefix / pyc_file).is_file()
 
 
 def test_noarch_python_package_reinstall_on_pyver_change(
@@ -513,23 +515,21 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert py_ver.startswith("3.10")
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
-        pyc_file_py310 = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file_py310))
+        pyc_file_py310 = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file_py310).is_file()
 
         conda_cli("install", f"--prefix={prefix}", "python=3.11", "--yes")
-        assert not isfile(
-            join(prefix, pyc_file_py310)
-        )  # python3 pyc file should be gone
+        # python 3.10 pyc file should be gone
+        assert not (prefix / pyc_file_py310).is_file()
 
         py_ver = get_python_version_for_prefix(prefix)
         assert py_ver.startswith("3.11")
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
-        pyc_file_py311 = pyc_path(py_file, py_ver).replace("/", os.sep)
-
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file_py311))
+        pyc_file_py311 = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file_py311).is_file()
 
 
 def test_noarch_generic_package():
