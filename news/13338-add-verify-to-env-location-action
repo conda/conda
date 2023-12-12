@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Add verify step to RegisterEnvironmentLocationAction to create a .conda directory for the environments.txt file
+* Create the `~/.conda` directory before trying to write to the `environments.txt` file. (#13338)
 
 ### Deprecations
 
