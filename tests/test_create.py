@@ -422,7 +422,7 @@ def test_not_writable_env_raises_EnvironmentNotWritableError(
             conda_cli("install", f"--prefix={prefix}", "ca-certificates", "--yes")
 
         assert len(exc.value.errors) == 1
-        assert type(exc.value.errors[0]) is EnvironmentNotWritableError
+        assert isinstance(exc.value.errors[0], EnvironmentNotWritableError)
 
 
 def test_conda_update_package_not_installed(
