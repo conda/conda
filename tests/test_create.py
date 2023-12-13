@@ -60,6 +60,7 @@ from conda.exceptions import (
     DisallowedPackageError,
     DryRunExit,
     EnvironmentLocationNotFound,
+    EnvironmentNotWritableError,
     OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -406,92 +407,134 @@ def test_json_create_install_update_remove():
         rmtree(prefix, ignore_errors=True)
 
 
-def test_not_writable_env_raises_EnvironmentNotWritableError():
-    with make_temp_env() as prefix:
-        make_read_only(join(prefix, PREFIX_MAGIC_FILE))
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "openssl", use_exception_handler=True
+def test_not_writable_env_raises_EnvironmentNotWritableError(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    Make sure that an ``EnvironmentNotWritableError`` is raised when the ``PREFIX_MAGIC_FILE`` is
+    not writable. This magic file is used to determined whether it's possible to write to an
+    environment.
+    """
+    with tmp_env() as prefix:
+        make_read_only(prefix / PREFIX_MAGIC_FILE)
+
+        _, _, exc = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "ca-certificates",
+            "--yes",
+            raises=CondaMultiError,
         )
-        assert "EnvironmentNotWritableError" in stderr
-        assert prefix in stderr
+
+        assert len(exc.value.errors) == 1
+        assert isinstance(exc.value.errors[0], EnvironmentNotWritableError)
 
 
-def test_conda_update_package_not_installed():
-    with make_temp_env() as prefix:
-        with pytest.raises(PackageNotInstalledError):
-            run_command(Commands.UPDATE, prefix, "sqlite", "openssl")
+def test_conda_update_package_not_installed(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    Runs the update command twice with invalid input:
 
-        with pytest.raises(CondaError) as conda_error:
-            run_command(Commands.UPDATE, prefix, "conda-forge::*")
-        assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
+    1. Package is not currently installed (package should not exist)
+    2. Invalid specification for a packaage
+    """
+    with tmp_env() as prefix:
+        conda_cli(
+            "update",
+            f"--prefix={prefix}",
+            "test-test-test",
+            raises=PackageNotInstalledError,
+        )
+
+        with pytest.raises(CondaError, match="Invalid spec for 'conda update'"):
+            conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
-def test_noarch_python_package_with_entry_points():
-    # this channel has an ancient flask that is incompatible with jinja2>=3.1.0
-    with make_temp_env("-c", "conda-test", "flask", "jinja2<3.1") as prefix:
+def test_noarch_python_package_with_entry_points(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    Makes sure that entry point file is installed.
+
+    This test uses "pygments" as a Python package because it has no other dependencies and has an
+    entry point script, "pygmentize".
+    """
+    with tmp_env("pygments") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
-        py_file = sp_dir + "/flask/__init__.py"
-        pyc_file = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file))
-        exe_path = join(prefix, get_bin_directory_short_path(), "flask")
-        if on_win:
-            exe_path += ".exe"
-        assert isfile(exe_path)
+        py_file = sp_dir + "/pygments/__init__.py"
+        pyc_file = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file).is_file()
+        exe_path = (
+            prefix
+            / get_bin_directory_short_path()
+            / ("pygmentize.exe" if on_win else "pygmentize")
+        )
+        assert exe_path.is_file()
         output = check_output([exe_path, "--help"], text=True)
-        assert "Usage: flask" in output
+        assert "usage: pygmentize" in output
 
-        run_command(Commands.REMOVE, prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "pygments", "--yes")
 
-        assert not isfile(join(prefix, py_file))
-        assert not isfile(join(prefix, pyc_file))
-        assert not isfile(exe_path)
+        assert not (prefix / py_file).is_file()
+        assert not (prefix / pyc_file).is_file()
+        assert not exe_path.is_file()
 
 
-def test_noarch_python_package_without_entry_points():
-    # regression test for #4546
-    with make_temp_env("-c", "conda-test", "itsdangerous") as prefix:
+def test_noarch_python_package_without_entry_points(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    Regression test for issue:
+
+    - https://github.com/conda/conda/issues/4546
+
+    This test uses "itsdangerous" as a dependency because it is a relatively small package and
+    has no entry point scripts.
+    """
+    with tmp_env("itsdangerous") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
-        py_file = sp_dir + "/itsdangerous.py"
-        pyc_file = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file))
+        py_file = sp_dir + "/itsdangerous/__init__.py"
+        pyc_file = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file).is_file()
 
-        run_command(Commands.REMOVE, prefix, "itsdangerous")
+        conda_cli("remove", f"--prefix={prefix}", "itsdangerous", "--yes")
 
-        assert not isfile(join(prefix, py_file))
-        assert not isfile(join(prefix, pyc_file))
+        assert not (prefix / py_file).is_file()
+        assert not (prefix / pyc_file).is_file()
 
 
-def test_noarch_python_package_reinstall_on_pyver_change():
-    with make_temp_env(
-        "-c",
-        "conda-test",
-        "itsdangerous=0.24",
-        "python=3",
-        use_restricted_unicode=on_win,
-    ) as prefix:
+def test_noarch_python_package_reinstall_on_pyver_change(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    When Python changes versions (e.g. from 3.10 to 3.11) it is important to verify that all the previous
+    dependencies were transferred over to the new version in ``lib/python3.x/site-packages/*``.
+    """
+    with tmp_env("itsdangerous", "python=3.10") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
-        assert py_ver.startswith("3")
+        assert py_ver.startswith("3.10")
         sp_dir = get_python_site_packages_short_path(py_ver)
-        py_file = sp_dir + "/itsdangerous.py"
-        pyc_file_py3 = pyc_path(py_file, py_ver).replace("/", os.sep)
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file_py3))
+        py_file = sp_dir + "/itsdangerous/__init__.py"
+        pyc_file_py310 = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file_py310).is_file()
 
-        run_command(Commands.INSTALL, prefix, "python=2")
-        assert not isfile(join(prefix, pyc_file_py3))  # python3 pyc file should be gone
+        conda_cli("install", f"--prefix={prefix}", "python=3.11", "--yes")
+        # python 3.10 pyc file should be gone
+        assert not (prefix / pyc_file_py310).is_file()
 
         py_ver = get_python_version_for_prefix(prefix)
-        assert py_ver.startswith("2")
+        assert py_ver.startswith("3.11")
         sp_dir = get_python_site_packages_short_path(py_ver)
-        py_file = sp_dir + "/itsdangerous.py"
-        pyc_file_py2 = pyc_path(py_file, py_ver).replace("/", os.sep)
-
-        assert isfile(join(prefix, py_file))
-        assert isfile(join(prefix, pyc_file_py2))
+        py_file = sp_dir + "/itsdangerous/__init__.py"
+        pyc_file_py311 = pyc_path(py_file, py_ver)
+        assert (prefix / py_file).is_file()
+        assert (prefix / pyc_file_py311).is_file()
 
 
 def test_noarch_generic_package():
@@ -1787,7 +1830,7 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     # regression test for #3453
     prefix = path_factory()
 
-    stdout, stderr, code = conda_cli(
+    stdout, stderr, _ = conda_cli(
         "create",
         f"--prefix={prefix}",
         "--dry-run",
@@ -1795,9 +1838,8 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     )
     assert str(prefix) in stdout
     assert not stderr
-    assert not code
 
-    stdout, stderr, code = conda_cli(
+    stdout, stderr, _ = conda_cli(
         "create",
         f"--prefix={prefix}",
         "flask",
@@ -1808,7 +1850,6 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     assert ":python" in stdout
     assert str(prefix) in stdout
     assert not stderr
-    assert not code
 
 
 def test_create_dry_run_json(
@@ -1817,7 +1858,7 @@ def test_create_dry_run_json(
 ):
     prefix = path_factory()
 
-    stdout, stderr, code = conda_cli(
+    stdout, stderr, _ = conda_cli(
         "create",
         f"--prefix={prefix}",
         "flask",
@@ -1829,7 +1870,6 @@ def test_create_dry_run_json(
     assert "python" in names
     assert "flask" in names
     assert not stderr
-    assert not code
 
 
 def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
