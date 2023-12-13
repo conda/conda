@@ -113,12 +113,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env import specs
+    from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from ..misc import touch_nonadmin
     from . import install as cli_install
-    from .common import get_filename, print_result
 
     spec = specs.detect(
         name=args.name,

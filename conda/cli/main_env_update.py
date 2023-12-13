@@ -79,10 +79,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env import specs as install_specs
+    from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..misc import touch_nonadmin
-    from .common import get_filename, print_result
 
     spec = install_specs.detect(
         name=args.name,

@@ -4,10 +4,11 @@
 
 Common utilities for conda-env command line tools.
 """
-# Import conda.cli.main_env_vars since this module is deprecated.
 from conda.base.constants import ROOT_ENV_NAME
-from conda.cli.common import get_filename, print_result  # noqa: F401
 from conda.deprecations import deprecated
+
+# Import from conda.env.env since this module is deprecated.
+from conda.env.env import get_filename, print_result  # noqa: F401
 
 deprecated.module("24.3", "24.9", addendum="Use `conda.cli.common` instead.")
 deprecated.constant(

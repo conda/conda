@@ -5,18 +5,13 @@ import re
 import sys
 from logging import getLogger
 from os.path import (
-    abspath,
     basename,
     dirname,
-    expanduser,
-    expandvars,
     isdir,
     isfile,
     join,
     normcase,
 )
-
-from conda.gateways.connection.session import CONDA_SESSION_SCHEMES
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -31,33 +26,6 @@ from ..exceptions import (
     EnvironmentLocationNotFound,
 )
 from ..models.match_spec import MatchSpec
-
-
-def get_filename(filename):
-    """Expand filename if local path or return the url"""
-    url_scheme = filename.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        return filename
-    else:
-        return abspath(expanduser(expandvars(filename)))
-
-
-def print_result(args, prefix, result):
-    from . import install
-
-    if context.json:
-        if result["conda"] is None and result["pip"] is None:
-            stdout_json_success(message="All requested packages already installed.")
-        else:
-            if result["conda"] is not None:
-                actions = result["conda"]
-            else:
-                actions = {}
-            if result["pip"] is not None:
-                actions["PIP"] = result["pip"]
-            stdout_json_success(prefix=prefix, actions=actions)
-    else:
-        install.print_activate(args.name or prefix)
 
 
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
