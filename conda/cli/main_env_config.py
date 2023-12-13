@@ -4,11 +4,7 @@
 
 Allows for programmatically interacting with conda-env's configuration files (e.g., `~/.condarc`).
 """
-from argparse import (
-    ArgumentParser,
-    Namespace,
-    _SubParsersAction,
-)
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:

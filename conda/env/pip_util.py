@@ -35,8 +35,6 @@ def pip_subprocess(args, prefix, cwd):
         print(stderr, file=sys.stderr)
         raise CondaEnvException("Pip failed")
 
-    # This will modify (break) Context. We have a context stack but need to verify it works
-    # stdout, stderr, rc = run_command(Commands.RUN, *run_args, stdout=None, stderr=None)
     return stdout, stderr
 
 

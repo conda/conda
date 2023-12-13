@@ -4,6 +4,9 @@
 
 Creates new conda environments with the specified packages.
 """
+import json
+import os
+import sys
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -106,15 +109,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    import json
-    import os
-    import sys
-    import textwrap
-
+    from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env import specs
-    from ..env.installers.base import InvalidInstaller, get_installer
+    from ..env.installers.base import get_installer
+    from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from ..misc import touch_nonadmin
     from . import install as cli_install
@@ -181,9 +181,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         prefix, pkg_specs, args, env
                     )
                 except InvalidInstaller:
-                    sys.stderr.write(
-                        textwrap.dedent(
-                            """
+                    e = (
+                        dals(
+                            f"""
                         Unable to install package for {0}.
 
                         Please double check and ensure your dependencies file has
@@ -195,6 +195,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         .lstrip()
                         .format(installer_type)
                     )
+                    sys.stderr.write(e)
+
                     return -1
 
         if env.variables:

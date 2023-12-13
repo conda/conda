@@ -48,7 +48,7 @@ def validate_keys(data, kwargs):
     deps = data.get("dependencies", [])
     depsplit = re.compile(r"[<>~\s=]")
     is_pip = lambda dep: "pip" in depsplit.split(dep)[0].split("::")
-    lists_pip = any(is_pip(_) for _ in deps if not isinstance(_, dict))
+    lists_pip = any(is_pip(dep) for dep in deps if not isinstance(dep, dict))
     for dep in deps:
         if isinstance(dep, dict) and "pip" in dep and not lists_pip:
             print(
@@ -108,7 +108,6 @@ def from_environment(
             *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
             *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
             *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-            # *grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
         ),
         key=lambda x: x.name,
     )
@@ -136,7 +135,7 @@ def from_environment(
 
 
 def from_yaml(yamlstr, **kwargs):
-    """Load and return a ``Environment`` from a given ``yaml string``"""
+    """Load and return an environment from yaml string"""
     data = yaml_safe_load(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
@@ -158,6 +157,18 @@ def _expand_channels(data):
 
 
 def from_file(filename):
+    """
+        Load and return an environment from a given file
+
+    Args:
+        filename (_type_): _description_
+
+    Raises:
+        EnvironmentFileNotFound: _description_
+
+    Returns:
+        _type_: _description_
+    """
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
@@ -174,12 +185,20 @@ def from_file(filename):
 
 
 class Dependencies(dict):
+    """
+        A dict subclass that parses the raw dependencies into a conda and pip list
+
+    Args:
+        dict (_type_): _description_
+    """
+
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.raw = raw
         self.parse()
 
     def parse(self):
+        """Parse the raw dependencies into a conda and pip list"""
         if not self.raw:
             return
 
@@ -199,11 +218,14 @@ class Dependencies(dict):
 
     # TODO only append when it's not already present
     def add(self, package_name):
+        """Add a package to the environment"""
         self.raw.append(package_name)
         self.parse()
 
 
 class Environment:
+    """A class representing an environment.yaml file"""
+
     def __init__(
         self,
         name=None,
@@ -224,12 +246,20 @@ class Environment:
         self.channels = channels
 
     def add_channels(self, channels):
+        """
+            Add channels to the environment
+
+        Args:
+            channels (_type_): _description_
+        """
         self.channels = list(unique(chain.from_iterable((channels, self.channels))))
 
     def remove_channels(self):
+        """Remove all channels from the environment"""
         self.channels = []
 
     def to_dict(self, stream=None):
+        """Convert information related to the environment into a dictionary"""
         d = {"name": self.name}
         if self.channels:
             d["channels"] = self.channels
@@ -244,11 +274,13 @@ class Environment:
         stream.write(json.dumps(d))
 
     def to_yaml(self, stream=None):
+        """Convert information related to the environment into a yaml string"""
         d = self.to_dict()
         out = yaml_safe_dump(d, stream)
         if stream is None:
             return out
 
     def save(self):
+        """Save the environment data to a yaml file"""
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)

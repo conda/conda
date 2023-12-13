@@ -24,7 +24,8 @@ from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
 
 # Note: The conda_env.env module is getting deprecated in 24.3,
-#       this is the only place that it's utilized in the codebase
+#       this is the only place that the load_from_directory function
+#       utilized in the codebase.
 from conda_env.env import load_from_directory
 
 from . import support_file

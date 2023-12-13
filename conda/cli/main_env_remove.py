@@ -57,6 +57,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..base.context import context
     from ..cli.main_remove import execute as remove
 
     args = vars(args)
@@ -74,7 +75,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         }
     )
     args = Namespace(**args)
-    from conda.base.context import context
 
     context.__init__(argparse_args=args)
 

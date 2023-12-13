@@ -144,8 +144,8 @@ def execute_set(args: Namespace, parser: ArgumentParser) -> int:
         raise EnvironmentLocationNotFound(prefix)
 
     env_vars_to_add = {}
-    for v in args.vars:
-        var_def = v.split("=")
+    for var in args.vars:
+        var_def = var.split("=")
         env_vars_to_add[var_def[0].strip()] = "=".join(var_def[1:]).strip()
     pd.set_environment_env_vars(env_vars_to_add)
     if prefix == context.active_prefix:
@@ -160,7 +160,7 @@ def execute_unset(args: Namespace, parser: ArgumentParser) -> int:
     if not lexists(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
-    vars_to_unset = [_.strip() for _ in args.vars]
+    vars_to_unset = [var.strip() for var in args.vars]
     pd.unset_environment_env_vars(vars_to_unset)
     if prefix == context.active_prefix:
         print("To make your changes take effect please reactivate your environment")

@@ -4,6 +4,8 @@
 
 Updates the conda environments with the specified packages.
 """
+import os
+import sys
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -73,15 +75,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    import os
-    import sys
-    import textwrap
-
+    from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env import specs as install_specs
-    from ..env.installers.base import InvalidInstaller, get_installer
-    from ..exceptions import CondaEnvException
+    from ..env.installers.base import get_installer
+    from ..exceptions import CondaEnvException, InvalidInstaller
     from ..misc import touch_nonadmin
     from .common import get_filename, print_result
 
@@ -100,13 +99,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
                 msg = "Unable to determine environment\n\n"
-                msg += textwrap.dedent(
+                instuctions = dals(
                     """
                     Please re-run this command with one of the following options:
 
                     * Provide an environment name via --name or -n
-                    * Re-run this command inside an activated conda environment."""
+                    * Re-run this command inside an activated conda environment.
+                    """
                 ).lstrip()
+                msg += instuctions
                 # TODO Add json support
                 raise CondaEnvException(msg)
 
@@ -132,9 +133,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         try:
             installers[installer_type] = get_installer(installer_type)
         except InvalidInstaller:
-            sys.stderr.write(
-                textwrap.dedent(
-                    """
+            e = (
+                dals(
+                    f"""
                 Unable to install package for {0}.
 
                 Please double check and ensure you dependencies file has
@@ -146,6 +147,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 .lstrip()
                 .format(installer_type)
             )
+            sys.stderr.write(e)
+
             return -1
 
     result = {"conda": None, "pip": None}
