@@ -41,7 +41,7 @@ class DeprecationHandler:
         *,
         addendum: str | None = None,
         stack: int = 0,
-    ) -> Callable[(Callable), Callable]:
+    ) -> Callable[[Callable], Callable]:
         """Deprecation decorator for functions, methods, & classes.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
@@ -83,7 +83,7 @@ class DeprecationHandler:
         rename: str | None = None,
         addendum: str | None = None,
         stack: int = 0,
-    ) -> Callable[(Callable), Callable]:
+    ) -> Callable[[Callable], Callable]:
         """Deprecation decorator for keyword arguments.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
@@ -132,7 +132,7 @@ class DeprecationHandler:
         self,
         deprecate_in: str,
         remove_in: str,
-        action: Action,
+        action: type[Action],
         *,
         addendum: str | None = None,
         stack: int = 0,
@@ -262,7 +262,10 @@ class DeprecationHandler:
         """
         # detect function name and generate message
         category, message = self._generate_message(
-            deprecate_in, remove_in, topic, addendum
+            deprecate_in,
+            remove_in,
+            topic,
+            addendum,
         )
 
         # alert developer that it's time to remove something
@@ -283,12 +286,20 @@ class DeprecationHandler:
         try:
             frame = sys._getframe(2 + stack)
             module = inspect.getmodule(frame)
-            return (module, module.__name__)
-        except (IndexError, AttributeError):
-            raise DeprecatedError("unable to determine the calling module") from None
+            if module is not None:
+                return (module, module.__name__)
+        except IndexError:
+            # IndexError: 2 + stack is out of range
+            pass
+
+        raise DeprecatedError("unable to determine the calling module")
 
     def _generate_message(
-        self, deprecate_in: str, remove_in: str, prefix: str, addendum: str
+        self,
+        deprecate_in: str,
+        remove_in: str,
+        prefix: str,
+        addendum: str | None,
     ) -> tuple[type[Warning] | None, str]:
         """Deprecation decorator for functions, methods, & classes.
 
@@ -301,6 +312,7 @@ class DeprecationHandler:
         deprecate_version = parse(deprecate_in)
         remove_version = parse(remove_in)
 
+        category: type[Warning] | None
         if self._version < deprecate_version:
             category = PendingDeprecationWarning
             warning = f"is pending deprecation and will be removed in {remove_in}."
