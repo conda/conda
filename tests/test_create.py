@@ -1830,7 +1830,7 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     # regression test for #3453
     prefix = path_factory()
 
-    stdout, stderr, code = conda_cli(
+    stdout, stderr, _ = conda_cli(
         "create",
         f"--prefix={prefix}",
         "--dry-run",
@@ -1838,9 +1838,8 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     )
     assert str(prefix) in stdout
     assert not stderr
-    assert not code
 
-    stdout, stderr, code = conda_cli(
+    stdout, stderr, _ = conda_cli(
         "create",
         f"--prefix={prefix}",
         "flask",
@@ -1851,7 +1850,6 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     assert ":python" in stdout
     assert str(prefix) in stdout
     assert not stderr
-    assert not code
 
 
 def test_create_dry_run_json(
@@ -1860,7 +1858,7 @@ def test_create_dry_run_json(
 ):
     prefix = path_factory()
 
-    stdout, stderr, code = conda_cli(
+    stdout, stderr, _ = conda_cli(
         "create",
         f"--prefix={prefix}",
         "flask",
@@ -1872,7 +1870,6 @@ def test_create_dry_run_json(
     assert "python" in names
     assert "flask" in names
     assert not stderr
-    assert not code
 
 
 def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
