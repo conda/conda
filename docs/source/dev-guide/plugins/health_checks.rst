@@ -1,5 +1,5 @@
 =============
-Health checks
+Health Checks
 =============
 
 Conda doctor can be extended with the ``health_checks`` plugin hook.
