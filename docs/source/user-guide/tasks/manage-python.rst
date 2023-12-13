@@ -5,7 +5,7 @@ Managing Python
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Conda supports Python 3.8, 3.9, 3.10, and 3.11.
+Conda supports Python 3.8, 3.9, 3.10, 3.11 and 3.12.
 
 Viewing a list of available Python versions
 ===========================================

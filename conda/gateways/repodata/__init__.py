@@ -456,19 +456,19 @@ class RepodataState(UserDict):
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
 
+    def __contains__(self, key: str) -> bool:
+        key = self._aliased.get(key, key)
+        return super().__contains__(key)
+
     def __setitem__(self, key: str, item: Any) -> None:
-        if key in self._aliased:
-            key = key[1:]  # strip underscore
+        key = self._aliased.get(key, key)
         if key in self._strings and not isinstance(item, str):
             log.debug('Replaced non-str RepodataState[%s] with ""', key)
             item = ""
         return super().__setitem__(key, item)
 
-    def __missing__(self, key: str):
-        if key in self._aliased:
-            key = self._aliased[key]
-        else:
-            raise KeyError(key)
+    def __getitem__(self, key: str) -> Any:
+        key = self._aliased.get(key, key)
         return super().__getitem__(key)
 
 
