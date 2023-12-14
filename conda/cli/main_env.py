@@ -16,6 +16,9 @@ def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> Argumen
         main_env_update,
     )
 
+    # "conda env" commands have been marked for deprecation; because they are a part of a
+    # legacy subcommand framework, this particular subparser defaults to None when it is
+    # not explicitly provided
     if sub_parsers is None:
         p = ArgumentParser()
 
