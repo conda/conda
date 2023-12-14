@@ -3109,7 +3109,7 @@ def prefix():
     ],
 )
 def test_activate_deactivate_modify_path(
-    test_recipes_channel: None,
+    test_recipes_channel: Path,
     shell,
     prefix,
     conda_cli: CondaCLIFixture,

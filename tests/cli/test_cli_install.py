@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from pathlib import Path
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -11,7 +13,7 @@ from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 @pytest.mark.integration
 def test_pre_link_message(
-    test_recipes_channel: None,
+    test_recipes_channel: Path,
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
