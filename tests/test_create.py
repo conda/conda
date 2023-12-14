@@ -620,39 +620,36 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
-def test_strict_channel_priority():
-    with make_temp_env() as prefix:
-        stdout, stderr, rc = run_command(
-            Commands.CREATE,
-            prefix,
-            "-c",
-            "conda-forge",
-            "-c",
-            "defaults",
-            "python=3.6",
-            "quaternion",
-            "--strict-channel-priority",
-            "--dry-run",
-            "--json",
-            use_exception_handler=True,
-        )
-        assert not rc
-        json_obj = json_loads(stdout)
-        # We see:
-        # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
-        # Rather than spending more time looking for another package, just filter it out.
-        # Same thing for Windows, this is because we use MKL always. Perhaps there's a
-        # way to exclude it, I tried the "nomkl" package but that did not work.
-        json_obj["actions"]["LINK"] = [
-            link
-            for link in json_obj["actions"]["LINK"]
-            if link["name"] not in ("libcxx", "libcxxabi", "mkl", "intel-openmp")
-        ]
-        channel_groups = groupby(lambda x: x["channel"], json_obj["actions"]["LINK"])
-        channel_groups = sorted(list(channel_groups))
-        assert channel_groups == [
-            "conda-forge",
-        ]
+def test_strict_channel_priority(
+    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+):
+    prefix = path_factory()
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--channel=conda-forge",
+        "--channel=defaults",
+        "python=3.6",
+        "quaternion",
+        "--strict-channel-priority",
+        "--dry-run",
+        "--json",
+        "--yes",
+    )
+    assert not code
+    json_obj = json_loads(stdout)
+    # We see:
+    # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
+    # Rather than spending more time looking for another package, just filter it out.
+    # Same thing for Windows, this is because we use MKL always. Perhaps there's a
+    # way to exclude it, I tried the "nomkl" package but that did not work.
+    json_obj["actions"]["LINK"] = [
+        link
+        for link in json_obj["actions"]["LINK"]
+        if link["name"] not in ("libcxx", "libcxxabi", "mkl", "intel-openmp")
+    ]
+    channel_groups = set(groupby(lambda x: x["channel"], json_obj["actions"]["LINK"]))
+    assert channel_groups == {"conda-forge"}
 
 
 def test_strict_resolve_get_reduced_index():
