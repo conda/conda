@@ -2990,7 +2990,7 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
 @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
 @pytest.mark.integration
 def test_legacy_activate_deactivate_bash(
-    shell_wrapper_integration: tuple[str, str, str]
+    shell_wrapper_integration: tuple[str, str, str],
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
@@ -3029,7 +3029,7 @@ def test_legacy_activate_deactivate_bash(
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
 @pytest.mark.integration
 def test_legacy_activate_deactivate_cmd_exe(
-    shell_wrapper_integration: tuple[str, str, str]
+    shell_wrapper_integration: tuple[str, str, str],
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
