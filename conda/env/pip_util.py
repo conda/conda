@@ -19,6 +19,7 @@ log = getLogger(__name__)
 
 
 def pip_subprocess(args, prefix, cwd):
+    """Run pip in a subprocess"""
     if on_win:
         python_path = os.path.join(prefix, "python.exe")
     else:

@@ -68,8 +68,7 @@ def from_environment(
     name, prefix, no_builds=False, ignore_channels=False, from_history=False
 ):
     """
-        Get environment object from prefix
-
+        Get ``Environment`` object from prefix
     Args:
         name: The name of environment
         prefix: The path of prefix
@@ -137,7 +136,7 @@ def from_environment(
 
 
 def from_yaml(yamlstr, **kwargs):
-    """Load and return an environment from yaml string"""
+    """Load and return a ``Environment`` from a given ``yaml`` string"""
     data = yaml_safe_load(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
@@ -152,14 +151,14 @@ def from_yaml(yamlstr, **kwargs):
 
 
 def _expand_channels(data):
-    """Expands environment variables for the channels found in the yaml data"""
+    """Expands ``Environment`` variables for the channels found in the ``yaml`` data"""
     data["channels"] = [
         os.path.expandvars(channel) for channel in data.get("channels", [])
     ]
 
 
 def from_file(filename):
-    """Load and return an environment from a given file"""
+    """Load and return an ``Environment`` from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
@@ -176,7 +175,7 @@ def from_file(filename):
 
 
 class Dependencies(dict):
-    """A dict subclass that parses the raw dependencies into a conda and pip list"""
+    """A ``dict`` subclass that parses the raw dependencies into a conda and pip list"""
 
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -204,13 +203,13 @@ class Dependencies(dict):
 
     # TODO only append when it's not already present
     def add(self, package_name):
-        """Add a package to the environment"""
+        """Add a package to the ``Environment``"""
         self.raw.append(package_name)
         self.parse()
 
 
 class Environment:
-    """A class representing an environment.yaml file"""
+    """A class representing an ``environment.yaml`` file"""
 
     def __init__(
         self,
@@ -232,15 +231,15 @@ class Environment:
         self.channels = channels
 
     def add_channels(self, channels):
-        """Add channels to the environment"""
+        """Add channels to the ``Environment``"""
         self.channels = list(unique(chain.from_iterable((channels, self.channels))))
 
     def remove_channels(self):
-        """Remove all channels from the environment"""
+        """Remove all channels from the ``Environment``"""
         self.channels = []
 
     def to_dict(self, stream=None):
-        """Convert information related to the environment into a dictionary"""
+        """Convert information related to the ``Environment`` into a dictionary"""
         d = {"name": self.name}
         if self.channels:
             d["channels"] = self.channels
@@ -255,20 +254,20 @@ class Environment:
         stream.write(json.dumps(d))
 
     def to_yaml(self, stream=None):
-        """Convert information related to the environment into a yaml string"""
+        """Convert information related to the ``Environment`` into a ``yaml`` string"""
         d = self.to_dict()
         out = yaml_safe_dump(d, stream)
         if stream is None:
             return out
 
     def save(self):
-        """Save the environment data to a yaml file"""
+        """Save the ``Environment`` data to a ``yaml`` file"""
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
 
 
 def get_filename(filename):
-    """Expand filename if local path or return the url"""
+    """Expand filename if local path or return the ``url``"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         return filename
