@@ -38,6 +38,7 @@ from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
+    ChannelPriority,
     SafetyChecks,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -652,27 +653,31 @@ def test_strict_channel_priority(
     assert channel_groups == {"conda-forge"}
 
 
-def test_strict_resolve_get_reduced_index():
+def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     index = get_reduced_index(None, channels, context.subdirs, specs, "repodata.json")
     r = Resolve(index, channels=channels)
-    with env_var(
-        "CONDA_CHANNEL_PRIORITY",
-        "strict",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        reduced_index = r.get_reduced_index(specs)
-        channel_name_groups = {
-            name: {prec.channel.name for prec in group}
-            for name, group in groupby(lambda x: x["name"], reduced_index).items()
-        }
-        channel_name_groups = {
-            name: channel_names
-            for name, channel_names in channel_name_groups.items()
-            if len(channel_names) > 1
-        }
-        assert {} == channel_name_groups
+
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
+    reset_context()
+    assert context.channel_priority == ChannelPriority.STRICT
+
+    reduced_index = r.get_reduced_index(specs)
+    channel_name_groups = {
+        name: {prec.channel.name for prec in group}
+        for name, group in groupby(lambda x: x["name"], reduced_index).items()
+    }
+    channel_name_groups = {
+        name: channel_names
+        for name, channel_names in channel_name_groups.items()
+        if len(channel_names) > 1
+    }
+    assert {} == channel_name_groups
+
+    # cleanup
+    monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
+    reset_context()
 
 
 def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
