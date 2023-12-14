@@ -10,14 +10,7 @@ def get_installer(name):
     """
         Gets the installer for the given environment.
 
-    Args:
-        name (_type_): _description_
-
-    Raises:
-        InvalidInstaller: _description_
-
-    Returns:
-        _type_: _description_
+    Raises: InvalidInstaller if unable to load installer
     """
     try:
         return importlib.import_module(f"conda.env.installers.{name}")

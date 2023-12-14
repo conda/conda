@@ -18,18 +18,7 @@ from ...models.channel import Channel, prioritize_channels
 
 
 def _solve(prefix, specs, args, env, *_, **kwargs):
-    """
-        Solve the environment.
-
-    Args:
-        prefix (_type_): _description_
-        specs (_type_): _description_
-        args (_type_): _description_
-        env (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
+    """Solve the environment"""
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = [chan for chan in env.channels if chan != "nodefaults"]
@@ -47,17 +36,7 @@ def _solve(prefix, specs, args, env, *_, **kwargs):
 
 
 def dry_run(specs, args, env, *_, **kwargs):
-    """
-        Do a dry run of the environment solve.
-
-    Args:
-        specs (_type_): _description_
-        args (_type_): _description_
-        env (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
+    """Do a dry run of the environment solve"""
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
     solved_env = Environment(
@@ -67,12 +46,7 @@ def dry_run(specs, args, env, *_, **kwargs):
 
 
 def install(prefix, specs, args, env, *_, **kwargs):
-    """
-        Install packages into an environment.
-
-    Returns:
-        _type_: _description_
-    """
+    """Install packages into an environment"""
     solver = _solve(prefix, specs, args, env, *_, **kwargs)
 
     try:

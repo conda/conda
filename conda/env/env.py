@@ -25,7 +25,7 @@ VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
 
 def validate_keys(data, kwargs):
-    """Check for unknown keys, remove them and print a warning."""
+    """Check for unknown keys, remove them and print a warning"""
     invalid_keys = []
     new_data = data.copy() if data else {}
     for key in data.keys():
@@ -69,6 +69,7 @@ def from_environment(
 ):
     """
         Get environment object from prefix
+
     Args:
         name: The name of environment
         prefix: The path of prefix
@@ -158,18 +159,7 @@ def _expand_channels(data):
 
 
 def from_file(filename):
-    """
-        Load and return an environment from a given file
-
-    Args:
-        filename (_type_): _description_
-
-    Raises:
-        EnvironmentFileNotFound: _description_
-
-    Returns:
-        _type_: _description_
-    """
+    """Load and return an environment from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
@@ -186,12 +176,7 @@ def from_file(filename):
 
 
 class Dependencies(dict):
-    """
-        A dict subclass that parses the raw dependencies into a conda and pip list
-
-    Args:
-        dict (_type_): _description_
-    """
+    """A dict subclass that parses the raw dependencies into a conda and pip list"""
 
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -247,12 +232,7 @@ class Environment:
         self.channels = channels
 
     def add_channels(self, channels):
-        """
-            Add channels to the environment
-
-        Args:
-            channels (_type_): _description_
-        """
+        """Add channels to the environment"""
         self.channels = list(unique(chain.from_iterable((channels, self.channels))))
 
     def remove_channels(self):
@@ -288,11 +268,7 @@ class Environment:
 
 
 def get_filename(filename):
-    """Expand filename if local path or return the url
-
-    Returns:
-        _type_: _description_
-    """
+    """Expand filename if local path or return the url"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         return filename
