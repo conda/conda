@@ -323,8 +323,8 @@ def configure_parser_plugins(sub_parsers) -> None:
         # underscore prefixed indicating this is not a normal argparse argument
         parser.set_defaults(_plugin_subcommand=plugin_subcommand)
 
-    # The `conda env` subcommands are marked for deprecation and will get deleted in version 24.9;
-    # until then, `conda env` commands must still be allowed as part of a legacy subcommand framework
+    # Ignore the legacy `conda-env` entrypoints since we already register `env`
+    # as a subcommand in `generate_parser` above
     legacy = (
         set()
         if context.no_plugins

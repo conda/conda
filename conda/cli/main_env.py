@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
+from ..deprecations import deprecated
+
 
 def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> ArgumentParser:
     from . import (
@@ -16,10 +18,13 @@ def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> Argumen
         main_env_update,
     )
 
-    # "conda env" commands have been marked for deprecation; because they are a part of a
-    # legacy subcommand framework, this particular subparser defaults to None when it is
-    # not explicitly provided
+    # This is a backport for the deprecated `conda_env`, see `conda_env.cli.main`
     if sub_parsers is None:
+        deprecated.topic(
+            "23.3",
+            "24.3",
+            topic="'conda_env'",
+        )
         p = ArgumentParser()
 
     else:
