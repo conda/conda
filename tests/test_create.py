@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime
 from glob import glob
 from itertools import chain, zip_longest
 from json import loads as json_loads
@@ -585,13 +586,11 @@ def test_override_channels(
     assert not code
 
 
-def test_create_empty_env():
-    with make_temp_env() as prefix:
-        assert exists(join(prefix, "conda-meta/history"))
+def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        assert (prefix / "conda-meta" / "history").exists()
 
-        list_output = run_command(Commands.LIST, prefix)
-        stdout = list_output[0]
-        stderr = list_output[1]
+        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert stdout == dals(
             f"""
             # packages in environment at {prefix}:
@@ -600,12 +599,24 @@ def test_create_empty_env():
             """
         )
         assert not stderr
+        assert not code
 
-        revision_output = run_command(Commands.LIST, prefix, "--revisions")
-        stdout = revision_output[0]
-        stderr = revision_output[1]
+        stdout, stderr, code = conda_cli(
+            "list",
+            f"--prefix={prefix}",
+            "--revisions",
+            "--json",
+        )
+        revisions = json.loads(stdout)
+        assert len(revisions) == 1
+        assert datetime.fromisoformat(revisions[0]["date"])
+        assert revisions[0]["downgrade"] == []
+        assert revisions[0]["install"] == []
+        assert revisions[0]["remove"] == []
+        assert revisions[0]["rev"] == 0
+        assert revisions[0]["upgrade"] == []
         assert not stderr
-        assert isinstance(stdout, str)
+        assert not code
 
 
 @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
