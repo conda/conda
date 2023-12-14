@@ -25,13 +25,13 @@ def test_remove_all(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
         # regression test for #2154
         with pytest.raises(PackagesNotFoundError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "python", "foo", "numpy")
+            conda_cli("remove", f"--prefix={prefix}", "python", "foo", "numpy", "--yes")
         exception_string = repr(exc.value)
         assert "PackagesNotFoundError" in exception_string
         assert "- numpy" in exception_string
         assert "- foo" in exception_string
 
-        conda_cli("remove", f"--prefix={prefix}", "--all")
+        conda_cli("remove", f"--prefix={prefix}", "--all", "--yes")
         assert path_is_clean(prefix)
 
 
@@ -40,5 +40,5 @@ def test_remove_all_keep_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture)
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "python")
 
-        conda_cli("remove", f"--prefix={prefix}", "--all", "--keep-env")
+        conda_cli("remove", f"--prefix={prefix}", "--all", "--keep-env", "--yes")
         assert not path_is_clean(prefix)
