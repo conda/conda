@@ -24,13 +24,15 @@ pytest_plugins = (
 
 
 @pytest.fixture
-def test_recipes_channel(monkeypatch: MonkeyPatch) -> None:
-    local = str(Path(__file__).resolve().parent / "test-recipes")
-    monkeypatch.setenv("CONDA_BLD_PATH", local)
+def test_recipes_channel(monkeypatch: MonkeyPatch) -> Path:
+    local = Path(__file__).parent / "test-recipes"
+    monkeypatch.setenv("CONDA_BLD_PATH", str(local))
     monkeypatch.setenv("CONDA_USE_LOCAL", "true")
     reset_context()
-    assert context.bld_path == local
+    assert local.samefile(context.bld_path)
     assert context.use_local
+
+    return local
 
 
 @pytest.fixture
