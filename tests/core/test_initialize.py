@@ -56,7 +56,7 @@ def verbose():
 def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
-    assert python_version == "%s.%s.%s" % sys.version_info[:3]
+    assert python_version == "{}.{}.{}".format(*sys.version_info[:3])
     assert site_packages_dir == get_path("platlib")
 
 
