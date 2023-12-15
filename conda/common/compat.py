@@ -7,6 +7,7 @@
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
 
+import builtins
 import sys
 
 on_win = bool(sys.platform == "win32")
@@ -53,14 +54,13 @@ def isiterable(obj):
 # #############################
 
 from collections import OrderedDict as odict  # noqa: F401
-from io import open as io_open  # NOQA
 
 
 def open(
     file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
 ):
     if "b" in mode:
-        return io_open(
+        return builtins.open(
             file,
             str(mode),
             buffering=buffering,
@@ -69,7 +69,7 @@ def open(
             closefd=closefd,
         )
     else:
-        return io_open(
+        return builtins.open(
             file,
             str(mode),
             buffering=buffering,
