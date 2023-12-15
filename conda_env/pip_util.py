@@ -18,7 +18,7 @@ from conda.env.pip_util import (  # noqa
 )
 from conda.exceptions import CondaEnvException
 
-deprecated.module("24.3", "24.9", addendum="Use `conda.env.pip_util` instead.")
+deprecated.module("24.9", "25.3", addendum="Use `conda.env.pip_util` instead.")
 
 
 @deprecated("23.9", "24.3")

@@ -19,7 +19,7 @@ from conda.env.env import (  # noqa
 )
 from conda.exceptions import EnvironmentFileNotFound
 
-deprecated.module("24.3", "24.9", addendum="Use `conda.env.env` instead.")
+deprecated.module("24.9", "25.3", addendum="Use `conda.env.env` instead.")
 
 
 @deprecated("23.9", "24.3")

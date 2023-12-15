@@ -355,7 +355,7 @@ def make_install_plan(conda_prefix):
             "kwargs": {
                 "target_path": conda_env_exe_path,
                 "conda_prefix": conda_prefix,
-                # TODO: Remove upon full deprecation in 24.9
+                # TODO: Remove upon full deprecation in 25.3
                 "module": "conda_env.cli.main",
                 "func": "main",
             },

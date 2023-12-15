@@ -10,4 +10,4 @@ Dumps specified environment package specifications to the screen.
 from conda.cli.main_env_export import configure_parser, execute  # noqa
 from conda.deprecations import deprecated
 
-deprecated.module("24.3", "24.9", addendum="Use `conda.cli.main_env_export` instead.")
+deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env_export` instead.")
