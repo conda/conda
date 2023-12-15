@@ -11,3 +11,13 @@ from conda.cli.main_env_config import configure_parser, execute  # noqa
 from conda.deprecations import deprecated
 
 deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env_config` instead.")
+
+config_description = """
+Configure a conda environment
+"""
+
+config_example = """
+examples:
+    conda env config vars list
+    conda env config --append channels conda-forge
+"""

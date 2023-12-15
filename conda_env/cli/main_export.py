@@ -11,3 +11,13 @@ from conda.cli.main_env_export import configure_parser, execute  # noqa
 from conda.deprecations import deprecated
 
 deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env_export` instead.")
+
+description = """
+Export a given environment
+"""
+
+example = """
+examples:
+    conda env export
+    conda env export --file SOME_FILE
+"""

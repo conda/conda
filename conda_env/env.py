@@ -12,6 +12,7 @@ from conda.env.env import (  # noqa
     VALID_KEYS,
     Dependencies,
     Environment,
+    _expand_channels,
     from_environment,
     from_file,
     from_yaml,

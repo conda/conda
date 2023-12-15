@@ -5,6 +5,6 @@
 Define binstar spec.
 """
 from conda.deprecations import deprecated
-from conda.env.specs.binstar import BinstarSpec  # noqa
+from conda.env.specs.binstar import ENVIRONMENT_TYPE, BinstarSpec  # noqa
 
 deprecated.module("24.9", "25.3", addendum="Use `conda.env.specs.binstar` instead.")

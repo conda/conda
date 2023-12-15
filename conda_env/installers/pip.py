@@ -5,5 +5,6 @@
 Pip-flavored installer.
 """
 from conda.deprecations import deprecated
+from conda.env.installers.pip import _pip_install_via_requirements, install  # noqa
 
 deprecated.module("24.9", "25.3", addendum="Use `conda.env.installers.pip` instead.")

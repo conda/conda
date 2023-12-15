@@ -11,3 +11,21 @@ from conda.cli.main_env_remove import configure_parser, execute  # noqa
 from conda.deprecations import deprecated
 
 deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env_remove` instead.")
+
+_help = "Remove an environment"
+_description = (
+    _help
+    + """
+
+Removes a provided environment.  You must deactivate the existing
+environment before you can remove it.
+""".lstrip()
+)
+
+_example = """
+
+Examples:
+
+    conda env remove --name FOO
+    conda env remove -n FOO
+"""
