@@ -104,9 +104,9 @@ class BinstarSpec:
             return self.binstar.package(self.username, self.packagename)
         except (IndexError, AttributeError):
             self.msg = (
-                "{} was not found on anaconda.org.\n"
+                f"{self.name} was not found on anaconda.org.\n"
                 "You may need to be logged in. Try running:\n"
-                "    anaconda login".format(self.name)
+                "    anaconda login"
             )
 
     @cached_property

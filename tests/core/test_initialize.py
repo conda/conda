@@ -1006,7 +1006,7 @@ def test_init_cmd_exe_registry(verbose):
     def _read_windows_registry_mock(target_path, value=None):
         if not value:
             value = "yada\\yada\\conda_hook.bat"
-        return 'echo hello & if exist "{v}" "{v}" & echo "world"'.format(v=value), None
+        return f'echo hello & if exist "{value}" "{value}" & echo "world"', None
 
     from conda.core import initialize
 
