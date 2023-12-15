@@ -4,14 +4,7 @@
 import re
 import sys
 from logging import getLogger
-from os.path import (
-    basename,
-    dirname,
-    isdir,
-    isfile,
-    join,
-    normcase,
-)
+from os.path import basename, dirname, isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME

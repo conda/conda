@@ -323,13 +323,13 @@ def configure_parser_plugins(sub_parsers) -> None:
         # underscore prefixed indicating this is not a normal argparse argument
         parser.set_defaults(_plugin_subcommand=plugin_subcommand)
 
+    if context.no_plugins:
+        return
+
     # Ignore the legacy `conda-env` entrypoints since we already register `env`
     # as a subcommand in `generate_parser` above
-    legacy = (
-        set()
-        if context.no_plugins
-        else set(find_commands()).difference(plugin_subcommands) - {"env"}
-    )
+    legacy = set(find_commands()).difference(plugin_subcommands) - {"env"}
+
     for name in legacy:
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error

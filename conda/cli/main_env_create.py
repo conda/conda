@@ -184,13 +184,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     raise CondaError(
                         dals(
                             f"""
-                        Unable to install package for {installer_type}.
+                            Unable to install package for {installer_type}.
 
-                        Please double check and ensure your dependencies file has
-                        the correct spelling. You might also try installing the
-                        conda-env-{installer_type} package to see if provides
-                        the required installer.
-                        """
+                            Please double check and ensure your dependencies file has
+                            the correct spelling. You might also try installing the
+                            conda-env-{installer_type} package to see if provides
+                            the required installer.
+                            """
                         )
                     )
 

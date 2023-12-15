@@ -38,9 +38,8 @@ def validate_keys(data, kwargs):
         verb = "are" if len(invalid_keys) != 1 else "is"
         plural = "s" if len(invalid_keys) != 1 else ""
         print(
-            "\nEnvironmentSectionNotValid: The following section{plural} on "
-            "'{filename}' {verb} invalid and will be ignored:"
-            "".format(filename=filename, plural=plural, verb=verb)
+            f"\nEnvironmentSectionNotValid: The following section{plural} on "
+            f"'{filename}' {verb} invalid and will be ignored:"
         )
         for key in invalid_keys:
             print(f" - {key}")

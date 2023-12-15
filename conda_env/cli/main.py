@@ -57,6 +57,4 @@ def main():
 
 
 if __name__ == "__main__":
-    from conda.deprecations import deprecated
-
     sys.exit(main())
