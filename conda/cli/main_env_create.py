@@ -192,7 +192,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         the required installer.
                         """
                         )
-                        .lstrip()
                     )
 
         if env.variables:

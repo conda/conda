@@ -5,13 +5,13 @@
 Updates the conda environments with the specified packages.
 """
 import os
-import sys
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
 
+from .. import CondaError
 from ..notices import notices
 
 
@@ -106,7 +106,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     * Provide an environment name via --name or -n
                     * Re-run this command inside an activated conda environment.
                     """
-                ).lstrip()
+                )
                 msg += instuctions
                 # TODO Add json support
                 raise CondaEnvException(msg)
@@ -133,7 +133,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         try:
             installers[installer_type] = get_installer(installer_type)
         except InvalidInstaller:
-            e = (
+            raise CondaError(
                 dals(
                     f"""
                 Unable to install package for {0}.
@@ -144,10 +144,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 installer.
                 """
                 )
-                .lstrip()
-                .format(installer_type)
             )
-            sys.stderr.write(e)
 
             return -1
 
