@@ -62,9 +62,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
                 os.remove(requirements.name)
             else:
                 log.warning(
-                    "CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {}".format(
-                        requirements.name
-                    )
+                    f"CONDA_TEST_SAVE_TEMPS :: retaining pip requirements.txt {requirements.name}"
                 )
     return get_pip_installed_packages(stdout)
 
