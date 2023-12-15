@@ -4,7 +4,7 @@
 
 Lists available conda environments.
 """
-from argparse import ArgumentParser, _SubParsersAction
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -37,7 +37,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser):
     from ..core.envs_manager import list_all_known_prefixes
     from . import common
 

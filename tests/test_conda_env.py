@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import importlib
 
 import pytest
@@ -92,7 +94,7 @@ import pytest
         (
             "conda_env.installers.base.InvalidInstaller",
             "conda.exceptions.InvalidInstaller",
-        ),  # &&&&&&
+        ),
         (
             "conda_env.installers.base.get_installer",
             "conda.env.installers.base.get_installer",
