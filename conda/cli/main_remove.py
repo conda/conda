@@ -55,6 +55,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda remove -n myenv --all
 
+        Remove all packages from the environment `myenv` but retain the environment::
+
+            conda remove -n myenv --all --keep-env
+
         """
     )
 
