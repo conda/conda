@@ -15,7 +15,7 @@ from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging
 
-deprecated.module("23.9", "24.3", addendum="Use `conda.cli.main_env` instead.")
+deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env` instead.")
 
 
 def show_help_on_empty_command():

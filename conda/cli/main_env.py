@@ -21,8 +21,8 @@ def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> Argumen
     # This is a backport for the deprecated `conda_env`, see `conda_env.cli.main`
     if sub_parsers is None:
         deprecated.topic(
-            "23.3",
-            "24.3",
+            "24.9",
+            "25.3",
             topic="'conda_env'",
         )
         p = ArgumentParser()
