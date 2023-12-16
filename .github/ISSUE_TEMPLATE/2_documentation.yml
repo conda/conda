@@ -1,0 +1,37 @@
+---
+name: Documentation
+description: Create a documentation related issue.
+labels:
+  - type::documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!NOTE]
+        > Documentation requests that are incomplete or missing information may be closed as inactionable.
+
+        Since there are already a lot of open issues, please also take a moment to search existing ones to see if your bug has already been reported. If you find something related, please upvote that issue and provide additional details as necessary.
+
+        💐 Thank you for helping to make conda better. We would be unable to improve conda without our community!
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      description: Please confirm and check all of the following options.
+      options:
+        - label: I added a descriptive title
+          required: true
+        - label: I searched open reports and couldn't find a duplicate
+          required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Mention here any typos, broken links, or missing, incomplete, or outdated information, etc. that you have noticed in the conda docs or CLI help.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Include any additional information (or screenshots) that you think would be valuable.
