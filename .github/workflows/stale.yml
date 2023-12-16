@@ -39,7 +39,7 @@ jobs:
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
 
-      - uses: actions/stale@v8
+      - uses: actions/stale@v9
         id: stale
         with:
           # Only issues with these labels are checked whether they are stale
