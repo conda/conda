@@ -13,7 +13,7 @@ the major features of conda. You should understand how conda works
 when you finish this guide.
 
 SEE ALSO: `Getting started with Anaconda Navigator
-<https://docs.anaconda.com/anaconda/navigator/getting-started>`_, a
+<https://docs.anaconda.com/free/navigator/getting-started/>`_, a
 graphical user interface that lets you use conda in a web-like interface
 without having to enter manual commands. Compare the Getting started
 guides for each to see which program you prefer.
@@ -22,7 +22,7 @@ Before you start
 ================
 
 You should have already `installed
-Anaconda <https://docs.anaconda.com/anaconda/install/>`_.
+Anaconda <https://docs.anaconda.com/free/anaconda/install/>`_.
 
 Contents
 ========
