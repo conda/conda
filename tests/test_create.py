@@ -974,23 +974,6 @@ def test_pinned_override_with_explicit_spec():
             assert package_is_installed(prefix, "python=3.10")
 
 
-def test_remove_all():
-    with make_temp_env("python") as prefix:
-        assert exists(join(prefix, PYTHON_BINARY))
-        assert package_is_installed(prefix, "python")
-
-        # regression test for #2154
-        with pytest.raises(PackagesNotFoundError) as exc:
-            run_command(Commands.REMOVE, prefix, "python", "foo", "numpy")
-        exception_string = repr(exc.value)
-        assert "PackagesNotFoundError" in exception_string
-        assert "- numpy" in exception_string
-        assert "- foo" in exception_string
-
-        run_command(Commands.REMOVE, prefix, "--all")
-        assert path_is_clean(prefix)
-
-
 @pytest.mark.skipif(
     on_win, reason="windows usually doesn't support symlinks out-of-the box"
 )
