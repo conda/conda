@@ -14,7 +14,7 @@ from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.exceptions import CondaError, PackagesNotFoundError
 from conda.notices import fetch
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -356,20 +356,22 @@ def test_notices_does_not_interrupt_command_on_failure(
     notices_mock_fetch_get_session,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
 ):
     """
     As a user, when I run conda in an environment where notice cache files might not be readable or
     writable, I still want commands to run and not end up failing.
     """
-    env_name = "testenv"
     error_message = "Can't touch this"
 
     mocker.patch("conda.notices.cache.open", side_effect=PermissionError(error_message))
     mock_logger = mocker.patch("conda.notices.core.logger.error")
 
+    prefix = path_factory()
+
     _, _, exit_code = conda_cli(
         "create",
-        *("--name", env_name),
+        f"--prefix={prefix}",
         "--yes",
         *("--channel", "local"),
         "--override-channels",
@@ -380,10 +382,6 @@ def test_notices_does_not_interrupt_command_on_failure(
     assert mock_logger.call_args == mocker.call(
         f"Unable to open cache file: {error_message}"
     )
-
-    _, _, exit_code = conda_cli("env", "remove", "--name", env_name)
-
-    assert exit_code is None
 
 
 def test_notices_cannot_read_cache_files(
