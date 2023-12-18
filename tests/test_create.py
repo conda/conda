@@ -63,6 +63,7 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
+    LinkError,
     OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -234,21 +235,33 @@ def test_create_install_update_remove_smoketest(
         assert package_is_installed(prefix, "python=3")
 
 
-def test_install_broken_post_install_keeps_existing_folders():
-    # regression test for https://github.com/conda/conda/issues/8258
-    with make_temp_env("python=3.5") as prefix:
-        assert exists(join(prefix, BIN_DIRECTORY))
-        assert package_is_installed(prefix, "python=3")
+def test_install_broken_post_install_keeps_existing_folders(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    # regression test for #8258
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / BIN_DIRECTORY).exists()
+        assert package_is_installed(prefix, "small-executable")
 
-        run_command(
-            Commands.INSTALL,
-            prefix,
-            "-c",
-            "conda-test",
+        _, _, exc = conda_cli(
+            "install",
+            f"--prefix={prefix}",
             "failing_post_link",
-            use_exception_handler=True,
+            "--yes",
+            raises=CondaMultiError,
         )
-        assert exists(join(prefix, BIN_DIRECTORY))
+
+        # CondaMultiError contains a non-Exception, why?
+        # see, e.g., insertion of axngroup into CondaMultiError in
+        # https://github.com/conda/conda/commit/c765d6a48151710040539bb82c51fce4c87ba81e
+        # assert len(exc.value.errors) == 1
+        assert isinstance(exc.value.errors[0], LinkError)
+        assert exc.match("post-link script failed")
+
+        assert (prefix / BIN_DIRECTORY).exists()
+        assert package_is_installed(prefix, "small-executable")
 
 
 def test_safety_checks():
@@ -539,9 +552,9 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert (prefix / pyc_file_py311).is_file()
 
 
-def test_noarch_generic_package():
-    with make_temp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
-        assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
+def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    with tmp_env("font-ttf-inconsolata") as prefix:
+        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
 def test_override_channels(
