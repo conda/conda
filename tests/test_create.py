@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime
 from glob import glob
 from itertools import chain, zip_longest
 from json import loads as json_loads
@@ -37,6 +38,7 @@ from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
+    ChannelPriority,
     SafetyChecks,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -542,41 +544,54 @@ def test_noarch_generic_package():
         assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
 
 
-def test_override_channels():
-    with pytest.raises(OperationNotAllowed):
-        with env_var(
-            "CONDA_OVERRIDE_CHANNELS_ENABLED",
-            "no",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with make_temp_env("--override-channels", "python") as prefix:
-                assert prefix
+def test_override_channels(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "no")
+    reset_context()
+    assert not context.override_channels_enabled
 
-    with pytest.raises(ArgumentError):
-        with make_temp_env("--override-channels", "python") as prefix:
-            assert prefix
-
-    stdout, stderr, _ = run_command(
-        Commands.SEARCH,
-        None,
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
         "--override-channels",
-        "-c",
-        "conda-test",
-        "flask",
+        "python",
+        "--yes",
+        raises=OperationNotAllowed,
+    )
+
+    monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "yes")
+    reset_context()
+    assert context.override_channels_enabled
+
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "--override-channels",
+        "python",
+        "--yes",
+        raises=ArgumentError,
+    )
+
+    stdout, stderr, code = conda_cli(
+        "search",
+        "--override-channels",
+        "conda-test::flask",
         "--json",
     )
     assert not stderr
     assert len(json.loads(stdout)["flask"]) < 3
     assert json.loads(stdout)["flask"][0]["noarch"] == "python"
+    assert not code
 
 
-def test_create_empty_env():
-    with make_temp_env() as prefix:
-        assert exists(join(prefix, "conda-meta/history"))
+def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        assert (prefix / "conda-meta" / "history").exists()
 
-        list_output = run_command(Commands.LIST, prefix)
-        stdout = list_output[0]
-        stderr = list_output[1]
+        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert stdout == dals(
             f"""
             # packages in environment at {prefix}:
@@ -585,71 +600,84 @@ def test_create_empty_env():
             """
         )
         assert not stderr
+        assert not code
 
-        revision_output = run_command(Commands.LIST, prefix, "--revisions")
-        stdout = revision_output[0]
-        stderr = revision_output[1]
+        stdout, stderr, code = conda_cli(
+            "list",
+            f"--prefix={prefix}",
+            "--revisions",
+            "--json",
+        )
+        revisions = json.loads(stdout)
+        assert len(revisions) == 1
+        assert datetime.fromisoformat(revisions[0]["date"])
+        assert revisions[0]["downgrade"] == []
+        assert revisions[0]["install"] == []
+        assert revisions[0]["remove"] == []
+        assert revisions[0]["rev"] == 0
+        assert revisions[0]["upgrade"] == []
         assert not stderr
-        assert isinstance(stdout, str)
+        assert not code
 
 
 @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
-def test_strict_channel_priority():
-    with make_temp_env() as prefix:
-        stdout, stderr, rc = run_command(
-            Commands.CREATE,
-            prefix,
-            "-c",
-            "conda-forge",
-            "-c",
-            "defaults",
-            "python=3.6",
-            "quaternion",
-            "--strict-channel-priority",
-            "--dry-run",
-            "--json",
-            use_exception_handler=True,
-        )
-        assert not rc
-        json_obj = json_loads(stdout)
-        # We see:
-        # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
-        # Rather than spending more time looking for another package, just filter it out.
-        # Same thing for Windows, this is because we use MKL always. Perhaps there's a
-        # way to exclude it, I tried the "nomkl" package but that did not work.
-        json_obj["actions"]["LINK"] = [
-            link
-            for link in json_obj["actions"]["LINK"]
-            if link["name"] not in ("libcxx", "libcxxabi", "mkl", "intel-openmp")
-        ]
-        channel_groups = groupby(lambda x: x["channel"], json_obj["actions"]["LINK"])
-        channel_groups = sorted(list(channel_groups))
-        assert channel_groups == [
-            "conda-forge",
-        ]
+def test_strict_channel_priority(
+    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+):
+    prefix = path_factory()
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--channel=conda-forge",
+        "--channel=defaults",
+        "python=3.6",
+        "quaternion",
+        "--strict-channel-priority",
+        "--dry-run",
+        "--json",
+        "--yes",
+    )
+    assert not code
+    json_obj = json_loads(stdout)
+    # We see:
+    # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
+    # Rather than spending more time looking for another package, just filter it out.
+    # Same thing for Windows, this is because we use MKL always. Perhaps there's a
+    # way to exclude it, I tried the "nomkl" package but that did not work.
+    json_obj["actions"]["LINK"] = [
+        link
+        for link in json_obj["actions"]["LINK"]
+        if link["name"] not in ("libcxx", "libcxxabi", "mkl", "intel-openmp")
+    ]
+    channel_groups = set(groupby(lambda x: x["channel"], json_obj["actions"]["LINK"]))
+    assert channel_groups == {"conda-forge"}
 
 
-def test_strict_resolve_get_reduced_index():
+def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     index = get_reduced_index(None, channels, context.subdirs, specs, "repodata.json")
     r = Resolve(index, channels=channels)
-    with env_var(
-        "CONDA_CHANNEL_PRIORITY",
-        "strict",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        reduced_index = r.get_reduced_index(specs)
-        channel_name_groups = {
-            name: {prec.channel.name for prec in group}
-            for name, group in groupby(lambda x: x["name"], reduced_index).items()
-        }
-        channel_name_groups = {
-            name: channel_names
-            for name, channel_names in channel_name_groups.items()
-            if len(channel_names) > 1
-        }
-        assert {} == channel_name_groups
+
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
+    reset_context()
+    assert context.channel_priority == ChannelPriority.STRICT
+
+    reduced_index = r.get_reduced_index(specs)
+    channel_name_groups = {
+        name: {prec.channel.name for prec in group}
+        for name, group in groupby(lambda x: x["name"], reduced_index).items()
+    }
+    channel_name_groups = {
+        name: channel_names
+        for name, channel_names in channel_name_groups.items()
+        if len(channel_names) > 1
+    }
+    assert {} == channel_name_groups
+
+    # cleanup
+    monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
+    reset_context()
 
 
 def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
