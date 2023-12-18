@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Re-enable+apply pyupgrade via ruff: #13272 replaced black + pyupgrade via ruff format, but did not
+  enable the pyupgrade rules for ruff. (#13433)
