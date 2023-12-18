@@ -110,6 +110,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def get_user_site() -> list[str]:  # pragma: no cover
+    """
+    Method used to populate ``site_dirs`` in ``conda info``.
+
+    :returns: List of directories.
+    """
+
     from ..common.compat import on_win
 
     site_dirs = []
