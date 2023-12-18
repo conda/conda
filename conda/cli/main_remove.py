@@ -212,11 +212,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
         if not context.dry_run:
             if not args.keep_env:
-                confirm_yn(
-                    f"WARNING: If the prefix path: {prefix} contains any contents other than the conda environment, these will also be deleted during this action.\n",
-                    default="no",
-                    dry_run=False,
-                )
+                if not args.json:
+                    confirm_yn(
+                        f"WARNING: If the prefix path: {prefix} contains any contents other than the conda environment, these will also be deleted during this action.\n",
+                        default="no",
+                        dry_run=False,
+                    )
                 rm_rf(prefix, clean_empty_parents=True)
                 unregister_env(prefix)
 
