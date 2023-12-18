@@ -214,7 +214,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             if not args.keep_env:
                 if not args.json:
                     confirm_yn(
-                        f"WARNING: If the prefix path: {prefix} contains any contents other than the conda environment, these will also be deleted during this action.\n",
+                        f"Everything found within the environment ({prefix}), including any conda environment configurations and any non-conda files, will be deleted. Do you wish to continue?\n",
                         default="no",
                         dry_run=False,
                     )
