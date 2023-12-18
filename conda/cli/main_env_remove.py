@@ -72,6 +72,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "offline": None,
             "force": True,
             "pinned": None,
+            "keep_env": False,
         }
     )
     args = Namespace(**args)
