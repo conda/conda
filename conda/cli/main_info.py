@@ -20,7 +20,7 @@ from argparse import (
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import Iterable
+from typing import Iterable, Any
 
 from ..deprecations import deprecated
 from ..models.records import PackageRecord
@@ -140,9 +140,10 @@ def get_user_site() -> list[str]:  # pragma: no cover
     return site_dirs
 
 
-IGNORE_FIELDS: set = {"files", "auth", "preferred_env", "priority"}
+IGNORE_FIELDS: set[str] = {"files", "auth", "preferred_env", "priority"}
 
-SKIP_FIELDS: set = IGNORE_FIELDS | {
+SKIP_FIELDS: set[str] = {
+    *IGNORE_FIELDS,
     "name",
     "version",
     "build",
@@ -155,7 +156,7 @@ SKIP_FIELDS: set = IGNORE_FIELDS | {
 }
 
 
-def dump_record(prec: PackageRecord) -> dict:
+def dump_record(prec: PackageRecord) -> dict[str, Any]:
     """
     Returns a dictionary of key/value pairs from ``prec``.  Keys included in ``IGNORE_FIELDS`` are not returned.
 
@@ -233,7 +234,7 @@ def print_package_info(packages: list[str]) -> None:
     )
 
 
-def get_info_dict(system: bool = False) -> dict:
+def get_info_dict(system: bool = False) -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
 
@@ -362,7 +363,7 @@ def get_info_dict(system: bool = False) -> dict:
     return info_dict
 
 
-def get_env_vars_str(info_dict: dict) -> str:
+def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     """
     Returns a printable string representing environment variables from the dictionary returned by ``get_info_dict``.
 
@@ -442,7 +443,8 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
-    Executes the following CLI commands, all of which return different information:
+    Implements ``conda info`` commands.
+    
      * ``conda info``
      * ``conda info --base``
      * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
