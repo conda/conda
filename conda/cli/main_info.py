@@ -20,7 +20,7 @@ from argparse import (
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import Iterable, Any
+from typing import Any, Iterable
 
 from ..deprecations import deprecated
 from ..models.records import PackageRecord
@@ -444,7 +444,7 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
     Implements ``conda info`` commands.
-    
+
      * ``conda info``
      * ``conda info --base``
      * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
