@@ -429,6 +429,9 @@ def test_print_unexpected_error_message_upload_1(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ):
+    """
+    Test that error reports are auto submitted when CONDA_REPORT_ERRORS=true.
+    """
     post_mock = mocker.patch(
         "requests.post",
         side_effect=(
@@ -442,12 +445,12 @@ def test_print_unexpected_error_message_upload_1(
     )
 
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
-    monkeypatch.setenv("CONDA_JSON", "false")
     monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+    monkeypatch.setenv("CONDA_JSON", "false")
     reset_context()
     assert context.report_errors is True
-    assert not context.always_yes
     assert not context.json
+    assert not context.always_yes
 
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
@@ -463,6 +466,10 @@ def test_print_unexpected_error_message_upload_2(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ):
+    """
+    Test that error reports are auto submitted when CONDA_ALWAYS_YES=true. Also
+    test that we receive the error report in as a JSON when CONDA_JSON=true.
+    """
     post_mock = mocker.patch(
         "requests.post",
         side_effect=(
@@ -481,12 +488,12 @@ def test_print_unexpected_error_message_upload_2(
     )
 
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "none")
-    monkeypatch.setenv("CONDA_JSON", "true")
     monkeypatch.setenv("CONDA_ALWAYS_YES", "true")
+    monkeypatch.setenv("CONDA_JSON", "true")
     reset_context()
     assert context.report_errors is None
-    assert context.always_yes
     assert context.json
+    assert context.always_yes
 
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
@@ -502,6 +509,10 @@ def test_print_unexpected_error_message_upload_3(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ):
+    """
+    Test that we prompt for user confirmation before submitting error reports
+    when CONDA_REPORT_ERRORS=none, CONDA_ALWAYS_YES=false, and CONDA_JSON=false.
+    """
     post_mock = mocker.patch(
         "requests.post",
         side_effect=(
@@ -517,12 +528,12 @@ def test_print_unexpected_error_message_upload_3(
     isatty_mock = mocker.patch("os.isatty", return_value=True)
 
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "none")
-    monkeypatch.setenv("CONDA_JSON", "false")
     monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+    monkeypatch.setenv("CONDA_JSON", "false")
     reset_context()
     assert context.report_errors is None
-    assert not context.always_yes
     assert not context.json
+    assert not context.always_yes
 
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
