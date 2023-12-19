@@ -56,7 +56,7 @@ def verbose():
 def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
-    assert python_version == "%s.%s.%s" % sys.version_info[:3]
+    assert python_version == "{}.{}.{}".format(*sys.version_info[:3])
     assert site_packages_dir == get_path("platlib")
 
 
@@ -1012,7 +1012,7 @@ def test_init_cmd_exe_registry(verbose):
     def _read_windows_registry_mock(target_path, value=None):
         if not value:
             value = "yada\\yada\\conda_hook.bat"
-        return 'echo hello & if exist "{v}" "{v}" & echo "world"'.format(v=value), None
+        return f'echo hello & if exist "{value}" "{value}" & echo "world"', None
 
     from conda.core import initialize
 

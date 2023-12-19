@@ -6,7 +6,7 @@ import functools
 import os
 import sys
 import threading
-from builtins import input  # noqa: F401
+from builtins import input  # noqa: F401, UP029
 from collections.abc import Hashable as _Hashable
 from io import StringIO  # noqa: F401, for conda-build
 

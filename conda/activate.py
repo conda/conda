@@ -318,8 +318,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 from .exceptions import ArgumentError
 
                 raise ArgumentError(
-                    "%s does not accept arguments\nremainder_args: %s\n"
-                    % (command, remainder_args)
+                    f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
                 )
 
         self.command = command

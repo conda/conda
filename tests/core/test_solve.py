@@ -323,12 +323,12 @@ def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+        f"""The following specifications were found to be incompatible with your system:
 
-  - feature:|@/{}::__cuda==8.0=0
+  - feature:|@/{context.subdir}::__cuda==8.0=0
   - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
 
-Your installed version is: 8.0""".format(context.subdir)
+Your installed version is: 8.0"""
     )
 
 
@@ -357,12 +357,12 @@ def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+        f"""The following specifications were found to be incompatible with your system:
 
-  - feature:|@/{}::__cuda==8.0=0
+  - feature:|@/{context.subdir}::__cuda==8.0=0
   - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
 
-Your installed version is: 8.0""".format(context.subdir)
+Your installed version is: 8.0"""
     )
 
 
