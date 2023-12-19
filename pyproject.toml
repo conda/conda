@@ -30,7 +30,7 @@ dependencies = [
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "jsonpatch >=1.32",
-  "menuinst",
+  "menuinst >=2",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
   "pluggy >=1.0.0",
