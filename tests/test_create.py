@@ -1062,21 +1062,30 @@ def test_tarball_install_and_bad_metadata():
             assert not package_is_installed(prefix, "xz")
 
 
-@pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
-def test_update_with_pinned_packages():
-    # regression test for #6914
-    with make_temp_env(
-        "-c", "https://repo.anaconda.com/pkgs/free", "python=2.7.12"
-    ) as prefix:
-        assert package_is_installed(prefix, "readline=6.2")
-        # removing the history allows python to be updated too
-        open(join(prefix, "conda-meta", "history"), "w").close()
+def test_update_with_pinned_packages(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """
+    When a dependency is updated we update the dependent package too.
+
+    Regression test for #6914
+    """
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+
+        # removing the history allows dependent to be updated too
+        (prefix / "conda-meta" / "history").write_text("")
+
+        conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
+
         PrefixData._cache_.clear()
-        run_command(Commands.UPDATE, prefix, "readline", no_capture=True)
-        assert package_is_installed(prefix, "readline")
-        assert not package_is_installed(prefix, "readline=6.2")
-        assert package_is_installed(prefix, "python=2.7")
-        assert not package_is_installed(prefix, "python=2.7.12")
+        assert not package_is_installed(prefix, "dependent=1.0")
+        assert not package_is_installed(prefix, "dependency=1.0")
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
 
 
 def test_pinned_override_with_explicit_spec():
