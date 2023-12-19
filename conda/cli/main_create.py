@@ -6,6 +6,7 @@ Creates new conda environments with the specified packages.
 """
 from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
+from os.path import isdir
 
 from ..notices import notices
 
@@ -88,6 +89,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
+    from ..common.path import paths_equal
     from ..exceptions import CondaValueError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
@@ -95,6 +97,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .install import install
 
     if is_conda_environment(context.target_prefix):
+        if paths_equal(context.target_prefix, context.root_prefix):
+            raise CondaValueError("The target prefix is the base prefix. Aborting.")
         if context.dry_run:
             # Taking the "easy" way out, rather than trying to fake removing
             # the existing environment before creating a new one.
@@ -109,5 +113,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
         log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
+    elif isdir(context.target_prefix):
+        confirm_yn(
+            "WARNING: A directory already exists at the target location '%s'\n"
+            "but it is not a conda environment.\n"
+            "Continue creating environment" % context.target_prefix,
+            default="no",
+            dry_run=False,
+        )
 
     return install(args, parser, "create")

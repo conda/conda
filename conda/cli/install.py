@@ -53,9 +53,6 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
-    if paths_equal(context.target_prefix, context.root_prefix):
-        raise CondaValueError("The target prefix is the base prefix. Aborting.")
-
     if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
@@ -101,15 +98,6 @@ def check_prefix(prefix, json=False):
                         default="no",
                         dry_run=context.dry_run,
                     )
-
-    if isdir(context.target_prefix):
-        common.confirm_yn(
-            "WARNING: A directory already exists at the target location '%s'\n"
-            "but it is not a conda environment.\n"
-            "Continue creating environment" % context.target_prefix,
-            default="no",
-            dry_run=False,
-        )
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
