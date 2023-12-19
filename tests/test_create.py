@@ -2992,6 +2992,7 @@ def test_create_env_different_platform(
 
     # either set CONDA_SUBDIR or pass --platform
     if style == "cli":
+        # --platforms has explicit choices, patch to use fake subdir
         monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
 
         args = [f"--platform={platform}"]
@@ -3015,11 +3016,10 @@ def test_create_env_different_platform(
         )
         result = json.loads(stdout)
         assert result["success"]
-        python = next(
-            pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "arch-package"
+        assert any(
+            pkg["name"] == "arch-package" and pkg["platform"] == platform
+            for pkg in result["actions"]["LINK"]
         )
-        assert python["platform"] == platform
-
         assert not stderr
         assert code  # DryRunExit
 

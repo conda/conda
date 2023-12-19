@@ -37,7 +37,7 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
         obj is os.environ and name.startswith("CONDA_")
         for obj, name, _ in monkeypatch._setitem
     ):
-        log.error("Resetting context")
+        log.debug("monkeypatch cleanup: undo & reset context")
         monkeypatch.undo()
         reset_context()
 
