@@ -1088,21 +1088,26 @@ def test_update_with_pinned_packages(
         assert package_is_installed(prefix, "dependency=2.0")
 
 
-def test_pinned_override_with_explicit_spec():
-    with make_temp_env("python=3.9") as prefix:
-        pyver = next(PrefixData(prefix).query("python")).version
-        run_command(
-            Commands.CONFIG, prefix, "--add", "pinned_packages", f"python={pyver}"
+def test_pinned_override_with_explicit_spec(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        conda_cli(
+            "config",
+            f"--file={prefix / 'condarc'}",
+            *("--add", "pinned_packages", "dependent=1.0"),
         )
         if context.solver == "libmamba":
             # LIBMAMBA ADJUSTMENT
             # Incompatible pin overrides forbidden in conda-libmamba-solver 23.9.0+
             # See https://github.com/conda/conda-libmamba-solver/pull/294
             with pytest.raises(SpecsConfigurationConflictError):
-                run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
+                conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
         else:
-            run_command(Commands.INSTALL, prefix, "python=3.10", no_capture=True)
-            assert package_is_installed(prefix, "python=3.10")
+            conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
+            assert package_is_installed(prefix, "dependent=2.0")
 
 
 @pytest.mark.skipif(
