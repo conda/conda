@@ -269,14 +269,11 @@ def make_menu(prefix, file_path, remove=False):
 def create_hard_link_or_copy(src, dst):
     if islink(src):
         message = dals(
-            """
+            f"""
         Cannot hard link a soft link
-          source: {source_path}
-          destination: {destination_path}
-        """.format(
-                source_path=src,
-                destination_path=dst,
-            )
+          source: {src}
+          destination: {dst}
+        """
         )
         raise CondaOSError(message)
 

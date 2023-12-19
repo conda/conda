@@ -1753,7 +1753,7 @@ def test_shortcut_creation_installs_shortcut():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
+        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1782,7 +1782,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
+        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1810,7 +1810,7 @@ def test_shortcut_absent_when_condarc_set():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
+        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2078,10 +2078,10 @@ def test_conda_pip_interop_pip_clobbers_conda():
         if not on_win:
             output, _, _ = run_command(Commands.RUN, prefix, which_or_where, "python")
             assert prefix.lower() in output.lower(), (
-                "We should be running python in {}\n"
-                "We are running {}\n"
+                f"We should be running python in {prefix}\n"
+                f"We are running {output}\n"
                 "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n"
-                "for a likely place to add more fixes".format(prefix, output)
+                "for a likely place to add more fixes"
             )
         output, _, _ = run_command(
             Commands.RUN, prefix, "python", "-m", "pip", "freeze"

@@ -1598,9 +1598,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script {}".format(
-                        script_caller
-                    )
+                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
                 )
 
 

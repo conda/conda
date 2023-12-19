@@ -499,8 +499,7 @@ class ProgressBar:
                 if self.json:
                     with self.get_lock():
                         sys.stdout.write(
-                            '{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
-                            % (self.description, fraction)
+                            f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
                         )
                 elif IS_INTERACTIVE:
                     self.pbar.update(fraction - self.pbar.n)
