@@ -53,6 +53,9 @@ stderrlog = getLogger("conda.stderr")
 
 
 def check_prefix(prefix, json=False):
+    if paths_equal(context.target_prefix, context.root_prefix):
+        raise CondaValueError("The target prefix is the base prefix. Aborting.")
+
     if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
@@ -81,17 +84,32 @@ def check_prefix(prefix, json=False):
 
     # Check to see if a new prefix is in an already-existing environment's protected
     # directory path (e.g., "bin", "conda-meta", etc.) and warn accordingly
-    parent_dir = pathlib.Path(context.target_prefix).parent / "conda-meta/history"
+    parent_dir = pathlib.Path(context.target_prefix).parent / pathlib.Path(
+        "conda-meta", "history"
+    )
     if parent_dir.exists():
-        print(f"parent_dir = {parent_dir}\n")
         for subdir in pathlib.Path(context.target_prefix).parent.iterdir():
             if context.target_prefix == subdir.as_posix():
-                common.confirm_yn(
-                    f"WARNING: The target prefix is attempting to override a protected directory, '{context.target_prefix}'.\n"
-                    "Continue to create this environment?",
-                    default="no",
-                    dry_run=context.dry_run,
-                )
+                if context.dry_run:
+                    raise CondaValueError(
+                        f"Cannot conduct a dry run for overriding a protected directory, '{subdir.name}'."
+                    )
+                else:
+                    common.confirm_yn(
+                        f"WARNING: The target prefix is attempting to override a protected directory, '{context.target_prefix}'.\n"
+                        "Continue to create this environment?",
+                        default="no",
+                        dry_run=context.dry_run,
+                    )
+
+    if isdir(context.target_prefix):
+        common.confirm_yn(
+            "WARNING: A directory already exists at the target location '%s'\n"
+            "but it is not a conda environment.\n"
+            "Continue creating environment" % context.target_prefix,
+            default="no",
+            dry_run=False,
+        )
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -106,7 +124,6 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         print("Source:      %s" % src_prefix)
         print("Destination: %s" % dst_prefix)
 
-    check_prefix(src_prefix)
     actions, untracked_files = clone_env(
         src_prefix, dst_prefix, verbose=not json, quiet=quiet, index_args=index_args
     )

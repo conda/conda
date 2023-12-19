@@ -155,6 +155,20 @@ def test_cannot_rename_active_env_by_name(
         locate_prefix_by_name(env_rename)
 
 
+def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: str):
+    """Show a useful error message when trying to rename a non-existing env"""
+    with pytest.raises(
+        CondaEnvException,
+        match="The environment you are trying to rename does not exist",
+    ):
+        env_dir = Path(context.root_prefix) / "foo"
+        conda_cli("rename", "--prefix", env_dir, env_rename)
+
+    assert Path(env_dir).exists() is False
+    with pytest.raises(EnvironmentNameNotFound):
+        locate_prefix_by_name(env_rename)
+
+
 def test_rename_with_force(conda_cli: CondaCLIFixture, env_one: str, env_two: str):
     """
     Runs a test where we specify the --force flag to remove an existing directory.
