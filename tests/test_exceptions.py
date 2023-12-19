@@ -5,11 +5,12 @@ import json
 import sys
 from unittest.mock import patch
 
-from pytest import raises
+from pytest import CaptureFixture, MonkeyPatch, raises
+from pytest_mock import MockerFixture
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import (
     BasicClobberError,
@@ -423,83 +424,115 @@ def test_CommandNotFoundError_conda_build():
     )
 
 
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
+def test_print_unexpected_error_message_upload_1(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+):
+    post_mock = mocker.patch(
+        "requests.post",
+        side_effect=(
+            AttrDict(
+                headers=AttrDict(Location="somewhere.else"),
+                status_code=302,
+                raise_for_status=lambda: None,
+            ),
+            AttrDict(raise_for_status=lambda: None),
         ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-def test_print_unexpected_error_message_upload_1(post_mock):
-    with env_var(
-        "CONDA_REPORT_ERRORS", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with captured() as c:
-            ExceptionHandler()(_raise_helper, AssertionError())
+    )
 
-        username = getpass.getuser()
-        assert username_not_in_post_mock(post_mock, username)
-        assert post_mock.call_count == 2
-        assert c.stdout == ""
-        assert "conda version" in c.stderr
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
+    monkeypatch.setenv("CONDA_JSON", "false")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+    reset_context()
+    assert context.report_errors is True
+    assert not context.always_yes
+    assert not context.json
+
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
+
+    assert username_not_in_post_mock(post_mock, getpass.getuser())
+    assert post_mock.call_count == 2
+    assert not stdout
+    assert "conda version" in stderr
 
 
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
+def test_print_unexpected_error_message_upload_2(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+):
+    post_mock = mocker.patch(
+        "requests.post",
+        side_effect=(
+            AttrDict(
+                headers=AttrDict(Location="somewhere.else"),
+                status_code=302,
+                raise_for_status=lambda: None,
+            ),
+            AttrDict(
+                headers=AttrDict(Location="somewhere.again"),
+                status_code=301,
+                raise_for_status=lambda: None,
+            ),
+            AttrDict(raise_for_status=lambda: None),
         ),
-        AttrDict(
-            headers=AttrDict(Location="somewhere.again"),
-            status_code=301,
-            raise_for_status=lambda: None,
+    )
+
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "none")
+    monkeypatch.setenv("CONDA_JSON", "true")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "true")
+    reset_context()
+    assert context.report_errors is None
+    assert context.always_yes
+    assert context.json
+
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
+
+    assert username_not_in_post_mock(post_mock, getpass.getuser())
+    assert post_mock.call_count == 3
+    assert len(json.loads(stdout)["conda_info"]["channels"]) >= 2
+    assert not stderr
+
+
+def test_print_unexpected_error_message_upload_3(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+):
+    post_mock = mocker.patch(
+        "requests.post",
+        side_effect=(
+            AttrDict(
+                headers=AttrDict(Location="somewhere.else"),
+                status_code=302,
+                raise_for_status=lambda: None,
+            ),
+            AttrDict(raise_for_status=lambda: None),
         ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-def test_print_unexpected_error_message_upload_2(post_mock):
-    with env_var("CONDA_JSON", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with env_var("CONDA_YES", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-            with captured() as c:
-                ExceptionHandler()(_raise_helper, AssertionError())
+    )
+    input_mock = mocker.patch("builtins.input", return_value="y")
+    isatty_mock = mocker.patch("os.isatty", return_value=True)
 
-            username = getpass.getuser()
-            assert username_not_in_post_mock(post_mock, username)
-            assert post_mock.call_count == 3
-            assert len(json.loads(c.stdout)["conda_info"]["channels"]) >= 2
-            assert not c.stderr
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "none")
+    monkeypatch.setenv("CONDA_JSON", "false")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+    reset_context()
+    assert context.report_errors is None
+    assert not context.always_yes
+    assert not context.json
 
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
-        ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-@patch("builtins.input", return_value="y")
-@patch("os.isatty", return_value=True)
-def test_print_unexpected_error_message_upload_3(isatty_mock, input_mock, post_mock):
-    with captured() as c:
-        ExceptionHandler()(_raise_helper, AssertionError())
-
-    username = getpass.getuser()
-    assert username_not_in_post_mock(post_mock, username)
+    assert username_not_in_post_mock(post_mock, username=getpass.getuser())
+    assert isatty_mock.call_count == 1
     assert input_mock.call_count == 1
     assert post_mock.call_count == 2
-    assert c.stdout == ""
-    assert "conda version" in c.stderr
+    assert not stdout
+    assert "conda version" in stderr
 
 
 @patch(
