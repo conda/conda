@@ -36,6 +36,18 @@ def test_recipes_channel(monkeypatch: MonkeyPatch) -> Path:
 
 
 @pytest.fixture
+def legacy_repodata_channel(monkeypatch: MonkeyPatch) -> Path:
+    local = Path(__file__).parent / "data" / "legacy_repodata"
+    monkeypatch.setenv("CONDA_BLD_PATH", str(local))
+    monkeypatch.setenv("CONDA_USE_LOCAL", "true")
+    reset_context()
+    assert local.samefile(context.bld_path)
+    assert context.use_local
+
+    return local
+
+
+@pytest.fixture
 def clear_cache():
     from conda.core.subdir_data import SubdirData
 

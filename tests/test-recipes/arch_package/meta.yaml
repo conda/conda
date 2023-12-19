@@ -1,0 +1,9 @@
+package:
+  name: arch-package
+  version: 1.0
+
+build:
+  number: 0
+
+about:
+  summary: A small architecture specific pacakge
