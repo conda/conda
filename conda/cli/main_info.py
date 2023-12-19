@@ -383,7 +383,7 @@ def get_env_vars_str(info_dict: dict) -> str:
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict: dict) -> str:
+def get_main_info_str(info_dict: dict[str, Any]) -> str:
     """
     Returns a printable string of the contents of ``info_dict``.
 
