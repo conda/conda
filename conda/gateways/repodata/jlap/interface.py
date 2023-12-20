@@ -71,7 +71,7 @@ class JlapRepoInterface(RepoInterface):
         repodata_url = f"{self._url}/{self._repodata_fn}"
 
         # XXX won't modify caller's state dict
-        state_ = self._repodata_copy(state)
+        state_ = self._repodata_state_copy(state)
 
         # at this point, self._cache.state == state == state_
 
