@@ -26,8 +26,7 @@ Conda is available on Windows, macOS, or Linux and can be used with any terminal
 
    .. tab-item:: Windows
 
-      #. From the Start menu, search for "Anaconda Prompt".
-      #. Open the Anaconda Prompt desktop app that appears in the search sidebar.
+      #. Open either the Command Prompt (cmd.exe) or Powershell.
 
    .. tab-item:: macOS
 
@@ -42,17 +41,17 @@ Conda is available on Windows, macOS, or Linux and can be used with any terminal
 Creating environments
 =====================
 
-Conda allows you to create separate environments, each containing their own files, packages, and package dependencies. The contents of each environment do not interact with one another.
+Conda allows you to create separate environments, each containing their own files, packages, and package dependencies. The contents of each environment do not interact with each other.
 
 The most basic way to create a new environment is with the following command::
 
    conda create -n <env-name>
 
-To add packages while creating an environment, list them all behind the environment name::
+To add packages while creating an environment, specify them after the environment name::
 
    conda create -n myenvironment python numpy pandas
 
-For more information on environments, see :doc:`Managing environments <tasks/manage-environments>`.
+For more information on working with environments, see :doc:`Managing environments <tasks/manage-environments>`.
 
 Listing environments
 ====================
@@ -81,10 +80,14 @@ To change your current environment back to the default ``base``::
 Installing packages
 ===================
 
-You can also install packages into a previously created environment. To do this, you first need to activate the environment. This changes the environment shown in your shell from ``(base)`` to the name of the environment::
+You can also install packages into a previously created environment. To do this, you can either activate the environment you want to modify or specify the environment name on the command line::
 
+   # via environment activation
    conda activate myenvironment
    conda install matplotlib
+   
+   # via command line option
+   conda install --name myenvironment matplotlib
 
 For more information on searching for and installing packages, see :doc:`Managing packages <tasks/manage-pkgs>`.
 
@@ -95,14 +98,13 @@ Channels are locations (on your own computer or elsewhere on the Internet) where
 
 If a package you want is located in another channel, such as conda-forge, you can manually specify the channel when installing the package::
 
-   conda activate myenvironment
    conda install conda-forge::numpy
 
 You can also override the default channels in your `.condarc` file. For a direct example, see :ref:`Channel locations (channels) <config-channels>` or read the entire :doc:`Using the .condarc conda configuration file <configuration/use-condarc>`.
 
 .. tip::
 
-   Find more packages and channels by searching `Anaconda.org <https://www.anaconda.org>`_. To learn more about searching for packages and channels on Anaconda.org, see `Anaconda.org's documentation <https://docs.anaconda.com/free/anacondaorg/user-guide/>`_.
+   Find more packages and channels by searching `Anaconda.org <https://www.anaconda.org>`_.
 
 Updating conda
 ==============
@@ -122,17 +124,13 @@ No matter which environment you run this command in, conda displays its current 
 
 To update conda to the latest version::
 
-   conda activate
    conda update conda
 
 Conda compares your version to the latest available version and then displays what is available to install.
 
-If a newer version of conda is available, type ``y`` and press Enter to update::
-
-   Proceed ([y]/n)? y
-
 .. tip::
-   We recommend that you always keep conda updated to the latest version.
+   We recommend that you always keep conda updated to the latest version. 
+   For conda's official version support policy, see `CEP 10 <https://github.com/conda-incubator/ceps/blob/main/cep-10.md>`_.
 
 More information
 ================
