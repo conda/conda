@@ -106,6 +106,13 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
+    try:
+        from .jlap.interface import ZstdRepoInterface
+
+        return ZstdRepoInterface
+    except ImportError as e:  # pragma: no cover
+        pass
+
     return CondaRepoInterface
 
 
@@ -287,7 +294,9 @@ will need to
     (b) provide conda with a valid token directly.
 
 Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+""" % join_url(
+                    CONDA_HOMEPAGE_URL, "docs/config.html"
+                )
 
             else:
                 help_message = """\
@@ -296,7 +305,9 @@ The credentials you have provided for this URL are invalid.
 You will need to modify your conda configuration to proceed.
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+""" % join_url(
+                    CONDA_HOMEPAGE_URL, "docs/config.html"
+                )
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = """\
@@ -318,14 +329,18 @@ If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
 %s
-""" % maybe_unquote(repr(url))
+""" % maybe_unquote(
+                    repr(url)
+                )
 
             else:
                 help_message = """\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 %s
-""" % maybe_unquote(repr(url))
+""" % maybe_unquote(
+                    repr(url)
+                )
 
         raise CondaHTTPError(
             help_message,
@@ -404,7 +419,6 @@ class RepodataState(UserDict):
         #     // UTC RFC3999 timestamp of when we last checked whether the file is available or not
         #     // in this case the `repodata.json.zst` file
         #     // Note: same format as conda TUF spec
-        #     // Python's time.time_ns() would be convenient?
         #     "last_checked": "2023-01-08T11:45:44Z",
         #     // false = unavailable, true = available
         #     "value": BOOLEAN
