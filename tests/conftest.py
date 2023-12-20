@@ -1,14 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import os
-from logging import getLogger
 from pathlib import Path
 
 import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
-from conda.testing import conda_cli, path_factory, tmp_env  # noqa: F401
 
 from . import http_test_server
 from .fixtures_jlap import (  # noqa: F401
@@ -19,27 +16,11 @@ from .fixtures_jlap import (  # noqa: F401
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
+    "conda.testing",
     "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
 )
-
-log = getLogger(__name__)
-
-
-@pytest.fixture(name="monkeypatch")
-def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
-    """A monkeypatch fixture that resets context after each test"""
-    yield monkeypatch
-
-    # reset context if any CONDA_ variables were set/unset
-    if any(
-        obj is os.environ and name.startswith("CONDA_")
-        for obj, name, _ in monkeypatch._setitem
-    ):
-        log.debug("monkeypatch cleanup: undo & reset context")
-        monkeypatch.undo()
-        reset_context()
 
 
 @pytest.fixture
