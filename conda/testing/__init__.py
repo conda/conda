@@ -243,9 +243,6 @@ def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
     """Fixture returning CondaCLIFixture instance."""
     yield CondaCLIFixture(capsys)
 
-    # restore to prior state
-    reset_context()
-
 
 @dataclass
 class PathFactoryFixture:
@@ -298,7 +295,6 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.path_factory())
 
-        reset_context([prefix / "condarc"])
         self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
         yield prefix
 
@@ -327,4 +323,5 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
     ]:
         log.debug(f"monkeypatch cleanup: undo & reset context: {', '.join(conda_vars)}")
         monkeypatch.undo()
-        reset_context()
+        # reload context without search paths
+        reset_context([])

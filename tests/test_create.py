@@ -3004,6 +3004,13 @@ def test_create_env_different_platform(
         args = []
 
     with tmp_env(*args) as prefix:
+        # check that the subdir is defined in environment's condarc
+        # which is generated during the `conda create` command (via tmp_env)
+        assert (
+            yaml_round_trip_load((prefix / ".condarc").read_text())["subdir"]
+            == platform
+        )
+
         stdout, stderr, excinfo = conda_cli(
             "install",
             f"--prefix={prefix}",
@@ -3015,10 +3022,6 @@ def test_create_env_different_platform(
         assert stdout
         assert not stderr
         assert isinstance(excinfo.value, DryRunExit)
-
-        # check that the subdir is defined in environment's condarc
-        # which is generated during the `conda create` command (via tmp_env)
-        assert context.collect_all()[prefix / ".condarc"]["subdir"] == platform
 
         # ensure the package to install is from the fake platform
         result = json.loads(stdout)
