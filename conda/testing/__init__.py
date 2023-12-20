@@ -320,10 +320,11 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
     yield monkeypatch
 
     # reset context if any CONDA_ variables were set/unset
-    if any(
-        obj is os.environ and name.startswith("CONDA_")
+    if conda_vars := [
+        name
         for obj, name, _ in monkeypatch._setitem
-    ):
-        log.debug("monkeypatch cleanup: undo & reset context")
+        if obj is os.environ and name.startswith("CONDA_")
+    ]:
+        log.debug(f"monkeypatch cleanup: undo & reset context: {', '.join(conda_vars)}")
         monkeypatch.undo()
         reset_context()
