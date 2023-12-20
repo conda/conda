@@ -27,7 +27,6 @@ from conda.gateways.repodata import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     URL_KEY,
-    CondaRepoInterface,
     RepodataCache,
     RepodataOnDisk,
     RepodataState,
