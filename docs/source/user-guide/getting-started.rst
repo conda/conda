@@ -85,7 +85,7 @@ You can also install packages into a previously created environment. To do this,
    # via environment activation
    conda activate myenvironment
    conda install matplotlib
-   
+
    # via command line option
    conda install --name myenvironment matplotlib
 
@@ -129,7 +129,7 @@ To update conda to the latest version::
 Conda compares your version to the latest available version and then displays what is available to install.
 
 .. tip::
-   We recommend that you always keep conda updated to the latest version. 
+   We recommend that you always keep conda updated to the latest version.
    For conda's official version support policy, see `CEP 10 <https://github.com/conda-incubator/ceps/blob/main/cep-10.md>`_.
 
 More information
