@@ -20,7 +20,7 @@ You should have already installed conda before beginning this getting started gu
 Starting conda
 ==============
 
-Conda is available on Windows, macOS, or Linux and can be used with any terminal application (or shell) in macOS/Linux, while in Windows, we recommend using the Anaconda Prompt application provided by the Anaconda Distribution or Miniconda installations.
+Conda is available on Windows, macOS, or Linux and can be used with any terminal application (or shell).
 
 .. tab-set::
 
