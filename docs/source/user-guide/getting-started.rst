@@ -26,7 +26,7 @@ Conda is available on Windows, macOS, or Linux and can be used with any terminal
 
    .. tab-item:: Windows
 
-      #. Open either the Command Prompt (cmd.exe) or Powershell.
+      #. Open either the Command Prompt (cmd.exe) or PowerShell.
 
    .. tab-item:: macOS
 
