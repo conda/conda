@@ -350,7 +350,7 @@ not global.
    for "All Users", we add it to the *system* PATH. In the former case,
    you can end up with system PATH values taking precedence over
    your entries. In the latter case, you do not. *We do not recommend*
-   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`_.
+   `multi-user installs <https://docs.anaconda.com/free/anaconda/install/multi-user/>`_.
 
 To activate an environment: ``conda activate myenv``
 

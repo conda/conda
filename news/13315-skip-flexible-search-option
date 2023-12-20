@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Add `--skip-flexible-search` option to skip flexible search. (#13315)
 
 ### Bug fixes
 
-* Require `requests >=2.28` for improved `response.json()` exception handling. (#13346)
+* <news item>
 
 ### Deprecations
 

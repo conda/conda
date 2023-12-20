@@ -1,0 +1,19 @@
+package:
+  name: failing_post_link
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # create failing post-link scripts
+    # cannot use on normal post-link detection since those do not support noarch
+    # manually inject post-link scripts into both bin and Scripts
+    # see https://github.com/conda/conda-build/issues/5115
+    - mkdir -p ${PREFIX}/bin
+    - echo "exit 1" > ${PREFIX}/bin/.failing_post_link-post-link.sh
+    - mkdir -p ${PREFIX}/Scripts
+    - echo "exit 1" > ${PREFIX}/Scripts/.failing_post_link-post-link.bat
+
+about:
+  summary: Test that post link failures are handled correctly

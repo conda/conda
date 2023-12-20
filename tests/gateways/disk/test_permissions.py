@@ -114,7 +114,7 @@ def test_make_writable_dir_EPERM():
     from conda.gateways.disk.permissions import make_writable
 
     with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
-        chmod_mock.side_effect = IOError(EPERM, "some message", "foo")
+        chmod_mock.side_effect = OSError(EPERM, "some message", "foo")
         with tempdir() as td:
             assert not make_writable(td)
 
@@ -124,7 +124,7 @@ def test_make_writable_dir_EACCES():
     from conda.gateways.disk.permissions import make_writable
 
     with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
-        chmod_mock.side_effect = IOError(EACCES, "some message", "foo")
+        chmod_mock.side_effect = OSError(EACCES, "some message", "foo")
         with tempdir() as td:
             assert not make_writable(td)
 
@@ -134,7 +134,7 @@ def test_make_writable_dir_EROFS():
     from conda.gateways.disk.permissions import make_writable
 
     with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
-        chmod_mock.side_effect = IOError(EROFS, "some message", "foo")
+        chmod_mock.side_effect = OSError(EROFS, "some message", "foo")
         with tempdir() as td:
             assert not make_writable(td)
 

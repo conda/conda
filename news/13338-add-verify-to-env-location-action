@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Create the `~/.conda` directory before trying to write to the `environments.txt` file. (#13338)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add lighter weight s3 test; update embedded test package index. (#13085)
+* <news item>

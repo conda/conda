@@ -10,7 +10,7 @@ This guide to getting started with conda goes over the basics of starting up and
 
    Anaconda Navigator is a graphical desktop application that enables you to use conda without having to run commands at the command line.
 
-   See `Getting started with Anaconda Navigator <https://docs.anaconda.com/anaconda/navigator/getting-started>`_ to learn more.
+   See `Getting started with Anaconda Navigator <https://docs.anaconda.com/free/navigator/getting-started>`_ to learn more.
 
 Before you start
 ================

@@ -22,14 +22,17 @@ pytest_plugins = (
     "conda.testing.fixtures",
 )
 
-TEST_RECIPES_CHANNEL = str(Path(__file__).resolve().parent / "test-recipes")
-
 
 @pytest.fixture
-def test_recipes_channel(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("CONDA_BLD_PATH", TEST_RECIPES_CHANNEL)
+def test_recipes_channel(monkeypatch: MonkeyPatch) -> Path:
+    local = Path(__file__).parent / "test-recipes"
+    monkeypatch.setenv("CONDA_BLD_PATH", str(local))
+    monkeypatch.setenv("CONDA_USE_LOCAL", "true")
     reset_context()
-    assert context.bld_path == TEST_RECIPES_CHANNEL
+    assert local.samefile(context.bld_path)
+    assert context.use_local
+
+    return local
 
 
 @pytest.fixture

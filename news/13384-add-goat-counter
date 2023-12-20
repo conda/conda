@@ -8,11 +8,11 @@
 
 ### Deprecations
 
-* Mark `conda._vendor.cpuinfo` as pending deprecation. (#13313)
+* <news item>
 
 ### Docs
 
-* <news item>
+* Add goat counter (https://www.goatcounter.com/) as an analytics tool. (#13384)
 
 ### Other
 

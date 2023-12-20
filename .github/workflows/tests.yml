@@ -70,7 +70,7 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.11']
+        python-version: ['3.8', '3.12']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -156,7 +156,7 @@ jobs:
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -166,6 +166,8 @@ jobs:
             python-version: '3.9'
           - default-channel: 'conda-forge'
             python-version: '3.10'
+          - default-channel: 'conda-forge'
+            python-version: '3.11'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -218,7 +220,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.11']
+        python-version: ['3.12']
         platform: ['arm64', 'ppc64le']
     env:
       PYTHON: ${{ matrix.python-version }}
@@ -263,7 +265,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
+        python-version: ['3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         # fewer test splits for quicker unit tests, keep 3 splits for integration

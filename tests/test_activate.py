@@ -2571,7 +2571,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert _CE_CONDA == _CE_CONDA2
 
     shell.sendline("conda" + install + f"-yq hdf5={HDF5_VERSION}")
-    shell.expect(r"Executing transaction: ...working... done.*\n", timeout=120)
+    shell.expect(r"Executing transaction: ...working... done.*\n", timeout=180)
     shell.assert_env_var("?", "0", use_exact=True)
 
     shell.sendline("h5stat --version")
@@ -2990,7 +2990,7 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
 @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
 @pytest.mark.integration
 def test_legacy_activate_deactivate_bash(
-    shell_wrapper_integration: tuple[str, str, str]
+    shell_wrapper_integration: tuple[str, str, str],
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
@@ -3029,7 +3029,7 @@ def test_legacy_activate_deactivate_bash(
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
 @pytest.mark.integration
 def test_legacy_activate_deactivate_cmd_exe(
-    shell_wrapper_integration: tuple[str, str, str]
+    shell_wrapper_integration: tuple[str, str, str],
 ):
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
@@ -3109,7 +3109,7 @@ def prefix():
     ],
 )
 def test_activate_deactivate_modify_path(
-    test_recipes_channel: None,
+    test_recipes_channel: Path,
     shell,
     prefix,
     conda_cli: CondaCLIFixture,
@@ -3119,7 +3119,6 @@ def test_activate_deactivate_modify_path(
         "install",
         *("--prefix", prefix),
         "activate_deactivate_package",
-        "--use-local",
         "--yes",
     )
 
