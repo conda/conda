@@ -3004,9 +3004,7 @@ def test_create_env_different_platform(
         args = []
 
     with tmp_env(*args) as prefix:
-        assert (prefix / ".condarc").read_text() == f"subdir: {platform}\n"
-
-        stdout, stderr, code = conda_cli(
+        stdout, stderr, excinfo = conda_cli(
             "install",
             f"--prefix={prefix}",
             "arch-package",
@@ -3014,14 +3012,21 @@ def test_create_env_different_platform(
             "--json",
             raises=DryRunExit,
         )
+        assert stdout
+        assert not stderr
+        assert isinstance(excinfo.value, DryRunExit)
+
+        # check that the subdir is defined in environment's condarc
+        # which is generated during the `conda create` command (via tmp_env)
+        assert context.collect_all()[prefix / ".condarc"]["subdir"] == platform
+
+        # ensure the package to install is from the fake platform
         result = json.loads(stdout)
         assert result["success"]
         assert any(
             pkg["name"] == "arch-package" and pkg["platform"] == platform
             for pkg in result["actions"]["LINK"]
         )
-        assert not stderr
-        assert code  # DryRunExit
 
 
 @pytest.mark.skip("Test is flaky")
