@@ -122,7 +122,7 @@ class JlapRepoInterface(RepoInterface):
         else:
             return repodata_json_or_none
 
-    def _repodata_copy(self, state: dict | RepodataState):
+    def _repodata_state_copy(self, state: dict | RepodataState):
         return RepodataState(dict=state)
 
 
@@ -144,5 +144,5 @@ class ZstdRepoInterface(JlapRepoInterface):
     Support repodata.json.zst (if available) without checking .jlap
     """
 
-    def _repodata_copy(self, state: dict | RepodataState):
+    def _repodata_state_copy(self, state: dict | RepodataState):
         return RepodataStateSkipFormat(dict=state, skip_formats=["jlap"])
