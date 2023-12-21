@@ -112,8 +112,8 @@ def test_explicit_missing_cache_entries(
     ):
         explicit(
             [
-                f"file://{test_recipes_channel}/noarch/missing-1.0.0-0.tar.bz2",  # does not exists
-                f"file://{test_recipes_channel}/noarch/small-executable-1.0.0-0.tar.bz2",  # exists
+                f"file:///{(test_recipes_channel / 'noarch' / 'missing-1.0.0-0.tar.bz2').as_posix()}",  # does not exists
+                f"file:///{(test_recipes_channel / 'noarch' / 'small-executable-1.0.0-0.tar.bz2').as_posix()}",  # exists
             ],
             None,  # the assertion is raised before the prefix matters
         )
