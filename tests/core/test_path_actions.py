@@ -493,3 +493,24 @@ def test_create_file_link_actions(tmp_path):
 
     assert TARGET_SITE_PACKAGES in file_link_actions[0].target_short_path
     assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path
+
+    # Try without noarch:
+
+    package_info = PackageInfo.from_objects(
+        package_info,
+        package_metadata=PackageMetadata(package_metadata_version=1, noarch=None),
+    )
+
+    required_quad = (
+        {
+            "target_site_packages_short_path": TARGET_SITE_PACKAGES
+        },  # transaction context
+        package_info,
+        tmp_path / "target",
+        "link-type",
+    )
+
+    file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
+
+    assert TARGET_SITE_PACKAGES not in file_link_actions[0].target_short_path
+    assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path
