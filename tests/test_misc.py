@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from pytest_mock import MockerFixture
 
-from conda.common.compat import on_mac
+from conda.common.compat import on_mac, on_win
 from conda.core.subdir_data import cache_fn_url
 from conda.exceptions import CondaExitZero
 from conda.misc import explicit, url_pat, walk_prefix
@@ -110,10 +110,12 @@ def test_explicit_missing_cache_entries(
         AssertionError,
         match="Missing package cache records for: local/noarch::missing==1.0.0=0",
     ):
+        schema = "file:///" if on_win else "file://"
+        noarch = test_recipes_channel / "noarch"
         explicit(
             [
-                f"file:///{(test_recipes_channel / 'noarch' / 'missing-1.0.0-0.tar.bz2').as_posix()}",  # does not exists
-                f"file:///{(test_recipes_channel / 'noarch' / 'small-executable-1.0.0-0.tar.bz2').as_posix()}",  # exists
+                f"{schema}{(noarch / 'missing-1.0.0-0.tar.bz2').as_posix()}",
+                f"{schema}{(noarch / 'small-executable-1.0.0-0.tar.bz2').as_posix()}",
             ],
             None,  # the assertion is raised before the prefix matters
         )
