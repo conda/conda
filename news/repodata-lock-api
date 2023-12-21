@@ -16,4 +16,4 @@
 
 ### Other
 
-* Improve lock API for repodata cache.
+* Improve lock API for repodata cache. (#13455)
