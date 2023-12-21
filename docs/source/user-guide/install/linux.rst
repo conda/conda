@@ -6,27 +6,21 @@ Installing on Linux
 
    * `Miniconda installer for Linux <https://docs.conda.io/en/latest/miniconda.html#linux-installers>`_.
 
-   * `Anaconda installer for Linux <https://www.anaconda.com/download/>`_.
+   * `Anaconda Distribution installer for Linux <https://www.anaconda.com/download/>`_.
+
+   * `Miniforge installer for Linux <https://github.com/conda-forge/miniforge/>`_.
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
 
 #. In your terminal window, run:
 
-   * Miniconda:
+   .. code::
 
-     .. code::
+      bash <conda-installer-name>-latest-Linux-x86_64.sh
 
-        bash Miniconda3-latest-Linux-x86_64.sh
+   ``conda-installer-name`` will be one of "Miniconda3", "Anaconda", or "Miniforge3".
 
-   * Anaconda:
-
-     .. code::
-
-        bash Anaconda-latest-Linux-x86_64.sh
-
-#. Follow the prompts on the installer screens.
-
-   If you are unsure about any setting, accept the defaults. You
+#. Follow the prompts on the installer screens. If you are unsure about any setting, accept the defaults. You
    can change them later.
 
 #. To make the changes take effect, close and then re-open your
@@ -40,15 +34,16 @@ Installing on Linux
 .. _install-linux-silent:
 
 Using with fish shell
-=========================
+=====================
 
 To use conda with fish shell, run the following in your terminal:
 
- #. Add conda binary to $PATH, if not yet added::
+Add conda binary to $PATH, if not yet added::
 
       fish_add_path <conda-install-location>/condabin
 
- #. Configure fish-shell::
+
+Configure fish-shell::
 
       conda init fish
 
@@ -59,27 +54,27 @@ See the instructions for
 :ref:`installing in silent mode on macOS <install-macos-silent>`.
 
 
-Updating Anaconda or Miniconda
-==============================
+Updating conda
+==============
 
 #. Open a terminal window.
 
 #. Run ``conda update conda``.
 
 
-Uninstalling Anaconda or Miniconda
-==================================
+Uninstalling conda
+==================
 
 #. Open a terminal window.
 
-#. Remove the entire Miniconda install directory with::
+#. Remove the entire conda install directory with (*this may differ*
+   *depending on your installation location*) ::
 
-     rm -rf ~/miniconda
+     rm -rf ~/conda
 
-#. OPTIONAL: Edit ``~/.bash_profile`` to remove the Miniconda
-   directory from your PATH environment variable.
+#. *Optional*: run ``conda init --reverse --all`` to undo changes to shell initialization scripts
 
-#. OPTIONAL: Remove the following hidden file and folders that
+#. *Optional*: remove the following hidden file and folders that
    may have been created in the home directory:
 
    * ``.condarc`` file

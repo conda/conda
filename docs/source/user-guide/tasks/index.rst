@@ -1,10 +1,11 @@
-===========
+=====
 Tasks
-===========
+=====
 
 .. toctree::
    :maxdepth: 1
 
+   creating-projects
    manage-conda
    manage-environments
    manage-channels
