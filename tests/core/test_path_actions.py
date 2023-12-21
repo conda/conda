@@ -35,8 +35,10 @@ from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
+from conda.models.channel import Channel
 from conda.models.enums import LinkType, NoarchType, PathType
-from conda.models.records import PathDataV1
+from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
+from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
 from conda.testing import PathFactoryFixture
 
 log = getLogger(__name__)
@@ -429,3 +431,65 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+def test_create_file_link_actions(tmp_path):
+    """
+    Test that create_file_link_actions can pull "noarch: python" from a package,
+    even if noarch was omitted from repodata.json. (Issue #8311)
+    """
+    pkgs = tmp_path / "pkgs"
+    pkgs_file = pkgs / "test_foo-0-0.tar.bz2"
+
+    # see also test_package_info.py
+    index_json_record = PackageRecord(
+        build=0,
+        build_number=0,
+        name="test_foo",
+        version=0,
+        channel="defaults",
+        subdir=context.subdir,
+        fn=pkgs_file.name,
+        md5="0123456789",
+    )
+    icondata = "icondata"
+    package_metadata = PackageMetadata(
+        package_metadata_version=1,
+        noarch=Noarch(type="python", entry_points=["test:foo"]),
+    )
+
+    # site-packages should be renamed to Python's site packages (given as
+    # target_site_packages_short_path) whie test/path/2 should be left alone.
+    paths = [
+        PathData(_path="site-packages/1", path_type=PathType.hardlink),
+        PathData(_path="test/path/2", path_type=PathType.hardlink),
+    ]
+    paths_data = PathsData(paths_version=0, paths=paths)
+
+    package_info = PackageInfo(
+        extracted_package_dir=str(pkgs),
+        package_tarball_full_path=str(pkgs),
+        channel=Channel("defaults"),
+        repodata_record=index_json_record,
+        url="https://some.com/place/path.tar.bz2",
+        index_json_record=index_json_record,
+        icondata=icondata,
+        package_metadata=package_metadata,
+        paths_data=paths_data,
+    )
+
+    TARGET_SITE_PACKAGES = "target-site-packages-short-path"
+
+    required_quad = (
+        {
+            "target_site_packages_short_path": TARGET_SITE_PACKAGES
+        },  # transaction context
+        package_info,
+        tmp_path / "target",
+        "link-type",
+    )
+
+    file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
+
+    assert TARGET_SITE_PACKAGES in file_link_actions[0].target_short_path
+    assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path
