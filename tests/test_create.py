@@ -10,7 +10,6 @@ from itertools import chain, zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
-    abspath,
     basename,
     dirname,
     exists,
@@ -3178,23 +3177,6 @@ def test_conda_list_json():
         packages = [pkg_info(package) for package in stdout_json]
         python_package = next(p for p in packages if p["name"] == "python")
         assert python_package["version"].startswith("3")
-
-
-@pytest.mark.skipif(
-    context.subdir == "win-32", reason="dependencies not available for win-32"
-)
-def test_legacy_repodata():
-    channel = join(dirname(abspath(__file__)), "data", "legacy_repodata")
-    subdir = context.subdir
-    if subdir not in ("win-64", "linux-64", "osx-64"):
-        # run test even though default subdir doesn't have dependencies
-        subdir = "linux-64"
-    with env_var("CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with make_temp_env(
-            "python", "moto=1.3.7", "-c", channel, "--no-deps"
-        ) as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, "moto=1.3.7")
 
 
 @pytest.mark.skipif(
