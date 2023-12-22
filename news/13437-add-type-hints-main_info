@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.cli.main_info.py`
+* Added type hints and doc strings to `conda.cli.main_info.py`. (#13445)
 
 ### Other
 
