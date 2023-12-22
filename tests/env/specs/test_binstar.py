@@ -1,10 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
 from binstar_client.errors import NotFound
 from pytest_mock import MockerFixture
 
-from conda_env.env import Environment
-from conda_env.specs.binstar import BinstarSpec
+from conda.env.env import Environment
+from conda.env.specs.binstar import BinstarSpec
 
 
 def test_name_not_present():

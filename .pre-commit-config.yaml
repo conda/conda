@@ -30,7 +30,11 @@ repos:
       # ensure syntaxes are valid
       - id: check-toml
       - id: check-yaml
-        exclude: ^(conda\.)?recipe/meta.yaml
+        exclude: |
+          (?x)^(
+            (conda\.)?recipe/meta.yaml |
+            tests/test-recipes/font-ttf-inconsolata/meta.yaml
+          )
       # catch git merge/rebase problems
       - id: check-merge-conflict
       # sort requirements files
@@ -56,7 +60,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.7
+    rev: v0.1.8
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff

@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from conda.exceptions import PackagesNotFoundError
 from conda.testing import CondaCLIFixture
 
 # all tests in this file are integration tests
@@ -159,3 +160,21 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert isinstance(parsed, list)  # can be [] if package not found
     assert len(parsed), "empty search result"
     assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
+
+
+@pytest.mark.flaky(reruns=5)
+def test_search_inflexible(conda_cli: CondaCLIFixture):
+    # 'r-rcpparmadill' should not be found
+    with pytest.raises(PackagesNotFoundError) as excinfo:
+        _ = conda_cli(
+            "search",
+            "--platform",
+            "linux-64",
+            "--override-channels",
+            "--channel",
+            "defaults",
+            "--skip-flexible-search",
+            "r-rcpparmadill",
+        )
+    # check that failure wasn't from flexible mode
+    assert "*r-rcpparmadill*" not in str(excinfo.value)

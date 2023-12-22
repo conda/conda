@@ -96,9 +96,8 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from conda_env import specs
-
     from ..base.context import context
+    from ..env import specs
     from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from ..gateways.disk.test import is_conda_environment

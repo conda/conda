@@ -276,11 +276,11 @@ class CondaHttpAuth(AuthBase):
         if proxy_scheme not in proxies:
             raise ProxyError(
                 dals(
-                    """
-            Could not find a proxy for {!r}. See
-            {}/docs/html#configure-conda-for-use-behind-a-proxy-server
+                    f"""
+            Could not find a proxy for {proxy_scheme!r}. See
+            {CONDA_HOMEPAGE_URL}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """.format(proxy_scheme, CONDA_HOMEPAGE_URL)
+            """
                 )
             )
 

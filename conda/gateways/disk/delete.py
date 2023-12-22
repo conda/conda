@@ -88,16 +88,12 @@ def rmtree(path, *args, **kwargs):
             except CalledProcessError as e:
                 if e.returncode != 5:
                     log.error(
-                        "Removing folder {} the fast way failed.  Output was: {}".format(
-                            name, out
-                        )
+                        f"Removing folder {name} the fast way failed.  Output was: {out}"
                     )
                     raise
                 else:
                     log.debug(
-                        "removing dir contents the fast way failed.  Output was: {}".format(
-                            out
-                        )
+                        f"removing dir contents the fast way failed.  Output was: {out}"
                     )
     else:
         try:
@@ -173,9 +169,7 @@ def unlink_or_rename_to_trash(path):
                         )
                     except CalledProcessError:
                         log.debug(
-                            "renaming file path {} to trash failed.  Output was: {}".format(
-                                path, out
-                            )
+                            f"renaming file path {path} to trash failed.  Output was: {out}"
                         )
 
                 else:

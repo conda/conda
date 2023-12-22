@@ -447,11 +447,7 @@ class Solver:
 
         print(f"\n\nUpdating {spec.name} is constricted by \n")
         for const in hard_constricting:
-            print(
-                "{package} -> requires {conflict_dep}".format(
-                    package=const[0], conflict_dep=const[1]
-                )
-            )
+            print(f"{const[0]} -> requires {const[1]}")
         print(
             "\nIf you are sure you want an update of your package either try "
             "`conda update --all` or install a specific version of the "

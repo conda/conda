@@ -101,10 +101,9 @@ class MultipleKeysError(ValidationError):
         self.source = source
         self.keys = keys
         msg = (
-            "Multiple aliased keys in file %s:\n"
-            "%s\n"
-            "Must declare only one. Prefer '%s'"
-            % (source, pretty_list(keys), preferred_key)
+            f"Multiple aliased keys in file {source}:\n"
+            f"{pretty_list(keys)}\n"
+            f"Must declare only one. Prefer '{preferred_key}'"
         )
         super().__init__(preferred_key, None, source, msg=msg)
 
@@ -117,9 +116,8 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = (
-                "Parameter %s = %r declared in %s has type %s.\n"
-                "Valid types:\n%s"
-                % (
+                "Parameter {} = {!r} declared in {} has type {}.\n"
+                "Valid types:\n{}".format(
                     parameter_name,
                     parameter_value,
                     source,
