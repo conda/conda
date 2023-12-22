@@ -1,3 +1,4 @@
+![repository-open-graph-template](https://github.com/conda/conda/assets/154584501/fcd98b4e-4a6c-495f-ab0d-1687d298d35b)
 # Conda Organization Code of Conduct
 
 > [!NOTE]
