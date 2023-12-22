@@ -17,7 +17,9 @@ from .types import (
     CondaAuthHandler,
     CondaHealthCheck,
     CondaPostCommand,
+    CondaPostSolve,
     CondaPreCommand,
+    CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -222,7 +224,6 @@ class CondaSpecs:
         **Example:**
 
         .. code-block:: python
-
                 from conda import plugins
 
 
@@ -236,4 +237,67 @@ class CondaSpecs:
                         name="example-health-check",
                         action=example_health_check,
                     )
+        """
+
+    @_hookspec
+    def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
+        """
+        Register pre-solve functions in conda that are used in the
+        general solver API, before the solver processes the package specs in
+        search of a solution.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.models.match_spec import MatchSpec
+
+
+           def example_pre_solve(
+               specs_to_add: frozenset[MatchSpec],
+               specs_to_remove: frozenset[MatchSpec],
+           ):
+               print(f"Adding {len(specs_to_add)} packages")
+               print(f"Removing {len(specs_to_remove)} packages")
+
+
+           @plugins.hookimpl
+           def conda_pre_solves():
+               yield plugins.CondaPreSolve(
+                   name="example-pre-solve",
+                   action=example_pre_solve,
+               )
+        """
+
+    @_hookspec
+    def conda_post_solves(self) -> Iterable[CondaPostSolve]:
+        """
+        Register post-solve functions in conda that are used in the
+        general solver API, after the solver has provided the package
+        records to add or remove from the conda environment.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.models.records import PackageRecord
+
+
+           def example_post_solve(
+               repodata_fn: str,
+               unlink_precs: tuple[PackageRecord, ...],
+               link_precs: tuple[PackageRecord, ...],
+           ):
+               print(f"Uninstalling {len(unlink_precs)} packages")
+               print(f"Installing {len(link_precs)} packages")
+
+
+           @plugins.hookimpl
+           def conda_post_solves():
+               yield plugins.CondaPostSolve(
+                   name="example-post-solve",
+                   action=example_post_solve,
+               )
         """

@@ -1,12 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """The classic solver implementation."""
+from __future__ import annotations
+
 import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 from textwrap import dedent
+from typing import Iterable
 
 from genericpath import exists
 
@@ -35,6 +38,7 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
+from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
@@ -53,17 +57,16 @@ class Solver:
       * :meth:`solve_final_state`
       * :meth:`solve_for_diff`
       * :meth:`solve_for_transaction`
-
     """
 
     def __init__(
         self,
-        prefix,
-        channels,
-        subdirs=(),
-        specs_to_add=(),
-        specs_to_remove=(),
-        repodata_fn=REPODATA_FN,
+        prefix: str,
+        channels: Iterable[Channel],
+        subdirs: Iterable[str] = (),
+        specs_to_add: Iterable[MatchSpec] = (),
+        specs_to_remove: Iterable[MatchSpec] = (),
+        repodata_fn: str = REPODATA_FN,
         command=NULL,
     ):
         """
@@ -134,17 +137,35 @@ class Solver:
             # is in the commented out get_install_transaction() function below. Exercised at
             # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
-        else:
-            unlink_precs, link_precs = self.solve_for_diff(
-                update_modifier,
-                deps_modifier,
-                prune,
-                ignore_pinned,
-                force_remove,
-                force_reinstall,
-                should_retry_solve,
-            )
-            stp = PrefixSetup(
+
+        # run pre-solve processes here before solving for a solution
+        context.plugin_manager.invoke_pre_solves(
+            self.specs_to_add,
+            self.specs_to_remove,
+        )
+
+        unlink_precs, link_precs = self.solve_for_diff(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+            should_retry_solve,
+        )
+        # TODO: Only explicitly requested remove and update specs are being included in
+        #   History right now. Do we need to include other categories from the solve?
+
+        # run post-solve processes here before performing the transaction
+        context.plugin_manager.invoke_post_solves(
+            self._repodata_fn,
+            unlink_precs,
+            link_precs,
+        )
+
+        self._notify_conda_outdated(link_precs)
+        return UnlinkLinkTransaction(
+            PrefixSetup(
                 self.prefix,
                 unlink_precs,
                 link_precs,
@@ -152,11 +173,7 @@ class Solver:
                 self.specs_to_add,
                 self.neutered_specs,
             )
-            # TODO: Only explicitly requested remove and update specs are being included in
-            #   History right now. Do we need to include other categories from the solve?
-
-            self._notify_conda_outdated(link_precs)
-            return UnlinkLinkTransaction(stp)
+        )
 
     def solve_for_diff(
         self,
@@ -167,7 +184,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -1389,8 +1406,11 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(
-    prefix, final_precs, specs_to_add=(), force_reinstall=NULL
-):
+    prefix,
+    final_precs,
+    specs_to_add=(),
+    force_reinstall=NULL,
+) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
         assert hasattr(
@@ -1441,4 +1461,4 @@ def diff_for_unlink_link_precs(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
     link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return unlink_precs, link_precs
+    return tuple(unlink_precs), tuple(link_precs)
