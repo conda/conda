@@ -22,14 +22,18 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import solvers, subcommands, virtual_packages
+from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
+from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
     CondaHealthCheck,
     CondaPostCommand,
+    CondaPostSolve,
     CondaPreCommand,
+    CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -176,6 +180,14 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaHealthCheck]:
         ...
 
+    @overload
+    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]:
+        ...
+
+    @overload
+    def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -319,6 +331,36 @@ class CondaPluginManager(pluggy.PluginManager):
                 log.warning(f"Error running health check: {hook.name} ({err})")
                 continue
 
+    def invoke_pre_solves(
+        self,
+        specs_to_add: frozenset[MatchSpec],
+        specs_to_remove: frozenset[MatchSpec],
+    ) -> None:
+        """
+        Invokes ``CondaPreSolve.action`` functions registered with ``conda_pre_solves``.
+
+        :param specs_to_add:
+        :param specs_to_remove:
+        """
+        for hook in self.get_hook_results("pre_solves"):
+            hook.action(specs_to_add, specs_to_remove)
+
+    def invoke_post_solves(
+        self,
+        repodata_fn: str,
+        unlink_precs: tuple[PackageRecord, ...],
+        link_precs: tuple[PackageRecord, ...],
+    ) -> None:
+        """
+        Invokes ``CondaPostSolve.action`` functions registered with ``conda_post_solves``.
+
+        :param repodata_fn:
+        :param unlink_precs:
+        :param link_precs:
+        """
+        for hook in self.get_hook_results("post_solves"):
+            hook.action(repodata_fn, unlink_precs, link_precs)
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -333,6 +375,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *virtual_packages.plugins,
         *subcommands.plugins,
         health_checks,
+        *post_solves.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

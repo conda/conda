@@ -1,0 +1,13 @@
+# keep packages
+!*.tar.bz2
+
+# keep repodata
+!repodata.json
+!repodata.json.bz2
+
+# ignore optional files
+current_repodata.json
+current_repodata.json.bz2
+repodata_from_packages.json
+repodata_from_packages.json.bz2
+index.html
