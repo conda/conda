@@ -2,9 +2,8 @@
 Installing conda
 ================
 
-To install conda, you must first pick the right installer for.
-The follow are the different installers currently available
-and why you may to choose them:
+To install conda, you must first pick the right installer for you.
+The following are the most popular installers currently available:
 
 .. glossary::
 
@@ -33,13 +32,11 @@ and why you may to choose them:
 System requirements
 ===================
 
-* 32- or 64-bit computer
+* A supported operating systems: Windows, macOS, or Linux
 
 * For Miniconda or Miniforge: 400 MB disk space
 
 * For Anaconda: Minimum 3 GB disk space to download and install
-
-* Windows, macOS, or Linux
 
 * For Windows: Windows 8.1 or newer for Python 3.9, or Windows Vista or newer for Python 3.8
 
@@ -71,11 +68,51 @@ Follow the silent-mode instructions for your operating system:
 * :ref:`macOS <install-macos-silent>`
 * :ref:`Linux <install-linux-silent>`
 
+
+.. _hash-verification:
+
+Cryptographic hash verification
+===============================
+
+SHA-256 checksums are available for
+`Miniconda <https://conda.io/en/latest/miniconda_hashes.html>`_ and
+`Anaconda Distribution <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
+We do not recommend using MD5 verification as SHA-256 is more secure.
+
+Download the installer file and before installing verify it as follows:
+
+* Windows:
+
+  * If you have PowerShell V4 or later:
+
+    Open a PowerShell console and verify the file as follows::
+
+      Get-FileHash filename -Algorithm SHA256
+
+  * If you don't have PowerShell V4 or later:
+
+    Use the free `online verifier tool
+    <https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67>`_
+    on the Microsoft website.
+
+    #. Download the file and extract it.
+
+    #. Open a Command Prompt window.
+
+    #. Navigate to the file.
+
+    #. Run the following command::
+
+        Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
+
+* macOS: In iTerm or a terminal window enter ``shasum -a 256 filename``.
+
+* Linux: In a terminal window enter ``sha256sum filename``.
+
 .. toctree::
    :maxdepth: 1
    :hidden:
 
-   download
    windows
    macos
    linux
