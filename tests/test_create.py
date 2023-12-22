@@ -4,12 +4,12 @@ import json
 import os
 import re
 import sys
+from datetime import datetime
 from glob import glob
 from itertools import chain, zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
-    abspath,
     basename,
     dirname,
     exists,
@@ -24,6 +24,7 @@ from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import check_call, check_output
 from textwrap import dedent
+from typing import Literal
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -37,6 +38,7 @@ from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
+    ChannelPriority,
     SafetyChecks,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -61,6 +63,7 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
+    LinkError,
     OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -231,83 +234,147 @@ def test_create_install_update_remove_smoketest(
         assert package_is_installed(prefix, "python=3")
 
 
-def test_install_broken_post_install_keeps_existing_folders():
-    # regression test for https://github.com/conda/conda/issues/8258
-    with make_temp_env("python=3") as prefix:
-        assert exists(join(prefix, BIN_DIRECTORY))
-        assert package_is_installed(prefix, "python=3")
+def test_install_broken_post_install_keeps_existing_folders(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    # regression test for #8258
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / BIN_DIRECTORY).exists()
+        assert package_is_installed(prefix, "small-executable")
 
-        run_command(
-            Commands.INSTALL,
-            prefix,
-            "-c",
-            "conda-test",
+        _, _, exc = conda_cli(
+            "install",
+            f"--prefix={prefix}",
             "failing_post_link",
-            use_exception_handler=True,
+            "--yes",
+            raises=CondaMultiError,
         )
-        assert exists(join(prefix, BIN_DIRECTORY))
+
+        # CondaMultiError contains a non-Exception, why?
+        # see, e.g., insertion of axngroup into CondaMultiError in
+        # https://github.com/conda/conda/commit/c765d6a48151710040539bb82c51fce4c87ba81e
+        # assert len(exc.value.errors) == 1
+        assert isinstance(exc.value.errors[0], LinkError)
+        assert exc.match("post-link script failed")
+
+        assert (prefix / BIN_DIRECTORY).exists()
+        assert package_is_installed(prefix, "small-executable")
 
 
-def test_safety_checks():
-    # This test uses https://anaconda.org/conda-test/spiffy-test-app/0.5/download/noarch/spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2
-    # which is a modification of https://anaconda.org/conda-test/spiffy-test-app/1.0/download/noarch/spiffy-test-app-1.0-pyh6afabb7_0.tar.bz2
-    # as documented in info/README within that package.
-    # I also had to fix the post-link script in the package by adding quotation marks to handle
-    # spaces in path names.
-
-    with make_temp_env() as prefix:
-        with open(join(prefix, "condarc"), "a") as fh:
-            fh.write("safety_checks: enabled\n")
-            fh.write("extra_safety_checks: true\n")
-        reload_config(prefix)
+def test_safety_checks_enabled(
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_SAFETY_CHECKS", "enabled")
+        monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+        reset_context()
         assert context.safety_checks is SafetyChecks.enabled
+        assert context.extra_safety_checks
 
         with pytest.raises(CondaMultiError) as exc:
-            run_command(
-                Commands.INSTALL, prefix, "-c", "conda-test", "spiffy-test-app=0.5"
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                "--channel=conda-test",
+                "spiffy-test-app=0.5",
+                "--yes",
             )
 
-        error_message = str(exc.value)
-        message1 = dals(
+        # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
+        assert dals(
             """
             The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
             has an incorrect size.
               reported size: 32 bytes
               actual size: 16 bytes
             """
-        )
-        message2 = "has a sha256 mismatch."
-        assert message1 in error_message
-        assert message2 in error_message
+        ) in str(exc.value)
+        assert "has a sha256 mismatch." in str(exc.value)
+        assert not package_is_installed(prefix, "spiffy-test-app=0.5")
 
-        with open(join(prefix, "condarc"), "w") as fh:
-            fh.write("safety_checks: warn\n")
-            fh.write("extra_safety_checks: true\n")
-        reload_config(prefix)
+
+def test_safety_checks_warn(
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_SAFETY_CHECKS", "warn")
+        monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+        reset_context()
         assert context.safety_checks is SafetyChecks.warn
+        assert context.extra_safety_checks
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "-c", "conda-test", "spiffy-test-app=0.5"
+        stdout, stderr, code = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--channel=conda-test",
+            "spiffy-test-app=0.5",
+            "--yes",
         )
-        assert message1 in stderr
-        assert message2 in stderr
+        assert stdout
+        # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
+        assert (
+            dals(
+                """
+            The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
+            has an incorrect size.
+              reported size: 32 bytes
+              actual size: 16 bytes
+            """
+            )
+            in stderr
+        )
+        assert "has a sha256 mismatch." in stderr
+        assert not code
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
-    with make_temp_env() as prefix:
-        with open(join(prefix, "condarc"), "a") as fh:
-            fh.write("safety_checks: disabled\n")
-        reload_config(prefix)
+
+def test_safety_checks_disabled(
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_SAFETY_CHECKS", "disabled")
+        reset_context()
         assert context.safety_checks is SafetyChecks.disabled
+        assert not context.extra_safety_checks
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "-c", "conda-test", "spiffy-test-app=0.5"
+        stdout, stderr, code = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--channel=conda-test",
+            "spiffy-test-app=0.5",
+            "--yes",
         )
-        assert message1 not in stderr
-        assert message2 not in stderr
+        assert stdout
+        # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
+        assert (
+            dals(
+                """
+            The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
+            has an incorrect size.
+              reported size: 32 bytes
+              actual size: 16 bytes
+            """
+            )
+            not in stderr
+        )
+        assert "has a sha256 mismatch." not in stderr
+        assert not code
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
 
-def test_json_create_install_update_remove():
+def test_json_create_install_update_remove(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    capsys: CaptureFixture,
+):
     # regression test for #5384
 
     def assert_json_parsable(content):
@@ -327,83 +394,112 @@ def test_json_create_install_update_remove():
             )
             raise
 
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
+    prefix = path_factory()
 
-        stdout, stderr, _ = run_command(
-            Commands.CREATE,
-            prefix,
-            "python=3.8",
+    with pytest.raises(DryRunExit):
+        conda_cli(
+            "create",
+            f"--prefix={prefix}",
+            "zlib",
             "--json",
             "--dry-run",
-            use_exception_handler=True,
         )
-        assert_json_parsable(stdout)
+    stdout, stderr = capsys.readouterr()
+    assert_json_parsable(stdout)
 
-        # regression test for #5825
-        # contents of LINK and UNLINK is expected to have Dist format
-        json_obj = json.loads(stdout)
-        dist_dump = json_obj["actions"]["LINK"][0]
-        assert "dist_name" in dist_dump
+    # regression test for #5825
+    # contents of LINK and UNLINK is expected to have dist format
+    json_obj = json.loads(stdout)
+    dist_dump = json_obj["actions"]["LINK"][0]
+    assert "dist_name" in dist_dump
 
-        stdout, stderr, _ = run_command(Commands.CREATE, prefix, "python=3.8", "--json")
-        assert_json_parsable(stdout)
-        assert not stderr
-        json_obj = json.loads(stdout)
-        dist_dump = json_obj["actions"]["LINK"][0]
-        assert "dist_name" in dist_dump
+    stdout, stderr, _ = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "zlib",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "flask=2.0.1", "--json"
-        )
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+    json_obj = json.loads(stdout)
+    dist_dump = json_obj["actions"]["LINK"][0]
+    assert "dist_name" in dist_dump
 
-        # Test force reinstall
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "--force-reinstall", "flask=2.0.1", "--json"
-        )
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+    stdout, stderr, _ = conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "ca-certificates<2023",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert package_is_installed(prefix, "ca-certificates<2023")
+    assert package_is_installed(prefix, "zlib")
 
-        stdout, stderr, _ = run_command(Commands.UPDATE, prefix, "flask", "--json")
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+    # Test force reinstall
+    stdout, stderr, _ = conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--force-reinstall",
+        "ca-certificates<2023",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert package_is_installed(prefix, "ca-certificates<2023")
+    assert package_is_installed(prefix, "zlib")
 
-        stdout, stderr, _ = run_command(Commands.REMOVE, prefix, "flask", "--json")
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert not package_is_installed(prefix, "flask=2.*")
-        assert package_is_installed(prefix, "python=3")
+    stdout, stderr, _ = conda_cli(
+        "update",
+        f"--prefix={prefix}",
+        "ca-certificates",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert package_is_installed(prefix, "ca-certificates>=2023")
+    assert package_is_installed(prefix, "zlib")
 
-        # regression test for #5825
-        # contents of LINK and UNLINK is expected to have Dist format
-        json_obj = json.loads(stdout)
-        dist_dump = json_obj["actions"]["UNLINK"][0]
-        assert "dist_name" in dist_dump
+    stdout, stderr, _ = conda_cli(
+        "remove",
+        f"--prefix={prefix}",
+        "ca-certificates",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert not package_is_installed(prefix, "ca-certificates")
+    assert package_is_installed(prefix, "zlib")
 
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--revisions", "--json")
-        assert not stderr
-        json_obj = json.loads(stdout)
-        assert len(json_obj) == 5
-        assert json_obj[4]["rev"] == 4
+    # regression test for #5825
+    # contents of LINK and UNLINK is expected to have Dist format
+    json_obj = json.loads(stdout)
+    dist_dump = json_obj["actions"]["UNLINK"][0]
+    assert "dist_name" in dist_dump
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "--revision", "0", "--json"
-        )
-        assert_json_parsable(stdout)
-        assert not stderr
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--revisions", "--json")
+    assert not stderr
+    json_obj = json.loads(stdout)
+    assert len(json_obj) == 5
+    assert json_obj[4]["rev"] == 4
+
+    stdout, stderr, _ = conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--revision=0",
+        "--json",
+        "--yes",
+    )
+    assert_json_parsable(stdout)
+    assert not stderr
+    assert not package_is_installed(prefix, "ca-certificates")
+    assert package_is_installed(prefix, "zlib")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError(
@@ -539,46 +635,59 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert (prefix / pyc_file_py311).is_file()
 
 
-def test_noarch_generic_package():
-    with make_temp_env("-c", "conda-test", "font-ttf-inconsolata") as prefix:
-        assert isfile(join(prefix, "fonts", "Inconsolata-Regular.ttf"))
+def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    with tmp_env("font-ttf-inconsolata") as prefix:
+        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
-def test_override_channels():
-    with pytest.raises(OperationNotAllowed):
-        with env_var(
-            "CONDA_OVERRIDE_CHANNELS_ENABLED",
-            "no",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with make_temp_env("--override-channels", "python") as prefix:
-                assert prefix
+def test_override_channels(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "no")
+    reset_context()
+    assert not context.override_channels_enabled
 
-    with pytest.raises(ArgumentError):
-        with make_temp_env("--override-channels", "python") as prefix:
-            assert prefix
-
-    stdout, stderr, _ = run_command(
-        Commands.SEARCH,
-        None,
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
         "--override-channels",
-        "-c",
-        "conda-test",
-        "flask",
+        "python",
+        "--yes",
+        raises=OperationNotAllowed,
+    )
+
+    monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "yes")
+    reset_context()
+    assert context.override_channels_enabled
+
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "--override-channels",
+        "python",
+        "--yes",
+        raises=ArgumentError,
+    )
+
+    stdout, stderr, code = conda_cli(
+        "search",
+        "--override-channels",
+        "conda-test::flask",
         "--json",
     )
     assert not stderr
     assert len(json.loads(stdout)["flask"]) < 3
     assert json.loads(stdout)["flask"][0]["noarch"] == "python"
+    assert not code
 
 
-def test_create_empty_env():
-    with make_temp_env() as prefix:
-        assert exists(join(prefix, "conda-meta/history"))
+def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        assert (prefix / "conda-meta" / "history").exists()
 
-        list_output = run_command(Commands.LIST, prefix)
-        stdout = list_output[0]
-        stderr = list_output[1]
+        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert stdout == dals(
             f"""
             # packages in environment at {prefix}:
@@ -587,71 +696,84 @@ def test_create_empty_env():
             """
         )
         assert not stderr
+        assert not code
 
-        revision_output = run_command(Commands.LIST, prefix, "--revisions")
-        stdout = revision_output[0]
-        stderr = revision_output[1]
+        stdout, stderr, code = conda_cli(
+            "list",
+            f"--prefix={prefix}",
+            "--revisions",
+            "--json",
+        )
+        revisions = json.loads(stdout)
+        assert len(revisions) == 1
+        assert datetime.fromisoformat(revisions[0]["date"])
+        assert revisions[0]["downgrade"] == []
+        assert revisions[0]["install"] == []
+        assert revisions[0]["remove"] == []
+        assert revisions[0]["rev"] == 0
+        assert revisions[0]["upgrade"] == []
         assert not stderr
-        assert isinstance(stdout, str)
+        assert not code
 
 
 @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
-def test_strict_channel_priority():
-    with make_temp_env() as prefix:
-        stdout, stderr, rc = run_command(
-            Commands.CREATE,
-            prefix,
-            "-c",
-            "conda-forge",
-            "-c",
-            "defaults",
-            "python=3.6",
-            "quaternion",
-            "--strict-channel-priority",
-            "--dry-run",
-            "--json",
-            use_exception_handler=True,
-        )
-        assert not rc
-        json_obj = json_loads(stdout)
-        # We see:
-        # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
-        # Rather than spending more time looking for another package, just filter it out.
-        # Same thing for Windows, this is because we use MKL always. Perhaps there's a
-        # way to exclude it, I tried the "nomkl" package but that did not work.
-        json_obj["actions"]["LINK"] = [
-            link
-            for link in json_obj["actions"]["LINK"]
-            if link["name"] not in ("libcxx", "libcxxabi", "mkl", "intel-openmp")
-        ]
-        channel_groups = groupby(lambda x: x["channel"], json_obj["actions"]["LINK"])
-        channel_groups = sorted(list(channel_groups))
-        assert channel_groups == [
-            "conda-forge",
-        ]
+def test_strict_channel_priority(
+    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+):
+    prefix = path_factory()
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--channel=conda-forge",
+        "--channel=defaults",
+        "python=3.6",
+        "quaternion",
+        "--strict-channel-priority",
+        "--dry-run",
+        "--json",
+        "--yes",
+    )
+    assert not code
+    json_obj = json_loads(stdout)
+    # We see:
+    # libcxx             pkgs/main/osx-64::libcxx-4.0.1-h579ed51_0
+    # Rather than spending more time looking for another package, just filter it out.
+    # Same thing for Windows, this is because we use MKL always. Perhaps there's a
+    # way to exclude it, I tried the "nomkl" package but that did not work.
+    json_obj["actions"]["LINK"] = [
+        link
+        for link in json_obj["actions"]["LINK"]
+        if link["name"] not in ("libcxx", "libcxxabi", "mkl", "intel-openmp")
+    ]
+    channel_groups = set(groupby(lambda x: x["channel"], json_obj["actions"]["LINK"]))
+    assert channel_groups == {"conda-forge"}
 
 
-def test_strict_resolve_get_reduced_index():
+def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     index = get_reduced_index(None, channels, context.subdirs, specs, "repodata.json")
     r = Resolve(index, channels=channels)
-    with env_var(
-        "CONDA_CHANNEL_PRIORITY",
-        "strict",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        reduced_index = r.get_reduced_index(specs)
-        channel_name_groups = {
-            name: {prec.channel.name for prec in group}
-            for name, group in groupby(lambda x: x["name"], reduced_index).items()
-        }
-        channel_name_groups = {
-            name: channel_names
-            for name, channel_names in channel_name_groups.items()
-            if len(channel_names) > 1
-        }
-        assert {} == channel_name_groups
+
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
+    reset_context()
+    assert context.channel_priority == ChannelPriority.STRICT
+
+    reduced_index = r.get_reduced_index(specs)
+    channel_name_groups = {
+        name: {prec.channel.name for prec in group}
+        for name, group in groupby(lambda x: x["name"], reduced_index).items()
+    }
+    channel_name_groups = {
+        name: channel_names
+        for name, channel_names in channel_name_groups.items()
+        if len(channel_names) > 1
+    }
+    assert {} == channel_name_groups
+
+    # cleanup
+    monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
+    reset_context()
 
 
 def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
@@ -1631,7 +1753,7 @@ def test_shortcut_creation_installs_shortcut():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
+        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1660,7 +1782,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
+        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -1688,7 +1810,7 @@ def test_shortcut_absent_when_condarc_set():
     shortcut_dir = get_shortcut_dir()
     shortcut_dir = join(
         shortcut_dir,
-        "Anaconda{} ({}-bit)".format(sys.version_info.major, context.bits),
+        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
     )
 
     prefix = make_temp_prefix(str(uuid4())[:7])
@@ -2850,38 +2972,56 @@ def test_multiline_run_command():
     assert not errs_etc
 
 
-def _check_create_xz_env_different_platform(prefix, platform):
-    assert exists(join(prefix, "bin", "xz"))
-    # make sure we read the config from PREFIX/.condarc
-    prefix_condarc = Path(prefix, ".condarc")
-    reset_context([prefix_condarc])
-    config_sources = context.collect_all()
-    assert config_sources[prefix_condarc]["subdir"] == platform
+@pytest.mark.parametrize("style", ["cli", "env"])
+def test_create_env_different_platform(
+    style: Literal["cli", "env"],
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    platform = f"{context.subdir.split('-')[0]}-fake"
 
-    stdout, _, _ = run_command(
-        Commands.INSTALL,
-        prefix,
-        "python",
-        "--dry-run",
-        "--json",
-        use_exception_handler=True,
-    )
-    result = json.loads(stdout)
-    assert result["success"]
-    python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
-    assert python["platform"] == platform
+    # either set CONDA_SUBDIR or pass --platform
+    if style == "cli":
+        # --platforms has explicit choices, patch to use fake subdir
+        monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
 
+        args = [f"--platform={platform}"]
+    else:
+        monkeypatch.setenv("CONDA_SUBDIR", platform)
+        reset_context()
+        assert context.subdir == platform
 
-def test_create_env_different_platform_cli_flag():
-    platform = "linux-64" if on_mac else "osx-64"
-    with make_temp_env("xz", "--platform", platform) as prefix:
-        _check_create_xz_env_different_platform(prefix, platform)
+        args = []
 
+    with tmp_env(*args) as prefix:
+        # check that the subdir is defined in environment's condarc
+        # which is generated during the `conda create` command (via tmp_env)
+        assert (
+            yaml_round_trip_load((prefix / ".condarc").read_text())["subdir"]
+            == platform
+        )
 
-def test_create_env_different_platform_env_var():
-    platform = "linux-64" if on_mac else "osx-64"
-    with env_var("CONDA_SUBDIR", platform), make_temp_env("xz") as prefix:
-        _check_create_xz_env_different_platform(prefix, platform)
+        stdout, stderr, excinfo = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "arch-package",
+            "--dry-run",
+            "--json",
+            raises=DryRunExit,
+        )
+        assert stdout
+        assert not stderr
+        assert isinstance(excinfo.value, DryRunExit)
+
+        # ensure the package to install is from the fake platform
+        result = json.loads(stdout)
+        assert result["success"]
+        assert any(
+            pkg["name"] == "arch-package" and pkg["platform"] == platform
+            for pkg in result["actions"]["LINK"]
+        )
 
 
 @pytest.mark.skip("Test is flaky")
@@ -3046,23 +3186,6 @@ def test_conda_list_json():
         packages = [pkg_info(package) for package in stdout_json]
         python_package = next(p for p in packages if p["name"] == "python")
         assert python_package["version"].startswith("3")
-
-
-@pytest.mark.skipif(
-    context.subdir == "win-32", reason="dependencies not available for win-32"
-)
-def test_legacy_repodata():
-    channel = join(dirname(abspath(__file__)), "data", "legacy_repodata")
-    subdir = context.subdir
-    if subdir not in ("win-64", "linux-64", "osx-64"):
-        # run test even though default subdir doesn't have dependencies
-        subdir = "linux-64"
-    with env_var("CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with make_temp_env(
-            "python", "moto=1.3.7", "-c", channel, "--no-deps"
-        ) as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, "moto=1.3.7")
 
 
 @pytest.mark.skipif(

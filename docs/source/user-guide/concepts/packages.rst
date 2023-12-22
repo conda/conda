@@ -130,7 +130,7 @@ Anaconda metapackage
 --------------------
 
 The Anaconda metapackage is used in the creation of the
-`Anaconda Distribution <https://docs.anaconda.com/anaconda/>`_
+`Anaconda Distribution <https://docs.anaconda.com/free/anaconda/>`_
 installers so that they have a set of packages associated with them.
 Each installer release has a version number, which corresponds
 to a particular collection of packages at specific versions.

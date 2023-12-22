@@ -252,7 +252,7 @@ def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=Non
         requires_py = False
 
     info = create_info(name, version, build_number, requires_py)
-    tarbz2_fn = ("%(name)s-%(version)s-%(build)s" % info) + CONDA_PACKAGE_EXTENSION_V1
+    tarbz2_fn = ("{name}-{version}-{build}".format(**info)) + CONDA_PACKAGE_EXTENSION_V1
     create_conda_pkg(prefix, files, info, tarbz2_fn)
     print("# success")
     print(tarbz2_fn)

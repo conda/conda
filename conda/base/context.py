@@ -18,6 +18,7 @@ from functools import lru_cache
 from itertools import chain
 from os.path import abspath, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from typing import TYPE_CHECKING
 
 try:
     from platformdirs import user_data_dir
@@ -75,6 +76,10 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
+
+if TYPE_CHECKING:
+    from ..plugins.manager import CondaPluginManager
+
 
 try:
     os.getcwd()
@@ -492,7 +497,7 @@ class Context(Configuration):
         return errors
 
     @property
-    def plugin_manager(self):
+    def plugin_manager(self) -> CondaPluginManager:
         """
         This is the preferred way of accessing the ``PluginManager`` object for this application
         and is located here to avoid problems with cyclical imports elsewhere in the code.
@@ -1035,11 +1040,11 @@ class Context(Configuration):
     @memoizedproperty
     def user_agent(self):
         builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
-        builder.append("%s/%s" % self.python_implementation_name_version)
-        builder.append("%s/%s" % self.platform_system_release)
-        builder.append("%s/%s" % self.os_distribution_name_version)
+        builder.append("{}/{}".format(*self.python_implementation_name_version))
+        builder.append("{}/{}".format(*self.platform_system_release))
+        builder.append("{}/{}".format(*self.os_distribution_name_version))
         if self.libc_family_version[0]:
-            builder.append("%s/%s" % self.libc_family_version)
+            builder.append("{}/{}".format(*self.libc_family_version))
         if self.solver != "classic":
             builder.append(self.solver_user_agent())
         return " ".join(builder)

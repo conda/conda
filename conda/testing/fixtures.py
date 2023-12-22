@@ -5,6 +5,7 @@ import warnings
 
 import py
 import pytest
+from pytest import FixtureRequest, MonkeyPatch
 
 from ..auxlib.ish import dals
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -86,7 +87,7 @@ def temp_package_cache(tmp_path_factory):
 
 
 @pytest.fixture(params=["libmamba", "classic"])
-def parametrized_solver_fixture(request, monkeypatch):
+def parametrized_solver_fixture(request: FixtureRequest, monkeypatch: MonkeyPatch):
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
     and (2) classic for each test. It's using autouse=True, so only import it in
@@ -109,9 +110,9 @@ def parametrized_solver_fixture(request, monkeypatch):
                 pytest.skip("...")
             ...
     """
-    monkeypatch.setattr(context, "solver", request.param)
-    monkeypatch.setattr(
-        context.plugin_manager,
-        "get_cached_solver_backend",
-        context.plugin_manager.get_solver_backend,
-    )
+    monkeypatch.setenv("CONDA_SOLVER", request.param)
+    reset_context()
+    context.plugin_manager.get_cached_solver_backend.cache_clear()
+    yield
+    reset_context()
+    context.plugin_manager.get_cached_solver_backend.cache_clear()

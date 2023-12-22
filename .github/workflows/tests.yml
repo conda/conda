@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           # setup.bat makes a directory junction from \conda_bin to
           # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
