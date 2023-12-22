@@ -28,7 +28,7 @@ Creating an environment with commands
    or run ``conda create --help`` for information on specifying
    a different path.
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 #. To create an environment:
 
@@ -114,7 +114,7 @@ use the ``--no-default-packages`` flag:
 Creating an environment from an environment.yml file
 ====================================================
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 #. Create the environment from the ``environment.yml`` file:
 
@@ -232,7 +232,7 @@ $ conda env update --prefix ./env --file environment.yml  --prune
 Cloning an environment
 ======================
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 You can make an exact copy of an environment by creating a clone
 of it:
@@ -263,7 +263,7 @@ You can use explicit specification files to build an identical
 conda environment on the same operating system platform, either
 on the same machine or on a different machine.
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 #. Run ``conda list --explicit`` to produce a spec list such as:
 
@@ -369,8 +369,7 @@ You may receive a warning message if you have not activated your environment:
    please see https://conda.io/activation.
 
 If you receive this warning, you need to activate your environment. To do
-so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in
-Anaconda Prompt.
+so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in a terminal window.
 
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
@@ -474,7 +473,7 @@ your system command.
 Determining your current environment
 ====================================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 By default, the active environment---the one you are currently
 using---is shown in parentheses () or brackets [] at the
@@ -504,8 +503,7 @@ To re-enable this option::
 Viewing a list of your environments
 ===================================
 
-To see a list of all of your environments, in your terminal window or an
-Anaconda Prompt, run:
+To see a list of all of your environments, in your terminal window, run:
 
 .. code::
 
@@ -534,22 +532,20 @@ Viewing a list of the packages in an environment
 
 To see a list of all packages installed in a specific environment:
 
-* If the environment is not activated, in your terminal window or an
-  Anaconda Prompt, run:
+* If the environment is not activated, in your terminal window, run:
 
   .. code-block:: bash
 
      conda list -n myenv
 
-* If the environment is activated, in your terminal window or an
-  Anaconda Prompt, run:
+* If the environment is activated, in your terminal window, run:
 
   .. code-block:: bash
 
      conda list
 
 * To see if a specific package is installed in an environment, in your
-  terminal window or an Anaconda Prompt, run:
+  terminal window, run:
 
   .. code-block:: bash
 
@@ -561,8 +557,7 @@ To see a list of all packages installed in a specific environment:
 Using pip in an environment
 ===========================
 
-To use pip in your environment, in your terminal window or an
-Anaconda Prompt, run:
+To use pip in your environment, in your terminal window, run:
 
 .. code-block:: bash
 
@@ -681,7 +676,7 @@ Windows
 -------
 
 #. Locate the directory for the conda environment in your
-   Anaconda Prompt by running in the command shell ``%CONDA_PREFIX%``.
+   terminal window by running in the command shell ``%CONDA_PREFIX%``.
 
 #. Enter that directory and create these subdirectories and
    files::
@@ -907,8 +902,7 @@ If you want to restore your environment to revision 8, run ``conda install --rev
 Removing an environment
 =======================
 
-To remove an environment, in your terminal window or an
-Anaconda Prompt, run:
+To remove an environment, in your terminal window, run:
 
 .. code::
 
@@ -916,8 +910,7 @@ Anaconda Prompt, run:
 
 You may instead use ``conda env remove --name myenv``.
 
-To verify that the environment was removed, in your terminal window or an
-Anaconda Prompt, run:
+To verify that the environment was removed, in your terminal window, run:
 
 .. code::
 
