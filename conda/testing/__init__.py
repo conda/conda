@@ -20,18 +20,21 @@ import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+from logging import getLogger
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
 from typing import Iterable, overload
 
 import pytest
-from pytest import CaptureFixture, ExceptionInfo
+from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
 
-from ..base.context import context, reset_context
-from ..cli.main import init_loggers
+from ..base.context import reset_context
+from ..cli.main import main_subshell
 from ..common.compat import on_win
 from ..deprecations import deprecated
+
+log = getLogger(__name__)
 
 
 @deprecated("23.9", "24.3")
@@ -200,32 +203,10 @@ class CondaCLIFixture:
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
+        # run command
         code = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
-            # mock legacy subcommands
-            if argv[0] == "env":
-                from conda_env.cli.main import create_parser, do_call
-
-                argv = argv[1:]
-
-                # parse arguments
-                parser = create_parser()
-                args = parser.parse_args(argv)
-
-                # initialize context and loggers
-                context.__init__(argparse_args=args)
-                init_loggers()
-
-                # run command
-                code = do_call(args, parser)
-
-            # all other subcommands
-            else:
-                from ..cli.main import main_subshell
-
-                # run command
-                code = main_subshell(*argv)
-
+            code = main_subshell(*argv)
         # capture output
         out, err = self.capsys.readouterr()
 
@@ -239,9 +220,6 @@ class CondaCLIFixture:
 def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
     """Fixture returning CondaCLIFixture instance."""
     yield CondaCLIFixture(capsys)
-
-    # restore to prior state
-    reset_context()
 
 
 @dataclass
@@ -295,7 +273,6 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.path_factory())
 
-        reset_context([prefix / "condarc"])
         self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
         yield prefix
 
@@ -309,3 +286,20 @@ def tmp_env(
 ) -> TmpEnvFixture:
     """Fixture returning TmpEnvFixture instance."""
     yield TmpEnvFixture(path_factory, conda_cli)
+
+
+@pytest.fixture(name="monkeypatch")
+def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
+    """A monkeypatch fixture that resets context after each test"""
+    yield monkeypatch
+
+    # reset context if any CONDA_ variables were set/unset
+    if conda_vars := [
+        name
+        for obj, name, _ in monkeypatch._setitem
+        if obj is os.environ and name.startswith("CONDA_")
+    ]:
+        log.debug(f"monkeypatch cleanup: undo & reset context: {', '.join(conda_vars)}")
+        monkeypatch.undo()
+        # reload context without search paths
+        reset_context([])

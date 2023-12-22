@@ -3,8 +3,8 @@
 import random
 from unittest import mock
 
-from conda_env import env
-from conda_env.specs.yaml_file import YamlFileSpec
+from conda.env import env
+from conda.env.specs.yaml_file import YamlFileSpec
 
 
 def test_no_environment_file():

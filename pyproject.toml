@@ -106,7 +106,9 @@ exclude_lines = [
 # F = pyflakes
 # I = isort
 # D = pydocstyle
-select = ["E", "W", "F", "I", "D1"]
+# UP = pyupgrade
+# see also https://docs.astral.sh/ruff/rules/
+select = ["E", "W", "F", "I", "D1", "UP"]
 # E402 module level import not at top of file
 # E501 line too long
 # E722 do not use bare 'except'

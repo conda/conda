@@ -1,8 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
 import pytest
 
-from conda_env.pip_util import get_pip_installed_packages
+from conda.env.pip_util import get_pip_installed_packages
 
 pip_output_attrs = """
 Collecting attrs
