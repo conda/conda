@@ -87,7 +87,7 @@ def test_add_pip():
 def test_http():
     e = get_simple_environment()
     f = from_file(
-        "https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/simple.yml"
+        "https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml"
     )
     assert e.dependencies == f.dependencies
     assert e.dependencies == f.dependencies
