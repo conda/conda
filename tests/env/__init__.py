@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from os.path import dirname, join
 
-# remote=True is only used in two places, in tests.conda_env.test_create
+# remote=True is only used in two places, in tests.env.test_create
 
 
 def support_file(filename, port=None, remote=False):

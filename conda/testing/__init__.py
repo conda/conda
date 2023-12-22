@@ -29,8 +29,8 @@ from typing import Iterable, overload
 import pytest
 from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
 
-from ..base.context import context, reset_context
-from ..cli.main import init_loggers
+from ..base.context import reset_context
+from ..cli.main import main_subshell
 from ..common.compat import on_win
 from ..deprecations import deprecated
 
@@ -203,32 +203,10 @@ class CondaCLIFixture:
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
+        # run command
         code = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
-            # mock legacy subcommands
-            if argv[0] == "env":
-                from conda_env.cli.main import create_parser, do_call
-
-                argv = argv[1:]
-
-                # parse arguments
-                parser = create_parser()
-                args = parser.parse_args(argv)
-
-                # initialize context and loggers
-                context.__init__(argparse_args=args)
-                init_loggers()
-
-                # run command
-                code = do_call(args, parser)
-
-            # all other subcommands
-            else:
-                from ..cli.main import main_subshell
-
-                # run command
-                code = main_subshell(*argv)
-
+            code = main_subshell(*argv)
         # capture output
         out, err = self.capsys.readouterr()
 

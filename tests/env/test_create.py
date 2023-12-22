@@ -203,7 +203,6 @@ def test_create_update_remote_env_file(
 
         env_name = str(uuid4())[:8]
         prefix = Path(envs_dir, env_name)
-
         conda_cli(
             *("env", "create"),
             *("--name", env_name),

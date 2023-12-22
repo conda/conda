@@ -45,7 +45,7 @@ def clear_cache():
 @pytest.fixture(scope="session")
 def support_file_server():
     """Open a local web server to test remote support files."""
-    base = Path(__file__).parents[0] / "conda_env" / "support"
+    base = Path(__file__).parents[0] / "env" / "support"
     http = http_test_server.run_test_server(str(base))
     yield http
     # shutdown is checked at a polling interval, or the daemon thread will shut
