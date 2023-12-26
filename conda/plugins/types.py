@@ -15,6 +15,8 @@ from typing import Callable, NamedTuple
 from requests.auth import AuthBase
 
 from ..core.solve import Solver
+from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
 
 
 @dataclass
@@ -150,3 +152,35 @@ class CondaHealthCheck(NamedTuple):
 
     name: str
     action: Callable[[str, bool], None]
+
+
+@dataclass
+class CondaPreSolve:
+    """
+    Return type to use when defining a conda pre-solve plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_solves`.
+
+    :param name: Pre-solve name (e.g., ``custom_plugin_pre_solve``).
+    :param action: Callable which contains the code to be run.
+    """
+
+    name: str
+    action: Callable[[frozenset[MatchSpec], frozenset[MatchSpec]], None]
+
+
+@dataclass
+class CondaPostSolve:
+    """
+    Return type to use when defining a conda post-solve plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_solves`.
+
+    :param name: Post-solve name (e.g., ``custom_plugin_post_solve``).
+    :param action: Callable which contains the code to be run.
+    """
+
+    name: str
+    action: Callable[[str, tuple[PackageRecord, ...], tuple[PackageRecord, ...]], None]

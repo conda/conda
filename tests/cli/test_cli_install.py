@@ -10,6 +10,8 @@ from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
+
 
 @pytest.mark.integration
 def test_pre_link_message(
