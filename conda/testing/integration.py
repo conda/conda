@@ -139,12 +139,10 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
         link(src, dst)
     except OSError:
         print(
-            "\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
-            "           not on the same FS as `sys.prefix`:\n           {}\n"
+            f"\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {tmpdir}\n"
+            f"           not on the same FS as `sys.prefix`:\n           {sys.prefix}\n"
             "           this will be slow and unlike the majority of end-user installs.\n"
-            "           Please pass `--basetemp=<somewhere-else>` instead.".format(
-                tmpdir, sys.prefix
-            )
+            "           Please pass `--basetemp=<somewhere-else>` instead."
         )
     try:
         rm_rf(dst)

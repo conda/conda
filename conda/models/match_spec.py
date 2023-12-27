@@ -63,8 +63,7 @@ class MatchSpecType(type):
                     return spec
             else:
                 raise CondaValueError(
-                    "Invalid MatchSpec:\n  spec_arg=%s\n  kwargs=%s"
-                    % (spec_arg, kwargs)
+                    f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
                 )
         else:
             return super().__call__(**kwargs)
@@ -281,7 +280,7 @@ class MatchSpec(metaclass=MatchSpecType):
             return fn_field
         vals = tuple(self.get_exact_value(x) for x in ("name", "version", "build"))
         if not any(x is None for x in vals):
-            return ("%s-%s-%s" % vals) + CONDA_PACKAGE_EXTENSION_V1
+            return ("{}-{}-{}".format(*vals)) + CONDA_PACKAGE_EXTENSION_V1
         else:
             return None
 
@@ -814,8 +813,7 @@ class MatchInterface(metaclass=ABCMeta):
     def merge(self, other):
         if self.raw_value != other.raw_value:
             raise ValueError(
-                "Incompatible component merge:\n  - %r\n  - %r"
-                % (self.raw_value, other.raw_value)
+                f"Incompatible component merge:\n  - {self.raw_value!r}\n  - {other.raw_value!r}"
             )
         return self.raw_value
 

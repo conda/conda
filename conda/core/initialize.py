@@ -355,6 +355,7 @@ def make_install_plan(conda_prefix):
             "kwargs": {
                 "target_path": conda_env_exe_path,
                 "conda_prefix": conda_prefix,
+                # TODO: Remove upon full deprecation in 25.3
                 "module": "conda_env.cli.main",
                 "func": "main",
             },
@@ -1250,7 +1251,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conf\.d\/conda\.fish.*?)\n"
             r"(conda activate.*?)$",
-            r"# \1  {0}\n# \2  {0}".format(conda_init_comment),
+            rf"# \1  {conda_init_comment}\n# \2  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1490,7 +1491,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)\n"
             r"(conda activate.*?)$",
-            r"# \1  {0}\n# \2  {0}".format(conda_init_comment),
+            rf"# \1  {conda_init_comment}\n# \2  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1628,7 +1629,7 @@ def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
         value_type = winreg.REG_EXPAND_SZ
 
     old_hook_path = '"{}"'.format(join(conda_prefix, "condabin", "conda_hook.bat"))
-    new_hook = "if exist {hp} {hp}".format(hp=old_hook_path)
+    new_hook = f"if exist {old_hook_path} {old_hook_path}"
     if reverse:
         # we can't just reset it to None and remove it, because there may be other contents here.
         #   We need to strip out our part, and if there's nothing left, remove the key.
@@ -1716,14 +1717,14 @@ def _powershell_profile_content(conda_prefix):
         conda_exe = join(conda_prefix, "bin", "conda")
 
     conda_powershell_module = dals(
-        """
+        f"""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
     If (Test-Path "{conda_exe}") {{
         (& "{conda_exe}" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
     }}
     #endregion
-    """.format(conda_exe=conda_exe)
+    """
     )
 
     return conda_powershell_module

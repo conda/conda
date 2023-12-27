@@ -102,10 +102,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     location.add_argument(
         "--env",
         action="store_true",
-        help="Write to the active conda environment .condarc file (%s). "
-        "If no environment is active, write to the user config file (%s)."
-        ""
-        % (
+        help="Write to the active conda environment .condarc file ({}). "
+        "If no environment is active, write to the user config file ({})."
+        "".format(
             context.active_prefix or "<no active environment>",
             escaped_user_rc_path,
         ),

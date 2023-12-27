@@ -687,8 +687,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
     def merge(self, other):
         if self.raw_value != other.raw_value:
             raise ValueError(
-                "Incompatible component merge:\n  - %r\n  - %r"
-                % (self.raw_value, other.raw_value)
+                f"Incompatible component merge:\n  - {self.raw_value!r}\n  - {other.raw_value!r}"
             )
         return self.raw_value
 
