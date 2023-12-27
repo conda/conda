@@ -92,12 +92,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=NULL,
     )
     p.add_argument(
+        "--skip-flexible-search",
+        action="store_true",
+        help="Do not perform flexible search if initial search fails.",
+    )
+    p.add_argument(
         "match_spec",
         default="*",
         nargs="?",
         help=SUPPRESS,
     )
-
     p.add_argument(
         "--canonical",
         action="store_true",
@@ -231,7 +235,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             SubdirData.query_all(spec, channel_urls, subdirs),
             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
         )
-    if not matches and spec.get_exact_value("name"):
+    if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")

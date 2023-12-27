@@ -1,16 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import codecs
-import warnings
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
 
-from conda.common.compat import on_mac
+from conda.common.compat import on_mac, on_win
 from conda.core.subdir_data import cache_fn_url
+from conda.exceptions import CondaExitZero
 from conda.misc import explicit, url_pat, walk_prefix
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.testing import CondaCLIFixture
 from conda.utils import Utf8NamedTemporaryFile
 
 
@@ -84,50 +85,40 @@ def test_explicit_no_cache(ProgressiveFetchExtract):
 
 
 def test_explicit_missing_cache_entries(
+    test_recipes_channel: Path,
     mocker: MockerFixture,
     conda_cli: CondaCLIFixture,
-    tmp_env: TmpEnvFixture,
 ):
     """Test that explicit() raises and notifies if some of the specs were not found in the cache."""
-    from conda.core.package_cache_data import PackageCacheData
+    # ensure there is something in the cache
+    stdout, stderr, excinfo = conda_cli(
+        "install",
+        "small-executable",
+        "--yes",
+        "--download-only",
+        raises=CondaExitZero,
+    )
+    assert stdout
+    assert not stderr
+    assert isinstance(excinfo.value, CondaExitZero)
 
-    def one_url_from_packagecache():
-        "some entries in the package cache might have a null URL"
-        return next(
-            (
-                pkg.url
-                for pkg in PackageCacheData.get_all_extracted_entries()
-                if pkg.url
-            ),
-            None,
+    # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
+    # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
+    mocker.patch("conda.misc.ProgressiveFetchExtract")
+
+    with pytest.raises(
+        AssertionError,
+        match="Missing package cache records for: local/noarch::missing==1.0.0=0",
+    ):
+        schema = "file:///" if on_win else "file://"
+        noarch = test_recipes_channel / "noarch"
+        explicit(
+            [
+                f"{schema}{(noarch / 'missing-1.0.0-0.tar.bz2').as_posix()}",
+                f"{schema}{(noarch / 'small-executable-1.0.0-0.tar.bz2').as_posix()}",
+            ],
+            None,  # the assertion is raised before the prefix matters
         )
-
-    with tmp_env() as prefix:  # ensure writable env
-        if (
-            len(PackageCacheData.get_all_extracted_entries()) == 0
-            or not one_url_from_packagecache()
-        ):
-            # Package cache e.g. ./devenv/Darwin/x86_64/envs/devenv-3.9-c/pkgs/ can
-            # be empty in certain cases (Noted in OSX with Python 3.9, when
-            # Miniconda installs Python 3.10). Install a small package.
-            warnings.warn("test_explicit_missing_cache_entries: No packages in cache.")
-            conda_cli("install", "--prefix", prefix, "heapdict", "--yes")
-
-        # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
-        # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
-        mocker.patch("conda.misc.ProgressiveFetchExtract")
-
-        with pytest.raises(
-            AssertionError,
-            match="Missing package cache records for: pkgs/linux-64::foo==1.0.0=py_0",
-        ):
-            explicit(
-                [
-                    "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",  # does not exist
-                    one_url_from_packagecache(),  # exists
-                ],
-                prefix,
-            )
 
 
 def make_mock_directory(tmpdir, mock_directory):

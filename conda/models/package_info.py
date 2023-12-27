@@ -60,9 +60,7 @@ class PackageInfo(ImmutableEntity):
     paths_data = ComposableField(PathsData)
 
     def dist_str(self):
-        return "{}::{}-{}-{}".format(
-            self.channel.canonical_name, self.name, self.version, self.build
-        )
+        return f"{self.channel.canonical_name}::{self.name}-{self.version}-{self.build}"
 
     @property
     def name(self):

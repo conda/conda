@@ -1638,9 +1638,8 @@ class Resolve:
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
                 stdoutlog.info(
-                    "\nWarning: %s possible package resolutions "
-                    "(only showing differing packages):%s%s"
-                    % (
+                    "\nWarning: {} possible package resolutions "
+                    "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,
                         dashlist(", ".join(diff) for diff in diffs),
                         "\n  ... and others" if nsol > 10 else "",
