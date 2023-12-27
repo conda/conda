@@ -26,9 +26,8 @@ Installing on Linux
 #. To make the changes take effect, close and then re-open your
    terminal window.
 
-#.  Test your installation. In your terminal window or
-    Anaconda Prompt, run the command ``conda list``. A list of installed packages appears
-    if it has been installed correctly.
+#.  Test your installation. In your terminal window, run the command ``conda list``.
+    A list of installed packages appears if it has been installed correctly.
 
 
 .. _install-linux-silent:

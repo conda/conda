@@ -75,7 +75,7 @@ Cryptographic hash verification
 ===============================
 
 SHA-256 checksums are available for
-`Miniconda <https://conda.io/en/latest/miniconda_hashes.html>`_ and
+`Miniconda <https://docs.conda.io/projects/miniconda/en/latest>`_ and
 `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 

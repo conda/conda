@@ -334,6 +334,6 @@ and unlink steps. For more information, see `Adding pre-link, post-link, and pre
 More information
 ================
 
-Go deeper on how to :ref:`manage packages <managing-pkgs>`.
+For more information, go for a deeper dive in our :doc:`managing packages guide <../tasks/manage-pkgs>`.
 Learn more about package metadata, repository structure and index,
 and package match specifications at :doc:`Package specifications <../concepts/pkg-specs>`.
