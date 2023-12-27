@@ -8,6 +8,8 @@ from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from ..models.records import PackageRecord
+
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -148,7 +150,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.index import calculate_channel_urls
     from ..core.subdir_data import SubdirData
     from ..models.match_spec import MatchSpec
-    from ..models.records import PackageRecord
     from ..models.version import VersionOrder
 
     spec = MatchSpec(args.match_spec)
@@ -279,7 +280,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     return 0
 
 
-def pretty_record(record):
+def pretty_record(record: PackageRecord) -> None:
+    """
+    Pretty prints a `PackageRecord`.
+
+    :param record:  The `PackageRecord` object to print.
+    """
     from ..common.io import dashlist
     from ..utils import human_bytes
 
