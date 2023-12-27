@@ -66,7 +66,7 @@ You can find information about your ``.condarc`` file by typing
 ``conda info`` in your terminal. This will give you information about
 your ``.condarc`` file, including where it is located.
 
-You can also download a :doc:`sample .condarc file
+You can also download a :ref:`sample .condarc file
 <sample-condarc>` to edit in your editor and save to your user
 home directory or root directory.
 
@@ -84,11 +84,6 @@ For a complete list of conda config commands, see the
 is available at the terminal by running
 ``conda config --help``. You can also see the `conda channel
 configuration <https://conda.io/projects/conda/en/latest/configuration.html>`_ for more information.
-
-.. tip::
-
-   Conda supports :doc:`tab completion <enable-tab-completion>`
-   with external packages instead of internal configuration.
 
 Conda supports a wide range of configuration options. This page
 gives a non-exhaustive list of the most frequently used options and

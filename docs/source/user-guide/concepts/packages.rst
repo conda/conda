@@ -1,13 +1,13 @@
-==============
-Conda packages
-==============
+========
+Packages
+========
 
 .. _concept-conda-package:
 
-What is a conda package?
-========================
+What is a package?
+==================
 
-A conda package is a compressed tarball file (.tar.bz2) or
+A package is a compressed tarball file (.tar.bz2) or
 .conda file that contains:
 
 * system-level libraries.

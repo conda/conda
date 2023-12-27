@@ -1,6 +1,6 @@
-=============
-Conda plugins
-=============
+=======
+Plugins
+=======
 
 .. _concept-plugins:
 

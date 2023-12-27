@@ -1,6 +1,6 @@
-=================
-Conda performance
-=================
+===========
+Performance
+===========
 
 Conda's performance can be affected by a variety of things.
 Unlike many package managers, Anaconda’s repositories generally
