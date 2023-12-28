@@ -267,7 +267,7 @@ def test_conda_env_create_http(conda_cli: CondaCLIFixture):
     try:
         conda_cli(
             *("env", "create"),
-            "--file=https://raw.githubusercontent.com/conda/conda/main/tests/conda_env/support/simple.yml",
+            "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
         )
         assert env_is_created("nlp")
     finally:
