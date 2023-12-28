@@ -383,7 +383,7 @@ def test_notices_does_not_interrupt_command_on_failure(
 
     _, _, exit_code = conda_cli("env", "remove", "--name", env_name)
 
-    assert exit_code is None
+    assert exit_code == 0
 
 
 def test_notices_cannot_read_cache_files(

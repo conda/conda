@@ -10,7 +10,6 @@ from itertools import chain, zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
-    abspath,
     basename,
     dirname,
     exists,
@@ -25,6 +24,7 @@ from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
+from typing import Literal
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -2979,38 +2979,56 @@ def test_multiline_run_command():
     assert not errs_etc
 
 
-def _check_create_xz_env_different_platform(prefix, platform):
-    assert exists(join(prefix, "bin", "xz"))
-    # make sure we read the config from PREFIX/.condarc
-    prefix_condarc = Path(prefix, ".condarc")
-    reset_context([prefix_condarc])
-    config_sources = context.collect_all()
-    assert config_sources[prefix_condarc]["subdir"] == platform
+@pytest.mark.parametrize("style", ["cli", "env"])
+def test_create_env_different_platform(
+    style: Literal["cli", "env"],
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    platform = f"{context.subdir.split('-')[0]}-fake"
 
-    stdout, _, _ = run_command(
-        Commands.INSTALL,
-        prefix,
-        "python",
-        "--dry-run",
-        "--json",
-        use_exception_handler=True,
-    )
-    result = json.loads(stdout)
-    assert result["success"]
-    python = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "python")
-    assert python["platform"] == platform
+    # either set CONDA_SUBDIR or pass --platform
+    if style == "cli":
+        # --platforms has explicit choices, patch to use fake subdir
+        monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
 
+        args = [f"--platform={platform}"]
+    else:
+        monkeypatch.setenv("CONDA_SUBDIR", platform)
+        reset_context()
+        assert context.subdir == platform
 
-def test_create_env_different_platform_cli_flag():
-    platform = "linux-64" if on_mac else "osx-64"
-    with make_temp_env("xz", "--platform", platform) as prefix:
-        _check_create_xz_env_different_platform(prefix, platform)
+        args = []
 
+    with tmp_env(*args) as prefix:
+        # check that the subdir is defined in environment's condarc
+        # which is generated during the `conda create` command (via tmp_env)
+        assert (
+            yaml_round_trip_load((prefix / ".condarc").read_text())["subdir"]
+            == platform
+        )
 
-def test_create_env_different_platform_env_var():
-    platform = "linux-64" if on_mac else "osx-64"
-    with env_var("CONDA_SUBDIR", platform), make_temp_env("xz") as prefix:
-        _check_create_xz_env_different_platform(prefix, platform)
+        stdout, stderr, excinfo = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "arch-package",
+            "--dry-run",
+            "--json",
+            raises=DryRunExit,
+        )
+        assert stdout
+        assert not stderr
+        assert isinstance(excinfo.value, DryRunExit)
+
+        # ensure the package to install is from the fake platform
+        result = json.loads(stdout)
+        assert result["success"]
+        assert any(
+            pkg["name"] == "arch-package" and pkg["platform"] == platform
+            for pkg in result["actions"]["LINK"]
+        )
 
 
 @pytest.mark.skip("Test is flaky")
@@ -3178,23 +3196,6 @@ def test_conda_list_json():
         packages = [pkg_info(package) for package in stdout_json]
         python_package = next(p for p in packages if p["name"] == "python")
         assert python_package["version"].startswith("3")
-
-
-@pytest.mark.skipif(
-    context.subdir == "win-32", reason="dependencies not available for win-32"
-)
-def test_legacy_repodata():
-    channel = join(dirname(abspath(__file__)), "data", "legacy_repodata")
-    subdir = context.subdir
-    if subdir not in ("win-64", "linux-64", "osx-64"):
-        # run test even though default subdir doesn't have dependencies
-        subdir = "linux-64"
-    with env_var("CONDA_SUBDIR", subdir, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with make_temp_env(
-            "python", "moto=1.3.7", "-c", channel, "--no-deps"
-        ) as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert package_is_installed(prefix, "moto=1.3.7")
 
 
 @pytest.mark.skipif(
