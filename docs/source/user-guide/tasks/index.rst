@@ -19,8 +19,8 @@ Tasks
 The tasks section is organized into various pages which cover nearly everything
 you can do with conda.
 
-Task Reference
-==============
+Common Tasks
+============
 
 .. glossary::
 
