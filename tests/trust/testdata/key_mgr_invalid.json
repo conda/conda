@@ -1,21 +1,21 @@
 {
   "signatures": {
-    "1234561234561234561234561234561234123123123123123123123123123123": {
-      "signature": "4ad342324bda2f024a6e6a9dbccad7da2468c32d6019d32c44230b8729cf0df626741910dd4c1a4c1ae1e4860008fc1d18b23919e86208a58fc53f9e99cddb0c"
+    "0000000000000000000000000000000000000000000000000000000000000000": {
+      "signature": "37ec6e3356492614578ef6a42c2f98e1d6275d182935c119725096579008c7d4f20fc95bc9bed10e5f35e8bb0dd6e31c12b45a3b4f86051596ea3e81f63a4a08"
     }
   },
   "signed": {
     "delegations": {
       "pkg_mgr": {
         "pubkeys": [
-          "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569"
+          "01d90fd731eb6f7c16215d23c23674bda7abf56490a03a10753aae99edce1b82"
         ],
         "threshold": 1
       }
     },
-    "expiration": "2022-01-11T21:44:23Z",
+    "expiration": "2024-11-16T00:00:00Z",
     "metadata_spec_version": "0.6.0",
-    "timestamp": "2021-01-11T21:44:23Z",
+    "timestamp": "2023-11-16T00:00:00Z",
     "type": "key_mgr",
     "version": 1
   }

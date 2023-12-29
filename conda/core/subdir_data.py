@@ -48,7 +48,6 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from ..trust.signature_verification import signature_verification
 
 log = getLogger(__name__)
 
@@ -431,8 +430,6 @@ class SubdirData(metaclass=SubdirDataType):
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
-        signatures = repodata.get("signatures", {})
-
         _internal_state = {
             "channel": self.channel,
             "url_w_subdir": self.url_w_subdir,
@@ -490,11 +487,6 @@ class SubdirData(metaclass=SubdirDataType):
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-                # Verify metadata signature before anything else so run-time
-                # updates to the info dictionary performed below do not
-                # invalidate the signatures provided in metadata.json.
-                signature_verification(info, fn, signatures)
-
                 if copy_legacy_md5:
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:

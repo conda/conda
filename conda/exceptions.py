@@ -1272,3 +1272,9 @@ def _format_exc(exc_val=None, exc_tb=None):
     else:
         formatted_exception = format_exception_only(exc_type, exc_val)
     return "".join(formatted_exception)
+
+
+class InvalidInstaller(Exception):
+    def __init__(self, name):
+        msg = f"Unable to load installer for {name}"
+        super().__init__(msg)
