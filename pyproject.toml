@@ -132,6 +132,8 @@ norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
   "tests/plugins/data/*",
+  "docs",
+  ".git",
 ]
 addopts = [
   "--color=yes",
