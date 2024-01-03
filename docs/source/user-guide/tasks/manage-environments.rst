@@ -190,7 +190,7 @@ This can result in long prefixes::
 To remove this long prefix in your shell prompt, modify the env_prompt
 setting in your ``.condarc`` file::
 
-$ conda config --set env_prompt '({name})'
+conda config --set env_prompt '({name})'
 
 This will edit your ``.condarc`` file if you already have one
 or create a ``.condarc`` file if you do not.
@@ -222,7 +222,7 @@ If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
 command::
 
-$ conda env update --prefix ./env --file environment.yml  --prune
+conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies
