@@ -18,7 +18,7 @@ Concepts
    conda-plugins
 
 In this section, we provide you with detailed information about the fundamental concepts
-in conda including information about packages, channels, environments and plugins among others.
+in conda, including information about packages, channels, environments, and plugins, among others.
 
 .. glossary::
 

@@ -1051,7 +1051,7 @@ Solution
 --------
 
 If you receive this warning, you need to activate your environment.
-To do so on Windows, on a terminal via PowerShell or the Command Prompt and run:
+To do so on Windows, on a terminal via PowerShell or the Command Prompt, run:
 ``call <your anaconda/miniconda install location>\Scripts\activate base``.
 
 .. _path-error:

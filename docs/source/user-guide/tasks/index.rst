@@ -28,13 +28,13 @@ Common Tasks
         Everything necessary to know about managing your installation of conda
 
     :doc:`Managing environments <manage-environments>`
-        Various operations involved with creating, updating, exporting and removing environments plus more
+        Various operations involved with creating, updating, exporting, and removing environments, plus more
 
     :doc:`Managing channels <manage-channels>`
         Information about channels and how they are searched through when installing packages
 
     :doc:`Managing packages <manage-pkgs>`
-        Details related to how to find, install, remove and update packages in a given environment
+        Details related to how to find, install, remove, and update packages in a given environment
 
     :doc:`Managing python <manage-python>`
         Supported versions of Python and tips for updating and using multiple Python versions

@@ -3,7 +3,7 @@ Creating custom channels
 ========================
 
 In this tutorial, we walk through how to create your own channel
-that either be access via the local or network file system or served
+that can either be accessed via the local or network file system or served
 from a webserver.
 
 To create a custom channel:
@@ -56,7 +56,7 @@ To create a custom channel:
    .. note::
       * The channel URL does not include the platform, as conda
         automatically detects and adds the platform.
-      * The option  ``--override-channels`` ensures that conda
+      * The option ``--override-channels`` ensures that conda
         searches only your specified channel and no other channels,
         such as default channels or any other channels you may have
         listed in your ``.condarc`` file.

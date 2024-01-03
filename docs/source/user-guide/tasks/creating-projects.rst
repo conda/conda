@@ -12,7 +12,7 @@ Requirements
 
 To follow along, you will need a working conda installation. Please head
 over to our :doc:`installation guide <../install/index>` for instructions on how
-to get conda installed if you still do not have it.
+to get conda installed if you do not have it.
 
 This tutorial relies heavily on using your computer's terminal (Command Prompt or PowerShell
 on Windows), so it is also important to have a working familiarity with using basic commands
@@ -26,7 +26,7 @@ be created with the following command::
 
     mkdir my-project
 
-In this directory we will now create a new ``environment.yaml`` file which will hold the
+In this directory, we will now create a new ``environment.yaml`` file, which will hold the
 dependencies for our Python project. In your text editor (e.g. VSCode, PyCharm, vim, etc.),
 create this file and add the following:
 
@@ -75,7 +75,7 @@ In your project folder, create a ``main.py`` file and add the following:
 .. code-block:: python
 
     def main():
-        print("Hello conda!")
+        print("Hello, conda!")
 
 
     if __name__ == "__main__":
@@ -84,7 +84,7 @@ In your project folder, create a ``main.py`` file and add the following:
 We can run our simple Python program by running the following command::
 
     python main.py
-    Hello conda!
+    Hello, conda!
 
 
 Updating our project with new dependencies

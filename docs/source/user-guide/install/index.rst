@@ -13,7 +13,7 @@ The following are the most popular installers currently available:
 
     `Anaconda Distribution <https://www.anaconda.com/download>`_
         Anaconda Distribution is a full featured installer that comes with a suite
-        of packages for data science as well as Anaconda Navigator, a GUI application
+        of packages for data science, as well as Anaconda Navigator, a GUI application
         for working with conda environments.
 
     `Miniforge <https://github.com/conda-forge/miniforge>`_
@@ -59,7 +59,7 @@ Installing in silent mode
 =========================
 
 You can use :ref:`silent installation <silent-mode-glossary>` of
-Miniconda, Anaconda or Miniforge for deployment or testing or building
+Miniconda, Anaconda, or Miniforge for deployment or testing or building
 services, such as GitHub Actions.
 
 Follow the silent-mode instructions for your operating system:
@@ -79,7 +79,7 @@ SHA-256 checksums are available for
 `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 
-Download the installer file and before installing verify it as follows:
+Download the installer file and, before installing, verify it as follows:
 
 * Windows:
 

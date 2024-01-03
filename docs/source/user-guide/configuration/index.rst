@@ -35,13 +35,13 @@ configuration.
         Explore how to configure your own channel server mirror with conda
 
     :doc:`Disable SSL Verification <disable-ssl-verification>`
-        Disabling SSL may be necessary in very limit circumstances; learn how here
+        Disabling SSL may be necessary in very limited circumstances; learn how here
 
     :doc:`Using non-standard certificates <non-standard-certs>`
         Install and configure non-standard certifications for use with conda
 
     :doc:`Pip interoperability (experimental) <pip-interoperability>`
-        An experimental feature which makes conda operate better with pip (no longer supported)
+        An experimental feature that makes conda operate better with pip (no longer supported)
 
     :doc:`Free channel (deprecated) <free-channel>`
         Explanation of our deprecation of the free channel and how to restore it

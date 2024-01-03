@@ -53,7 +53,7 @@ Learn more
         Learn how to search for and use conda packages
 
     :doc:`Working with environments <tasks/manage-environments>`
-        Learn how to create, update, remove and export your conda environments
+        Learn how to create, update, remove, and export your conda environments
 
 .. _addl-resources:
 

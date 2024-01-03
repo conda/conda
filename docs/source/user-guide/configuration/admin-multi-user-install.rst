@@ -2,7 +2,7 @@
 Administering a multi-user conda installation
 =============================================
 
-By default, conda and all packages it installs are installed locally with a
+By default, conda and all the packages it installs are installed locally with a
 user-specific configuration. Administrative privileges are not required, and
 no upstream files or other users are affected by the installation.
 
