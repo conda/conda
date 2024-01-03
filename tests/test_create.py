@@ -1160,36 +1160,43 @@ def test_remove_features(
         # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
 
-@pytest.mark.skipif(
-    on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge"
-)
-@pytest.mark.flaky(reruns=2)
-def test_dash_c_usage_replacing_python():
+def test_channel_usage_replacing_python(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     # Regression test for #2606
-    with make_temp_env("-c", "conda-forge", "python=3.10", no_capture=True) as prefix:
-        assert exists(join(prefix, PYTHON_BINARY))
-        assert package_is_installed(prefix, "conda-forge::python=3.10")
-        run_command(Commands.INSTALL, prefix, "decorator")
+    with tmp_env("--channel=conda-forge", "python=3.10") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "conda-forge::python=3.10")
 
-        with make_temp_env("--clone", prefix) as clone_prefix:
-            assert package_is_installed(clone_prefix, "conda-forge::python=3.10")
-            assert package_is_installed(clone_prefix, "decorator")
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--channel=main",
+            "decorator",
+            "--yes",
+        )
+        PrefixData._cache_.clear()
+        assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
+        assert package_is_installed(prefix, "main::decorator")
+
+        with tmp_env(f"--clone={prefix}") as clone:
+            assert package_is_installed(clone, "conda-forge::python=3.10")
+            assert package_is_installed(clone, "main::decorator")
 
         # Regression test for #2645
-        fn = glob(join(prefix, "conda-meta", "python-3.10*.json"))[-1]
-        with open(fn) as f:
-            data = json.load(f)
-        for field in ("url", "channel", "schannel"):
-            if field in data:
-                del data[field]
-        with open(fn, "w") as f:
-            json.dump(data, f)
-        PrefixData._cache_ = {}
+        fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
+        data = {
+            field: value
+            for field, value in json.loads(fn.read_text()).items()
+            if field not in ("url", "channel", "schannel")
+        }
+        fn.write_text(json.dumps(data))
+        PrefixData._cache_.clear()
 
-        with make_temp_env("-c", "conda-forge", "--clone", prefix) as clone_prefix:
-            assert package_is_installed(clone_prefix, "python=3.10")
-            assert package_is_installed(clone_prefix, "decorator")
+        with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
+            assert package_is_installed(clone, "conda-forge::python=3.10")
+            assert package_is_installed(clone, "main::decorator")
 
 
 def test_install_prune_flag():
