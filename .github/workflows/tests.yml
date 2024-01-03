@@ -180,7 +180,7 @@ jobs:
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: |
-            call .\dev\windows\benchmarks.bat
+            bash .\dev\windows\benchmarks.sh
 
   # linux test suite
   linux:
