@@ -1211,12 +1211,12 @@ def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
-def test_remove_force_remove_flag():
-    with make_temp_env("python") as prefix:
+def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python") as prefix:
         assert package_is_installed(prefix, "readline")
         assert package_is_installed(prefix, "python")
 
-        run_command(Commands.REMOVE, prefix, "readline", "--force-remove")
+        conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
         assert not package_is_installed(prefix, "readline")
         assert package_is_installed(prefix, "python")
 
