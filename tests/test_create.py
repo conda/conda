@@ -1221,23 +1221,27 @@ def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFix
         assert package_is_installed(prefix, "python")
 
 
-def test_install_force_reinstall_flag():
-    with make_temp_env("python") as prefix:
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL,
-            prefix,
+def test_install_force_reinstall_flag(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("small-executable") as prefix:
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
             "--json",
             "--dry-run",
             "--force-reinstall",
-            "python",
-            use_exception_handler=True,
+            "small-executable",
+            raises=DryRunExit,
         )
         output_obj = json.loads(stdout.strip())
         unlink_actions = output_obj["actions"]["UNLINK"]
         link_actions = output_obj["actions"]["LINK"]
         assert len(unlink_actions) == len(link_actions) == 1
         assert unlink_actions[0] == link_actions[0]
-        assert unlink_actions[0]["name"] == "python"
+        assert unlink_actions[0]["name"] == "small-executable"
 
 
 def test_create_no_deps_flag():
