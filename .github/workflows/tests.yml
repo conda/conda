@@ -154,7 +154,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.12']
+        python-version: ['3.11', '3.12']
     env:
       OS: Windows
       PYTHON: ${{ matrix.python-version }}
