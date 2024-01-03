@@ -2,7 +2,7 @@
 Configuration Settings
 ======================
 
-This page contains an overview of many important settings available in conda
+This page contains an overview of many important settings available in conda,
 with examples where possible.
 
 General configuration
@@ -47,10 +47,10 @@ path may be::
 Default channels (default_channels)
 -----------------------------------
 
-Normally the defaults channel points to several channels at the
+Normally, the defaults channel points to several channels at the
 `repo.anaconda.com <https://repo.anaconda.com/>`_ repository, but if
 ``default_channels`` is defined, it sets the new list of default channels.
-This is especially useful for airgapped and enterprise installations:
+This is especially useful for airgapped and enterprise installations.
 
 To ensure that all users only pull packages from an on-premises
 repository, an administrator can set both :ref:`channel alias <channel-alias>` and
@@ -98,8 +98,8 @@ command line. The default is ``False``.
 Show channel URLs (show_channel_urls)
 -------------------------------------
 
-Show channel URLs when displaying what is going to be downloaded
-and in ``conda list``. The default is ``False``.
+Show channel URLs in ``conda list`` and when displaying what is
+going to be downloaded. The default is ``False``.
 
 **Example:**
 
@@ -150,8 +150,6 @@ of the command ``conda list``. The default is ``True``.
 .. code-block:: yaml
 
   use_pip: False
-
-
 .. _config-proxy:
 
 Configure conda for use behind a proxy server (proxy_servers)
@@ -179,7 +177,7 @@ to the given scheme and exact host name:
 If you do not include the username and password or if
 authentication fails, conda prompts for a username and password.
 
-If your password contains special characters, you need escape
+If your password contains special characters, you need to escape
 them as described in `Percent-encoding reserved characters
 <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
 on Wikipedia.
@@ -193,11 +191,11 @@ Be careful not to use ``http`` when you mean https or
 SSL verification (ssl_verify)
 -----------------------------
 
-If you are behind a proxy that does SSL inspection such as a
+If you are behind a proxy that does SSL inspection, such as a
 Cisco IronPort Web Security Appliance (WSA), you may need to use
 ``ssl_verify`` to override the SSL verification settings.
 
-By default this variable is ``True``, which means that SSL
+By default, this variable is ``True``, which means that SSL
 verification is used and conda verifies certificates for SSL
 connections. Setting this variable to ``False`` disables the
 connection's normal security and is not recommended:
@@ -226,8 +224,6 @@ protocol. The default is ``False``.
 .. code-block:: yaml
 
   offline: True
-
-
 Advanced configuration
 ======================
 
@@ -236,15 +232,15 @@ Advanced configuration
 Disallow soft-linking (allow_softlinks)
 ---------------------------------------
 
-When ``allow_softlinks`` is ``True``, conda uses hard-links when
-possible and soft-links---symlinks---when hard-links are not
+When ``allow_softlinks`` is ``True``, conda uses hard links when
+possible and soft links---symlinks---when hard links are not
 possible, such as when installing on a different file system
 than the one that the package cache is on.
 
 When ``allow_softlinks`` is ``False``, conda still uses
-hard-links when possible, but when it is not possible, conda
+hard links when possible, but when it is not possible, conda
 copies files. Individual packages can override this option,
-specifying that certain files should never be soft-linked.
+specifying that certain files should never be soft linked.
 
 The default is ``True``.
 
@@ -253,8 +249,6 @@ The default is ``True``.
 .. code-block:: yaml
 
   allow_softlinks: False
-
-
 .. _set-ch-alias:
 
 .. _channel-alias:
@@ -301,8 +295,6 @@ https://your.repo.com::
 is the same as::
 
   conda install --channel https://your.repo.com/jsmith <package>
-
-
 .. _config-add-default-pkgs:
 
 Always add packages by default (create_default_packages)
@@ -520,8 +512,6 @@ permissions to ``<CONDA_PREFIX>/conda-bld/``, the default is
 
   conda-build:
       root-dir: ~/conda-builds
-
-
 .. _specify-output-folder:
 
 Specify conda-build build folder (conda-build 3.16.3+) (output_folder)
@@ -536,7 +526,7 @@ the root build directory (``root-dir``).
    conda-build:
        output_folder: conda-bld
 
-.. pkg_format:
+.. _pkg_format:
 
 Specify conda-build package version (pkg_version)
 -------------------------------------------------
@@ -568,7 +558,7 @@ Token to be used for Anaconda.org uploads (conda-build 3.0+) (anaconda_token)
 -----------------------------------------------------------------------------
 
 Tokens are a means of authenticating with Anaconda.org without logging in.
-You can pass your token to conda-build with this condarc setting, or with a CLI
+You can pass your token to conda-build with this ``.condarc`` setting, or with a CLI
 argument. This is unset by default. Setting it implicitly enables
 ``anaconda_upload``.
 
@@ -583,7 +573,7 @@ Limit build output verbosity (conda-build 3.0+) (quiet)
 -------------------------------------------------------
 
 Conda-build's output verbosity can be reduced with the ``quiet`` setting. For
-more verbosity use the CLI flag ``--debug``.
+more verbosity, use the CLI flag ``--debug``.
 
 .. code-block:: yaml
 
@@ -622,8 +612,6 @@ and package meet some minimum sanity checks. You can disable these:
 
    conda-build:
        no_verify: true
-
-
 .. _set-build-id:
 
 Disable per-build folder creation (conda-build 3.0+) (set_build_id)
@@ -736,8 +724,6 @@ specified by the ``pypirc`` setting.
 
    conda-build:
        pypi_repository: pypi
-
-
 Expansion of environment variables
 ==================================
 
@@ -767,8 +753,6 @@ environment variable, like so:
 
   channels:
     - https://${USERNAME}:${PASSWORD}@my.private.conda.channel
-
-
 .. _threads:
 
 Configuring number of threads
