@@ -1244,12 +1244,10 @@ def test_install_force_reinstall_flag(
         assert unlink_actions[0]["name"] == "small-executable"
 
 
-def test_create_no_deps_flag():
-    with make_temp_env("python=2", "flask", "--no-deps") as prefix:
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "openssl")
-        assert not package_is_installed(prefix, "itsdangerous")
+def test_create_no_deps_flag(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    with tmp_env("dependent", "--no-deps") as prefix:
+        assert package_is_installed(prefix, "dependent")
+        assert not package_is_installed(prefix, "dependency")
 
 
 def test_create_only_deps_flag():
