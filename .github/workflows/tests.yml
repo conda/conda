@@ -454,7 +454,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v23.7.0
+        uses: conda/actions/canary-release@v23.10.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -464,3 +464,4 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          conda-build-arguments: --no-test  # skip tests for initial Python 3.12 builds
