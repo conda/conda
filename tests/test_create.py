@@ -1199,11 +1199,11 @@ def test_channel_usage_replacing_python(
             assert package_is_installed(clone, "main::decorator")
 
 
-def test_install_prune_flag():
-    with make_temp_env("python=3", "flask") as prefix:
+def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3", "flask") as prefix:
         assert package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
-        run_command(Commands.REMOVE, prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
         assert not package_is_installed(prefix, "flask")
         # this should get pruned when flask is removed
         assert not package_is_installed(prefix, "itsdangerous")
