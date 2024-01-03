@@ -8,25 +8,12 @@ packages installed in them. Switching or moving between
 environments is called activating the environment. You can also
 share an environment file.
 
-.. note::
-   There are many options available for the commands described
-   on this page. For details, see :doc:`commands <../../commands/index>`.
-
-.. note::
-   ``conda activate`` and ``conda deactivate`` only work on conda 4.6 and later versions.
-   For conda versions prior to 4.6, run:
-
-      * Windows: ``activate`` or ``deactivate``
-      * Linux and macOS: ``source activate`` or ``source deactivate``
+There are many options available for the commands described
+on this page. For a detailed reference on all available commands,
+see :doc:`commands <../../commands/index>`.
 
 Creating an environment with commands
 =====================================
-
-.. tip::
-   By default, environments are installed into the ``envs``
-   directory in your conda directory. See :ref:`specifying-location`
-   or run ``conda create --help`` for information on specifying
-   a different path.
 
 Use the terminal for the following steps:
 
@@ -34,10 +21,9 @@ Use the terminal for the following steps:
 
    .. code::
 
-      conda create --name myenv
+      conda create --name <my-env>
 
-   .. note::
-      Replace ``myenv`` with the environment name.
+   Replace ``<my-env>`` with the name of your environment.
 
 #. When conda asks you to proceed, type ``y``:
 
@@ -45,52 +31,52 @@ Use the terminal for the following steps:
 
       proceed ([y]/n)?
 
-  This creates the myenv environment in ``/envs/``. No
-  packages will be installed in this environment.
+   This creates the myenv environment in ``/envs/``. No
+   packages will be installed in this environment.
 
-3. To create an environment with a specific version of Python:
+#. To create an environment with a specific version of Python:
 
    .. code-block:: bash
 
       conda create -n myenv python=3.9
 
-4. To create an environment with a specific package:
+#. To create an environment with a specific package:
 
    .. code-block:: bash
 
       conda create -n myenv scipy
 
-   OR:
+   or:
 
    .. code-block:: bash
 
       conda create -n myenv python
       conda install -n myenv scipy
 
-5. To create an environment with a specific version of a package:
+#. To create an environment with a specific version of a package:
 
    .. code-block:: bash
 
       conda create -n myenv scipy=0.17.3
 
-   OR:
+   or:
 
    .. code-block:: bash
 
       conda create -n myenv python
       conda install -n myenv scipy=0.17.3
 
-6. To create an environment with a specific version of Python and
+#. To create an environment with a specific version of Python and
    multiple packages:
 
-  .. code-block:: bash
+   .. code-block:: bash
 
-     conda create -n myenv python=3.9 scipy=0.17.3 astroid babel
+      conda create -n myenv python=3.9 scipy=0.17.3 astroid babel
 
-  .. tip::
-     Install all the programs that you want in this environment
-     at the same time. Installing 1 program at a time can lead to
-     dependency conflicts.
+   .. tip::
+      Install all the programs that you want in this environment
+      at the same time. Installing one program at a time can lead to
+      dependency conflicts.
 
 To automatically install pip or another program every time a new
 environment is created, add the default programs to the
@@ -135,7 +121,7 @@ Use the terminal for the following steps:
 
       conda env list
 
-  You can also use ``conda info --envs``.
+   You can also use ``conda info --envs``.
 
 
 .. _specifying-location:
@@ -158,10 +144,10 @@ command used to activate environments created by name::
 Specifying a path to a subdirectory of your project directory when
 creating an environment has the following benefits:
 
-  * It makes it easy to tell if your project uses an isolated environment
-    by including the environment as a subdirectory.
-  * It makes your project more self-contained as everything, including
-    the required software, is contained in a single project directory.
+* It makes it easy to tell if your project uses an isolated environment
+  by including the environment as a subdirectory.
+* It makes your project more self-contained as everything, including
+  the required software, is contained in a single project directory.
 
 An additional benefit of creating your project’s environment inside a
 subdirectory is that you can then use the same name for all your
