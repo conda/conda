@@ -231,7 +231,7 @@ jobs:
           run: >
             docker run
             --rm -v ${PWD}:/opt/conda-src
-            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}-benchmarks
+            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
             /opt/conda-src/dev/linux/benchmarks.sh
 
 
