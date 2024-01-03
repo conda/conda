@@ -1144,7 +1144,7 @@ def test_remove_features(
         )
     )
 
-    with tmp_env("python=2", "numpy=1.13", "nomkl") as prefix:
+    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
