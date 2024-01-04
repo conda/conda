@@ -1250,29 +1250,45 @@ def test_create_no_deps_flag(test_recipes_channel: Path, tmp_env: TmpEnvFixture)
         assert not package_is_installed(prefix, "dependency")
 
 
-def test_create_only_deps_flag():
-    with make_temp_env("python", "flask", "--only-deps", no_capture=True) as prefix:
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python")
-        if not on_win:
-            # sqlite is a dependency of Python on all platforms
-            assert package_is_installed(prefix, "sqlite")
-        assert package_is_installed(prefix, "itsdangerous")
+def test_create_only_deps_flag(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    # ├─ dependent
+    # │  └─ dependency
+    # ├─ another_dependent
+    # │  └─ dependent
+    # │     └─ dependency
+    # └─ other_dependent
+    #    └─ dependent
+    #       └─ dependency
+    with tmp_env("dependent", "another_dependent", "--only-deps") as prefix:
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "other_dependent")
 
         # test that a later install keeps the --only-deps packages around
-        run_command(Commands.INSTALL, prefix, "imagesize", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous")
-        assert not package_is_installed(prefix, "flask")
+        conda_cli("install", f"--prefix={prefix}", "other_dependent", "--yes")
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "other_dependent")
 
         # test that --only-deps installed stuff survives updates of unrelated packages
-        run_command(Commands.UPDATE, prefix, "imagesize", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous")
-        assert not package_is_installed(prefix, "flask")
+        conda_cli("update", f"--prefix={prefix}", "other_dependent", "--yes")
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "other_dependent")
 
         # test that --only-deps installed stuff survives removal of unrelated packages
-        run_command(Commands.REMOVE, prefix, "imagesize", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous")
-        assert not package_is_installed(prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "other_dependent", "--yes")
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "other_dependent")
 
 
 def test_install_update_deps_flag():

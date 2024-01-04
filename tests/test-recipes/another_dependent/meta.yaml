@@ -1,0 +1,13 @@
+package:
+  name: another_dependent
+  version: 1.0
+
+build:
+  noarch: generic
+
+requirements:
+  run:
+    - dependent
+
+about:
+  summary: Another generic dependent
