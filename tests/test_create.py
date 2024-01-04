@@ -1328,27 +1328,28 @@ def test_install_only_deps_flag(
 
 
 def test_install_update_deps_only_deps_flags(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("flask=2.0.1", "jinja2=3.0.1", "python>=3.12") as prefix:
-        python = str(prefix / PYTHON_BINARY)
-        result_before = subprocess_call_with_clean_env([python, "--version"])
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "jinja2=3.0.1")
+    with tmp_env("another_dependent=1.0", "dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "another_dependent=1.0")
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+
         conda_cli(
             "install",
             f"--prefix={prefix}",
-            "flask",
-            "python",
+            "another_dependent",
             "--update-deps",
             "--only-deps",
             "--yes",
         )
-        result_after = subprocess_call_with_clean_env([python, "--version"])
-        assert result_before == result_after
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "jinja2>3.0.1")
+
+        # another_dependnet isn't updated even though 2.0 is available
+        assert package_is_installed(prefix, "another_dependent=1.0")
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
 
 
 @pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
