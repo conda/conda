@@ -20,7 +20,7 @@ from argparse import (
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import Any, Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Iterable
 
 from ..deprecations import deprecated
 
