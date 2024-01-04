@@ -1155,6 +1155,7 @@ def test_remove_features(
         # packages associated with the track_features base package are completely removed
         # and not replaced with equivalent non-variant packages as before.
         conda_cli("remove", f"--prefix={prefix}", "--features", "nomkl", "--yes")
+
         # assert package_is_installed(prefix, 'numpy')   # removed per above comment
         assert not package_is_installed(prefix, "nomkl")
         # assert package_is_installed(prefix, 'mkl')  # removed per above comment
@@ -1352,9 +1353,13 @@ def test_install_update_deps_only_deps_flags(
         assert package_is_installed(prefix, "dependency=2.0")
 
 
-@pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
-def test_install_features(clear_package_cache: None, request: FixtureRequest):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+def test_install_features(
+    clear_package_cache: None,
+    request: FixtureRequest,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -1362,17 +1367,20 @@ def test_install_features(clear_package_cache: None, request: FixtureRequest):
         )
     )
 
-    with make_temp_env("python=2", "numpy=1.13", "nomkl", no_capture=True) as prefix:
+    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
         assert not package_is_installed(prefix, "mkl")
 
-    with make_temp_env("python=2", "numpy=1.13") as prefix:
+    with tmp_env("--channel=main", "python=2", "numpy=1.13") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert not package_is_installed(prefix, "nomkl")
         assert package_is_installed(prefix, "mkl")
 
-        run_command(Commands.INSTALL, prefix, "nomkl", no_capture=True)
+        conda_cli("install", f"--prefix={prefix}", "--channel=main", "nomkl", "--yes")
+
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
         assert package_is_installed(prefix, "blas=1.0=openblas")
