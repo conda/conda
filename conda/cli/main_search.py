@@ -4,6 +4,8 @@
 
 Query channels for packages matching the provided package spec.
 """
+from __future__ import annotations
+
 from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -163,6 +165,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.index import calculate_channel_urls
     from ..core.subdir_data import SubdirData
     from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
     from ..models.version import VersionOrder
 
     spec = MatchSpec(args.match_spec)
