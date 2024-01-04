@@ -1291,17 +1291,25 @@ def test_create_only_deps_flag(
         assert not package_is_installed(prefix, "other_dependent")
 
 
-def test_install_update_deps_flag():
-    with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
-        python = join(prefix, PYTHON_BINARY)
-        result_before = subprocess_call_with_clean_env([python, "--version"])
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "jinja2=3.0.1")
-        run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
-        result_after = subprocess_call_with_clean_env([python, "--version"])
-        assert result_before == result_after
-        assert package_is_installed(prefix, "flask>2.0.1")
-        assert package_is_installed(prefix, "jinja2>3.0.1")
+def test_install_update_deps_flag(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "dependent",
+            "--update-deps",
+            "--yes",
+        )
+
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
 
 
 def test_install_only_deps_flag():
