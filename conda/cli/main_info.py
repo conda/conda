@@ -235,11 +235,11 @@ def print_package_info(packages: list[str]) -> None:
     )
 
 
-def get_info_dict(system: bool = False) -> dict[str, Any]:
+@deprecated.argument("24.9", "25.3", "system")
+def get_info_dict() -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
 
-    :param system:  Unused.
     :returns:  Dictionary of conda information to be sent to stdout.
     """
 
