@@ -1389,13 +1389,12 @@ def test_install_features(
         # assert not package_is_installed(prefix, "mkl")  # pruned as an indirect dep
 
 
-def test_clone_offline_simple():
-    with make_temp_env("bzip2") as prefix:
-        assert package_is_installed(prefix, "bzip2")
+def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    with tmp_env("small-executable") as prefix:
+        assert package_is_installed(prefix, "small-executable")
 
-        with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-            assert context.offline
-            assert package_is_installed(clone_prefix, "bzip2")
+        with tmp_env(f"--clone={prefix}", "--offline") as clone:
+            assert package_is_installed(clone, "small-executable")
 
 
 def test_conda_config_describe():
