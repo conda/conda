@@ -207,7 +207,6 @@ def print_package_info(packages: list[str]) -> None:
     Deprecated.
 
     :param packages: Array of package arguments passed by ArgParse
-    :returns: None
     """
 
     from ..base.context import context
