@@ -487,7 +487,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if context.verbose or context.json:
         for option in options:
             setattr(args, option, True)
-    info_dict = get_info_dict(args.system)
+    info_dict = get_info_dict()
 
     if (
         context.verbose or all(not getattr(args, opt) for opt in options)
