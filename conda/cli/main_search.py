@@ -7,8 +7,10 @@ Query channels for packages matching the provided package spec.
 from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
-from ..models.records import PackageRecord
+if TYPE_CHECKING:
+    from ..models.records import PackageRecord
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
