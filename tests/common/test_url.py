@@ -156,6 +156,12 @@ def test_split_scheme_auth_token():
     assert answer == ("conda.io/more/path", "https", "u:p", "x1029384756")
 
 
+def test_split_scheme_auth_token_with_port_and_unsubstituted_env_var_token():
+    # Regression test for https://github.com/conda/conda/issues/13476
+    answer = split_scheme_auth_token("https://u:p@conda.io:1234/t/${MISSING}/more/path")
+    assert answer == ("conda.io:1234/more/path", "https", "u:p", "${MISSING}")
+
+
 def test_url_to_s3_info():
     answer = url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
     assert answer == ("bucket-name.bucket", "/here/is/the/key")
