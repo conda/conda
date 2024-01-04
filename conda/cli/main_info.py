@@ -20,10 +20,12 @@ from argparse import (
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import Any, Iterable
+from typing import Any, Iterable, TYPE_CHECKING
 
 from ..deprecations import deprecated
-from ..models.records import PackageRecord
+
+if TYPE_CHECKING:
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 
