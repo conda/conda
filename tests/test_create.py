@@ -11,7 +11,6 @@ from json import loads as json_loads
 from logging import getLogger
 from os.path import (
     basename,
-    dirname,
     exists,
     isdir,
     isfile,
@@ -1397,48 +1396,38 @@ def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture
 
 
 @pytest.mark.parametrize("use_sys_python", [True, False])
-def test_compile_pyc(use_sys_python: bool):
-    evs = {}
-    with env_vars(evs, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
+    if use_sys_python:
+        py_ver = f"{sys.version_info[0]}.{sys.version_info[1]}"
         packages = []
+    else:
+        # We force the use of 'the other' Python on Windows so that Windows
+        # runtime / DLL incompatibilities will be readily apparent.
+        py_ver = "3.10"
+        packages = [f"python={py_ver}"]
+
+    with tmp_env(*packages) as prefix:
         if use_sys_python:
-            py_ver = f"{sys.version_info[0]}.{sys.version_info[1]}"
+            python_binary = Path(sys.executable)
         else:
-            # We force the use of 'the other' Python on Windows so that Windows
-            # runtime / DLL incompatibilities will be readily apparent.
-            py_ver = "3.10"
-            packages.append(f"python={py_ver}")
-        with make_temp_env(*packages, use_restricted_unicode=False) as prefix:
-            if use_sys_python:
-                python_binary = sys.executable
-            else:
-                python_binary = join(prefix, "python.exe" if on_win else "bin/python")
-            assert os.path.isfile(python_binary), "Cannot even find Python"
+            python_binary = prefix / PYTHON_BINARY
+        assert python_binary.exists()
 
-            if on_win:
-                site_packages = join("Lib", "site-packages")
-            else:
-                site_packages = join("lib", "python", py_ver)
+        sp_dir = get_python_site_packages_short_path(py_ver)
+        py_file = prefix / sp_dir / "test_compile.py"
+        pyc_file = prefix / pyc_path(str(py_file), py_ver)
 
-            test_py_path = join(prefix, site_packages, "test_compile.py")
-            test_pyc_path = pyc_path(test_py_path, py_ver).replace("/", os.sep)
-
-            os.makedirs(dirname(test_py_path), exist_ok=True)
-            os.makedirs(dirname(test_pyc_path), exist_ok=True)
-
-            with open(test_py_path, "w") as test_py_file:
-                test_py_file.write("__version__ = 1.0")
-
-            compile_multiple_pyc(
-                python_binary,
-                (test_py_path,),
-                (test_pyc_path,),
-                prefix,
-                py_ver,
-            )
-            assert isfile(
-                test_pyc_path
-            ), f"Failed to generate expected .pyc file {test_pyc_path}"
+        py_file.parent.mkdir(parents=True, exist_ok=True)
+        py_file.write_text("__version__ = 1.0")
+        compile_multiple_pyc(
+            str(python_binary),
+            [str(py_file)],
+            [str(pyc_file)],
+            str(prefix),
+            py_ver,
+        )
+        assert py_file.is_file()
+        assert pyc_file.is_file()
 
 
 def test_conda_run_1():
