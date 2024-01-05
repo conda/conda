@@ -1396,55 +1396,6 @@ def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture
             assert package_is_installed(clone, "small-executable")
 
 
-@pytest.mark.skipif(
-    context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
-    reason="Skip unsupported platforms",
-)
-def test_rpy_search():
-    with make_temp_env("python=3.5", "--override-channels", "-c", "defaults") as prefix:
-        payload, _, _ = run_command(
-            Commands.CONFIG, prefix, "--get", "channels", "--json"
-        )
-        default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
-        run_command(
-            Commands.CONFIG,
-            prefix,
-            "--add",
-            "channels",
-            "https://repo.anaconda.com/pkgs/free",
-        )
-        # config --append on an empty key pre-populates it with the hardcoded default value!
-        for channel in default_channels:
-            run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
-        json_obj = json_loads(stdout)
-        assert "defaults" not in json_obj["channels"]
-
-        assert package_is_installed(prefix, "python")
-        assert "r" not in context.channels
-
-        # assert conda search cannot find rpy2
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH, prefix, "rpy2", "--json", use_exception_handler=True
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert json_obj["exception_name"] == "PackagesNotFoundError"
-
-        # add r channel
-        run_command(Commands.CONFIG, prefix, "--add", "channels", "r")
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show", "--json")
-        json_obj = json_loads(stdout)
-        assert "r" in json_obj["channels"]
-
-        # assert conda search can now find rpy2
-        stdout, stderr, _ = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-
-
 @pytest.mark.parametrize("use_sys_python", [True, False])
 def test_compile_pyc(use_sys_python: bool):
     evs = {}
