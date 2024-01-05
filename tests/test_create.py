@@ -1429,12 +1429,6 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
         assert pyc_file.is_file()
 
 
-def test_conda_run_prefix_not_a_conda_env():
-    with tempdir() as prefix:
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            output, error, rc = run_command(Commands.RUN, prefix, "echo", "hello")
-
-
 def test_clone_offline_multichannel_with_untracked():
     with env_vars(
         {
