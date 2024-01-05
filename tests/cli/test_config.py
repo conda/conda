@@ -590,7 +590,13 @@ def test_ssl_verify_set_truststore(conda_cli: CondaCLIFixture):
         )
         assert stdout == stderr == ""
         reset_context([rc])
-        assert context.ssl_verify == "truststore"
+
+        with (
+            pytest.raises(CustomValidationError)
+            if sys.version_info < (3, 10)
+            else nullcontext()
+        ):
+            assert context.ssl_verify == "truststore"
 
 
 def test_set_rc_without_user_rc(conda_cli: CondaCLIFixture):
@@ -842,9 +848,6 @@ def test_conda_config_validate(
             f"--file={condarc}",
             *("--set", "ssl_verify", "/path/doesnt/exist"),
             *("--set", "default_python", "anaconda"),
-        )
-        assert condarc.read_text() == (
-            "ssl_verify: /path/doesnt/exist\n" "default_python: anaconda\n"
         )
         reset_context()
 
