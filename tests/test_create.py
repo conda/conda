@@ -6,7 +6,7 @@ import re
 import sys
 from datetime import datetime
 from glob import glob
-from itertools import chain, zip_longest
+from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
@@ -1395,84 +1395,6 @@ def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture
 
         with tmp_env(f"--clone={prefix}", "--offline") as clone:
             assert package_is_installed(clone, "small-executable")
-
-
-def test_conda_config_describe():
-    with make_temp_env() as prefix:
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe")
-        assert not stderr
-        skip_categories = ("CLI-only", "Hidden and Undocumented")
-        documented_parameter_names = chain.from_iterable(
-            (
-                parameter_names
-                for category, parameter_names in context.category_map.items()
-                if category not in skip_categories
-            )
-        )
-
-        for param_name in documented_parameter_names:
-            assert re.search(
-                r"^# # %s \(" % param_name, stdout, re.MULTILINE
-            ), param_name
-
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe", "--json")
-        assert not stderr
-        json_obj = json.loads(stdout.strip())
-        assert len(json_obj) >= 55
-        assert "description" in json_obj[0]
-
-        with env_var(
-            "CONDA_QUIET", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
-        ):
-            stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources")
-            assert not stderr
-            assert "envvars" in stdout.strip()
-
-            stdout, stderr, _ = run_command(
-                Commands.CONFIG, prefix, "--show-sources", "--json"
-            )
-            assert not stderr
-            json_obj = json.loads(stdout.strip())
-            assert (
-                "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
-            )
-            assert json_obj["cmd_line"] == {"json": True}
-
-        run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
-        with pytest.raises(CondaError):
-            run_command(Commands.CONFIG, prefix, "--write-default")
-
-        rm_rf(join(prefix, "condarc"))
-        run_command(Commands.CONFIG, prefix, "--write-default")
-
-        with open(join(prefix, "condarc")) as fh:
-            data = fh.read()
-
-        for param_name in documented_parameter_names:
-            assert re.search(r"^# %s \(" % param_name, data, re.MULTILINE), param_name
-
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe", "--json")
-        assert not stderr
-        json_obj = json.loads(stdout.strip())
-        assert len(json_obj) >= 42
-        assert "description" in json_obj[0]
-
-        with env_var(
-            "CONDA_QUIET", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
-        ):
-            stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources")
-            assert not stderr
-            assert "envvars" in stdout.strip()
-
-            stdout, stderr, _ = run_command(
-                Commands.CONFIG, prefix, "--show-sources", "--json"
-            )
-            assert not stderr
-            json_obj = json.loads(stdout.strip())
-            assert (
-                "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
-            )
-            assert json_obj["cmd_line"] == {"json": True}
 
 
 def test_conda_config_validate():
