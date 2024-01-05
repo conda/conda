@@ -98,7 +98,6 @@ from conda.testing.integration import (
     make_temp_package_cache,
     make_temp_prefix,
     package_is_installed,
-    reload_config,
     run_command,
     tempdir,
     which_or_where,
@@ -1395,36 +1394,6 @@ def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture
 
         with tmp_env(f"--clone={prefix}", "--offline") as clone:
             assert package_is_installed(clone, "small-executable")
-
-
-def test_conda_config_validate():
-    with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "no")
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
-        assert not stdout
-        assert not stderr
-
-        try:
-            with open(join(prefix, "condarc"), "w") as fh:
-                fh.write("default_python: anaconda\n")
-                fh.write("ssl_verify: /path/doesnt/exist\n")
-            reload_config(prefix)
-
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.CONFIG, prefix, "--validate")
-
-            assert len(exc.value.errors) == 2
-            str_exc_value = str(exc.value)
-            assert (
-                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the operating system certificate store."
-                in str_exc_value
-            )
-            assert (
-                "default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'"
-                in str_exc_value
-            )
-        finally:
-            reset_context()
 
 
 @pytest.mark.skipif(

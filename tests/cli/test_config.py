@@ -8,12 +8,13 @@ from textwrap import dedent
 
 import pytest
 from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 from ruamel.yaml.scanner import ScannerError
 
-from conda import CondaError
+from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
-from conda.common.configuration import ConfigurationLoadError
+from conda.common.configuration import ConfigurationLoadError, CustomValidationError
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
@@ -811,3 +812,68 @@ def test_conda_config_describe(
         json_obj = json.loads(stdout.strip())
         assert json_obj.get("envvars", {}).get("quiet") is True
         assert json_obj.get("cmd_line", {}).get("json") is True
+
+
+def test_conda_config_validate(
+    tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env() as prefix:
+        mocker.patch(
+            "conda.base.context.determine_target_prefix",
+            return_value=prefix,
+        )
+
+        condarc = prefix / "condarc"
+
+        # test that we can set a valid value
+        conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "no")
+
+        # test that we can validate a valid config
+        stdout, stderr, err = conda_cli("config", "--validate")
+        assert not stdout
+        assert not stderr
+        assert not err
+
+        # set invalid values
+        conda_cli(
+            "config",
+            f"--file={condarc}",
+            *("--set", "ssl_verify", "/path/doesnt/exist"),
+            *("--set", "default_python", "anaconda"),
+        )
+        assert condarc.read_text() == (
+            "ssl_verify: /path/doesnt/exist\n" "default_python: anaconda\n"
+        )
+        reset_context()
+
+        # test that we can validate an invalid config
+        with pytest.raises(
+            CustomValidationError,
+            match=(
+                default_python_error := (
+                    r"default_python value 'anaconda' not of the form "
+                    r"'\[23\]\.\[0-9\]\[0-9\]\?'"
+                )
+            ),
+        ):
+            assert context.default_python == "anaconda"
+        with pytest.raises(
+            CustomValidationError,
+            match=(
+                ssl_verify_error := (
+                    "must be a boolean, a path to a certificate bundle file, a path to a "
+                    "directory containing certificates of trusted CAs, or 'truststore' to use "
+                    "the operating system certificate store."
+                )
+            ),
+        ):
+            assert context.ssl_verify == "/path/doesnt/exist"
+
+        # test that validating an invalid config fails
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("config", "--validate")
+
+        # test that the error message contains both validation errors
+        assert len(exc.value.errors) == 2
+        assert exc.match(default_python_error)
+        assert exc.match(ssl_verify_error)
