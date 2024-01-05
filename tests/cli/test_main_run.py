@@ -14,7 +14,7 @@ from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 def test_run_returns_int(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
-        stdout, stderr, err = conda_cli("run", "--prefix", prefix, "echo", "hi")
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "echo", "hi")
 
         assert stdout.strip() == "hi"
         assert not stderr
@@ -26,7 +26,7 @@ def test_run_returns_zero_errorlevel(
     conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
-        stdout, stderr, err = conda_cli("run", "--prefix", prefix, "exit", "0")
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "exit", "0")
 
         assert not stdout
         assert not stderr
@@ -38,7 +38,7 @@ def test_run_returns_nonzero_errorlevel(
     conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
-        stdout, stderr, err = conda_cli("run", "--prefix", prefix, "exit", "5")
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "exit", "5")
 
         assert not stdout
         assert stderr
@@ -49,7 +49,10 @@ def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
         random_text = uuid.uuid4().hex
         stdout, stderr, err = conda_cli(
-            "run", "--prefix", prefix, "--no-capture-output", "echo", random_text
+            "run",
+            f"--prefix={prefix}",
+            "--no-capture-output",
+            *("echo", random_text),
         )
 
         assert not stdout
@@ -68,7 +71,7 @@ def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         with pytest.raises(PermissionError):
             Path(prefix, "test.txt").open("w+")
 
-        stdout, stderr, err = conda_cli("run", "--prefix", prefix, "exit", "0")
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "exit", "0")
 
         assert not stdout
         assert not stderr
