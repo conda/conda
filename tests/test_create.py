@@ -1430,16 +1430,17 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
         assert pyc_file.is_file()
 
 
-def test_conda_run_1():
-    with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
-        output, error, rc = run_command(Commands.RUN, prefix, "echo", "hello")
-        assert output == f"hello{os.linesep}\n"
-        assert not error
-        assert rc == 0
-        output, error, rc = run_command(Commands.RUN, prefix, "exit", "5")
-        assert not output
-        assert not error
-        assert rc == 5
+def test_conda_run_1(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "echo", "hello")
+        assert stdout == f"hello{os.linesep}\n"
+        assert not stderr
+        assert not err
+
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "exit", "5")
+        assert not stdout
+        assert not stderr
+        assert err == 5
 
 
 def test_conda_run_nonexistant_prefix():
