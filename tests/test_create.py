@@ -59,7 +59,6 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
-    EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -1428,26 +1427,6 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
         )
         assert py_file.is_file()
         assert pyc_file.is_file()
-
-
-def test_conda_run_1(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
-        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "echo", "hello")
-        assert stdout == f"hello{os.linesep}\n"
-        assert not stderr
-        assert not err
-
-        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "exit", "5")
-        assert not stdout
-        assert not stderr
-        assert err == 5
-
-
-def test_conda_run_nonexistant_prefix():
-    with make_temp_env(use_restricted_unicode=False, name=str(uuid4())[:7]) as prefix:
-        prefix = join(prefix, "clearly_a_prefix_that_does_not_exist")
-        with pytest.raises(EnvironmentLocationNotFound):
-            output, error, rc = run_command(Commands.RUN, prefix, "echo", "hello")
 
 
 def test_conda_run_prefix_not_a_conda_env():

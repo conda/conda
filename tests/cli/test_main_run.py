@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from conda.common.compat import on_win
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.exceptions import EnvironmentLocationNotFound
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
 def test_run_returns_int(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
@@ -72,3 +73,11 @@ def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert not stdout
         assert not stderr
         assert not err
+
+
+def test_conda_run_nonexistant_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with pytest.raises(EnvironmentLocationNotFound):
+        conda_cli("run", f"--prefix={path_factory()}", "echo", "hello")
