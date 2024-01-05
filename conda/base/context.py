@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from errno import ENOENT
 from functools import lru_cache
 from itertools import chain
-from os.path import abspath, expanduser, isdir, isfile, join
+from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
 from typing import TYPE_CHECKING
 
@@ -165,7 +165,9 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not value == "truststore" and not isfile(value) and not isdir(value):
+        if sys.version_info < (3, 10) and value == "truststore":
+            return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
+        elif value != "truststore" and not exists(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "

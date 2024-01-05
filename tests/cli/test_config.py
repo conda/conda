@@ -3,7 +3,8 @@
 import json
 import os
 import re
-from contextlib import contextmanager
+import sys
+from contextlib import contextmanager, nullcontext
 from textwrap import dedent
 
 import pytest
@@ -815,14 +816,15 @@ def test_conda_config_describe(
 
 
 def test_conda_config_validate(
-    tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
         mocker.patch(
             "conda.base.context.determine_target_prefix",
             return_value=prefix,
         )
-
         condarc = prefix / "condarc"
 
         # test that we can set a valid value
@@ -877,3 +879,33 @@ def test_conda_config_validate(
         assert len(exc.value.errors) == 2
         assert exc.match(default_python_error)
         assert exc.match(ssl_verify_error)
+
+
+def test_conda_config_validate_sslverify_truststore(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        mocker.patch(
+            "conda.base.context.determine_target_prefix",
+            return_value=prefix,
+        )
+        condarc = prefix / "condarc"
+
+        # test that we can set ssl_verify
+        conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "truststore")
+
+        # test that truststore is a valid value for Python 3.10+
+        with (
+            pytest.raises(
+                CustomValidationError,
+                match=r"`ssl_verify: truststore` is only supported on Python 3\.10 or later",
+            )
+            if sys.version_info < (3, 10)
+            else nullcontext()
+        ):
+            stdout, stderr, err = conda_cli("config", "--validate")
+            assert not stdout
+            assert not stderr
+            assert not err

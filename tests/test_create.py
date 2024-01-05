@@ -1397,18 +1397,6 @@ def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 10),
-    reason="Skip truststore on earlier python versions",
-)
-def test_conda_config_validate_sslverify_truststore():
-    with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "truststore")
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
-        assert not stdout
-        assert not stderr
-
-
-@pytest.mark.skipif(
     context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
     reason="Skip unsupported platforms",
 )
