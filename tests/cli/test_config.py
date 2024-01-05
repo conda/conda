@@ -833,7 +833,7 @@ def test_conda_config_validate(
         )
         reset_context()
 
-        # test that we can validate an invalid config
+        # test that we validate individual values
         with pytest.raises(
             CustomValidationError,
             match=(
@@ -881,12 +881,25 @@ def test_conda_config_validate_sslverify_truststore(
         # test that we can set ssl_verify
         conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "truststore")
 
-        # test that truststore is a valid value for Python 3.10+
+        # test that truststore is valid for Python 3.10+
         with (
             pytest.raises(
                 CustomValidationError,
-                match=r"`ssl_verify: truststore` is only supported on Python 3\.10 or later",
+                match=(
+                    truststore_error := (
+                        "`ssl_verify: truststore` is only supported on "
+                        "Python 3.10 or later"
+                    )
+                ),
             )
+            if sys.version_info < (3, 10)
+            else nullcontext()
+        ):
+            assert context.ssl_verify == "truststore"
+
+        # test that truststore is a valid value for Python 3.10+
+        with (
+            pytest.raises(CustomValidationError, match=truststore_error)
             if sys.version_info < (3, 10)
             else nullcontext()
         ):
