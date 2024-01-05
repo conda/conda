@@ -1429,46 +1429,18 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
         assert pyc_file.is_file()
 
 
-def test_clone_offline_multichannel_with_untracked():
-    with env_vars(
-        {
-            "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        # The flask install will use this version of Python. That is then used to compile flask's pycs.
-        flask_python = "3.8"  # oldest available for osx-arm64
-        with make_temp_env("python=3.9", use_restricted_unicode=True) as prefix:
-            payload, _, _ = run_command(
-                Commands.CONFIG, prefix, "--get", "channels", "--json"
-            )
-            default_channels = json_loads(payload)["get"].get("channels", ["defaults"])
-            run_command(
-                Commands.CONFIG,
-                prefix,
-                "--add",
-                "channels",
-                "https://repo.anaconda.com/pkgs/main",
-            )
-            # config --append on an empty key pre-populates it with the hardcoded default value!
-            for channel in default_channels:
-                run_command(Commands.CONFIG, prefix, "--remove", "channels", channel)
+def test_clone_offline_with_untracked(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    with tmp_env("small-executable") as prefix:
+        assert package_is_installed(prefix, "small-executable")
+        (prefix / "magic").touch()  # untracked file
 
-            run_command(
-                Commands.INSTALL,
-                prefix,
-                "-c",
-                "conda-test",
-                "flask",
-                "python=" + flask_python,
-            )
-
-            touch(join(prefix, "test.file"))  # untracked file
-            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-                assert context.offline
-                assert package_is_installed(clone_prefix, "python=" + flask_python)
-                assert package_is_installed(clone_prefix, "flask=0.11.1=py_0")
-                assert isfile(join(clone_prefix, "test.file"))  # untracked file
+        with tmp_env(f"--clone={prefix}", "--offline") as clone:
+            assert package_is_installed(clone, "small-executable")
+            assert (clone / "magic").is_file()  # untracked file
 
 
 def test_package_pinning():
