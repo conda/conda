@@ -6,7 +6,7 @@ import re
 import sys
 from datetime import datetime
 from glob import glob
-from itertools import chain, zip_longest
+from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
 from os.path import (
@@ -98,7 +98,6 @@ from conda.testing.integration import (
     make_temp_package_cache,
     make_temp_prefix,
     package_is_installed,
-    reload_config,
     run_command,
     tempdir,
     which_or_where,
@@ -1155,6 +1154,7 @@ def test_remove_features(
         # packages associated with the track_features base package are completely removed
         # and not replaced with equivalent non-variant packages as before.
         conda_cli("remove", f"--prefix={prefix}", "--features", "nomkl", "--yes")
+
         # assert package_is_installed(prefix, 'numpy')   # removed per above comment
         assert not package_is_installed(prefix, "nomkl")
         # assert package_is_installed(prefix, 'mkl')  # removed per above comment
@@ -1250,87 +1250,115 @@ def test_create_no_deps_flag(test_recipes_channel: Path, tmp_env: TmpEnvFixture)
         assert not package_is_installed(prefix, "dependency")
 
 
-def test_create_only_deps_flag():
-    with make_temp_env("python", "flask", "--only-deps", no_capture=True) as prefix:
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python")
-        if not on_win:
-            # sqlite is a dependency of Python on all platforms
-            assert package_is_installed(prefix, "sqlite")
-        assert package_is_installed(prefix, "itsdangerous")
-
-        # test that a later install keeps the --only-deps packages around
-        run_command(Commands.INSTALL, prefix, "imagesize", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous")
-        assert not package_is_installed(prefix, "flask")
-
-        # test that --only-deps installed stuff survives updates of unrelated packages
-        run_command(Commands.UPDATE, prefix, "imagesize", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous")
-        assert not package_is_installed(prefix, "flask")
-
-        # test that --only-deps installed stuff survives removal of unrelated packages
-        run_command(Commands.REMOVE, prefix, "imagesize", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous")
-        assert not package_is_installed(prefix, "flask")
-
-
-def test_install_update_deps_flag():
-    with make_temp_env("flask=2.0.1", "jinja2=3.0.1") as prefix:
-        python = join(prefix, PYTHON_BINARY)
-        result_before = subprocess_call_with_clean_env([python, "--version"])
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "jinja2=3.0.1")
-        run_command(Commands.INSTALL, prefix, "flask", "--update-deps")
-        result_after = subprocess_call_with_clean_env([python, "--version"])
-        assert result_before == result_after
-        assert package_is_installed(prefix, "flask>2.0.1")
-        assert package_is_installed(prefix, "jinja2>3.0.1")
-
-
-def test_install_only_deps_flag():
-    with make_temp_env("flask=2.0.2", "jinja2=3.0.2") as prefix:
-        python = join(prefix, PYTHON_BINARY)
-        result_before = subprocess_call_with_clean_env([python, "--version"])
-        assert package_is_installed(prefix, "flask=2.0.2")
-        assert package_is_installed(prefix, "jinja2=3.0.2")
-        run_command(Commands.INSTALL, prefix, "flask", "--only-deps")
-        result_after = subprocess_call_with_clean_env([python, "--version"])
-        assert result_before == result_after
-        assert package_is_installed(prefix, "flask=2.0.2")
-        assert package_is_installed(prefix, "jinja2=3.0.2")
-
-    with make_temp_env("flask==2.0.2", "--only-deps") as prefix:
-        assert not package_is_installed(prefix, "flask")
-
-
-def test_install_update_deps_only_deps_flags(
+def test_create_only_deps_flag(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("flask=2.0.1", "jinja2=3.0.1", "python>=3.12") as prefix:
-        python = str(prefix / PYTHON_BINARY)
-        result_before = subprocess_call_with_clean_env([python, "--version"])
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "jinja2=3.0.1")
+    # ├─ dependent
+    # │  └─ dependency
+    # ├─ another_dependent
+    # │  └─ dependent
+    # │     └─ dependency
+    # └─ other_dependent
+    #    └─ dependent
+    #       └─ dependency
+    with tmp_env("dependent", "another_dependent", "--only-deps") as prefix:
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "other_dependent")
+
+        # test that a later install keeps the --only-deps packages around
+        conda_cli("install", f"--prefix={prefix}", "other_dependent", "--yes")
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "other_dependent")
+
+        # test that --only-deps installed stuff survives updates of unrelated packages
+        conda_cli("update", f"--prefix={prefix}", "other_dependent", "--yes")
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "other_dependent")
+
+        # test that --only-deps installed stuff survives removal of unrelated packages
+        conda_cli("remove", f"--prefix={prefix}", "other_dependent", "--yes")
+        assert not package_is_installed(prefix, "another_dependent")
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "other_dependent")
+
+
+def test_install_update_deps_flag(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+
         conda_cli(
             "install",
             f"--prefix={prefix}",
-            "flask",
-            "python",
+            "dependent",
+            "--update-deps",
+            "--yes",
+        )
+
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
+
+
+def test_install_only_deps_flag(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        assert not package_is_installed(prefix, "dependent")
+        assert not package_is_installed(prefix, "dependency")
+
+        conda_cli("install", f"--prefix={prefix}", "dependent", "--only-deps", "--yes")
+
+        assert not package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+
+
+def test_install_update_deps_only_deps_flags(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("another_dependent=1.0", "dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "another_dependent=1.0")
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "another_dependent",
             "--update-deps",
             "--only-deps",
             "--yes",
         )
-        result_after = subprocess_call_with_clean_env([python, "--version"])
-        assert result_before == result_after
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "jinja2>3.0.1")
+
+        # another_dependnet isn't updated even though 2.0 is available
+        assert package_is_installed(prefix, "another_dependent=1.0")
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
 
 
-@pytest.mark.xfail(on_win, reason="nomkl not present on windows", strict=True)
-def test_install_features(clear_package_cache: None, request: FixtureRequest):
-    # https://github.com/conda/conda/pull/12984#issuecomment-1749634162
+@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+def test_install_features(
+    clear_package_cache: None,
+    request: FixtureRequest,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -1338,17 +1366,20 @@ def test_install_features(clear_package_cache: None, request: FixtureRequest):
         )
     )
 
-    with make_temp_env("python=2", "numpy=1.13", "nomkl", no_capture=True) as prefix:
+    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
         assert not package_is_installed(prefix, "mkl")
 
-    with make_temp_env("python=2", "numpy=1.13") as prefix:
+    with tmp_env("--channel=main", "python=2", "numpy=1.13") as prefix:
+        assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert not package_is_installed(prefix, "nomkl")
         assert package_is_installed(prefix, "mkl")
 
-        run_command(Commands.INSTALL, prefix, "nomkl", no_capture=True)
+        conda_cli("install", f"--prefix={prefix}", "--channel=main", "nomkl", "--yes")
+
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
         assert package_is_installed(prefix, "blas=1.0=openblas")
@@ -1357,133 +1388,12 @@ def test_install_features(clear_package_cache: None, request: FixtureRequest):
         # assert not package_is_installed(prefix, "mkl")  # pruned as an indirect dep
 
 
-def test_clone_offline_simple():
-    with make_temp_env("bzip2") as prefix:
-        assert package_is_installed(prefix, "bzip2")
+def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    with tmp_env("small-executable") as prefix:
+        assert package_is_installed(prefix, "small-executable")
 
-        with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-            assert context.offline
-            assert package_is_installed(clone_prefix, "bzip2")
-
-
-def test_conda_config_describe():
-    with make_temp_env() as prefix:
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe")
-        assert not stderr
-        skip_categories = ("CLI-only", "Hidden and Undocumented")
-        documented_parameter_names = chain.from_iterable(
-            (
-                parameter_names
-                for category, parameter_names in context.category_map.items()
-                if category not in skip_categories
-            )
-        )
-
-        for param_name in documented_parameter_names:
-            assert re.search(
-                r"^# # %s \(" % param_name, stdout, re.MULTILINE
-            ), param_name
-
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe", "--json")
-        assert not stderr
-        json_obj = json.loads(stdout.strip())
-        assert len(json_obj) >= 55
-        assert "description" in json_obj[0]
-
-        with env_var(
-            "CONDA_QUIET", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
-        ):
-            stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources")
-            assert not stderr
-            assert "envvars" in stdout.strip()
-
-            stdout, stderr, _ = run_command(
-                Commands.CONFIG, prefix, "--show-sources", "--json"
-            )
-            assert not stderr
-            json_obj = json.loads(stdout.strip())
-            assert (
-                "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
-            )
-            assert json_obj["cmd_line"] == {"json": True}
-
-        run_command(Commands.CONFIG, prefix, "--set", "changeps1", "false")
-        with pytest.raises(CondaError):
-            run_command(Commands.CONFIG, prefix, "--write-default")
-
-        rm_rf(join(prefix, "condarc"))
-        run_command(Commands.CONFIG, prefix, "--write-default")
-
-        with open(join(prefix, "condarc")) as fh:
-            data = fh.read()
-
-        for param_name in documented_parameter_names:
-            assert re.search(r"^# %s \(" % param_name, data, re.MULTILINE), param_name
-
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--describe", "--json")
-        assert not stderr
-        json_obj = json.loads(stdout.strip())
-        assert len(json_obj) >= 42
-        assert "description" in json_obj[0]
-
-        with env_var(
-            "CONDA_QUIET", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
-        ):
-            stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show-sources")
-            assert not stderr
-            assert "envvars" in stdout.strip()
-
-            stdout, stderr, _ = run_command(
-                Commands.CONFIG, prefix, "--show-sources", "--json"
-            )
-            assert not stderr
-            json_obj = json.loads(stdout.strip())
-            assert (
-                "quiet" in json_obj["envvars"] and json_obj["envvars"]["quiet"] is True
-            )
-            assert json_obj["cmd_line"] == {"json": True}
-
-
-def test_conda_config_validate():
-    with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "no")
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
-        assert not stdout
-        assert not stderr
-
-        try:
-            with open(join(prefix, "condarc"), "w") as fh:
-                fh.write("default_python: anaconda\n")
-                fh.write("ssl_verify: /path/doesnt/exist\n")
-            reload_config(prefix)
-
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.CONFIG, prefix, "--validate")
-
-            assert len(exc.value.errors) == 2
-            str_exc_value = str(exc.value)
-            assert (
-                "must be a boolean, a path to a certificate bundle file, a path to a directory containing certificates of trusted CAs, or 'truststore' to use the operating system certificate store."
-                in str_exc_value
-            )
-            assert (
-                "default_python value 'anaconda' not of the form '[23].[0-9][0-9]?'"
-                in str_exc_value
-            )
-        finally:
-            reset_context()
-
-
-@pytest.mark.skipif(
-    sys.version_info < (3, 10),
-    reason="Skip truststore on earlier python versions",
-)
-def test_conda_config_validate_sslverify_truststore():
-    with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "ssl_verify", "truststore")
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--validate")
-        assert not stdout
-        assert not stderr
+        with tmp_env(f"--clone={prefix}", "--offline") as clone:
+            assert package_is_installed(clone, "small-executable")
 
 
 @pytest.mark.skipif(

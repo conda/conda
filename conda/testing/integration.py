@@ -410,7 +410,7 @@ def tempdir():
 
 
 def reload_config(prefix):
-    prefix_condarc = join(prefix + os.sep, "condarc")
+    prefix_condarc = join(prefix, "condarc")
     reset_context([prefix_condarc])
 
 
