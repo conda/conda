@@ -6,7 +6,7 @@ set -o errtrace -o pipefail -o errexit
 git config --global --add safe.directory /opt/conda-src
 
 # make sure all test requirements are installed
-sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt "conda-forge::menuinst>=2" --repodata-fn=repodata.json
+sudo /opt/conda/bin/conda install --quiet -y --file tests/requirements.txt --repodata-fn=repodata.json
 eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
 # installing the needed pytest plugin for codspeed.io
 pip install pytest-codspeed
