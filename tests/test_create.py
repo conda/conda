@@ -1466,42 +1466,45 @@ def test_package_pinning(
         assert package_is_installed(prefix, "dependency=2.0")
 
 
-def test_update_all_updates_pip_pkg():
-    with make_temp_env("python=3.6", "pip", "pytz=2018", no_capture=True) as prefix:
-        pip_ioo, pip_ioe, _ = run_command(
-            Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true"
-        )
+def test_update_all_updates_pip_pkg(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
 
-        pip_o, pip_e, _ = run_command(
-            Commands.RUN,
-            prefix,
-            "--dev",
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "itsdangerous==0.24",
+    with tmp_env("python", "pip", "pytz<2023") as prefix:
+        # install an old version of itsdangerous from pip
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
+        log.error(stdout)
+        log.error(stderr)
+        log.error(err)
+
+        # ensure installed version of itsdangerous is from PyPI
         PrefixData._cache_.clear()
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
-        assert not stderr
-        json_obj = json.loads(stdout)
-        six_info = next(info for info in json_obj if info["name"] == "itsdangerous")
-        assert six_info == {
+        assert (prec := package_is_installed(prefix, "itsdangerous"))
+        assert prec.dist_fields_dump() == {
             "base_url": "https://conda.anaconda.org/pypi",
             "build_number": 0,
             "build_string": "pypi_0",
             "channel": "pypi",
-            "dist_name": "itsdangerous-0.24-pypi_0",
+            "dist_name": f"itsdangerous-{prec.version}-pypi_0",
             "name": "itsdangerous",
             "platform": "pypi",
-            "version": "0.24",
+            "version": prec.version,
         }
-        assert package_is_installed(prefix, "itsdangerous=0.24")
 
-        run_command(Commands.UPDATE, prefix, "--all")
-        assert package_is_installed(prefix, "itsdangerous>0.24")
-        assert package_is_installed(prefix, "pytz>2018")
+        # updating all updates itsdangerous from a conda channel
+        conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
+        assert (prec := package_is_installed(prefix, "itsdangerous>=2"))
+        assert prec.subdir != "pypi"
+        assert package_is_installed(prefix, "pytz>=2023")
 
 
 def test_package_optional_pinning():
