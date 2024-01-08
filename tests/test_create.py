@@ -1443,27 +1443,27 @@ def test_clone_offline_with_untracked(
             assert (clone / "magic").is_file()  # untracked file
 
 
-def test_package_pinning():
-    with make_temp_env(
-        "python=2.7", "itsdangerous=0.24", "pytz=2017.3", no_capture=True
-    ) as prefix:
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert package_is_installed(prefix, "python=2.7")
-        assert package_is_installed(prefix, "pytz=2017.3")
+def test_package_pinning(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("another_dependent=1.0", "dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "another_dependent=1.0")
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
 
-        with open(join(prefix, "conda-meta", "pinned"), "w") as fh:
-            fh.write("itsdangerous 0.24\n")
+        (prefix / "conda-meta" / "pinned").write_text("dependent ==1.0")
 
-        run_command(Commands.UPDATE, prefix, "--all", no_capture=True)
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        # assert not package_is_installed(prefix, "python=3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
-        assert package_is_installed(prefix, "python=2.7")
-        assert not package_is_installed(prefix, "pytz=2017.3")
-        assert package_is_installed(prefix, "pytz")
+        conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
+        assert package_is_installed(prefix, "another_dependent=2.0")
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
 
-        run_command(Commands.UPDATE, prefix, "--all", "--no-pin", no_capture=True)
-        assert package_is_installed(prefix, "python=2.7")
-        assert not package_is_installed(prefix, "itsdangerous=0.24")
+        conda_cli("update", f"--prefix={prefix}", "--all", "--no-pin", "--yes")
+        assert package_is_installed(prefix, "another_dependent=2.0")
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
 
 
 def test_update_all_updates_pip_pkg():
