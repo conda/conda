@@ -1,0 +1,18 @@
+package:
+  name: dependent
+  version: 2.0
+
+build:
+  noarch: generic
+
+requirements:
+  run:
+    - {{ pin_subpackage("dependency") }}
+
+outputs:
+  - name: dependency
+    build:
+      noarch: generic
+
+about:
+  summary: A generic dependent
