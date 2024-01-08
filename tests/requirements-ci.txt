@@ -1,4 +1,5 @@
 anaconda-client
+conda-forge::pytest-memray
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
