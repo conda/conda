@@ -1417,7 +1417,7 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
         pyc_file = prefix / pyc_path(str(py_file), py_ver)
 
         py_file.parent.mkdir(parents=True, exist_ok=True)
-        py_file.write_text("__version__ = 1.0")
+        py_file.write_text('__version__ = "1.0"')
         compile_multiple_pyc(
             str(python_binary),
             [str(py_file)],
