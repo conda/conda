@@ -38,7 +38,7 @@ in conda, including information about packages, channels, environments, and plug
         Learn about channels and how they host packages
 
     :doc:`Environments <environments>`
-        Learn about how environments work and how they differ from pip's virtual environments
+        Learn about how environments work and how they differ from Python's virtual environments
 
     :doc:`Installing with conda <installing-with-conda>`
         Take a deep dive into exactly what happens during an installation with conda
@@ -46,7 +46,7 @@ in conda, including information about packages, channels, environments, and plug
     :doc:`Performance <conda-performance>`
         Understand what impacts the performance and speed of conda and how to improve it
 
-    :doc:`Conda for data scientist <data-science>`
+    :doc:`Conda for data scientists <data-science>`
         See why conda is a such a valuable tool for data scientists
 
     :doc:`Plugins <conda-plugins>`

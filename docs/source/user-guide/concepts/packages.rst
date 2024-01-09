@@ -7,8 +7,8 @@ Packages
 What is a package?
 ==================
 
-A package is a compressed tarball file (.tar.bz2) or
-.conda file that contains:
+A package is a compressed tarball file (``.tar.bz2``) or
+``.conda`` file that contains:
 
 * system-level libraries.
 * Python or other modules.

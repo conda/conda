@@ -7,7 +7,7 @@ The following are the most popular installers currently available:
 
 .. glossary::
 
-    `Miniconda <https://docs.conda.io/projects/miniconda>`_
+    `Miniconda <https://docs.conda.io/projects/miniconda/>`_
         Miniconda is a minimal installer provided by Anaconda. Use this installer
         if you want to install most packages yourself.
 
@@ -24,7 +24,7 @@ The following are the most popular installers currently available:
 .. admonition:: Tip
 
     If you are just starting out, we recommend installing conda via the
-    `Miniconda installer <https://docs.conda.io/projects/miniconda>`_.
+    `Miniconda installer <https://docs.conda.io/projects/miniconda/>`_.
 
 
 .. _system-reqs:
