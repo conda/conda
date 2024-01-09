@@ -36,6 +36,7 @@ def DPkg(s, **kwargs):
     )
 
 
+@pytest.mark.benchmark
 def test_match_1():
     for spec, result in (
         ("numpy 1.7*", True),

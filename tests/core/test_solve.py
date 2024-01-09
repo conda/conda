@@ -35,6 +35,7 @@ from conda.testing.helpers import (
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
+@pytest.mark.benchmark
 def test_solve_1(tmpdir):
     specs = (MatchSpec("numpy"),)
 

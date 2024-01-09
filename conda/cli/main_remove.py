@@ -8,6 +8,8 @@ import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isfile, join
 
+from .common import confirm_yn
+
 log = logging.getLogger(__name__)
 
 
@@ -210,6 +212,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
         if not context.dry_run:
             if not args.keep_env:
+                if not args.json:
+                    confirm_yn(
+                        f"Everything found within the environment ({prefix}), including any conda environment configurations and any non-conda files, will be deleted. Do you wish to continue?\n",
+                        default="no",
+                        dry_run=False,
+                    )
                 rm_rf(prefix, clean_empty_parents=True)
                 unregister_env(prefix)
 

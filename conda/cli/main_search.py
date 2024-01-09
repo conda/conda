@@ -4,9 +4,15 @@
 
 Query channels for packages matching the provided package spec.
 """
+from __future__ import annotations
+
 from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..models.records import PackageRecord
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -145,6 +151,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    """
+    Implements `conda search` commands.
+
+    `conda search <spec>` searches channels for packages.
+    `conda search <spec> --envs` searches environments for packages.
+
+    """
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..common.io import Spinner
@@ -283,7 +296,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     return 0
 
 
-def pretty_record(record):
+def pretty_record(record: PackageRecord) -> None:
+    """
+    Pretty prints a `PackageRecord`.
+
+    :param record:  The `PackageRecord` object to print.
+    """
     from ..common.io import dashlist
     from ..utils import human_bytes
 
