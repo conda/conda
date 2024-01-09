@@ -7,7 +7,7 @@ Configuration
    :hidden:
 
    use-condarc
-   configuration-settings
+   settings
    admin-multi-user-install
    mirroring
    disable-ssl-verification
@@ -24,7 +24,7 @@ configuration.
         Learn how to use a settings file (``.condarc``) to override defaults and maintain
         settings across shell sessions
 
-    :doc:`Configuration settings <configuration-settings>`
+    :doc:`Settings <settings>`
         View a list and definition of all the configuration settings that can be used within
         conda
 

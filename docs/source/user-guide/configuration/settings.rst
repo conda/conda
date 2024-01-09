@@ -1,6 +1,6 @@
-======================
-Configuration Settings
-======================
+========
+Settings
+========
 
 This page contains an overview of many important settings available in conda,
 with examples where possible.
