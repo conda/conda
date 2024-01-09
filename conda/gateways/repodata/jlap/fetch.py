@@ -26,7 +26,9 @@ from .. import (
     RepodataCache,
     RepodataState,
 )
-from .core import JLAP
+from . import accumulate
+from .accumulate import JSONLoader, RepodataPatchAccumulator
+from .core import DEFAULT_IV, JLAP
 
 log = logging.getLogger(__name__)
 
@@ -38,8 +40,6 @@ HEADERS = "headers"
 NOMINAL_HASH = "blake2_256_nominal"
 ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
-JLAP_UNAVAILABLE = "jlap_unavailable"
-ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 # save these headers. at least etag, last-modified, cache-control plus a few
 # useful extras.
@@ -174,7 +174,10 @@ def find_patches(patches, have, want):
     return apply
 
 
-def apply_patches(data, apply):
+def apply_patches(data: object, apply: list[dict]):
+    """
+    Mutate :data with a list of patches in :apply
+    """
     while apply:
         patch = apply.pop()
         log.debug(
@@ -182,6 +185,7 @@ def apply_patches(data, apply):
             f"{len(patch['patch'])} steps"
         )
         data = jsonpatch.JsonPatch(patch["patch"]).apply(data, in_place=True)
+    return data
 
 
 def withext(url, ext):
@@ -248,7 +252,7 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher),
+                HashWriter(dest_path.open("wb"), hasher),  # type: ignore
                 closefd=True,
             )
         else:
@@ -257,11 +261,216 @@ def download_and_hash(
             for block in response.iter_content(chunk_size=1 << 14):
                 repodata.write(block)
     if response.request:
+        try:
+            length = int(response.headers["Content-Length"])
+        except (KeyError, ValueError, AttributeError):
+            pass
         log.info("Download %d bytes %r", length, response.request.headers)
     return response  # can be 304 not modified
 
 
-def request_url_jlap_state(
+# def request_url_jlap_state(
+#     url,
+#     state: RepodataState,
+#     full_download=False,
+#     *,
+#     session: Session,
+#     cache: RepodataCache,
+#     temp_path: pathlib.Path,
+# ) -> dict | None:
+#     jlap_state = state.get(JLAP_KEY, {})
+#     headers = jlap_state.get(HEADERS, {})
+#     json_path = cache.cache_path_json
+
+#     buffer = JLAP()  # type checks
+
+#     if (
+#         full_download
+#         or not (NOMINAL_HASH in state and json_path.exists())
+#         or not state.should_check_format("jlap")
+#     ):
+#         hasher = hash()
+#         with timeme(f"Download complete {url} "):
+#             # Don't deal with 304 Not Modified if hash unavailable e.g. if
+#             # cached without jlap
+#             if NOMINAL_HASH not in state:
+#                 state.pop(ETAG_KEY, None)
+#                 state.pop(LAST_MODIFIED_KEY, None)
+
+#             try:
+#                 if state.should_check_format("zst"):
+#                     response = download_and_hash(
+#                         hasher,
+#                         withext(url, ".json.zst"),
+#                         json_path,  # makes conditional request if exists
+#                         dest_path=temp_path,  # writes to
+#                         session=session,
+#                         state=state,
+#                         is_zst=True,
+#                     )
+#                 else:
+#                     raise JlapSkipZst()
+#             except (JlapSkipZst, HTTPError) as e:
+#                 if isinstance(e, HTTPError) and e.response.status_code != 404:
+#                     raise
+#                 if not isinstance(e, JlapSkipZst):
+#                     # don't update last-checked timestamp on skip
+#                     state.set_has_format("zst", False)
+#                 response = download_and_hash(
+#                     hasher,
+#                     withext(url, ".json"),
+#                     json_path,
+#                     dest_path=temp_path,
+#                     session=session,
+#                     state=state,
+#                 )
+
+#             # will we use state['headers'] for caching against
+#             state["_mod"] = response.headers.get("last-modified")
+#             state["_etag"] = response.headers.get("etag")
+#             state["_cache_control"] = response.headers.get("cache-control")
+
+#         # was not re-hashed if 304 not modified
+#         if response.status_code == 200:
+#             state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
+
+#         have = state[NOMINAL_HASH]
+
+#         # a jlap buffer with zero patches. the buffer format is (position,
+#         # payload, checksum) where position is the offset from the beginning of
+#         # the file; payload is the leading or trailing checksum or other data;
+#         # and checksum is the running checksum for the file up to that point.
+#         buffer = JLAP([[-1, "", ""], [0, json.dumps({LATEST: have}), ""], [1, "", ""]])
+
+#     else:
+#         have = state[NOMINAL_HASH]
+#         # have_hash = state.get(ON_DISK_HASH)
+
+#         need_jlap = True
+#         try:
+#             iv_hex = jlap_state.get("iv", "")
+#             pos = jlap_state.get("pos", 0)
+#             etag = headers.get(ETAG_KEY, None)
+#             jlap_url = withext(url, ".jlap")
+#             log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
+#             buffer, jlap_state = fetch_jlap(
+#                 jlap_url,
+#                 pos=pos,
+#                 etag=etag,
+#                 iv=bytes.fromhex(iv_hex),
+#                 session=session,
+#                 ignore_etag=False,
+#             )
+#             state.set_has_format("jlap", True)
+#             need_jlap = False
+#         except ValueError:
+#             log.info("Checksum not OK on JLAP range request. Retry with complete JLAP.")
+#         except IndexError:
+#             log.exception("IndexError reading JLAP. Invalid file?")
+#         except HTTPError as e:
+#             # If we get a 416 Requested range not satisfiable, the server-side
+#             # file may have been truncated and we need to fetch from 0
+#             if e.response.status_code == 404:
+#                 state.set_has_format("jlap", False)
+#                 return request_url_jlap_state(
+#                     url,
+#                     state,
+#                     full_download=True,
+#                     session=session,
+#                     cache=cache,
+#                     temp_path=temp_path,
+#                 )
+#             log.info(
+#                 "Response code %d on JLAP range request. Retry with complete JLAP.",
+#                 e.response.status_code,
+#             )
+
+#         if need_jlap:  # retry whole file, if range failed
+#             try:
+#                 buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
+#             except (ValueError, IndexError) as e:
+#                 log.exception("Error parsing jlap", exc_info=e)
+#                 # a 'latest' hash that we can't achieve, triggering later error handling
+#                 buffer = JLAP(
+#                     [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
+#                 )
+#                 state.set_has_format("jlap", False)
+
+#         state[JLAP_KEY] = jlap_state
+
+#     with timeme("Apply Patches "):
+#         # buffer[0] == previous iv
+#         # buffer[1:-2] == patches
+#         # buffer[-2] == footer = new_state["footer"]
+#         # buffer[-1] == trailing checksum
+
+#         patches = list(json.loads(patch) for _, patch, _ in buffer.body)
+#         _, footer, _ = buffer.penultimate
+#         want = json.loads(footer)["latest"]
+
+#         try:
+#             apply = find_patches(patches, have, want)
+#             log.info(
+#                 f"Apply {len(apply)} patches "
+#                 f"{format_hash(have)} \N{RIGHTWARDS ARROW} {format_hash(want)}"
+#             )
+
+#             if apply:
+#                 with timeme("Load "):
+#                     # we haven't loaded repodata yet; it could fail to parse, or
+#                     # have the wrong hash.
+#                     # if this fails, then we also need to fetch again from 0
+#                     repodata_json = json.loads(cache.load())
+#                     # XXX cache.state must equal what we started with, otherwise
+#                     # bail with 'repodata on disk' (indicating another process
+#                     # downloaded repodata.json in parallel with us)
+#                     if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
+#                         log.warn("repodata cache changed during jlap fetch.")
+#                         return None
+
+#                 apply_patches(repodata_json, apply)
+
+#                 with timeme("Write changed "), temp_path.open("wb") as repodata:
+#                     hasher = hash()
+#                     HashWriter(repodata, hasher).write(
+#                         accumulate.dumps(repodata_json).encode("utf-8")
+#                     )
+
+#                     # actual hash of serialized json
+#                     state[ON_DISK_HASH] = hasher.hexdigest()
+
+#                     # hash of equivalent upstream json
+#                     state[NOMINAL_HASH] = want
+
+#                     # avoid duplicate parsing
+#                     return repodata_json
+#             else:
+#                 assert state[NOMINAL_HASH] == want
+
+#         except (JlapPatchNotFound, json.JSONDecodeError) as e:
+#             if isinstance(e, JlapPatchNotFound):
+#                 # 'have' hash not mentioned in patchset
+#                 #
+#                 # XXX or skip jlap at top of fn; make sure it is not
+#                 # possible to download the complete json twice
+#                 log.info(
+#                     "Current repodata.json %s not found in patchset. Re-download repodata.json",
+#                     have,
+#                 )
+
+#             assert not full_download, "Recursion error"  # pragma: no cover
+
+#             return request_url_jlap_state(
+#                 url,
+#                 state,
+#                 full_download=True,
+#                 session=session,
+#                 cache=cache,
+#                 temp_path=temp_path,
+#             )
+
+
+def request_url_jlap_state_plus_overlay(
     url,
     state: RepodataState,
     full_download=False,
@@ -270,9 +479,14 @@ def request_url_jlap_state(
     cache: RepodataCache,
     temp_path: pathlib.Path,
 ) -> dict | None:
+    """
+    Save large JSON and second accumulated patch file, to avoid repeatedly
+    serializing the giant json to disk.
+    """
     jlap_state = state.get(JLAP_KEY, {})
     headers = jlap_state.get(HEADERS, {})
     json_path = cache.cache_path_json
+    patch_path = cache.cache_path_patch
 
     buffer = JLAP()  # type checks
 
@@ -308,7 +522,6 @@ def request_url_jlap_state(
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
                     state.set_has_format("zst", False)
-                    state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
                     hasher,
                     withext(url, ".json"),
@@ -337,7 +550,6 @@ def request_url_jlap_state(
 
     else:
         have = state[NOMINAL_HASH]
-        # have_hash = state.get(ON_DISK_HASH)
 
         need_jlap = True
         try:
@@ -346,7 +558,6 @@ def request_url_jlap_state(
             etag = headers.get(ETAG_KEY, None)
             jlap_url = withext(url, ".jlap")
             log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
-            # wrong to read state outside of function, and totally rebuild inside
             buffer, jlap_state = fetch_jlap(
                 jlap_url,
                 pos=pos,
@@ -366,7 +577,7 @@ def request_url_jlap_state(
             # file may have been truncated and we need to fetch from 0
             if e.response.status_code == 404:
                 state.set_has_format("jlap", False)
-                return request_url_jlap_state(
+                return request_url_jlap_state_plus_overlay(
                     url,
                     state,
                     full_download=True,
@@ -383,10 +594,21 @@ def request_url_jlap_state(
             try:
                 buffer, jlap_state = fetch_jlap(withext(url, ".jlap"), session=session)
             except (ValueError, IndexError) as e:
-                log.exception("Error parsing jlap", exc_info=e)
+                # Maintain similar error handling to above "partial jlap"
+                # handler. Is there a bug causing this to sometimes raise an
+                # exception, since the complete jlap should always have a good
+                # checksum?
+                if isinstance(e, ValueError):
+                    log.info("Checksum not OK on complete JLAP.")
+                elif isinstance(e, ValueError):
+                    log.exception("IndexError reading complete JLAP. Invalid file?")
                 # a 'latest' hash that we can't achieve, triggering later error handling
                 buffer = JLAP(
-                    [[-1, "", ""], [0, json.dumps({LATEST: "0" * 32}), ""], [1, "", ""]]
+                    [
+                        [-1, "", ""],
+                        [0, json.dumps({LATEST: DEFAULT_IV.hex()}), ""],
+                        [1, "", ""],
+                    ]
                 )
                 state.set_has_format("jlap", False)
 
@@ -410,34 +632,37 @@ def request_url_jlap_state(
             )
 
             if apply:
-                with timeme("Load "):
-                    # we haven't loaded repodata yet; it could fail to parse, or
-                    # have the wrong hash.
-                    # if this fails, then we also need to fetch again from 0
-                    repodata_json = json.loads(cache.load())
-                    # XXX cache.state must equal what we started with, otherwise
-                    # bail with 'repodata on disk' (indicating another process
-                    # downloaded repodata.json in parallel with us)
-                    if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
-                        log.warn("repodata cache changed during jlap fetch.")
-                        return None
+                # XXX rearrange or refactor cache locks; current load_state()
+                # will break the lock, so we have to do it outside below
+                # cache.lock()
+                cache.load_state()  # otherwise, cache.state is empty (above code only checks passed-in state dict)
+                if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
+                    log.warn("repodata cache changed during jlap fetch.")
+                    return None
 
-                apply_patches(repodata_json, apply)
-
-                with timeme("Write changed "), temp_path.open("wb") as repodata:
-                    hasher = hash()
-                    HashWriter(repodata, hasher).write(
-                        json.dumps(repodata_json).encode("utf-8")
+                with timeme("Write changed "), cache.lock():
+                    # Merge relevant patches into a smaller file. Its "packages"
+                    # and "packages.conda" keys will contain any changed
+                    # packages from the base download.
+                    try:
+                        existing_patches = json.loads(patch_path.read_text())
+                    except FileNotFoundError:
+                        existing_patches = {}
+                    patched_repodata = RepodataPatchAccumulator(
+                        JSONLoader(json_path), existing_patches
                     )
 
-                    # actual hash of serialized json
-                    state[ON_DISK_HASH] = hasher.hexdigest()
+                    apply_patches(patched_repodata, apply)
+
+                    patch_path.write_text(
+                        accumulate.dumps(patched_repodata.into_plain())
+                    )
 
                     # hash of equivalent upstream json
                     state[NOMINAL_HASH] = want
 
-                    # avoid duplicate parsing
-                    return repodata_json
+                # avoid duplicate parsing
+                return patched_repodata.apply()
             else:
                 assert state[NOMINAL_HASH] == want
 
@@ -445,15 +670,16 @@ def request_url_jlap_state(
             if isinstance(e, JlapPatchNotFound):
                 # 'have' hash not mentioned in patchset
                 #
-                # XXX or skip jlap at top of fn; make sure it is not
-                # possible to download the complete json twice
+                # XXX or skip jlap at top of fn; make sure it is not possible to
+                # download the complete json twice
                 log.info(
-                    "Current repodata.json %s not found in patchset. Re-download repodata.json"
+                    "Current repodata.json %s not found in patchset. Re-download repodata.json",
+                    have,
                 )
 
             assert not full_download, "Recursion error"  # pragma: no cover
 
-            return request_url_jlap_state(
+            return request_url_jlap_state_plus_overlay(
                 url,
                 state,
                 full_download=True,

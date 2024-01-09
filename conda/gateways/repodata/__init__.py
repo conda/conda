@@ -95,7 +95,7 @@ class Response304ContentUnchanged(Exception):
 
 
 def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
+    if not context.no_jlap:
         try:
             from .jlap.interface import JlapRepoInterface
 
@@ -502,12 +502,13 @@ class RepodataCache:
         )
 
     @property
+    def cache_path_patch(self):
+        return self.cache_path_json.with_suffix(".patch.json")
+
+    @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
-        return pathlib.Path(
-            self.cache_dir,
-            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX,
-        )
+        return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
     def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
@@ -517,7 +518,7 @@ class RepodataCache:
         # read repodata.json
         # check stat, if wrong clear cache information
 
-        with self.cache_path_state.open("r+") as state_file, lock(state_file):
+        with self.lock("r+") as state_file:
             # cannot use pathlib.read_text / write_text on any locked file, as
             # it will release the lock early
             state = json.loads(state_file.read())
@@ -600,7 +601,7 @@ class RepodataCache:
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
-        with self.cache_path_state.open("a+") as state_file, lock(state_file):
+        with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
@@ -622,12 +623,22 @@ class RepodataCache:
         Update access time in cache info file to indicate a HTTP 304 Not Modified response.
         """
         # Note this is not thread-safe.
-        with self.cache_path_state.open("a+") as state_file, lock(state_file):
+        with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             self.state["refresh_ns"] = refresh_ns or time.time_ns()
             state_file.write(json.dumps(dict(self.state), indent=2))
+
+    @contextmanager
+    def lock(self, mode="a+"):
+        """
+        Lock .info.json file. Hold lock while modifying related files.
+
+        mode: "a+" then seek(0) to write/create; "r+" to read.
+        """
+        with self.cache_path_state.open(mode) as state_file, lock(state_file):
+            yield state_file
 
     def stale(self):
         """
@@ -720,6 +731,20 @@ class RepodataFetch:
         _, state = self.fetch_latest()
         return self.cache_path_json, state
 
+    def fetch_latest_path_and_overly(self) -> tuple[Path, Path | None, RepodataState]:
+        """
+        Retrieve latest or latest-cached repodata plus an optional overlay with
+        repodata changes; update cache.
+
+        Prefer packages, packages.conda and signatures from the overlay. Load
+        keys not in the overlay from the base index. Null/None values in the
+        overlay mark deletions compared to the base index.
+
+        :return: (index Path, overlay Path | None, RepodataState)
+        """
+        _, state = self.fetch_latest()
+        return self.cache_path_json, self.cache_path_patch, state
+
     @property
     def url_w_repodata_fn(self):
         return self.url_w_subdir + "/" + self.repodata_fn
@@ -734,6 +759,10 @@ class RepodataFetch:
         Out-of-band etag and other state needed by the RepoInterface.
         """
         return self.repo_cache.cache_path_state
+
+    @property
+    def cache_path_patch(self):
+        return self.repo_cache.cache_path_patch
 
     @property
     def repo_cache(self) -> RepodataCache:
@@ -848,6 +877,8 @@ class RepodataFetch:
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
                 elif isinstance(raw_repodata, dict):
+                    # XXX dict shouldn't have to mean "we checked the network"
+
                     # repo implementation cached it, and parsed it
                     # XXX check size upstream for locking reasons
                     stat = self.cache_path_json.stat()

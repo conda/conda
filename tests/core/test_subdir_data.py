@@ -20,6 +20,7 @@ from conda.core.subdir_data import (
 from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
 from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
+from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -233,7 +234,7 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ), patch.object(JlapRepoInterface, "repodata_parsed", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -249,7 +250,8 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
     SubdirData.clear_cached_local_channel_data()
 
     with env_vars(
-        {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        {"CONDA_PLATFORM": platform, "CONDA_NO_JLAP": "true"},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))

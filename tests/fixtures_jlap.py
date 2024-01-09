@@ -27,6 +27,7 @@ TEST_REPOSITORY = Path(__file__).parents[0] / "data" / "conda_format_repo"
 base = TEST_REPOSITORY  # set to per-test-run value
 
 LATENCY = 0
+LATENCY_PER_FILE = {}
 
 
 @app.route("/shutdown")
@@ -41,6 +42,16 @@ def latency(delay):
     global LATENCY
     LATENCY = delay
     return "OK"
+
+
+# @app.route("/latency_per_file/<float:delay>")
+# def latency(delay):
+#     """
+#     Set delay before each file is returned, to simulate bandwidth, file size or
+#     streaming compression delays.
+#     """
+#     LATENCY_PER_FILE[request.args.get("name")] = delay
+#     return "OK"
 
 
 # flask.send_from_directory(directory, path, **kwargs)
