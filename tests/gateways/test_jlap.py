@@ -44,6 +44,7 @@ def test_server_available(package_server: socket):
     assert response.status_code == 404
 
 
+@pytest.mark.benchmark
 def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     """Check that JlapRepoInterface doesn't raise exceptions."""
     host, port = package_server.getsockname()
@@ -84,6 +85,7 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
     assert patched.call_count == 4
 
 
+@pytest.mark.benchmark
 def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
     """Check that JlapRepoInterface can fetch from a file:/// URL"""
     base = package_repository_base.as_uri()
@@ -127,6 +129,7 @@ def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
 
 
 @pytest.mark.parametrize("verify_ssl", [True, False])
+@pytest.mark.benchmark
 def test_jlap_fetch_ssl(
     package_server_ssl: socket, tmp_path: Path, monkeypatch, verify_ssl: bool
 ):
