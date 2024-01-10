@@ -1617,42 +1617,39 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
         assert not shortcut_file.exists()
 
 
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_absent_when_condarc_set():
-    shortcut_dir = get_shortcut_dir()
-    shortcut_dir = join(
-        shortcut_dir,
+@pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
+def test_shortcut_absent_when_condarc_set(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    prefix = path_factory()
+    shortcut_file = Path(
+        get_shortcut_dir(),
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
+        f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
+    assert not shortcut_file.exists()
 
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    assert not isfile(shortcut_file)
+    # register cleanup
+    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-    # set condarc shortcuts: False
-    run_command(Commands.CONFIG, prefix, "--set", "shortcuts", "false")
-    stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--get", "--json")
-    json_obj = json_loads(stdout)
-    assert json_obj["rc_path"] == join(prefix, "condarc")
-    assert json_obj["get"]["shortcuts"] is False
+    # mock condarc
+    monkeypatch.setenv("CONDA_SHORTCUTS", "false")
+    reset_context()
+    assert not context.shortcuts
 
-    try:
-        with make_temp_env("console_shortcut", prefix=prefix):
-            # including shortcuts: False from condarc should not get shortcuts installed
-            assert package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
+    with tmp_env("console_shortcut", prefix=prefix):
+        # including shortcuts: False from condarc should not get shortcuts installed
+        assert package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, "console_shortcut")
-            assert not package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
-        # even if the $PREFIX/.condarc is gone,
-        # the context object still has that config in memory
-        reset_context()
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
 
 def test_menuinst_v2(monkeypatch: MonkeyPatch):
