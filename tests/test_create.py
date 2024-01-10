@@ -1560,33 +1560,31 @@ def test_update_deps_flag_present(
         assert package_is_installed(prefix, "another_dependent")
 
 
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_creation_installs_shortcut():
-    shortcut_dir = get_shortcut_dir()
-    shortcut_dir = join(
-        shortcut_dir,
+@pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
+def test_shortcut_creation_installs_shortcut(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    prefix = path_factory()
+    shortcut_file = Path(
+        get_shortcut_dir(),
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
+        f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
 
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    try:
-        with make_temp_env("console_shortcut", prefix=prefix):
-            assert package_is_installed(prefix, "console_shortcut")
-            assert isfile(
-                shortcut_file
-            ), "Shortcut not found in menu dir. Contents of dir:\n{}".format(
-                os.listdir(shortcut_dir)
-            )
+    # register cleanup
+    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, "console_shortcut")
-            assert not package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
+    with tmp_env("console_shortcut", prefix=prefix):
+        assert package_is_installed(prefix, "console_shortcut")
+        assert shortcut_file.is_file()
+
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.is_file()
 
 
 @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
