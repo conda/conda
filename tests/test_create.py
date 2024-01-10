@@ -40,7 +40,7 @@ from conda.base.constants import (
     SafetyChecks,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import ensure_text_type, on_mac, on_win
+from conda.common.compat import ensure_text_type, on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
@@ -1652,37 +1652,37 @@ def test_shortcut_absent_when_condarc_set(
         assert not shortcut_file.exists()
 
 
-def test_menuinst_v2(monkeypatch: MonkeyPatch):
-    called = False
-    from menuinst import install
+def test_menuinst_v2(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+):
+    install = mocker.patch("menuinst.install")
 
-    def mock_install(*args, **kwargs):
-        nonlocal called, install
-        called = True
-        return install(*args, **kwargs)
+    prefix = path_factory()
+    prefix.mkdir()
+    (prefix / ".nonadmin").touch()
 
-    monkeypatch.setattr("menuinst.install", mock_install)
-    prefix = make_temp_prefix(str(uuid4())[:7])
-
-    Path(prefix).mkdir(parents=True, exist_ok=True)
-    Path(prefix).touch(".nonadmin")
-    out, err, _ = run_command(
-        Commands.CREATE,
-        prefix,
+    stdout, stderr, err = conda_cli(
+        "create",
+        f"--prefix={prefix}",
         "conda-test/label/menuinst-tests::package_1",
         "--no-deps",
+        "--yes",
     )
     assert package_is_installed(prefix, "package_1")
-    assert Path(prefix, "Menu", "package_1.json").is_file()
-    assert called
-    assert "menuinst Exception" not in out + err
-    base_dir = Path(get_shortcut_dir(prefix_for_unix=prefix))
-    if sys.platform == "win32":
-        assert (base_dir / "Package 1" / "A.lnk").is_file()
-    elif sys.platform == "darwin":
-        assert (base_dir / "A.app" / "Contents" / "MacOS" / "a").is_file()
-    elif sys.platform == "linux":
-        assert (base_dir / "package-1_a.desktop").is_file()
+    assert (prefix / "Menu" / "package_1.json").is_file()
+    assert install.call_count == 1
+    assert "menuinst Exception" not in stdout + stderr
+    assert not err
+
+    shortcut_dir = Path(get_shortcut_dir(prefix_for_unix=prefix))
+    if on_win:
+        assert (shortcut_dir / "Package 1" / "A.lnk").is_file()
+    elif on_mac:
+        assert (shortcut_dir / "A.app" / "Contents" / "MacOS" / "a").is_file()
+    elif on_linux:
+        assert (shortcut_dir / "package-1_a.desktop").is_file()
     else:
         raise NotImplementedError(sys.platform)
 
