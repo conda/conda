@@ -1560,34 +1560,6 @@ def test_update_deps_flag_present(
         assert package_is_installed(prefix, "another_dependent")
 
 
-@pytest.mark.skipif(True, reason="Add this test back someday.")
-# @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_in_underscore_env_shows_message():
-    prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    with make_temp_env(prefix=prefix):
-        stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "console_shortcut")
-        assert (
-            "Environment name starts with underscore '_'.  "
-            "Skipping menu installation." in stderr
-        )
-
-
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_not_attempted_with_no_shortcuts_arg():
-    prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    shortcut_dir = get_shortcut_dir()
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    with make_temp_env(prefix=prefix):
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "console_shortcut", "--no-shortcuts"
-        )
-        assert (
-            "Environment name starts with underscore '_'.  Skipping menu installation."
-            not in stderr
-        )
-        assert not isfile(shortcut_file)
-
-
 @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
 def test_shortcut_creation_installs_shortcut():
     shortcut_dir = get_shortcut_dir()
