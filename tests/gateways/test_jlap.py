@@ -27,7 +27,6 @@ from conda.gateways.repodata import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     URL_KEY,
-    CondaRepoInterface,
     RepodataCache,
     RepodataOnDisk,
     RepodataState,
@@ -256,11 +255,6 @@ def test_repodata_state(
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
 
-    if use_jlap:
-        repo_cls = interface.JlapRepoInterface
-    else:
-        repo_cls = CondaRepoInterface
-
     with env_vars(
         {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
@@ -277,8 +271,8 @@ def test_repodata_state(
         # change SubdirData base path, or set something in context
         # assert not Path(sd.cache_path_json).exists()
 
-        # parameterize whether this is used?
-        assert isinstance(sd._repo, repo_cls)
+        if use_jlap:
+            assert isinstance(sd._repo, interface.JlapRepoInterface)
 
         print(sd.repodata_fn)
 
@@ -317,11 +311,6 @@ def test_repodata_info_jsondecodeerror(
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
 
-    if use_jlap:
-        repo_cls = interface.JlapRepoInterface
-    else:
-        repo_cls = CondaRepoInterface
-
     with env_vars(
         {"CONDA_PLATFORM": "osx-64", "CONDA_EXPERIMENTAL": "jlap" if use_jlap else ""},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
@@ -332,9 +321,6 @@ def test_repodata_info_jsondecodeerror(
 
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
-
-        # parameterize whether this is used?
-        assert isinstance(sd._repo, repo_cls)
 
         print(sd.repodata_fn)
 
@@ -376,8 +362,9 @@ def test_jlap_flag(use_jlap):
         expected = "jlap" in use_jlap.split(",")
         assert ("jlap" in context.experimental) is expected
 
-        expected_cls = interface.JlapRepoInterface if expected else CondaRepoInterface
-        assert get_repo_interface() is expected_cls
+        # now using a subclass of JlapRepoInterface for "check zstd but not jlap"
+        if expected:
+            assert get_repo_interface() is interface.JlapRepoInterface
 
 
 def test_jlap_sought(
@@ -461,7 +448,7 @@ def test_jlap_sought(
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
 
-        # clear jlap_unavailable state flag, or it won't look (test this also)
+        # clear availability flag, or it won't look (test this also)
         state = cache.load_state()
         state.clear_has_format("jlap")
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
@@ -496,7 +483,7 @@ def test_jlap_sought(
         test_channel = Channel(channel_url)
         sd = SubdirData(channel=test_channel)
 
-        # clear jlap_unavailable state flag, or it won't look (test this also)
+        # clear availability flag, or it won't look (test this also)
         state = cache.load_state()
         assert state.has_format("jlap")[0] is True
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
@@ -512,11 +499,10 @@ def test_jlap_sought(
         # the jlap_unavailable flag
         (package_repository_base / "osx-64" / "repodata.jlap").write_text("")
 
-        # clear jlap_unavailable state flag, or it won't look (test this also)
+        # clear availability flag, or it won't look (test this also)
         state = cache.load_state()
         # avoid 304 to actually overwrite cached data
         state.etag = ""
-        assert fetch.JLAP_UNAVAILABLE not in state  # from previous portion of test
         state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
         cache.cache_path_state.write_text(json.dumps(dict(state)))
 

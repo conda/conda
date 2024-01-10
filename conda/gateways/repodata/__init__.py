@@ -106,6 +106,13 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
+    try:
+        from .jlap.interface import ZstdRepoInterface
+
+        return ZstdRepoInterface
+    except ImportError:  # pragma: no cover
+        pass
+
     return CondaRepoInterface
 
 
@@ -404,7 +411,6 @@ class RepodataState(UserDict):
         #     // UTC RFC3999 timestamp of when we last checked whether the file is available or not
         #     // in this case the `repodata.json.zst` file
         #     // Note: same format as conda TUF spec
-        #     // Python's time.time_ns() would be convenient?
         #     "last_checked": "2023-01-08T11:45:44Z",
         #     // false = unavailable, true = available
         #     "value": BOOLEAN
