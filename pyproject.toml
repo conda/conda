@@ -172,6 +172,7 @@ filterwarnings = [
   "error",
   "ignore::UserWarning",
   "ignore:.*'urllib3.contrib.pyopenssl'.*:DeprecationWarning",
+  "ignore:.*'pkg_resources'.*:DeprecationWarning",
   "ignore::PendingDeprecationWarning",
 ]
 
