@@ -1573,6 +1573,7 @@ def test_shortcut_creation_installs_shortcut(
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
         f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
+    assert not shortcut_file.exists()
 
     # register cleanup
     request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
@@ -1584,35 +1585,36 @@ def test_shortcut_creation_installs_shortcut(
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
         conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
         assert not package_is_installed(prefix, "console_shortcut")
-        assert not shortcut_file.is_file()
+        assert not shortcut_file.exists()
 
 
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_absent_does_not_barf_on_uninstall():
-    shortcut_dir = get_shortcut_dir()
-    shortcut_dir = join(
-        shortcut_dir,
+@pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
+def test_shortcut_absent_does_not_barf_on_uninstall(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    prefix = path_factory()
+    shortcut_file = Path(
+        get_shortcut_dir(),
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
+        f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
+    assert not shortcut_file.exists()
 
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    assert not isfile(shortcut_file)
+    # register cleanup
+    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-    try:
-        # including --no-shortcuts should not get shortcuts installed
-        with make_temp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
-            assert package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
+    # including --no-shortcuts should not get shortcuts installed
+    with tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
+        assert package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, "console_shortcut")
-            assert not package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
 
 @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
