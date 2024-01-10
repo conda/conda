@@ -1687,57 +1687,50 @@ def test_menuinst_v2(
         raise NotImplementedError(sys.platform)
 
 
-def test_create_default_packages():
+def test_create_default_packages(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+):
     # Regression test for #3453
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
 
-        # set packages
-        run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
-        run_command(
-            Commands.CONFIG, prefix, "--add", "create_default_packages", "flask"
-        )
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert yml_obj["create_default_packages"] == ["flask", "pip"]
+    # mock condarc
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "small-executable,dependent")
+    reset_context()
+    assert context.create_default_packages == ("small-executable", "dependent")
 
-        assert not package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "pytz")
-        assert not package_is_installed(prefix, "flask")
+    prefix = path_factory()
+    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "small-executable")
+    assert not package_is_installed(prefix, "dependent")
 
-        with make_temp_env("python=2", "pytz", prefix=prefix):
-            assert package_is_installed(prefix, "python=2")
-            assert package_is_installed(prefix, "pytz")
-            assert package_is_installed(prefix, "flask")
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    with tmp_env("font-ttf-inconsolata", prefix=prefix):
+        assert package_is_installed(prefix, "font-ttf-inconsolata")
+        assert package_is_installed(prefix, "small-executable")
+        assert package_is_installed(prefix, "dependent")
 
 
-def test_create_default_packages_no_default_packages():
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
+def test_create_default_packages_no_default_packages(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+):
+    # mock condarc
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "small-executable,dependent")
+    reset_context()
+    assert context.create_default_packages == ("small-executable", "dependent")
 
-        # set packages
-        run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
-        run_command(
-            Commands.CONFIG, prefix, "--add", "create_default_packages", "flask"
-        )
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert yml_obj["create_default_packages"] == ["flask", "pip"]
+    prefix = path_factory()
+    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "small-executable")
+    assert not package_is_installed(prefix, "dependent")
 
-        assert not package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "pytz")
-        assert not package_is_installed(prefix, "flask")
-
-        with make_temp_env("python=2", "pytz", "--no-default-packages", prefix=prefix):
-            assert package_is_installed(prefix, "python=2")
-            assert package_is_installed(prefix, "pytz")
-            assert not package_is_installed(prefix, "flask")
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    with tmp_env("font-ttf-inconsolata", "--no-default-packages", prefix=prefix):
+        assert package_is_installed(prefix, "font-ttf-inconsolata")
+        assert not package_is_installed(prefix, "small-executable")
+        assert not package_is_installed(prefix, "dependent")
 
 
 def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
