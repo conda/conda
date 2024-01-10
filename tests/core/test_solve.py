@@ -3171,7 +3171,7 @@ def test_freeze_deps_1(tmpdir):
 def test_current_repodata_usage(tmpdir):
     # force this to False, because otherwise tests fail when run with old conda-build
     # explicitly set env var so libmamba recognizes the explicit setting (ignored otherwise)
-    config = {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_REPODATA_FN": "current_repodata.json"}
+    config = {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_REPODATA_FNS": "current_repodata.json"}
     with env_vars(config, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solver = context.plugin_manager.get_solver_backend()(
             tmpdir.strpath,
