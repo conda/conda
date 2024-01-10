@@ -1482,9 +1482,6 @@ def test_update_all_updates_pip_pkg(
             f"--prefix={prefix}",
             *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
-        log.error(stdout)
-        log.error(stderr)
-        log.error(err)
 
         # ensure installed version of itsdangerous is from PyPI
         PrefixData._cache_.clear()
@@ -1507,13 +1504,22 @@ def test_update_all_updates_pip_pkg(
         assert package_is_installed(prefix, "pytz>=2023")
 
 
-def test_package_optional_pinning():
-    with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.10")
-        run_command(Commands.INSTALL, prefix, "zlib")
+def test_package_optional_pinning(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "dependency=1.0")
+    reset_context()
+    assert context.pinned_packages == ("dependency=1.0",)
+
+    with tmp_env() as prefix:
+        conda_cli("install", f"--prefix={prefix}", "small-executable", "--yes")
         assert not package_is_installed(prefix, "python")
-        run_command(Commands.INSTALL, prefix, "flask")
-        assert package_is_installed(prefix, "python=3.10")
+
+        conda_cli("install", f"--prefix={prefix}", "dependent", "--yes")
+        assert package_is_installed(prefix, "dependency=1.0")
 
 
 def test_update_deps_flag_absent():
