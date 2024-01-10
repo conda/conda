@@ -1522,29 +1522,42 @@ def test_package_optional_pinning(
         assert package_is_installed(prefix, "dependency=1.0")
 
 
-def test_update_deps_flag_absent():
-    with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert not package_is_installed(prefix, "flask")
+def test_update_deps_flag_absent(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "another_dependent")
 
-        run_command(Commands.INSTALL, prefix, "flask")
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert package_is_installed(prefix, "flask")
+        conda_cli("install", f"--prefix={prefix}", "another_dependent", "--yes")
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert package_is_installed(prefix, "another_dependent")
 
 
-def test_update_deps_flag_present():
-    with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert not package_is_installed(prefix, "flask")
+def test_update_deps_flag_present(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "another_dependent")
 
-        run_command(Commands.INSTALL, prefix, "--update-deps", "python=2", "flask")
-        assert package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "itsdangerous=0.24")
-        assert package_is_installed(prefix, "itsdangerous")
-        assert package_is_installed(prefix, "flask")
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "another_dependent",
+            "--update-deps",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert package_is_installed(prefix, "another_dependent")
 
 
 @pytest.mark.skipif(True, reason="Add this test back someday.")
