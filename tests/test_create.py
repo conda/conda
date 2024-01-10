@@ -26,6 +26,7 @@ from typing import Literal
 from unittest.mock import patch
 from uuid import uuid4
 
+import menuinst
 import pytest
 import requests
 from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
@@ -1604,7 +1605,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     assert not shortcut_file.exists()
 
     # register cleanup
-    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
+    request.addfinalizer(lambda: rmtree(shortcut_file.parent, ignore_errors=True))
 
     # including --no-shortcuts should not get shortcuts installed
     with tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
@@ -1654,37 +1655,61 @@ def test_shortcut_absent_when_condarc_set(
 
 def test_menuinst_v2(
     mocker: MockerFixture,
-    path_factory: PathFactoryFixture,
+    tmp_path: Path,
     conda_cli: CondaCLIFixture,
+    request: FixtureRequest,
 ):
-    install = mocker.patch("menuinst.install")
+    install = mocker.spy(menuinst, "install")
 
-    prefix = path_factory()
-    prefix.mkdir()
-    (prefix / ".nonadmin").touch()
+    (tmp_path / ".nonadmin").touch()
+    shortcut_root = Path(get_shortcut_dir(prefix_for_unix=tmp_path))
+
+    # shortcut_dirs are directories that need to be cleaned up
+    # shortcut_files are files that need to be cleaned up
+    if on_win:
+        shortcut_dirs = [(shortcut_dir := shortcut_root / "Package 1")]
+        shortcut_files = [shortcut_dir / "A.lnk", shortcut_dir / "B.lnk"]
+    elif on_mac:
+        shortcut_dirs = [
+            (shortcut_dirA := shortcut_root / "A.app"),
+            (shortcut_dirB := shortcut_root / "B.app"),
+        ]
+        shortcut_files = [
+            shortcut_dirA / "Contents" / "MacOS" / "a",
+            shortcut_dirB / "Contents" / "MacOS" / "b",
+        ]
+    elif on_linux:
+        shortcut_dirs = []
+        shortcut_files = [
+            shortcut_root / "package-1_a.desktop",
+            shortcut_root / "package-1_b.desktop",
+        ]
+    else:
+        raise NotImplementedError(sys.platform)
+    assert not any(path.exists() for path in shortcut_files)
+
+    # register cleanup
+    def finalizer():
+        for path in shortcut_dirs:
+            rmtree(path, ignore_errors=True)
+        for path in shortcut_files:
+            path.unlink(missing_ok=True)
+
+    request.addfinalizer(finalizer)
 
     stdout, stderr, err = conda_cli(
         "create",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "conda-test/label/menuinst-tests::package_1",
         "--no-deps",
         "--yes",
     )
-    assert package_is_installed(prefix, "package_1")
-    assert (prefix / "Menu" / "package_1.json").is_file()
+    assert package_is_installed(tmp_path, "package_1")
+    assert (tmp_path / "Menu" / "package_1.json").is_file()
     assert install.call_count == 1
     assert "menuinst Exception" not in stdout + stderr
     assert not err
-
-    shortcut_dir = Path(get_shortcut_dir(prefix_for_unix=prefix))
-    if on_win:
-        assert (shortcut_dir / "Package 1" / "A.lnk").is_file()
-    elif on_mac:
-        assert (shortcut_dir / "A.app" / "Contents" / "MacOS" / "a").is_file()
-    elif on_linux:
-        assert (shortcut_dir / "package-1_a.desktop").is_file()
-    else:
-        raise NotImplementedError(sys.platform)
+    assert all(path.is_file() for path in shortcut_files)
 
 
 def test_create_default_packages(
