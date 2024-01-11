@@ -169,12 +169,8 @@ pythonpath = [
   "tests/plugins/data/test-plugin",
 ]
 filterwarnings = [
-  "error::DeprecationWarning",
-  # urllib
-  "ignore::DeprecationWarning:urllib.*",
-  # anaconda-client
-  "ignore::DeprecationWarning:binstar_client.*",
-  "ignore::DeprecationWarning:pkg_resources.*",
+  # elevate conda's deprecated warning to an error
+  "error::DeprecationWarning:conda",
 ]
 
 [tool.vendoring]
