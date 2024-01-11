@@ -33,7 +33,8 @@ repos:
         exclude: |
           (?x)^(
             (conda\.)?recipe/meta.yaml |
-            tests/test-recipes/font-ttf-inconsolata/meta.yaml
+            tests/test-recipes/font-ttf-inconsolata/meta.yaml |
+            tests/test-recipes/dependent/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -60,7 +61,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9
+    rev: v0.1.11
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff

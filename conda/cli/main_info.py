@@ -20,9 +20,12 @@ from argparse import (
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 from ..deprecations import deprecated
+
+if TYPE_CHECKING:
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 
@@ -108,7 +111,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def get_user_site():  # pragma: no cover
+def get_user_site() -> list[str]:  # pragma: no cover
+    """
+    Method used to populate ``site_dirs`` in ``conda info``.
+
+    :returns: List of directories.
+    """
+
     from ..common.compat import on_win
 
     site_dirs = []
@@ -133,9 +142,10 @@ def get_user_site():  # pragma: no cover
     return site_dirs
 
 
-IGNORE_FIELDS = {"files", "auth", "preferred_env", "priority"}
+IGNORE_FIELDS: set[str] = {"files", "auth", "preferred_env", "priority"}
 
-SKIP_FIELDS = IGNORE_FIELDS | {
+SKIP_FIELDS: set[str] = {
+    *IGNORE_FIELDS,
     "name",
     "version",
     "build",
@@ -148,11 +158,23 @@ SKIP_FIELDS = IGNORE_FIELDS | {
 }
 
 
-def dump_record(pkg):
-    return {k: v for k, v in pkg.dump().items() if k not in IGNORE_FIELDS}
+def dump_record(prec: PackageRecord) -> dict[str, Any]:
+    """
+    Returns a dictionary of key/value pairs from ``prec``.  Keys included in ``IGNORE_FIELDS`` are not returned.
+
+    :param prec: A ``PackageRecord`` object.
+    :returns: A dictionary of elements dumped from ``prec``
+    """
+    return {k: v for k, v in prec.dump().items() if k not in IGNORE_FIELDS}
 
 
-def pretty_package(prec):
+def pretty_package(prec: PackageRecord) -> None:
+    """
+    Pretty prints contents of a ``PackageRecord``
+
+    :param prec: A ``PackageRecord``
+    """
+
     from ..utils import human_bytes
 
     pkg = dump_record(prec)
@@ -179,7 +201,14 @@ def pretty_package(prec):
         print("    %s" % dep)
 
 
-def print_package_info(packages):
+def print_package_info(packages: list[str]) -> None:
+    """
+    Prints package information for each package spec in ``packages``.  Implements ``conda info <package> ...``.
+    Deprecated.
+
+    :param packages: Array of package arguments passed by ArgParse
+    """
+
     from ..base.context import context
     from ..core.subdir_data import SubdirData
     from ..deprecations import deprecated
@@ -206,7 +235,14 @@ def print_package_info(packages):
     )
 
 
-def get_info_dict(system=False):
+@deprecated.argument("24.9", "25.3", "system")
+def get_info_dict() -> dict[str, Any]:
+    """
+    Returns a dictionary of contextual information.
+
+    :returns:  Dictionary of conda information to be sent to stdout.
+    """
+
     from .. import CONDA_PACKAGE_ROOT
     from .. import __version__ as conda_version
     from ..base.context import (
@@ -328,7 +364,14 @@ def get_info_dict(system=False):
     return info_dict
 
 
-def get_env_vars_str(info_dict):
+def get_env_vars_str(info_dict: dict[str, Any]) -> str:
+    """
+    Returns a printable string representing environment variables from the dictionary returned by ``get_info_dict``.
+
+    :param info_dict:  The returned dictionary from ``get_info_dict()``.
+    :returns:  String to print.
+    """
+
     builder = []
     builder.append("%23s:" % "environment variables")
     env_vars = info_dict.get("env_vars", {})
@@ -342,7 +385,14 @@ def get_env_vars_str(info_dict):
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict):
+def get_main_info_str(info_dict: dict[str, Any]) -> str:
+    """
+    Returns a printable string of the contents of ``info_dict``.
+
+    :param info_dict:  The output of ``get_info_dict()``.
+    :returns:  String to print.
+    """
+
     from ..common.compat import on_win
 
     def flatten(lines: Iterable[str]) -> str:
@@ -393,6 +443,17 @@ def get_main_info_str(info_dict):
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    """
+    Implements ``conda info`` commands.
+
+     * ``conda info``
+     * ``conda info --base``
+     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
+     * ``conda info --unsafe-channels``
+     * ``conda info --envs`` (deprecated) (no ``--json``)
+     * ``conda info --system`` (deprecated) (no ``--json``)
+    """
+
     from ..base.context import context
     from .common import print_envs_list, stdout_json
 
@@ -426,7 +487,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if context.verbose or context.json:
         for option in options:
             setattr(args, option, True)
-    info_dict = get_info_dict(args.system)
+    info_dict = get_info_dict()
 
     if (
         context.verbose or all(not getattr(args, opt) for opt in options)
