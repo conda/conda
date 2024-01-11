@@ -2,7 +2,7 @@
 Settings
 ========
 
-This page contains an overview of many important settings available in conda,
+This page contains an overview of many important settings available in conda
 with examples where possible.
 
 General configuration
@@ -10,12 +10,12 @@ General configuration
 
 .. _config-channels:
 
-Channel locations (channels)
-----------------------------
+Channel locations (``channels``)
+--------------------------------
 
 Listing channel locations in the ``.condarc`` file overrides
-conda defaults, causing conda to search only the channels listed
-here, in the order given.
+conda defaults, causing conda to search only the channels listed there
+in the order given.
 
 Use ``defaults`` to automatically include all default channels.
 Non-URL channels are interpreted as Anaconda.org user or organization
@@ -44,8 +44,8 @@ path may be::
 
 .. _default-channels:
 
-Default channels (default_channels)
------------------------------------
+Default channels (``default_channels``)
+---------------------------------------
 
 Normally, the defaults channel points to several channels at the
 `repo.anaconda.com <https://repo.anaconda.com/>`_ repository, but if
@@ -64,8 +64,8 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
 
 .. _auto-update-conda:
 
-Update conda automatically (auto_update_conda)
-----------------------------------------------
+Update conda automatically (``auto_update_conda``)
+--------------------------------------------------
 
 When ``True``, conda updates itself any time a user updates or
 installs a package in the root environment. When ``False``,
@@ -80,8 +80,8 @@ conda updates itself only if the user manually issues a
 
 .. _always-yes:
 
-Always yes (always_yes)
------------------------
+Always yes (``always_yes``)
+---------------------------
 
 Choose the ``yes`` option whenever asked to proceed, such as
 when installing. Same as using the ``--yes`` flag at the
@@ -95,8 +95,8 @@ command line. The default is ``False``.
 
 .. _show-channel-urls:
 
-Show channel URLs (show_channel_urls)
--------------------------------------
+Show channel URLs (``show_channel_urls``)
+-----------------------------------------
 
 Show channel URLs in ``conda list`` and when displaying what is
 going to be downloaded. The default is ``False``.
@@ -109,8 +109,8 @@ going to be downloaded. The default is ``False``.
 
 .. _change-command-prompt:
 
-Change command prompt (changeps1)
----------------------------------
+Change command prompt (``changeps1``)
+-------------------------------------
 
 When using ``conda activate``, change the command prompt from ``$PS1``
 to include the activated environment. The default is ``True``.
@@ -123,8 +123,8 @@ to include the activated environment. The default is ``True``.
 
 .. _add-pip-python-dependency:
 
-Add pip as Python dependency (add_pip_as_python_dependency)
------------------------------------------------------------
+Add pip as Python dependency (``add_pip_as_python_dependency``)
+---------------------------------------------------------------
 
 Add pip, wheel, and setuptools as dependencies of Python. This
 ensures that pip, wheel, and setuptools are always installed any
@@ -138,8 +138,8 @@ time Python is installed. The default is ``True``.
 
 .. _use-pip:
 
-Use pip (use_pip)
------------------
+Use pip (``use_pip``)
+---------------------
 
 Use pip when listing packages with ``conda list``. This does not
 affect any conda command or functionality other than the output
@@ -152,8 +152,8 @@ of the command ``conda list``. The default is ``True``.
   use_pip: False
 .. _config-proxy:
 
-Configure conda for use behind a proxy server (proxy_servers)
--------------------------------------------------------------
+Configure conda for use behind a proxy server (``proxy_servers``)
+-----------------------------------------------------------------
 
 By default, proxy settings are pulled from the HTTP_PROXY and
 HTTPS_PROXY environment variables or the system. Setting them
@@ -166,7 +166,7 @@ here overrides that default:
       https: https://user:pass@corp.com:8080
 
 To give a proxy for a specific scheme and host, use the
-scheme://hostname form for the key. This matches for any request
+``scheme://hostname`` form for the key. This matches for any request
 to the given scheme and exact host name:
 
 .. code-block:: yaml
@@ -188,8 +188,8 @@ Be careful not to use ``http`` when you mean https or
 
 .. _SSL_verification:
 
-SSL verification (ssl_verify)
------------------------------
+SSL verification (``ssl_verify``)
+---------------------------------
 
 If you are behind a proxy that does SSL inspection, such as a
 Cisco IronPort Web Security Appliance (WSA), you may need to use
@@ -213,8 +213,8 @@ which can be used to verify SSL connections:
 
 .. _offline-mode-only:
 
-Offline mode only (offline)
----------------------------
+Offline mode only (``offline``)
+-------------------------------
 
 Filters out all channel URLs that do not use the ``file://``
 protocol. The default is ``False``.
@@ -229,11 +229,11 @@ Advanced configuration
 
 .. _disallow-soft-linking:
 
-Disallow soft-linking (allow_softlinks)
----------------------------------------
+Disallow soft-linking (``allow_softlinks``)
+-------------------------------------------
 
 When ``allow_softlinks`` is ``True``, conda uses hard links when
-possible and soft links---symlinks---when hard links are not
+possible and soft links (symlinks) when hard links are not
 possible, such as when installing on a different file system
 than the one that the package cache is on.
 
@@ -253,8 +253,8 @@ The default is ``True``.
 
 .. _channel-alias:
 
-Set a channel alias (channel_alias)
------------------------------------
+Set a channel alias (``channel_alias``)
+---------------------------------------
 
 Whenever you use the ``-c`` or ``--channel`` flag to give conda a
 channel name that is not a URL, conda prepends the ``channel_alias``
@@ -264,7 +264,7 @@ https://conda.anaconda.org.
 If ``channel_alias`` is set
 to ``https://my.anaconda.repo:8080/conda/``, then a user who runs the
 command ``conda install -c conda-forge some-package`` will install the
-package some-package from https://my.anaconda.repo:8080/conda/conda-forge.
+package some-package from ``https://my.anaconda.repo:8080/conda/conda-forge``.
 
 For example, the command::
 
@@ -297,8 +297,8 @@ is the same as::
   conda install --channel https://your.repo.com/jsmith <package>
 .. _config-add-default-pkgs:
 
-Always add packages by default (create_default_packages)
---------------------------------------------------------
+Always add packages by default (``create_default_packages``)
+------------------------------------------------------------
 
 When creating new environments, add the specified packages by
 default. The default packages are installed in every environment
@@ -317,8 +317,8 @@ include any packages.
 
 .. _track-features:
 
-Track features (track_features)
--------------------------------
+Track features (``track_features``)
+-----------------------------------
 
 Enable certain features to be tracked by default. The default is
 to not track any features. This is similar to adding MKL to
@@ -333,8 +333,8 @@ the ``create_default_packages`` list.
 
 .. _disable-updating:
 
-Disable updating of dependencies (update_dependencies)
-------------------------------------------------------
+Disable updating of dependencies (``update_dependencies``)
+----------------------------------------------------------
 
 By default, ``conda install`` updates the given package to the
 latest version and installs any dependencies necessary for
@@ -369,8 +369,8 @@ better option may be to pin them. For more information, see
 
 .. _disallow-install:
 
-Disallow installation of specific packages (disallow)
------------------------------------------------------
+Disallow installation of specific packages (``disallow``)
+---------------------------------------------------------
 
 Disallow the installation of certain packages. The default is to
 allow installation of all packages.
@@ -384,8 +384,8 @@ allow installation of all packages.
 
 .. _add-anaconda-token:
 
-Add Anaconda.org token to automatically see private packages (add_anaconda_token)
----------------------------------------------------------------------------------
+Add Anaconda.org token to automatically see private packages (``add_anaconda_token``)
+-------------------------------------------------------------------------------------
 
 When the channel alias is Anaconda.org or an Anaconda Server GUI,
 you can set the system configuration so that users automatically
@@ -410,8 +410,8 @@ The default is ``True``.
 
 .. _specify-env-directories:
 
-Specify environment directories (envs_dirs)
--------------------------------------------
+Specify environment directories (``envs_dirs``)
+-----------------------------------------------
 
 Specify directories in which environments are located. If this
 key is set, the root prefix ``envs_dir`` is not used unless
@@ -440,8 +440,8 @@ The ``CONDA_ENVS_PATH`` environment variable overwrites the ``envs_dirs`` settin
 
 .. _specify-pkg-directories:
 
-Specify package directories (pkgs_dirs)
----------------------------------------
+Specify package directories (``pkgs_dirs``)
+-------------------------------------------
 
 Specify directories in which packages are located. If this
 key is set, the root prefix ``pkgs_dirs`` is not used unless
@@ -469,8 +469,8 @@ The ``CONDA_PKGS_DIRS`` environment variable overwrites the
 
 .. _use-only-tar-bz2:
 
-Force conda to download only .tar.bz2 packages (use_only_tar_bz2)
------------------------------------------------------------------
+Force conda to download only .tar.bz2 packages (``use_only_tar_bz2``)
+---------------------------------------------------------------------
 
 Conda 4.7 introduced a new ``.conda`` package file format.
 ``.conda`` is a more compact and faster alternative to ``.tar.bz2`` packages.
@@ -497,8 +497,8 @@ Conda-build configuration
 
 .. _specify-root-dir:
 
-Specify conda-build output root directory (root-dir)
-----------------------------------------------------
+Specify conda-build output root directory (``root-dir``)
+--------------------------------------------------------
 
 Build output root directory. You can also set this with the
 ``CONDA_BLD_PATH`` environment variable. The default is
@@ -514,8 +514,8 @@ permissions to ``<CONDA_PREFIX>/conda-bld/``, the default is
       root-dir: ~/conda-builds
 .. _specify-output-folder:
 
-Specify conda-build build folder (conda-build 3.16.3+) (output_folder)
-----------------------------------------------------------------------
+Specify conda-build build folder (conda-build 3.16.3+) (``output_folder``)
+--------------------------------------------------------------------------
 
 Folder to dump output package to. Packages are moved here if build or test
 succeeds. If unset, the output folder corresponds to the same directory as
@@ -528,8 +528,8 @@ the root build directory (``root-dir``).
 
 .. _pkg_format:
 
-Specify conda-build package version (pkg_version)
--------------------------------------------------
+Specify conda-build package version (``pkg_version``)
+-----------------------------------------------------
 
 Conda package version to create. Use ``2`` for ``.conda`` packages. If not set, conda-build defaults to ``.tar.bz2``.
 
@@ -540,8 +540,8 @@ Conda package version to create. Use ``2`` for ``.conda`` packages. If not set, 
 
 .. _auto-upload:
 
-Automatically upload conda-build packages to Anaconda.org (anaconda_upload)
----------------------------------------------------------------------------
+Automatically upload conda-build packages to Anaconda.org (``anaconda_upload``)
+-------------------------------------------------------------------------------
 
 Automatically upload packages built with conda-build to
 `Anaconda.org <http://anaconda.org>`_. The default is ``False``.
@@ -554,23 +554,23 @@ Automatically upload packages built with conda-build to
 
 .. _anaconda-token:
 
-Token to be used for Anaconda.org uploads (conda-build 3.0+) (anaconda_token)
------------------------------------------------------------------------------
+Token to be used for Anaconda.org uploads (conda-build 3.0+) (``anaconda_token``)
+---------------------------------------------------------------------------------
 
 Tokens are a means of authenticating with Anaconda.org without logging in.
 You can pass your token to conda-build with this ``.condarc`` setting, or with a CLI
 argument. This is unset by default. Setting it implicitly enables
 ``anaconda_upload``.
 
-  .. code-block:: yaml
+.. code-block:: yaml
 
-     conda-build:
-         anaconda_token: gobbledygook
+   conda-build:
+       anaconda_token: gobbledygook
 
 .. _quiet:
 
-Limit build output verbosity (conda-build 3.0+) (quiet)
--------------------------------------------------------
+Limit build output verbosity (conda-build 3.0+) (``quiet``)
+-----------------------------------------------------------
 
 Conda-build's output verbosity can be reduced with the ``quiet`` setting. For
 more verbosity, use the CLI flag ``--debug``.
@@ -582,8 +582,8 @@ more verbosity, use the CLI flag ``--debug``.
 
 .. _filename-hashing:
 
-Disable filename hashing (conda-build 3.0+) (filename_hashing)
---------------------------------------------------------------
+Disable filename hashing (conda-build 3.0+) (``filename_hashing``)
+------------------------------------------------------------------
 
 Conda-build 3 adds hashes to filenames to allow greater customization of
 dependency versions. If you find this disruptive, you can disable the hashing
@@ -602,8 +602,8 @@ with the following config entry:
 
 .. _no-verify:
 
-Disable recipe and package verification (conda-build 3.0+) (no_verify)
-----------------------------------------------------------------------
+Disable recipe and package verification (conda-build 3.0+) (``no_verify``)
+--------------------------------------------------------------------------
 
 By default, conda-build uses conda-verify to ensure that your recipe
 and package meet some minimum sanity checks. You can disable these:
@@ -614,8 +614,8 @@ and package meet some minimum sanity checks. You can disable these:
        no_verify: true
 .. _set-build-id:
 
-Disable per-build folder creation (conda-build 3.0+) (set_build_id)
--------------------------------------------------------------------
+Disable per-build folder creation (conda-build 3.0+) (``set_build_id``)
+-----------------------------------------------------------------------
 
 By default, conda-build creates a new folder for each build, named for the
 package name plus a timestamp. This allows you to do multiple builds at once.
@@ -630,8 +630,8 @@ You should first try to change the build output root directory with the
 
 .. _skip-existing:
 
-Skip building packages that already exist (conda-build 3.0+) (skip_existing)
-----------------------------------------------------------------------------
+Skip building packages that already exist (conda-build 3.0+) (``skip_existing``)
+--------------------------------------------------------------------------------
 
 By default, conda-build builds all recipes that you specify. You can instead
 skip recipes that are already built. A recipe is skipped if and only if *all* of
@@ -644,8 +644,8 @@ its outputs are available on your currently configured channels.
 
 .. _include-recipe:
 
-Omit recipe from package (conda-build 3.0+) (include_recipe)
-------------------------------------------------------------
+Omit recipe from package (conda-build 3.0+) (``include_recipe``)
+----------------------------------------------------------------
 
 By default, conda-build includes the recipe that was used to build the package.
 If this contains sensitive or proprietary information, you can omit the recipe.
@@ -667,8 +667,8 @@ If this contains sensitive or proprietary information, you can omit the recipe.
 
 .. _disable-activation:
 
-Disable activation of environments during build/test (conda-build 3.0+) (activate)
-----------------------------------------------------------------------------------
+Disable activation of environments during build/test (conda-build 3.0+) (``activate``)
+--------------------------------------------------------------------------------------
 
 By default, conda-build activates the build and test environments prior to
 executing the build or test scripts. This adds necessary PATH entries, and also
@@ -683,8 +683,8 @@ recommended, but some people prefer this.
 
 .. _long-test-prefix:
 
-Disable long prefix during test (conda-build 3.16.3+) (long_test_prefix)
-------------------------------------------------------------------------
+Disable long prefix during test (conda-build 3.16.3+) (``long_test_prefix``)
+----------------------------------------------------------------------------
 
 By default, conda-build uses a long prefix for the test prefix. If you have recipes
 that fail in long prefixes but would still like to test them in short prefixes, you
@@ -699,8 +699,8 @@ The default is ``true``.
 
 .. _pypi-upload-settings:
 
-PyPI upload settings (conda-build 3.0+) (pypirc)
-------------------------------------------------
+PyPI upload settings (conda-build 3.0+) (``pypirc``)
+----------------------------------------------------
 
 Unset by default. If you have wheel outputs in your recipe, conda-build will
 try to upload them to the PyPI repository specified by the ``pypi_repository``
@@ -713,8 +713,8 @@ setting using credentials from this file path.
 
 .. _pypi-repository:
 
-PyPI repository to upload to (conda-build 3.0+) (pypi_repository)
------------------------------------------------------------------
+PyPI repository to upload to (conda-build 3.0+) (``pypi_repository``)
+---------------------------------------------------------------------
 
 Unset by default. If you have wheel outputs in your recipe, conda-build will
 try to upload them to this PyPI repository using credentials from the file
@@ -724,6 +724,7 @@ specified by the ``pypirc`` setting.
 
    conda-build:
        pypi_repository: pypi
+
 Expansion of environment variables
 ==================================
 
@@ -765,15 +766,17 @@ If you have a very fast SSD, you might increase the number
 of threads to shorten the time it takes for conda to create
 environments and install/remove packages.
 
-**repodata_threads**
+``repodata_threads``
+--------------------
 
 * Default number of threads: None
 * Threads used when downloading, parsing, and creating repodata
-  structures from repodata.json files. Multiple downloads from
+  structures from ``repodata.json`` files. Multiple downloads from
   different channels may occur simultaneously. This speeds up the
   time it takes to start solving.
 
-**verify_threads**
+``verify_threads``
+------------------
 
 * Default number of threads: 1
 * Threads used when verifying the integrity of packages and files
@@ -781,14 +784,16 @@ environments and install/remove packages.
   multiple threads here can run into problems with slower hard
   drives.
 
-**execute_threads**
+``execute_threads``
+-------------------
 
 * Default number of threads: 1
 * Threads used to unlink, remove, link, or copy files into your
   environment. Defaults to 1, as using multiple threads here can
   run into problems with slower hard drives.
 
-**default_threads**
+``default_threads``
+-------------------
 
 * Default number of threads: None
 * When set, this value is used for all of the above thread
