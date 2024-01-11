@@ -73,7 +73,6 @@ from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.delete import path_is_clean, rm_rf
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.update import touch
 from conda.gateways.subprocess import (
     Response,
     subprocess_call,
@@ -89,7 +88,6 @@ from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     Commands,
-    cp_or_copy,
     env_or_set,
     get_shortcut_dir,
     make_temp_channel,
@@ -850,10 +848,9 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         assert prefix not in PrefixData._cache_
 
 
-def test_compare_success():
-    with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+def test_compare_success(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3.10.9", "flask=1.1.1", "bzip2=1.0.8") as prefix:
         env_file = join(prefix, "env.yml")
-        touch(env_file)
         with open(env_file, "w") as f:
             f.write(
                 dals(
@@ -863,19 +860,19 @@ def test_compare_success():
                       - defaults
                     dependencies:
                       - bzip2=1.0.8
-                      - flask>=1.0.1,<=1.0.4
+                      - flask>=1.0.1,<=1.1.4
                     """
                 )
             )
-        output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+        output, _, _ = conda_cli(
+            "compare", f"--prefix={prefix}", f"{env_file}", "--json"
+        )
         assert "Success" in output
-        rmtree(prefix, ignore_errors=True)
 
 
-def test_compare_fail():
-    with make_temp_env("python=3.6", "flask=1.0.2", "bzip2=1.0.8") as prefix:
+def test_compare_fail(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("python=3.10.9", "flask=1.1.1", "bzip2=1.0.8") as prefix:
         env_file = join(prefix, "env.yml")
-        touch(env_file)
         with open(env_file, "w") as f:
             f.write(
                 dals(
@@ -889,16 +886,24 @@ def test_compare_fail():
                     """
                 )
             )
-        output, _, _ = run_command(Commands.COMPARE, prefix, env_file, "--json")
+        (
+            output,
+            _,
+            _,
+        ) = conda_cli("compare", f"--prefix={prefix}", f"{env_file}", "--json")
         assert "yaml not found" in output
         assert (
-            "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.0.2=py36_1"
+            "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.1.1=py_1"
             in output
         )
-        rmtree(prefix, ignore_errors=True)
 
 
-def test_install_tarball_from_local_channel(tmp_path: Path, monkeypatch: MonkeyPatch):
+def test_install_tarball_from_local_channel(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     # Regression test for #2812
     # install from local channel
     """
@@ -921,14 +926,21 @@ def test_install_tarball_from_local_channel(tmp_path: Path, monkeypatch: MonkeyP
     reset_context()
     assert context.bld_path == str(tmp_path)
 
-    with make_temp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
-        run_command(Commands.INSTALL, prefix, "-c", channel, "flask=2.1.3", "--json")
+    with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            f"--channel={channel}",
+            "flask=2.1.3",
+            "--json",
+            "--yes",
+        )
         assert package_is_installed(prefix, channel + "::" + "flask")
         flask_fname = [
             p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
         ][0]["fn"]
 
-        run_command(Commands.REMOVE, prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
         assert not package_is_installed(prefix, "flask=0")
 
         # Regression test for 2970
@@ -943,7 +955,7 @@ def test_install_tarball_from_local_channel(tmp_path: Path, monkeypatch: MonkeyP
         tar_bld_path = str(conda_bld_sub / tar_path.name)
         copyfile(tar_path, tar_bld_path)
 
-        run_command(Commands.INSTALL, prefix, tar_bld_path)
+        conda_cli("install", f"--prefix={prefix}", f"{tar_bld_path}", "--yes")
         assert package_is_installed(prefix, "flask")
 
         # Regression test for #462
@@ -951,8 +963,8 @@ def test_install_tarball_from_local_channel(tmp_path: Path, monkeypatch: MonkeyP
             assert package_is_installed(prefix2, "flask")
 
 
-def test_tarball_install():
-    with make_temp_env("bzip2") as prefix:
+def test_tarball_install(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("bzip2=1.0.8") as prefix:
         # We have a problem. If bzip2 is extracted already but the tarball is missing then this fails.
         bzip2_data = [
             p for p in PrefixData(prefix).iter_records() if p["name"] == "bzip2"
@@ -983,25 +995,27 @@ def test_tarball_install():
             )
         assert isfile(tar_old_path), f"Failed to cache:\n{tar_old_path}"
         # It would be nice to be able to do this, but the cache folder name comes from
-        # the file name and that is then all out of whack with the metadata.
+        # the file name and that is then all out of whack with the metadata:
         # tar_new_path = join(prefix, '家' + bzip2_fname)
         tar_new_path = join(prefix, bzip2_fname)
-
-        run_command(Commands.RUN, prefix, cp_or_copy, tar_old_path, tar_new_path)
+        copyfile(tar_old_path, tar_new_path)
         assert isfile(
             tar_new_path
         ), f"Failed to copy:\n{tar_old_path}\nto:\n{tar_new_path}"
-        run_command(Commands.INSTALL, prefix, tar_new_path)
+
+        conda_cli("install", f"--prefix={prefix}", f"{tar_new_path}", "--yes")
         assert package_is_installed(prefix, "bzip2")
 
 
-def test_tarball_install_and_bad_metadata():
-    with make_temp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
+def test_tarball_install_and_bad_metadata(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
         assert package_is_installed(prefix, "flask==1.1.1")
         flask_data = [
             p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
         ][0]
-        run_command(Commands.REMOVE, prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
         assert not package_is_installed(prefix, "flask==1.1.1")
         assert package_is_installed(prefix, "python")
 
@@ -1014,34 +1028,34 @@ def test_tarball_install_and_bad_metadata():
         assert isfile(tar_old_path)
 
         with pytest.raises(DryRunExit):
-            run_command(Commands.INSTALL, prefix, tar_old_path, "--dry-run")
+            conda_cli("install", f"--prefix={prefix}", f"{tar_old_path}", "--dry-run")
             assert not package_is_installed(prefix, "flask=1.*")
 
         # regression test for #2886 (part 1 of 2)
         # install tarball from package cache, default channel
-        run_command(Commands.INSTALL, prefix, tar_old_path)
+        conda_cli("install", f"--prefix={prefix}", f"{tar_old_path}", "--yes")
         assert package_is_installed(prefix, "flask=1.*")
 
         # regression test for #2626
         # install tarball with full path, outside channel
         tar_new_path = join(prefix, flask_fname)
         copyfile(tar_old_path, tar_new_path)
-        run_command(Commands.INSTALL, prefix, tar_new_path)
+        conda_cli("install", f"--prefix={prefix}", f"{tar_new_path}", "--yes")
         assert package_is_installed(prefix, "flask=1")
 
         # regression test for #2626
         # install tarball with relative path, outside channel
-        run_command(Commands.REMOVE, prefix, "flask")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
         assert not package_is_installed(prefix, "flask=1.1.1")
         tar_new_path = relpath(tar_new_path)
-        run_command(Commands.INSTALL, prefix, tar_new_path)
+        conda_cli("install", f"--prefix={prefix}", f"{tar_new_path}", "--yes")
         assert package_is_installed(prefix, "flask=1")
 
         # regression test for #2886 (part 2 of 2)
         # install tarball from package cache, local channel
-        run_command(Commands.REMOVE, prefix, "flask", "--json")
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--json", "--yes")
         assert not package_is_installed(prefix, "flask=1")
-        run_command(Commands.INSTALL, prefix, tar_old_path)
+        conda_cli("install", f"--prefix={prefix}", f"{tar_old_path}", "--yes")
         # The last install was from the `local::` channel
         assert package_is_installed(prefix, "flask")
 
