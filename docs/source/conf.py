@@ -218,6 +218,9 @@ redirects = {
     "using/pkgs": "../user-guide/tasks/manage-pkgs.html",
     "using/test-drive": "../user-guide/getting-started.html",
     "using/using": "../user-guide/tasks/manage-conda.html",
+    "user-guide/install/download": "../install/index.html",
+    "user-guide/configuration/sample-condarc": "../configuration/use-condarc.html#sample-condarc",
+    "user-guide/configuration/enable-tab-completion": "../configuration/index.html",
     # external redirects
     "travis": "https://github.com/conda-incubator/setup-miniconda",
     "user-guide/tasks/use-conda-with-travis-ci": "https://github.com/conda-incubator/setup-miniconda",
