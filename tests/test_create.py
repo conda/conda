@@ -1351,6 +1351,7 @@ def test_install_update_deps_only_deps_flags(
 
 
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
 def test_install_features(
     clear_package_cache: None,
     request: FixtureRequest,
@@ -1364,19 +1365,19 @@ def test_install_features(
         )
     )
 
-    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
+    with tmp_env("python=2", "numpy=1.13", "nomkl") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
         assert not package_is_installed(prefix, "mkl")
 
-    with tmp_env("--channel=main", "python=2", "numpy=1.13") as prefix:
+    with tmp_env("python=2", "numpy=1.13") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert not package_is_installed(prefix, "nomkl")
         assert package_is_installed(prefix, "mkl")
 
-        conda_cli("install", f"--prefix={prefix}", "--channel=main", "nomkl", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "nomkl", "--yes")
 
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
