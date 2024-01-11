@@ -1351,7 +1351,6 @@ def test_install_update_deps_only_deps_flags(
 
 
 @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
 def test_install_features(
     clear_package_cache: None,
     request: FixtureRequest,
