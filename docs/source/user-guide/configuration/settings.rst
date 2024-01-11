@@ -150,6 +150,7 @@ of the command ``conda list``. The default is ``True``.
 .. code-block:: yaml
 
   use_pip: False
+
 .. _config-proxy:
 
 Configure conda for use behind a proxy server (``proxy_servers``)
@@ -182,8 +183,8 @@ them as described in `Percent-encoding reserved characters
 <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
 on Wikipedia.
 
-Be careful not to use ``http`` when you mean https or
-``https`` when you mean http.
+Be careful not to use ``http`` when you mean ``https`` or
+``https`` when you mean ``http``.
 
 
 .. _SSL_verification:
@@ -224,6 +225,7 @@ protocol. The default is ``False``.
 .. code-block:: yaml
 
   offline: True
+
 Advanced configuration
 ======================
 
@@ -249,6 +251,7 @@ The default is ``True``.
 .. code-block:: yaml
 
   allow_softlinks: False
+
 .. _set-ch-alias:
 
 .. _channel-alias:
@@ -295,6 +298,7 @@ https://your.repo.com::
 is the same as::
 
   conda install --channel https://your.repo.com/jsmith <package>
+
 .. _config-add-default-pkgs:
 
 Always add packages by default (``create_default_packages``)
@@ -612,6 +616,7 @@ and package meet some minimum sanity checks. You can disable these:
 
    conda-build:
        no_verify: true
+
 .. _set-build-id:
 
 Disable per-build folder creation (conda-build 3.0+) (``set_build_id``)
