@@ -169,11 +169,12 @@ pythonpath = [
   "tests/plugins/data/test-plugin",
 ]
 filterwarnings = [
-  "error",
-  "ignore::UserWarning",
-  "ignore:.*'urllib3.contrib.pyopenssl'.*:DeprecationWarning",
-  "ignore:.*'pkg_resources'.*:DeprecationWarning",
-  "ignore::PendingDeprecationWarning",
+  "error::DeprecationWarning",
+  # urllib
+  "ignore::DeprecationWarning:urllib.*",
+  # anaconda-client
+  "ignore::DeprecationWarning:binstar_client.*",
+  "ignore::DeprecationWarning:pkg_resources.*",
 ]
 
 [tool.vendoring]
