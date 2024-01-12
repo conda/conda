@@ -2956,12 +2956,12 @@ def test_conda_downgrade():
 
 
 @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
-def test_run_script_called():
+def test_run_script_called(tmp_env: TmpEnvFixture):
     import conda.core.link
 
     with patch.object(conda.core.link, "subprocess_call") as rs:
         rs.return_value = Response(None, None, 0)
-        with make_temp_env(
+        with tmp_env(
             "-c",
             "http://repo.anaconda.com/pkgs/free",
             "openssl=1.0.2j",
@@ -2972,41 +2972,47 @@ def test_run_script_called():
 
 
 @pytest.mark.xfail(on_mac, reason="known broken; see #11127")
-def test_post_link_run_in_env():
+def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
     test_pkg = "_conda_test_env_activated_when_post_link_executed"
     # a non-unicode name must be provided here as activate.d scripts
     # are not executed on windows, see https://github.com/conda/conda/issues/8241
-    with make_temp_env(test_pkg, "-c", "conda-test") as prefix:
+    with tmp_env(test_pkg, "-c", "conda-test") as prefix:
         assert package_is_installed(prefix, test_pkg)
 
 
-def test_conda_info_python():
-    output, _, _ = run_command(Commands.INFO, None, "python=3.5")
-    assert "python 3.5.4" in output
+def test_conda_info_python(conda_cli: CondaCLIFixture):
+    output, _, _ = conda_cli("info", "python=3.10")
+    assert "python 3.10.4" in output
 
 
-def test_toolz_cytoolz_package_cache_regression():
-    with make_temp_env("python=3.5", use_restricted_unicode=on_win) as prefix:
+def test_toolz_cytoolz_package_cache_regression(
+    tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+):
+    with tmp_env("python=3.10") as prefix:
         pkgs_dir = join(prefix, "pkgs")
-        with env_var(
-            "CONDA_PKGS_DIRS",
-            pkgs_dir,
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            assert context.pkgs_dirs == (pkgs_dir,)
-            run_command(
-                Commands.INSTALL, prefix, "-c", "conda-forge", "toolz", "cytoolz"
-            )
-            assert package_is_installed(prefix, "toolz")
+        monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs_dir)
+        reset_context()
+
+        assert context.pkgs_dirs == (pkgs_dir,)
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "-c",
+            "conda-forge",
+            "toolz",
+            "cytoolz",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "toolz")
 
 
-def test_remove_spellcheck():
-    with make_temp_env("numpy=1.12") as prefix:
+def test_remove_spellcheck(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("numpy=1.12") as prefix:
         assert exists(join(prefix, PYTHON_BINARY))
         assert package_is_installed(prefix, "numpy")
 
         with pytest.raises(PackagesNotFoundError) as exc:
-            run_command(Commands.REMOVE, prefix, "numpi")
+            conda_cli("remove", f"--prefix={prefix}", "numpi", "--yes")
 
         exc_string = "%r" % exc.value
         assert (
@@ -3021,7 +3027,7 @@ def test_remove_spellcheck():
         assert package_is_installed(prefix, "numpy")
 
 
-def test_conda_list_json():
+def test_conda_list_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     def pkg_info(s):
         # function from nb_conda/envmanager.py
         if isinstance(s, str):
@@ -3034,8 +3040,8 @@ def test_conda_list_json():
                 "build": s.get("build_string") or s["build"],
             }
 
-    with make_temp_env("python=3") as prefix:
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
+    with tmp_env("python=3") as prefix:
+        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json", "--yes")
         stdout_json = json.loads(stdout)
         packages = [pkg_info(package) for package in stdout_json]
         python_package = next(p for p in packages if p["name"] == "python")
