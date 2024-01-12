@@ -1,3 +1,2 @@
 channels:
   - conda-forge
-channel_priority: strict
