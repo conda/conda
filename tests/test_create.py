@@ -1363,20 +1363,20 @@ def test_install_features(
             reason="Features not supported in libmamba",
         )
     )
-
-    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
+    channels = ("--override-channels", "--channel=main")
+    with tmp_env(*channels, "python=2", "numpy=1.13", "nomkl") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
         assert not package_is_installed(prefix, "mkl")
 
-    with tmp_env("--channel=main", "python=2", "numpy=1.13") as prefix:
+    with tmp_env(*channels, "python=2", "numpy=1.13") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "numpy")
         assert not package_is_installed(prefix, "nomkl")
         assert package_is_installed(prefix, "mkl")
 
-        conda_cli("install", f"--prefix={prefix}", "--channel=main", "nomkl", "--yes")
+        conda_cli("install", f"--prefix={prefix}", *channels, "nomkl", "--yes")
 
         assert package_is_installed(prefix, "numpy")
         assert package_is_installed(prefix, "nomkl")
