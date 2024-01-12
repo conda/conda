@@ -20,6 +20,7 @@ except ImportError:  # pragma: no cover
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
+from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
@@ -625,7 +626,13 @@ class Solver:
                 rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and rec.name in ssc.specs_from_history_map:
                     spec = ssc.specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop("features", None)
+                    spec._match_components = frozendict(
+                        {
+                            key: value
+                            for key, value in spec._match_components.items()
+                            if key != "features"
+                        }
+                    )
                     ssc.specs_map[spec.name] = spec
                 else:
                     ssc.specs_map.pop(rec.name, None)
