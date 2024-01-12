@@ -16,7 +16,16 @@ sudo rm -rf /opt/conda/pkgs/*-*-*
 # put temporary files on same filesystem
 export TMP=$HOME/pytesttmp
 mkdir -p $TMP
-python -m pytest \
-    --basetemp=$TMP \
-    -m "benchmark" \
-    --codspeed
+
+CODSPEED_RUNNER_VERSION="${CODSPEED_RUNNER_VERSION:-1}"
+CODSPEED_TOKEN="${CODSPEED_TOKEN:-1}"
+
+curl -fsSL "https://github.com/CodSpeedHQ/runner/releases/download/${CODSPEED_RUNNER_VERSION}/codspeed-runner-installer.sh" | bash
+source "${HOME}/.cargo/env"
+
+codspeed-runner \
+    --token="${CODSPEED_TOKEN}" -- \
+        python -m pytest \
+        --basetemp=$TMP \
+        -m "benchmark" \
+        --codspeed

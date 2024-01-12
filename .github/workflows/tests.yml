@@ -219,21 +219,21 @@ jobs:
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
+      CODSPEED_TOKEN: ${{ secrets.CODSPEED_TOKEN }}
+      CODSPEED_RUNNER_VERSION: v2.0.3
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Python ${{ matrix.python-version }} benchmarks
-        uses: CodSpeedHQ/action@v2
-        with:
-          token: ${{ secrets.CODSPEED_TOKEN }}
-          run: >
-            docker run
-            --rm -v ${PWD}:/opt/conda-src
-            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
-            /opt/conda-src/dev/linux/benchmarks.sh
-
+        run: >
+          docker run
+          --rm -v ${PWD}:/opt/conda-src
+          -e CODSPEED_TOKEN
+          -e CODSPEED_RUNNER_VERSION
+          ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
+          /opt/conda-src/dev/linux/benchmarks.sh
 
   # linux-qemu test suite
   linux-qemu:
