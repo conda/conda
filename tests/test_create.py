@@ -26,6 +26,7 @@ from typing import Literal
 from unittest.mock import patch
 from uuid import uuid4
 
+import menuinst
 import pytest
 import requests
 from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
@@ -40,7 +41,7 @@ from conda.base.constants import (
     SafetyChecks,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import ensure_text_type, on_mac, on_win
+from conda.common.compat import ensure_text_type, on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
@@ -1482,9 +1483,6 @@ def test_update_all_updates_pip_pkg(
             f"--prefix={prefix}",
             *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
-        log.error(stdout)
-        log.error(stderr)
-        log.error(err)
 
         # ensure installed version of itsdangerous is from PyPI
         PrefixData._cache_.clear()
@@ -1507,249 +1505,257 @@ def test_update_all_updates_pip_pkg(
         assert package_is_installed(prefix, "pytz>=2023")
 
 
-def test_package_optional_pinning():
-    with make_temp_env() as prefix:
-        run_command(Commands.CONFIG, prefix, "--add", "pinned_packages", "python=3.10")
-        run_command(Commands.INSTALL, prefix, "zlib")
+def test_package_optional_pinning(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "dependency=1.0")
+    reset_context()
+    assert context.pinned_packages == ("dependency=1.0",)
+
+    with tmp_env() as prefix:
+        conda_cli("install", f"--prefix={prefix}", "small-executable", "--yes")
         assert not package_is_installed(prefix, "python")
-        run_command(Commands.INSTALL, prefix, "flask")
-        assert package_is_installed(prefix, "python=3.10")
+
+        conda_cli("install", f"--prefix={prefix}", "dependent", "--yes")
+        assert package_is_installed(prefix, "dependency=1.0")
 
 
-def test_update_deps_flag_absent():
-    with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert not package_is_installed(prefix, "flask")
+def test_update_deps_flag_absent(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "another_dependent")
 
-        run_command(Commands.INSTALL, prefix, "flask")
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert package_is_installed(prefix, "flask")
-
-
-def test_update_deps_flag_present():
-    with make_temp_env("python=2", "itsdangerous=0.24") as prefix:
-        assert package_is_installed(prefix, "python=2")
-        assert package_is_installed(prefix, "itsdangerous=0.24")
-        assert not package_is_installed(prefix, "flask")
-
-        run_command(Commands.INSTALL, prefix, "--update-deps", "python=2", "flask")
-        assert package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "itsdangerous=0.24")
-        assert package_is_installed(prefix, "itsdangerous")
-        assert package_is_installed(prefix, "flask")
+        conda_cli("install", f"--prefix={prefix}", "another_dependent", "--yes")
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert package_is_installed(prefix, "another_dependent")
 
 
-@pytest.mark.skipif(True, reason="Add this test back someday.")
-# @pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_in_underscore_env_shows_message():
-    prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    with make_temp_env(prefix=prefix):
-        stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "console_shortcut")
-        assert (
-            "Environment name starts with underscore '_'.  "
-            "Skipping menu installation." in stderr
+def test_update_deps_flag_present(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "another_dependent")
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "another_dependent",
+            "--update-deps",
+            "--yes",
         )
+        assert package_is_installed(prefix, "dependent=2.0")
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert package_is_installed(prefix, "another_dependent")
 
 
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_not_attempted_with_no_shortcuts_arg():
-    prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    shortcut_dir = get_shortcut_dir()
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    with make_temp_env(prefix=prefix):
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "console_shortcut", "--no-shortcuts"
-        )
-        assert (
-            "Environment name starts with underscore '_'.  Skipping menu installation."
-            not in stderr
-        )
-        assert not isfile(shortcut_file)
-
-
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_creation_installs_shortcut():
-    shortcut_dir = get_shortcut_dir()
-    shortcut_dir = join(
-        shortcut_dir,
+@pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
+def test_shortcut_creation_installs_shortcut(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    prefix = path_factory()
+    shortcut_file = Path(
+        get_shortcut_dir(),
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
+        f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
+    assert not shortcut_file.exists()
 
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    try:
-        with make_temp_env("console_shortcut", prefix=prefix):
-            assert package_is_installed(prefix, "console_shortcut")
-            assert isfile(
-                shortcut_file
-            ), "Shortcut not found in menu dir. Contents of dir:\n{}".format(
-                os.listdir(shortcut_dir)
-            )
+    # register cleanup
+    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, "console_shortcut")
-            assert not package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
+    with tmp_env("console_shortcut", prefix=prefix):
+        assert package_is_installed(prefix, "console_shortcut")
+        assert shortcut_file.is_file()
+
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
 
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_absent_does_not_barf_on_uninstall():
-    shortcut_dir = get_shortcut_dir()
-    shortcut_dir = join(
-        shortcut_dir,
+@pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
+def test_shortcut_absent_does_not_barf_on_uninstall(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    prefix = path_factory()
+    shortcut_file = Path(
+        get_shortcut_dir(),
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
+        f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
+    assert not shortcut_file.exists()
 
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    assert not isfile(shortcut_file)
+    # register cleanup
+    request.addfinalizer(lambda: rmtree(shortcut_file.parent, ignore_errors=True))
 
-    try:
-        # including --no-shortcuts should not get shortcuts installed
-        with make_temp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
-            assert package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
+    # including --no-shortcuts should not get shortcuts installed
+    with tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
+        assert package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, "console_shortcut")
-            assert not package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
 
-@pytest.mark.skipif(not on_win, reason="menuinst-v1 shortcuts only relevant on Windows")
-def test_shortcut_absent_when_condarc_set():
-    shortcut_dir = get_shortcut_dir()
-    shortcut_dir = join(
-        shortcut_dir,
+@pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
+def test_shortcut_absent_when_condarc_set(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    prefix = path_factory()
+    shortcut_file = Path(
+        get_shortcut_dir(),
         f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
+        f"Anaconda Prompt ({basename(prefix)}).lnk",
     )
+    assert not shortcut_file.exists()
 
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    shortcut_file = join(shortcut_dir, f"Anaconda Prompt ({basename(prefix)}).lnk")
-    assert not isfile(shortcut_file)
+    # register cleanup
+    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-    # set condarc shortcuts: False
-    run_command(Commands.CONFIG, prefix, "--set", "shortcuts", "false")
-    stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--get", "--json")
-    json_obj = json_loads(stdout)
-    assert json_obj["rc_path"] == join(prefix, "condarc")
-    assert json_obj["get"]["shortcuts"] is False
+    # mock condarc
+    monkeypatch.setenv("CONDA_SHORTCUTS", "false")
+    reset_context()
+    assert not context.shortcuts
 
-    try:
-        with make_temp_env("console_shortcut", prefix=prefix):
-            # including shortcuts: False from condarc should not get shortcuts installed
-            assert package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
+    with tmp_env("console_shortcut", prefix=prefix):
+        # including shortcuts: False from condarc should not get shortcuts installed
+        assert package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, "console_shortcut")
-            assert not package_is_installed(prefix, "console_shortcut")
-            assert not isfile(shortcut_file)
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
-        # even if the $PREFIX/.condarc is gone,
-        # the context object still has that config in memory
-        reset_context()
+        # make sure that cleanup without specifying --shortcuts still removes shortcuts
+        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "console_shortcut")
+        assert not shortcut_file.exists()
 
 
-def test_menuinst_v2(monkeypatch: MonkeyPatch):
-    called = False
-    from menuinst import install
+def test_menuinst_v2(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    conda_cli: CondaCLIFixture,
+    request: FixtureRequest,
+):
+    install = mocker.spy(menuinst, "install")
 
-    def mock_install(*args, **kwargs):
-        nonlocal called, install
-        called = True
-        return install(*args, **kwargs)
+    (tmp_path / ".nonadmin").touch()
+    shortcut_root = Path(get_shortcut_dir(prefix_for_unix=tmp_path))
 
-    monkeypatch.setattr("menuinst.install", mock_install)
-    prefix = make_temp_prefix(str(uuid4())[:7])
-
-    Path(prefix).mkdir(parents=True, exist_ok=True)
-    Path(prefix).touch(".nonadmin")
-    out, err, _ = run_command(
-        Commands.CREATE,
-        prefix,
-        "conda-test/label/menuinst-tests::package_1",
-        "--no-deps",
-    )
-    assert package_is_installed(prefix, "package_1")
-    assert Path(prefix, "Menu", "package_1.json").is_file()
-    assert called
-    assert "menuinst Exception" not in out + err
-    base_dir = Path(get_shortcut_dir(prefix_for_unix=prefix))
-    if sys.platform == "win32":
-        assert (base_dir / "Package 1" / "A.lnk").is_file()
-    elif sys.platform == "darwin":
-        assert (base_dir / "A.app" / "Contents" / "MacOS" / "a").is_file()
-    elif sys.platform == "linux":
-        assert (base_dir / "package-1_a.desktop").is_file()
+    # shortcut_dirs are directories that need to be cleaned up
+    # shortcut_files are files that need to be cleaned up
+    if on_win:
+        shortcut_dirs = [(shortcut_dir := shortcut_root / "Package 1")]
+        shortcut_files = [shortcut_dir / "A.lnk", shortcut_dir / "B.lnk"]
+    elif on_mac:
+        shortcut_dirs = [
+            (shortcut_dirA := shortcut_root / "A.app"),
+            (shortcut_dirB := shortcut_root / "B.app"),
+        ]
+        shortcut_files = [
+            shortcut_dirA / "Contents" / "MacOS" / "a",
+            shortcut_dirB / "Contents" / "MacOS" / "b",
+        ]
+    elif on_linux:
+        shortcut_dirs = []
+        shortcut_files = [
+            shortcut_root / "package-1_a.desktop",
+            shortcut_root / "package-1_b.desktop",
+        ]
     else:
         raise NotImplementedError(sys.platform)
+    assert not any(path.exists() for path in shortcut_files)
+
+    # register cleanup
+    def finalizer():
+        for path in shortcut_dirs:
+            rmtree(path, ignore_errors=True)
+        for path in shortcut_files:
+            path.unlink(missing_ok=True)
+
+    request.addfinalizer(finalizer)
+
+    stdout, stderr, err = conda_cli(
+        "create",
+        f"--prefix={tmp_path}",
+        "conda-test/label/menuinst-tests::package_1",
+        "--no-deps",
+        "--yes",
+    )
+    assert package_is_installed(tmp_path, "package_1")
+    assert (tmp_path / "Menu" / "package_1.json").is_file()
+    assert install.call_count == 1
+    assert "menuinst Exception" not in stdout + stderr
+    assert not err
+    assert all(path.is_file() for path in shortcut_files)
 
 
-def test_create_default_packages():
+def test_create_default_packages(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+):
     # Regression test for #3453
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
 
-        # set packages
-        run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
-        run_command(
-            Commands.CONFIG, prefix, "--add", "create_default_packages", "flask"
-        )
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert yml_obj["create_default_packages"] == ["flask", "pip"]
+    # mock condarc
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "small-executable,dependent")
+    reset_context()
+    assert context.create_default_packages == ("small-executable", "dependent")
 
-        assert not package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "pytz")
-        assert not package_is_installed(prefix, "flask")
+    prefix = path_factory()
+    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "small-executable")
+    assert not package_is_installed(prefix, "dependent")
 
-        with make_temp_env("python=2", "pytz", prefix=prefix):
-            assert package_is_installed(prefix, "python=2")
-            assert package_is_installed(prefix, "pytz")
-            assert package_is_installed(prefix, "flask")
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    with tmp_env("font-ttf-inconsolata", prefix=prefix):
+        assert package_is_installed(prefix, "font-ttf-inconsolata")
+        assert package_is_installed(prefix, "small-executable")
+        assert package_is_installed(prefix, "dependent")
 
 
-def test_create_default_packages_no_default_packages():
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
+def test_create_default_packages_no_default_packages(
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
+):
+    # mock condarc
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "small-executable,dependent")
+    reset_context()
+    assert context.create_default_packages == ("small-executable", "dependent")
 
-        # set packages
-        run_command(Commands.CONFIG, prefix, "--add", "create_default_packages", "pip")
-        run_command(
-            Commands.CONFIG, prefix, "--add", "create_default_packages", "flask"
-        )
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert yml_obj["create_default_packages"] == ["flask", "pip"]
+    prefix = path_factory()
+    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "small-executable")
+    assert not package_is_installed(prefix, "dependent")
 
-        assert not package_is_installed(prefix, "python=2")
-        assert not package_is_installed(prefix, "pytz")
-        assert not package_is_installed(prefix, "flask")
-
-        with make_temp_env("python=2", "pytz", "--no-default-packages", prefix=prefix):
-            assert package_is_installed(prefix, "python=2")
-            assert package_is_installed(prefix, "pytz")
-            assert not package_is_installed(prefix, "flask")
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    with tmp_env("font-ttf-inconsolata", "--no-default-packages", prefix=prefix):
+        assert package_is_installed(prefix, "font-ttf-inconsolata")
+        assert not package_is_installed(prefix, "small-executable")
+        assert not package_is_installed(prefix, "dependent")
 
 
 def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
