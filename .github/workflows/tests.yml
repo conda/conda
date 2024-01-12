@@ -77,7 +77,6 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      ALLURE_DIR: ${{ github.workspace }}\allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -121,7 +120,6 @@ jobs:
 
       - name: Run Tests
         run: pytest
-          --alluredir="${{ env.ALLURE_DIR }}"
           --cov=conda
           --durations-path="tools\durations\${{ runner.os }}.json"
           --group=${{ matrix.test-group }}
@@ -144,20 +142,6 @@ jobs:
             tools\durations\${{ runner.os }}.json
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
-
-      - name: Tar Allure
-        if: '!cancelled()'
-        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
-        # windows-2019/powershell ships with GNU tar 1.28 which struggles with Windows paths
-        # window-2019/cmd ships with bsdtar 3.5.2 which doesn't have this problem
-        shell: cmd
-
-      - name: Upload Allure
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-${{ env.HASH }}
-          path: ${{ env.ALLURE_DIR }}
 
   # linux test suite
   linux:
@@ -190,7 +174,6 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      ALLURE_DIR: ${{ github.workspace }}/allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -233,7 +216,6 @@ jobs:
 
       - name: Run Tests
         run: pytest
-          --alluredir="${{ env.ALLURE_DIR }}"
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -256,17 +238,6 @@ jobs:
             tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
-
-      - name: Tar Allure
-        if: '!cancelled()'
-        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
-
-      - name: Upload Allure
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-${{ env.HASH }}
-          path: ${{ env.ALLURE_DIR }}
 
   # linux benchmarks
   linux-benchmarks:
@@ -416,7 +387,6 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      ALLURE_DIR: ${{ github.workspace }}/allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -459,7 +429,6 @@ jobs:
 
       - name: Run Tests
         run: pytest
-          --alluredir="${{ env.ALLURE_DIR }}"
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -482,17 +451,6 @@ jobs:
             tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
-
-      - name: Tar Allure
-        if: '!cancelled()'
-        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
-
-      - name: Upload Allure
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-${{ env.HASH }}
-          path: ${{ env.ALLURE_DIR }}
 
   # aggregate and upload
   aggregate:

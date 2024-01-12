@@ -1,4 +1,3 @@
-conda-forge::allure-pytest
 conda-forge::anaconda-client
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
