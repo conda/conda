@@ -310,7 +310,7 @@ jobs:
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: >
-            pytest
+            python -m pytest
             -m "${{ env.PYTEST_MARKER }}"
             -n "${{ env.PYTEST_NUMPROCESSES }}"
             --codspeed
