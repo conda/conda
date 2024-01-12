@@ -4,7 +4,10 @@ import json
 import re
 
 import pytest
+from pytest import MonkeyPatch
 
+from conda.base.context import context, reset_context
+from conda.exceptions import PackagesNotFoundError
 from conda.testing import CondaCLIFixture
 
 # all tests in this file are integration tests
@@ -159,3 +162,45 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert isinstance(parsed, list)  # can be [] if package not found
     assert len(parsed), "empty search result"
     assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
+
+
+@pytest.mark.flaky(reruns=5)
+def test_search_inflexible(conda_cli: CondaCLIFixture):
+    # 'r-rcpparmadill' should not be found
+    with pytest.raises(PackagesNotFoundError) as excinfo:
+        _ = conda_cli(
+            "search",
+            "--platform",
+            "linux-64",
+            "--override-channels",
+            "--channel",
+            "defaults",
+            "--skip-flexible-search",
+            "r-rcpparmadill",
+        )
+    # check that failure wasn't from flexible mode
+    assert "*r-rcpparmadill*" not in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "subdir",
+    ("linux-32", "linux-64", "osx-64", "win-32", "win-64"),
+)
+def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir: str):
+    monkeypatch.setenv("CONDA_SUBDIR", subdir)
+    reset_context()
+    assert context.subdir == subdir
+
+    # assert conda search cannot find rpy2
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--override-channels", "--channel=main", "rpy2")
+
+    # assert conda search can now find rpy2
+    stdout, stderr, _ = conda_cli(
+        "search",
+        "--override-channels",
+        "--channel=r",
+        "rpy2",
+        "--json",
+    )
+    assert "rpy2" in json.loads(stdout)

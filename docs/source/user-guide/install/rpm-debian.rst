@@ -1,11 +1,16 @@
 -----------------------------------------
 RPM and Debian Repositories for Miniconda
 -----------------------------------------
-Conda, the package manager from Anaconda, is available as either a RedHat RPM or as a Debian package. The packages are the equivalent to the Miniconda installer which only contains conda and its dependencies. You can use yum or apt to install, uninstall and manage conda on your system. To install conda, follow the instructions for your Linux distribution.
 
-To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based distributions such as openSUSE, download the GPG key and add a repository configuration file for conda.
+Conda is available as either a RedHat RPM or as a Debian package. The packages are the
+equivalent to the Miniconda installer, which only contains conda and its dependencies.
+You can use yum or apt to install, uninstall, and manage conda on your system. To
+install conda, follow the instructions for your Linux distribution.
 
-.. code-block:: none
+To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based distributions,
+such as openSUSE, download the GPG key and add a repository configuration file for conda.
+
+.. code-block:: bash
 
    # Import our GPG public key
    rpm --import https://repo.anaconda.com/pkgs/misc/gpgkeys/anaconda.asc
@@ -22,7 +27,7 @@ To install the RPM on RedHat, CentOS, Fedora distributions, and other RPM-based 
 
 Conda is ready to install on your RPM-based distribution.
 
-.. code-block:: none
+.. code-block:: bash
 
    # Install it!
    yum install conda
@@ -56,9 +61,10 @@ Conda is ready to install on your RPM-based distribution.
    Installed size: 210 M
    Is this ok [y/N]:
 
-To install on Debian-based Linux distributions such as Ubuntu, download the public GPG key and add the conda repository to the sources list.
+To install on Debian-based Linux distributions, such as Ubuntu, download the public GPG
+key and add the conda repository to the sources list.
 
-.. code-block:: none
+.. code-block:: bash
 
    # Install our public GPG key to trusted store
    curl https://repo.anaconda.com/pkgs/misc/gpgkeys/anaconda.asc | gpg --dearmor > conda.gpg
@@ -75,7 +81,7 @@ To install on Debian-based Linux distributions such as Ubuntu, download the publ
 
 Conda is ready to install on your Debian-based distribution.
 
-.. code-block:: none
+.. code-block:: bash
 
    # Install it!
    apt update
@@ -100,7 +106,7 @@ Conda is ready to install on your Debian-based distribution.
 
 Check to see if the installation is successful by typing:
 
-.. code-block:: none
+.. code-block:: bash
 
    source /opt/conda/etc/profile.d/conda.sh
    conda -V
@@ -116,19 +122,20 @@ Administrators can also distribute a .condarc file at /opt/conda/.condarc so tha
 predefined configuration for channels, package cache directory, and environment locations
 is pre-seeded to all users in a large organization. A sample configuration could look like:
 
-.. code-block:: none
+.. code-block:: yaml
 
    channels:
-   defaults
+     - defaults
    pkg_dirs:
-   /shared/conda/pkgs
-   $HOME/.conda/pkgs
+     - /shared/conda/pkgs
+     - $HOME/.conda/pkgs
    envs_dirs:
-   /shared/conda/envs
-   $HOME/.conda/envs
+     - /shared/conda/envs
+     - $HOME/.conda/envs
 
-These RPM and Debian packages provide another way to set up conda inside a Docker container.
+These RPM and Debian packages also provide another way to set up conda inside a Docker container.
 
-It is recommended to use this installation in a read-only manner and upgrade conda using the respective package manager only.
+.. admonition:: Tip
 
-If you’re new to conda, check out the documentation at https://conda.io/docs/
+    It is recommended to use this installation method in a read-only manner and upgrade conda using
+    the respective package manager only.

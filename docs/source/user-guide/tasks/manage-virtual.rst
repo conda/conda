@@ -2,10 +2,6 @@
 Managing virtual packages
 =========================
 
-.. contents::
-   :local:
-   :depth: 1
-
 "Virtual" packages are injected into the conda solver to allow real packages
 to depend on features present on the system that cannot be managed directly by
 conda, like system driver versions or CPU features. Virtual packages are not
@@ -33,7 +29,7 @@ by a leading double-underscore in the package name.
 Listing detected virtual packages
 =================================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 To see the list of detected virtual packages, run:
 

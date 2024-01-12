@@ -5,6 +5,7 @@ These helpers were originally defined in tests/test_create.py,
 but were refactored here so downstream projects can benefit from
 them too.
 """
+from __future__ import annotations
 
 import json
 import os
@@ -12,7 +13,8 @@ import sys
 from contextlib import contextmanager
 from functools import lru_cache
 from logging import getLogger
-from os.path import dirname, exists, isdir, join, lexists
+from os.path import dirname, isdir, join, lexists
+from pathlib import Path
 from random import sample
 from shutil import copyfile, rmtree
 from subprocess import check_output
@@ -47,7 +49,7 @@ from ..gateways.disk.link import link
 from ..gateways.disk.update import touch
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
+from ..models.records import PackageRecord, PrefixRecord
 from ..utils import massage_arguments
 
 TEST_LOG_LEVEL = DEBUG
@@ -138,12 +140,10 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
         link(src, dst)
     except OSError:
         print(
-            "\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {}\n"
-            "           not on the same FS as `sys.prefix`:\n           {}\n"
+            f"\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {tmpdir}\n"
+            f"           not on the same FS as `sys.prefix`:\n           {sys.prefix}\n"
             "           this will be slow and unlike the majority of end-user installs.\n"
-            "           Please pass `--basetemp=<somewhere-else>` instead.".format(
-                tmpdir, sys.prefix
-            )
+            "           Please pass `--basetemp=<somewhere-else>` instead."
         )
     try:
         rm_rf(dst)
@@ -410,19 +410,25 @@ def tempdir():
 
 
 def reload_config(prefix):
-    prefix_condarc = join(prefix + os.sep, "condarc")
+    prefix_condarc = join(prefix, "condarc")
     reset_context([prefix_condarc])
 
 
-def package_is_installed(prefix, spec):
+def package_is_installed(
+    prefix: str | os.PathLike | Path,
+    spec: str | MatchSpec,
+) -> PrefixRecord | None:
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(prefix, pip_interop_enabled=True).query(spec))
-    if len(prefix_recs) > 1:
+    prefix_recs = tuple(PrefixData(str(prefix), pip_interop_enabled=True).query(spec))
+    if not prefix_recs:
+        return None
+    elif len(prefix_recs) > 1:
         raise AssertionError(
             "Multiple packages installed.%s"
             % (dashlist(prec.dist_str() for prec in prefix_recs))
         )
-    return bool(len(prefix_recs))
+    else:
+        return prefix_recs[0]
 
 
 @deprecated(
@@ -440,17 +446,44 @@ def get_conda_list_tuple(prefix, package_name):
     return package_line.split()
 
 
-def get_shortcut_dir():
-    assert on_win
-    user_mode = "user" if exists(join(sys.prefix, ".nonadmin")) else "system"
-    try:
-        from menuinst.win32 import dirs_src as win_locations
+def get_shortcut_dir(prefix_for_unix=sys.prefix):
+    if sys.platform == "win32":
+        # On Windows, .nonadmin has been historically created by constructor in sys.prefix
+        user_mode = "user" if Path(sys.prefix, ".nonadmin").is_file() else "system"
+        try:  # menuinst v2
+            from menuinst.platforms.win_utils.knownfolders import dirs_src
 
-        return win_locations[user_mode]["start"][0]
-    except ImportError:
+            return dirs_src[user_mode]["start"][0]
+        except ImportError:  # older menuinst versions; TODO: remove
+            try:
+                from menuinst.win32 import dirs_src
+
+                return dirs_src[user_mode]["start"][0]
+            except ImportError:
+                from menuinst.win32 import dirs
+
+                return dirs[user_mode]["start"]
+    # on unix, .nonadmin is only created by menuinst v2 as needed on the target prefix
+    # it might exist, or might not; if it doesn't, we try to create it
+    # see https://github.com/conda/menuinst/issues/150
+    non_admin_file = Path(prefix_for_unix, ".nonadmin")
+    if non_admin_file.is_file():
+        user_mode = "user"
+    else:
         try:
-            from menuinst.win32 import dirs as win_locations
+            non_admin_file.touch()
+        except OSError:
+            user_mode = "system"
+        else:
+            user_mode = "user"
+            non_admin_file.unlink()
 
-            return win_locations[user_mode]["start"]
-        except ImportError:
-            raise
+    if sys.platform == "darwin":
+        if user_mode == "user":
+            return join(os.environ["HOME"], "Applications")
+        return "/Applications"
+    if sys.platform == "linux":
+        if user_mode == "user":
+            return join(os.environ["HOME"], ".local", "share", "applications")
+        return "/usr/share/applications"
+    raise NotImplementedError(sys.platform)

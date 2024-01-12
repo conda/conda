@@ -16,8 +16,9 @@ from contextlib import contextmanager
 from errno import ENOENT
 from functools import lru_cache
 from itertools import chain
-from os.path import abspath, expanduser, isdir, isfile, join
+from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from typing import TYPE_CHECKING
 
 try:
     from platformdirs import user_data_dir
@@ -75,6 +76,10 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
+
+if TYPE_CHECKING:
+    from ..plugins.manager import CondaPluginManager
+
 
 try:
     os.getcwd()
@@ -160,7 +165,9 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not value == "truststore" and not isfile(value) and not isdir(value):
+        if sys.version_info < (3, 10) and value == "truststore":
+            return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
+        elif value != "truststore" and not exists(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
@@ -400,6 +407,10 @@ class Context(Configuration):
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
+    shortcuts = ParameterLoader(PrimitiveParameter(True))
+    shortcuts_only = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)), expandvars=True
+    )
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
@@ -488,7 +499,7 @@ class Context(Configuration):
         return errors
 
     @property
-    def plugin_manager(self):
+    def plugin_manager(self) -> CondaPluginManager:
         """
         This is the preferred way of accessing the ``PluginManager`` object for this application
         and is located here to avoid problems with cyclical imports elsewhere in the code.
@@ -1031,11 +1042,11 @@ class Context(Configuration):
     @memoizedproperty
     def user_agent(self):
         builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
-        builder.append("%s/%s" % self.python_implementation_name_version)
-        builder.append("%s/%s" % self.platform_system_release)
-        builder.append("%s/%s" % self.os_distribution_name_version)
+        builder.append("{}/{}".format(*self.python_implementation_name_version))
+        builder.append("{}/{}".format(*self.platform_system_release))
+        builder.append("{}/{}".format(*self.os_distribution_name_version))
         if self.libc_family_version[0]:
-            builder.append("%s/%s" % self.libc_family_version)
+            builder.append("{}/{}".format(*self.libc_family_version))
         if self.solver != "classic":
             builder.append(self.solver_user_agent())
         return " ".join(builder)
@@ -1192,6 +1203,7 @@ class Context(Configuration):
                 "extra_safety_checks",
                 "signing_metadata_url_base",
                 "shortcuts",
+                "shortcuts_only",
                 "non_admin_enabled",
                 "separate_format_cache",
                 "verify_threads",
@@ -1713,6 +1725,11 @@ class Context(Configuration):
                 """
                 Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
                 Menu) at install time.
+                """
+            ),
+            shortcuts_only=dals(
+                """
+                Create shortcuts only for the specified package names.
                 """
             ),
             show_channel_urls=dals(

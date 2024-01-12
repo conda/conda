@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 
 from ...base.constants import NOTICES_CACHE_SUBDIR
-from ...cli import conda_argparse
+from ...cli.conda_argparse import generate_parser
 
 
 @pytest.fixture(scope="function")
@@ -33,7 +33,7 @@ def notices_mock_fetch_get_session():
 
 @pytest.fixture(scope="function")
 def conda_notices_args_n_parser():
-    parser = conda_argparse.generate_parser()
+    parser = generate_parser()
     args = parser.parse_args(["notices"])
 
     return args, parser

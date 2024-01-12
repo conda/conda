@@ -48,6 +48,7 @@ from .main_clean import configure_parser as configure_parser_clean
 from .main_compare import configure_parser as configure_parser_compare
 from .main_config import configure_parser as configure_parser_config
 from .main_create import configure_parser as configure_parser_create
+from .main_env import configure_parser as configure_parser_env
 from .main_info import configure_parser as configure_parser_info
 from .main_init import configure_parser as configure_parser_init
 from .main_install import configure_parser as configure_parser_install
@@ -140,6 +141,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
+    configure_parser_env(sub_parsers)
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
@@ -321,13 +323,13 @@ def configure_parser_plugins(sub_parsers) -> None:
         # underscore prefixed indicating this is not a normal argparse argument
         parser.set_defaults(_plugin_subcommand=plugin_subcommand)
 
-    # `conda env` subcommand is a first-party conda subcommand even though it uses the legacy
-    # subcommand framework, so `conda env` must still be allowed when plugins are disabled
-    legacy = (
-        ["env"]
-        if context.no_plugins
-        else set(find_commands()).difference(plugin_subcommands)
-    )
+    if context.no_plugins:
+        return
+
+    # Ignore the legacy `conda-env` entrypoints since we already register `env`
+    # as a subcommand in `generate_parser` above
+    legacy = set(find_commands()).difference(plugin_subcommands) - {"env"}
+
     for name in legacy:
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error

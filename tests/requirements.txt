@@ -8,11 +8,14 @@ conda-forge::pytest-xprocess
 conda-forge::xdoctest
 conda-libmamba-solver >=23.11.0
 conda-package-handling >=2.2.0
+distro >=1.5.0
 flask >=2.2  # jlap pytest fixture
 jsonpatch >=1.32  # jlap
-packaging
+menuinst >=2
+packaging >=23.0
 pexpect
 pip
+platformdirs >=3.10.0
 pluggy >=1.0.0
 pre-commit
 pycosat >=0.6.3
@@ -22,7 +25,7 @@ pytest-mock
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
-requests >=2.18.4,<3
+requests >=2.28.0,<3
 responses
 ruamel.yaml >=0.11.14,<0.19
 setuptools >=60.0.0

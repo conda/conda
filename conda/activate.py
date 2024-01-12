@@ -84,7 +84,7 @@ class _Activator(metaclass=abc.ABCMeta):
     set_var_tmpl: str
     run_script_tmpl: str
 
-    hook_source_path: str
+    hook_source_path: Path | None
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
@@ -180,11 +180,12 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    def hook(self, auto_activate_base=None):
-        builder = []
-        builder.append(self._hook_preamble())
-        with open(self.hook_source_path) as fsrc:
-            builder.append(fsrc.read())
+    def hook(self, auto_activate_base: bool | None = None) -> str:
+        builder: list[str] = []
+        if preamble := self._hook_preamble():
+            builder.append(preamble)
+        if self.hook_source_path:
+            builder.append(self.hook_source_path.read_text())
         if (
             auto_activate_base is None
             and context.auto_activate_base
@@ -317,8 +318,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 from .exceptions import ArgumentError
 
                 raise ArgumentError(
-                    "%s does not accept arguments\nremainder_args: %s\n"
-                    % (command, remainder_args)
+                    f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
                 )
 
         self.command = command
@@ -923,7 +923,7 @@ class PosixActivator(_Activator):
     set_var_tmpl = "%s='%s'"
     run_script_tmpl = '. "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "etc",
@@ -976,7 +976,7 @@ class CshActivator(_Activator):
     set_var_tmpl = "set %s='%s'"
     run_script_tmpl = 'source "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "etc",
@@ -1038,7 +1038,7 @@ class XonshActivator(_Activator):
         else 'source-bash --suppress-skip-message -n "%s"'
     )
 
-    hook_source_path = join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
+    hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
@@ -1079,7 +1079,7 @@ class FishActivator(_Activator):
     set_var_tmpl = 'set -g %s "%s"'
     run_script_tmpl = 'source "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "etc",
@@ -1122,7 +1122,7 @@ class PowerShellActivator(_Activator):
     set_var_tmpl = '$Env:%s = "%s"'
     run_script_tmpl = '. "%s"'
 
-    hook_source_path = join(
+    hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
         "shell",
         "condabin",

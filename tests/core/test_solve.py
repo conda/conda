@@ -35,6 +35,7 @@ from conda.testing.helpers import (
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
+@pytest.mark.benchmark
 def test_solve_1(tmpdir):
     specs = (MatchSpec("numpy"),)
 
@@ -323,12 +324,12 @@ def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+        f"""The following specifications were found to be incompatible with your system:
 
-  - feature:|@/{}::__cuda==8.0=0
+  - feature:|@/{context.subdir}::__cuda==8.0=0
   - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
 
-Your installed version is: 8.0""".format(context.subdir)
+Your installed version is: 8.0"""
     )
 
 
@@ -357,12 +358,12 @@ def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+        f"""The following specifications were found to be incompatible with your system:
 
-  - feature:|@/{}::__cuda==8.0=0
+  - feature:|@/{context.subdir}::__cuda==8.0=0
   - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
 
-Your installed version is: 8.0""".format(context.subdir)
+Your installed version is: 8.0"""
     )
 
 
@@ -1232,7 +1233,14 @@ def test_broken_install(tmpdir):
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade(tmpdir):
+def test_conda_downgrade(tmpdir, request):
+    if context.solver == "libmamba":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "libmamba",
+                reason="Known flaky:https://github.com/conda/conda-libmamba-solver/issues/317",
+            )
+        )
     specs = (MatchSpec("conda-build"),)
     with env_var(
         "CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -3161,11 +3169,16 @@ def test_freeze_deps_1(tmpdir):
 
 
 def test_current_repodata_usage(tmpdir):
-    # force this to False, because otherwise tests fail when run with old conda-build
-    with env_var(
-        "CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        solver = context.plugin_manager.get_cached_solver_backend()(
+    config = {
+        # force this to False, because otherwise tests
+        # fail when run with old conda-build
+        "CONDA_USE_ONLY_TAR_BZ2": False,
+        # explicitly set env var so libmamba recognizes
+        # the explicit setting (ignored otherwise)
+        "CONDA_REPODATA_FNS": "current_repodata.json",
+    }
+    with env_vars(config, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        solver = context.plugin_manager.get_solver_backend()(
             tmpdir.strpath,
             (Channel(CHANNEL_DIR),),
             ("win-64",),
@@ -3186,7 +3199,7 @@ def test_current_repodata_usage(tmpdir):
 
 
 def test_current_repodata_fallback(tmpdir):
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir.strpath,
         (Channel(CHANNEL_DIR),),
         ("win-64",),
@@ -3333,7 +3346,7 @@ def test_packages_in_solution_change_already_newest(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
@@ -3346,7 +3359,7 @@ def test_packages_in_solution_change_needs_update(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
@@ -3359,7 +3372,7 @@ def test_packages_in_solution_change_constrained(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
@@ -3400,7 +3413,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
@@ -3439,7 +3452,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
@@ -3492,7 +3505,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
@@ -3532,7 +3545,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
@@ -3571,7 +3584,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
@@ -3596,7 +3609,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
@@ -3635,7 +3648,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)

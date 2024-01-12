@@ -15,11 +15,9 @@ from uuid import uuid4
 
 import pytest
 
-from conda_env.cli import main as conda_env_cli
-
-from .. import cli
 from ..auxlib.compat import shlex_split_unicode
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..cli.main import main_subshell
 from ..common.compat import encode_arguments
 from ..common.io import argv, env_var
 from ..common.io import captured as common_io_captured
@@ -131,20 +129,12 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
 
-    # determine whether this is a conda_env command and assign appropriate main function
-    if command.startswith("conda env"):
-        command = command.replace("env", "")  # Remove 'env' because of command parser
-        main_func = conda_env_cli.main
-    else:
-        main_func = cli.main
-
-    # May want to do this to command:
     with argv(encode_arguments(shlex_split_unicode(command))), captured(
         disallow_stderr
     ) as c:
         initialize_logging()
         try:
-            exit_code = main_func()
+            exit_code = main_subshell()
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
@@ -230,12 +220,14 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     packages = {}
     packages_conda = {}
     for pkg in subdir_data.iter_records():
+        if pkg.timestamp:
+            # ensure timestamp is dumped as int in milliseconds
+            # (pkg.timestamp is a kept as a float in seconds)
+            pkg.__fields__["timestamp"]._in_dump = True
         data = pkg.dump()
         if subdir == "noarch" and getattr(pkg, "noarch", None):
             data["subdir"] = "noarch"
             data["platform"] = data["arch"] = None
-        if pkg.timestamp:
-            data["timestamp"] = pkg.timestamp
         if "features" in data:
             # Features are deprecated, so they are not implemented
             # in modern solvers like mamba. Mamba does implement
