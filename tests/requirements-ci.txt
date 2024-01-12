@@ -4,7 +4,7 @@ conda-forge::pytest-xprocess
 conda-forge::xdoctest
 conda-verify
 coverage
-flask >=2.2
+flask >=2.2  # jlap pytest fixture
 git
 pexpect
 pip
@@ -16,4 +16,4 @@ pytest-timeout
 pytest-xdist
 responses
 tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
-werkzeug >=2.2
+werkzeug >=2.2  # jlap pytest fixture
