@@ -275,28 +275,66 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.11']
-
     env:
-      OS: Linux
-      PYTHON: ${{ matrix.python-version }}
+      PYTEST_MARKER: 'benchmark'
+      PYTEST_NUMPROCESSES: '0'
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} benchmarks
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmarks-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache Conda
+        uses: actions/cache@v3
+        with:
+          path: ~/conda_pkgs_dir
+          key: cache-${{ env.HASH }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          condarc-file: .github/condarc-defaults
+          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
+
+      - name: Setup Environment
+        run: conda install
+            --quiet --yes
+            --file tests/requirements.txt
+            --file tests/requirements-s3.txt
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+            --file tests/requirements-ci.txt
+
+      - name: Install pytest-codspeed
+        run: |
+          pip install pytest-codspeed
+
+      - name: Show Info
+        run: |
+          conda info --verbose
+          conda list --show-channel-urls
+
+      - name: Run benchmarks
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: >
-            docker run
-            --rm -v ${PWD}:/opt/conda-src
-            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
-            /opt/conda-src/dev/linux/benchmarks.sh
+            pytest
+            -m "${{ env.PYTEST_MARKER }}"
+            -n "${{ env.PYTEST_NUMPROCESSES }}"
+            --codspeed
 
 
   # linux-qemu test suite
