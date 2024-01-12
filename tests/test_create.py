@@ -998,7 +998,10 @@ def test_tarball_install(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         # the file name and that is then all out of whack with the metadata:
         # tar_new_path = join(prefix, '家' + bzip2_fname)
         tar_new_path = join(prefix, bzip2_fname)
-        copyfile(tar_old_path, tar_new_path)
+
+        if os.path.exists(tar_new_path):
+            os.unlink(tar_new_path)
+        os.link(tar_old_path, tar_new_path)
         assert isfile(
             tar_new_path
         ), f"Failed to copy:\n{tar_old_path}\nto:\n{tar_new_path}"
