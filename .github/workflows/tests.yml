@@ -63,24 +63,25 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: cmd /C call {0}
     strategy:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.8', '3.12']
-        default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.8'
-            default-channel: conda-forge
           - test-type: unit
             test-group: 3
     env:
-      ALLURE_DIR: ${{ github.workspace }}\allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: '0'
+      PYTEST_NUMPROCESSES: 'auto'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
+      PYTHON: ${{ matrix.python-version }}
 
     steps:
       - name: Checkout Source
@@ -89,7 +90,7 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache Conda
@@ -98,36 +99,29 @@ jobs:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          condarc-file: .github\condarc-${{ matrix.default-channel }}
-          python-version: ${{ matrix.python-version }}
-          run-post: false  # skip post cleanup
-
-      - name: Setup Environment
-        run: conda install
-            --quiet --yes
-            --file tests\requirements.txt
-            --file tests\requirements-s3.txt
-            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
-            --file tests\requirements-ci.txt
-            --file tests\requirements-${{ runner.os }}.txt
-
-      - name: Show Info
+      - name: Setup environment and run tests
         run: |
-          conda info --verbose
-          conda list --show-channel-urls
+          CALL .\dev\start  /P ${{ matrix.python-version }}
 
-      - name: Run Tests
-        run: pytest
-          --alluredir="${{ env.ALLURE_DIR }}"
-          --cov=conda
-          --durations-path="tools\durations\${{ runner.os }}.json"
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
-          -n "${{ env.PYTEST_NUMPROCESSES }}"
+          CALL conda install ^
+            --yes ^
+            --override-channels ^
+            --channel=defaults ^
+            --file tests\requirements-s3.txt ^
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt ^' || '^' }} || goto :error
+
+          CALL pytest ^
+            --cov=conda ^
+            --durations-path=tools\durations\${{ runner.os }}.json ^
+            --group=${{ matrix.test-group }} ^
+            --splits=${{ env.PYTEST_SPLITS }} ^
+            -m "${{ env.PYTEST_MARKER }}" || goto :error
+
+          goto :EOF
+
+          :error
+          echo Failed with error #%errorlevel%.
+          exit /b %errorlevel%
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
@@ -145,20 +139,6 @@ jobs:
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
 
-      - name: Tar Allure
-        if: '!cancelled()'
-        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
-        # windows-2019/powershell ships with GNU tar 1.28 which struggles with Windows paths
-        # window-2019/cmd ships with bsdtar 3.5.2 which doesn't have this problem
-        shell: cmd
-
-      - name: Upload Allure
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-${{ env.HASH }}
-          path: ${{ env.ALLURE_DIR }}
-
   # linux test suite
   linux:
     # only run test suite if there are code changes
@@ -169,7 +149,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -190,7 +170,6 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      ALLURE_DIR: ${{ github.workspace }}/allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -212,19 +191,22 @@ jobs:
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          auto-update-conda: true
+          conda-solver: libmamba
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
         run: conda install
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
             --file tests/requirements-ci.txt
+            --file tests/requirements-${{ runner.os }}.txt
 
       - name: Show Info
         run: |
@@ -232,8 +214,8 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: pytest
-          --alluredir="${{ env.ALLURE_DIR }}"
+        run: python
+          -m pytest
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -257,17 +239,6 @@ jobs:
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
 
-      - name: Tar Allure
-        if: '!cancelled()'
-        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
-
-      - name: Upload Allure
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-${{ env.HASH }}
-          path: ${{ env.ALLURE_DIR }}
-
   # linux benchmarks
   linux-benchmarks:
     # only run test suite if there are code changes
@@ -275,29 +246,70 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.11']
-
     env:
-      OS: Linux
-      PYTHON: ${{ matrix.python-version }}
+      PYTEST_MARKER: 'benchmark'
+      PYTEST_NUMPROCESSES: '0'
+      CONDA_TEST_ENV: '/usr/share/miniconda/envs/test'
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Python ${{ matrix.python-version }} benchmarks
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmarks-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache Conda
+        uses: actions/cache@v3
+        with:
+          path: ~/conda_pkgs_dir
+          key: cache-${{ env.HASH }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          conda-solver: libmamba
+          condarc-file: .github/condarc-defaults
+          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
+
+      - name: Setup Environment
+        run: conda install
+            --yes
+            --file tests/requirements.txt
+            --file tests/requirements-s3.txt
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+            --file tests/requirements-ci.txt
+            --file tests/requirements-${{ runner.os }}.txt
+
+      - name: Install pytest-codspeed
+        run: |
+          pip install pytest-codspeed
+
+      - name: Show Info
+        run: |
+          conda info --verbose
+          conda list --show-channel-urls
+
+      - name: Run benchmarks
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
-          run: >
-            docker run
-            --rm -v ${PWD}:/opt/conda-src
-            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
-            /opt/conda-src/dev/linux/benchmarks.sh
-
+          run: ${{ env.CONDA_TEST_ENV }}/bin/python
+            -m pytest
+            -m "${{ env.PYTEST_MARKER }}"
+            -n "${{ env.PYTEST_NUMPROCESSES }}"
+            --codspeed
 
   # linux-qemu test suite
   linux-qemu:
@@ -314,7 +326,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -342,14 +354,14 @@ jobs:
           ". /opt/conda/etc/profile.d/conda.sh
           && conda create
             --name test
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-ci.txt
             python=${{ matrix.python-version }}
           && conda activate test
           && conda info --verbose
           && conda list --show-channel-urls
-          && pytest tests/test_api.py::test_DepsModifier_contract"
+          && python -m pytest tests/test_api.py::test_DepsModifier_contract"
 
   # macos test suite
   macos:
@@ -361,7 +373,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -378,7 +390,6 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      ALLURE_DIR: ${{ github.workspace }}/allure-results
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -400,15 +411,17 @@ jobs:
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          auto-update-conda: true
+          conda-solver: libmamba
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
       - name: Setup Environment
         run: conda install
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
@@ -421,7 +434,6 @@ jobs:
 
       - name: Run Tests
         run: pytest
-          --alluredir="${{ env.ALLURE_DIR }}"
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -444,17 +456,6 @@ jobs:
             tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
-
-      - name: Tar Allure
-        if: '!cancelled()'
-        run: tar -zcf "${{ env.ALLURE_DIR }}.tar.gz" "${{ env.ALLURE_DIR }}"
-
-      - name: Upload Allure
-        if: '!cancelled()'
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-${{ env.HASH }}
-          path: ${{ env.ALLURE_DIR }}
 
   # aggregate and upload
   aggregate:
