@@ -155,7 +155,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -254,7 +254,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -331,7 +331,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -378,7 +378,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
