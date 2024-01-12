@@ -15,8 +15,6 @@ from traceback import format_exception, format_exception_only
 import requests
 from requests.exceptions import JSONDecodeError
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
@@ -24,6 +22,7 @@ from .auxlib.logz import stringify
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import on_win
 from .common.io import dashlist
+from .common.iterators import groupby_to_dict as groupby
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
 from .deprecations import DeprecatedError  # noqa: F401
@@ -1110,18 +1109,18 @@ class BinaryPrefixReplacementError(CondaError):
 
 
 class InvalidSpec(CondaError, ValueError):
-    def __init__(self, message, **kwargs):
+    def __init__(self, message: str, **kwargs):
         super().__init__(message, **kwargs)
 
 
 class InvalidVersionSpec(InvalidSpec):
-    def __init__(self, invalid_spec, details):
+    def __init__(self, invalid_spec: str, details: str):
         message = "Invalid version '%(invalid_spec)s': %(details)s"
         super().__init__(message, invalid_spec=invalid_spec, details=details)
 
 
 class InvalidMatchSpec(InvalidSpec):
-    def __init__(self, invalid_spec, details):
+    def __init__(self, invalid_spec: str, details: str):
         message = "Invalid spec '%(invalid_spec)s': %(details)s"
         super().__init__(message, invalid_spec=invalid_spec, details=details)
 
@@ -1273,3 +1272,9 @@ def _format_exc(exc_val=None, exc_tb=None):
     else:
         formatted_exception = format_exception_only(exc_type, exc_val)
     return "".join(formatted_exception)
+
+
+class InvalidInstaller(Exception):
+    def __init__(self, name):
+        msg = f"Unable to load installer for {name}"
+        super().__init__(msg)

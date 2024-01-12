@@ -1,0 +1,21 @@
+### Enhancements
+
+* Verify signatures on to-be-installed packages instead of on all packages. (#11545, #13053)
+* Add a new `pre-solves` plugin hook. (#13053)
+* Add a new `post-solves` plugin hook. (#13053)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

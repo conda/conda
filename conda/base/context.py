@@ -16,8 +16,14 @@ from contextlib import contextmanager
 from errno import ENOENT
 from functools import lru_cache
 from itertools import chain
-from os.path import abspath, expanduser, isdir, isfile, join
+from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from typing import TYPE_CHECKING
+
+try:
+    from platformdirs import user_data_dir
+except ImportError:  # pragma: no cover
+    from .._vendor.appdirs import user_data_dir
 
 try:
     from boltons.setutils import IndexedSet
@@ -26,7 +32,6 @@ except ImportError:  # pragma: no cover
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
-from .._vendor.appdirs import user_data_dir
 from .._vendor.frozendict import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
@@ -71,6 +76,10 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
+
+if TYPE_CHECKING:
+    from ..plugins.manager import CondaPluginManager
+
 
 try:
     os.getcwd()
@@ -156,7 +165,9 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not value == "truststore" and not isfile(value) and not isdir(value):
+        if sys.version_info < (3, 10) and value == "truststore":
+            return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
+        elif value != "truststore" and not exists(value):
             return (
                 "ssl_verify value '%s' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
@@ -206,9 +217,9 @@ class Context(Configuration):
     _repodata_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("repodata_threads",)
     )
-    # download packages; determined experimentally
+    # download packages
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
@@ -396,6 +407,10 @@ class Context(Configuration):
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
+    shortcuts = ParameterLoader(PrimitiveParameter(True))
+    shortcuts_only = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)), expandvars=True
+    )
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
@@ -484,7 +499,7 @@ class Context(Configuration):
         return errors
 
     @property
-    def plugin_manager(self):
+    def plugin_manager(self) -> CondaPluginManager:
         """
         This is the preferred way of accessing the ``PluginManager`` object for this application
         and is located here to avoid problems with cyclical imports elsewhere in the code.
@@ -567,6 +582,11 @@ class Context(Configuration):
 
     @property
     def fetch_threads(self) -> int | None:
+        """
+        If both are not overriden (0), return experimentally-determined value of 5
+        """
+        if self._fetch_threads == 0 and self._default_threads == 0:
+            return 5
         return self._fetch_threads or self.default_threads
 
     @property
@@ -593,6 +613,10 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
+        return self._native_subdir()
+
+    @lru_cache(maxsize=None)
+    def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
@@ -1001,27 +1025,30 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    def solver_user_agent(self):
+        user_agent = "solver/%s" % self.solver
+        try:
+            solver_backend = self.plugin_manager.get_cached_solver_backend()
+            # Solver.user_agent has to be a static or class method
+            user_agent += f" {solver_backend.user_agent()}"
+        except Exception as exc:
+            log.debug(
+                "User agent could not be fetched from solver class '%s'.",
+                self.solver,
+                exc_info=exc,
+            )
+        return user_agent
+
     @memoizedproperty
     def user_agent(self):
         builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
-        builder.append("%s/%s" % self.python_implementation_name_version)
-        builder.append("%s/%s" % self.platform_system_release)
-        builder.append("%s/%s" % self.os_distribution_name_version)
+        builder.append("{}/{}".format(*self.python_implementation_name_version))
+        builder.append("{}/{}".format(*self.platform_system_release))
+        builder.append("{}/{}".format(*self.os_distribution_name_version))
         if self.libc_family_version[0]:
-            builder.append("%s/%s" % self.libc_family_version)
+            builder.append("{}/{}".format(*self.libc_family_version))
         if self.solver != "classic":
-            user_agent_str = "solver/%s" % self.solver
-            try:
-                solver_backend = self.plugin_manager.get_cached_solver_backend()
-                # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {solver_backend.user_agent()}"
-            except Exception as exc:
-                log.debug(
-                    "User agent could not be fetched from solver class '%s'.",
-                    self.solver,
-                    exc_info=exc,
-                )
-            builder.append(user_agent_str)
+            builder.append(self.solver_user_agent())
         return " ".join(builder)
 
     @contextmanager
@@ -1042,14 +1069,18 @@ class Context(Configuration):
 
     @memoizedproperty
     def requests_version(self):
+        # used in User-Agent as "requests/<version>"
+        # if unable to detect a version we expect "requests/unknown"
         try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+            from requests import __version__ as requests_version
+        except ImportError as err:
+            # ImportError: requests is not installed
+            log.error("Unable to import requests: %s", err)
+            requests_version = "unknown"
+        except Exception as err:
+            log.error("Error importing requests: %s", err)
+            requests_version = "unknown"
+        return requests_version
 
     @memoizedproperty
     def python_implementation_name_version(self):
@@ -1077,10 +1108,13 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from conda._vendor.distro import id, version
-
             try:
-                distinfo = id(), version(best=True)
+                try:
+                    import distro
+                except ImportError:
+                    from .._vendor import distro
+
+                distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
                 log.debug("%r", e, exc_info=True)
                 distinfo = ("Linux", "unknown")
@@ -1100,7 +1134,8 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
+    @property
+    @deprecated("24.3", "24.9")
     def cpu_flags(self):
         # DANGER: This is rather slow
         info = _get_cpu_info()
@@ -1168,6 +1203,7 @@ class Context(Configuration):
                 "extra_safety_checks",
                 "signing_metadata_url_base",
                 "shortcuts",
+                "shortcuts_only",
                 "non_admin_enabled",
                 "separate_format_cache",
                 "verify_threads",
@@ -1565,7 +1601,7 @@ class Context(Configuration):
             ),
             override_channels_enabled=dals(
                 """
-                Permit use of the --overide-channels command-line flag.
+                Permit use of the --override-channels command-line flag.
                 """
             ),
             path_conflict=dals(
@@ -1689,6 +1725,11 @@ class Context(Configuration):
                 """
                 Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
                 Menu) at install time.
+                """
+            ),
+            shortcuts_only=dals(
+                """
+                Create shortcuts only for the specified package names.
                 """
             ),
             show_channel_urls=dals(
@@ -1903,6 +1944,7 @@ def replace_context_default(pushing=None, argparse_args=None):
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
+@deprecated("24.3", "24.9")
 @lru_cache(maxsize=None)
 def _get_cpu_info():
     # DANGER: This is rather slow

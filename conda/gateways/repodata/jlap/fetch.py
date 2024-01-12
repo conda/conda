@@ -18,15 +18,14 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from conda.base.context import context
-from conda.gateways.connection import Response, Session
-from conda.gateways.repodata import (
+from ....base.context import context
+from ...connection import Response, Session
+from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     RepodataCache,
     RepodataState,
 )
-
 from .core import JLAP
 
 log = logging.getLogger(__name__)
@@ -39,8 +38,6 @@ HEADERS = "headers"
 NOMINAL_HASH = "blake2_256_nominal"
 ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
-JLAP_UNAVAILABLE = "jlap_unavailable"
-ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 # save these headers. at least etag, last-modified, cache-control plus a few
 # useful extras.
@@ -224,7 +221,7 @@ class HashWriter(io.RawIOBase):
 def download_and_hash(
     hasher,
     url,
-    json_path,
+    json_path: pathlib.Path,
     session: Session,
     state: RepodataState | None,
     is_zst=False,
@@ -249,7 +246,8 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher), closefd=True  # type: ignore
+                HashWriter(dest_path.open("wb"), hasher),  # type: ignore
+                closefd=True,
             )
         else:
             writer = HashWriter(dest_path.open("wb"), hasher)
@@ -308,7 +306,6 @@ def request_url_jlap_state(
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
                     state.set_has_format("zst", False)
-                    state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
                     hasher,
                     withext(url, ".json"),
@@ -358,9 +355,9 @@ def request_url_jlap_state(
             state.set_has_format("jlap", True)
             need_jlap = False
         except ValueError:
-            log.info("Checksum not OK")
-        except IndexError as e:
-            log.info("Incomplete file?", exc_info=e)
+            log.info("Checksum not OK on JLAP range request. Retry with complete JLAP.")
+        except IndexError:
+            log.exception("IndexError reading JLAP. Invalid file?")
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
@@ -374,7 +371,10 @@ def request_url_jlap_state(
                     cache=cache,
                     temp_path=temp_path,
                 )
-            log.exception("Requests error")
+            log.info(
+                "Response code %d on JLAP range request. Retry with complete JLAP.",
+                e.response.status_code,
+            )
 
         if need_jlap:  # retry whole file, if range failed
             try:

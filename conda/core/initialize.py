@@ -82,6 +82,8 @@ from .portability import generate_shebang_for_entry_point
 if on_win:  # pragma: no cover
     import winreg
 
+    # Use v1 import paths to avoid bootstrapping issues
+    # TODO: Remove once fully deployed (one release after merge)
     from menuinst.knownfolders import FOLDERID, get_folder_path
     from menuinst.winshortcut import create_shortcut
 
@@ -353,6 +355,7 @@ def make_install_plan(conda_prefix):
             "kwargs": {
                 "target_path": conda_env_exe_path,
                 "conda_prefix": conda_prefix,
+                # TODO: Remove upon full deprecation in 25.3
                 "module": "conda_env.cli.main",
                 "func": "main",
             },
@@ -934,9 +937,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
     """
     )
 
-    new_ep_content += (
-        dals(
-            """
+    new_ep_content += dals(
+        """
     # -*- coding: utf-8 -*-
     import sys
     %(extra)s
@@ -944,13 +946,11 @@ def make_entry_point(target_path, conda_prefix, module, func):
         from %(module)s import %(func)s
         sys.exit(%(func)s())
     """
-        )
-        % {
-            "extra": conda_extra if module == "conda.cli" else "",
-            "module": module,
-            "func": func,
-        }
-    )
+    ) % {
+        "extra": conda_extra if module == "conda.cli" else "",
+        "module": module,
+        "func": func,
+    }
 
     if new_ep_content != original_ep_content:
         if context.verbose:
@@ -1184,28 +1184,25 @@ def _config_fish_content(conda_prefix):
         conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
     else:
         conda_exe = join(conda_prefix, "bin", "conda")
-    conda_initialize_content = (
-        dals(
-            """
-    # >>> conda initialize >>>
-    # !! Contents within this block are managed by 'conda init' !!
-    if test -f %(conda_exe)s
-        eval %(conda_exe)s "shell.fish" "hook" $argv | source
-    else
-        if test -f "%(conda_prefix)s/etc/fish/conf.d/conda.fish"
-            . "%(conda_prefix)s/etc/fish/conf.d/conda.fish"
+    conda_initialize_content = dals(
+        """
+        # >>> conda initialize >>>
+        # !! Contents within this block are managed by 'conda init' !!
+        if test -f %(conda_exe)s
+            eval %(conda_exe)s "shell.fish" "hook" $argv | source
         else
-            set -x PATH "%(conda_prefix)s/bin" $PATH
+            if test -f "%(conda_prefix)s/etc/fish/conf.d/conda.fish"
+                . "%(conda_prefix)s/etc/fish/conf.d/conda.fish"
+            else
+                set -x PATH "%(conda_prefix)s/bin" $PATH
+            end
         end
-    end
-    # <<< conda initialize <<<
-    """
-        )
-        % {
-            "conda_exe": conda_exe,
-            "conda_prefix": conda_prefix,
-        }
-    )
+        # <<< conda initialize <<<
+        """
+    ) % {
+        "conda_exe": conda_exe,
+        "conda_prefix": conda_prefix,
+    }
     return conda_initialize_content
 
 
@@ -1254,7 +1251,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conf\.d\/conda\.fish.*?)\n"
             r"(conda activate.*?)$",
-            r"# \1  {0}\n# \2  {0}".format(conda_init_comment),
+            rf"# \1  {conda_init_comment}\n# \2  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1388,9 +1385,8 @@ def _bashrc_content(conda_prefix, shell):
         from ..activate import native_path_to_unix
 
         conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
-        conda_initialize_content = (
-            dals(
-                """
+        conda_initialize_content = dals(
+            """
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
         if [ -f '%(conda_exe)s' ]; then
@@ -1398,18 +1394,15 @@ def _bashrc_content(conda_prefix, shell):
         fi
         # <<< conda initialize <<<
         """
-            )
-            % {
-                "conda_exe": conda_exe,
-                "shell": shell,
-            }
-        )
+        ) % {
+            "conda_exe": conda_exe,
+            "shell": shell,
+        }
     else:
         conda_exe = join(conda_prefix, "bin", "conda")
         if shell in ("csh", "tcsh"):
-            conda_initialize_content = (
-                dals(
-                    """
+            conda_initialize_content = dals(
+                """
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
             if ( -f "%(conda_prefix)s/etc/profile.d/conda.csh" ) then
@@ -1419,18 +1412,15 @@ def _bashrc_content(conda_prefix, shell):
             endif
             # <<< conda initialize <<<
             """
-                )
-                % {
-                    "conda_exe": conda_exe,
-                    "shell": shell,
-                    "conda_bin": dirname(conda_exe),
-                    "conda_prefix": conda_prefix,
-                }
-            )
+            ) % {
+                "conda_exe": conda_exe,
+                "shell": shell,
+                "conda_bin": dirname(conda_exe),
+                "conda_prefix": conda_prefix,
+            }
         else:
-            conda_initialize_content = (
-                dals(
-                    """
+            conda_initialize_content = dals(
+                """
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
             __conda_setup="$('%(conda_exe)s' 'shell.%(shell)s' 'hook' 2> /dev/null)"
@@ -1446,14 +1436,12 @@ def _bashrc_content(conda_prefix, shell):
             unset __conda_setup
             # <<< conda initialize <<<
             """
-                )
-                % {
-                    "conda_exe": conda_exe,
-                    "shell": shell,
-                    "conda_bin": dirname(conda_exe),
-                    "conda_prefix": conda_prefix,
-                }
-            )
+            ) % {
+                "conda_exe": conda_exe,
+                "shell": shell,
+                "conda_bin": dirname(conda_exe),
+                "conda_prefix": conda_prefix,
+            }
     return conda_initialize_content
 
 
@@ -1503,7 +1491,7 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
         rc_content = re.sub(
             r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)\n"
             r"(conda activate.*?)$",
-            r"# \1  {0}\n# \2  {0}".format(conda_init_comment),
+            rf"# \1  {conda_init_comment}\n# \2  {conda_init_comment}",
             rc_content,
             flags=re.MULTILINE,
         )
@@ -1641,7 +1629,7 @@ def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
         value_type = winreg.REG_EXPAND_SZ
 
     old_hook_path = '"{}"'.format(join(conda_prefix, "condabin", "conda_hook.bat"))
-    new_hook = "if exist {hp} {hp}".format(hp=old_hook_path)
+    new_hook = f"if exist {old_hook_path} {old_hook_path}"
     if reverse:
         # we can't just reset it to None and remove it, because there may be other contents here.
         #   We need to strip out our part, and if there's nothing left, remove the key.
@@ -1729,16 +1717,14 @@ def _powershell_profile_content(conda_prefix):
         conda_exe = join(conda_prefix, "bin", "conda")
 
     conda_powershell_module = dals(
-        """
+        f"""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
     If (Test-Path "{conda_exe}") {{
         (& "{conda_exe}" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
     }}
     #endregion
-    """.format(
-            conda_exe=conda_exe
-        )
+    """
     )
 
     return conda_powershell_module

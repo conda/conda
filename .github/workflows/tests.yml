@@ -67,7 +67,7 @@ jobs:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.8', '3.11']
+        python-version: ['3.8', '3.12']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -174,7 +174,7 @@ jobs:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -184,6 +184,8 @@ jobs:
           - python-version: '3.9'
             default-channel: conda-forge
           - python-version: '3.10'
+            default-channel: conda-forge
+          - python-version: '3.11'
             default-channel: conda-forge
           - test-type: unit
             test-group: 3
@@ -266,6 +268,37 @@ jobs:
           name: allure-${{ env.HASH }}
           path: ${{ env.ALLURE_DIR }}
 
+  # linux benchmarks
+  linux-benchmarks:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11']
+
+    env:
+      OS: Linux
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Python ${{ matrix.python-version }} benchmarks
+        uses: CodSpeedHQ/action@v2
+        with:
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          run: >
+            docker run
+            --rm -v ${PWD}:/opt/conda-src
+            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
+            /opt/conda-src/dev/linux/benchmarks.sh
+
+
   # linux-qemu test suite
   linux-qemu:
     # only run test suite if there are code changes
@@ -285,7 +318,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11']
+        python-version: ['3.12']
         image: ['continuumio/miniconda3:latest', 'condaforge/miniforge3:latest']
         platform: [arm64, ppc64le]
 
@@ -333,7 +366,7 @@ jobs:
       fail-fast: false
       matrix:
         # test defaults with integration tests and conda-forge with unit tests
-        python-version: ['3.9']
+        python-version: ['3.10']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -426,7 +459,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-qemu, macos]
+    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
     if: >-
       !cancelled()
       && needs.changes.outputs.code == 'true'
@@ -452,7 +485,7 @@ jobs:
   # required check
   analyze:
     name: Analyze results
-    needs: [windows, linux, linux-qemu, macos, aggregate]
+    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
@@ -526,7 +559,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v23.7.0
+        uses: conda/actions/canary-release@v23.10.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -536,3 +569,4 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          conda-build-arguments: --no-test  # skip tests for initial Python 3.12 builds

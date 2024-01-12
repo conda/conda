@@ -298,23 +298,21 @@ class PrefixGraph:
                     if parent.name == "pip":
                         parents.remove(parent)
 
-        if on_win:
-            # 2. Special case code for menuinst.
-            #    Always link/unlink menuinst first/last on windows in case a subsequent
-            #    package tries to import it to create/remove a shortcut.
-            menuinst_node = next(
-                (node for node in graph if node.name == "menuinst"), None
-            )
-            python_node = next((node for node in graph if node.name == "python"), None)
-            if menuinst_node:
-                # add menuinst as a parent if python is a parent and the node
-                # isn't a parent of menuinst
-                assert python_node is not None
-                menuinst_parents = graph[menuinst_node]
-                for node, parents in graph.items():
-                    if python_node in parents and node not in menuinst_parents:
-                        parents.add(menuinst_node)
+        # 2. Special case code for menuinst.
+        #    Always link/unlink menuinst first/last in case a subsequent
+        #    package tries to import it to create/remove a shortcut.
+        menuinst_node = next((node for node in graph if node.name == "menuinst"), None)
+        python_node = next((node for node in graph if node.name == "python"), None)
+        if menuinst_node:
+            # add menuinst as a parent if python is a parent and the node
+            # isn't a parent of menuinst
+            assert python_node is not None
+            menuinst_parents = graph[menuinst_node]
+            for node, parents in graph.items():
+                if python_node in parents and node not in menuinst_parents:
+                    parents.add(menuinst_node)
 
+        if on_win:
             # 3. On windows, python noarch packages need an implicit dependency on conda added, if
             #    conda is in the list of packages for the environment.  Python noarch packages
             #    that have entry points use conda's own conda.exe python entry point binary. If

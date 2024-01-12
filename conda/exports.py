@@ -6,7 +6,7 @@ import functools
 import os
 import sys
 import threading
-from builtins import input  # noqa: F401
+from builtins import input  # noqa: F401, UP029
 from collections.abc import Hashable as _Hashable
 from io import StringIO  # noqa: F401, for conda-build
 
@@ -25,8 +25,8 @@ from .base.context import (  # noqa: F401
     sys_rc_path,
 )
 from .cli.common import spec_from_line, specs_from_args, specs_from_url  # noqa: F401
-from .cli.conda_argparse import (  # noqa: F401
-    ArgumentParser,
+from .cli.conda_argparse import ArgumentParser  # noqa: F401
+from .cli.helpers import (  # noqa: F401
     add_parser_channels,
     add_parser_prefix,
 )
@@ -119,7 +119,13 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
-IndexRecord = PackageRecord
+deprecated.constant(
+    "24.3",
+    "24.9",
+    "IndexRecord",
+    PackageRecord,
+    addendum="Use `conda.models.records.PackageRecord` instead.",
+)
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
@@ -229,6 +235,7 @@ def get_index(
     return {Dist(prec): prec for prec in index.values()}
 
 
+@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
 def fetch_index(channel_urls, use_cache=False, index=None):
     index = _fetch_index(channel_urls, use_cache, index)
     return {Dist(prec): prec for prec in index.values()}

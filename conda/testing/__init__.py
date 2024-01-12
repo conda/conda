@@ -18,21 +18,23 @@ import os
 import sys
 import uuid
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+from logging import getLogger
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
-from typing import Iterator
+from typing import Iterable, overload
 
 import pytest
-from pytest import CaptureFixture
+from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
 
-from conda.base.context import context, reset_context
-from conda.cli.main import init_loggers
-from conda.common.compat import on_win
-
+from ..base.context import reset_context
+from ..cli.main import main_subshell
+from ..common.compat import on_win
 from ..deprecations import deprecated
+
+log = getLogger(__name__)
 
 
 @deprecated("23.9", "24.3")
@@ -73,7 +75,7 @@ def conda_ensure_sys_python_is_base_env_python():
 
 def conda_move_to_front_of_PATH():
     if "CONDA_PREFIX" in os.environ:
-        from conda.activate import CmdExeActivator, PosixActivator
+        from ..activate import CmdExeActivator, PosixActivator
 
         if os.name == "nt":
             activator_cls = CmdExeActivator
@@ -140,14 +142,14 @@ def conda_check_versions_aligned():
     else:
         version_from_file = None
 
-    git_exe = "git.exe" if sys.platform == "win32" else "git"
+    git_exe = "git.exe" if on_win else "git"
     version_from_git = None
     for pe in os.environ.get("PATH", "").split(os.pathsep):
         if isfile(join(pe, git_exe)):
             try:
                 cmd = join(pe, git_exe) + " describe --tags --long"
                 version_from_git = check_output(cmd).decode("utf-8").split("\n")[0]
-                from conda.auxlib.packaging import _get_version_from_git_tag
+                from ..auxlib.packaging import _get_version_from_git_tag
 
                 version_from_git = _get_version_from_git_tag(version_from_git)
                 break
@@ -169,14 +171,31 @@ def conda_check_versions_aligned():
 class CondaCLIFixture:
     capsys: CaptureFixture
 
-    def __call__(self, *argv: str) -> tuple[str, str, int]:
+    @overload
+    def __call__(
+        self,
+        *argv: str | os.PathLike | Path,
+        raises: type[Exception] | tuple[type[Exception], ...],
+    ) -> tuple[str, str, ExceptionInfo]:
+        ...
+
+    @overload
+    def __call__(self, *argv: str | os.PathLike | Path) -> tuple[str, str, int]:
+        ...
+
+    def __call__(
+        self,
+        *argv: str | os.PathLike | Path,
+        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+    ) -> tuple[str, str, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
 
-        :param argv: Arguments to parse
-        :return: Command results
-        :rtype: tuple[stdout, stdout, exitcode]
+        :param argv: Arguments to parse.
+        :param raises: Expected exception to intercept. If provided, the raised exception
+            will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
+        :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
         # clear output
         self.capsys.readouterr()
@@ -184,37 +203,17 @@ class CondaCLIFixture:
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
-        # mock legacy subcommands
-        if argv[0] == "env":
-            from conda_env.cli.main import create_parser, do_call
-
-            argv = argv[1:]
-
-            # parse arguments
-            parser = create_parser()
-            args = parser.parse_args(argv)
-
-            # initialize context and loggers
-            context.__init__(argparse_args=args)
-            init_loggers()
-
-            # run command
-            code = do_call(args, parser)
-
-        # all other subcommands
-        else:
-            from conda.cli.main import main_subshell
-
-            # run command
+        # run command
+        code = None
+        with pytest.raises(raises) if raises else nullcontext() as exception:
             code = main_subshell(*argv)
-
         # capture output
         out, err = self.capsys.readouterr()
 
         # restore to prior state
         reset_context()
 
-        return out, err, code
+        return out, err, exception if raises else code
 
 
 @pytest.fixture
@@ -265,7 +264,7 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
-    ) -> Iterator[Path]:
+    ) -> Iterable[Path]:
         """Generate a conda environment with the provided packages.
 
         :param packages: The packages to install into environment
@@ -274,7 +273,6 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.path_factory())
 
-        reset_context([prefix / "condarc"])
         self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
         yield prefix
 
@@ -288,3 +286,20 @@ def tmp_env(
 ) -> TmpEnvFixture:
     """Fixture returning TmpEnvFixture instance."""
     yield TmpEnvFixture(path_factory, conda_cli)
+
+
+@pytest.fixture(name="monkeypatch")
+def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
+    """A monkeypatch fixture that resets context after each test"""
+    yield monkeypatch
+
+    # reset context if any CONDA_ variables were set/unset
+    if conda_vars := [
+        name
+        for obj, name, _ in monkeypatch._setitem
+        if obj is os.environ and name.startswith("CONDA_")
+    ]:
+        log.debug(f"monkeypatch cleanup: undo & reset context: {', '.join(conda_vars)}")
+        monkeypatch.undo()
+        # reload context without search paths
+        reset_context([])

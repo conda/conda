@@ -49,12 +49,12 @@ def minio_s3_server(xprocess, tmp_path):
 
         def populate_bucket(self, endpoint, bucket_name, channel_dir):
             """Prepare the s3 connection for our minio instance"""
-            import boto3
+            from boto3.session import Session
             from botocore.client import Config
 
             # Make the minio bucket public first
             # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-example-bucket-policies.html#set-a-bucket-policy
-            session = boto3.session.Session()
+            session = Session()
             client = session.client(
                 "s3",
                 endpoint_url=endpoint,

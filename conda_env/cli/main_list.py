@@ -1,14 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""CLI implementation for `conda-env list`.
+"""DEPRECATED: Use `conda.cli.main_env_list` instead.
+
+CLI implementation for `conda-env list`.
 
 Lists available conda environments.
 """
-from argparse import RawDescriptionHelpFormatter
+# Import from conda.cli.main_env_list since this module is deprecated.
+from conda.cli.main_env_list import configure_parser, execute  # noqa
+from conda.deprecations import deprecated
 
-from conda.cli import common
-from conda.cli.conda_argparse import add_parser_json
-from conda.core.envs_manager import list_all_known_prefixes
+deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env_list` instead.")
 
 description = """
 List the Conda environments
@@ -19,25 +21,3 @@ examples:
     conda env list
     conda env list --json
 """
-
-
-def configure_parser(sub_parsers):
-    list_parser = sub_parsers.add_parser(
-        "list",
-        formatter_class=RawDescriptionHelpFormatter,
-        description=description,
-        help=description,
-        epilog=example,
-    )
-
-    add_parser_json(list_parser)
-
-    list_parser.set_defaults(func=".main_list.execute")
-
-
-def execute(args, parser):
-    info_dict = {"envs": list_all_known_prefixes()}
-    common.print_envs_list(info_dict["envs"], not args.json)
-
-    if args.json:
-        common.stdout_json(info_dict)
