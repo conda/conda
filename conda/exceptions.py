@@ -296,9 +296,14 @@ class CommandNotFoundError(CondaError):
         init_loggers()
         if command in activate_commands:
             # TODO: Point users to a page at conda-docs, which explains this context in more detail
+            # Perhaps this link would be appropriate? https://docs.conda.io/projects/conda/en/latest/commands/init.html
+            # Remind users what shell they are currently using.
+            # Can be different in job schedulers versus interactive sessions, for example
+            shell = os.popen('echo $SHELL').read().rstrip()
             builder = [
-                "Your shell has not been properly configured to use 'conda %(command)s'."
+                "Your shell (%(shell)) has not been properly configured to use 'conda %(command)s'."
             ]
+
             if on_win:
                 builder.append(
                     dals(
