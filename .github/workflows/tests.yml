@@ -121,7 +121,7 @@ jobs:
           mklink /J \conda_bin %CONDA% || goto :error
 
           set CONDA_SRC_PATH="${{ github.workspace }}" || goto :error
-          mklink /J \conda_src "%CONDA_SRC_PATH%" || goto :error
+          mklink /J \conda_src %CONDA_SRC_PATH% || goto :error
 
           cd \conda_src || goto :error
           CALL \conda_bin\scripts\activate.bat || goto :error
@@ -143,27 +143,23 @@ jobs:
 
           CALL python -m conda init cmd.exe --dev || goto :error
 
+          CALL conda info --verbose
+
+          CALL conda list --show-channel-urls
+
+          CALL pytest ^
+            --cov=conda ^
+            --durations-path=tools\durations\${{ runner.os }}.json ^
+            --group=${{ matrix.test-group }} ^
+            --splits=${{ env.PYTEST_SPLITS }} ^
+            -m ${{ env.PYTEST_MARKER }} ^
+            -n ${{ env.PYTEST_NUMPROCESSES }} || goto :error
+
           goto :EOF
 
           :error
           echo Failed with error #%errorlevel%.
           exit /b %errorlevel%
-
-      - name: Show Info
-        run: |
-          conda info --verbose
-          conda list --show-channel-urls
-
-      - name: Run Tests
-        run: python
-          -m pytest
-          -vvv
-          --cov=conda
-          --durations-path="tools\durations\${{ runner.os }}.json"
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
-          -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
