@@ -106,7 +106,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
-          conda-solver: libmamba
+          conda-solver: classic
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
           auto-activate-base: true
@@ -141,6 +141,8 @@ jobs:
             --repodata-fn=repodata.json || goto :error
 
           CALL conda activate test || goto :error
+
+          CALL python -m conda init --install || goto :error
 
           CALL python -m conda init cmd.exe --dev || goto :error
 
