@@ -147,10 +147,7 @@ jobs:
 
           CALL conda list --show-channel-urls
 
-          CALL pytest ^
-            --cov=conda ^
-            -m ${{ env.PYTEST_MARKER }} ^
-            -n ${{ env.PYTEST_NUMPROCESSES }} || goto :error
+          CALL python -m pytest || goto :error
 
           goto :EOF
 
