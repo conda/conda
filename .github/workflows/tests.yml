@@ -309,12 +309,10 @@ jobs:
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
-          run: >
-            python -m pytest
-            -m "${{ env.PYTEST_MARKER }}"
-            -n "${{ env.PYTEST_NUMPROCESSES }}"
-            --codspeed
-
+          run: |
+            source ${{ env.CONDA }}/etc/profile.d/conda.sh
+            conda activate test
+            python -m pytest -m "${{ env.PYTEST_MARKER }}" -n "${{ env.PYTEST_NUMPROCESSES }}" --codspeed
 
   # linux-qemu test suite
   linux-qemu:
