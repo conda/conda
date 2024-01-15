@@ -112,6 +112,9 @@ jobs:
           auto-activate-base: true
           activate-environment: ""
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Setup environment
         run: |
           @ECHO ON
@@ -152,9 +155,6 @@ jobs:
           :error
           echo Failed with error #%errorlevel%.
           exit /b %errorlevel%
-
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
