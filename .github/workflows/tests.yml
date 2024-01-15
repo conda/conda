@@ -262,6 +262,7 @@ jobs:
     env:
       PYTEST_MARKER: 'benchmark'
       PYTEST_NUMPROCESSES: '0'
+      CONDA_TEST_ENV: '/usr/share/miniconda/envs/test'
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -309,7 +310,7 @@ jobs:
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
-          run: ${{ env.CONDA }}/envs/test/bin/python
+          run: ${{ env.CONDA_TEST_ENV }}/bin/python
             -m pytest
             -m "${{ env.PYTEST_MARKER }}"
             -n "${{ env.PYTEST_NUMPROCESSES }}"
