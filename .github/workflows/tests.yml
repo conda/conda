@@ -109,6 +109,8 @@ jobs:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
+          auto-activate-base: true
+          activate-environment: ""
 
       - name: Setup Environment
         run: conda install
