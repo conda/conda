@@ -132,6 +132,8 @@ jobs:
           cd \conda_src || goto :error
           CALL \conda_bin\scripts\activate.bat || goto :error
 
+          CALL dir
+
           CALL conda create --name test --yes ^
             python=${{ env.PYTHON }} ^
             --file tests\requirements.txt ^
