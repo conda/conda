@@ -82,7 +82,7 @@ jobs:
             test-group: 3
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: '0'
+      PYTEST_NUMPROCESSES: 'auto'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
 
     steps:
@@ -112,7 +112,7 @@ jobs:
 
       - name: Setup Environment
         run: conda install
-            --quiet --yes
+            --yes
             --file tests\requirements.txt
             --file tests\requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
@@ -215,7 +215,7 @@ jobs:
 
       - name: Setup Environment
         run: conda install
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
@@ -299,7 +299,7 @@ jobs:
 
       - name: Setup Environment
         run: conda install
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
@@ -368,7 +368,7 @@ jobs:
           ". /opt/conda/etc/profile.d/conda.sh
           && conda create
             --name test
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-ci.txt
             python=${{ matrix.python-version }}
@@ -435,7 +435,7 @@ jobs:
 
       - name: Setup Environment
         run: conda install
-            --quiet --yes
+            --yes
             --file tests/requirements.txt
             --file tests/requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
