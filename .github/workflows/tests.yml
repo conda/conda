@@ -107,7 +107,6 @@ jobs:
           auto-update-conda: true
           conda-solver: libmamba
           condarc-file: .github\condarc-${{ matrix.default-channel }}
-          python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
           auto-activate-base: true
           activate-environment: ""
@@ -115,6 +114,7 @@ jobs:
       - name: Setup Environment
         run: conda install
             --quiet --yes
+            python="${{ matrix.python-version }}"
             --file tests\requirements.txt
             --file tests\requirements-s3.txt
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
