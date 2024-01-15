@@ -63,6 +63,10 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: cmd /C call {0}
     strategy:
       fail-fast: false
       matrix:
