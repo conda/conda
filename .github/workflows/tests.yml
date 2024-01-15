@@ -123,6 +123,7 @@ jobs:
       - name: Run Tests
         run: python
           -m pytest
+          -vvv
           --cov=conda
           --durations-path="tools\durations\${{ runner.os }}.json"
           --group=${{ matrix.test-group }}
