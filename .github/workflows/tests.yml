@@ -121,7 +121,8 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: pytest
+        run: python
+          -m pytest
           --cov=conda
           --durations-path="tools\durations\${{ runner.os }}.json"
           --group=${{ matrix.test-group }}
@@ -220,7 +221,8 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run Tests
-        run: pytest
+        run: python
+          -m pytest
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -366,7 +368,7 @@ jobs:
           && conda activate test
           && conda info --verbose
           && conda list --show-channel-urls
-          && pytest tests/test_api.py::test_DepsModifier_contract"
+          && python -m pytest tests/test_api.py::test_DepsModifier_contract"
 
   # macos test suite
   macos:
