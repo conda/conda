@@ -115,7 +115,7 @@ jobs:
             --durations-path=tools\durations\${{ runner.os }}.json ^
             --group=${{ matrix.test-group }} ^
             --splits=${{ env.PYTEST_SPLITS }} ^
-            -m ${{ env.PYTEST_MARKER }} || goto :error
+            -m=${{ env.PYTEST_MARKER }} || goto :error
 
           goto :EOF
 
