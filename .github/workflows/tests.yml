@@ -106,7 +106,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
-          conda-solver: classic
+          conda-solver: libmamba
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
           auto-activate-base: true
