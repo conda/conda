@@ -1,4 +1,4 @@
-conda-forge::anaconda-client
+anaconda-client
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
