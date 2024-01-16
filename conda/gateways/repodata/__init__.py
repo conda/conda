@@ -106,6 +106,13 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
+    try:
+        from .jlap.interface import ZstdRepoInterface
+
+        return ZstdRepoInterface
+    except ImportError:  # pragma: no cover
+        pass
+
     return CondaRepoInterface
 
 
@@ -404,7 +411,6 @@ class RepodataState(UserDict):
         #     // UTC RFC3999 timestamp of when we last checked whether the file is available or not
         #     // in this case the `repodata.json.zst` file
         #     // Note: same format as conda TUF spec
-        #     // Python's time.time_ns() would be convenient?
         #     "last_checked": "2023-01-08T11:45:44Z",
         #     // false = unavailable, true = available
         #     "value": BOOLEAN
@@ -504,10 +510,7 @@ class RepodataCache:
     @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
-        return pathlib.Path(
-            self.cache_dir,
-            self.name + ("1" if context.use_only_tar_bz2 else "") + CACHE_STATE_SUFFIX,
-        )
+        return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
     def load(self, *, state_only=False) -> str:
         # read state and repodata.json with locking
@@ -517,7 +520,7 @@ class RepodataCache:
         # read repodata.json
         # check stat, if wrong clear cache information
 
-        with self.cache_path_state.open("r+") as state_file, lock(state_file):
+        with self.lock("r+") as state_file:
             # cannot use pathlib.read_text / write_text on any locked file, as
             # it will release the lock early
             state = json.loads(state_file.read())
@@ -600,7 +603,7 @@ class RepodataCache:
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
-        with self.cache_path_state.open("a+") as state_file, lock(state_file):
+        with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
@@ -622,12 +625,22 @@ class RepodataCache:
         Update access time in cache info file to indicate a HTTP 304 Not Modified response.
         """
         # Note this is not thread-safe.
-        with self.cache_path_state.open("a+") as state_file, lock(state_file):
+        with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             self.state["refresh_ns"] = refresh_ns or time.time_ns()
             state_file.write(json.dumps(dict(self.state), indent=2))
+
+    @contextmanager
+    def lock(self, mode="a+"):
+        """
+        Lock .info.json file. Hold lock while modifying related files.
+
+        mode: "a+" then seek(0) to write/create; "r+" to read.
+        """
+        with self.cache_path_state.open(mode) as state_file, lock(state_file):
+            yield state_file
 
     def stale(self):
         """

@@ -2,6 +2,7 @@
 [tests-badge]: https://github.com/conda/conda/actions/workflows/tests.yml/badge.svg
 [images-badge]: https://github.com/conda/conda/actions/workflows/images.yml/badge.svg
 [codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main.svg?label=coverage
+[codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
 [release-badge]: https://img.shields.io/github/release/conda/conda.svg
 [gitpod]: https://gitpod.io/button/open-in-gitpod.svg
 
@@ -10,6 +11,7 @@
 [![Tests (GitHub Actions)][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml)
 [![Images (GitHub Actions)][images-badge]](https://github.com/conda/conda/actions/workflows/images.yml)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
+[![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
 [![latest release version][release-badge]](https://github.com/conda/conda/releases)
 
 Conda is a cross-platform, language-agnostic binary package manager. It is the

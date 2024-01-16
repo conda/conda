@@ -94,6 +94,7 @@ def test_init(conda_cli: CondaCLIFixture):
     assert not code
 
 
+@pytest.mark.benchmark
 def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
     with tmp_env() as prefix:
         out, err, code = conda_cli(
@@ -107,6 +108,7 @@ def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
         assert not code
 
 
+@pytest.mark.benchmark
 def test_list(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("ca-certificates") as prefix:
         out, err, code = conda_cli("list", "--prefix", prefix)
@@ -165,6 +167,7 @@ def test_rename(
         assert not code
 
 
+@pytest.mark.benchmark
 def test_run(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("m2-patch" if on_win else "patch") as prefix:
         out, err, code = conda_cli("run", "--prefix", prefix, "patch", "--help")
@@ -181,6 +184,7 @@ def test_search(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.parametrize("subcommand", ["update", "upgrade"])
+@pytest.mark.benchmark
 def test_update(
     subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request
 ):
@@ -210,11 +214,11 @@ def test_env_remove(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
         assert not code
 
 
+@pytest.mark.benchmark
 def test_env_create(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     environment_yml: Path,
-    request,
 ):
     out, err, code = conda_cli(
         "env",
@@ -227,11 +231,11 @@ def test_env_create(
     assert not code
 
 
+@pytest.mark.benchmark
 def test_env_update(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     environment_yml: Path,
-    request,
 ):
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(

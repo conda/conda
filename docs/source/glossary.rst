@@ -153,7 +153,7 @@ packages that are easily installed locally with the
 
 * The Navigator GUI
 
-* A terminal or Anaconda Prompt using conda commands
+* A terminal using conda commands
 
 *  https://repo.anaconda.com/pkgs/
 

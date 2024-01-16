@@ -132,6 +132,8 @@ norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
   "tests/plugins/data/*",
+  "docs",
+  ".git",
 ]
 addopts = [
   "--color=yes",
@@ -159,6 +161,7 @@ doctest_optionflags = [
 markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
+  "benchmark: benchmark tests",
 ]
 pythonpath = [
   # faking a test-plugin to test ImportError handling

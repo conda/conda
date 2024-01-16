@@ -220,12 +220,14 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     packages = {}
     packages_conda = {}
     for pkg in subdir_data.iter_records():
+        if pkg.timestamp:
+            # ensure timestamp is dumped as int in milliseconds
+            # (pkg.timestamp is a kept as a float in seconds)
+            pkg.__fields__["timestamp"]._in_dump = True
         data = pkg.dump()
         if subdir == "noarch" and getattr(pkg, "noarch", None):
             data["subdir"] = "noarch"
             data["platform"] = data["arch"] = None
-        if pkg.timestamp:
-            data["timestamp"] = pkg.timestamp
         if "features" in data:
             # Features are deprecated, so they are not implemented
             # in modern solvers like mamba. Mamba does implement
