@@ -106,6 +106,7 @@ jobs:
           CALL conda install ^
             --yes ^
             --override-channels ^
+            --channel=defaults ^
             --file tests\requirements-s3.txt ^
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt ^' || '^' }} || goto :error
 
