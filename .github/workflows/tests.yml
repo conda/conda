@@ -72,12 +72,9 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.8', '3.12']
-        default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.8'
-            default-channel: conda-forge
           - test-type: unit
             test-group: 3
     env:
@@ -93,7 +90,7 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache Conda
@@ -102,56 +99,24 @@ jobs:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: true
-          conda-solver: libmamba
-          condarc-file: .github\condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
-          auto-activate-base: true
-          activate-environment: ""
+      - name: Setup environment (dev/start)
+        run: .\dev\start  /P ${{ matrix.python-version }}
 
       - name: Setup environment
         run: |
-          @ECHO ON
-          pushd %TEMP% || goto :error
-
-          set CONDA=C:\Miniconda || goto :error
-          mklink /J \conda_bin %CONDA% || goto :error
-
-          set CONDA_SRC_PATH="${{ github.workspace }}" || goto :error
-          mklink /J \conda_src %CONDA_SRC_PATH% || goto :error
-
-          cd \conda_src || goto :error
-          CALL \conda_bin\scripts\activate.bat || goto :error
-
-          CALL dir
-
-          CALL conda create ^
-            --name test ^
+          CALL conda install ^
             --yes ^
-            --channel ${{ matrix.default-channel }} ^
             --override-channels ^
-            --file tests\requirements.txt ^
             --file tests\requirements-s3.txt ^
-            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt ^' || '^' }}
-            --file tests\requirements-ci.txt  ^
-            --file tests\requirements-${{ runner.os }}.txt  ^
-            --repodata-fn=repodata.json ^
-            python=${{ env.PYTHON }} || goto :error
+            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt ^' || '^' }} || goto :error
 
-          CALL conda activate test || goto :error
-
-          CALL python -m conda init --install || goto :error
-
-          CALL python -m conda init cmd.exe --dev || goto :error
-
-          CALL conda info --verbose
-
-          CALL conda list --show-channel-urls
-
-          CALL python -m pytest || goto :error
+          CALL pytest ^
+            --cov=conda ^
+            --durations-path=tools\durations\${{ runner.os }}.json ^
+            --group=${{ matrix.test-group }} ^
+            --splits=${{ env.PYTEST_SPLITS }} ^
+            -m ${{ env.PYTEST_MARKER }} ^
+            -n ${{ env.PYTEST_NUMPROCESSES }} || goto :error
 
           goto :EOF
 
