@@ -1164,7 +1164,7 @@ class Context(Configuration):
                 "fetch_threads",
                 "experimental",
                 "no_lock",
-                "no_jlap",
+                "no_repodata_zst",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1836,10 +1836,9 @@ class Context(Configuration):
                 Disable index cache lock (defaults to enabled).
                 """
             ),
-            no_jlap=dals(
+            no_repodata_zst=dals(
                 """
-                Disable `repodata.json.zst` and `repodata.jlap` incremental
-                index updates when supplied by the remote (defaults to enabled).
+                Disable check for `repodata.json.zst`; use `repodata.json` only.
                 """
             ),
         )
