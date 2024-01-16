@@ -3041,7 +3041,7 @@ def test_conda_list_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             }
 
     with tmp_env("python=3") as prefix:
-        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json", "--yes")
+        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
         stdout_json = json.loads(stdout)
         packages = [pkg_info(package) for package in stdout_json]
         python_package = next(p for p in packages if p["name"] == "python")
