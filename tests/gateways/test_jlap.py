@@ -16,7 +16,7 @@ import requests
 import zstandard
 
 import conda.gateways.repodata
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, reset_context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_vars
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError, CondaSSLError
@@ -359,6 +359,7 @@ def test_jlap_flag(use_jlap):
         {"CONDA_NO_JLAP": not use_jlap},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
+        expected = use_jlap
         assert context.no_jlap is not use_jlap
 
         # now using a subclass of JlapRepoInterface for "check zstd but not jlap"
