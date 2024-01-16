@@ -99,11 +99,10 @@ jobs:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup environment (dev/start)
-        run: .\dev\start  /P ${{ matrix.python-version }}
-
-      - name: Setup environment
+      - name: Setup environment and run tests
         run: |
+          CALL .\dev\start  /P ${{ matrix.python-version }}
+
           CALL conda install ^
             --yes ^
             --override-channels ^
