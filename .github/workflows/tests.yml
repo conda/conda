@@ -131,14 +131,18 @@ jobs:
 
           CALL dir
 
-          CALL conda create --name test --yes ^
-            python=${{ env.PYTHON }} ^
+          CALL conda create ^
+            --name test ^
+            --yes ^
+            --channel ${{ matrix.default-channel }} ^
+            --override-channels ^
             --file tests\requirements.txt ^
             --file tests\requirements-s3.txt ^
             ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt ^' || '^' }}
             --file tests\requirements-ci.txt  ^
             --file tests\requirements-${{ runner.os }}.txt  ^
-            --repodata-fn=repodata.json || goto :error
+            --repodata-fn=repodata.json ^
+            python=${{ env.PYTHON }} || goto :error
 
           CALL conda activate test || goto :error
 
