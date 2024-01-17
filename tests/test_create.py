@@ -848,56 +848,6 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         assert prefix not in PrefixData._cache_
 
 
-def test_compare_success(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python=3.10.9", "flask=1.1.1", "bzip2=1.0.8") as prefix:
-        env_file = join(prefix, "env.yml")
-        with open(env_file, "w") as f:
-            f.write(
-                dals(
-                    """
-                    name: dummy
-                    channels:
-                      - defaults
-                    dependencies:
-                      - bzip2=1.0.8
-                      - flask>=1.0.1,<=1.1.4
-                    """
-                )
-            )
-        output, _, _ = conda_cli(
-            "compare", f"--prefix={prefix}", f"{env_file}", "--json"
-        )
-        assert "Success" in output
-
-
-def test_compare_fail(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python=3.10.9", "flask=1.1.1", "bzip2=1.0.8") as prefix:
-        env_file = join(prefix, "env.yml")
-        with open(env_file, "w") as f:
-            f.write(
-                dals(
-                    """
-                    name: dummy
-                    channels:
-                      - defaults
-                    dependencies:
-                      - yaml
-                      - flask=1.0.3
-                    """
-                )
-            )
-        (
-            output,
-            _,
-            _,
-        ) = conda_cli("compare", f"--prefix={prefix}", f"{env_file}", "--json")
-        assert "yaml not found" in output
-        assert (
-            "flask found but mismatch. Specification pkg: flask=1.0.3, Running pkg: flask==1.1.1=py_1"
-            in output
-        )
-
-
 def test_install_tarball_from_local_channel(
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
