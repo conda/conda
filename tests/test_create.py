@@ -15,11 +15,9 @@ from os.path import (
     isdir,
     isfile,
     join,
-    lexists,
-    relpath,
 )
 from pathlib import Path
-from shutil import copyfile, rmtree
+from shutil import rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
 from typing import Literal
@@ -861,69 +859,38 @@ def test_tarball_install(
 
 
 def test_tarball_install_and_bad_metadata(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
-    with tmp_env("python=3.10.9", "flask=1.1.1", "--json") as prefix:
-        assert package_is_installed(prefix, "flask==1.1.1")
-        flask_data = [
-            p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
-        ][0]
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask==1.1.1")
-        assert package_is_installed(prefix, "python")
+    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
+        assert package_is_installed(prefix, "another_dependent")
+        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
+        assert package_is_installed(prefix, "small-executable")
+        assert not package_is_installed(prefix, "dependent")
+        # make sure all dependencies of "dependent" were removed
+        assert not package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "another_dependent")
 
-        flask_fname = flask_data["fn"]
-        tar_old_path = join(PackageCacheData.first_writable().pkgs_dir, flask_fname)
-
-        # if a .tar.bz2 is already in the file cache, it's fine.  Accept it or the .conda file here.
-        if not isfile(tar_old_path):
-            tar_old_path = tar_old_path.replace(".conda", ".tar.bz2")
-        assert isfile(tar_old_path)
-
+        tar_path = test_recipes_channel / "noarch/dependent-1.0-0.tar.bz2"
         with pytest.raises(DryRunExit):
-            conda_cli("install", f"--prefix={prefix}", f"{tar_old_path}", "--dry-run")
-            assert not package_is_installed(prefix, "flask=1.*")
+            conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
+            assert not package_is_installed(prefix, "dependent")
 
-        # regression test for #2886 (part 1 of 2)
-        # install tarball from package cache, default channel
-        conda_cli("install", f"--prefix={prefix}", f"{tar_old_path}", "--yes")
-        assert package_is_installed(prefix, "flask=1.*")
+        conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
+        assert package_is_installed(prefix, "dependent")
 
-        # regression test for #2626
-        # install tarball with full path, outside channel
-        tar_new_path = join(prefix, flask_fname)
-        copyfile(tar_old_path, tar_new_path)
-        conda_cli("install", f"--prefix={prefix}", f"{tar_new_path}", "--yes")
-        assert package_is_installed(prefix, "flask=1")
-
-        # regression test for #2626
-        # install tarball with relative path, outside channel
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask=1.1.1")
-        tar_new_path = relpath(tar_new_path)
-        conda_cli("install", f"--prefix={prefix}", f"{tar_new_path}", "--yes")
-        assert package_is_installed(prefix, "flask=1")
-
-        # regression test for #2886 (part 2 of 2)
-        # install tarball from package cache, local channel
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--json", "--yes")
-        assert not package_is_installed(prefix, "flask=1")
-        conda_cli("install", f"--prefix={prefix}", f"{tar_old_path}", "--yes")
-        # The last install was from the `local::` channel
-        assert package_is_installed(prefix, "flask")
-
-        # regression test for #2599
-        # ignore json files in conda-meta that don't conform to name-version-build.json
-        if not on_win:
-            # xz is only a python dependency on unix
-            xz_prec = next(PrefixData(prefix).query("xz"))
-            dist_name = xz_prec.dist_str().split("::")[-1]
-            xz_prefix_data_json_path = join(prefix, "conda-meta", dist_name + ".json")
-            copyfile(xz_prefix_data_json_path, join(prefix, "conda-meta", "xz.json"))
-            rm_rf(xz_prefix_data_json_path)
-            assert not lexists(xz_prefix_data_json_path)
-            PrefixData._cache_ = {}
-            assert not package_is_installed(prefix, "xz")
+        bad_metadata = Path(prefix, "bad_metadata.yml")
+        bad_metadata.write_text(
+            dals(
+                """
+                    name: no-good-metadata
+                    dependencies:
+                      - something-made-up
+                    """
+            )
+        )
+        with pytest.raises(PackagesNotFoundError):
+            conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
+            assert not package_is_installed(prefix, "something-made-up")
 
 
 def test_update_with_pinned_packages(
