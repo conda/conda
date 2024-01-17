@@ -848,75 +848,16 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         assert prefix not in PrefixData._cache_
 
 
-def test_install_tarball_from_local_channel(
-    monkeypatch: MonkeyPatch,
-    tmp_path: Path,
+def test_tarball_install(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    # Regression test for #2812
-    # install from local channel
-    """
-    path = u'/private/var/folders/y1/ljv50nrs49gdqkrp01wy3_qm0000gn/T/pytest-of-rdonnelly/pytest-16/test_install_tarball_from_loca0/c352_çñßôêá'
-    if on_win:
-        path = u'C:\\çñ'
-        percy = u'file:///C:/%C3%A7%C3%B1'
-    else:
-        path = u'/çñ'
-        percy = 'file:///%C3%A7%C3%B1'
-
-    url = path_to_url(path)
-    assert url == percy
-    path2 = url_to_path(url)
-    assert path == path2
-    assert type(path) == type(path2)
-    # path_to_url("c:\\users\\est_install_tarball_from_loca0\a48a_6f154a82dbe3c7")
-    """
-    monkeypatch.setenv("CONDA_BLD_PATH", str(tmp_path))
-    reset_context()
-    assert context.bld_path == str(tmp_path)
-
-    with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
-            f"--channel={channel}",
-            "flask=2.1.3",
-            "--json",
-            "--yes",
-        )
-        assert package_is_installed(prefix, channel + "::" + "flask")
-        flask_fname = [
-            p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
-        ][0]["fn"]
-
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask=0")
-
-        # Regression test for 2970
-        # install from build channel as a tarball
-        tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
-        if not tar_path.is_file():
-            tar_path = tar_path.with_suffix(".tar.bz2")
-
-        # create a temporary conda-bld
-        conda_bld_sub = tmp_path / context.subdir
-        conda_bld_sub.mkdir(exist_ok=True)
-        tar_bld_path = str(conda_bld_sub / tar_path.name)
-        copyfile(tar_path, tar_bld_path)
-
-        conda_cli("install", f"--prefix={prefix}", f"{tar_bld_path}", "--yes")
-        assert package_is_installed(prefix, "flask")
-
-        # Regression test for #462
-        with make_temp_env(tar_bld_path) as prefix2:
-            assert package_is_installed(prefix2, "flask")
-
-
-def test_tarball_install(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
     with tmp_env(test_recipes_channel / "noarch/dependent-1.0-0.tar.bz2") as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
+        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
+        assert not package_is_installed(prefix, "dependent")
 
 
 def test_tarball_install_and_bad_metadata(
