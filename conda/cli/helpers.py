@@ -222,6 +222,11 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         help="Disable locking when reading, updating index (repodata.json) cache. ",
     )
+    channel_customization_options.add_argument(
+        "--no-repodata-zst",
+        action="store_true",
+        help="Do not check for repodata.json.zst.",
+    )
     return channel_customization_options
 
 

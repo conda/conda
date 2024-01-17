@@ -2798,8 +2798,8 @@ def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
 
 
 def test_conda_info_python(conda_cli: CondaCLIFixture):
-    output, _, _ = conda_cli("info", "python=3.10")
-    assert "python 3.10.4" in output
+    output, _, _ = conda_cli("info", "python=3.5")
+    assert "python 3.5.4" in output
 
 
 def test_toolz_cytoolz_package_cache_regression(
