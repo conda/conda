@@ -2838,7 +2838,7 @@ def test_conda_info_python(conda_cli: CondaCLIFixture):
 def test_toolz_cytoolz_package_cache_regression(
     tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
 ):
-    with tmp_env("python=3.10") as prefix:
+    with tmp_env() as prefix:
         pkgs_dir = join(prefix, "pkgs")
         monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs_dir)
         reset_context()
@@ -2856,13 +2856,14 @@ def test_toolz_cytoolz_package_cache_regression(
         assert package_is_installed(prefix, "toolz")
 
 
-def test_remove_spellcheck(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("numpy=1.12") as prefix:
-        assert exists(join(prefix, PYTHON_BINARY))
-        assert package_is_installed(prefix, "numpy")
+def test_remove_spellcheck(
+    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env("dependent") as prefix:
+        assert package_is_installed(prefix, "dependent")
 
         with pytest.raises(PackagesNotFoundError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "numpi", "--yes")
+            conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
 
         exc_string = "%r" % exc.value
         assert (
@@ -2870,14 +2871,16 @@ def test_remove_spellcheck(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             == dals(
                 """
                 PackagesNotFoundError: The following packages are missing from the target environment:
-                  - numpi
+                  - dependint
                 """
             ).strip()
         )
-        assert package_is_installed(prefix, "numpy")
+        assert package_is_installed(prefix, "dependent")
 
 
-def test_conda_list_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_conda_list_json(
+    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     def pkg_info(s):
         # function from nb_conda/envmanager.py
         if isinstance(s, str):
@@ -2890,12 +2893,12 @@ def test_conda_list_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
                 "build": s.get("build_string") or s["build"],
             }
 
-    with tmp_env("python=3") as prefix:
+    with tmp_env("dependent=1.0") as prefix:
         stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
         stdout_json = json.loads(stdout)
         packages = [pkg_info(package) for package in stdout_json]
-        python_package = next(p for p in packages if p["name"] == "python")
-        assert python_package["version"].startswith("3")
+        installed_package = next(p for p in packages if p["name"] == "dependent")
+        assert installed_package["version"].startswith("1")
 
 
 @pytest.mark.skipif(
