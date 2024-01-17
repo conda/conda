@@ -963,51 +963,10 @@ def test_install_tarball_from_local_channel(
             assert package_is_installed(prefix2, "flask")
 
 
-def test_tarball_install(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("bzip2=1.0.8") as prefix:
-        # We have a problem. If bzip2 is extracted already but the tarball is missing then this fails.
-        bzip2_data = [
-            p for p in PrefixData(prefix).iter_records() if p["name"] == "bzip2"
-        ][0]
-        bzip2_fname = bzip2_data["fn"]
-        tar_old_path = join(PackageCacheData.first_writable().pkgs_dir, bzip2_fname)
-        if not isfile(tar_old_path):
-            log.warning(
-                "Installing bzip2 failed to save the compressed package, downloading it 'manually' .."
-            )
-            # Downloading to the package cache causes some internal inconsistency here:
-            #
-            #   File "/Users/rdonnelly/conda/conda/conda/common/path.py", line 72, in url_to_path
-            #     raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
-            # conda.CondaError: You can only turn absolute file: urls into paths (not https://repo.anaconda.com/pkgs/main/osx-64/bzip2-1.0.6-h1de35cc_5.tar.bz2)
-            #
-            # .. so download to the root of the prefix instead.
-            tar_old_path = join(prefix, bzip2_fname)
-            from conda.gateways.connection.download import download
-
-            download(
-                "https://repo.anaconda.com/pkgs/main/"
-                + bzip2_data.subdir
-                + "/"
-                + bzip2_fname,
-                tar_old_path,
-                None,
-            )
-        assert isfile(tar_old_path), f"Failed to cache:\n{tar_old_path}"
-        # It would be nice to be able to do this, but the cache folder name comes from
-        # the file name and that is then all out of whack with the metadata:
-        # tar_new_path = join(prefix, '家' + bzip2_fname)
-        tar_new_path = join(prefix, bzip2_fname)
-
-        if os.path.exists(tar_new_path):
-            os.unlink(tar_new_path)
-        os.link(tar_old_path, tar_new_path)
-        assert isfile(
-            tar_new_path
-        ), f"Failed to copy:\n{tar_old_path}\nto:\n{tar_new_path}"
-
-        conda_cli("install", f"--prefix={prefix}", f"{tar_new_path}", "--yes")
-        assert package_is_installed(prefix, "bzip2")
+def test_tarball_install(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    with tmp_env(test_recipes_channel / "noarch/dependent-1.0-0.tar.bz2") as prefix:
+        assert package_is_installed(prefix, "dependent")
+        assert not package_is_installed(prefix, "dependency")
 
 
 def test_tarball_install_and_bad_metadata(
