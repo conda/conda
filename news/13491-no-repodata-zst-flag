@@ -1,7 +1,7 @@
 ### Enhancements
 
 * Add `--no-repodata-zst` flag to skip `repodata.json.zst` check. Useful if
-  remote returns unparseable `repodata.json.zst` instead of correct data or 404.
+  remote returns unparseable `repodata.json.zst` instead of correct data or 404. (#13504)
 
 ### Bug fixes
 
