@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 import re
+from pathlib import Path
 
 import pytest
 from pytest import MonkeyPatch
@@ -204,3 +205,54 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
         "--json",
     )
     assert "rpy2" in json.loads(stdout)
+
+
+def test_current_platform_package_missing(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "arch-package", "--json")
+
+
+def test_mocked_platform_package_found(
+    monkeypatch: MonkeyPatch,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    # mock a different subdir
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-fake")
+    reset_context()
+    assert context.subdir == "linux-fake"
+
+    stdout, stderr, err = conda_cli("search", "arch-package", "--json")
+    json_obj = json.loads(stdout.strip())
+    assert len(json_obj) == 1
+    assert json_obj["arch-package"]
+    assert not stderr
+    assert not err
+
+
+def test_different_platform_package_found(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    stdout, stderr, err = conda_cli(
+        "search",
+        "--platform=linux-fake",
+        "arch-package",
+        "--json",
+    )
+    json_obj = json.loads(stdout.strip())
+    assert len(json_obj) == 1
+    assert json_obj["arch-package"]
+    assert not stderr
+    assert not err
+
+
+def test_unknown_platform_package_missing(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--platform=linux-unknown", "arch-package", "--json")

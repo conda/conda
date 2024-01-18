@@ -2201,59 +2201,6 @@ def test_install_freezes_env_by_default():
                     assert pkg["version"] == pkg_after["version"]
 
 
-@pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-def test_search_gawk_not_win_filter():
-    with make_temp_env() as prefix:
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "*gawk",
-            "--platform",
-            "win-64",
-            "--json",
-            "-c",
-            "https://repo.anaconda.com/pkgs/msys2",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert "m2-gawk" in json_obj.keys()
-        assert len(json_obj.keys()) == 1
-
-
-@pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
-def test_search_gawk_on_win():
-    with make_temp_env() as prefix:
-        stdout, _, _ = run_command(
-            Commands.SEARCH, prefix, "*gawk", "--json", use_exception_handler=True
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert "m2-gawk" in json_obj.keys()
-        assert len(json_obj.keys()) == 1
-
-
-@pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
-def test_search_gawk_on_win_filter():
-    with make_temp_env() as prefix:
-        stdout, _, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "gawk",
-            "--platform",
-            "linux-64",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert not len(json_obj.keys()) == 0
-
-
 def test_bad_anaconda_token_infinite_loop():
     # This test is being changed around 2017-10-17, when the behavior of anaconda.org
     # was changed.  Previously, an expired token would return with a 401 response.
