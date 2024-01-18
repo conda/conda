@@ -36,7 +36,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v4
-        # dorny/paths-filter needs git clone for push events
+        # dorny/paths-filter needs git clone for non-PR events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
 
@@ -63,25 +63,24 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
-    defaults:
-      run:
-        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: cmd /C call {0}
     strategy:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.8', '3.12']
+        default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
+          - default-channel: conda-forge
+            python-version: '3.8'
           - test-type: unit
             test-group: 3
     env:
+      ErrorActionPreference: Stop  # powershell exit on first error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: 'auto'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      PYTHON: ${{ matrix.python-version }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
 
     steps:
       - name: Checkout Source
@@ -99,29 +98,36 @@ jobs:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
-      - name: Setup environment and run tests
-        run: |
-          CALL .\dev\start  /P ${{ matrix.python-version }}
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          condarc-file: .github\condarc-${{ matrix.default-channel }}
+          python-version: ${{ matrix.python-version }}
+          run-post: false  # skip post cleanup
 
-          CALL conda install ^
-            --yes ^
-            --override-channels ^
-            --channel=defaults ^
-            --file tests\requirements-s3.txt ^
-            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests\requirements-truststore.txt ^' || '^' }} || goto :error
+      - name: Conda Install
+        run: conda install
+          --yes
+          --quiet
+          --file tests\requirements.txt
+          --file tests\requirements-${{ runner.os }}.txt
+          --file tests\requirements-ci.txt
+          --file tests\requirements-s3.txt
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
-          CALL pytest ^
-            --cov=conda ^
-            --durations-path=tools\durations\${{ runner.os }}.json ^
-            --group=${{ matrix.test-group }} ^
-            --splits=${{ env.PYTEST_SPLITS }} ^
-            -m "${{ env.PYTEST_MARKER }}" || goto :error
+      - name: Conda Info
+        run: conda info --verbose
 
-          goto :EOF
+      - name: Conda List
+        run: conda list --show-channel-urls
 
-          :error
-          echo Failed with error #%errorlevel%.
-          exit /b %errorlevel%
+      - name: Run Tests
+        run: pytest
+          --cov=conda
+          --durations-path=tools\durations\${{ runner.os }}.json
+          --group=${{ matrix.test-group }}
+          --splits=${{ env.PYTEST_SPLITS }}
+          -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
@@ -171,8 +177,8 @@ jobs:
             test-group: 3
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
     steps:
       - name: Checkout Source
@@ -199,29 +205,28 @@ jobs:
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup Environment
+      - name: Conda Install
         run: conda install
-            --yes
-            --file tests/requirements.txt
-            --file tests/requirements-s3.txt
-            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-            --file tests/requirements-ci.txt
-            --file tests/requirements-${{ runner.os }}.txt
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
-      - name: Show Info
-        run: |
-          conda info --verbose
-          conda list --show-channel-urls
+      - name: Conda Info
+        run: conda info --verbose
+
+      - name: Conda List
+        run: conda list --show-channel-urls
 
       - name: Run Tests
-        run: python
-          -m pytest
+        run: pytest
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
-          -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
@@ -256,8 +261,9 @@ jobs:
         python-version: ['3.11']
     env:
       PYTEST_MARKER: 'benchmark'
-      PYTEST_NUMPROCESSES: '0'
       CONDA_TEST_ENV: '/usr/share/miniconda/envs/test'
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -283,32 +289,30 @@ jobs:
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup Environment
+      - name: Conda Install
         run: conda install
-            --yes
-            --file tests/requirements.txt
-            --file tests/requirements-s3.txt
-            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-            --file tests/requirements-ci.txt
-            --file tests/requirements-${{ runner.os }}.txt
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
-      - name: Install pytest-codspeed
-        run: |
-          pip install pytest-codspeed
+      - name: Pip Install
+        run: pip install pytest-codspeed
 
-      - name: Show Info
-        run: |
-          conda info --verbose
-          conda list --show-channel-urls
+      - name: Conda Info
+        run: conda info --verbose
+
+      - name: Conda List
+        run: conda list --show-channel-urls
 
       - name: Run benchmarks
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
-          run: ${{ env.CONDA_TEST_ENV }}/bin/python
-            -m pytest
+          run: ${{ env.CONDA_TEST_ENV }}/bin/pytest
             -m "${{ env.PYTEST_MARKER }}"
-            -n "${{ env.PYTEST_NUMPROCESSES }}"
             --codspeed
 
   # linux-qemu test suite
@@ -356,6 +360,7 @@ jobs:
             --name test
             --yes
             --file tests/requirements.txt
+            --file tests/requirements-${{ runner.os }}.txt
             --file tests/requirements-ci.txt
             python=${{ matrix.python-version }}
           && conda activate test
@@ -391,8 +396,8 @@ jobs:
             test-group: 3
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_NUMPROCESSES: '0'
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
     steps:
       - name: Checkout Source
@@ -413,24 +418,23 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: true
-          conda-solver: libmamba
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
 
-      - name: Setup Environment
+      - name: Conda Install
         run: conda install
-            --yes
-            --file tests/requirements.txt
-            --file tests/requirements-s3.txt
-            ${{ contains(fromJSON('["3.10", "3.11"]'), matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-            --file tests/requirements-ci.txt
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
-      - name: Show Info
-        run: |
-          conda info --verbose
-          conda list --show-channel-urls
+      - name: Conda Info
+        run: conda info --verbose
+
+      - name: Conda List
+        run: conda list --show-channel-urls
 
       - name: Run Tests
         run: pytest
@@ -439,7 +443,6 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
-          -n "${{ env.PYTEST_NUMPROCESSES }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
@@ -485,7 +488,6 @@ jobs:
 
   # required check
   analyze:
-    name: Analyze results
     needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
     if: '!cancelled()'
 
@@ -500,7 +502,6 @@ jobs:
 
   # canary builds
   build:
-    name: Canary Build
     needs: [analyze]
     # only build canary build if
     # - prior steps succeeded,
@@ -527,18 +528,20 @@ jobs:
     steps:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@v4
+      - name: Checkout Source
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       # Explicitly use Python 3.11 since each of the OSes has a different default Python
-      - uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Detect label
+      - name: Detect Label
         shell: python
         run: |
           from pathlib import Path
@@ -559,7 +562,7 @@ jobs:
 
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
-      - name: Create and upload canary build
+      - name: Create & Upload
         uses: conda/actions/canary-release@v23.10.0
         env:
           # Run conda-build in isolated activation to properly package conda
