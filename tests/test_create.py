@@ -2823,20 +2823,12 @@ def test_remove_spellcheck(
     with tmp_env("dependent") as prefix:
         assert package_is_installed(prefix, "dependent")
 
-        with pytest.raises(PackagesNotFoundError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
-
-        exc_string = "%r" % exc.value
-        assert (
-            exc_string.strip()
-            == dals(
-                """
-                PackagesNotFoundError: The following packages are missing from the target environment:
-                  - dependint
-                """
-            ).strip()
-        )
-        assert package_is_installed(prefix, "dependent")
+    with pytest.raises(
+        PackagesNotFoundError,
+        match=r"The following packages are missing from the target environment:\s+- dependint",
+    ):
+        conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
+    assert package_is_installed(prefix, "dependent")
 
 
 @pytest.mark.skipif(
