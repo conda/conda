@@ -23,6 +23,7 @@ class CustomHTTPAdapter(HTTPAdapter):
         response.status_code = requests.codes.ok
         response._content = b"testing"
         response.encoding = "utf-8"
+        response.url = request.url
         print(f"Response: {response}")
         return response
 
