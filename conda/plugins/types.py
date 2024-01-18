@@ -152,14 +152,14 @@ class CondaTransportAdapter(NamedTuple):
 
     :param name: Name (e.g., ``localfs``). This name should be unique
                  and only one may be registered at a time.
-    :param prefix: Prefix (e.g., ``file://``). This URI prefix should be
+    :param scheme: Scheme (e.g., ``file``). This URI scheme should be
                    unique and only one may be registered at a time.
     :param adapter: Type that will be used as the transport adapter
                     during session requests.
     """
 
     name: str
-    prefix: str
+    scheme: str
     adapter: type[BaseAdapter]
 
 

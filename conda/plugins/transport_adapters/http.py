@@ -35,5 +35,5 @@ def conda_transport_adapters():
         respect_retry_after_header=False,
     )
     http_adapter = HTTPAdapter(max_retries=retry, ssl_context=ssl_context)
-    yield CondaTransportAdapter(name="http", prefix="http://", adapter=http_adapter)
-    yield CondaTransportAdapter(name="https", prefix="https://", adapter=http_adapter)
+    yield CondaTransportAdapter(name="http", scheme="http", adapter=http_adapter)
+    yield CondaTransportAdapter(name="https", scheme="https", adapter=http_adapter)

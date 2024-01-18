@@ -35,7 +35,7 @@ class CustomTransportAdapterPlugin:
     def conda_transport_adapters(self):
         yield plugins.CondaTransportAdapter(
             name=PLUGIN_NAME,
-            prefix=f"{PLUGIN_NAME}://",
+            scheme=PLUGIN_NAME,
             adapter=CustomHTTPAdapter,
         )
 

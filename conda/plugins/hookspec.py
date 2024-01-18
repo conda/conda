@@ -246,7 +246,7 @@ class CondaSpecs:
             def conda_transport_adapters():
                 yield plugins.CondaTransportAdapter(
                     name="http-debug",
-                    prefix="http+debug://",
+                    scheme="http+debug",
                     adapter=DebugHTTPAdapter,
                 )
         """

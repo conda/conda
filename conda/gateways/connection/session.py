@@ -162,13 +162,13 @@ class CondaSession(Session, metaclass=CondaSessionType):
         offline_adapter = OfflineAdapter()
         transport_adapters = context.plugin_manager.get_transport_adapters()
         for transport_adapter in transport_adapters.values():
-            if context.offline and transport_adapter.prefix != "file://":
+            if context.offline and transport_adapter.scheme != "file":
                 adapter = offline_adapter
             else:
                 adapter = transport_adapter.adapter
                 if callable(adapter):
                     adapter = adapter()
-            self.mount(transport_adapter.prefix, adapter)
+            self.mount(f"{transport_adapter.scheme}://", adapter)
 
 
 class CondaHttpAuth(AuthBase):
