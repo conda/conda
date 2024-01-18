@@ -27,6 +27,7 @@ from conda.gateways.repodata import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     URL_KEY,
+    CondaRepoInterface,
     RepodataCache,
     RepodataOnDisk,
     RepodataState,
@@ -365,6 +366,16 @@ def test_jlap_flag(use_jlap):
         # now using a subclass of JlapRepoInterface for "check zstd but not jlap"
         if expected:
             assert get_repo_interface() is interface.JlapRepoInterface
+
+
+@pytest.mark.parametrize("no_repodata_zst", [True, False])
+def test_no_repodata_zst(no_repodata_zst):
+    expected = CondaRepoInterface if no_repodata_zst else interface.ZstdRepoInterface
+    with env_vars(
+        {"CONDA_NO_REPODATA_ZST": no_repodata_zst},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        assert get_repo_interface() is expected
 
 
 def test_jlap_sought(

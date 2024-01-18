@@ -106,12 +106,13 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
-    try:
-        from .jlap.interface import ZstdRepoInterface
+    if not context.no_repodata_zst:
+        try:
+            from .jlap.interface import ZstdRepoInterface
 
-        return ZstdRepoInterface
-    except ImportError:  # pragma: no cover
-        pass
+            return ZstdRepoInterface
+        except ImportError:  # pragma: no cover
+            pass
 
     return CondaRepoInterface
 
