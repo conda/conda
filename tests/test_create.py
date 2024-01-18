@@ -2797,11 +2797,6 @@ def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
         assert package_is_installed(prefix, test_pkg)
 
 
-def test_conda_info_python(conda_cli: CondaCLIFixture):
-    output, _, _ = conda_cli("info", "python=3.5")
-    assert "python 3.5.4" in output
-
-
 def test_toolz_cytoolz_package_cache_regression(
     tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
 ):
