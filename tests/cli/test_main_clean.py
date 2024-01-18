@@ -80,7 +80,9 @@ def test_clean_force_pkgs_dirs(
         assert pkgs_dir.is_dir()
 
         with tmp_env(pkg, context_search_path=()):
-            stdout, _, _ = conda_cli("clean", "--force-pkgs-dirs", "--yes", "--json", context_search_path=())
+            stdout, _, _ = conda_cli(
+                "clean", "--force-pkgs-dirs", "--yes", "--json", context_search_path=()
+            )
             json.loads(stdout)  # assert valid json
 
             # pkgs_dir is removed
@@ -107,14 +109,26 @@ def test_clean_and_packages(
             assert has_pkg(pkg, _get_pkgs(pkgs_dir))
 
             # --json flag is regression test for #5451
-            stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json", context_search_path=())
+            stdout, _, _ = conda_cli(
+                "clean", "--packages", "--yes", "--json", context_search_path=()
+            )
             json.loads(stdout)  # assert valid json
 
             # pkg still exists since its in use by temp env
             assert has_pkg(pkg, _get_pkgs(pkgs_dir))
 
-            conda_cli("remove", "--prefix", prefix, pkg, "--yes", "--json", context_search_path=())
-            stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json", context_search_path=())
+            conda_cli(
+                "remove",
+                "--prefix",
+                prefix,
+                pkg,
+                "--yes",
+                "--json",
+                context_search_path=(),
+            )
+            stdout, _, _ = conda_cli(
+                "clean", "--packages", "--yes", "--json", context_search_path=()
+            )
             json.loads(stdout)  # assert valid json
 
             # pkg is removed
@@ -141,7 +155,9 @@ def test_clean_tarballs(
             assert has_pkg(pkg, _get_tars(pkgs_dir))
 
             # --json flag is regression test for #5451
-            stdout, _, _ = conda_cli("clean", "--tarballs", "--yes", "--json", context_search_path=())
+            stdout, _, _ = conda_cli(
+                "clean", "--tarballs", "--yes", "--json", context_search_path=()
+            )
             json.loads(stdout)  # assert valid json
 
             # tarball is removed
@@ -167,7 +183,9 @@ def test_clean_index_cache(
             # index cache exists
             assert _get_index_cache()
 
-            stdout, _, _ = conda_cli("clean", "--index-cache", "--yes", "--json", context_search_path=())
+            stdout, _, _ = conda_cli(
+                "clean", "--index-cache", "--yes", "--json", context_search_path=()
+            )
             json.loads(stdout)  # assert valid json
 
             # index cache is cleared
@@ -210,7 +228,12 @@ def test_clean_tempfiles(
 
             # --json flag is regression test for #5451
             stdout, _, _ = conda_cli(
-                "clean", "--tempfiles", pkgs_dir, "--yes", "--json", context_search_path=(),
+                "clean",
+                "--tempfiles",
+                pkgs_dir,
+                "--yes",
+                "--json",
+                context_search_path=(),
             )
             json.loads(stdout)  # assert valid json
 
@@ -249,7 +272,9 @@ def test_clean_logfiles(
             assert path in _get_logfiles(pkgs_dir)
 
             # --json flag is regression test for #5451
-            stdout, _, _ = conda_cli("clean", "--logfiles", "--yes", "--json", context_search_path=())
+            stdout, _, _ = conda_cli(
+                "clean", "--logfiles", "--yes", "--json", context_search_path=()
+            )
             json.loads(stdout)  # assert valid json
 
             # logfiles removed
@@ -334,7 +359,9 @@ def test_clean_all_mock_lstat(
     if as_json:
         args = (*args, "--json")
 
-    with make_temp_package_cache() as pkgs_dir, tmp_env(pkg, context_search_path=()) as prefix:
+    with make_temp_package_cache() as pkgs_dir, tmp_env(
+        pkg, context_search_path=()
+    ) as prefix:
         # pkg, tarball, & index cache exists
         pkgs, tars, cache = _get_all(pkgs_dir)
         assert has_pkg(pkg, pkgs)

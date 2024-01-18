@@ -276,7 +276,14 @@ class TmpEnvFixture:
         prefix = Path(prefix or self.path_factory())
 
         with self.conda_cli.capsys.disabled():
-            self.conda_cli("create", "--prefix", prefix, *packages, "--yes", context_search_path=context_search_path)
+            self.conda_cli(
+                "create",
+                "--prefix",
+                prefix,
+                *packages,
+                "--yes",
+                context_search_path=context_search_path,
+            )
         yield prefix
 
         # no need to remove prefix since it is in a temporary directory
