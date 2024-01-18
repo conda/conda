@@ -29,9 +29,11 @@ from typing import Iterable, overload
 import pytest
 from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
 
-from ..base.context import reset_context
+from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
+from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.compat import on_win
+from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
 
 log = getLogger(__name__)
@@ -303,3 +305,18 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
         monkeypatch.undo()
         # reload context without search paths
         reset_context([])
+
+
+@pytest.fixture
+def tmp_pkgs_dir(path_factory: PathFactoryFixture, monkeypatch: MonkeyPatch) -> Path:
+    pkgs_dir = path_factory() / "pkgs"
+    pkgs_dir.mkdir(parents=True)
+    (pkgs_dir / PACKAGE_CACHE_MAGIC_FILE).touch()
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs_dir_str := str(pkgs_dir))
+    reset_context()
+    assert context.pkgs_dirs[0] == pkgs_dir_str
+
+    yield pkgs_dir
+
+    PackageCacheData._cache_.pop(pkgs_dir_str, None)
