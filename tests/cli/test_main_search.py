@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 import pytest
+import requests
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
@@ -256,3 +257,35 @@ def test_unknown_platform_package_missing(
 ):
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--platform=linux-unknown", "arch-package", "--json")
+
+
+def test_bad_anaconda_token(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
+    # This test changed around 2017-10-17, when the behavior of anaconda.org
+    # was changed.  Previously, an expired token would return with a 401 response.
+    # Now, a 200 response is always given, with any public packages available on the channel.
+    channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
+    response = requests.get(f"{channel_url}/{context.subdir}/repodata.json")
+    assert response.status_code == 200
+
+    with pytest.raises(PackagesNotFoundError):
+        # this was supposed to be a package available in private but not
+        # public data-portal; boltons was added to defaults in 2023 Jan.
+        # --override-channels instead.
+        conda_cli(
+            "search",
+            "--override-channels",
+            f"--channel={channel_url}",
+            "boltons",
+            "--json",
+        )
+
+    stdout, stderr, _ = conda_cli(
+        "search",
+        "--override-channels",
+        f"--channel={channel_url}",
+        "anaconda-mosaic",
+        "--json",
+    )
+    json_obj = json.loads(stdout)
+    assert "anaconda-mosaic" in json_obj
+    assert len(json_obj["anaconda-mosaic"]) > 0

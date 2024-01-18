@@ -27,7 +27,6 @@ from uuid import uuid4
 
 import menuinst
 import pytest
-import requests
 from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
 from pytest_mock import MockerFixture
 
@@ -2199,51 +2198,6 @@ def test_install_freezes_env_by_default():
             for pkg_after in pkgs_after_install:
                 if pkg["name"] == pkg_after["name"]:
                     assert pkg["version"] == pkg_after["version"]
-
-
-def test_bad_anaconda_token_infinite_loop():
-    # This test is being changed around 2017-10-17, when the behavior of anaconda.org
-    # was changed.  Previously, an expired token would return with a 401 response.
-    # Now, a 200 response is always given, with any public packages available on the channel.
-    response = requests.get(
-        "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
-        "%s/repodata.json" % context.subdir
-    )
-    assert response.status_code == 200
-
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
-        run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert channel_url.replace("cqgccfm1mfma", "<TOKEN>") in yml_obj["channels"]
-
-        with pytest.raises(PackagesNotFoundError):
-            # this was supposed to be a package available in private but not
-            # public data-portal; boltons was added to defaults in 2023 Jan.
-            # --override-channels instead.
-            run_command(
-                Commands.SEARCH,
-                prefix,
-                "boltons",
-                "-c",
-                channel_url,
-                "--override-channels",
-                "--json",
-            )
-
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH, prefix, "anaconda-mosaic", "--json"
-        )
-
-        json_obj = json.loads(stdout)
-        assert "anaconda-mosaic" in json_obj
-        assert len(json_obj["anaconda-mosaic"]) > 0
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        reset_context()
 
 
 @pytest.mark.skipif(
