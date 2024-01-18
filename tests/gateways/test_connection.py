@@ -29,51 +29,48 @@ from conda.testing.integration import make_temp_env
 log = getLogger(__name__)
 
 
-def test_add_binstar_token():
-    try:
-        # # token already exists in url, don't add anything
-        # url = "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
-        # assert CondaHttpAuth.add_binstar_token(url) == url
-        #
-        # # even if a token is there, don't use it
-        set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
-        # url = "https://conda.anaconda.test/t/dont-add-a-token/biopython/linux-64/repodata.json"
-        # assert CondaHttpAuth.add_binstar_token(url) == url
+def test_add_binstar_token(request):
+    # token already exists in url, don't add anything
+    url = "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
+    assert CondaHttpAuth.add_binstar_token(url) == url
 
-        # now test adding the token
-        url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
-        new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
-        assert CondaHttpAuth.add_binstar_token(url) == new_url
-    finally:
-        remove_binstar_token("https://api.anaconda.test")
+    # even if a token is there, don't use it
+    test_url = "https://api.anaconda.test"
+    request.addfinalizer(lambda: remove_binstar_token(test_url))
+    set_binstar_token(test_url, "tk-abacadaba-1029384756")
+    url = "https://conda.anaconda.test/t/dont-add-a-token/biopython/linux-64/repodata.json"
+    assert CondaHttpAuth.add_binstar_token(url) == url
+
+    # now test adding the token
+    url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
+    new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
+    assert CondaHttpAuth.add_binstar_token(url) == new_url
+
 
 
 def test_local_file_adapter_404():
     session = CondaSession()
     test_path = "file:///some/location/doesnt/exist"
-    r = session.get(test_path)
+    response = session.get(test_path)
     with pytest.raises(HTTPError):
-        r.raise_for_status()
-    assert r.status_code == 404
-    assert r.json()["path"] == test_path[len("file://") :]
+        response.raise_for_status()
+    assert response.status_code == 404
+    assert response.json()["path"] == test_path[len("file://") :]
 
 
-def test_local_file_adapter_200():
+def test_local_file_adapter_200(request):
     test_path = None
-    try:
-        with Utf8NamedTemporaryFile(delete=False) as fh:
-            test_path = fh.name
-            fh.write(ensure_binary('{"content": "file content"}'))
+    with Utf8NamedTemporaryFile(delete=False) as fh:
+        test_path = fh.name
+        fh.write(ensure_binary('{"content": "file content"}'))
+    request.addfinalizer(lambda: test_path is not None and rm_rf(test_path))
 
-        test_url = path_to_url(test_path)
-        session = CondaSession()
-        r = session.get(test_url)
-        r.raise_for_status()
-        assert r.status_code == 200
-        assert r.json()["content"] == "file content"
-    finally:
-        if test_path is not None:
-            rm_rf(test_path)
+    test_url = path_to_url(test_path)
+    session = CondaSession()
+    response = session.get(test_url)
+    response.raise_for_status()
+    assert response.status_code == 200
+    assert response.json()["content"] == "file content"
 
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
