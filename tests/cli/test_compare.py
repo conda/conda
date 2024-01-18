@@ -10,14 +10,14 @@ def test_compare_success(
     test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     with tmp_env("dependent=1.0") as prefix:
-        env_file = Path(prefix, "env.yml")
+        env_file = prefix / "env.yml"
         env_file.write_text(
             dals(
                 """
-                    name: dummy
-                    dependencies:
-                      - dependency
-                    """
+                name: dummy
+                dependencies:
+                  - dependency
+                """
             )
         )
         output, _, _ = conda_cli(
@@ -33,14 +33,14 @@ def test_compare_fail(
     test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     with tmp_env("dependent=1.0") as prefix:
-        env_file = Path(prefix, "env.yml")
+        env_file = prefix / "env.yml"
         env_file.write_text(
             dals(
                 """
-                    name: dummy
-                    dependencies:
-                      - something-random
-                    """
+                name: dummy
+                dependencies:
+                  - something-random
+                """
             )
         )
         output, _, _ = conda_cli(

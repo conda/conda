@@ -851,7 +851,7 @@ def test_tarball_install(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch/dependent-1.0-0.tar.bz2") as prefix:
+    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2") as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
@@ -2814,8 +2814,7 @@ def test_toolz_cytoolz_package_cache_regression(
         conda_cli(
             "install",
             f"--prefix={prefix}",
-            "-c",
-            "conda-forge",
+            "--channel=conda-forge",
             "toolz",
             "cytoolz",
             "--yes",
