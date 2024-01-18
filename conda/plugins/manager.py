@@ -189,6 +189,12 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
         ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["transport_adapters"]
+    ) -> list[CondaTransportAdapter]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
