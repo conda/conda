@@ -2590,7 +2590,8 @@ def test_offline_with_empty_index_cache():
 def test_create_from_extracted():
     with make_temp_package_cache() as pkgs_dir:
         assert context.pkgs_dirs == (pkgs_dir,)
-
+        # NOTE: Using conda_cli or derivatives (tmp_env) WILL require
+        # 'context_search_path=()' to avoid re-loading custom config from ~/.condarc
         def pkgs_dir_has_tarball(tarball_prefix):
             return any(
                 f.startswith(tarball_prefix)

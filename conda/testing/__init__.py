@@ -187,6 +187,7 @@ class CondaCLIFixture:
         self,
         *argv: str | os.PathLike | Path,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+        context_search_path: Iterable[str | os.PathLike | Path] | None = None,
     ) -> tuple[str, str, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
@@ -206,7 +207,7 @@ class CondaCLIFixture:
         # run command
         code = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
-            code = main_subshell(*argv)
+            code = main_subshell(*argv, _context_search_path=context_search_path)
         # capture output
         out, err = self.capsys.readouterr()
 
@@ -264,6 +265,7 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
+        context_search_path: Iterable[str | os.PathLike | Path] | None = None,
     ) -> Iterable[Path]:
         """Generate a conda environment with the provided packages.
 
@@ -273,7 +275,8 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.path_factory())
 
-        self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        with self.conda_cli.capsys.disabled():
+            self.conda_cli("create", "--prefix", prefix, *packages, "--yes", context_search_path=context_search_path)
         yield prefix
 
         # no need to remove prefix since it is in a temporary directory
