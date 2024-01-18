@@ -5,10 +5,10 @@ import re
 import pytest
 import requests
 from pytest import CaptureFixture
-from requests.models import Response
 
 from conda import plugins
 from conda.exceptions import PluginError
+from conda.gateways.connection import Response
 from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import get_session
