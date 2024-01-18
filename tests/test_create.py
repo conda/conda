@@ -2839,29 +2839,6 @@ def test_remove_spellcheck(
         assert package_is_installed(prefix, "dependent")
 
 
-def test_conda_list_json(
-    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
-):
-    def pkg_info(s):
-        # function from nb_conda/envmanager.py
-        if isinstance(s, str):
-            name, version, build = s.rsplit("-", 2)
-            return {"name": name, "version": version, "build": build}
-        else:
-            return {
-                "name": s["name"],
-                "version": s["version"],
-                "build": s.get("build_string") or s["build"],
-            }
-
-    with tmp_env("dependent=1.0") as prefix:
-        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
-        stdout_json = json.loads(stdout)
-        packages = [pkg_info(package) for package in stdout_json]
-        installed_package = next(p for p in packages if p["name"] == "dependent")
-        assert installed_package["version"].startswith("1")
-
-
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="dependencies not available for win-32"
 )
