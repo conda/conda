@@ -10,9 +10,10 @@ from conda import plugins
 from conda.exceptions import PluginError
 from conda.gateways.connection import Response
 from conda.gateways.connection.adapters.http import HTTPAdapter
-from conda.gateways.connection.download import download_text, get_session
+from conda.gateways.connection.download import download_text
+from conda.gateways.connection.session import get_session
 
-PLUGIN_NAME = "http+custom"
+PLUGIN_NAME = "http-custom"
 
 
 class CustomHTTPAdapter(HTTPAdapter):
@@ -47,6 +48,7 @@ def test_get_transport_adapters(plugin_manager):
     plugin = CustomTransportAdapterPlugin()
     plugin_manager.register(plugin)
 
+    get_session.cache_clear()  # ensuring cleanup
     transport_adapters = plugin_manager.get_transport_adapters()
     assert len(transport_adapters) == 1
     assert transport_adapters[PLUGIN_NAME].adapter is CustomHTTPAdapter
@@ -59,6 +61,7 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(CustomTransportAdapterPlugin())
     plugin_manager.register(CustomTransportAdapterPlugin())
 
+    get_session.cache_clear()  # ensuring cleanup
     with pytest.raises(
         PluginError, match=re.escape("Conflicting `transport_adapters` plugins found")
     ):
