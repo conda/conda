@@ -31,7 +31,9 @@ log = getLogger(__name__)
 
 def test_add_binstar_token(request):
     # token already exists in url, don't add anything
-    url = "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
+    url = (
+        "https://conda.anaconda.org/t/dont-add-a-token/biopython/linux-64/repodata.json"
+    )
     assert CondaHttpAuth.add_binstar_token(url) == url
 
     # even if a token is there, don't use it
@@ -45,7 +47,6 @@ def test_add_binstar_token(request):
     url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
     new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
     assert CondaHttpAuth.add_binstar_token(url) == new_url
-
 
 
 def test_local_file_adapter_404():
