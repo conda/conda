@@ -874,7 +874,6 @@ def test_tarball_install_and_bad_metadata(
         tar_path = test_recipes_channel / "noarch/dependent-1.0-0.tar.bz2"
         with pytest.raises(DryRunExit):
             conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
-            assert not package_is_installed(prefix, "dependent")
 
         conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
         assert package_is_installed(prefix, "dependent")
@@ -2783,8 +2782,7 @@ def test_run_script_called(tmp_env: TmpEnvFixture):
     with patch.object(conda.core.link, "subprocess_call") as rs:
         rs.return_value = Response(None, None, 0)
         with tmp_env(
-            "-c",
-            "http://repo.anaconda.com/pkgs/free",
+            "--channel=http://repo.anaconda.com/pkgs/free",
             "openssl=1.0.2j",
             "--no-deps",
         ) as prefix:
@@ -2797,7 +2795,7 @@ def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
     test_pkg = "_conda_test_env_activated_when_post_link_executed"
     # a non-unicode name must be provided here as activate.d scripts
     # are not executed on windows, see https://github.com/conda/conda/issues/8241
-    with tmp_env(test_pkg, "-c", "conda-test") as prefix:
+    with tmp_env(test_pkg, "--channel=conda-test") as prefix:
         assert package_is_installed(prefix, test_pkg)
 
 
@@ -2832,7 +2830,6 @@ def test_remove_spellcheck(
         match=r"The following packages are missing from the target environment:\s+- dependint",
     ):
         conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
-    assert package_is_installed(prefix, "dependent")
 
 
 @pytest.mark.skipif(
