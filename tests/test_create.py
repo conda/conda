@@ -847,6 +847,57 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         assert prefix not in PrefixData._cache_
 
 
+def test_install_tarball_from_file_based_channel(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    # Regression test for #2812
+    # handle file-based channels
+    monkeypatch.setenv("CONDA_BLD_PATH", str(tmp_path))
+    reset_context()
+    assert context.bld_path == str(tmp_path)
+
+    with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            f"--channel={channel}",
+            "flask=2.1.3",
+            "--json",
+            "--yes",
+        )
+        assert package_is_installed(prefix, channel + "::" + "flask")
+        flask_fname = [
+            p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
+        ][0]["fn"]
+
+        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
+        assert not package_is_installed(prefix, "flask=0")
+
+        # Regression test for 2970
+        # install from build channel as a tarball
+        from shutil import copyfile
+
+        tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
+        if not tar_path.is_file():
+            tar_path = tar_path.with_suffix(".tar.bz2")
+
+        # create a temporary conda-bld
+        conda_bld_sub = tmp_path / context.subdir
+        conda_bld_sub.mkdir(exist_ok=True)
+        tar_bld_path = str(conda_bld_sub / tar_path.name)
+        copyfile(tar_path, tar_bld_path)
+
+        conda_cli("install", f"--prefix={prefix}", tar_bld_path, "--yes")
+        assert package_is_installed(prefix, "flask")
+
+        # Regression test for #462
+        with tmp_env(tar_bld_path) as prefix2:
+            assert package_is_installed(prefix2, "flask")
+
+
 def test_tarball_install(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
