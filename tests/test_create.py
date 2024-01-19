@@ -6,6 +6,7 @@ import re
 import sys
 from datetime import datetime
 from glob import glob
+from importlib.metadata import version as metadata_version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
@@ -2386,9 +2387,11 @@ def test_offline_with_empty_index_cache():
                             "flask",
                             "--offline",
                         )
-                        if context.solver == "libmamba":
-                            # libmamba solver expects repodata to be loaded into Repo objects
-                            # It doesn't use the info from the tarball cache as conda does
+                        if (
+                            context.solver == "libmamba"
+                            and metadata_version("conda-libmamba-solver") <= "23.12.0"
+                        ):
+                            # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
                             with pytest.raises((RuntimeError, UnsatisfiableError)):
                                 run_command(*command)
                         else:
@@ -2398,7 +2401,8 @@ def test_offline_with_empty_index_cache():
                             assert package_is_installed(prefix, "flask")
 
                             # The mock should have been called with our local channel URL though.
-                            assert result_dict.get("local_channel_seen")
+                            if context.solver != "libmamba":
+                                assert result_dict.get("local_channel_seen")
 
                         # Fails because pytz cannot be found in available channels.
                         # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
