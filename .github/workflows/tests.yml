@@ -108,7 +108,6 @@ jobs:
       - name: Conda Install
         run: conda install
           --yes
-          --quiet
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
@@ -260,8 +259,7 @@ jobs:
       matrix:
         python-version: ['3.11']
     env:
-      PYTEST_MARKER: 'benchmark'
-      CONDA_TEST_ENV: '/usr/share/miniconda/envs/test'
+      PYTEST_MARKER: benchmark
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
     steps:
@@ -271,7 +269,7 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmarks-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ env.PYTEST_MARKER }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
         shell: bash
 
       - name: Cache Conda
@@ -283,8 +281,6 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: true
-          conda-solver: libmamba
           condarc-file: .github/condarc-defaults
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
@@ -307,13 +303,13 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
-      - name: Run benchmarks
+      - name: Run Benchmarks
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
-          run: ${{ env.CONDA_TEST_ENV }}/bin/pytest
-            -m "${{ env.PYTEST_MARKER }}"
+          run: $CONDA/envs/test/bin/pytest
             --codspeed
+            -m "${{ env.PYTEST_MARKER }}"
 
   # linux-qemu test suite
   linux-qemu:
