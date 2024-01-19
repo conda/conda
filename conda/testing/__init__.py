@@ -28,6 +28,7 @@ from typing import Iterable, overload
 
 import pytest
 from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
+from pytest_mock import MockerFixture
 
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context, reset_context
@@ -308,14 +309,17 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
 
 
 @pytest.fixture
-def tmp_pkgs_dir(path_factory: PathFactoryFixture, monkeypatch: MonkeyPatch) -> Path:
+def tmp_pkgs_dir(path_factory: PathFactoryFixture, mocker: MockerFixture) -> Path:
     pkgs_dir = path_factory() / "pkgs"
     pkgs_dir.mkdir(parents=True)
     (pkgs_dir / PACKAGE_CACHE_MAGIC_FILE).touch()
 
-    monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs_dir_str := str(pkgs_dir))
-    reset_context()
-    assert context.pkgs_dirs[0] == pkgs_dir_str
+    mocker.patch(
+        "conda.base.context.Context.pkgs_dirs",
+        new_callable=mocker.PropertyMock,
+        return_value=(pkgs_dir_str := str(pkgs_dir),),
+    )
+    assert context.pkgs_dirs == (pkgs_dir_str,)
 
     yield pkgs_dir
 
