@@ -293,17 +293,17 @@ def test_clobber_enum(testdata: None):
 
 
 def test_context_parameter_map(testdata: None):
-    all_parameter_names = context.list_parameters()
-    all_mapped_parameter_names = tuple(
-        chain.from_iterable(context.category_map.values())
-    )
+    parameters = list(context.list_parameters())
+    mapped = [name for names in context.category_map.values() for name in names]
 
-    unmapped_parameter_names = set(all_parameter_names) - set(
-        all_mapped_parameter_names
-    )
-    assert not unmapped_parameter_names, unmapped_parameter_names
+    # ignore anaconda-anon-usage's context monkeypatching
+    if "anaconda_anon_usage" in parameters:
+        parameters.remove("anaconda_anon_usage")
+    if "anaconda_anon_usage" in mapped:
+        mapped.remove("anaconda_anon_usage")
 
-    assert len(all_parameter_names) == len(all_mapped_parameter_names)
+    assert not set(parameters).difference(mapped)
+    assert len(parameters) == len(mapped)
 
 
 def test_context_parameters_have_descriptions(testdata: None):
