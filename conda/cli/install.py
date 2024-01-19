@@ -8,7 +8,6 @@ See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
 import os
-import pathlib
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 
@@ -78,26 +77,6 @@ def check_prefix(prefix, json=False):
             "Spaces in paths can sometimes be problematic. To minimize issues,\n"
             "make sure you activate your environment before running any executables!\n"
         )
-
-    # Check to see if a new prefix is in an already-existing environment's protected
-    # directory path (e.g., "bin", "conda-meta", etc.) and warn accordingly
-    parent_dir = pathlib.Path(context.target_prefix).parent / pathlib.Path(
-        "conda-meta", "history"
-    )
-    if parent_dir.exists():
-        for subdir in pathlib.Path(context.target_prefix).parent.iterdir():
-            if context.target_prefix == subdir.as_posix():
-                if context.dry_run:
-                    raise CondaValueError(
-                        f"Cannot conduct a dry run for overriding a protected directory, '{subdir.name}'."
-                    )
-                else:
-                    common.confirm_yn(
-                        f"WARNING: The target prefix is attempting to override a protected directory, '{context.target_prefix}'.\n"
-                        "Continue to create this environment?",
-                        default="no",
-                        dry_run=context.dry_run,
-                    )
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
