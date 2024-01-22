@@ -298,6 +298,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     return stdout, stderr, result
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_env` instead.")
 @contextmanager
 def make_temp_env(*packages, **kwargs):
     name = kwargs.pop("name", None)
@@ -330,8 +331,9 @@ def make_temp_env(*packages, **kwargs):
                 )
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_pkgs_dir` instead.")
 @contextmanager
-def make_temp_package_cache():
+def make_temp_package_cache() -> str:
     prefix = make_temp_prefix(use_restricted_unicode=on_win)
     pkgs_dir = join(prefix, "pkgs")
     mkdir_p(pkgs_dir)
@@ -339,14 +341,15 @@ def make_temp_package_cache():
 
     try:
         with env_var(
-            "CONDA_PKGS_DIRS", pkgs_dir, stack_callback=conda_tests_ctxt_mgmt_def_pol
+            "CONDA_PKGS_DIRS",
+            pkgs_dir,
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             assert context.pkgs_dirs == (pkgs_dir,)
             yield pkgs_dir
     finally:
         rmtree(prefix, ignore_errors=True)
-        if pkgs_dir in PackageCacheData._cache_:
-            del PackageCacheData._cache_[pkgs_dir]
+        PackageCacheData._cache_.pop(pkgs_dir, None)
 
 
 @contextmanager

@@ -14,6 +14,7 @@ from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
+from pathlib import Path
 from sys import platform
 from tarfile import ReadError
 
@@ -71,10 +72,10 @@ EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 class PackageCacheType(type):
     """This metaclass does basic caching of PackageCache instance objects."""
 
-    def __call__(cls, pkgs_dir):
+    def __call__(cls, pkgs_dir: str | os.PathLike | Path):
         if isinstance(pkgs_dir, PackageCacheData):
             return pkgs_dir
-        elif pkgs_dir in PackageCacheData._cache_:
+        elif (pkgs_dir := str(pkgs_dir)) in PackageCacheData._cache_:
             return PackageCacheData._cache_[pkgs_dir]
         else:
             package_cache_instance = super().__call__(pkgs_dir)
@@ -83,7 +84,7 @@ class PackageCacheType(type):
 
 
 class PackageCacheData(metaclass=PackageCacheType):
-    _cache_ = {}
+    _cache_: dict[str, PackageCacheData] = {}
 
     def __init__(self, pkgs_dir):
         self.pkgs_dir = pkgs_dir
