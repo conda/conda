@@ -18,7 +18,7 @@ from os.path import (
     join,
 )
 from pathlib import Path
-from shutil import rmtree
+from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from textwrap import dedent
 from typing import Literal
@@ -868,18 +868,14 @@ def test_install_tarball_from_file_based_channel(
             "--json",
             "--yes",
         )
-        assert package_is_installed(prefix, channel + "::" + "flask")
-        flask_fname = [
-            p for p in PrefixData(prefix).iter_records() if p["name"] == "flask"
-        ][0]["fn"]
+        assert package_is_installed(prefix, f"{channel}::flask")
+        flask_fname = PrefixData(prefix).get("flask")["fn"]
 
         conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask=0")
+        assert not package_is_installed(prefix, "flask")
 
         # Regression test for 2970
         # install from build channel as a tarball
-        from shutil import copyfile
-
         tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
         if not tar_path.is_file():
             tar_path = tar_path.with_suffix(".tar.bz2")
@@ -922,21 +918,21 @@ def test_tarball_install_and_bad_metadata(
         assert not package_is_installed(prefix, "dependency")
         assert not package_is_installed(prefix, "another_dependent")
 
-        tar_path = test_recipes_channel / "noarch/dependent-1.0-0.tar.bz2"
+        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
         with pytest.raises(DryRunExit):
             conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
 
         conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
         assert package_is_installed(prefix, "dependent")
 
-        bad_metadata = Path(prefix, "bad_metadata.yml")
+        bad_metadata = prefix / "bad_metadata.yml"
         bad_metadata.write_text(
             dals(
                 """
-                    name: no-good-metadata
-                    dependencies:
-                      - something-made-up
-                    """
+                name: no-good-metadata
+                dependencies:
+                  - something-made-up
+                """
             )
         )
         with pytest.raises(PackagesNotFoundError):
