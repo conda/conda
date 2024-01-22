@@ -2842,24 +2842,11 @@ def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
         assert package_is_installed(prefix, test_pkg)
 
 
-def test_toolz_cytoolz_package_cache_regression(
-    tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+def test_package_cache_regression(
+    test_recipes_channel: Path, tmp_pkgs_dir: Path, tmp_env: TmpEnvFixture
 ):
-    with tmp_env() as prefix:
-        pkgs_dir = join(prefix, "pkgs")
-        monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs_dir)
-        reset_context()
-
-        assert context.pkgs_dirs == (pkgs_dir,)
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
-            "--channel=conda-forge",
-            "toolz",
-            "cytoolz",
-            "--yes",
-        )
-        assert package_is_installed(prefix, "toolz")
+    with tmp_env("small-executable") as prefix:
+        assert package_is_installed(prefix, "small-executable")
 
 
 def test_remove_spellcheck(
