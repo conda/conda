@@ -6,6 +6,7 @@ import re
 import sys
 from datetime import datetime
 from glob import glob
+from importlib.metadata import version as metadata_version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
@@ -94,7 +95,6 @@ from conda.testing.integration import (
     get_shortcut_dir,
     make_temp_channel,
     make_temp_env,
-    make_temp_package_cache,
     make_temp_prefix,
     package_is_installed,
     run_command,
@@ -2484,9 +2484,11 @@ def test_offline_with_empty_index_cache():
                             "flask",
                             "--offline",
                         )
-                        if context.solver == "libmamba":
-                            # libmamba solver expects repodata to be loaded into Repo objects
-                            # It doesn't use the info from the tarball cache as conda does
+                        if (
+                            context.solver == "libmamba"
+                            and metadata_version("conda-libmamba-solver") <= "23.12.0"
+                        ):
+                            # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
                             with pytest.raises((RuntimeError, UnsatisfiableError)):
                                 run_command(*command)
                         else:
@@ -2496,7 +2498,8 @@ def test_offline_with_empty_index_cache():
                             assert package_is_installed(prefix, "flask")
 
                             # The mock should have been called with our local channel URL though.
-                            assert result_dict.get("local_channel_seen")
+                            if context.solver != "libmamba":
+                                assert result_dict.get("local_channel_seen")
 
                         # Fails because pytz cannot be found in available channels.
                         # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
@@ -2515,35 +2518,32 @@ def test_offline_with_empty_index_cache():
         SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
-def test_create_from_extracted():
-    with make_temp_package_cache() as pkgs_dir:
-        assert context.pkgs_dirs == (pkgs_dir,)
+def test_create_from_extracted(tmp_pkgs_dir: Path):
+    def pkgs_dir_has_tarball(tarball_prefix):
+        return any(
+            f.startswith(tarball_prefix)
+            and any(f.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
+            for f in os.listdir(tmp_pkgs_dir)
+        )
 
-        def pkgs_dir_has_tarball(tarball_prefix):
-            return any(
-                f.startswith(tarball_prefix)
-                and any(f.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
-                for f in os.listdir(pkgs_dir)
-            )
+    with make_temp_env() as prefix:
+        # First, make sure the openssl package is present in the cache,
+        # downloading it if needed
+        assert not pkgs_dir_has_tarball("openssl-")
+        run_command(Commands.INSTALL, prefix, "openssl")
+        assert pkgs_dir_has_tarball("openssl-")
 
-        with make_temp_env() as prefix:
-            # First, make sure the openssl package is present in the cache,
-            # downloading it if needed
-            assert not pkgs_dir_has_tarball("openssl-")
-            run_command(Commands.INSTALL, prefix, "openssl")
-            assert pkgs_dir_has_tarball("openssl-")
+        # Then, remove the tarball but keep the extracted directory around
+        run_command(Commands.CLEAN, prefix, "--tarballs", "--yes")
+        assert not pkgs_dir_has_tarball("openssl-")
 
-            # Then, remove the tarball but keep the extracted directory around
-            run_command(Commands.CLEAN, prefix, "--tarballs", "--yes")
-            assert not pkgs_dir_has_tarball("openssl-")
-
-        with make_temp_env() as prefix:
-            # Finally, install openssl, enforcing the use of the extracted package.
-            # We expect that the tarball does not appear again because we simply
-            # linked the package from the extracted directory. If the tarball
-            # appeared again, we decided to re-download the package for some reason.
-            run_command(Commands.INSTALL, prefix, "openssl", "--offline")
-            assert not pkgs_dir_has_tarball("openssl-")
+    with make_temp_env() as prefix:
+        # Finally, install openssl, enforcing the use of the extracted package.
+        # We expect that the tarball does not appear again because we simply
+        # linked the package from the extracted directory. If the tarball
+        # appeared again, we decided to re-download the package for some reason.
+        run_command(Commands.INSTALL, prefix, "openssl", "--offline")
+        assert not pkgs_dir_has_tarball("openssl-")
 
 
 def test_install_mkdir():
