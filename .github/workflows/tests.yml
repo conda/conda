@@ -86,7 +86,7 @@ jobs:
 
       - name: Hash + Timestamp
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
+        shell: bash  # use bash to run date command
 
       - name: Cache Conda
         uses: actions/cache@v3
@@ -186,7 +186,6 @@ jobs:
 
       - name: Hash + Timestamp
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
 
       - name: Cache Conda
         uses: actions/cache@v3
@@ -272,7 +271,6 @@ jobs:
 
       - name: Hash + Timestamp
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ env.PYTEST_MARKER }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
 
       - name: Cache Conda
         uses: actions/cache@v3
@@ -409,7 +407,6 @@ jobs:
 
       - name: Hash + Timestamp
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
 
       - name: Cache Conda
         uses: actions/cache@v3
