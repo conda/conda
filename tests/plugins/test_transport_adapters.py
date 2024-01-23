@@ -10,7 +10,6 @@ from conda import plugins
 from conda.exceptions import PluginError
 from conda.gateways.connection import Response
 from conda.gateways.connection.adapters.http import HTTPAdapter
-from conda.gateways.connection.download import download_text
 from conda.gateways.connection.session import get_session
 
 PLUGIN_NAME = "http-custom"
@@ -75,11 +74,12 @@ def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
     plugin = CustomTransportAdapterPlugin()
     plugin_manager.register(plugin)
 
-    test_url = f"{PLUGIN_NAME}://example.com/some-file"
-    text = download_text(test_url)
-    assert text == "testing"
+    url = f"{PLUGIN_NAME}://example.com/some-file"
+    session = get_session(url)
+    response = session.get(url)
+    assert response.text == "testing"
     get_session.cache_clear()  # ensuring cleanup
 
     stdout, stderr = capsys.readouterr()
-    assert f"Requesting: {test_url}" in stdout
+    assert f"Requesting: {url}" in stdout
     assert not stderr
