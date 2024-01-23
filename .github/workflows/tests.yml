@@ -51,10 +51,6 @@ jobs:
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
-              - 'dev/**/setup.*'
-              - 'dev/**/integration.*'
-              - 'dev/**/unit.*'
-              - 'dev/**/qemu.*'
 
   # windows test suite
   windows:
