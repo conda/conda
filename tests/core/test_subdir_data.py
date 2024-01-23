@@ -272,6 +272,7 @@ def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
             fetcher = mocker.patch.object(
                 RepoInterface, "repodata_parsed", return_value={}
             )
+        SubdirData(channel).cache_path_json.touch()
 
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
