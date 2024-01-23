@@ -1459,7 +1459,7 @@ def test_shortcut_creation_installs_shortcut(
     # register cleanup
     request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-    with tmp_env("console_shortcut", prefix=prefix):
+    with tmp_env("main::console_shortcut", prefix=prefix):
         assert package_is_installed(prefix, "console_shortcut")
         assert shortcut_file.is_file()
 
@@ -1488,7 +1488,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     request.addfinalizer(lambda: rmtree(shortcut_file.parent, ignore_errors=True))
 
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
+    with tmp_env("main::console_shortcut", "--no-shortcuts", prefix=prefix):
         assert package_is_installed(prefix, "console_shortcut")
         assert not shortcut_file.exists()
 
@@ -1522,7 +1522,7 @@ def test_shortcut_absent_when_condarc_set(
     reset_context()
     assert not context.shortcuts
 
-    with tmp_env("console_shortcut", prefix=prefix):
+    with tmp_env("main::console_shortcut", prefix=prefix):
         # including shortcuts: False from condarc should not get shortcuts installed
         assert package_is_installed(prefix, "console_shortcut")
         assert not shortcut_file.exists()
