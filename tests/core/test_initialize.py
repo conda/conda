@@ -37,6 +37,9 @@ from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
 from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
+from conda.testing.integration import BIN_DIRECTORY
+
+CONDA_EXE = "conda.exe" if on_win else "conda"
 
 
 @pytest.fixture
@@ -449,7 +452,9 @@ def test_install_conda_sh(verbose):
 
 def test_install_conda_fish(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
+        conda_prefix = sys.prefix
+        python_exe = sys.executable
+        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
         result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.MODIFIED
@@ -465,23 +470,15 @@ def test_install_conda_fish(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            win_conda_exe = join(conda_prefix, "Scripts", "conda.exe")
-            win_py_exe = join(conda_prefix, "python.exe")
-            assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
+            assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % conda_exe
             assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
-            assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % win_py_exe
+            assert third_line == 'set _CONDA_EXE (cygpath "%s")' % conda_exe
+            assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % python_exe
         else:
-            assert first_line == 'set -gx CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
+            assert first_line == 'set -gx CONDA_EXE "%s"' % conda_exe
             assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'set _CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % join(
-                conda_prefix, "bin", "python"
-            )
+            assert third_line == 'set _CONDA_EXE "%s"' % conda_exe
+            assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % python_exe
 
         with open(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
@@ -497,7 +494,8 @@ def test_install_conda_xsh(verbose):
     from conda.activate import XonshActivator
 
     with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
+        conda_prefix = sys.prefix
+        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
@@ -508,12 +506,10 @@ def test_install_conda_xsh(verbose):
         first_line, remainder = created_file_contents.split("\n", 1)
         if on_win:
             assert first_line == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(
-                join(conda_prefix, "Scripts", "conda.exe")
+                conda_exe
             )
         else:
-            assert first_line == '$CONDA_EXE = "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
+            assert first_line == '$CONDA_EXE = "%s"' % conda_exe
 
         with open(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
@@ -525,7 +521,9 @@ def test_install_conda_xsh(verbose):
 
 def test_install_conda_csh(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
+        conda_prefix = sys.prefix
+        python_exe = sys.executable
+        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
         result = install_conda_csh(target_path, conda_prefix)
         assert result == Result.MODIFIED
@@ -541,27 +539,15 @@ def test_install_conda_csh(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            assert first_line == "setenv CONDA_EXE `cygpath %s`" % join(
-                conda_prefix, "Scripts", "conda.exe"
-            )
+            assert first_line == "setenv CONDA_EXE `cygpath %s`" % conda_exe
             assert second_line == "setenv _CONDA_ROOT `cygpath %s`" % conda_prefix
-            assert third_line == "setenv _CONDA_EXE `cygpath %s`" % join(
-                conda_prefix, "Scripts", "conda.exe"
-            )
-            assert fourth_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % join(
-                conda_prefix, "python.exe"
-            )
+            assert third_line == "setenv _CONDA_EXE `cygpath %s`" % conda_exe
+            assert fourth_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % python_exe
         else:
-            assert first_line == 'setenv CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
+            assert first_line == 'setenv CONDA_EXE "%s"' % conda_exe
             assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'setenv _CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
-            assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % join(
-                conda_prefix, "bin", "python"
-            )
+            assert third_line == 'setenv _CONDA_EXE "%s"' % conda_exe
+            assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % python_exe
 
         with open(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
