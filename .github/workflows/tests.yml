@@ -73,7 +73,7 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      ErrorActionPreference: Stop  # powershell exit on first error
+      ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
@@ -153,7 +153,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}
+        shell: bash -el {0}  # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
@@ -255,7 +255,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}
+        shell: bash -el {0}  # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
@@ -331,7 +331,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}
+        shell: bash -el {0}  # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
@@ -380,7 +380,7 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}
+        shell: bash -el {0}  # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
