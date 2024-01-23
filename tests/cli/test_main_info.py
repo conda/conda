@@ -127,3 +127,8 @@ def test_info_conda_json(conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch):
     assert set(parsed.keys()) == {"pkgs/main::itsdangerous"}
     assert len(parsed["pkgs/main::itsdangerous"]) > 1
     assert isinstance(parsed["pkgs/main::itsdangerous"], list)
+
+
+def test_info_python_output(conda_cli: CondaCLIFixture):
+    stdout, _, _ = conda_cli("info", "python=3.5")
+    assert "python 3.5.4" in stdout
