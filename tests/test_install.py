@@ -4,8 +4,10 @@ import random
 import subprocess
 import sys
 import tempfile
+from json import loads as json_loads
 from os import chdir, getcwd, makedirs
-from os.path import exists, join, relpath
+from os.path import exists, isdir, isfile, join, relpath
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -14,10 +16,12 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
-from conda.gateways.disk.delete import move_path_to_trash
+from conda.exceptions import DirectoryNotACondaEnvironmentError
+from conda.gateways.disk.delete import move_path_to_trash, path_is_clean, rm_rf
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
-from conda.testing import PathFactoryFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+from conda.testing.integration import make_temp_prefix, package_is_installed
 
 patch = mock.patch if mock else None
 
@@ -207,3 +211,72 @@ def test_read_no_link(tmpdir):
     _make_lines_file(no_softlink)
     s2 = read_no_link(tempdir)
     assert s2 == {"line 1", "line 2", "line 4"}
+
+
+def test_install_freezes_env_by_default(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    # We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
+    # up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
+
+    # create an initial env
+    with tmp_env("dependent=2.0") as prefix:
+        assert package_is_installed(prefix, "dependent=2.0")
+        # Install a version older than the last one
+        conda_cli("install", f"--prefix={prefix}", "dependent=1.0", "--yes")
+
+        stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--json")
+
+        pkgs = json_loads(stdout)
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "another_dependent",
+            "--freeze-installed",
+            "--yes",
+        )
+
+        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
+        pkgs_after_install = json_loads(stdout)
+
+        # Compare before and after installing package
+        for pkg in pkgs:
+            for pkg_after in pkgs_after_install:
+                if pkg["name"] == pkg_after["name"]:
+                    assert pkg["version"] == pkg_after["version"]
+
+
+def test_install_mkdir(conda_cli: CondaCLIFixture):
+    try:
+        prefix = make_temp_prefix()
+        with open(join(prefix, "tempfile.txt"), "w") as f:
+            f.write("test")
+        assert isdir(prefix)
+        assert isfile(join(prefix, "tempfile.txt"))
+        with pytest.raises(DirectoryNotACondaEnvironmentError):
+            conda_cli("install", f"--prefix={prefix}", "python", "--mkdir", "--yes")
+
+        conda_cli("create", f"--prefix={prefix}", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "python", "--mkdir", "--yes")
+        assert package_is_installed(prefix, "python")
+
+        rm_rf(prefix, clean_empty_parents=True)
+        assert path_is_clean(prefix)
+
+        # this part also a regression test for #4849
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "python-dateutil",
+            "python",
+            "--mkdir",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, "python-dateutil")
+
+    finally:
+        rm_rf(prefix, clean_empty_parents=True)

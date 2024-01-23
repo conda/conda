@@ -70,7 +70,7 @@ from conda.exceptions import (
 )
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import compile_multiple_pyc
-from conda.gateways.disk.delete import path_is_clean, rm_rf
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
@@ -1691,19 +1691,14 @@ def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFi
         assert prefix.exists()
 
 
-def test_packages_not_found():
-    with make_temp_env() as prefix:
+def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
         with pytest.raises(PackagesNotFoundError) as exc:
-            run_command(Commands.INSTALL, prefix, "not-a-real-package")
+            _, error, _ = conda_cli(
+                "install", f"--prefix={prefix}", "not-a-real-package", "--yes"
+            )
+            assert "not-a-real-package" in error
         assert "not-a-real-package" in str(exc.value)
-
-        _, error, _ = run_command(
-            Commands.INSTALL,
-            prefix,
-            "not-a-real-package",
-            use_exception_handler=True,
-        )
-        assert "not-a-real-package" in error
 
 
 def test_conda_pip_interop_dependency_satisfied_by_pip():
@@ -2172,35 +2167,6 @@ def test_conda_pip_interop_compatible_release_operator():
             )
 
 
-def test_install_freezes_env_by_default():
-    """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
-    up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
-    """
-
-    # create an initial env
-    with make_temp_env(
-        "python=2", use_restricted_unicode=on_win, no_capture=True
-    ) as prefix:
-        assert package_is_installed(prefix, "python=2.7.*")
-        # Install a version older than the last one
-        run_command(Commands.INSTALL, prefix, "setuptools=40.*")
-
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
-
-        pkgs = json.loads(stdout)
-
-        run_command(Commands.INSTALL, prefix, "imagesize", "--freeze-installed")
-
-        stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
-        pkgs_after_install = json.loads(stdout)
-
-        # Compare before and after installing package
-        for pkg in pkgs:
-            for pkg_after in pkgs_after_install:
-                if pkg["name"] == pkg_after["name"]:
-                    assert pkg["version"] == pkg_after["version"]
-
-
 @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
 def test_search_gawk_not_win_filter():
     with make_temp_env() as prefix:
@@ -2492,39 +2458,6 @@ def test_create_from_extracted(tmp_pkgs_dir: Path):
         # appeared again, we decided to re-download the package for some reason.
         run_command(Commands.INSTALL, prefix, "openssl", "--offline")
         assert not pkgs_dir_has_tarball("openssl-")
-
-
-def test_install_mkdir():
-    try:
-        prefix = make_temp_prefix()
-        with open(os.path.join(prefix, "tempfile.txt"), "w") as f:
-            f.write("test")
-        assert isdir(prefix)
-        assert isfile(os.path.join(prefix, "tempfile.txt"))
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            run_command(Commands.INSTALL, prefix, "python", "--mkdir")
-
-        run_command(Commands.CREATE, prefix)
-        run_command(Commands.INSTALL, prefix, "python", "--mkdir")
-        assert package_is_installed(prefix, "python")
-
-        rm_rf(prefix, clean_empty_parents=True)
-        assert path_is_clean(prefix)
-
-        # this part also a regression test for #4849
-        run_command(
-            Commands.INSTALL,
-            prefix,
-            "python-dateutil",
-            "python",
-            "--mkdir",
-            no_capture=True,
-        )
-        assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "python-dateutil")
-
-    finally:
-        rm_rf(prefix, clean_empty_parents=True)
 
 
 @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
