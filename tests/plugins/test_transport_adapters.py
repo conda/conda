@@ -48,10 +48,10 @@ def test_get_transport_adapters(plugin_manager):
     plugin = CustomTransportAdapterPlugin()
     plugin_manager.register(plugin)
 
-    get_session.cache_clear()  # ensuring cleanup
     transport_adapters = plugin_manager.get_transport_adapters()
     assert len(transport_adapters) == 1
     assert transport_adapters[PLUGIN_NAME].adapter is CustomHTTPAdapter
+    get_session.cache_clear()  # ensuring cleanup
 
 
 def test_duplicated(plugin_manager):
@@ -61,11 +61,11 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(CustomTransportAdapterPlugin())
     plugin_manager.register(CustomTransportAdapterPlugin())
 
-    get_session.cache_clear()  # ensuring cleanup
     with pytest.raises(
         PluginError, match=re.escape("Conflicting `transport_adapters` plugins found")
     ):
         plugin_manager.get_transport_adapters()
+    get_session.cache_clear()  # ensuring cleanup
 
 
 def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
@@ -75,10 +75,10 @@ def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
     plugin = CustomTransportAdapterPlugin()
     plugin_manager.register(plugin)
 
-    get_session.cache_clear()  # ensuring cleanup
     test_url = f"{PLUGIN_NAME}://example.com/some-file"
     text = download_text(test_url)
     assert text == "testing"
+    get_session.cache_clear()  # ensuring cleanup
 
     stdout, stderr = capsys.readouterr()
     assert f"Requesting: {test_url}" in stdout
