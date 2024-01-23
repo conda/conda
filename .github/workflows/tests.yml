@@ -113,6 +113,9 @@ jobs:
       - name: Conda Info
         run: conda info --verbose
 
+      - name: Conda Config
+        run: conda config --show-sources
+
       - name: Conda List
         run: conda list --show-channel-urls
 
@@ -212,6 +215,9 @@ jobs:
       - name: Conda Info
         run: conda info --verbose
 
+      - name: Conda Config
+        run: conda config --show-sources
+
       - name: Conda List
         run: conda list --show-channel-urls
 
@@ -296,6 +302,9 @@ jobs:
       - name: Conda Info
         run: conda info --verbose
 
+      - name: Conda Config
+        run: conda config --show-sources
+
       - name: Conda List
         run: conda list --show-channel-urls
 
@@ -357,6 +366,7 @@ jobs:
             python=${{ matrix.python-version }}
           && conda activate test
           && conda info --verbose
+          && conda config --show-sources
           && conda list --show-channel-urls
           && python -m pytest tests/test_api.py::test_DepsModifier_contract"
 
@@ -424,6 +434,9 @@ jobs:
 
       - name: Conda Info
         run: conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
 
       - name: Conda List
         run: conda list --show-channel-urls
