@@ -11,12 +11,14 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from pytest import MonkeyPatch
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
-from conda.exceptions import DirectoryNotACondaEnvironmentError
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import DirectoryNotACondaEnvironmentError, PackagesNotFoundError
 from conda.gateways.disk.delete import move_path_to_trash, path_is_clean, rm_rf
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
@@ -287,3 +289,51 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
     finally:
         rm_rf(prefix, clean_empty_parents=True)
+
+
+def test_conda_pip_interop_dependency_satisfied_by_pip(
+    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env("python=3.10", "pip") as prefix:
+        assert package_is_installed(prefix, "python=3.10")
+        assert package_is_installed(prefix, "pip")
+        monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+        reset_context()
+        assert context.pip_interop_enabled
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "--dev",
+            "python",
+            "-m",
+            "pip",
+            "install",
+            "itsdangerous",
+        )
+
+        PrefixData._cache_.clear()
+        output, error, _ = conda_cli("list", f"--prefix={prefix}")
+        assert "itsdangerous" in output
+        assert not error
+
+        output, _, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "flask",
+            "--json",
+        )
+        json_obj = json_loads(output.strip())
+        print(json_obj)
+        assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
+        assert not any(
+            rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"]
+        )
+
+    with pytest.raises(PackagesNotFoundError):
+        output, _, _ = conda_cli(
+            "search",
+            "not-a-real-package",
+            "--json",
+        )
+        json_obj = json_loads(output.strip())
+        assert not len(json_obj.keys()) == 0

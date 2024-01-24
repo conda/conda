@@ -1701,55 +1701,6 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert "not-a-real-package" in str(exc.value)
 
 
-def test_conda_pip_interop_dependency_satisfied_by_pip():
-    with make_temp_env("python=3.10", "pip", use_restricted_unicode=False) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-        run_command(
-            Commands.RUN,
-            prefix,
-            "--dev",
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "itsdangerous",
-        )
-
-        PrefixData._cache_.clear()
-        output, error, _ = run_command(Commands.LIST, prefix)
-        assert "itsdangerous" in output
-        assert not error
-
-        output, _, _ = run_command(
-            Commands.INSTALL,
-            prefix,
-            "flask",
-            "--dry-run",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json.loads(output)
-        print(json_obj)
-        # itsdangerous shouldn't be in this list, because it's already present and satisfied
-        #     by the pip package
-        assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
-        assert not any(
-            rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"]
-        )
-
-        output, error, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "not-a-real-package",
-            "--json",
-            use_exception_handler=True,
-        )
-        assert not error
-        json_obj = json_loads(output.strip())
-        assert json_obj["exception_name"] == "PackagesNotFoundError"
-        assert not len(json_obj.keys()) == 0
-
-
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="metadata is wrong; give python2.7"
