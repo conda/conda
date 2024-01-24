@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Ensure PackageRecord.timestamp is dumped in milliseconds. (#13483)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Improve lock API for the repodata cache. (#13455)
+* <news item>

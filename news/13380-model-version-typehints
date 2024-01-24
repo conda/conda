@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Adds type hinting for `VersionOrder` class. (#13380)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Improve lock API for the repodata cache. (#13455)
+* <news item>

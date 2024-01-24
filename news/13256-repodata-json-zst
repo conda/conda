@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Check `repodata.json.zst` for faster index downloads. (#13256)
+* Check `repodata.json.zst` for faster repodata downloads. (#13256)
 
 ### Bug fixes
 

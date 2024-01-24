@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself.
+* Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
 
 ### Bug fixes
 

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `tmp_pkgs_dir` fixture to replace `make_temp_package_cache`. (#13511)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add `tmp_pkgs_dir` fixture to replace `make_temp_package_cache`. (#13511)
