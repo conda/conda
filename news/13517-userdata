@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix the config file location where the integrated Anaconda client gateway
+  loads user configuration from. This is a regression introduced in conda
+  23.11.0 when the `platformdirs` library was adopted. (#13517)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
