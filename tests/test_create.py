@@ -2275,91 +2275,92 @@ def test_use_index_cache(
     conda_cli("search", "flask", "--use-index-cache")
 
 
-def test_offline_with_empty_index_cache():
+def test_offline_with_empty_index_cache(
+    tmp_pkgs_dir: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
     from conda.core.subdir_data import SubdirData
+    from conda.gateways.connection.session import CondaSession
 
-    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+    SubdirData._cache_.clear()
 
     try:
-        with make_temp_env(use_restricted_unicode=on_win) as prefix:
-            pkgs_dir = join(prefix, "pkgs")
-            with env_var(
-                "CONDA_PKGS_DIRS",
-                pkgs_dir,
-                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+            # Clear the index cache.
+            index_cache_dir = create_cache_dir()
+            conda_cli("clean", "--index-cache", "--yes")
+            assert not exists(index_cache_dir)
+
+            # Then attempt to install a package with --offline. The package (flask) is
+            # available in a local channel, however its dependencies are not. Make sure
+            # that a) it fails because the dependencies are not available and b)
+            # we don't try to download the repodata from non-local channels but we do
+            # download repodata from local channels.
+
+            orig_get = CondaSession.get
+            local_channel_seen = False
+
+            def side_effect(self, url, **kwargs):
+                nonlocal local_channel_seen
+                if not url.startswith("file://"):
+                    raise AssertionError(f"Attempt to fetch repodata: {url}")
+                if url.startswith(channel):
+                    local_channel_seen = True
+                return orig_get(self, url, **kwargs)
+
+            mocker.patch(
+                "conda.gateways.connection.session.CondaSession.get",
+                autospec=True,
+                side_effect=side_effect,
+            )
+
+            SubdirData._cache_.clear()
+
+            assert not package_is_installed(prefix, "flask")
+            command = (
+                "install",
+                f"--prefix={prefix}",
+                "--override-channels",
+                f"--channel={channel}",
+                "flask",
+                "--offline",
+                "--yes",
+            )
+            if (
+                context.solver == "libmamba"
+                and metadata_version("conda-libmamba-solver") <= "23.12.0"
             ):
-                with make_temp_channel(["flask-2.1.3"]) as channel:
-                    # Clear the index cache.
-                    index_cache_dir = create_cache_dir()
-                    run_command(Commands.CLEAN, "", "--index-cache", "--yes")
-                    assert not exists(index_cache_dir)
+                # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
+                with pytest.raises((RuntimeError, UnsatisfiableError)):
+                    conda_cli(*command)
+            else:
+                # This first install passes because flask and its dependencies are in the
+                # package cache.
+                conda_cli(*command)
+                assert package_is_installed(prefix, "flask")
 
-                    # Then attempt to install a package with --offline. The package (flask) is
-                    # available in a local channel, however its dependencies are not. Make sure
-                    # that a) it fails because the dependencies are not available and b)
-                    # we don't try to download the repodata from non-local channels but we do
-                    # download repodata from local channels.
-                    from conda.gateways.connection.session import CondaSession
+                # The mock should have been called with our local channel URL though.
+                if context.solver != "libmamba":
+                    assert local_channel_seen
 
-                    orig_get = CondaSession.get
-
-                    result_dict = {}
-
-                    def side_effect(self, url, **kwargs):
-                        if not url.startswith("file://"):
-                            raise AssertionError(f"Attempt to fetch repodata: {url}")
-                        if url.startswith(channel):
-                            result_dict["local_channel_seen"] = True
-                        return orig_get(self, url, **kwargs)
-
-                    with patch.object(
-                        CondaSession, "get", autospec=True
-                    ) as mock_method:
-                        mock_method.side_effect = side_effect
-
-                        SubdirData.clear_cached_local_channel_data(exclude_file=False)
-
-                        assert not package_is_installed(prefix, "flask")
-                        command = (
-                            Commands.INSTALL,
-                            prefix,
-                            "-c",
-                            channel,
-                            "flask",
-                            "--offline",
-                        )
-                        if (
-                            context.solver == "libmamba"
-                            and metadata_version("conda-libmamba-solver") <= "23.12.0"
-                        ):
-                            # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
-                            with pytest.raises((RuntimeError, UnsatisfiableError)):
-                                run_command(*command)
-                        else:
-                            # This first install passes because flask and its dependencies are in the
-                            # package cache.
-                            run_command(*command)
-                            assert package_is_installed(prefix, "flask")
-
-                            # The mock should have been called with our local channel URL though.
-                            if context.solver != "libmamba":
-                                assert result_dict.get("local_channel_seen")
-
-                        # Fails because pytz cannot be found in available channels.
-                        # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
-                        # We can remove it when 23.9.2 is out with a fix
-                        with pytest.raises((PackagesNotFoundError, RuntimeError)):
-                            run_command(
-                                Commands.INSTALL,
-                                prefix,
-                                "-c",
-                                channel,
-                                "pytz",
-                                "--offline",
-                            )
-                        assert not package_is_installed(prefix, "pytz")
+            # Fails because pytz cannot be found in available channels.
+            # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
+            # We can remove it when 23.9.2 is out with a fix
+            with pytest.raises((PackagesNotFoundError, RuntimeError)):
+                conda_cli(
+                    "install",
+                    f"--prefix={prefix}",
+                    "--override-channels",
+                    f"--channel={channel}",
+                    "pytz",
+                    "--offline",
+                    "--yes",
+                )
+            assert not package_is_installed(prefix, "pytz")
     finally:
-        SubdirData.clear_cached_local_channel_data(exclude_file=False)
+        SubdirData._cache_.clear()
 
 
 def test_create_from_extracted(tmp_pkgs_dir: Path):
