@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 import requests
-from pytest import MonkeyPatch
+from pytest import CaptureFixture, MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.exceptions import PackagesNotFoundError
+from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.testing import CondaCLIFixture
 
 # all tests in this file are integration tests
@@ -257,6 +258,36 @@ def test_unknown_platform_package_missing(
 ):
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--platform=linux-unknown", "arch-package", "--json")
+
+
+@pytest.mark.skipif(
+    read_binstar_tokens(),
+    reason="binstar token found in global configuration",
+)
+def test_anaconda_token_with_private_package(
+    conda_cli: CondaCLIFixture,
+    capsys: CaptureFixture,
+):
+    # TODO: should also write a test to use binstar_client to set the token,
+    # then let conda load the token
+    package = "private-package"
+
+    # Step 1. Make sure without the token we don't see the package
+    channel_url = "https://conda-web.anaconda.org/conda-test"
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", f"--channel={channel_url}", package)
+    # flush stdout/stderr
+    capsys.readouterr()
+
+    # Step 2. Now with the token make sure we can see the package
+    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
+    stdout, _, _ = conda_cli(
+        "search",
+        f"--channel={channel_url}",
+        package,
+        "--json",
+    )
+    assert package in json.loads(stdout)
 
 
 def test_bad_anaconda_token(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):

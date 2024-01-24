@@ -67,7 +67,6 @@ from conda.exceptions import (
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
-from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.delete import path_is_clean, rm_rf
 from conda.gateways.disk.permissions import make_read_only
@@ -2198,36 +2197,6 @@ def test_install_freezes_env_by_default():
             for pkg_after in pkgs_after_install:
                 if pkg["name"] == pkg_after["name"]:
                     assert pkg["version"] == pkg_after["version"]
-
-
-@pytest.mark.skipif(
-    read_binstar_tokens(),
-    reason="binstar token found in global configuration",
-)
-def test_anaconda_token_with_private_package(
-    conda_cli: CondaCLIFixture,
-    capsys: CaptureFixture,
-):
-    # TODO: should also write a test to use binstar_client to set the token,
-    # then let conda load the token
-    package = "private-package"
-
-    # Step 1. Make sure without the token we don't see the package
-    channel_url = "https://conda-web.anaconda.org/conda-test"
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli("search", "--channel", channel_url, package)
-    # flush stdout/stderr
-    capsys.readouterr()
-
-    # Step 2. Now with the token make sure we can see the package
-    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
-    stdout, _, _ = conda_cli(
-        "search",
-        *("--channel", channel_url),
-        package,
-        "--json",
-    )
-    assert package in json_loads(stdout)
 
 
 def test_use_index_cache(
