@@ -110,7 +110,21 @@ def parametrized_solver_fixture(request: FixtureRequest, monkeypatch: MonkeyPatc
                 pytest.skip("...")
             ...
     """
-    monkeypatch.setenv("CONDA_SOLVER", request.param)
+    yield from _solver_helper(monkeypatch, request.param)
+
+
+@pytest.fixture
+def solver_classic(monkeypatch: MonkeyPatch):
+    yield from _solver_helper(monkeypatch, "classic")
+
+
+@pytest.fixture
+def solver_libmamba(monkeypatch: MonkeyPatch):
+    yield from _solver_helper(monkeypatch, "libmamba")
+
+
+def _solver_helper(monkeypatch: MonkeyPatch, solver: str):
+    monkeypatch.setenv("CONDA_SOLVER", solver)
     reset_context()
     context.plugin_manager.get_cached_solver_backend.cache_clear()
     yield

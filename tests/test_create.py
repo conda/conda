@@ -1005,38 +1005,6 @@ def test_allow_softlinks(
         assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
 
 
-@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-def test_remove_features(
-    clear_package_cache: None,
-    request: FixtureRequest,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
-            strict=True,
-        )
-    )
-
-    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "numpy")
-        assert package_is_installed(prefix, "nomkl")
-        assert not package_is_installed(prefix, "mkl")
-
-        # A consequence of discontinuing use of the 'features' key and instead
-        # using direct dependencies is that removing the feature means that
-        # packages associated with the track_features base package are completely removed
-        # and not replaced with equivalent non-variant packages as before.
-        conda_cli("remove", f"--prefix={prefix}", "--features", "nomkl", "--yes")
-
-        # assert package_is_installed(prefix, 'numpy')   # removed per above comment
-        assert not package_is_installed(prefix, "nomkl")
-        # assert package_is_installed(prefix, 'mkl')  # removed per above comment
-
-
 def test_channel_usage_replacing_python(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -1227,42 +1195,6 @@ def test_install_update_deps_only_deps_flags(
         assert package_is_installed(prefix, "another_dependent=1.0")
         assert package_is_installed(prefix, "dependent=2.0")
         assert package_is_installed(prefix, "dependency=2.0")
-
-
-@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-def test_install_features(
-    clear_package_cache: None,
-    request: FixtureRequest,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
-        )
-    )
-    channels = ("--override-channels", "--channel=main")
-    with tmp_env(*channels, "python=2", "numpy=1.13", "nomkl") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "numpy")
-        assert package_is_installed(prefix, "nomkl")
-        assert not package_is_installed(prefix, "mkl")
-
-    with tmp_env(*channels, "python=2", "numpy=1.13") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "numpy")
-        assert not package_is_installed(prefix, "nomkl")
-        assert package_is_installed(prefix, "mkl")
-
-        conda_cli("install", f"--prefix={prefix}", *channels, "nomkl", "--yes")
-
-        assert package_is_installed(prefix, "numpy")
-        assert package_is_installed(prefix, "nomkl")
-        assert package_is_installed(prefix, "blas=1.0=openblas")
-        assert not package_is_installed(prefix, "mkl_fft")
-        assert not package_is_installed(prefix, "mkl_random")
-        # assert not package_is_installed(prefix, "mkl")  # pruned as an indirect dep
 
 
 def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
