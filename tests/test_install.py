@@ -220,10 +220,6 @@ def test_install_freezes_env_by_default(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    # We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
-    # up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
-
-    # create an initial env
     with tmp_env("dependent=2.0") as prefix:
         assert package_is_installed(prefix, "dependent=2.0")
         # Install a version older than the last one
@@ -244,7 +240,6 @@ def test_install_freezes_env_by_default(
         stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
         pkgs_after_install = json_loads(stdout)
 
-        # Compare before and after installing package
         for pkg in pkgs:
             for pkg_after in pkgs_after_install:
                 if pkg["name"] == pkg_after["name"]:
@@ -275,7 +270,7 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             rm_rf(prefix, clean_empty_parents=True)
             assert path_is_clean(dir)
 
-            # this part also a regression test for #4849
+            # regression test for #4849
             conda_cli(
                 "install",
                 f"--prefix={dir}",
