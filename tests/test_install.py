@@ -6,7 +6,7 @@ import sys
 import tempfile
 from json import loads as json_loads
 from os import chdir, getcwd, makedirs
-from os.path import exists, isdir, isfile, join, relpath
+from os.path import exists, isdir, join, relpath
 from pathlib import Path
 from unittest import mock
 
@@ -21,7 +21,7 @@ from conda.gateways.disk.delete import move_path_to_trash, path_is_clean, rm_rf
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
-from conda.testing.integration import make_temp_prefix, package_is_installed
+from conda.testing.integration import package_is_installed
 
 patch = mock.patch if mock else None
 
@@ -249,34 +249,41 @@ def test_install_freezes_env_by_default(
                     assert pkg["version"] == pkg_after["version"]
 
 
-def test_install_mkdir(conda_cli: CondaCLIFixture):
+def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     try:
-        prefix = make_temp_prefix()
-        with open(join(prefix, "tempfile.txt"), "w") as f:
-            f.write("test")
-        assert isdir(prefix)
-        assert isfile(join(prefix, "tempfile.txt"))
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            conda_cli("install", f"--prefix={prefix}", "python", "--mkdir", "--yes")
+        with tmp_env() as prefix:
+            file = prefix / "tempfile.txt"
+            file.write_text("test")
+            dir = prefix / "conda-meta"
+            assert isdir(dir)
+            assert exists(file)
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                stdout, _, _ = conda_cli(
+                    "install", f"--prefix={dir}", "python", "--mkdir", "--yes"
+                )
+                assert (
+                    "The target directory exists, but it is not a conda environment."
+                    in stdout
+                )
 
-        conda_cli("create", f"--prefix={prefix}", "--yes")
-        conda_cli("install", f"--prefix={prefix}", "python", "--mkdir", "--yes")
-        assert package_is_installed(prefix, "python")
+            conda_cli("create", f"--prefix={dir}", "--yes")
+            conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
+            assert package_is_installed(dir, "python")
 
-        rm_rf(prefix, clean_empty_parents=True)
-        assert path_is_clean(prefix)
+            rm_rf(prefix, clean_empty_parents=True)
+            assert path_is_clean(dir)
 
-        # this part also a regression test for #4849
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
-            "python-dateutil",
-            "python",
-            "--mkdir",
-            "--yes",
-        )
-        assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "python-dateutil")
+            # this part also a regression test for #4849
+            conda_cli(
+                "install",
+                f"--prefix={dir}",
+                "python-dateutil",
+                "python",
+                "--mkdir",
+                "--yes",
+            )
+            assert package_is_installed(dir, "python")
+            assert package_is_installed(dir, "python-dateutil")
 
     finally:
         rm_rf(prefix, clean_empty_parents=True)
