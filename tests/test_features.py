@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from pathlib import Path
 
+import pytest
+
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
 
@@ -69,6 +71,14 @@ def test_remove_features_upgrade(
         assert package_is_installed(prefix, "feature=2.0")
 
 
+@pytest.mark.xfail(
+    reason=(
+        "Downgrading features via `conda remove --features` fails. "
+        "Use `conda install track_feature=1.0` instead."
+        "See https://github.com/conda/conda/pull/13498#discussion_r1462176505. "
+    ),
+    strict=True,
+)
 def test_remove_features_downgrade(
     solver_classic: None,  # features not supported in libmamba
     test_recipes_channel: Path,
