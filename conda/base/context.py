@@ -21,9 +21,9 @@ from os.path import split as path_split
 from typing import TYPE_CHECKING
 
 try:
-    from platformdirs import user_data_dir
+    from platformdirs import user_config_dir
 except ImportError:  # pragma: no cover
-    from .._vendor.appdirs import user_data_dir
+    from .._vendor.appdirs import user_data_dir as user_config_dir
 
 try:
     from boltons.setutils import IndexedSet
@@ -132,7 +132,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
             join(root_prefix, "envs"),
         ]
     if on_win:
-        fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+        fixed_dirs.append(join(user_config_dir(APP_NAME, APP_NAME), "envs"))
     return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
@@ -685,7 +685,7 @@ class Context(Configuration):
                 join("~", ".conda"),
             )
             if on_win:
-                fixed_dirs += (user_data_dir(APP_NAME, APP_NAME),)
+                fixed_dirs += (user_config_dir(APP_NAME, APP_NAME),)
             return tuple(
                 IndexedSet(expand(join(p, cache_dir_name)) for p in (fixed_dirs))
             )

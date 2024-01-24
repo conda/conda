@@ -8,9 +8,9 @@ from os.path import isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 
 try:
-    from platformdirs import user_data_dir
+    from platformdirs import user_config_dir
 except ImportError:  # pragma: no cover
-    from .._vendor.appdirs import user_data_dir
+    from .._vendor.appdirs import user_data_dir as user_config_dir
 
 from ..common.url import quote_plus, unquote_plus
 from ..deprecations import deprecated
@@ -52,7 +52,7 @@ def _get_binstar_token_directory():
     if "BINSTAR_CONFIG_DIR" in os.environ:
         return os.path.join(os.environ["BINSTAR_CONFIG_DIR"], "data")
     else:
-        return user_data_dir(appname="binstar", appauthor="ContinuumIO")
+        return user_config_dir(appname="binstar", appauthor="ContinuumIO")
 
 
 def read_binstar_tokens():
