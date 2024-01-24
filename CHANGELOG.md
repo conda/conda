@@ -1,5 +1,86 @@
 [//]: # (current developments)
 
+## 24.1.0 (2024-01-24)
+
+### Enhancements
+
+* Verify signatures on to-be-installed packages instead of on all packages. (#11545, #13053)
+* Add a new `pre-solves` plugin hook. (#13053)
+* Add a new `post-solves` plugin hook. (#13053)
+* Add support for Python 3.12. (#13072)
+* Check `repodata.json.zst` for faster repodata downloads. (#13256)
+* Add `--skip-flexible-search` option to skip flexible search. (#13315)
+* Add type hinting for `VersionOrder` class. (#13380)
+* Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
+* Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
+* Add a Y/N prompt warning users that `conda env remove` and `conda remove --all` deletes not only the conda packages but the entirety of the specified environment. (#12222 via #13440)
+* Add `--no-repodata-zst` flag to skip `repodata.json.zst` check. Useful if the repo returns unparseable `repodata.json.zst` instead of correct data or 404. (#13504)
+
+### Bug fixes
+
+* Create the `~/.conda` directory before trying to write to the `environments.txt` file. (#13338)
+* Ensure `PackageRecord.timestamp` is dumped in milliseconds. (#13483)
+* Fix error when setting a non-default repodata filename via `CONDA_REPODATA_FNS`. (#13490)
+* Fix the config file location where the integrated Anaconda client gateway loads user configuration from. This is a regression introduced in conda 23.11.0 when the `platformdirs` library was adopted. (#13517)
+* Interpret missing `Cache-Control` header as `max-age=0` instead of exception. (#13522)
+
+### Deprecations
+
+* Mark `conda_env/cli/common` as pending deprecation. Use `conda.cli.common` instead. (#13168)
+* Mark `conda_env/cli/main_config` as pending deprecation. Use `conda.cli.main_env_config` instead. (#13168)
+* Mark `conda_env/cli/main_create` as pending deprecation. Use `conda.cli.main_env_create` instead. (#13168)
+* Mark `conda_env/cli/main_export` as pending deprecation. Use `conda.cli.main_env_export` instead. (#13168)
+* Mark `conda_env/cli/main_list` as pending deprecation. Use `conda.cli.main_env_list` instead. (#13168)
+* Mark `conda_env/cli/main_remove` as pending deprecation. Use `conda.cli.main_env_remove` instead. (#13168)
+* Mark `conda_env/cli/main_update` as pending deprecation. Use `conda.cli.main_env_update` instead. (#13168)
+* Mark `conda_env/cli/main_vars` as pending deprecation. Use `conda.cli.main_env_vars` instead. (#13168)
+* Mark `conda_env/env` as pending deprecation. Use `conda.env.env` instead. (#13168)
+* Mark `conda_env/installers/base` as pending deprecation. Use `conda.env.installers.base` instead. (#13168)
+* Mark `conda_env/installers/conda` as pending deprecation. Use `conda.env.installers.conda` instead. (#13168)
+* Mark `conda_env/installers/pip` as pending deprecation. Use `conda.env.installers.pip` instead. (#13168)
+* Mark `conda_env/pip_util` as pending deprecation. Use `conda.env.pip_util` instead. (#13168)
+* Mark `conda_env/specs` as pending deprecation. Use `conda.env.specs` instead. (#13168)
+* Mark `conda_env/specs/binstar` as pending deprecation. Use `conda.env.specs.binstar` instead. (#13168)
+* Mark `conda_env/specs/requirements` as pending deprecation. Use `conda.env.specs.requirements` instead. (#13168)
+* Mark `conda_env/specs/yaml_file` as pending deprecation. Use `conda.env.specs.yaml_file` instead. (#13168)
+* Mark `conda.testing.integration.make_temp_package_cache` as pending deprecation. (#13511)
+
+### Docs
+
+* Update Getting Started documentation in User Guide. (#13190)
+* Add goat counter (https://www.goatcounter.com/) as an analytics tool. (#13384)
+* Add type hints and doc strings to `conda.cli.main_info`. (#13445)
+* Add type hints and doc strings to `conda.cli.main_search`. (#13465)
+
+### Other
+
+* Move `conda_env` modules into `conda` while allowing old `conda env` commands to still work via import redirects. (#13168)
+* Re-enable and apply `pyupgrade` via `ruff`. (#13272, #13433)
+* Start tracking performance in continuous integration and automatically report about it in pull requests. (#13460)
+* Add `tmp_pkgs_dir` fixture to replace `make_temp_package_cache`. (#13511)
+* Improve lock API for the repodata cache. (#13455)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @jezdez
+* @johnnynunez
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @marcoesters
+* @mfansler
+* @schuylermartin45
+* @travishathaway
+* @pre-commit-ci[bot]
+* @samhaese
+
+
+
 ## 23.11.0 (2023-11-30)
 
 ### Special announcement
