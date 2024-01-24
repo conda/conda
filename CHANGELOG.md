@@ -74,10 +74,10 @@
 * @ForgottenProgramme
 * @marcoesters
 * @mfansler
-* @schuylermartin45
+* @schuylermartin45 made their first contribution in https://github.com/conda/conda/pull/13385
 * @travishathaway
 * @pre-commit-ci[bot]
-* @samhaese
+* @samhaese made their first contribution in https://github.com/conda/conda/pull/13465
 
 
 
