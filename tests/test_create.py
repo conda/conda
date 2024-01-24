@@ -77,7 +77,6 @@ from conda.gateways.subprocess import (
 )
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.models.version import VersionOrder
 from conda.resolve import Resolve
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import (
@@ -1890,149 +1889,133 @@ def test_conda_pip_interop_pip_clobbers_conda():
         assert not glob(join(prefix, sp_dir, "six*"))
 
 
-@pytest.mark.skipif(
-    context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
-    reason="Skip unsupported platforms",
-)
-def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, request):
+def test_conda_pip_interop_conda_editable_package(
+    clear_package_cache: None,
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="conda-libmamba-solver does not implement pip interoperability",
+            context.solver == "classic",
+            reason="See https://github.com/conda/conda/issues/13529.",
         )
     )
 
-    with env_vars(
-        {
-            "CONDA_REPORT_ERRORS": "false",
-            "CONDA_RESTORE_FREE_CHANNEL": True,
-            "CONDA_CHANNELS": "defaults",
-            "CONDA_PIP_INTEROP_ENABLED": "true",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with make_temp_env(
-            "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
-        ) as prefix:
-            workdir = prefix
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
 
-            assert package_is_installed(prefix, "python")
+    with tmp_env("python=3.12", "pip", "git") as prefix:
+        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, "pip")
+        assert package_is_installed(prefix, "git")
 
-            # install an "editable" urllib3 that cannot be managed
-            output, err, _ = run_command(
-                Commands.RUN,
-                prefix,
-                "--cwd",
-                workdir,
+        # install an "editable" urllib3 that cannot be managed
+        PrefixData._cache_.clear()
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            f"--cwd={prefix}",
+            *(
                 "python",
                 "-m",
                 "pip",
                 "install",
                 "-e",
                 "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
-            )
-            assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
-            assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "urllib3")
-            urllib3_record = next(PrefixData(prefix).query("urllib3"))
-            urllib3_record_dump = urllib3_record.dump()
-            urllib3_record_dump.pop("files")
-            urllib3_record_dump.pop("paths_data")
-            print(json_dump(urllib3_record_dump))
+            ),
+        )
+        assert (prefix / "src" / "urllib3" / "urllib3" / "__init__.py").is_file()
+        assert not Path("src", "urllib3", "urllib3", "__init__.py").is_file()
+        assert package_is_installed(prefix, "urllib3")
+        prec_dump = PrefixData(prefix).get("urllib3").dump()
+        prec_dump.pop("files")
+        prec_dump.pop("paths_data")
+        assert json.loads(json_dump(prec_dump)) == {
+            "build": "dev_0",
+            "build_number": 0,
+            "channel": "https://conda.anaconda.org/<develop>",
+            "constrains": [
+                "cryptography >=1.3.4",
+                "idna >=2.0.0",
+                "pyopenssl >=0.14",
+                "pysocks !=1.5.7,<2.0,>=1.5.6",
+            ],
+            "depends": ["python 3.12.*"],
+            "fn": "urllib3-1.19.1-dev_0",
+            "name": "urllib3",
+            "package_type": "virtual_python_egg_link",
+            "subdir": "pypi",
+            "version": "1.19.1",
+        }
 
-            assert json_loads(json_dump(urllib3_record_dump)) == {
-                "build": "dev_0",
-                "build_number": 0,
-                "channel": "https://conda.anaconda.org/<develop>",
-                "constrains": [
-                    "cryptography >=1.3.4",
-                    "idna >=2.0.0",
-                    "pyopenssl >=0.14",
-                    "pysocks !=1.5.7,<2.0,>=1.5.6",
-                ],
-                "depends": ["python 2.7.*"],
-                "fn": "urllib3-1.19.1-dev_0",
-                "name": "urllib3",
-                "package_type": "virtual_python_egg_link",
-                "subdir": "pypi",
-                "version": "1.19.1",
-            }
+        # the unmanageable urllib3 should prevent a new requests from being installed
+        with pytest.raises(RuntimeError):
+            conda_cli("install", f"--prefix={prefix}", "requests", "--json", "--yes")
 
-            # the unmanageable urllib3 should prevent a new requests from being installed
-            stdout, stderr, _ = run_command(
-                Commands.INSTALL,
-                prefix,
-                "requests",
-                "--dry-run",
-                "--json",
-                use_exception_handler=True,
-            )
-            assert not stderr
-            json_obj = json_loads(stdout)
-            assert "UNLINK" not in json_obj["actions"]
-            link_dists = json_obj["actions"]["LINK"]
-            assert len(link_dists) == 1
-            assert link_dists[0]["name"] == "requests"
-            assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
+        # should already be satisfied
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "urllib3",
+            "--satisfied-skip-solve",
+            "--yes",
+        )
+        assert "All requested packages already installed." in stdout
 
-            # should already be satisfied
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3", "-S")
-            assert "All requested packages already installed." in stdout
+        # should raise an error
+        with pytest.raises(PackagesNotFoundError):
+            # TODO: This raises PackagesNotFoundError, but the error should really explain
+            #       that we can't install urllib3 because it's already installed and
+            #       unmanageable. The error should suggest trying to use pip to uninstall it.
+            conda_cli("install", f"--prefix={prefix}", "urllib3=1.20", "--yes")
 
-            # should raise an error
-            with pytest.raises(PackagesNotFoundError):
-                # TODO: This raises PackagesNotFoundError, but the error should really explain
-                #       that we can't install urllib3 because it's already installed and
-                #       unmanageable. The error should suggest trying to use pip to uninstall it.
-                stdout, stderr, _ = run_command(
-                    Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run"
-                )
+        # Now install a manageable urllib3.
+        PrefixData._cache_.clear()
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "--upgrade", "urllib3==1.20"),
+        )
+        assert package_is_installed(prefix, "urllib3")
+        prec_dump = PrefixData(prefix).get("urllib3").dump()
+        prec_dump.pop("files")
+        prec_dump.pop("paths_data")
+        assert json.loads(json_dump(prec_dump)) == {
+            "build": "pypi_0",
+            "build_number": 0,
+            "channel": "https://conda.anaconda.org/pypi",
+            "constrains": ["pysocks >=1.5.6,<2.0,!=1.5.7"],
+            "depends": ["python 3.12.*"],
+            "fn": "urllib3-1.20.dist-info",
+            "name": "urllib3",
+            "package_type": "virtual_python_wheel",
+            "subdir": "pypi",
+            "version": "1.20",
+        }
 
-            # Now install a manageable urllib3.
-            output = check_output(
-                PYTHON_BINARY + " -m pip install -U urllib3==1.20",
-                cwd=prefix,
-                shell=True,
-            )
-            print(output)
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "urllib3")
-            urllib3_record = next(PrefixData(prefix).query("urllib3"))
-            urllib3_record_dump = urllib3_record.dump()
-            urllib3_record_dump.pop("files")
-            urllib3_record_dump.pop("paths_data")
-            print(json_dump(urllib3_record_dump))
-
-            assert json_loads(json_dump(urllib3_record_dump)) == {
-                "build": "pypi_0",
-                "build_number": 0,
-                "channel": "https://conda.anaconda.org/pypi",
-                "constrains": ["pysocks >=1.5.6,<2.0,!=1.5.7"],
-                "depends": ["python 2.7.*"],
-                "fn": "urllib3-1.20.dist-info",
-                "name": "urllib3",
-                "package_type": "virtual_python_wheel",
-                "subdir": "pypi",
-                "version": "1.20",
-            }
-
-            # we should be able to install an unbundled requests that upgrades urllib3 in the process
-            stdout, stderr, _ = run_command(
-                Commands.INSTALL, prefix, "requests=2.18", "--json"
-            )
-            assert package_is_installed(prefix, "requests")
-            assert package_is_installed(prefix, "urllib3>=1.21")
-            assert not stderr
-            json_obj = json_loads(stdout)
-            unlink_dists = [
-                dist_obj
-                for dist_obj in json_obj["actions"]["UNLINK"]
-                if dist_obj.get("platform") == "pypi"
-            ]  # filter out conda package upgrades like python and libffi
-            assert len(unlink_dists) == 1
-            assert unlink_dists[0]["name"] == "urllib3"
-            assert unlink_dists[0]["channel"] == "pypi"
+        # we should be able to install an unbundled requests that upgrades urllib3 in the process
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "requests>=2.18",
+            "--json",
+            "--yes",
+        )
+        assert not stderr
+        assert package_is_installed(prefix, "requests>=2.18")
+        assert package_is_installed(prefix, "urllib3>=1.21")
+        json_obj = json.loads(stdout)
+        unlink_dists = [
+            dist_obj
+            for dist_obj in json_obj["actions"]["UNLINK"]
+            if dist_obj.get("platform") == "pypi"
+        ]  # filter out conda package upgrades like python and libffi
+        assert len(unlink_dists) == 1
+        assert unlink_dists[0]["name"] == "urllib3"
+        assert unlink_dists[0]["channel"] == "pypi"
 
 
 def test_conda_pip_interop_compatible_release_operator():
