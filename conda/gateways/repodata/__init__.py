@@ -937,7 +937,8 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     return f"{md5.hexdigest()[:8]}.json"
 
 
-def get_cache_control_max_age(cache_control_value: str):
+def get_cache_control_max_age(cache_control_value: str | None):
+    cache_control_value = cache_control_value or ""
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
 
