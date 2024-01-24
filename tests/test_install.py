@@ -337,3 +337,31 @@ def test_conda_pip_interop_dependency_satisfied_by_pip(
         )
         json_obj = json_loads(output.strip())
         assert not len(json_obj.keys()) == 0
+
+
+def test_install_from_extracted_package(
+    tmp_pkgs_dir: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    def pkgs_dir_has_tarball(tarball_prefix):
+        return any(
+            tarball_prefix in f.name for f in tmp_pkgs_dir.iterdir() if f.is_file()
+        )
+
+    with tmp_env() as prefix:
+        # First, make sure the openssl package is present in the cache,
+        # downloading it if needed
+        assert not pkgs_dir_has_tarball("openssl-")
+        conda_cli("install", f"--prefix={prefix}", "openssl", "--yes")
+        assert pkgs_dir_has_tarball("openssl-")
+
+        # Then, remove the tarball but keep the extracted directory around
+        conda_cli("clean", "--tarballs", "--yes")
+        assert not pkgs_dir_has_tarball("openssl-")
+
+    with tmp_env() as prefix:
+        # Finally, install openssl, enforcing the use of the extracted package.
+        # We expect that the tarball does not appear again because we simply
+        # linked the package from the extracted directory. If the tarball
+        # appeared again, we decided to re-download the package for some reason.
+        conda_cli("install", f"--prefix={prefix}", "openssl", "--offline", "--yes")
+        assert not pkgs_dir_has_tarball("openssl-")

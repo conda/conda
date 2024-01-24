@@ -34,7 +34,6 @@ from pytest_mock import MockerFixture
 from conda import CondaError, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
-    CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
     ChannelPriority,
     SafetyChecks,
@@ -2381,34 +2380,6 @@ def test_offline_with_empty_index_cache():
                         assert not package_is_installed(prefix, "pytz")
     finally:
         SubdirData.clear_cached_local_channel_data(exclude_file=False)
-
-
-def test_create_from_extracted(tmp_pkgs_dir: Path):
-    def pkgs_dir_has_tarball(tarball_prefix):
-        return any(
-            f.startswith(tarball_prefix)
-            and any(f.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
-            for f in os.listdir(tmp_pkgs_dir)
-        )
-
-    with make_temp_env() as prefix:
-        # First, make sure the openssl package is present in the cache,
-        # downloading it if needed
-        assert not pkgs_dir_has_tarball("openssl-")
-        run_command(Commands.INSTALL, prefix, "openssl")
-        assert pkgs_dir_has_tarball("openssl-")
-
-        # Then, remove the tarball but keep the extracted directory around
-        run_command(Commands.CLEAN, prefix, "--tarballs", "--yes")
-        assert not pkgs_dir_has_tarball("openssl-")
-
-    with make_temp_env() as prefix:
-        # Finally, install openssl, enforcing the use of the extracted package.
-        # We expect that the tarball does not appear again because we simply
-        # linked the package from the extracted directory. If the tarball
-        # appeared again, we decided to re-download the package for some reason.
-        run_command(Commands.INSTALL, prefix, "openssl", "--offline")
-        assert not pkgs_dir_has_tarball("openssl-")
 
 
 @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
