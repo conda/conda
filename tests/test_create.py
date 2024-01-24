@@ -2230,54 +2230,49 @@ def test_anaconda_token_with_private_package(
     assert package in json_loads(stdout)
 
 
-def test_use_index_cache():
+def test_use_index_cache(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
 
-    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+    # pretend the cache is always stale
+    mocker.patch(
+        "conda.gateways.repodata.RepodataCache.stale",
+        return_value=True,
+    )
 
-    prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    with make_temp_env(prefix=prefix, no_capture=True):
-        # First, clear the index cache to make sure we start with an empty cache.
-        index_cache_dir = create_cache_dir()
-        run_command(Commands.CLEAN, "", "--index-cache", "--yes")
-        assert not glob(join(index_cache_dir, "*.json"))
+    # mock CondaSession.get so we can check if it was called
+    orig_get = CondaSession.get
+    mock_get = mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get",
+        autospec=True,
+        side_effect=orig_get,
+    )
 
-        # Then, populate the index cache.
-        orig_get = CondaSession.get
-        with patch.object(CondaSession, "get", autospec=True) as mock_method:
+    # populate the index cache
+    SubdirData._cache_.clear()
+    conda_cli("search", "flask")
+    assert mock_get.called
 
-            def side_effect(self, url, **kwargs):
-                # Make sure that we don't use the cache because of the
-                # corresponding HTTP header. This test is supposed to test
-                # whether the --use-index-cache causes the cache to be used.
-                result = orig_get(self, url, **kwargs)
-                for header in ("Etag", "Last-Modified", "Cache-Control"):
-                    if header in result.headers:
-                        del result.headers[header]
-                return result
+    # update CondaSession.get mock to fail if called with a repodata URL
+    def side_effect(self, url, **kwargs):
+        if url.endswith(("/repodata.json", "/repodata.json.bz2", "/repodata.json.zst")):
+            raise AssertionError("Index cache was not hit")
+        return orig_get(self, url, **kwargs)
 
-            SubdirData.clear_cached_local_channel_data(exclude_file=False)
-            mock_method.side_effect = side_effect
-            stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "flask", "--info", "--json"
-            )
-            assert mock_method.called
+    mock_get.side_effect = side_effect
 
-        # Next run with --use-index-cache and make sure it actually hits the cache
-        # and does not go out fetching index data remotely.
-        with patch.object(CondaSession, "get", autospec=True) as mock_method:
+    # without --use-index-cache, the index cache should not be hit
+    with pytest.raises(AssertionError, match="Index cache was not hit"):
+        SubdirData._cache_.clear()
+        conda_cli("search", "flask")
 
-            def side_effect(self, url, **kwargs):
-                if url.endswith("/repodata.json") or url.endswith("/repodata.json.bz2"):
-                    raise AssertionError("Index cache was not hit")
-                else:
-                    return orig_get(self, url, **kwargs)
-
-            mock_method.side_effect = side_effect
-            run_command(
-                Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache"
-            )
+    # with --use-index-cache, the index cache should be hit
+    SubdirData._cache_.clear()
+    conda_cli("search", "flask", "--use-index-cache")
 
 
 def test_offline_with_empty_index_cache():
