@@ -5,6 +5,7 @@
 ### Bug fixes
 
 * Interpret missing `Cache-Control` header as `max-age=0` instead of exception.
+  (#13522)
 
 ### Deprecations
 
