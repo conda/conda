@@ -2,15 +2,22 @@
 
 ## 24.1.0 (2024-01-24)
 
+### Special announcement
+
+#### The `conda_env.*` modules have been merged into the `conda` package!
+
+To improve the integration of the `conda env` subcommand (previously standalone), we've moved its
+code into the `conda` package, while allowing old `conda env` commands to still work via Python
+import redirects. This is a first step of many to improving the user experience of the conda
+command line interface related to environment management. (#13168)
+
 ### Enhancements
 
 * Verify signatures on to-be-installed packages instead of on all packages. (#11545, #13053)
-* Add a new `pre-solves` plugin hook. (#13053)
-* Add a new `post-solves` plugin hook. (#13053)
+* Add new `pre-solves` and `post-solves` plugin hooks. (#13053)
 * Add support for Python 3.12. (#13072)
 * Check `repodata.json.zst` for faster repodata downloads. (#13256)
 * Add `--skip-flexible-search` option in `conda search` to skip flexible search. (#13315)
-* Add type hinting for `VersionOrder` class. (#13380)
 * Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
 * Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
 * Add a Y/N prompt warning users that `conda env remove` and `conda remove --all` deletes not only the conda packages but the entirety of the specified environment. (#12222 via #13440)
@@ -54,7 +61,7 @@
 
 ### Other
 
-* Move `conda_env` modules into `conda` while allowing old `conda env` commands to still work via import redirects. (#13168)
+* Add type hinting for `VersionOrder` class. (#13380)
 * Re-enable and apply `pyupgrade` via `ruff`. (#13272, #13433)
 * Start tracking performance in continuous integration and automatically report about it in pull requests. (#13460)
 * Add `tmp_pkgs_dir` fixture to replace `make_temp_package_cache`. (#13511)
