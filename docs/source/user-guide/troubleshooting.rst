@@ -2,11 +2,6 @@
 Troubleshooting
 ===============
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 Using conda in Windows Batch script exits early
 ===============================================
 
@@ -103,12 +98,12 @@ more drastic measures.
        * ``CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY``
        * ``CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD``
 
-     To set variables on Windows, you may use either the CLI (Anaconda Prompt, for example) or a Windows GUI.
+     To set variables on Windows, you may use either the CLI or a Windows GUI.
 
        * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
        * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
 
-     These should be set to a value of ``1`` to enable them.  For example, in an Anaconda Prompt terminal::
+     These should be set to a value of ``1`` to enable them.  For example, in a terminal::
 
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
 
@@ -194,7 +189,7 @@ work. See more information on activation in :ref:`Activating environments
 Solution
 ~~~~~~~~
 
-Use "Anaconda Prompt" or shells opened from Anaconda Navigator. If you use a GUI
+Use shells opened from Anaconda Navigator. If you use a GUI
 IDE and you see this error, ask the developers of your IDE to add activation for
 conda environments.
 
@@ -210,7 +205,19 @@ the certificates for a secure connection to the package repository.
 Solution
 ~~~~~~~~
 
-Pip can use the ``--trusted-host`` option to indicate that the URL of the
+Pip can use the ``--use-feature=truststore`` option to use the operating system
+certificate store. This may be of help in typically corporate environments with
+https traffic inspection, where the corporate CA is installed in the operating
+system certificate store::
+
+    pip install --use-feature=truststore
+
+Conda has a similar option::
+
+    conda config --set ssl_verify truststore
+
+
+Alternatively, pip can use the ``--trusted-host`` option to indicate that the URL of the
 repository is trusted::
 
     pip install --trusted-host pypi.org
@@ -236,8 +243,9 @@ Conda has three similar options.
        # #   browser. By default, SSL verification is enabled and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
-       # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
-       # #   to a directory containing certificates of trusted CA.
+       # #   ssl_verify can also be (1) a path to a CA bundle file, (2) a path to a
+       # #   directory containing certificates of trusted CA, or (3) 'truststore'
+       # #   to use the operating system certificate store.
        # #
        # ssl_verify: true
 
@@ -263,8 +271,9 @@ Conda has three similar options.
        # #   browser. By default, SSL verification is enabled, and conda operations
        # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
-       # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
-       # #   to a directory containing certificates of trusted CA.
+       # #   ssl_verify can also be (1) a path to a CA bundle file, (2) a path to a
+       # #   directory containing certificates of trusted CA, or (3) 'truststore'
+       # #   to use the operating system certificate store.
        # #
        # ssl_verify: true
 
@@ -298,7 +307,13 @@ Make sure your conda is up-to-date: ``conda --version``
 
 If not, run: ``conda update conda``
 
-Temporarily set your ``ssl_verify`` variable to false, upgrade the requests package, and then
+Try using the operating system certificate store. Set you ``ssl_verify`` variable to ``truststore``
+using the following command::
+
+    conda config --set ssl_verify truststore
+
+If using the operating system certificate store does not solve your issue, temporarily
+set your ``ssl_verify`` variable to false, upgrade the requests package, and then
 set ``ssl_verify`` back to ``true`` using the following commands::
 
     conda config --set ssl_verify false
@@ -1036,11 +1051,8 @@ Solution
 --------
 
 If you receive this warning, you need to activate your environment.
-To do so on Windows, use the Anaconda Prompt shortcut in your Windows
-start menu. If you have an existing cmd.exe session that you’d like to
-activate conda in, run:
+To do so on Windows, on a terminal via PowerShell or the Command Prompt, run:
 ``call <your anaconda/miniconda install location>\Scripts\activate base``.
-
 
 .. _path-error:
 

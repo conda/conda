@@ -27,10 +27,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-# env:
-    # to pin MinIO version, see images.yml for counterpart
-    # MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
-
 jobs:
   # detect whether any code changes are included in this PR
   changes:
@@ -74,7 +70,7 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.11']
+        python-version: ['3.8', '3.12']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -94,7 +90,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           # setup.bat makes a directory junction from \conda_bin to
           # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
@@ -103,16 +99,6 @@ jobs:
           key:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/windows/setup.bat', 'tests/requirements.txt') }}
-
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio.exe
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}-${{ env.CACHE_NUMBER }}
 
       - name: Set temp dirs correctly
         # https://github.com/actions/virtual-environments/issues/712
@@ -146,7 +132,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -170,7 +156,7 @@ jobs:
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -180,6 +166,8 @@ jobs:
             python-version: '3.9'
           - default-channel: 'conda-forge'
             python-version: '3.10'
+          - default-channel: 'conda-forge'
+            python-version: '3.11'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -204,7 +192,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -215,6 +203,37 @@ jobs:
             ./tools/durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1
+
+  # linux benchmarks
+  linux-benchmarks:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11']
+
+    env:
+      OS: Linux
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Python ${{ matrix.python-version }} benchmarks
+        uses: CodSpeedHQ/action@v2
+        with:
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          run: >
+            docker run
+            --rm -v ${PWD}:/opt/conda-src
+            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
+            /opt/conda-src/dev/linux/benchmarks.sh
+
 
   # linux-qemu test suite
   linux-qemu:
@@ -232,7 +251,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.11']
+        python-version: ['3.12']
         platform: ['arm64', 'ppc64le']
     env:
       PYTHON: ${{ matrix.python-version }}
@@ -255,7 +274,7 @@ jobs:
           /opt/conda-src/dev/linux/qemu.sh
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -277,7 +296,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
+        python-version: ['3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         # fewer test splits for quicker unit tests, keep 3 splits for integration
@@ -315,16 +334,6 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
-      - name: Cache minio
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache
-          CACHE_NUMBER: 4
-        with:
-          path: minio
-          key:
-            ${{ runner.os }}-${{ env.MINIO_RELEASE && env.MINIO_RELEASE || 'minio' }}}-${{ env.CACHE_NUMBER }}
-
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
@@ -361,7 +370,7 @@ jobs:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
@@ -376,8 +385,10 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-qemu, macos]
-    if: always() && needs.changes.outputs.code == 'true'
+    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
+    if: >-
+      !cancelled()
+      && needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     steps:
@@ -401,8 +412,8 @@ jobs:
   # required check
   analyze:
     name: Analyze results
-    needs: [windows, linux, linux-qemu, macos, aggregate]
-    if: always()
+    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    if: '!cancelled()'
 
     runs-on: ubuntu-latest
     steps:
@@ -421,7 +432,7 @@ jobs:
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
     if: >-
-      always()
+      !cancelled()
       && !github.event.repository.fork
       && (
         github.ref_name == 'main'
@@ -474,7 +485,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v23.7.0
+        uses: conda/actions/canary-release@v23.10.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -484,3 +495,4 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          conda-build-arguments: --no-test  # skip tests for initial Python 3.12 builds

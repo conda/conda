@@ -1,10 +1,6 @@
-=============
-Conda plugins
-=============
-
-.. contents::
-   :local:
-   :depth: 2
+=======
+Plugins
+=======
 
 .. _concept-plugins:
 

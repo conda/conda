@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from . import archspec, cuda, freebsd, linux, osx, windows
+from . import archspec, conda, cuda, freebsd, linux, osx, windows
 
 #: The list of virtual package plugins for easier registration with pluggy
-plugins = [archspec, cuda, freebsd, linux, osx, windows]
+plugins = [archspec, conda, cuda, freebsd, linux, osx, windows]

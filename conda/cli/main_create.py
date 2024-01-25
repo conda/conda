@@ -4,23 +4,98 @@
 
 Creates new conda environments with the specified packages.
 """
+from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
 from os.path import isdir
 
-from ..base.context import context
-from ..common.path import paths_equal
-from ..exceptions import CondaValueError
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.test import is_conda_environment
 from ..notices import notices
-from .common import confirm_yn
-from .install import install
 
 log = getLogger(__name__)
 
 
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from ..common.constants import NULL
+    from .actions import NullCountAction
+    from .helpers import (
+        add_parser_create_install_update,
+        add_parser_default_packages,
+        add_parser_platform,
+        add_parser_solver,
+    )
+
+    summary = "Create a new conda environment from a list of specified packages. "
+    description = dals(
+        f"""
+        {summary}
+
+        To use the newly-created environment, use 'conda activate envname'.
+        This command requires either the -n NAME or -p PREFIX option.
+        """
+    )
+    epilog = dals(
+        """
+        Examples:
+
+        Create an environment containing the package 'sqlite'::
+
+            conda create -n myenv sqlite
+
+        Create an environment (env2) as a clone of an existing environment (env1)::
+
+            conda create -n env2 --clone path/to/file/env1
+
+        """
+    )
+    p = sub_parsers.add_parser(
+        "create",
+        help=summary,
+        description=description,
+        epilog=epilog,
+        **kwargs,
+    )
+    p.add_argument(
+        "--clone",
+        action="store",
+        help="Create a new environment as a copy of an existing local environment.",
+        metavar="ENV",
+    )
+    solver_mode_options, _, channel_options = add_parser_create_install_update(
+        p, prefix_required=True
+    )
+    add_parser_default_packages(solver_mode_options)
+    add_parser_platform(channel_options)
+    add_parser_solver(solver_mode_options)
+    p.add_argument(
+        "-m",
+        "--mkdir",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--dev",
+        action=NullCountAction,
+        help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
+        "This is mainly for use during tests where we test new conda sources "
+        "against old Python versions.",
+        dest="dev",
+        default=NULL,
+    )
+    p.set_defaults(func="conda.cli.main_create.execute")
+
+    return p
+
+
 @notices
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..base.context import context
+    from ..common.path import paths_equal
+    from ..exceptions import CondaValueError
+    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.test import is_conda_environment
+    from .common import confirm_yn
+    from .install import install
+
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
@@ -47,4 +122,4 @@ def execute(args, parser):
             dry_run=False,
         )
 
-    install(args, parser, "create")
+    return install(args, parser, "create")

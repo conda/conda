@@ -1,19 +1,25 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 import os
-from contextlib import contextmanager
+import re
+import sys
+from contextlib import contextmanager, nullcontext
 from textwrap import dedent
 
 import pytest
+from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 from ruamel.yaml.scanner import ScannerError
 
+from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
-from conda.common.configuration import ConfigurationLoadError
+from conda.common.configuration import ConfigurationLoadError, CustomValidationError
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 # use condarc from source tree to run these tests against
 
@@ -710,3 +716,194 @@ def test_custom_multichannels_prepend_duplicate(conda_cli: CondaCLIFixture):
             == "Warning: 'bar' already in 'custom_multichannels.foo' list, moving to the top"
         )
         assert _read_test_condarc(rc) == custom_multichannels_expected
+
+
+def test_conda_config_describe(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    RE_PARAMETERS = (
+        re.compile(rf"^# # {name} \(", flags=re.MULTILINE)
+        for category, names in context.category_map.items()
+        if category not in ("CLI-only", "Hidden and Undocumented")
+        for name in names
+    )
+
+    with tmp_env() as prefix:
+        condarc = prefix / "condarc"
+
+        stdout, stderr, _ = conda_cli("config", f"--file={condarc}", "--describe")
+        assert not stderr
+
+        for pattern in RE_PARAMETERS:
+            assert pattern.search(stdout)
+
+        stdout, stderr, _ = conda_cli(
+            "config", f"--file={condarc}", "--describe", "--json"
+        )
+        assert not stderr
+        json_obj = json.loads(stdout.strip())
+        assert len(json_obj) >= 55
+        assert "description" in json_obj[0]
+
+        monkeypatch.setenv("CONDA_QUIET", "yes")
+        reset_context()
+        assert context.quiet
+
+        stdout, stderr, _ = conda_cli("config", f"--file={condarc}", "--show-sources")
+        assert not stderr
+        assert "envvars" in stdout.strip()
+
+        stdout, stderr, _ = conda_cli(
+            "config", f"--file={condarc}", "--show-sources", "--json"
+        )
+        assert not stderr
+        json_obj = json.loads(stdout.strip())
+        assert json_obj.get("envvars", {}).get("quiet") is True
+        assert json_obj.get("cmd_line", {}).get("json") is True
+
+        monkeypatch.delenv("CONDA_QUIET")
+        reset_context()
+        assert not context.quiet
+
+        conda_cli("config", f"--file={condarc}", "--set", "changeps1", "false")
+        with pytest.raises(CondaError):
+            conda_cli("config", f"--file={condarc}", "--write-default")
+
+        rm_rf(prefix / "condarc")
+        conda_cli("config", f"--file={condarc}", "--write-default")
+
+        data = (prefix / "condarc").read_text()
+        for pattern in RE_PARAMETERS:
+            assert pattern.search(data)
+
+        stdout, stderr, _ = conda_cli(
+            "config", f"--file={condarc}", "--describe", "--json"
+        )
+        assert not stderr
+        json_obj = json.loads(stdout.strip())
+        assert len(json_obj) >= 42
+        assert "description" in json_obj[0]
+
+        monkeypatch.setenv("CONDA_QUIET", "yes")
+        reset_context()
+        assert context.quiet
+
+        stdout, stderr, _ = conda_cli("config", f"--file={condarc}", "--show-sources")
+        assert not stderr
+        assert "envvars" in stdout.strip()
+
+        stdout, stderr, _ = conda_cli(
+            "config", f"--file={condarc}", "--show-sources", "--json"
+        )
+        assert not stderr
+        json_obj = json.loads(stdout.strip())
+        assert json_obj.get("envvars", {}).get("quiet") is True
+        assert json_obj.get("cmd_line", {}).get("json") is True
+
+
+def test_conda_config_validate(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        mocker.patch(
+            "conda.base.context.determine_target_prefix",
+            return_value=prefix,
+        )
+        condarc = prefix / "condarc"
+
+        # test that we can set a valid value
+        conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "no")
+
+        # test that we can validate a valid config
+        stdout, stderr, err = conda_cli("config", "--validate")
+        assert not stdout
+        assert not stderr
+        assert not err
+
+        # set invalid values
+        conda_cli(
+            "config",
+            f"--file={condarc}",
+            *("--set", "ssl_verify", "/path/doesnt/exist"),
+            *("--set", "default_python", "anaconda"),
+        )
+        reset_context()
+
+        # test that we validate individual values
+        with pytest.raises(
+            CustomValidationError,
+            match=(
+                default_python_error := (
+                    r"default_python value 'anaconda' not of the form "
+                    r"'\[23\]\.\[0-9\]\[0-9\]\?'"
+                )
+            ),
+        ):
+            assert context.default_python == "anaconda"
+        with pytest.raises(
+            CustomValidationError,
+            match=(
+                ssl_verify_error := (
+                    "must be a boolean, a path to a certificate bundle file, a path to a "
+                    "directory containing certificates of trusted CAs, or 'truststore' to use "
+                    "the operating system certificate store."
+                )
+            ),
+        ):
+            assert context.ssl_verify == "/path/doesnt/exist"
+
+        # test that validating an invalid config fails
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("config", "--validate")
+
+        # test that the error message contains both validation errors
+        assert len(exc.value.errors) == 2
+        assert exc.match(default_python_error)
+        assert exc.match(ssl_verify_error)
+
+
+def test_conda_config_validate_sslverify_truststore(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        mocker.patch(
+            "conda.base.context.determine_target_prefix",
+            return_value=prefix,
+        )
+        condarc = prefix / "condarc"
+
+        # test that we can set ssl_verify
+        conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "truststore")
+
+        # test that truststore is valid for Python 3.10+
+        with (
+            pytest.raises(
+                CustomValidationError,
+                match=(
+                    truststore_error := (
+                        "`ssl_verify: truststore` is only supported on "
+                        "Python 3.10 or later"
+                    )
+                ),
+            )
+            if sys.version_info < (3, 10)
+            else nullcontext()
+        ):
+            assert context.ssl_verify == "truststore"
+
+        # test that truststore is a valid value for Python 3.10+
+        with (
+            pytest.raises(CustomValidationError, match=truststore_error)
+            if sys.version_info < (3, 10)
+            else nullcontext()
+        ):
+            stdout, stderr, err = conda_cli("config", "--validate")
+            assert not stdout
+            assert not stderr
+            assert not err

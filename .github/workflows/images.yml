@@ -40,8 +40,6 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}-ci
-  # to pin MinIO version, see tests.yml for counterpart
-  # MINIO_RELEASE: 'archive/minio.RELEASE.2023-03-13T19-46-17Z'
 
 jobs:
   linux:
@@ -53,11 +51,11 @@ jobs:
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
-        python: ['3.8', '3.9', '3.10', '3.11']
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
         channel: [defaults]
         platforms: ['linux/amd64,linux/arm64,linux/ppc64le,linux/s390x']
         include:
-          - python: '3.11'  # same as miniforge
+          - python: '3.12'
             channel: conda-forge
             platforms: 'linux/amd64,linux/arm64,linux/ppc64le'
     steps:

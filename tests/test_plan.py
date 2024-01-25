@@ -1315,7 +1315,7 @@ def test_execute_plan(monkeypatch: MonkeyPatch):
 
 def generate_mocked_resolve(pkgs, install=None):
     mock_package = namedtuple(
-        "IndexRecord", ["preferred_env", "name", "schannel", "version", "fn"]
+        "PacakgeRecord", ["preferred_env", "name", "schannel", "version", "fn"]
     )
     mock_resolve = namedtuple(
         "Resolve",

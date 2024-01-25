@@ -9,7 +9,6 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from tlz import accumulate, concat
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
@@ -17,7 +16,6 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    explode_directories,
     get_bin_directory_short_path,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -37,8 +35,10 @@ from conda.gateways.disk.link import islink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
+from conda.models.channel import Channel
 from conda.models.enums import LinkType, NoarchType, PathType
-from conda.models.records import PathDataV1
+from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
+from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
 from conda.testing import PathFactoryFixture
 
 log = getLogger(__name__)
@@ -433,22 +433,84 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
     assert not lexists(axn.target_full_path)
 
 
-def test_explode_directories():
-    def old_explode_directories(child_directories, already_split=False):
-        # get all directories including parents
-        # use already_split=True for the result of get_all_directories()
-        maybe_split = lambda x: x if already_split else x.split("/")
-        return set(
-            concat(
-                accumulate(join, maybe_split(directory))
-                for directory in child_directories
-                if directory
-            )
-        )
+def test_create_file_link_actions(tmp_path):
+    """
+    Test that create_file_link_actions can pull "noarch: python" from a package,
+    even if noarch was omitted from repodata.json. (Issue #8311)
+    """
+    pkgs = tmp_path / "pkgs"
+    pkgs_file = pkgs / "test_foo-0-0.tar.bz2"
 
-    old_version = old_explode_directories(
-        (os.path.split(path) for path in sys.path), already_split=True
+    # see also test_package_info.py
+    index_json_record = PackageRecord(
+        build=0,
+        build_number=0,
+        name="test_foo",
+        version=0,
+        channel="defaults",
+        subdir=context.subdir,
+        fn=pkgs_file.name,
+        md5="0123456789",
     )
-    new_version = explode_directories(os.path.split(path) for path in sys.path)
+    icondata = "icondata"
+    package_metadata = PackageMetadata(
+        package_metadata_version=1,
+        noarch=Noarch(type="python", entry_points=["test:foo"]),
+    )
 
-    assert new_version == old_version
+    # site-packages should be renamed to Python's site packages (given as
+    # target_site_packages_short_path) whie test/path/2 should be left alone.
+    paths = [
+        PathData(_path="site-packages/1", path_type=PathType.hardlink),
+        PathData(_path="test/path/2", path_type=PathType.hardlink),
+    ]
+    paths_data = PathsData(paths_version=0, paths=paths)
+
+    package_info = PackageInfo(
+        extracted_package_dir=str(pkgs),
+        package_tarball_full_path=str(pkgs),
+        channel=Channel("defaults"),
+        repodata_record=index_json_record,
+        url="https://some.com/place/path.tar.bz2",
+        index_json_record=index_json_record,
+        icondata=icondata,
+        package_metadata=package_metadata,
+        paths_data=paths_data,
+    )
+
+    TARGET_SITE_PACKAGES = "target-site-packages-short-path"
+
+    required_quad = (
+        {
+            "target_site_packages_short_path": TARGET_SITE_PACKAGES
+        },  # transaction context
+        package_info,
+        tmp_path / "target",
+        "link-type",
+    )
+
+    file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
+
+    assert TARGET_SITE_PACKAGES in file_link_actions[0].target_short_path
+    assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path
+
+    # Try without noarch:
+
+    package_info = PackageInfo.from_objects(
+        package_info,
+        package_metadata=PackageMetadata(package_metadata_version=1, noarch=None),
+    )
+
+    required_quad = (
+        {
+            "target_site_packages_short_path": TARGET_SITE_PACKAGES
+        },  # transaction context
+        package_info,
+        tmp_path / "target",
+        "link-type",
+    )
+
+    file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
+
+    assert TARGET_SITE_PACKAGES not in file_link_actions[0].target_short_path
+    assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path

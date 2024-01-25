@@ -4,7 +4,6 @@ from logging import getLogger
 from os.path import join
 from pathlib import Path
 from time import sleep
-from unittest.mock import patch
 
 import pytest
 
@@ -19,7 +18,12 @@ from conda.core.subdir_data import (
 )
 from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
-from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepodataCache,
+    RepodataFetch,
+    get_repo_interface,
+)
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -221,7 +225,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
-def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
+def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
 
@@ -231,9 +235,19 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     sleep(3)
 
+    RepoInterface = get_repo_interface()
+
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ):
+        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+        if hasattr(RepoInterface, "repodata_parsed"):
+            fetcher = mocker.patch.object(
+                RepoInterface, "repodata_parsed", return_value={}
+            )
+
+        SubdirData(channel).cache_path_json.touch()
+
         sd_a = SubdirData(channel)
         tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -244,13 +258,22 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
         assert fetcher.call_count == 1
 
 
-def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
+def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
 
+    RepoInterface = get_repo_interface()
+
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ):
+        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+        if hasattr(RepoInterface, "repodata_parsed"):
+            fetcher = mocker.patch.object(
+                RepoInterface, "repodata_parsed", return_value={}
+            )
+        SubdirData(channel).cache_path_json.touch()
+
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
