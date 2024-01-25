@@ -9,7 +9,7 @@
 * Add a new `post-solves` plugin hook. (#13053)
 * Add support for Python 3.12. (#13072)
 * Check `repodata.json.zst` for faster repodata downloads. (#13256)
-* Add `--skip-flexible-search` option to skip flexible search. (#13315)
+* Add `--skip-flexible-search` option in `conda search` to skip flexible search. (#13315)
 * Add type hinting for `VersionOrder` class. (#13380)
 * Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
 * Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
@@ -21,7 +21,7 @@
 * Create the `~/.conda` directory before trying to write to the `environments.txt` file. (#13338)
 * Ensure `PackageRecord.timestamp` is dumped in milliseconds. (#13483)
 * Fix error when setting a non-default repodata filename via `CONDA_REPODATA_FNS`. (#13490)
-* Fix the config file location where the integrated Anaconda client gateway loads user configuration from. This is a regression introduced in conda 23.11.0 when the `platformdirs` library was adopted. (#13517)
+* Fix the config file location where the integrated Anaconda client gateway loads user configuration from. This is a regression introduced in conda 23.11.0 when the `platformdirs` library was adopted. (#13517 via #13520)
 * Interpret missing `Cache-Control` header as `max-age=0` instead of exception. (#13522)
 
 ### Deprecations
