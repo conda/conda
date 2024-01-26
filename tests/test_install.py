@@ -237,73 +237,59 @@ def test_install_freezes_env_by_default(
             "--yes",
         )
 
-        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
-        pkgs_after_install = json_loads(stdout)
-
+        PrefixData._cache_.clear()
+        prefix_data = PrefixData(prefix)
         for pkg in pkgs:
-            for pkg_after in pkgs_after_install:
-                if pkg["name"] == pkg_after["name"]:
-                    assert pkg["version"] == pkg_after["version"]
+            assert prefix_data.get(pkg["name"]).version == pkg["version"]
 
 
 def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    try:
-        with tmp_env() as prefix:
-            file = prefix / "tempfile.txt"
-            file.write_text("test")
-            dir = prefix / "conda-meta"
-            assert isdir(dir)
-            assert exists(file)
-            with pytest.raises(DirectoryNotACondaEnvironmentError):
-                stdout, _, _ = conda_cli(
-                    "install", f"--prefix={dir}", "python", "--mkdir", "--yes"
-                )
-                assert (
-                    "The target directory exists, but it is not a conda environment."
-                    in stdout
-                )
-
-            conda_cli("create", f"--prefix={dir}", "--yes")
+    with tmp_env() as prefix:
+        file = prefix / "tempfile.txt"
+        file.write_text("test")
+        dir = prefix / "conda-meta"
+        assert isdir(dir)
+        assert exists(file)
+        with pytest.raises(
+            DirectoryNotACondaEnvironmentError,
+            match="The target directory exists, but it is not a conda environment.",
+        ):
             conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
-            assert package_is_installed(dir, "python")
 
-            rm_rf(prefix, clean_empty_parents=True)
-            assert path_is_clean(dir)
+        conda_cli("create", f"--prefix={dir}", "--yes")
+        conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
+        assert package_is_installed(dir, "python")
 
-            # regression test for #4849
-            conda_cli(
-                "install",
-                f"--prefix={dir}",
-                "python-dateutil",
-                "python",
-                "--mkdir",
-                "--yes",
-            )
-            assert package_is_installed(dir, "python")
-            assert package_is_installed(dir, "python-dateutil")
-
-    finally:
         rm_rf(prefix, clean_empty_parents=True)
+        assert path_is_clean(dir)
+
+        # regression test for #4849
+        conda_cli(
+            "install",
+            f"--prefix={dir}",
+            "python-dateutil",
+            "python",
+            "--mkdir",
+            "--yes",
+        )
+        assert package_is_installed(dir, "python")
+        assert package_is_installed(dir, "python-dateutil")
 
 
 def test_conda_pip_interop_dependency_satisfied_by_pip(
     monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
     with tmp_env("python=3.10", "pip") as prefix:
         assert package_is_installed(prefix, "python=3.10")
         assert package_is_installed(prefix, "pip")
-        monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
-        reset_context()
-        assert context.pip_interop_enabled
         conda_cli(
             "run",
             f"--prefix={prefix}",
             "--dev",
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "itsdangerous",
+            *("python", "-m", "pip", "install", "itsdangerous"),
         )
 
         PrefixData._cache_.clear()
@@ -325,13 +311,7 @@ def test_conda_pip_interop_dependency_satisfied_by_pip(
         )
 
     with pytest.raises(PackagesNotFoundError):
-        output, _, _ = conda_cli(
-            "search",
-            "not-a-real-package",
-            "--json",
-        )
-        json_obj = json_loads(output.strip())
-        assert not len(json_obj.keys()) == 0
+        conda_cli("search", "not-a-real-package", "--json")
 
 
 def test_install_from_extracted_package(

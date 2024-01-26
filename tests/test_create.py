@@ -1622,12 +1622,8 @@ def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFi
 
 def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
-        with pytest.raises(PackagesNotFoundError) as exc:
-            _, error, _ = conda_cli(
-                "install", f"--prefix={prefix}", "not-a-real-package", "--yes"
-            )
-            assert "not-a-real-package" in error
-        assert "not-a-real-package" in str(exc.value)
+        with pytest.raises(PackagesNotFoundError, match="not-a-real-package"):
+            conda_cli("install", f"--prefix={prefix}", "not-a-real-package", "--yes")
 
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
