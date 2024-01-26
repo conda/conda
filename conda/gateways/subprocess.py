@@ -96,6 +96,7 @@ def subprocess_call(
         stderr=pipe,
         env=env,
         text=True,  # open streams in text mode so that we don't have to decode
+        errors="replace",
     )
     ACTIVE_SUBPROCESSES.add(process)
 
