@@ -225,6 +225,7 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     channel_customization_options.add_argument(
         "--no-repodata-zst",
         action="store_true",
+        default=NULL,
         help="Do not check for repodata.json.zst.",
     )
     return channel_customization_options

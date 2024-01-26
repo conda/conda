@@ -416,7 +416,7 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
-    no_repodata_zst = ParameterLoader(PrimitiveParameter(False))
+    no_repodata_zst = ParameterLoader(PrimitiveParameter(False), aliases=("no_use_repodata_zst",))
 
     ####################################################
     #               Solver Configuration               #
