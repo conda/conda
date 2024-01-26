@@ -345,6 +345,7 @@ Authors are sorted alphabetically.
 * Saad Parwaiz
 * Sachin G Biradar
 * Sam Davis
+* Sam Haese
 * Sam Nicholls
 * Samson Yeung
 * Samuel Debionne
@@ -356,6 +357,7 @@ Authors are sorted alphabetically.
 * Saranya Mahalingam
 * Satyam Vyas
 * Sauco Cano Navarro
+* Schuyler Martin
 * Scott Evtuch
 * Scruel Tao
 * Sean Ross-Ross
@@ -442,6 +444,7 @@ Authors are sorted alphabetically.
 * ovz
 * peter1000
 * pre-commit CI
+* samhaese
 * saraneem
 * shadow_walker
 * ugurthemaster
