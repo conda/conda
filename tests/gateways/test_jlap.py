@@ -6,6 +6,7 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 import datetime
 import json
 import time
+import warnings
 from pathlib import Path
 from socket import socket
 from unittest.mock import Mock
@@ -14,6 +15,7 @@ import jsonpatch
 import pytest
 import requests
 import zstandard
+from pytest import MonkeyPatch
 
 import conda.gateways.repodata
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -131,9 +133,16 @@ def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
 @pytest.mark.parametrize("verify_ssl", [True, False])
 @pytest.mark.benchmark
 def test_jlap_fetch_ssl(
-    package_server_ssl: socket, tmp_path: Path, monkeypatch, verify_ssl: bool
+    package_server_ssl: socket,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    verify_ssl: bool,
 ):
     """Check that JlapRepoInterface doesn't raise exceptions."""
+    monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl))
+    reset_context()
+    assert context.ssl_verify is verify_ssl
+
     host, port = package_server_ssl.getsockname()
     base = f"https://{host}:{port}/test"
 
@@ -157,16 +166,15 @@ def test_jlap_fetch_ssl(
         pass
 
     state = {}
-    with pytest.raises(expected_exception), pytest.warns() as record:
-        monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl).lower())
-        reset_context()
+    with pytest.raises(expected_exception), warnings.catch_warnings():
+        # warnings are disabled internally otherwise we would see InsecureRequestWarning
+        # detect accidental warnings by treating them as errors
+        warnings.simplefilter("error")
+
         repo.repodata(state)
 
     # Clear lru_cache from the `get_session` function
     get_session.cache_clear()
-
-    # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
-    assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"
 
     # clear session cache to avoid leftover wrong-ssl-verify Session()
     try:
