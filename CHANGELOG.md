@@ -21,7 +21,8 @@ command line interface related to environment management. (#13168)
 * Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
 * Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
 * Add a Y/N prompt warning users that `conda env remove` and `conda remove --all` deletes not only the conda packages but the entirety of the specified environment. (#13440)
-* Add `--no-repodata-zst` flag to skip `repodata.json.zst` check. Useful if the repo returns unparseable `repodata.json.zst` instead of correct data or 404. (#13504)
+* Add `--use-repodata-zst/--no-use-repodata-zst` flag to control `repodata.json.zst` check; corresponding `use_repodata_zst: true/false` for `.condarc`. Default is to check for `repodata.json.zst`. Disable if remote returns unparseable `repodata.json.zst` instead of correct data or 404. (#13504)
+
 
 ### Bug fixes
 
