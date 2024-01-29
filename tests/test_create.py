@@ -5,7 +5,6 @@ import os
 import re
 import sys
 from datetime import datetime
-from glob import glob
 from importlib.metadata import version as metadata_version
 from itertools import zip_longest
 from json import loads as json_loads
@@ -39,7 +38,7 @@ from conda.base.constants import (
     SafetyChecks,
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import ensure_text_type, on_linux, on_mac, on_win
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
@@ -1688,7 +1687,9 @@ def test_conda_pip_interop_dependency_satisfied_by_pip():
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="metadata is wrong; give python2.7"
 )
-def test_conda_pip_interop_pip_clobbers_conda():
+def test_conda_pip_interop_pip_clobbers_conda(
+    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     # 1. conda install old six
     # 2. pip install -U six
     # 3. conda list shows new six and deletes old conda record
@@ -1697,54 +1698,48 @@ def test_conda_pip_interop_pip_clobbers_conda():
     #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
     #     context.load_verify_locations(ca_certs, ca_cert_dir)
     #   TypeError: cafile should be a valid filesystem path
-    with make_temp_env(
-        "-c",
-        "https://repo.anaconda.com/pkgs/free",
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
+
+    with tmp_env(
+        "--channel=https://repo.anaconda.com/pkgs/free",
         "six=1.9",
         "pip=9.0.3",
         "python=3.5",
-        use_restricted_unicode=on_win,
     ) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
         assert package_is_installed(prefix, "six=1.9.0")
+        assert package_is_installed(prefix, "pip=9.0.3")
         assert package_is_installed(prefix, "python=3.5")
 
-        # On Windows, it's more than prefix.lower(), we get differently shortened paths too.
-        # If only we could use pathlib.
-        if not on_win:
-            output, _, _ = run_command(Commands.RUN, prefix, which_or_where, "python")
-            assert prefix.lower() in output.lower(), (
-                f"We should be running python in {prefix}\n"
-                f"We are running {output}\n"
-                "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n"
-                "for a likely place to add more fixes"
-            )
-        output, _, _ = run_command(
-            Commands.RUN, prefix, "python", "-m", "pip", "freeze"
+        stdout, _, _ = conda_cli("run", f"--prefix={prefix}", which_or_where, "python")
+        assert (prefix / PYTHON_BINARY).samefile(stdout.strip())
+
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            "-m",
+            "pip",
+            "list",
+            "--format=freeze",
         )
-        pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
-        assert "six==1.9.0" in pkgs
+        assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
 
-        output, _, _ = run_command(
-            Commands.RUN,
-            prefix,
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "-U",
-            "six==1.10",
-        )
-        assert "Successfully installed six-1.10.0" in ensure_text_type(output)
         PrefixData._cache_.clear()
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
+        )
+        assert "Successfully installed six-1.10.0" in stdout
+
+        stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--json")
         assert not stderr
-        json_obj = json.loads(stdout)
-        six_info = next(info for info in json_obj if info["name"] == "six")
-        assert six_info == {
+        assert next(info for info in json.loads(stdout) if info["name"] == "six") == {
             "base_url": "https://conda.anaconda.org/pypi",
             "build_number": 0,
             "build_string": "pypi_0",
@@ -1755,30 +1750,29 @@ def test_conda_pip_interop_pip_clobbers_conda():
             "version": "1.10.0",
         }
         assert package_is_installed(prefix, "six=1.10.0")
-        output, err, _ = run_command(
-            Commands.RUN, prefix, "python", "-m", "pip", "freeze"
+        stdout, stderr, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "list", "--format=freeze"),
         )
-        pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
-        assert "six==1.10.0" in pkgs
+        assert any(pkg.strip() == "six==1.10.0" for pkg in stdout.splitlines())
 
-        six_record = next(PrefixData(prefix).query("six"))
-        print(json_dump(six_record))
-        assert json_loads(json_dump(six_record)) == {
+        assert json.loads(json_dump(PrefixData(prefix).get("six"))) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
             "constrains": [],
             "depends": ["python 3.5.*"],
             "files": [
-                sp_dir + "/" + "__pycache__/six.cpython-35.pyc",
-                sp_dir + "/" + "six-1.10.0.dist-info/DESCRIPTION.rst",
-                sp_dir + "/" + "six-1.10.0.dist-info/INSTALLER",
-                sp_dir + "/" + "six-1.10.0.dist-info/METADATA",
-                sp_dir + "/" + "six-1.10.0.dist-info/RECORD",
-                sp_dir + "/" + "six-1.10.0.dist-info/WHEEL",
-                sp_dir + "/" + "six-1.10.0.dist-info/metadata.json",
-                sp_dir + "/" + "six-1.10.0.dist-info/top_level.txt",
-                sp_dir + "/" + "six.py",
+                sp_dir + "/__pycache__/six.cpython-35.pyc",
+                sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
+                sp_dir + "/six-1.10.0.dist-info/INSTALLER",
+                sp_dir + "/six-1.10.0.dist-info/METADATA",
+                sp_dir + "/six-1.10.0.dist-info/RECORD",
+                sp_dir + "/six-1.10.0.dist-info/WHEEL",
+                sp_dir + "/six-1.10.0.dist-info/metadata.json",
+                sp_dir + "/six-1.10.0.dist-info/top_level.txt",
+                sp_dir + "/six.py",
             ],
             "fn": "six-1.10.0.dist-info",
             "name": "six",
@@ -1786,55 +1780,55 @@ def test_conda_pip_interop_pip_clobbers_conda():
             "paths_data": {
                 "paths": [
                     {
-                        "_path": sp_dir + "/" + "__pycache__/six.cpython-35.pyc",
+                        "_path": sp_dir + "/__pycache__/six.cpython-35.pyc",
                         "path_type": "hardlink",
                         "sha256": None,
                         "size_in_bytes": None,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/DESCRIPTION.rst",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
                         "path_type": "hardlink",
                         "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
                         "size_in_bytes": 774,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/INSTALLER",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/INSTALLER",
                         "path_type": "hardlink",
                         "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
                         "size_in_bytes": 4,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/METADATA",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/METADATA",
                         "path_type": "hardlink",
                         "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
                         "size_in_bytes": 1283,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/RECORD",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/RECORD",
                         "path_type": "hardlink",
                         "sha256": None,
                         "size_in_bytes": None,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/WHEEL",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/WHEEL",
                         "path_type": "hardlink",
                         "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
                         "size_in_bytes": 110,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/metadata.json",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/metadata.json",
                         "path_type": "hardlink",
                         "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
                         "size_in_bytes": 658,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/top_level.txt",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/top_level.txt",
                         "path_type": "hardlink",
                         "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
                         "size_in_bytes": 4,
                     },
                     {
-                        "_path": sp_dir + "/" + "six.py",
+                        "_path": sp_dir + "/six.py",
                         "path_type": "hardlink",
                         "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
                         "size_in_bytes": 30098,
@@ -1846,47 +1840,51 @@ def test_conda_pip_interop_pip_clobbers_conda():
             "version": "1.10.0",
         }
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "six", "--satisfied-skip-solve"
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "six",
+            "--satisfied-skip-solve",
+            "--yes",
         )
         assert not stderr
         assert "All requested packages already installed." in stdout
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "six", "--repodata-fn", "repodata.json"
+        stdout, stderr, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "six",
+            "--repodata-fn=repodata.json",
+            "--yes",
         )
         assert not stderr
         assert package_is_installed(prefix, "six>=1.11")
-        output, err, _ = run_command(
-            Commands.RUN, prefix, "python", "-m", "pip", "freeze"
+        stdout, stderr, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "list", "--format=freeze"),
         )
-        pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
-        six_record = next(PrefixData(prefix).query("six"))
-        assert "six==%s" % six_record.version in pkgs
-
-        assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
-
-        output, err, _ = run_command(
-            Commands.RUN,
-            prefix,
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "-U",
-            "six==1.10",
+        assert any(
+            pkg.strip() == f"six=={PrefixData(prefix).get('six').version}"
+            for pkg in stdout.splitlines()
         )
-        print(output)
-        assert "Successfully installed six-1.10.0" in ensure_text_type(output)
+        assert len(list((prefix / "conda-meta").glob("six-*.json"))) == 1
+
         PrefixData._cache_.clear()
+        stdout, stderr, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
+        )
+        assert "Successfully installed six-1.10.0" in stdout
         assert package_is_installed(prefix, "six=1.10.0")
 
-        stdout, stderr, _ = run_command(Commands.REMOVE, prefix, "six")
+        stdout, stderr, _ = conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
         assert not stderr
         assert "six-1.10.0-pypi_0" in stdout
         assert not package_is_installed(prefix, "six")
 
-        assert not glob(join(prefix, sp_dir, "six*"))
+        assert not list((prefix / sp_dir).glob("six*"))
 
 
 def test_conda_pip_interop_conda_editable_package(
