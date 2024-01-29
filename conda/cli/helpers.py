@@ -15,7 +15,7 @@ from argparse import (
 
 try:
     from argparse import BooleanOptionalAction
-except:
+except ImportError:
     # Python < 3.9
     from argparse import Action
     class BooleanOptionalAction(Action):
