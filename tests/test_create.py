@@ -18,7 +18,7 @@ from os.path import (
 )
 from pathlib import Path
 from shutil import copyfile, rmtree
-from subprocess import PIPE, Popen, check_call, check_output
+from subprocess import check_call, check_output
 from textwrap import dedent
 from typing import Literal
 from unittest.mock import patch
@@ -1688,7 +1688,9 @@ def test_conda_pip_interop_dependency_satisfied_by_pip():
     context.subdir == "win-32", reason="metadata is wrong; give python2.7"
 )
 def test_conda_pip_interop_pip_clobbers_conda(
-    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
 ):
     # 1. conda install old six
     # 2. pip install -U six
@@ -2016,56 +2018,49 @@ def test_conda_pip_interop_conda_editable_package(
         assert unlink_dists[0]["channel"] == "pypi"
 
 
-def test_conda_pip_interop_compatible_release_operator():
+def test_conda_pip_interop_compatible_release_operator(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     # Regression test for #7776
     # important to start the env with six 1.9.  That version forces an upgrade later in the test
-    with make_temp_env(
-        "-c",
-        "https://repo.anaconda.com/pkgs/free",
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
+
+    with tmp_env(
+        "--channel=https://repo.anaconda.com/pkgs/free",
         "pip=10",
         "six=1.9",
         "appdirs",
-        use_restricted_unicode=on_win,
     ) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, "pip=10")
         assert package_is_installed(prefix, "six=1.9")
         assert package_is_installed(prefix, "appdirs>=1.4.3")
 
-        python_binary = join(prefix, PYTHON_BINARY)
-        p = Popen(
-            [python_binary, "-m", "pip", "install", "fs==2.1.0"],
-            stdout=PIPE,
-            stderr=PIPE,
-            cwd=prefix,
-            shell=False,
+        PrefixData._cache_.clear()
+        _, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "fs==2.1.0"),
         )
-        stdout, stderr = p.communicate()
-        rc = p.returncode
-        assert int(rc) != 0
-        stderr = (
-            stderr.decode("utf-8", errors="replace")
-            if hasattr(stderr, "decode")
-            else str(stderr)
-        )
+        assert err
         assert "Cannot uninstall" in stderr
 
-        run_command(Commands.REMOVE, prefix, "six")
+        conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
         assert not package_is_installed(prefix, "six")
 
-        output = check_output(
-            [python_binary, "-m", "pip", "install", "fs==2.1.0"],
-            cwd=prefix,
-            shell=False,
-        )
-        print(output)
         PrefixData._cache_.clear()
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "fs==2.1.0"),
+        )
         assert package_is_installed(prefix, "fs==2.1.0")
-        # six_record = next(PrefixData(prefix).query("six"))
-        # print(json_dump(six_record.dump()))
         assert package_is_installed(prefix, "six~=1.10")
 
-        stdout, stderr, _ = run_command(Commands.LIST, prefix)
+        stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
         assert not stderr
         assert (
             "fs                        2.1.0                    pypi_0    pypi"
@@ -2073,11 +2068,10 @@ def test_conda_pip_interop_compatible_release_operator():
         )
 
         with pytest.raises(DryRunExit):
-            run_command(
-                Commands.INSTALL,
-                prefix,
-                "-c",
-                "https://repo.anaconda.com/pkgs/free",
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                "--channel=https://repo.anaconda.com/pkgs/free",
                 "agate=1.6",
                 "--dry-run",
             )
