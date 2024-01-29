@@ -4,8 +4,8 @@
 
 ### Bug fixes
 
-* Print traceback on KeyboardInterrupt instead of raising another
-  AttributeError exception. (#13531)
+* Print traceback on `KeyboardInterrupt` instead of raising another
+  `AttributeError` exception. (#13531)
 
 ### Deprecations
 
