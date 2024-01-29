@@ -268,9 +268,9 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     )
 
     channel_customization_options.add_argument(
-        "--use-repodata-zst",
+        "--repodata-use-zst",
         action=BooleanOptionalAction,
-        dest="use_repodata_zst",
+        dest="repodata_use_zst",
         default=NULL,
         help="Check for/do not check for repodata.json.zst. Enabled by default.",
     )
