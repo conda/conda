@@ -13,7 +13,6 @@ from os.path import (
     basename,
     exists,
     isdir,
-    isfile,
     join,
 )
 from pathlib import Path
