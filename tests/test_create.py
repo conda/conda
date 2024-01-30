@@ -276,14 +276,17 @@ def test_safety_checks_enabled(
             )
 
         # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
-        assert dals(
-            """
+        assert (
+            dals(
+                """
             The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
             has an incorrect size.
               reported size: 32 bytes
               actual size: 16 bytes
             """
-        ) in str(exc.value)
+            )
+            in str(exc.value)
+        )
         assert "has a sha256 mismatch." in str(exc.value)
         assert not package_is_installed(prefix, "spiffy-test-app=0.5")
 
@@ -2567,17 +2570,14 @@ def test_remove_empty_env(tmp_env):
         run_command(Commands.REMOVE, prefix, "--all")
 
 
-def test_remove_ignore_nonenv():
-    with tempdir() as test_root:
-        prefix = join(test_root, "not-an-env")
-        filename = join(prefix, "file.dat")
+def test_remove_ignore_nonenv(tmp_path, conda_cli):
+    prefix = tmp_path / "not-an-env"
+    filename = prefix / "file.dat"
+    prefix.mkdir()
+    filename.touch()
 
-        os.mkdir(prefix)
-        with open(filename, "wb"):
-            pass
+    with pytest.raises(DirectoryNotACondaEnvironmentError):
+        conda_cli("remove", "-p", str(prefix), "--all")
 
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            run_command(Commands.REMOVE, prefix, "--all")
-
-        assert exists(filename)
-        assert exists(prefix)
+    assert filename.exists()
+    assert prefix.exists()
