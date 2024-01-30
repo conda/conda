@@ -2539,8 +2539,8 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path):
     context.subdir != "linux-64",
     reason="lazy; package constraint here only valid on linux-64",
 )
-def test_neutering_of_historic_specs(conda_cli):
-    with make_temp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
+def test_neutering_of_historic_specs(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", "-p", prefix, "python=3.6")
         with open(os.path.join(prefix, "conda-meta", "history")) as f:
             d = f.read()
