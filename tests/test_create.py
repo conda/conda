@@ -2277,32 +2277,36 @@ def test_download_only_flag():
             assert mock_method.call_count == 1
 
 
-def test_transactional_rollback_simple():
-    from conda.core.path_actions import CreatePrefixRecordAction
+def test_transactional_rollback_simple(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    mocker.patch(
+        "conda.core.path_actions.CreatePrefixRecordAction.execute",
+        side_effect=KeyError,
+    )
+    with pytest.raises(CondaMultiError):
+        conda_cli("create", f"--prefix={path_factory()}", "small-executable", "--yes")
 
-    with patch.object(CreatePrefixRecordAction, "execute") as mock_method:
-        with make_temp_env() as prefix:
-            mock_method.side_effect = KeyError("Bang bang!!")
-            with pytest.raises(CondaMultiError):
-                run_command(Commands.INSTALL, prefix, "openssl")
-            assert not package_is_installed(prefix, "openssl")
 
+def test_transactional_rollback_upgrade_downgrade(
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    with tmp_env("dependent=1.0") as prefix:
+        assert package_is_installed(prefix, "dependent=1.0")
 
-def test_transactional_rollback_upgrade_downgrade():
-    with make_temp_env("python=3.8", no_capture=True) as prefix:
-        assert exists(join(prefix, PYTHON_BINARY))
-        assert package_is_installed(prefix, "python=3")
-
-        run_command(Commands.INSTALL, prefix, "flask=2.1.3")
-        assert package_is_installed(prefix, "flask=2.1.3")
-
-        from conda.core.path_actions import CreatePrefixRecordAction
-
-        with patch.object(CreatePrefixRecordAction, "execute") as mock_method:
-            mock_method.side_effect = KeyError("Bang bang!!")
-            with pytest.raises(CondaMultiError):
-                run_command(Commands.INSTALL, prefix, "flask=2.0.1")
-            assert package_is_installed(prefix, "flask=2.1.3")
+        mocker.patch(
+            "conda.core.path_actions.CreatePrefixRecordAction.execute",
+            side_effect=KeyError,
+        )
+        with pytest.raises(CondaMultiError):
+            conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
+        assert package_is_installed(prefix, "dependent=1.0")
 
 
 def test_directory_not_a_conda_environment():
