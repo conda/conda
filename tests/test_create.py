@@ -2555,8 +2555,8 @@ def test_neutering_of_historic_specs(conda_cli):
 @pytest.mark.skipif(
     not context.subdir.startswith("linux"), reason="__glibc only available on linux"
 )
-def test_install_bound_virtual_package():
-    with make_temp_env("__glibc>0"):
+def test_install_bound_virtual_package(tmp_env):
+    with tmp_env("__glibc>0"):
         pass
 
 
