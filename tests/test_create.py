@@ -2560,13 +2560,13 @@ def test_install_bound_virtual_package(tmp_env):
 
 
 @pytest.mark.integration
-def test_remove_empty_env(tmp_env):
+def test_remove_empty_env(tmp_env, conda_cli):
     with tmp_env() as prefix:
-        run_command(Commands.CREATE, prefix)
-        run_command(Commands.REMOVE, prefix, "--all")
+        conda_cli("create", "-p", str(prefix))
+        conda_cli("remove", "-p", str(prefix), "--all")
 
 
-def test_remove_ignore_nonenv(tmp_path, conda_cli):
+def test_remove_ignore_nonenv(tmp_path, conda_cli: CondaCLIFixture):
     prefix = tmp_path / "not-an-env"
     filename = prefix / "file.dat"
     prefix.mkdir()
