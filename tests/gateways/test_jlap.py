@@ -369,7 +369,9 @@ def test_jlap_flag(use_jlap):
 
 @pytest.mark.parametrize("repodata_use_zst", [True, False])
 def test_repodata_use_zst(repodata_use_zst):
-    expected = CondaRepoInterface if not repodata_use_zst else interface.ZstdRepoInterface
+    expected = (
+        CondaRepoInterface if not repodata_use_zst else interface.ZstdRepoInterface
+    )
     with env_vars(
         {"CONDA_REPODATA_USE_ZST": repodata_use_zst},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,

@@ -18,24 +18,26 @@ try:
 except ImportError:
     # Python < 3.9
     from argparse import Action
+
     class BooleanOptionalAction(Action):
         # from Python 3.9+ argparse.py
-        def __init__(self,
-                    option_strings,
-                    dest,
-                    default=None,
-                    type=None,
-                    choices=None,
-                    required=False,
-                    help=None,
-                    metavar=None):
-
+        def __init__(
+            self,
+            option_strings,
+            dest,
+            default=None,
+            type=None,
+            choices=None,
+            required=False,
+            help=None,
+            metavar=None,
+        ):
             _option_strings = []
             for option_string in option_strings:
                 _option_strings.append(option_string)
 
-                if option_string.startswith('--'):
-                    option_string = '--no-' + option_string[2:]
+                if option_string.startswith("--"):
+                    option_string = "--no-" + option_string[2:]
                     _option_strings.append(option_string)
 
             super().__init__(
@@ -47,15 +49,15 @@ except ImportError:
                 choices=choices,
                 required=required,
                 help=help,
-                metavar=metavar)
-
+                metavar=metavar,
+            )
 
         def __call__(self, parser, namespace, values, option_string=None):
             if option_string in self.option_strings:
-                setattr(namespace, self.dest, not option_string.startswith('--no-'))
+                setattr(namespace, self.dest, not option_string.startswith("--no-"))
 
         def format_usage(self):
-            return ' | '.join(self.option_strings)
+            return " | ".join(self.option_strings)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
