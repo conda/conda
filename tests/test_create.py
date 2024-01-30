@@ -22,7 +22,6 @@ from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
 from typing import Literal
 from unittest.mock import patch
-from uuid import uuid4
 
 import menuinst
 import pytest
@@ -2366,84 +2365,74 @@ def test_create_env_different_platform(
         )
 
 
-@pytest.mark.skip("Test is flaky")
-def test_conda_downgrade():
+def test_conda_downgrade(
+    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     # Create an environment with the current conda under test, but include an earlier
     # version of conda and other packages in that environment.
     # Make sure we can flip back and forth.
-    with env_vars(
-        {
-            "CONDA_AUTO_UPDATE_CONDA": "false",
-            "CONDA_ALLOW_CONDA_DOWNGRADES": "true",
-            "CONDA_DLL_SEARCH_MODIFICATION_ENABLE": "1",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        py_ver = "3"
-        with make_temp_env(
-            "conda=4.6.14",
-            "python=" + py_ver,
-            "conda-package-handling",
-            use_restricted_unicode=True,
-            name="_" + str(uuid4())[:8],
-        ) as prefix:  # rev 0
-            # See comment in test_init_dev_and_NoBaseEnvironmentError.
-            python_exe = (
-                join(prefix, "python.exe") if on_win else join(prefix, "bin", "python")
-            )
-            conda_exe = (
-                join(prefix, "Scripts", "conda.exe")
-                if on_win
-                else join(prefix, "bin", "conda")
-            )
-            # this is used to run the python interpreter in the env and loads our dev
-            #     version of conda
-            py_co = [python_exe, "-m", "conda"]
-            assert package_is_installed(prefix, "conda=4.6.14")
 
-            # runs our current version of conda to install into the foreign env
-            run_command(Commands.INSTALL, prefix, "lockfile")  # rev 1
-            assert package_is_installed(prefix, "lockfile")
+    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "false")
+    monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
+    monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
 
-            # runs the conda in the env to install something new into the env
-            subprocess_call_with_clean_env(
-                [conda_exe, "install", "-yp", prefix, "itsdangerous"], path=prefix
-            )  # rev 2
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "itsdangerous")
+    with tmp_env("python", "conda") as prefix:  # rev 0
+        python_exe = str(prefix / PYTHON_BINARY)
+        conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
+        assert (py_prec := package_is_installed(prefix, "python"))
+        assert (conda_prec := package_is_installed(prefix, "conda"))
 
-            # downgrade the version of conda in the env, using our dev version of conda
-            subprocess_call(
-                py_co + ["install", "-yp", prefix, "conda<4.6.14"], path=prefix
-            )  # rev 3
-            PrefixData._cache_.clear()
-            assert not package_is_installed(prefix, "conda=4.6.14")
+        # runs our current version of conda to install into the foreign env
+        conda_cli("install", f"--prefix={prefix}", "lockfile", "--yes")  # rev 1
+        assert package_is_installed(prefix, "lockfile")
 
-            # look at the revision history (for your reference, doesn't affect the test)
-            stdout, stderr, _ = run_command(Commands.LIST, prefix, "--revisions")
-            print(stdout)
+        # runs the conda in the env to install something new into the env
+        PrefixData._cache_.clear()
+        subprocess_call_with_clean_env(
+            [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
+            path=prefix,
+        )  # rev 2
+        assert package_is_installed(prefix, "itsdangerous")
 
-            # undo the conda downgrade in the env (using our current outer conda version)
-            PrefixData._cache_.clear()
-            run_command(Commands.INSTALL, prefix, "--rev", "2")
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "conda=4.6.14")
+        # downgrade the version of conda in the env, using our dev version of conda
+        PrefixData._cache_.clear()
+        subprocess_call(
+            [
+                python_exe,
+                "-m",
+                "conda",
+                "install",
+                f"--prefix={prefix}",
+                f"conda<{conda_prec.version}",
+                "--yes",
+            ],
+            path=prefix,
+        )  # rev 3
+        assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
-            # use the conda in the env to revert to a previous state
-            subprocess_call_with_clean_env(
-                [conda_exe, "install", "-yp", prefix, "--rev", "1"], path=prefix
-            )
-            PrefixData._cache_.clear()
-            assert not package_is_installed(prefix, "itsdangerous")
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "conda=4.6.14")
-            assert package_is_installed(prefix, "python=" + py_ver)
+        # undo the conda downgrade in the env (using our current outer conda version)
+        conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
+        assert package_is_installed(prefix, f"python={py_prec.version}")
+        assert package_is_installed(prefix, f"conda={conda_prec.version}")
+        assert package_is_installed(prefix, "lockfile")
+        assert package_is_installed(prefix, "itsdangerous")
 
-            result = subprocess_call_with_clean_env(
-                [conda_exe, "info", "--json"], path=prefix
-            )
-            conda_info = json.loads(result.stdout)
-            assert conda_info["conda_version"] == "4.6.14"
+        # use the conda in the env to revert to a previous state
+        PrefixData._cache_.clear()
+        subprocess_call_with_clean_env(
+            [conda_exe, "install", f"--prefix={prefix}", "--rev=1", "--yes"],
+            path=prefix,
+        )
+        assert package_is_installed(prefix, f"python={py_prec.version}")
+        assert package_is_installed(prefix, f"conda={conda_prec.version}")
+        assert package_is_installed(prefix, "lockfile")
+        assert not package_is_installed(prefix, "itsdangerous")
+
+        result = subprocess_call_with_clean_env(
+            [conda_exe, "info", "--json"],
+            path=prefix,
+        )
+        assert json.loads(result.stdout)["conda_version"] == conda_prec.version
 
 
 @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
