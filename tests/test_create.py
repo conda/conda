@@ -2561,8 +2561,8 @@ def test_install_bound_virtual_package(tmp_env):
 
 
 @pytest.mark.integration
-def test_remove_empty_env():
-    with make_temp_env() as prefix:
+def test_remove_empty_env(tmp_env):
+    with tmp_env() as prefix:
         run_command(Commands.CREATE, prefix)
         run_command(Commands.REMOVE, prefix, "--all")
 
