@@ -120,7 +120,7 @@ def mark_channel_notices_as_viewed(
     cache_file: Path, channel_notices: Sequence[ChannelNotice]
 ) -> None:
     """Insert channel notice into our database marking it as read."""
-    notice_ids = {str(chn.id) for chn in channel_notices}
+    notice_ids = {chn.id for chn in channel_notices}
 
     with open(cache_file) as fp:
         contents: str = fp.read()
