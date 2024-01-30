@@ -24,7 +24,7 @@ from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from . import post_solves, solvers, subcommands, virtual_packages
+from . import post_solves, solvers, subcommands, transport_adapters, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
@@ -36,6 +36,7 @@ from .types import (
     CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
+    CondaTransportAdapter,
     CondaVirtualPackage,
 )
 
@@ -188,6 +189,12 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
         ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["transport_adapters"]
+    ) -> list[CondaTransportAdapter]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -320,6 +327,12 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def get_transport_adapters(self) -> dict[str, CondaTransportAdapter]:
+        return {
+            transport_adapter.name.lower(): transport_adapter
+            for transport_adapter in self.get_hook_results("transport_adapters")
+        }
+
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
@@ -374,6 +387,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
+        *transport_adapters.plugins,
         health_checks,
         *post_solves.plugins,
     )

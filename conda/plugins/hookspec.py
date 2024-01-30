@@ -22,6 +22,7 @@ from .types import (
     CondaPreSolve,
     CondaSolver,
     CondaSubcommand,
+    CondaTransportAdapter,
     CondaVirtualPackage,
 )
 
@@ -209,6 +210,44 @@ class CondaSpecs:
                 yield plugins.CondaAuthHandler(
                     name="environment-header-auth",
                     auth_handler=EnvironmentHeaderAuth,
+                )
+        """
+
+    @_hookspec
+    def conda_transport_adapters(self) -> Iterable[CondaTransportAdapter]:
+        """
+        Register a conda transport adapter derived from the requests API.
+
+        This plugin hook allows attaching requests transport adapter subclasses,
+        e.g. when through which to requesting files from channels.
+
+        **Example:**
+
+        .. code-block:: python
+
+
+            import os
+            from conda import plugins
+            from conda.gateways.connection.adapters.http import HTTPAdapter
+
+
+            class DebugHTTPAdapter(HTTPAdapter):
+                def send(self, request, *args, **kwargs):
+                    print(f"Requesting: {request.url}")
+                    response = super().send(request, *args, **kwargs)
+                    print(f"Response: {response}")
+                    return response
+
+                def close(self):
+                    print("Closing connection: {self}")
+
+
+            @plugins.hookimpl
+            def conda_transport_adapters():
+                yield plugins.CondaTransportAdapter(
+                    name="http-debug",
+                    scheme="http+debug",
+                    adapter=DebugHTTPAdapter,
                 )
         """
 
