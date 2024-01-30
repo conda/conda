@@ -15,7 +15,7 @@ import jsonpatch
 import pytest
 import requests
 import zstandard
-from pytest import MonkeyPatch
+from pytest import FixtureRequest, MonkeyPatch
 
 import conda.gateways.repodata
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -137,8 +137,16 @@ def test_jlap_fetch_ssl(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
     verify_ssl: bool,
+    request: FixtureRequest,
 ):
     """Check that JlapRepoInterface doesn't raise exceptions."""
+    # clear leftover wrong-ssl-verify sessions
+    CondaSession.cache_clear()
+    request.addfinalizer(CondaSession.cache_clear)
+
+    # clear lru_cache from the `get_session` function
+    request.addfinalizer(get_session.cache_clear)
+
     monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl))
     reset_context()
     assert context.ssl_verify is verify_ssl
@@ -158,29 +166,12 @@ def test_jlap_fetch_ssl(
     )
 
     expected_exception = CondaSSLError if verify_ssl else RepodataOnDisk
-
-    # clear session cache to avoid leftover wrong-ssl-verify Session()
-    try:
-        CondaSession._thread_local.sessions = {}
-    except AttributeError:
-        pass
-
-    state = {}
     with pytest.raises(expected_exception), warnings.catch_warnings():
         # warnings are disabled internally otherwise we would see InsecureRequestWarning
         # detect accidental warnings by treating them as errors
         warnings.simplefilter("error")
 
-        repo.repodata(state)
-
-    # Clear lru_cache from the `get_session` function
-    get_session.cache_clear()
-
-    # clear session cache to avoid leftover wrong-ssl-verify Session()
-    try:
-        CondaSession._thread_local.sessions = {}
-    except AttributeError:
-        pass
+        repo.repodata({})
 
 
 def test_download_and_hash(
