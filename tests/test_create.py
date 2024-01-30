@@ -20,7 +20,6 @@ from os.path import (
 from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import PIPE, Popen, check_call, check_output
-from textwrap import dedent
 from typing import Literal
 from unittest.mock import patch
 from uuid import uuid4
@@ -84,7 +83,6 @@ from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     Commands,
-    env_or_set,
     get_shortcut_dir,
     make_temp_channel,
     make_temp_env,
@@ -2314,25 +2312,6 @@ def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFi
 
     with pytest.raises(DirectoryNotACondaEnvironmentError):
         conda_cli("install", f"--prefix={tmp_path}", "--yes")
-
-
-def test_multiline_run_command():
-    with make_temp_env() as prefix:
-        env_which_etc, errs_etc, _ = run_command(
-            Commands.RUN,
-            prefix,
-            "--cwd",
-            prefix,
-            dedent(
-                f"""
-                {env_or_set}
-                {which_or_where} conda
-                """
-            ),
-            dev=True,
-        )
-    assert env_which_etc
-    assert not errs_etc
 
 
 @pytest.mark.parametrize("style", ["cli", "env"])
