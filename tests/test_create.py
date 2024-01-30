@@ -91,7 +91,6 @@ from conda.testing.integration import (
     make_temp_prefix,
     package_is_installed,
     run_command,
-    tempdir,
     which_or_where,
 )
 
@@ -276,17 +275,14 @@ def test_safety_checks_enabled(
             )
 
         # conda-test::spiffy-test-app=0.5 is a modified version of conda-test::spiffy-test-app=1.0
-        assert (
-            dals(
-                """
+        assert dals(
+            """
             The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
             has an incorrect size.
               reported size: 32 bytes
               actual size: 16 bytes
             """
-            )
-            in str(exc.value)
-        )
+        ) in str(exc.value)
         assert "has a sha256 mismatch." in str(exc.value)
         assert not package_is_installed(prefix, "spiffy-test-app=0.5")
 
