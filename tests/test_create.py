@@ -2309,15 +2309,11 @@ def test_transactional_rollback_upgrade_downgrade(
         assert package_is_installed(prefix, "dependent=1.0")
 
 
-def test_directory_not_a_conda_environment():
-    prefix = make_temp_prefix(str(uuid4())[:7])
-    with open(join(prefix, "tempfile.txt"), "w") as f:
-        f.write("weeee")
-    try:
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            run_command(Commands.INSTALL, prefix, "sqlite")
-    finally:
-        rm_rf(prefix)
+def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFixture):
+    (tmp_path / "tempfile.txt").write_text("hello world")
+
+    with pytest.raises(DirectoryNotACondaEnvironmentError):
+        conda_cli("install", f"--prefix={tmp_path}", "--yes")
 
 
 def test_multiline_run_command():
