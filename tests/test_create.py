@@ -2514,7 +2514,7 @@ def test_remove_spellcheck(
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="dependencies not available for win-32"
 )
-def test_cross_channel_incompatibility():
+def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path):
     # regression test for https://github.com/conda/conda/issues/8772
     # conda-forge puts a run_constrains on libboost, which they don't have on conda-forge.
     #   This is a way of forcing libboost to be removed.  It's a way that they achieve
@@ -2522,16 +2522,16 @@ def test_cross_channel_incompatibility():
 
     # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
     with pytest.raises(DryRunExit):
-        stdout, stderr, _ = run_command(
-            Commands.CREATE,
-            "dummy_channel_incompat_test",
+        conda_cli(
+            "create",
+            "-p",
+            str(tmp_path / "dummy_channel_incompat_test"),
             "--dry-run",
             "-c",
             "conda-forge",
             "python",
             "boost==1.70.0",
             "boost-cpp==1.70.0",
-            no_capture=True,
         )
 
 
