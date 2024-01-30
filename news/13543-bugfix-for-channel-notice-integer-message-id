@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixing an error where conda raises an exception while parsing channel notice IDs that have an integer value (#13543)
+* Parse integer channel notice IDs as str instead of raising an exception (#13543)
 
 ### Deprecations
 
