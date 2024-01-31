@@ -416,7 +416,7 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
-    no_repodata_zst = ParameterLoader(PrimitiveParameter(False))
+    repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
     #               Solver Configuration               #
@@ -1164,7 +1164,7 @@ class Context(Configuration):
                 "fetch_threads",
                 "experimental",
                 "no_lock",
-                "no_repodata_zst",
+                "repodata_use_zst",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1836,7 +1836,7 @@ class Context(Configuration):
                 Disable index cache lock (defaults to enabled).
                 """
             ),
-            no_repodata_zst=dals(
+            repodata_use_zst=dals(
                 """
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
                 """
