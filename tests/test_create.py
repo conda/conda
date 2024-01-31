@@ -39,7 +39,7 @@ from conda.base.constants import (
 )
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import ensure_text_type, on_linux, on_mac, on_win
-from conda.common.io import env_var, env_vars, stderr_log_level
+from conda.common.io import env_vars, stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
     get_bin_directory_short_path,
@@ -2177,94 +2177,105 @@ def test_offline_with_empty_index_cache(
 
 
 @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
-def test_disallowed_packages():
-    with make_temp_env() as prefix:
-        with env_var(
-            "CONDA_DISALLOWED_PACKAGES",
-            "sqlite&flask",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.INSTALL, prefix, "python")
+def test_disallowed_packages(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_DISALLOWED_PACKAGES", "sqlite&flask")
+        reset_context()
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("install", f"--prefix={prefix}", "python", "--yes")
         exc_val = exc.value.errors[0]
         assert isinstance(exc_val, DisallowedPackageError)
         assert exc_val.dump_map()["package_ref"]["name"] == "sqlite"
 
 
-def test_dont_remove_conda_1():
-    pkgs_dirs = context.pkgs_dirs
-    prefix = make_temp_prefix()
-    with env_vars(
-        {"CONDA_ROOT_PREFIX": prefix, "CONDA_PKGS_DIRS": ",".join(pkgs_dirs)},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with make_temp_env(prefix=prefix):
-            _, _, _ = run_command(Commands.INSTALL, prefix, "conda", "conda-build")
-            assert package_is_installed(prefix, "conda")
-            assert package_is_installed(prefix, "pycosat")
-            assert package_is_installed(prefix, "conda-build")
+def test_dont_remove_conda_1(
+    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        reset_context()
+        assert context.root_prefix == str(prefix)
+        _, _, _ = conda_cli(
+            "install", f"--prefix={prefix}", "conda", "conda-build", "--yes"
+        )
+        assert package_is_installed(prefix, "conda")
+        assert package_is_installed(prefix, "pycosat")
+        assert package_is_installed(prefix, "conda-build")
 
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.REMOVE, prefix, "conda")
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("remove", f"--prefix={prefix}", "conda", "--yes")
 
-            assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-            assert package_is_installed(prefix, "conda")
-            assert package_is_installed(prefix, "pycosat")
+        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+        assert package_is_installed(prefix, "conda")
+        assert package_is_installed(prefix, "pycosat")
 
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.REMOVE, prefix, "pycosat")
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("remove", f"--prefix={prefix}", "pycosat", "--yes")
 
-            assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-            assert package_is_installed(prefix, "conda")
-            assert package_is_installed(prefix, "pycosat")
-            assert package_is_installed(prefix, "conda-build")
+        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+        assert package_is_installed(prefix, "conda")
+        assert package_is_installed(prefix, "pycosat")
+        assert package_is_installed(prefix, "conda-build")
 
 
-def test_dont_remove_conda_2():
+def test_dont_remove_conda_2(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
+):
     # regression test for #6904
-    pkgs_dirs = context.pkgs_dirs
-    prefix = make_temp_prefix()
-    with make_temp_env(prefix=prefix):
-        with env_vars(
-            {"CONDA_ROOT_PREFIX": prefix, "CONDA_PKGS_DIRS": ",".join(pkgs_dirs)},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            _, _, _ = run_command(Commands.INSTALL, prefix, "conda")
-            assert package_is_installed(prefix, "conda")
-            assert package_is_installed(prefix, "pycosat")
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        reset_context()
+        assert context.root_prefix == str(prefix)
 
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.REMOVE, prefix, "pycosat")
+        _, _, _ = conda_cli("install", f"--prefix={prefix}", "conda", "--yes")
+        assert package_is_installed(prefix, "conda")
+        assert package_is_installed(prefix, "pycosat")
 
-            assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-            assert package_is_installed(prefix, "conda")
-            assert package_is_installed(prefix, "pycosat")
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("remove", f"--prefix={prefix}", "pycosat", "--yes")
 
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.REMOVE, prefix, "conda")
+        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+        assert package_is_installed(prefix, "conda")
+        assert package_is_installed(prefix, "pycosat")
 
-            assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-            assert package_is_installed(prefix, "conda")
-            assert package_is_installed(prefix, "pycosat")
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli("remove", f"--prefix={prefix}", "conda", "--yes")
+
+        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+        assert package_is_installed(prefix, "conda")
+        assert package_is_installed(prefix, "pycosat")
 
 
-def test_force_remove():
-    with make_temp_env() as prefix:
-        stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "libarchive")
+def test_force_remove(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        reset_context()
+        stdout, stderr, _ = conda_cli(
+            "install", f"--prefix={prefix}", "libarchive", "--yes"
+        )
         assert package_is_installed(prefix, "libarchive")
         assert package_is_installed(prefix, "xz")
 
-        stdout, stderr, _ = run_command(Commands.REMOVE, prefix, "xz", "--force")
+        stdout, stderr, _ = conda_cli(
+            "remove", f"--prefix={prefix}", "xz", "--force", "--yes"
+        )
         assert not package_is_installed(prefix, "xz")
         assert package_is_installed(prefix, "libarchive")
 
-        stdout, stderr, _ = run_command(Commands.REMOVE, prefix, "libarchive")
+        stdout, stderr, _ = conda_cli(
+            "remove", f"--prefix={prefix}", "libarchive", "--yes"
+        )
         assert not package_is_installed(prefix, "libarchive")
 
     # regression test for #3489
     # don't raise for remove --all if environment doesn't exist
+    # split this into a new test
     rm_rf(prefix, clean_empty_parents=True)
-    run_command(Commands.REMOVE, prefix, "--all")
+    conda_cli("remove", f"--prefix={prefix}", "--all")
 
 
 def test_download_only_flag():
