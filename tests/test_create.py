@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
-import os
 import re
 import sys
 from datetime import datetime
@@ -2539,15 +2538,16 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path):
     context.subdir != "linux-64",
     reason="lazy; package constraint here only valid on linux-64",
 )
-def test_neutering_of_historic_specs(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_neutering_of_historic_specs(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
     with tmp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
-        conda_cli("install", "-p", prefix, "python=3.6", "--yes")
-        with open(os.path.join(prefix, "conda-meta", "history")) as f:
-            d = f.read()
+        conda_cli("install", "-p", str(prefix), "python=3.6", "--yes")
+        d = (prefix / "conda-meta" / "history").read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
-        conda_cli("install", "-p", prefix, "imagesize")
+        conda_cli("install", "-p", prefix, "imagesize", "--yes")
 
 
 # https://github.com/conda/conda/issues/10116
