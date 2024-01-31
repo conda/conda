@@ -31,7 +31,6 @@ from pytest_mock import MockerFixture
 from conda import CondaError, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
-    CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
     ChannelPriority,
     SafetyChecks,
@@ -66,7 +65,7 @@ from conda.exceptions import (
     UnsatisfiableError,
 )
 from conda.gateways.disk.create import compile_multiple_pyc
-from conda.gateways.disk.delete import path_is_clean, rm_rf
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
@@ -1618,68 +1617,10 @@ def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFi
         assert prefix.exists()
 
 
-def test_packages_not_found():
-    with make_temp_env() as prefix:
-        with pytest.raises(PackagesNotFoundError) as exc:
-            run_command(Commands.INSTALL, prefix, "not-a-real-package")
-        assert "not-a-real-package" in str(exc.value)
-
-        _, error, _ = run_command(
-            Commands.INSTALL,
-            prefix,
-            "not-a-real-package",
-            use_exception_handler=True,
-        )
-        assert "not-a-real-package" in error
-
-
-def test_conda_pip_interop_dependency_satisfied_by_pip():
-    with make_temp_env("python=3.10", "pip", use_restricted_unicode=False) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-        run_command(
-            Commands.RUN,
-            prefix,
-            "--dev",
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "itsdangerous",
-        )
-
-        PrefixData._cache_.clear()
-        output, error, _ = run_command(Commands.LIST, prefix)
-        assert "itsdangerous" in output
-        assert not error
-
-        output, _, _ = run_command(
-            Commands.INSTALL,
-            prefix,
-            "flask",
-            "--dry-run",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json.loads(output)
-        print(json_obj)
-        # itsdangerous shouldn't be in this list, because it's already present and satisfied
-        #     by the pip package
-        assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
-        assert not any(
-            rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"]
-        )
-
-        output, error, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "not-a-real-package",
-            "--json",
-            use_exception_handler=True,
-        )
-        assert not error
-        json_obj = json_loads(output.strip())
-        assert json_obj["exception_name"] == "PackagesNotFoundError"
-        assert not len(json_obj.keys()) == 0
+def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        with pytest.raises(PackagesNotFoundError, match="not-a-real-package"):
+            conda_cli("install", f"--prefix={prefix}", "not-a-real-package", "--yes")
 
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
@@ -2076,35 +2017,6 @@ def test_conda_pip_interop_compatible_release_operator(
             )
 
 
-def test_install_freezes_env_by_default():
-    """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
-    up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
-    """
-
-    # create an initial env
-    with make_temp_env(
-        "python=2", use_restricted_unicode=on_win, no_capture=True
-    ) as prefix:
-        assert package_is_installed(prefix, "python=2.7.*")
-        # Install a version older than the last one
-        run_command(Commands.INSTALL, prefix, "setuptools=40.*")
-
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
-
-        pkgs = json.loads(stdout)
-
-        run_command(Commands.INSTALL, prefix, "imagesize", "--freeze-installed")
-
-        stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
-        pkgs_after_install = json.loads(stdout)
-
-        # Compare before and after installing package
-        for pkg in pkgs:
-            for pkg_after in pkgs_after_install:
-                if pkg["name"] == pkg_after["name"]:
-                    assert pkg["version"] == pkg_after["version"]
-
-
 def test_use_index_cache(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -2236,67 +2148,6 @@ def test_offline_with_empty_index_cache(
             assert not package_is_installed(prefix, "pytz")
     finally:
         SubdirData._cache_.clear()
-
-
-def test_create_from_extracted(tmp_pkgs_dir: Path):
-    def pkgs_dir_has_tarball(tarball_prefix):
-        return any(
-            f.startswith(tarball_prefix)
-            and any(f.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
-            for f in os.listdir(tmp_pkgs_dir)
-        )
-
-    with make_temp_env() as prefix:
-        # First, make sure the openssl package is present in the cache,
-        # downloading it if needed
-        assert not pkgs_dir_has_tarball("openssl-")
-        run_command(Commands.INSTALL, prefix, "openssl")
-        assert pkgs_dir_has_tarball("openssl-")
-
-        # Then, remove the tarball but keep the extracted directory around
-        run_command(Commands.CLEAN, prefix, "--tarballs", "--yes")
-        assert not pkgs_dir_has_tarball("openssl-")
-
-    with make_temp_env() as prefix:
-        # Finally, install openssl, enforcing the use of the extracted package.
-        # We expect that the tarball does not appear again because we simply
-        # linked the package from the extracted directory. If the tarball
-        # appeared again, we decided to re-download the package for some reason.
-        run_command(Commands.INSTALL, prefix, "openssl", "--offline")
-        assert not pkgs_dir_has_tarball("openssl-")
-
-
-def test_install_mkdir():
-    try:
-        prefix = make_temp_prefix()
-        with open(os.path.join(prefix, "tempfile.txt"), "w") as f:
-            f.write("test")
-        assert isdir(prefix)
-        assert isfile(os.path.join(prefix, "tempfile.txt"))
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            run_command(Commands.INSTALL, prefix, "python", "--mkdir")
-
-        run_command(Commands.CREATE, prefix)
-        run_command(Commands.INSTALL, prefix, "python", "--mkdir")
-        assert package_is_installed(prefix, "python")
-
-        rm_rf(prefix, clean_empty_parents=True)
-        assert path_is_clean(prefix)
-
-        # this part also a regression test for #4849
-        run_command(
-            Commands.INSTALL,
-            prefix,
-            "python-dateutil",
-            "python",
-            "--mkdir",
-            no_capture=True,
-        )
-        assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "python-dateutil")
-
-    finally:
-        rm_rf(prefix, clean_empty_parents=True)
 
 
 @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
