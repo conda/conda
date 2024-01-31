@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Print traceback on `KeyboardInterrupt` instead of raising another
-  `AttributeError` exception. (#13531)
+  `AttributeError` exception, when conda debugging logs are enabled. (#13531)
 
 ### Deprecations
 
