@@ -2512,7 +2512,7 @@ def test_remove_spellcheck(
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="dependencies not available for win-32"
 )
-def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path):
+def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Path):
     # regression test for https://github.com/conda/conda/issues/8772
     # conda-forge puts a run_constrains on libboost, which they don't have on conda-forge.
     #   This is a way of forcing libboost to be removed.  It's a way that they achieve
@@ -2522,11 +2522,9 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path):
     with pytest.raises(DryRunExit):
         conda_cli(
             "create",
-            "-p",
-            str(tmp_path / "dummy_channel_incompat_test"),
+            f"--prefix={tmp_path}",
             "--dry-run",
-            "-c",
-            "conda-forge",
+            "--channel=conda-forge",
             "python",
             "boost==1.70.0",
             "boost-cpp==1.70.0",
@@ -2542,38 +2540,35 @@ def test_neutering_of_historic_specs(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     with tmp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
-        conda_cli("install", "-p", str(prefix), "python=3.6", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
         d = (prefix / "conda-meta" / "history").read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
-        conda_cli("install", "-p", prefix, "imagesize", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "imagesize", "--yes")
 
 
 # https://github.com/conda/conda/issues/10116
 @pytest.mark.skipif(
     not context.subdir.startswith("linux"), reason="__glibc only available on linux"
 )
-def test_install_bound_virtual_package(tmp_env):
+def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
     with tmp_env("__glibc>0"):
         pass
 
 
 @pytest.mark.integration
-def test_remove_empty_env(tmp_path, conda_cli):
-    prefix = tmp_path / "empty-env"
-    conda_cli("create", "-p", str(prefix), "--yes")
-    conda_cli("remove", "-p", str(prefix), "--all", "--yes")
+def test_remove_empty_env(tmp_path: Path, conda_cli: CondaCLIFixture):
+    conda_cli("create", f"--prefix={tmp_path}", "--yes")
+    conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
 
-def test_remove_ignore_nonenv(tmp_path, conda_cli: CondaCLIFixture):
-    prefix = tmp_path / "not-an-env"
-    filename = prefix / "file.dat"
-    prefix.mkdir()
+def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
+    filename = tmp_path / "file.dat"
     filename.touch()
 
     with pytest.raises(DirectoryNotACondaEnvironmentError):
-        conda_cli("remove", "-p", str(prefix), "--all")
+        conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
     assert filename.exists()
-    assert prefix.exists()
+    assert tmp_path.exists()
