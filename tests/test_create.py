@@ -2183,6 +2183,7 @@ def test_disallowed_packages(
     with tmp_env() as prefix:
         monkeypatch.setenv("CONDA_DISALLOWED_PACKAGES", "sqlite&flask")
         reset_context()
+        assert context.disallowed_packages == ("sqlite", "flask")
         with pytest.raises(CondaMultiError) as exc:
             conda_cli("install", f"--prefix={prefix}", "python", "--yes")
         exc_val = exc.value.errors[0]
@@ -2197,9 +2198,7 @@ def test_dont_remove_conda_1(
         monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
         reset_context()
         assert context.root_prefix == str(prefix)
-        _, _, _ = conda_cli(
-            "install", f"--prefix={prefix}", "conda", "conda-build", "--yes"
-        )
+        conda_cli("install", f"--prefix={prefix}", "conda", "conda-build", "--yes")
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
         assert package_is_installed(prefix, "conda-build")
@@ -2229,7 +2228,7 @@ def test_dont_remove_conda_2(
         reset_context()
         assert context.root_prefix == str(prefix)
 
-        _, _, _ = conda_cli("install", f"--prefix={prefix}", "conda", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "conda", "--yes")
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
 
@@ -2251,24 +2250,15 @@ def test_dont_remove_conda_2(
 def test_force_remove(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
 ):
-    with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
-        reset_context()
-        stdout, stderr, _ = conda_cli(
-            "install", f"--prefix={prefix}", "libarchive", "--yes"
-        )
+    with tmp_env("libarchive") as prefix:
         assert package_is_installed(prefix, "libarchive")
         assert package_is_installed(prefix, "xz")
 
-        stdout, stderr, _ = conda_cli(
-            "remove", f"--prefix={prefix}", "xz", "--force", "--yes"
-        )
+        conda_cli("remove", f"--prefix={prefix}", "xz", "--force", "--yes")
         assert not package_is_installed(prefix, "xz")
         assert package_is_installed(prefix, "libarchive")
 
-        stdout, stderr, _ = conda_cli(
-            "remove", f"--prefix={prefix}", "libarchive", "--yes"
-        )
+        conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")
         assert not package_is_installed(prefix, "libarchive")
 
     # regression test for #3489
