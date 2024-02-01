@@ -19,7 +19,8 @@ import pluggy
 from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
-from ..base.context import context
+from ..base.context import Context, context
+from ..common.configuration import ParameterLoader
 from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
 from ..models.match_spec import MatchSpec
@@ -29,6 +30,7 @@ from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
+    CondaConfigurationParameter,
     CondaHealthCheck,
     CondaPostCommand,
     CondaPostSolve,
@@ -188,6 +190,12 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
         ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["configuration_parameters"]
+    ) -> list[CondaConfigurationParameter]:
+        ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -286,6 +294,15 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
+    def get_configuration_parameters(self) -> dict[str, ParameterLoader]:
+        """
+        Return a mapping of plugin configuration parameter name to ParameterLoader class
+        """
+        return {
+            config_param.name.lower(): config_param.loader
+            for config_param in self.get_hook_results("configuration_parameters")
+        }
+
     def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
@@ -360,6 +377,20 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def load_configuration_parameters(self) -> None:
+        """
+        Iterates through all registered configuration parameters and adds them to the context class.
+
+        TODO:
+            - Need to add configuration parameters to ``Context.category_map`` and
+              ``Context.description_map``
+            - Do checks to prevent overriding existing parameters
+        """
+        for name, loader in self.get_configuration_parameters().items():
+            name = loader._set_name(name)
+            setattr(Context, name, loader)
+            setattr(Context, "parameter_names", Context.parameter_names + (name,))
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

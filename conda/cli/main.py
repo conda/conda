@@ -63,6 +63,9 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         "verbosity": pre_args.verbosity,
     }
 
+    # load extra parameters defined by plugins
+    context.plugin_manager.load_configuration_parameters()
+
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
         context.plugin_manager.disable_external_plugins()

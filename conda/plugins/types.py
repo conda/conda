@@ -14,6 +14,7 @@ from typing import Callable, NamedTuple
 
 from requests.auth import AuthBase
 
+from ..common.configuration import ParameterLoader
 from ..core.solve import Solver
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
@@ -184,3 +185,19 @@ class CondaPostSolve:
 
     name: str
     action: Callable[[str, tuple[PackageRecord, ...], tuple[PackageRecord, ...]], None]
+
+
+@dataclass
+class CondaConfigurationParameter:
+    """
+    Return type to use when defining a conda configuration parameter plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_solves`.
+
+    :param name: name of the configuration parameter (e.g., ``config_param``)
+    :param loader: ParameterLoader class containing the configuration parameter definition
+    """
+
+    name: str
+    loader: ParameterLoader

@@ -301,3 +301,32 @@ class CondaSpecs:
                    action=example_post_solve,
                )
         """
+
+    @_hookspec
+    def conda_configuration_parameters(self) -> Iterable[CondaPostSolve]:
+        """
+        Register new configuration parameters
+
+        The example below defines a simple string type parameter
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.common.configuration import (
+               ParameterLoader,
+               PrimitiveParameter,
+               SequenceParameter,
+           )
+
+
+           @plugins.hookimpl
+           def conda_post_solves():
+               name = "example_option"
+               loader = ParameterLoader(
+                   PrimitiveParameter(name, element_type=str), aliases=(name,)
+               )
+
+               yield plugins.CondaConfigurationParameter(name=name, loader=loader)
+        """
