@@ -385,12 +385,23 @@ class CondaPluginManager(pluggy.PluginManager):
         TODO:
             - Need to add configuration parameters to ``Context.category_map`` and
               ``Context.description_map``
-            - Do checks to prevent overriding existing parameters
         """
+        existing_parameters = context.list_parameters()
+        error_params = []
+
         for name, loader in self.get_configuration_parameters().items():
+            if name in existing_parameters:
+                error_params.append(name)
             name = loader._set_name(name)
             setattr(Context, name, loader)
             setattr(Context, "parameter_names", Context.parameter_names + (name,))
+
+        if len(error_params) > 0:
+            error_params_str = ", ".join(error_params)
+            raise PluginError(
+                "One or more plugins attempted to override the following parameter(s): "
+                f"{error_params_str}. These will be ignored."
+            )
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

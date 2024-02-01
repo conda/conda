@@ -196,8 +196,11 @@ class CondaConfigurationParameter:
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_solves`.
 
     :param name: name of the configuration parameter (e.g., ``config_param``)
+    :param description: description of the configuration parameter that should be targeted
+                        towards users of the plugin
     :param loader: ParameterLoader class containing the configuration parameter definition
     """
 
     name: str
+    description: str
     loader: ParameterLoader
