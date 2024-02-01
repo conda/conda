@@ -2383,16 +2383,16 @@ def test_conda_downgrade(
         assert (conda_prec := package_is_installed(prefix, "conda"))
 
         # runs our current version of conda to install into the foreign env
-        conda_cli("install", f"--prefix={prefix}", "lockfile", "--yes")  # rev 1
-        assert package_is_installed(prefix, "lockfile")
+        conda_cli("install", f"--prefix={prefix}", "zlib", "--yes")  # rev 1
+        assert package_is_installed(prefix, "zlib")
 
         # runs the conda in the env to install something new into the env
         PrefixData._cache_.clear()
         subprocess_call_with_clean_env(
-            [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
+            [conda_exe, "install", f"--prefix={prefix}", "ca-certificates", "--yes"],
             path=prefix,
         )  # rev 2
-        assert package_is_installed(prefix, "itsdangerous")
+        assert package_is_installed(prefix, "ca-certificates")
 
         # downgrade the version of conda in the env, using our dev version of conda
         PrefixData._cache_.clear()
@@ -2414,8 +2414,8 @@ def test_conda_downgrade(
         conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
         assert package_is_installed(prefix, f"python={py_prec.version}")
         assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "lockfile")
-        assert package_is_installed(prefix, "itsdangerous")
+        assert package_is_installed(prefix, "zlib")
+        assert package_is_installed(prefix, "ca-certificates")
 
         # use the conda in the env to revert to a previous state
         PrefixData._cache_.clear()
@@ -2425,8 +2425,8 @@ def test_conda_downgrade(
         )
         assert package_is_installed(prefix, f"python={py_prec.version}")
         assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "lockfile")
-        assert not package_is_installed(prefix, "itsdangerous")
+        assert package_is_installed(prefix, "zlib")
+        assert not package_is_installed(prefix, "ca-certificates")
 
         result = subprocess_call_with_clean_env(
             [conda_exe, "info", "--json"],
