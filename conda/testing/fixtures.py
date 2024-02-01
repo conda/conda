@@ -1,7 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of pytest fixtures used in conda tests."""
+from __future__ import annotations
+
 import warnings
+from typing import Iterable, Literal, TypeVar
 
 import py
 import pytest
@@ -87,7 +90,10 @@ def temp_package_cache(tmp_path_factory):
 
 
 @pytest.fixture(params=["libmamba", "classic"])
-def parametrized_solver_fixture(request: FixtureRequest, monkeypatch: MonkeyPatch):
+def parametrized_solver_fixture(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+) -> Iterable[Literal["libmamba", "classic"]]:
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
     and (2) classic for each test. It's using autouse=True, so only import it in
@@ -110,9 +116,39 @@ def parametrized_solver_fixture(request: FixtureRequest, monkeypatch: MonkeyPatc
                 pytest.skip("...")
             ...
     """
-    monkeypatch.setenv("CONDA_SOLVER", request.param)
-    reset_context()
+    yield from _solver_helper(request, monkeypatch, request.param)
+
+
+@pytest.fixture
+def solver_classic(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+) -> Iterable[Literal["classic"]]:
+    yield from _solver_helper(request, monkeypatch, "classic")
+
+
+@pytest.fixture
+def solver_libmamba(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+) -> Iterable[Literal["libmamba"]]:
+    yield from _solver_helper(request, monkeypatch, "libmamba")
+
+
+Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
+
+
+def _solver_helper(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+    solver: Solver,
+) -> Iterable[Solver]:
+    # clear cached solver backends before & after each test
     context.plugin_manager.get_cached_solver_backend.cache_clear()
-    yield
+    request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
+
+    monkeypatch.setenv("CONDA_SOLVER", solver)
     reset_context()
-    context.plugin_manager.get_cached_solver_backend.cache_clear()
+    assert context.solver == solver
+
+    yield solver

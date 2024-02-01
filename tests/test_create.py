@@ -27,14 +27,12 @@ from uuid import uuid4
 
 import menuinst
 import pytest
-import requests
 from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
-    CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
     ChannelPriority,
     SafetyChecks,
@@ -68,9 +66,8 @@ from conda.exceptions import (
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
-from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import compile_multiple_pyc
-from conda.gateways.disk.delete import path_is_clean, rm_rf
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
@@ -1007,38 +1004,6 @@ def test_allow_softlinks(
         assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
 
 
-@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-def test_remove_features(
-    clear_package_cache: None,
-    request: FixtureRequest,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
-            strict=True,
-        )
-    )
-
-    with tmp_env("--channel=main", "python=2", "numpy=1.13", "nomkl") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "numpy")
-        assert package_is_installed(prefix, "nomkl")
-        assert not package_is_installed(prefix, "mkl")
-
-        # A consequence of discontinuing use of the 'features' key and instead
-        # using direct dependencies is that removing the feature means that
-        # packages associated with the track_features base package are completely removed
-        # and not replaced with equivalent non-variant packages as before.
-        conda_cli("remove", f"--prefix={prefix}", "--features", "nomkl", "--yes")
-
-        # assert package_is_installed(prefix, 'numpy')   # removed per above comment
-        assert not package_is_installed(prefix, "nomkl")
-        # assert package_is_installed(prefix, 'mkl')  # removed per above comment
-
-
 def test_channel_usage_replacing_python(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -1229,42 +1194,6 @@ def test_install_update_deps_only_deps_flags(
         assert package_is_installed(prefix, "another_dependent=1.0")
         assert package_is_installed(prefix, "dependent=2.0")
         assert package_is_installed(prefix, "dependency=2.0")
-
-
-@pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-def test_install_features(
-    clear_package_cache: None,
-    request: FixtureRequest,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
-        )
-    )
-    channels = ("--override-channels", "--channel=main")
-    with tmp_env(*channels, "python=2", "numpy=1.13", "nomkl") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "numpy")
-        assert package_is_installed(prefix, "nomkl")
-        assert not package_is_installed(prefix, "mkl")
-
-    with tmp_env(*channels, "python=2", "numpy=1.13") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "numpy")
-        assert not package_is_installed(prefix, "nomkl")
-        assert package_is_installed(prefix, "mkl")
-
-        conda_cli("install", f"--prefix={prefix}", *channels, "nomkl", "--yes")
-
-        assert package_is_installed(prefix, "numpy")
-        assert package_is_installed(prefix, "nomkl")
-        assert package_is_installed(prefix, "blas=1.0=openblas")
-        assert not package_is_installed(prefix, "mkl_fft")
-        assert not package_is_installed(prefix, "mkl_random")
-        # assert not package_is_installed(prefix, "mkl")  # pruned as an indirect dep
 
 
 def test_clone_offline_simple(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
@@ -1691,68 +1620,10 @@ def test_create_dry_run_yes_safety(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFi
         assert prefix.exists()
 
 
-def test_packages_not_found():
-    with make_temp_env() as prefix:
-        with pytest.raises(PackagesNotFoundError) as exc:
-            run_command(Commands.INSTALL, prefix, "not-a-real-package")
-        assert "not-a-real-package" in str(exc.value)
-
-        _, error, _ = run_command(
-            Commands.INSTALL,
-            prefix,
-            "not-a-real-package",
-            use_exception_handler=True,
-        )
-        assert "not-a-real-package" in error
-
-
-def test_conda_pip_interop_dependency_satisfied_by_pip():
-    with make_temp_env("python=3.10", "pip", use_restricted_unicode=False) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-        run_command(
-            Commands.RUN,
-            prefix,
-            "--dev",
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "itsdangerous",
-        )
-
-        PrefixData._cache_.clear()
-        output, error, _ = run_command(Commands.LIST, prefix)
-        assert "itsdangerous" in output
-        assert not error
-
-        output, _, _ = run_command(
-            Commands.INSTALL,
-            prefix,
-            "flask",
-            "--dry-run",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json.loads(output)
-        print(json_obj)
-        # itsdangerous shouldn't be in this list, because it's already present and satisfied
-        #     by the pip package
-        assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
-        assert not any(
-            rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"]
-        )
-
-        output, error, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "not-a-real-package",
-            "--json",
-            use_exception_handler=True,
-        )
-        assert not error
-        json_obj = json_loads(output.strip())
-        assert json_obj["exception_name"] == "PackagesNotFoundError"
-        assert not len(json_obj.keys()) == 0
+def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        with pytest.raises(PackagesNotFoundError, match="not-a-real-package"):
+            conda_cli("install", f"--prefix={prefix}", "not-a-real-package", "--yes")
 
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
@@ -2172,359 +2043,137 @@ def test_conda_pip_interop_compatible_release_operator():
             )
 
 
-def test_install_freezes_env_by_default():
-    """We pass --no-update-deps/--freeze-installed by default, effectively.  This helps speed things
-    up by not considering changes to existing stuff unless the solve ends up unsatisfiable.
-    """
-
-    # create an initial env
-    with make_temp_env(
-        "python=2", use_restricted_unicode=on_win, no_capture=True
-    ) as prefix:
-        assert package_is_installed(prefix, "python=2.7.*")
-        # Install a version older than the last one
-        run_command(Commands.INSTALL, prefix, "setuptools=40.*")
-
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
-
-        pkgs = json.loads(stdout)
-
-        run_command(Commands.INSTALL, prefix, "imagesize", "--freeze-installed")
-
-        stdout, _, _ = run_command(Commands.LIST, prefix, "--json")
-        pkgs_after_install = json.loads(stdout)
-
-        # Compare before and after installing package
-        for pkg in pkgs:
-            for pkg_after in pkgs_after_install:
-                if pkg["name"] == pkg_after["name"]:
-                    assert pkg["version"] == pkg_after["version"]
-
-
-@pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-def test_search_gawk_not_win_filter():
-    with make_temp_env() as prefix:
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "*gawk",
-            "--platform",
-            "win-64",
-            "--json",
-            "-c",
-            "https://repo.anaconda.com/pkgs/msys2",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert "m2-gawk" in json_obj.keys()
-        assert len(json_obj.keys()) == 1
-
-
-@pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
-def test_search_gawk_on_win():
-    with make_temp_env() as prefix:
-        stdout, _, _ = run_command(
-            Commands.SEARCH, prefix, "*gawk", "--json", use_exception_handler=True
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert "m2-gawk" in json_obj.keys()
-        assert len(json_obj.keys()) == 1
-
-
-@pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
-def test_search_gawk_on_win_filter():
-    with make_temp_env() as prefix:
-        stdout, _, _ = run_command(
-            Commands.SEARCH,
-            prefix,
-            "gawk",
-            "--platform",
-            "linux-64",
-            "--json",
-            use_exception_handler=True,
-        )
-        json_obj = json_loads(
-            stdout.replace("Fetching package metadata ...", "").strip()
-        )
-        assert not len(json_obj.keys()) == 0
-
-
-def test_bad_anaconda_token_infinite_loop():
-    # This test is being changed around 2017-10-17, when the behavior of anaconda.org
-    # was changed.  Previously, an expired token would return with a 401 response.
-    # Now, a 200 response is always given, with any public packages available on the channel.
-    response = requests.get(
-        "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
-        "%s/repodata.json" % context.subdir
-    )
-    assert response.status_code == 200
-
-    try:
-        prefix = make_temp_prefix(str(uuid4())[:7])
-        channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
-        run_command(Commands.CONFIG, prefix, "--add", "channels", channel_url)
-        stdout, stderr, _ = run_command(Commands.CONFIG, prefix, "--show")
-        yml_obj = yaml_round_trip_load(stdout)
-        assert channel_url.replace("cqgccfm1mfma", "<TOKEN>") in yml_obj["channels"]
-
-        with pytest.raises(PackagesNotFoundError):
-            # this was supposed to be a package available in private but not
-            # public data-portal; boltons was added to defaults in 2023 Jan.
-            # --override-channels instead.
-            run_command(
-                Commands.SEARCH,
-                prefix,
-                "boltons",
-                "-c",
-                channel_url,
-                "--override-channels",
-                "--json",
-            )
-
-        stdout, stderr, _ = run_command(
-            Commands.SEARCH, prefix, "anaconda-mosaic", "--json"
-        )
-
-        json_obj = json.loads(stdout)
-        assert "anaconda-mosaic" in json_obj
-        assert len(json_obj["anaconda-mosaic"]) > 0
-
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        reset_context()
-
-
-@pytest.mark.skipif(
-    read_binstar_tokens(),
-    reason="binstar token found in global configuration",
-)
-def test_anaconda_token_with_private_package(
+def test_use_index_cache(
+    tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
-    capsys: CaptureFixture,
+    mocker: MockerFixture,
 ):
-    # TODO: should also write a test to use binstar_client to set the token,
-    # then let conda load the token
-    package = "private-package"
-
-    # Step 1. Make sure without the token we don't see the package
-    channel_url = "https://conda-web.anaconda.org/conda-test"
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli("search", "--channel", channel_url, package)
-    # flush stdout/stderr
-    capsys.readouterr()
-
-    # Step 2. Now with the token make sure we can see the package
-    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
-    stdout, _, _ = conda_cli(
-        "search",
-        *("--channel", channel_url),
-        package,
-        "--json",
-    )
-    assert package in json_loads(stdout)
-
-
-def test_use_index_cache():
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
 
-    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+    # pretend the cache is always stale
+    mocker.patch(
+        "conda.gateways.repodata.RepodataCache.stale",
+        return_value=True,
+    )
 
-    prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    with make_temp_env(prefix=prefix, no_capture=True):
-        # First, clear the index cache to make sure we start with an empty cache.
-        index_cache_dir = create_cache_dir()
-        run_command(Commands.CLEAN, "", "--index-cache", "--yes")
-        assert not glob(join(index_cache_dir, "*.json"))
+    # mock CondaSession.get so we can check if it was called
+    orig_get = CondaSession.get
+    mock_get = mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get",
+        autospec=True,
+        side_effect=orig_get,
+    )
 
-        # Then, populate the index cache.
-        orig_get = CondaSession.get
-        with patch.object(CondaSession, "get", autospec=True) as mock_method:
+    # populate the index cache
+    SubdirData._cache_.clear()
+    conda_cli("search", "flask")
+    assert mock_get.called
 
-            def side_effect(self, url, **kwargs):
-                # Make sure that we don't use the cache because of the
-                # corresponding HTTP header. This test is supposed to test
-                # whether the --use-index-cache causes the cache to be used.
-                result = orig_get(self, url, **kwargs)
-                for header in ("Etag", "Last-Modified", "Cache-Control"):
-                    if header in result.headers:
-                        del result.headers[header]
-                return result
+    # update CondaSession.get mock to fail if called with a repodata URL
+    def side_effect(self, url, **kwargs):
+        if url.endswith(("/repodata.json", "/repodata.json.bz2", "/repodata.json.zst")):
+            raise AssertionError("Index cache was not hit")
+        return orig_get(self, url, **kwargs)
 
-            SubdirData.clear_cached_local_channel_data(exclude_file=False)
-            mock_method.side_effect = side_effect
-            stdout, stderr, _ = run_command(
-                Commands.SEARCH, prefix, "flask", "--info", "--json"
-            )
-            assert mock_method.called
+    mock_get.side_effect = side_effect
 
-        # Next run with --use-index-cache and make sure it actually hits the cache
-        # and does not go out fetching index data remotely.
-        with patch.object(CondaSession, "get", autospec=True) as mock_method:
+    # without --use-index-cache, the index cache should not be hit
+    with pytest.raises(AssertionError, match="Index cache was not hit"):
+        SubdirData._cache_.clear()
+        conda_cli("search", "flask")
 
-            def side_effect(self, url, **kwargs):
-                if url.endswith("/repodata.json") or url.endswith("/repodata.json.bz2"):
-                    raise AssertionError("Index cache was not hit")
-                else:
-                    return orig_get(self, url, **kwargs)
-
-            mock_method.side_effect = side_effect
-            run_command(
-                Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache"
-            )
+    # with --use-index-cache, the index cache should be hit
+    SubdirData._cache_.clear()
+    conda_cli("search", "flask", "--use-index-cache")
 
 
-def test_offline_with_empty_index_cache():
+def test_offline_with_empty_index_cache(
+    tmp_pkgs_dir: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
     from conda.core.subdir_data import SubdirData
+    from conda.gateways.connection.session import CondaSession
 
-    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+    SubdirData._cache_.clear()
 
     try:
-        with make_temp_env(use_restricted_unicode=on_win) as prefix:
-            pkgs_dir = join(prefix, "pkgs")
-            with env_var(
-                "CONDA_PKGS_DIRS",
-                pkgs_dir,
-                stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+            # Clear the index cache.
+            index_cache_dir = create_cache_dir()
+            conda_cli("clean", "--index-cache", "--yes")
+            assert not exists(index_cache_dir)
+
+            # Then attempt to install a package with --offline. The package (flask) is
+            # available in a local channel, however its dependencies are not. Make sure
+            # that a) it fails because the dependencies are not available and b)
+            # we don't try to download the repodata from non-local channels but we do
+            # download repodata from local channels.
+
+            orig_get = CondaSession.get
+            local_channel_seen = False
+
+            def side_effect(self, url, **kwargs):
+                nonlocal local_channel_seen
+                if not url.startswith("file://"):
+                    raise AssertionError(f"Attempt to fetch repodata: {url}")
+                if url.startswith(channel):
+                    local_channel_seen = True
+                return orig_get(self, url, **kwargs)
+
+            mocker.patch(
+                "conda.gateways.connection.session.CondaSession.get",
+                autospec=True,
+                side_effect=side_effect,
+            )
+
+            SubdirData._cache_.clear()
+
+            assert not package_is_installed(prefix, "flask")
+            command = (
+                "install",
+                f"--prefix={prefix}",
+                "--override-channels",
+                f"--channel={channel}",
+                "flask",
+                "--offline",
+                "--yes",
+            )
+            if (
+                context.solver == "libmamba"
+                and metadata_version("conda-libmamba-solver") <= "23.12.0"
             ):
-                with make_temp_channel(["flask-2.1.3"]) as channel:
-                    # Clear the index cache.
-                    index_cache_dir = create_cache_dir()
-                    run_command(Commands.CLEAN, "", "--index-cache", "--yes")
-                    assert not exists(index_cache_dir)
+                # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
+                with pytest.raises((RuntimeError, UnsatisfiableError)):
+                    conda_cli(*command)
+            else:
+                # This first install passes because flask and its dependencies are in the
+                # package cache.
+                conda_cli(*command)
+                assert package_is_installed(prefix, "flask")
 
-                    # Then attempt to install a package with --offline. The package (flask) is
-                    # available in a local channel, however its dependencies are not. Make sure
-                    # that a) it fails because the dependencies are not available and b)
-                    # we don't try to download the repodata from non-local channels but we do
-                    # download repodata from local channels.
-                    from conda.gateways.connection.session import CondaSession
+                # The mock should have been called with our local channel URL though.
+                if context.solver != "libmamba":
+                    assert local_channel_seen
 
-                    orig_get = CondaSession.get
-
-                    result_dict = {}
-
-                    def side_effect(self, url, **kwargs):
-                        if not url.startswith("file://"):
-                            raise AssertionError(f"Attempt to fetch repodata: {url}")
-                        if url.startswith(channel):
-                            result_dict["local_channel_seen"] = True
-                        return orig_get(self, url, **kwargs)
-
-                    with patch.object(
-                        CondaSession, "get", autospec=True
-                    ) as mock_method:
-                        mock_method.side_effect = side_effect
-
-                        SubdirData.clear_cached_local_channel_data(exclude_file=False)
-
-                        assert not package_is_installed(prefix, "flask")
-                        command = (
-                            Commands.INSTALL,
-                            prefix,
-                            "-c",
-                            channel,
-                            "flask",
-                            "--offline",
-                        )
-                        if (
-                            context.solver == "libmamba"
-                            and metadata_version("conda-libmamba-solver") <= "23.12.0"
-                        ):
-                            # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
-                            with pytest.raises((RuntimeError, UnsatisfiableError)):
-                                run_command(*command)
-                        else:
-                            # This first install passes because flask and its dependencies are in the
-                            # package cache.
-                            run_command(*command)
-                            assert package_is_installed(prefix, "flask")
-
-                            # The mock should have been called with our local channel URL though.
-                            if context.solver != "libmamba":
-                                assert result_dict.get("local_channel_seen")
-
-                        # Fails because pytz cannot be found in available channels.
-                        # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
-                        # We can remove it when 23.9.2 is out with a fix
-                        with pytest.raises((PackagesNotFoundError, RuntimeError)):
-                            run_command(
-                                Commands.INSTALL,
-                                prefix,
-                                "-c",
-                                channel,
-                                "pytz",
-                                "--offline",
-                            )
-                        assert not package_is_installed(prefix, "pytz")
+            # Fails because pytz cannot be found in available channels.
+            # TODO: conda-libmamba-solver <=23.9.1 raises an ugly RuntimeError
+            # We can remove it when 23.9.2 is out with a fix
+            with pytest.raises((PackagesNotFoundError, RuntimeError)):
+                conda_cli(
+                    "install",
+                    f"--prefix={prefix}",
+                    "--override-channels",
+                    f"--channel={channel}",
+                    "pytz",
+                    "--offline",
+                    "--yes",
+                )
+            assert not package_is_installed(prefix, "pytz")
     finally:
-        SubdirData.clear_cached_local_channel_data(exclude_file=False)
-
-
-def test_create_from_extracted(tmp_pkgs_dir: Path):
-    def pkgs_dir_has_tarball(tarball_prefix):
-        return any(
-            f.startswith(tarball_prefix)
-            and any(f.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
-            for f in os.listdir(tmp_pkgs_dir)
-        )
-
-    with make_temp_env() as prefix:
-        # First, make sure the openssl package is present in the cache,
-        # downloading it if needed
-        assert not pkgs_dir_has_tarball("openssl-")
-        run_command(Commands.INSTALL, prefix, "openssl")
-        assert pkgs_dir_has_tarball("openssl-")
-
-        # Then, remove the tarball but keep the extracted directory around
-        run_command(Commands.CLEAN, prefix, "--tarballs", "--yes")
-        assert not pkgs_dir_has_tarball("openssl-")
-
-    with make_temp_env() as prefix:
-        # Finally, install openssl, enforcing the use of the extracted package.
-        # We expect that the tarball does not appear again because we simply
-        # linked the package from the extracted directory. If the tarball
-        # appeared again, we decided to re-download the package for some reason.
-        run_command(Commands.INSTALL, prefix, "openssl", "--offline")
-        assert not pkgs_dir_has_tarball("openssl-")
-
-
-def test_install_mkdir():
-    try:
-        prefix = make_temp_prefix()
-        with open(os.path.join(prefix, "tempfile.txt"), "w") as f:
-            f.write("test")
-        assert isdir(prefix)
-        assert isfile(os.path.join(prefix, "tempfile.txt"))
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            run_command(Commands.INSTALL, prefix, "python", "--mkdir")
-
-        run_command(Commands.CREATE, prefix)
-        run_command(Commands.INSTALL, prefix, "python", "--mkdir")
-        assert package_is_installed(prefix, "python")
-
-        rm_rf(prefix, clean_empty_parents=True)
-        assert path_is_clean(prefix)
-
-        # this part also a regression test for #4849
-        run_command(
-            Commands.INSTALL,
-            prefix,
-            "python-dateutil",
-            "python",
-            "--mkdir",
-            no_capture=True,
-        )
-        assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "python-dateutil")
-
-    finally:
-        rm_rf(prefix, clean_empty_parents=True)
+        SubdirData._cache_.clear()
 
 
 @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
