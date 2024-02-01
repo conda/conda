@@ -106,7 +106,7 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
-    if not context.no_repodata_zst:
+    if context.repodata_use_zst:
         try:
             from .jlap.interface import ZstdRepoInterface
 

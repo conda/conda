@@ -205,6 +205,14 @@ class CondaSession(Session, metaclass=CondaSessionType):
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
 
+    @classmethod
+    def cache_clear(cls):
+        try:
+            cls._thread_local.sessions.clear()
+        except AttributeError:
+            # AttributeError: thread's session cache has not been initialized
+            pass
+
 
 class CondaHttpAuth(AuthBase):
     # TODO: make this class thread-safe by adding some of the requests.auth.HTTPDigestAuth() code
