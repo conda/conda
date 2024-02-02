@@ -2540,7 +2540,7 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
 def test_neutering_of_historic_specs(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
-    with tmp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
+    with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
         d = (prefix / "conda-meta" / "history").read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
