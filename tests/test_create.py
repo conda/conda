@@ -2181,14 +2181,14 @@ def test_disallowed_packages(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
 ):
     with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_DISALLOWED_PACKAGES", "sqlite&flask")
+        monkeypatch.setenv("CONDA_DISALLOWED_PACKAGES", "openssl&flask")
         reset_context()
-        assert context.disallowed_packages == ("sqlite", "flask")
+        assert context.disallowed_packages == ("openssl", "flask")
         with pytest.raises(CondaMultiError) as exc:
             conda_cli("install", f"--prefix={prefix}", "python", "--yes")
         exc_val = exc.value.errors[0]
         assert isinstance(exc_val, DisallowedPackageError)
-        assert exc_val.dump_map()["package_ref"]["name"] == "sqlite"
+        assert exc_val.dump_map()["package_ref"]["name"] == "openssl"
 
 
 def test_dont_remove_conda_1(
