@@ -2528,6 +2528,7 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "python",
             "boost==1.70.0",
             "boost-cpp==1.70.0",
+            "--yes",
         )
 
 
