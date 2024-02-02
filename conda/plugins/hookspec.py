@@ -303,7 +303,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_configuration_parameters(self) -> Iterable[CondaPostSolve]:
+    def conda_configuration_parameters(self) -> Iterable[CondaConfigurationParameter]:
         """
         Register new configuration parameters
 
@@ -322,7 +322,7 @@ class CondaSpecs:
 
 
            @plugins.hookimpl
-           def conda_post_solves():
+           def conda_configuration_parameters():
                name = "example_option"
                description = "This is an example option"
                loader = ParameterLoader(
