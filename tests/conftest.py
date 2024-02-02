@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda.base.context import context, reset_context
 
@@ -24,15 +24,18 @@ pytest_plugins = (
 
 
 @pytest.fixture
-def test_recipes_channel(monkeypatch: MonkeyPatch) -> Path:
-    local = Path(__file__).parent / "test-recipes"
-    monkeypatch.setenv("CONDA_BLD_PATH", str(local))
-    monkeypatch.setenv("CONDA_USE_LOCAL", "true")
-    reset_context()
-    assert local.samefile(context.bld_path)
-    assert context.use_local
+def test_recipes_channel(mocker: MockerFixture) -> Path:
+    channel = Path(__file__).parent / "test-recipes"
 
-    return local
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(channel_str := str(channel),),
+    )
+    reset_context()
+    assert context.channels == (channel_str,)
+
+    return channel
 
 
 @pytest.fixture

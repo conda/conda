@@ -7,9 +7,11 @@ import pytest
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
 
+# features not supported in libmamba
+pytestmark = pytest.mark.usefixtures("solver_classic")
+
 
 def test_install_track_features_upgrade(
-    solver_classic: None,  # features not supported in libmamba
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -31,7 +33,6 @@ def test_install_track_features_upgrade(
 
 
 def test_install_track_features_downgrade(
-    solver_classic: None,  # features not supported in libmamba
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -53,7 +54,6 @@ def test_install_track_features_downgrade(
 
 
 def test_remove_features_upgrade(
-    solver_classic: None,  # features not supported in libmamba
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -80,7 +80,6 @@ def test_remove_features_upgrade(
     strict=True,
 )
 def test_remove_features_downgrade(
-    solver_classic: None,  # features not supported in libmamba
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
