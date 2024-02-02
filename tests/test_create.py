@@ -2376,7 +2376,7 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
 
-    with tmp_env("python", "conda") as prefix:  # rev 0
+    with tmp_env("python=3.11", "conda") as prefix:  # rev 0
         python_exe = str(prefix / PYTHON_BINARY)
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
