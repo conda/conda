@@ -25,6 +25,7 @@ from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS
 from .core.link import _get_best_prec_match, revert_actions  # noqa: F401
+from .deprecations import deprecated
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
@@ -37,6 +38,7 @@ from .utils import human_bytes
 log = getLogger(__name__)
 
 # TODO: Remove conda/plan.py.  This module should be almost completely deprecated now.
+deprecated.module("24.3", "24.9")
 
 
 def print_dists(dists_extras):

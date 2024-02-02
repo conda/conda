@@ -24,6 +24,12 @@ from .records import PackageRecord
 
 log = getLogger(__name__)
 
+deprecated.module(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.models.records.PackageRecord` instead.",
+)
+
 
 class DistDetails(NamedTuple):
     name: str

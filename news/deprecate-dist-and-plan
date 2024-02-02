@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.models.dist` as pending deprecation. Use `conda.models.records.PackageRecord` instead. (#13557)
+* Mark `conda.plan` as pending deprecation. (#13557)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
