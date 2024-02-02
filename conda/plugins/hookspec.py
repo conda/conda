@@ -324,9 +324,12 @@ class CondaSpecs:
            @plugins.hookimpl
            def conda_post_solves():
                name = "example_option"
+               description = "This is an example option"
                loader = ParameterLoader(
                    PrimitiveParameter(name, element_type=str), aliases=(name,)
                )
 
-               yield plugins.CondaConfigurationParameter(name=name, loader=loader)
+               yield plugins.CondaConfigurationParameter(
+                   name=name, description=description, loader=loader
+               )
         """

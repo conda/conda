@@ -382,6 +382,8 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Iterates through all registered configuration parameters and adds them to the context class.
 
+        :raises PluginError: Happens when plugins attempt to override existing parameters
+
         TODO:
             - Need to add configuration parameters to ``Context.category_map`` and
               ``Context.description_map``
