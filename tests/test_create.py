@@ -1655,7 +1655,9 @@ def test_conda_pip_interop_pip_clobbers_conda(
         assert package_is_installed(prefix, "python=3.5")
 
         stdout, _, _ = conda_cli("run", f"--prefix={prefix}", which_or_where, "python")
-        assert (prefix / PYTHON_BINARY).samefile(stdout.strip())
+        # on Windows `where` potentially returns multiple paths, filter for the first one
+        py_path = next(filter(None, stdout.splitlines()), None)
+        assert py_path and (prefix / PYTHON_BINARY).samefile(py_path)
 
         stdout, _, _ = conda_cli(
             "run",
