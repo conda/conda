@@ -1692,7 +1692,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
             "version": "1.10.0",
         }
         assert package_is_installed(prefix, "six=1.10.0")
-        stdout, stderr, _ = conda_cli(
+        stdout, _, _ = conda_cli(
             "run",
             f"--prefix={prefix}",
             *("python", "-m", "pip", "list", "--format=freeze"),
@@ -1801,7 +1801,8 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert not stderr
         assert package_is_installed(prefix, "six>=1.11")
-        stdout, stderr, _ = conda_cli(
+
+        stdout, _, _ = conda_cli(
             "run",
             f"--prefix={prefix}",
             *("python", "-m", "pip", "list", "--format=freeze"),
@@ -1813,7 +1814,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         assert len(list((prefix / "conda-meta").glob("six-*.json"))) == 1
 
         PrefixData._cache_.clear()
-        stdout, stderr, _ = conda_cli(
+        stdout, _, _ = conda_cli(
             "run",
             f"--prefix={prefix}",
             *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
