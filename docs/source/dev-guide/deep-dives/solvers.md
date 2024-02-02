@@ -242,7 +242,7 @@ and `conda remove --all` of the environment.
 
 `conda install` has a `--revision` flag, which allows you to revert the state of the environment
 to a previous one. This is done through the `History` file, but its
-[current implementation][conda.plan:revert_actions] can be considered broken. Once fixed,
+[current implementation][conda.core.link:revert_actions] can be considered broken. Once fixed,
 we will cover it in detail.
 
 <!-- TODO: Write --revision docs once fixed -->
@@ -519,7 +519,7 @@ environment..." step in the CLI report.
 [conda.models.match_spec:MatchSpec]: https://github.com/conda/conda/blob/4.11.0/conda/models/match_spec.py#L73
 [conda.misc:explicit]: https://github.com/conda/conda/blob/4.11.0/conda/misc.py#L52
 [conda.misc:clone_env]:https://github.com/conda/conda/blob/4.11.0/conda/misc.py#L187
-[conda.plan:revert_actions]: https://github.com/conda/conda/blob/4.11.0/conda/plan.py#L279
+[conda.core.link:revert_actions]: https://github.com/conda/conda/blob/24.1.0/conda/plan.py#L298
 [conda.core.solve:force_remove]: https://github.com/conda/conda/blob/4.11.0/conda/core/solve.py#L239-L245
 [conda.core.solve:satisfied_skip_solve]: https://github.com/conda/conda/blob/4.11.0/conda/core/solve.py#L247-L256
 [pysat]: https://pysathq.github.io/
