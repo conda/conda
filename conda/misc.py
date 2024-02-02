@@ -13,7 +13,7 @@ from .common.compat import on_mac, on_win, open
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
-from .core.link import PrefixSetup, UnlinkLinkTransaction
+from .core.link import PrefixSetup, UnlinkLinkTransaction, _get_best_prec_match
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
 from .exceptions import (
@@ -27,7 +27,6 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import MatchSpec
 from .models.prefix_graph import PrefixGraph
-from .plan import _get_best_prec_match
 
 
 def conda_installed_files(prefix, exclude_self_build=False):

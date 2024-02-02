@@ -23,17 +23,12 @@ from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
-from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
-from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.solve import diff_for_unlink_link_precs
-from .exceptions import CondaIndexError, PackagesNotFoundError
-from .history import History
+from .core.index import LAST_CHANNEL_URLS
+from .core.link import _get_best_prec_match, revert_actions  # noqa: F401
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
-from .models.match_spec import ChannelMatch
-from .models.prefix_graph import PrefixGraph
 from .models.records import PackageRecord
 from .models.version import normalized_version
 from .resolve import MatchSpec
@@ -278,60 +273,6 @@ def add_unlink(actions, dist):
 
 def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     return
-
-
-def _get_best_prec_match(precs):
-    assert precs
-    for chn in context.channels:
-        channel_matcher = ChannelMatch(chn)
-        prec_matches = tuple(
-            prec for prec in precs if channel_matcher.match(prec.channel.name)
-        )
-        if prec_matches:
-            break
-    else:
-        prec_matches = precs
-    log.warn("Multiple packages found:%s", dashlist(prec_matches))
-    return prec_matches[0]
-
-
-def revert_actions(prefix, revision=-1, index=None):
-    # TODO: If revision raise a revision error, should always go back to a safe revision
-    h = History(prefix)
-    # TODO: need a History method to get user-requested specs for revision number
-    #       Doing a revert right now messes up user-requested spec history.
-    #       Either need to wipe out history after ``revision``, or add the correct
-    #       history information to the new entry about to be created.
-    # TODO: This is wrong!!!!!!!!!!
-    user_requested_specs = h.get_requested_specs_map().values()
-    try:
-        target_state = {
-            MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)
-        }
-    except IndexError:
-        raise CondaIndexError("no such revision: %d" % revision)
-
-    _supplement_index_with_prefix(index, prefix)
-
-    not_found_in_index_specs = set()
-    link_precs = set()
-    for spec in target_state:
-        precs = tuple(prec for prec in index.values() if spec.match(prec))
-        if not precs:
-            not_found_in_index_specs.add(spec)
-        elif len(precs) > 1:
-            link_precs.add(_get_best_prec_match(precs))
-        else:
-            link_precs.add(precs[0])
-
-    if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
-
-    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
-    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
-    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
-    txn = UnlinkLinkTransaction(stp)
-    return txn
 
 
 # ---------------------------- Backwards compat for conda-build --------------------------

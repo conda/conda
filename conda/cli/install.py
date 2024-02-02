@@ -18,6 +18,7 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
 from ..core.index import calculate_channel_urls, get_index
+from ..core.link import revert_actions
 from ..core.prefix_data import PrefixData
 from ..exceptions import (
     CondaExitZero,
@@ -42,7 +43,6 @@ from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
-from ..plan import revert_actions
 from . import common
 from .common import check_non_admin
 from .python_api import Commands, run_command
