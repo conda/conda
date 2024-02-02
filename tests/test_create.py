@@ -85,7 +85,6 @@ from conda.testing.integration import (
     get_shortcut_dir,
     make_temp_channel,
     make_temp_env,
-    make_temp_prefix,
     package_is_installed,
     run_command,
     tempdir,
