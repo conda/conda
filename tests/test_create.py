@@ -30,7 +30,7 @@ import pytest
 from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda import CondaError, CondaMultiError
+from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     PREFIX_MAGIC_FILE,
@@ -2268,14 +2268,26 @@ def test_force_remove(
     conda_cli("remove", f"--prefix={prefix}", "--all")
 
 
-def test_download_only_flag():
+def test_download_only_flag(
+    tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
+):
     from conda.core.link import UnlinkLinkTransaction
 
-    with patch.object(UnlinkLinkTransaction, "execute") as mock_method:
-        with make_temp_env("openssl", "--download-only", use_exception_handler=True):
-            assert mock_method.call_count == 0
-        with make_temp_env("openssl", use_exception_handler=True):
-            assert mock_method.call_count == 1
+    with tmp_env() as prefix:
+        spy = mocker.spy(UnlinkLinkTransaction, "execute")
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "openssl",
+            "--download-only",
+            "--yes",
+            raises=CondaExitZero,
+        )
+        assert spy.call_count == 0
+
+        conda_cli("install", f"--prefix={prefix}", "openssl", "--yes")
+        assert spy.call_count == 1
 
 
 def test_transactional_rollback_simple():
