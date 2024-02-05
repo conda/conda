@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
-import os
 import re
 import sys
 from datetime import datetime
@@ -91,7 +90,6 @@ from conda.testing.integration import (
     make_temp_prefix,
     package_is_installed,
     run_command,
-    tempdir,
     which_or_where,
 )
 
@@ -2527,7 +2525,7 @@ def test_remove_spellcheck(
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="dependencies not available for win-32"
 )
-def test_cross_channel_incompatibility():
+def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Path):
     # regression test for https://github.com/conda/conda/issues/8772
     # conda-forge puts a run_constrains on libboost, which they don't have on conda-forge.
     #   This is a way of forcing libboost to be removed.  It's a way that they achieve
@@ -2535,16 +2533,15 @@ def test_cross_channel_incompatibility():
 
     # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
     with pytest.raises(DryRunExit):
-        stdout, stderr, _ = run_command(
-            Commands.CREATE,
-            "dummy_channel_incompat_test",
+        conda_cli(
+            "create",
+            f"--prefix={tmp_path}",
             "--dry-run",
-            "-c",
-            "conda-forge",
+            "--channel=conda-forge",
             "python",
             "boost==1.70.0",
             "boost-cpp==1.70.0",
-            no_capture=True,
+            "--yes",
         )
 
 
@@ -2553,44 +2550,39 @@ def test_cross_channel_incompatibility():
     context.subdir != "linux-64",
     reason="lazy; package constraint here only valid on linux-64",
 )
-def test_neutering_of_historic_specs():
-    with make_temp_env("psutil=5.6.3=py37h7b6447c_0") as prefix:
-        stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "python=3.6")
-        with open(os.path.join(prefix, "conda-meta", "history")) as f:
-            d = f.read()
+def test_neutering_of_historic_specs(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
+        conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
+        d = (prefix / "conda-meta" / "history").read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
-        stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "imagesize")
+        conda_cli("install", f"--prefix={prefix}", "imagesize", "--yes")
 
 
 # https://github.com/conda/conda/issues/10116
 @pytest.mark.skipif(
     not context.subdir.startswith("linux"), reason="__glibc only available on linux"
 )
-def test_install_bound_virtual_package():
-    with make_temp_env("__glibc>0"):
+def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
+    with tmp_env("__glibc>0"):
         pass
 
 
 @pytest.mark.integration
-def test_remove_empty_env():
-    with make_temp_env() as prefix:
-        run_command(Commands.CREATE, prefix)
-        run_command(Commands.REMOVE, prefix, "--all")
+def test_remove_empty_env(tmp_path: Path, conda_cli: CondaCLIFixture):
+    conda_cli("create", f"--prefix={tmp_path}", "--yes")
+    conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
 
-def test_remove_ignore_nonenv():
-    with tempdir() as test_root:
-        prefix = join(test_root, "not-an-env")
-        filename = join(prefix, "file.dat")
+def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
+    filename = tmp_path / "file.dat"
+    filename.touch()
 
-        os.mkdir(prefix)
-        with open(filename, "wb"):
-            pass
+    with pytest.raises(DirectoryNotACondaEnvironmentError):
+        conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
-        with pytest.raises(DirectoryNotACondaEnvironmentError):
-            run_command(Commands.REMOVE, prefix, "--all")
-
-        assert exists(filename)
-        assert exists(prefix)
+    assert filename.exists()
+    assert tmp_path.exists()
