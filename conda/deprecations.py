@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import sys
 import warnings
-from argparse import Action
 from functools import wraps
 from types import ModuleType
-from typing import Any, Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import Action
+    from typing import Any, Callable
 
 from packaging.version import Version, parse
 
