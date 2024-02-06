@@ -4,7 +4,6 @@ import json
 import re
 import sys
 from datetime import datetime
-from glob import glob
 from importlib.metadata import version as metadata_version
 from itertools import zip_longest
 from json import loads as json_loads
@@ -13,12 +12,10 @@ from os.path import (
     basename,
     exists,
     isdir,
-    isfile,
-    join,
 )
 from pathlib import Path
 from shutil import copyfile, rmtree
-from subprocess import PIPE, Popen, check_call, check_output
+from subprocess import check_call, check_output
 from typing import Literal
 from unittest.mock import patch
 
@@ -34,9 +31,9 @@ from conda.base.constants import (
     ChannelPriority,
     SafetyChecks,
 )
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.compat import ensure_text_type, on_linux, on_mac, on_win
-from conda.common.io import env_vars, stderr_log_level
+from conda.base.context import context, reset_context
+from conda.common.compat import on_linux, on_mac, on_win
+from conda.common.io import stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
     get_bin_directory_short_path,
@@ -73,19 +70,15 @@ from conda.gateways.subprocess import (
 )
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.models.version import VersionOrder
 from conda.resolve import Resolve
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
-    Commands,
     get_shortcut_dir,
     make_temp_channel,
-    make_temp_env,
     package_is_installed,
-    run_command,
     which_or_where,
 )
 
@@ -1624,7 +1617,11 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 @pytest.mark.skipif(
     context.subdir == "win-32", reason="metadata is wrong; give python2.7"
 )
-def test_conda_pip_interop_pip_clobbers_conda():
+def test_conda_pip_interop_pip_clobbers_conda(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     # 1. conda install old six
     # 2. pip install -U six
     # 3. conda list shows new six and deletes old conda record
@@ -1633,54 +1630,49 @@ def test_conda_pip_interop_pip_clobbers_conda():
     #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
     #     context.load_verify_locations(ca_certs, ca_cert_dir)
     #   TypeError: cafile should be a valid filesystem path
-    with make_temp_env(
-        "-c",
-        "https://repo.anaconda.com/pkgs/free",
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
+
+    with tmp_env(
+        "--channel=https://repo.anaconda.com/pkgs/free",
         "six=1.9",
         "pip=9.0.3",
         "python=3.5",
-        use_restricted_unicode=on_win,
     ) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
         assert package_is_installed(prefix, "six=1.9.0")
+        assert package_is_installed(prefix, "pip=9.0.3")
         assert package_is_installed(prefix, "python=3.5")
 
-        # On Windows, it's more than prefix.lower(), we get differently shortened paths too.
-        # If only we could use pathlib.
-        if not on_win:
-            output, _, _ = run_command(Commands.RUN, prefix, which_or_where, "python")
-            assert prefix.lower() in output.lower(), (
-                f"We should be running python in {prefix}\n"
-                f"We are running {output}\n"
-                "Please check the CONDA_PREFIX PATH promotion in tests/__init__.py\n"
-                "for a likely place to add more fixes"
-            )
-        output, _, _ = run_command(
-            Commands.RUN, prefix, "python", "-m", "pip", "freeze"
+        stdout, _, _ = conda_cli("run", f"--prefix={prefix}", which_or_where, "python")
+        # on Windows `where` potentially returns multiple paths, filter for the first one
+        py_path = next(filter(None, stdout.splitlines()), None)
+        assert py_path and (prefix / PYTHON_BINARY).samefile(py_path)
+
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            "-m",
+            "pip",
+            "list",
+            "--format=freeze",
         )
-        pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
-        assert "six==1.9.0" in pkgs
+        assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
         py_ver = get_python_version_for_prefix(prefix)
         sp_dir = get_python_site_packages_short_path(py_ver)
 
-        output, _, _ = run_command(
-            Commands.RUN,
-            prefix,
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "-U",
-            "six==1.10",
-        )
-        assert "Successfully installed six-1.10.0" in ensure_text_type(output)
         PrefixData._cache_.clear()
-        stdout, stderr, _ = run_command(Commands.LIST, prefix, "--json")
-        assert not stderr
-        json_obj = json.loads(stdout)
-        six_info = next(info for info in json_obj if info["name"] == "six")
-        assert six_info == {
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
+        )
+        assert "Successfully installed six-1.10.0" in stdout
+
+        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
+        assert next(info for info in json.loads(stdout) if info["name"] == "six") == {
             "base_url": "https://conda.anaconda.org/pypi",
             "build_number": 0,
             "build_string": "pypi_0",
@@ -1691,30 +1683,29 @@ def test_conda_pip_interop_pip_clobbers_conda():
             "version": "1.10.0",
         }
         assert package_is_installed(prefix, "six=1.10.0")
-        output, err, _ = run_command(
-            Commands.RUN, prefix, "python", "-m", "pip", "freeze"
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "list", "--format=freeze"),
         )
-        pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
-        assert "six==1.10.0" in pkgs
+        assert any(pkg.strip() == "six==1.10.0" for pkg in stdout.splitlines())
 
-        six_record = next(PrefixData(prefix).query("six"))
-        print(json_dump(six_record))
-        assert json_loads(json_dump(six_record)) == {
+        assert json.loads(json_dump(PrefixData(prefix).get("six"))) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
             "constrains": [],
             "depends": ["python 3.5.*"],
             "files": [
-                sp_dir + "/" + "__pycache__/six.cpython-35.pyc",
-                sp_dir + "/" + "six-1.10.0.dist-info/DESCRIPTION.rst",
-                sp_dir + "/" + "six-1.10.0.dist-info/INSTALLER",
-                sp_dir + "/" + "six-1.10.0.dist-info/METADATA",
-                sp_dir + "/" + "six-1.10.0.dist-info/RECORD",
-                sp_dir + "/" + "six-1.10.0.dist-info/WHEEL",
-                sp_dir + "/" + "six-1.10.0.dist-info/metadata.json",
-                sp_dir + "/" + "six-1.10.0.dist-info/top_level.txt",
-                sp_dir + "/" + "six.py",
+                sp_dir + "/__pycache__/six.cpython-35.pyc",
+                sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
+                sp_dir + "/six-1.10.0.dist-info/INSTALLER",
+                sp_dir + "/six-1.10.0.dist-info/METADATA",
+                sp_dir + "/six-1.10.0.dist-info/RECORD",
+                sp_dir + "/six-1.10.0.dist-info/WHEEL",
+                sp_dir + "/six-1.10.0.dist-info/metadata.json",
+                sp_dir + "/six-1.10.0.dist-info/top_level.txt",
+                sp_dir + "/six.py",
             ],
             "fn": "six-1.10.0.dist-info",
             "name": "six",
@@ -1722,55 +1713,55 @@ def test_conda_pip_interop_pip_clobbers_conda():
             "paths_data": {
                 "paths": [
                     {
-                        "_path": sp_dir + "/" + "__pycache__/six.cpython-35.pyc",
+                        "_path": sp_dir + "/__pycache__/six.cpython-35.pyc",
                         "path_type": "hardlink",
                         "sha256": None,
                         "size_in_bytes": None,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/DESCRIPTION.rst",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
                         "path_type": "hardlink",
                         "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
                         "size_in_bytes": 774,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/INSTALLER",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/INSTALLER",
                         "path_type": "hardlink",
                         "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
                         "size_in_bytes": 4,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/METADATA",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/METADATA",
                         "path_type": "hardlink",
                         "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
                         "size_in_bytes": 1283,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/RECORD",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/RECORD",
                         "path_type": "hardlink",
                         "sha256": None,
                         "size_in_bytes": None,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/WHEEL",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/WHEEL",
                         "path_type": "hardlink",
                         "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
                         "size_in_bytes": 110,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/metadata.json",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/metadata.json",
                         "path_type": "hardlink",
                         "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
                         "size_in_bytes": 658,
                     },
                     {
-                        "_path": sp_dir + "/" + "six-1.10.0.dist-info/top_level.txt",
+                        "_path": sp_dir + "/six-1.10.0.dist-info/top_level.txt",
                         "path_type": "hardlink",
                         "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
                         "size_in_bytes": 4,
                     },
                     {
-                        "_path": sp_dir + "/" + "six.py",
+                        "_path": sp_dir + "/six.py",
                         "path_type": "hardlink",
                         "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
                         "size_in_bytes": 30098,
@@ -1782,54 +1773,64 @@ def test_conda_pip_interop_pip_clobbers_conda():
             "version": "1.10.0",
         }
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "six", "--satisfied-skip-solve"
+        stdout, _, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "six",
+            "--satisfied-skip-solve",
+            "--yes",
         )
-        assert not stderr
         assert "All requested packages already installed." in stdout
 
-        stdout, stderr, _ = run_command(
-            Commands.INSTALL, prefix, "six", "--repodata-fn", "repodata.json"
-        )
-        assert not stderr
-        assert package_is_installed(prefix, "six>=1.11")
-        output, err, _ = run_command(
-            Commands.RUN, prefix, "python", "-m", "pip", "freeze"
-        )
-        pkgs = {ensure_text_type(v.strip()) for v in output.splitlines() if v.strip()}
-        six_record = next(PrefixData(prefix).query("six"))
-        assert "six==%s" % six_record.version in pkgs
-
-        assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
-
-        output, err, _ = run_command(
-            Commands.RUN,
-            prefix,
-            "python",
-            "-m",
-            "pip",
+        stdout, _, _ = conda_cli(
             "install",
-            "-U",
-            "six==1.10",
+            f"--prefix={prefix}",
+            "six",
+            "--repodata-fn=repodata.json",
+            "--yes",
         )
-        print(output)
-        assert "Successfully installed six-1.10.0" in ensure_text_type(output)
+        assert package_is_installed(prefix, "six>=1.11")
+
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "list", "--format=freeze"),
+        )
+        assert any(
+            pkg.strip() == f"six=={PrefixData(prefix).get('six').version}"
+            for pkg in stdout.splitlines()
+        )
+        assert len(list((prefix / "conda-meta").glob("six-*.json"))) == 1
+
         PrefixData._cache_.clear()
+        stdout, _, _ = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
+        )
+        assert "Successfully installed six-1.10.0" in stdout
         assert package_is_installed(prefix, "six=1.10.0")
 
-        stdout, stderr, _ = run_command(Commands.REMOVE, prefix, "six")
-        assert not stderr
+        stdout, _, _ = conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
         assert "six-1.10.0-pypi_0" in stdout
         assert not package_is_installed(prefix, "six")
 
-        assert not glob(join(prefix, sp_dir, "six*"))
+        assert not list((prefix / sp_dir).glob("six*"))
 
 
-@pytest.mark.skipif(
-    context.subdir not in ("linux-64", "osx-64", "win-32", "win-64", "linux-32"),
-    reason="Skip unsupported platforms",
-)
-def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, request):
+def test_conda_pip_interop_conda_editable_package(
+    clear_package_cache: None,
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "classic",
+            reason="See https://github.com/conda/conda/issues/13529.",
+        )
+    )
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -1837,189 +1838,163 @@ def test_conda_pip_interop_conda_editable_package(clear_package_cache: None, req
         )
     )
 
-    with env_vars(
-        {
-            "CONDA_REPORT_ERRORS": "false",
-            "CONDA_RESTORE_FREE_CHANNEL": True,
-            "CONDA_CHANNELS": "defaults",
-            "CONDA_PIP_INTEROP_ENABLED": "true",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with make_temp_env(
-            "python=2.7", "pip=10", "git", use_restricted_unicode=on_win
-        ) as prefix:
-            workdir = prefix
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
 
-            assert package_is_installed(prefix, "python")
+    with tmp_env("python=3.12", "pip", "git") as prefix:
+        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, "pip")
+        assert package_is_installed(prefix, "git")
 
-            # install an "editable" urllib3 that cannot be managed
-            output, err, _ = run_command(
-                Commands.RUN,
-                prefix,
-                "--cwd",
-                workdir,
+        # install an "editable" urllib3 that cannot be managed
+        PrefixData._cache_.clear()
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            f"--cwd={prefix}",
+            *(
                 "python",
                 "-m",
                 "pip",
                 "install",
-                "-e",
+                "--editable",
                 "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
-            )
-            assert isfile(join(workdir, "src", "urllib3", "urllib3", "__init__.py"))
-            assert not isfile(join("src", "urllib3", "urllib3", "__init__.py"))
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "urllib3")
-            urllib3_record = next(PrefixData(prefix).query("urllib3"))
-            urllib3_record_dump = urllib3_record.dump()
-            urllib3_record_dump.pop("files")
-            urllib3_record_dump.pop("paths_data")
-            print(json_dump(urllib3_record_dump))
+            ),
+        )
+        assert (prefix / "src" / "urllib3" / "urllib3" / "__init__.py").is_file()
+        assert not Path("src", "urllib3", "urllib3", "__init__.py").is_file()
+        assert package_is_installed(prefix, "urllib3")
+        prec_dump = PrefixData(prefix).get("urllib3").dump()
+        prec_dump.pop("files")
+        prec_dump.pop("paths_data")
+        assert json.loads(json_dump(prec_dump)) == {
+            "build": "dev_0",
+            "build_number": 0,
+            "channel": "https://conda.anaconda.org/<develop>",
+            "constrains": [
+                "cryptography >=1.3.4",
+                "idna >=2.0.0",
+                "pyopenssl >=0.14",
+                "pysocks !=1.5.7,<2.0,>=1.5.6",
+            ],
+            "depends": ["python 3.12.*"],
+            "fn": "urllib3-1.19.1-dev_0",
+            "name": "urllib3",
+            "package_type": "virtual_python_egg_link",
+            "subdir": "pypi",
+            "version": "1.19.1",
+        }
 
-            assert json_loads(json_dump(urllib3_record_dump)) == {
-                "build": "dev_0",
-                "build_number": 0,
-                "channel": "https://conda.anaconda.org/<develop>",
-                "constrains": [
-                    "cryptography >=1.3.4",
-                    "idna >=2.0.0",
-                    "pyopenssl >=0.14",
-                    "pysocks !=1.5.7,<2.0,>=1.5.6",
-                ],
-                "depends": ["python 2.7.*"],
-                "fn": "urllib3-1.19.1-dev_0",
-                "name": "urllib3",
-                "package_type": "virtual_python_egg_link",
-                "subdir": "pypi",
-                "version": "1.19.1",
-            }
+        # the unmanageable urllib3 should prevent a new requests from being installed
+        with pytest.raises(RuntimeError):
+            conda_cli("install", f"--prefix={prefix}", "requests", "--json", "--yes")
 
-            # the unmanageable urllib3 should prevent a new requests from being installed
-            stdout, stderr, _ = run_command(
-                Commands.INSTALL,
-                prefix,
-                "requests",
-                "--dry-run",
-                "--json",
-                use_exception_handler=True,
-            )
-            assert not stderr
-            json_obj = json_loads(stdout)
-            assert "UNLINK" not in json_obj["actions"]
-            link_dists = json_obj["actions"]["LINK"]
-            assert len(link_dists) == 1
-            assert link_dists[0]["name"] == "requests"
-            assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
+        # should already be satisfied
+        stdout, _, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "urllib3",
+            "--satisfied-skip-solve",
+            "--yes",
+        )
+        assert "All requested packages already installed." in stdout
 
-            # should already be satisfied
-            stdout, stderr, _ = run_command(Commands.INSTALL, prefix, "urllib3", "-S")
-            assert "All requested packages already installed." in stdout
+        # should raise an error
+        with pytest.raises(PackagesNotFoundError):
+            # TODO: This raises PackagesNotFoundError, but the error should really explain
+            #       that we can't install urllib3 because it's already installed and
+            #       unmanageable. The error should suggest trying to use pip to uninstall it.
+            conda_cli("install", f"--prefix={prefix}", "urllib3=1.20", "--yes")
 
-            # should raise an error
-            with pytest.raises(PackagesNotFoundError):
-                # TODO: This raises PackagesNotFoundError, but the error should really explain
-                #       that we can't install urllib3 because it's already installed and
-                #       unmanageable. The error should suggest trying to use pip to uninstall it.
-                stdout, stderr, _ = run_command(
-                    Commands.INSTALL, prefix, "urllib3=1.20", "--dry-run"
-                )
+        # Now install a manageable urllib3.
+        PrefixData._cache_.clear()
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "--upgrade", "urllib3==1.20"),
+        )
+        assert package_is_installed(prefix, "urllib3")
+        prec_dump = PrefixData(prefix).get("urllib3").dump()
+        prec_dump.pop("files")
+        prec_dump.pop("paths_data")
+        assert json.loads(json_dump(prec_dump)) == {
+            "build": "pypi_0",
+            "build_number": 0,
+            "channel": "https://conda.anaconda.org/pypi",
+            "constrains": ["pysocks >=1.5.6,<2.0,!=1.5.7"],
+            "depends": ["python 3.12.*"],
+            "fn": "urllib3-1.20.dist-info",
+            "name": "urllib3",
+            "package_type": "virtual_python_wheel",
+            "subdir": "pypi",
+            "version": "1.20",
+        }
 
-            # Now install a manageable urllib3.
-            output = check_output(
-                PYTHON_BINARY + " -m pip install -U urllib3==1.20",
-                cwd=prefix,
-                shell=True,
-            )
-            print(output)
-            PrefixData._cache_.clear()
-            assert package_is_installed(prefix, "urllib3")
-            urllib3_record = next(PrefixData(prefix).query("urllib3"))
-            urllib3_record_dump = urllib3_record.dump()
-            urllib3_record_dump.pop("files")
-            urllib3_record_dump.pop("paths_data")
-            print(json_dump(urllib3_record_dump))
-
-            assert json_loads(json_dump(urllib3_record_dump)) == {
-                "build": "pypi_0",
-                "build_number": 0,
-                "channel": "https://conda.anaconda.org/pypi",
-                "constrains": ["pysocks >=1.5.6,<2.0,!=1.5.7"],
-                "depends": ["python 2.7.*"],
-                "fn": "urllib3-1.20.dist-info",
-                "name": "urllib3",
-                "package_type": "virtual_python_wheel",
-                "subdir": "pypi",
-                "version": "1.20",
-            }
-
-            # we should be able to install an unbundled requests that upgrades urllib3 in the process
-            stdout, stderr, _ = run_command(
-                Commands.INSTALL, prefix, "requests=2.18", "--json"
-            )
-            assert package_is_installed(prefix, "requests")
-            assert package_is_installed(prefix, "urllib3>=1.21")
-            assert not stderr
-            json_obj = json_loads(stdout)
-            unlink_dists = [
-                dist_obj
-                for dist_obj in json_obj["actions"]["UNLINK"]
-                if dist_obj.get("platform") == "pypi"
-            ]  # filter out conda package upgrades like python and libffi
-            assert len(unlink_dists) == 1
-            assert unlink_dists[0]["name"] == "urllib3"
-            assert unlink_dists[0]["channel"] == "pypi"
+        # we should be able to install an unbundled requests that upgrades urllib3 in the process
+        stdout, _, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "requests>=2.18",
+            "--json",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "requests>=2.18")
+        assert package_is_installed(prefix, "urllib3>=1.21")
+        json_obj = json.loads(stdout)
+        unlink_dists = [
+            dist_obj
+            for dist_obj in json_obj["actions"]["UNLINK"]
+            if dist_obj.get("platform") == "pypi"
+        ]  # filter out conda package upgrades like python and libffi
+        assert len(unlink_dists) == 1
+        assert unlink_dists[0]["name"] == "urllib3"
+        assert unlink_dists[0]["channel"] == "pypi"
 
 
-def test_conda_pip_interop_compatible_release_operator():
+def test_conda_pip_interop_compatible_release_operator(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     # Regression test for #7776
     # important to start the env with six 1.9.  That version forces an upgrade later in the test
-    with make_temp_env(
-        "-c",
-        "https://repo.anaconda.com/pkgs/free",
+    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    reset_context()
+    assert context.pip_interop_enabled
+
+    with tmp_env(
+        "--channel=https://repo.anaconda.com/pkgs/free",
         "pip=10",
         "six=1.9",
         "appdirs",
-        use_restricted_unicode=on_win,
     ) as prefix:
-        run_command(Commands.CONFIG, prefix, "--set", "pip_interop_enabled", "true")
-        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, "pip=10")
         assert package_is_installed(prefix, "six=1.9")
         assert package_is_installed(prefix, "appdirs>=1.4.3")
 
-        python_binary = join(prefix, PYTHON_BINARY)
-        p = Popen(
-            [python_binary, "-m", "pip", "install", "fs==2.1.0"],
-            stdout=PIPE,
-            stderr=PIPE,
-            cwd=prefix,
-            shell=False,
+        PrefixData._cache_.clear()
+        _, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "fs==2.1.0"),
         )
-        stdout, stderr = p.communicate()
-        rc = p.returncode
-        assert int(rc) != 0
-        stderr = (
-            stderr.decode("utf-8", errors="replace")
-            if hasattr(stderr, "decode")
-            else str(stderr)
-        )
+        assert err
         assert "Cannot uninstall" in stderr
 
-        run_command(Commands.REMOVE, prefix, "six")
+        conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
         assert not package_is_installed(prefix, "six")
 
-        output = check_output(
-            [python_binary, "-m", "pip", "install", "fs==2.1.0"],
-            cwd=prefix,
-            shell=False,
-        )
-        print(output)
         PrefixData._cache_.clear()
+        conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *("python", "-m", "pip", "install", "fs==2.1.0"),
+        )
         assert package_is_installed(prefix, "fs==2.1.0")
-        # six_record = next(PrefixData(prefix).query("six"))
-        # print(json_dump(six_record.dump()))
         assert package_is_installed(prefix, "six~=1.10")
 
-        stdout, stderr, _ = run_command(Commands.LIST, prefix)
+        stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
         assert not stderr
         assert (
             "fs                        2.1.0                    pypi_0    pypi"
@@ -2027,11 +2002,10 @@ def test_conda_pip_interop_compatible_release_operator():
         )
 
         with pytest.raises(DryRunExit):
-            run_command(
-                Commands.INSTALL,
-                prefix,
-                "-c",
-                "https://repo.anaconda.com/pkgs/free",
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                "--channel=https://repo.anaconda.com/pkgs/free",
                 "agate=1.6",
                 "--dry-run",
             )
