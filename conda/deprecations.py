@@ -332,16 +332,33 @@ class DeprecationHandler:
         :param stack: The stacklevel increment.
         :return: The module and module name.
         """
-        import inspect  # expensive
-
         try:
             frame = sys._getframe(2 + stack)
-            module = inspect.getmodule(frame)
-            if module is not None:
-                return (module, module.__name__)
         except IndexError:
             # IndexError: 2 + stack is out of range
             pass
+        else:
+            # Shortcut finding the module by manually inspecting loaded modules.
+            try:
+                filename = frame.f_code.co_filename
+            except AttributeError:
+                # AttributeError: frame.f_code.co_filename is undefined
+                pass
+            else:
+                for module in sys.modules.values():
+                    if not isinstance(module, ModuleType):
+                        continue
+                    if not hasattr(module, "__file__"):
+                        continue
+                    if module.__file__ == filename:
+                        return (module, module.__name__)
+
+            # If above failed, do an expensive import and costly getmodule call.
+            import inspect
+
+            module = inspect.getmodule(frame)
+            if module is not None:
+                return (module, module.__name__)
 
         raise DeprecatedError("unable to determine the calling module")
 
