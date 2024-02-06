@@ -1831,6 +1831,12 @@ def test_conda_pip_interop_conda_editable_package(
             reason="See https://github.com/conda/conda/issues/13529.",
         )
     )
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="conda-libmamba-solver does not implement pip interoperability",
+        )
+    )
 
     monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
     reset_context()
@@ -1852,7 +1858,7 @@ def test_conda_pip_interop_conda_editable_package(
                 "-m",
                 "pip",
                 "install",
-                "-e",
+                "--editable",
                 "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
             ),
         )
