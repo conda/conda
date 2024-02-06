@@ -193,7 +193,7 @@ class CondaConfigurationParameter:
     Return type to use when defining a conda configuration parameter plugin hook.
 
     For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_solves`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_configuration_parameters`.
 
     :param name: name of the configuration parameter (e.g., ``config_param``)
     :param description: description of the configuration parameter that should be targeted
