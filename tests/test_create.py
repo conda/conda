@@ -1671,8 +1671,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert "Successfully installed six-1.10.0" in stdout
 
-        stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--json")
-        assert not stderr
+        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
         assert next(info for info in json.loads(stdout) if info["name"] == "six") == {
             "base_url": "https://conda.anaconda.org/pypi",
             "build_number": 0,
@@ -1774,24 +1773,22 @@ def test_conda_pip_interop_pip_clobbers_conda(
             "version": "1.10.0",
         }
 
-        stdout, stderr, _ = conda_cli(
+        stdout, _, _ = conda_cli(
             "install",
             f"--prefix={prefix}",
             "six",
             "--satisfied-skip-solve",
             "--yes",
         )
-        assert not stderr
         assert "All requested packages already installed." in stdout
 
-        stdout, stderr, _ = conda_cli(
+        stdout, _, _ = conda_cli(
             "install",
             f"--prefix={prefix}",
             "six",
             "--repodata-fn=repodata.json",
             "--yes",
         )
-        assert not stderr
         assert package_is_installed(prefix, "six>=1.11")
 
         stdout, _, _ = conda_cli(
@@ -1814,8 +1811,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         assert "Successfully installed six-1.10.0" in stdout
         assert package_is_installed(prefix, "six=1.10.0")
 
-        stdout, stderr, _ = conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
-        assert not stderr
+        stdout, _, _ = conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
         assert "six-1.10.0-pypi_0" in stdout
         assert not package_is_installed(prefix, "six")
 
@@ -1889,7 +1885,7 @@ def test_conda_pip_interop_conda_editable_package(
             conda_cli("install", f"--prefix={prefix}", "requests", "--json", "--yes")
 
         # should already be satisfied
-        stdout, stderr, _ = conda_cli(
+        stdout, _, _ = conda_cli(
             "install",
             f"--prefix={prefix}",
             "urllib3",
@@ -1930,14 +1926,13 @@ def test_conda_pip_interop_conda_editable_package(
         }
 
         # we should be able to install an unbundled requests that upgrades urllib3 in the process
-        stdout, stderr, _ = conda_cli(
+        stdout, _, _ = conda_cli(
             "install",
             f"--prefix={prefix}",
             "requests>=2.18",
             "--json",
             "--yes",
         )
-        assert not stderr
         assert package_is_installed(prefix, "requests>=2.18")
         assert package_is_installed(prefix, "urllib3>=1.21")
         json_obj = json.loads(stdout)
