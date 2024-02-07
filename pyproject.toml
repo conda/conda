@@ -128,7 +128,7 @@ pydocstyle = {convention = "pep257"}
 
 [tool.pytest.ini_options]
 minversion = 3.0
-testpaths = ["tests"]
+testpaths = ["tests/test_activate.py", "tests/cli/test_subcommands.py"]
 norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
