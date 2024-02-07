@@ -1,2 +1,3 @@
 boto3 !=1.33.0
 conda-forge::minio-server
+conda-forge::pytest-xprocess
