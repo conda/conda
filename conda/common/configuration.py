@@ -1615,14 +1615,21 @@ def get_plugin_config_data(
 ) -> dict[Path, dict[str, RawParameter]]:
     """
     This is used to move everything under "plugins" to the top level of the dictionary.
-    The return dictionary is then passed to :class:`PluginConfig`.
+    The return dictionary is then passed to :class:`PluginConfig`. It currently only
+    supports sources from config files and environment variables.
     """
     new_data = {}
 
     for source, config in data.items():
         if plugin_data := config.get("plugins"):
-            for param_name, data in plugin_data.value(None).items():
-                new_data[source] = {param_name: data}
+            for param_name, raw_param in plugin_data.value(None).items():
+                new_data[source] = {param_name: raw_param}
+
+        if source == "envvars":
+            for env_var, raw_param in config.items():
+                if env_var.startswith("plugins_"):
+                    _, param_name = env_var.split("plugins_")
+                    new_data[source] = {param_name: raw_param}
 
     return new_data
 
@@ -1665,7 +1672,7 @@ class PluginConfig(metaclass=ConfigurationType):
         for name in cls.parameter_names:
             try:
                 delattr(cls, name)
-            except (AttributeError, KeyError):
+            except AttributeError:
                 continue
 
         cls.parameter_names = tuple()

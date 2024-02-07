@@ -3,6 +3,7 @@
 import logging
 
 import pytest
+from pytest import MonkeyPatch
 
 from conda import plugins
 from conda.base.context import context, reset_context
@@ -22,6 +23,9 @@ STRING_PARAMETER_NAME = "string_parameter"
 
 #: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_VALUE = "test_value"
+
+#: Value for the string type parameter (used in test condarc below)
+STRING_PARAMETER_ENV_VAR_VALUE = "env_var_value"
 
 #: condarc file with our test configuration parameter present
 CONDARC_TEST_ONE = f"""
@@ -102,3 +106,22 @@ def test_load_plugin_config_with_condarc(condarc_plugin_manager):
     file that the value shows up on the context object.
     """
     assert getattr(context.plugins, STRING_PARAMETER_NAME) == STRING_PARAMETER_VALUE
+
+
+def test_load_plugin_config_with_env_var(
+    monkeypatch: MonkeyPatch, config_param_plugin_manager
+):
+    """
+    Ensure that when an environment variable is set for a plugin configuration parameter
+    it is read correctly.
+    """
+    monkeypatch.setenv(
+        f"CONDA_PLUGINS_{STRING_PARAMETER_NAME.upper()}", STRING_PARAMETER_ENV_VAR_VALUE
+    )
+    reset_context()
+    context.plugins = PluginConfig(context.raw_data)
+
+    assert (
+        getattr(context.plugins, STRING_PARAMETER_NAME)
+        == STRING_PARAMETER_ENV_VAR_VALUE
+    )
