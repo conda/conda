@@ -2488,8 +2488,6 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert any(path.endswith("condabin") for path in PATH0.split(":"))
 
     shell.assert_env_var("CONDA_SHLVL", "0")
-    PATH0 = shell.get_env_var("PATH", "")
-    assert len([path for path in PATH0.split(":") if path.endswith("condabin")]) > 0
     # Remove sys.prefix from PATH. It interferes with path entry count tests.
     # We can no longer check this since we'll replace e.g. between 1 and N path
     # entries with N of them in _replace_prefix_in_path() now. It is debatable
