@@ -13,19 +13,16 @@ import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 import pluggy
 from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
-from ..base.context import Context, context
-from ..common.configuration import ParameterLoader
-from ..core.solve import Solver
+from ..base.context import context
+from ..common.configuration import ParameterLoader, PluginConfig
 from ..exceptions import CondaValueError, PluginError
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
-from . import post_solves, solvers, subcommands, virtual_packages
+from . import config_params, post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
@@ -40,6 +37,11 @@ from .types import (
     CondaSubcommand,
     CondaVirtualPackage,
 )
+
+if TYPE_CHECKING:
+    from ..core.solve import Solver
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
 
 log = logging.getLogger(__name__)
 
@@ -382,28 +384,15 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Iterates through all registered configuration parameters and adds them to the context class.
 
-        :raises PluginError: Happens when plugins attempt to override existing parameters
-
         TODO:
             - Need to add configuration parameters to ``Context.category_map`` and
               ``Context.description_map``
         """
-        existing_parameters = context.list_parameters()
-        error_params = []
-
         for name, loader in self.get_configuration_parameters().items():
-            if name in existing_parameters:
-                error_params.append(name)
-            name = loader._set_name(name)
-            setattr(Context, name, loader)
-            setattr(Context, "parameter_names", Context.parameter_names + (name,))
-
-        if len(error_params) > 0:
-            error_params_str = ", ".join(error_params)
-            raise PluginError(
-                "One or more plugins attempted to override the following parameter(s): "
-                f"{error_params_str}. These will be ignored."
-            )
+            try:
+                PluginConfig.add_config_param(name, loader)
+            except PluginError as exc:
+                log.warning(exc.message)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
@@ -420,6 +409,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
+        *config_params.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

@@ -1608,3 +1608,66 @@ class Configuration(metaclass=ConfigurationType):
 
     def get_descriptions(self):
         raise NotImplementedError()
+
+
+def get_plugin_config_data(
+    data: dict[Path, dict[str, RawParameter]],
+) -> dict[Path, dict[str, RawParameter]]:
+    """
+    This is used to move everything under "plugins" to the top level of the dictionary.
+    The return dictionary is then passed to :class:`PluginConfig`.
+    """
+    new_data = {}
+
+    for source, config in data.items():
+        if plugin_data := config.get("plugins"):
+            for param_name, data in plugin_data.value(None).items():
+                new_data[source] = {param_name: data}
+
+    return new_data
+
+
+class PluginConfig(metaclass=ConfigurationType):
+    """
+    Class used to hold configuration for conda plugins.
+
+    This object created by this class should only be accessed via
+    :class:`conda.base.context.Context.plugins`.
+
+    This class is updated via the :meth:`add_config_param` method which
+    is called in :meth:`conda.plugins.manager.CondaPluginManager.load_configuration_parameters`.
+    We do this because ``CondaPluginManager`` has access to all registered plugin hooks.
+    """
+
+    #: Used to keep track of parameters already attached to the class
+    _parameter_names = set()
+
+    def __init__(self, data):
+        self._cache_ = {}
+        self.raw_data = data
+
+    @classmethod
+    def add_config_param(cls, name: str, loader: ParameterLoader):
+        """
+        Add a configuration parameter to available plugin parameters. This is accomplished
+        by mutating the ``cls``.
+
+        This should only be done via registered plugins. See
+        :meth:`conda.plugins.manager.CondaPluginManager.load_configuration_parameters` for
+        where this is performed.
+
+        :raises PluginError: Happens when plugins attempt to override existing parameters
+        """
+        from conda.exceptions import PluginError
+
+        if name in cls._parameter_names:
+            raise PluginError(
+                "One or more plugins attempted to override the following parameter: "
+                f"{name}. This will be ignored."
+            )
+        else:
+            cls._parameter_names.add(name)
+
+        name = loader._set_name(name)
+        setattr(cls, name, loader)
+        setattr(cls, "parameter_names", cls._parameter_names)

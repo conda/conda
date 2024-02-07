@@ -42,9 +42,11 @@ from ..common.configuration import (
     ConfigurationLoadError,
     MapParameter,
     ParameterLoader,
+    PluginConfig,
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    get_plugin_config_data,
 )
 from ..common.iterators import unique
 from ..common.path import expand, paths_equal
@@ -466,7 +468,13 @@ class Context(Configuration):
 
     no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
 
-    def __init__(self, search_path=None, argparse_args=None, **kwargs):
+    def __init__(
+        self,
+        search_path=None,
+        argparse_args=None,
+        initialize_plugin_config: bool = True,
+        **kwargs,
+    ):
         super().__init__(argparse_args=argparse_args)
 
         self._set_search_path(
@@ -476,6 +484,11 @@ class Context(Configuration):
         )
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
+
+        # set plugin configuration parameters
+        if initialize_plugin_config:
+            self.plugin_manager.load_configuration_parameters()
+            self.plugins = PluginConfig(get_plugin_config_data(context.raw_data))
 
     def post_build_validation(self):
         errors = []
@@ -2096,7 +2109,8 @@ def _first_writable_envs_dir():
 
 
 try:
-    context = Context((), None)
+    context = Context((), None, initialize_plugin_config=False)
+
 except ConfigurationLoadError as e:  # pragma: no cover
     print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit

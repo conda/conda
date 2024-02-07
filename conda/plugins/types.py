@@ -10,14 +10,16 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
-from typing import Callable, NamedTuple
+from typing import TYPE_CHECKING, Callable, NamedTuple
 
 from requests.auth import AuthBase
 
 from ..common.configuration import ParameterLoader
-from ..core.solve import Solver
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
+
+if TYPE_CHECKING:
+    from ..core.solve import Solver
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
 
 
 @dataclass

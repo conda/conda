@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda subcommands."""
-import logging
 import sys
 
 from ..deprecations import deprecated
@@ -49,7 +48,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
-    from ..exceptions import PluginError
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
@@ -64,12 +62,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         "trace": pre_args.trace,
         "verbosity": pre_args.verbosity,
     }
-
-    try:
-        # load extra parameters defined by plugins
-        context.plugin_manager.load_configuration_parameters()
-    except PluginError as exc:
-        logging.warning(exc.message)
 
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
