@@ -46,7 +46,6 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
-    get_plugin_config_data,
 )
 from ..common.iterators import unique
 from ..common.path import expand, paths_equal
@@ -488,7 +487,7 @@ class Context(Configuration):
         # set plugin configuration parameters
         if initialize_plugin_config:
             self.plugin_manager.load_configuration_parameters()
-            self.plugins = PluginConfig(get_plugin_config_data(context.raw_data))
+            self.plugins = PluginConfig(context.raw_data)
 
     def post_build_validation(self):
         errors = []
@@ -1859,6 +1858,10 @@ class Context(Configuration):
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
+
+    # reset plugin config params
+    PluginConfig.remove_all_config_params()
+
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
     from ..models.channel import Channel

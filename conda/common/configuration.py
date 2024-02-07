@@ -1639,15 +1639,12 @@ class PluginConfig(metaclass=ConfigurationType):
     We do this because ``CondaPluginManager`` has access to all registered plugin hooks.
     """
 
-    #: Used to keep track of parameters already attached to the class
-    _parameter_names = set()
-
     def __init__(self, data):
         self._cache_ = {}
-        self.raw_data = data
+        self.raw_data = get_plugin_config_data(data)
 
     @classmethod
-    def add_config_param(cls, name: str, loader: ParameterLoader):
+    def add_config_param(cls, name: str, loader: ParameterLoader) -> None:
         """
         Add a configuration parameter to available plugin parameters. This is accomplished
         by mutating the ``cls``.
@@ -1655,19 +1652,20 @@ class PluginConfig(metaclass=ConfigurationType):
         This should only be done via registered plugins. See
         :meth:`conda.plugins.manager.CondaPluginManager.load_configuration_parameters` for
         where this is performed.
-
-        :raises PluginError: Happens when plugins attempt to override existing parameters
         """
-        from conda.exceptions import PluginError
-
-        if name in cls._parameter_names:
-            raise PluginError(
-                "One or more plugins attempted to override the following parameter: "
-                f"{name}. This will be ignored."
-            )
-        else:
-            cls._parameter_names.add(name)
-
+        cls.parameter_names = cls.parameter_names + (name,)
         name = loader._set_name(name)
         setattr(cls, name, loader)
-        setattr(cls, "parameter_names", cls._parameter_names)
+
+    @classmethod
+    def remove_all_config_params(cls) -> None:
+        """
+        Used to remove all attached configuration parameters.
+        """
+        for name in cls.parameter_names:
+            try:
+                delattr(cls, name)
+            except (AttributeError, KeyError):
+                continue
+
+        cls.parameter_names = tuple()

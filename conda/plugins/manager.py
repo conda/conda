@@ -13,7 +13,7 @@ import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from typing import TYPE_CHECKING, Literal, overload
+from typing import Literal, overload
 
 import pluggy
 from requests.auth import AuthBase
@@ -21,8 +21,11 @@ from requests.auth import AuthBase
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.configuration import ParameterLoader, PluginConfig
+from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from . import config_params, post_solves, solvers, subcommands, virtual_packages
+from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
+from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
@@ -37,11 +40,6 @@ from .types import (
     CondaSubcommand,
     CondaVirtualPackage,
 )
-
-if TYPE_CHECKING:
-    from ..core.solve import Solver
-    from ..models.match_spec import MatchSpec
-    from ..models.records import PackageRecord
 
 log = logging.getLogger(__name__)
 
@@ -382,17 +380,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def load_configuration_parameters(self) -> None:
         """
-        Iterates through all registered configuration parameters and adds them to the context class.
-
-        TODO:
-            - Need to add configuration parameters to ``Context.category_map`` and
-              ``Context.description_map``
+        Iterates through all registered configuration parameters and adds them to the
+        :class:`conda.common.configuration.PluginConfig` class.
         """
         for name, loader in self.get_configuration_parameters().items():
-            try:
-                PluginConfig.add_config_param(name, loader)
-            except PluginError as exc:
-                log.warning(exc.message)
+            PluginConfig.add_config_param(name, loader)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
@@ -409,7 +401,6 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
-        *config_params.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
