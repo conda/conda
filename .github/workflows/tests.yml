@@ -260,7 +260,6 @@ jobs:
       matrix:
         python-version: ['3.11']
     env:
-      PYTEST_MARKER: benchmark
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
     steps:
@@ -270,7 +269,7 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ env.PYTEST_MARKER }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@v3
@@ -310,9 +309,7 @@ jobs:
         uses: CodSpeedHQ/action@v2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
-          run: $CONDA/envs/test/bin/pytest
-            --codspeed
-            -m "${{ env.PYTEST_MARKER }}"
+          run: $CONDA/envs/test/bin/pytest --codspeed
 
   # linux-qemu test suite
   linux-qemu:
