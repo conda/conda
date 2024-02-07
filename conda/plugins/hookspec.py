@@ -143,7 +143,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_commands():
-               yield CondaPreCommand(
+               yield plugins.CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
                    run_for={"install", "create"},
@@ -168,7 +168,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_commands():
-               yield CondaPostCommand(
+               yield plugins.CondaPostCommand(
                    name="example-post-command",
                    action=example_post_command,
                    run_for={"install", "create"},
@@ -233,7 +233,7 @@ class CondaSpecs:
 
                 @plugins.hookimpl
                 def conda_health_checks():
-                    yield CondaHealthCheck(
+                    yield plugins.CondaHealthCheck(
                         name="example-health-check",
                         action=example_health_check,
                     )
