@@ -4,11 +4,14 @@
 
 Dumps specified environment package specifications to the screen.
 """
+
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
+
+from ..exceptions import CondaValueError
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -113,6 +116,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.file is None:
         stdout_json(env.to_dict()) if args.json else print(env.to_yaml(), end="")
     else:
+        filename = args.file
+        if not filename.endswith((".yml", ".yaml")):
+            raise CondaValueError(
+                "Export files must have a .yml or .yaml extension: %s" % filename
+            )
         fp = open(args.file, "wb")
         env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
         fp.close()
