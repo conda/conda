@@ -96,7 +96,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix, env_name
-    from .common import from_environment, stdout_json
+    from ..env.env import from_environment
+    from .common import stdout_json
 
     prefix = determine_target_prefix(context, args)
     env = from_environment(

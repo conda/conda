@@ -7,13 +7,19 @@ import re
 from itertools import chain
 from os.path import abspath, expanduser, expandvars
 
+from ..base.context import context
 from ..cli import common
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.serialize import yaml_safe_dump, yaml_safe_load
+from ..core.prefix_data import PrefixData
 from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+from ..history import History
+from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
+from ..models.prefix_graph import PrefixGraph
 
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
@@ -128,6 +134,76 @@ class Dependencies(dict):
         """Add a package to the ``Environment``"""
         self.raw.append(package_name)
         self.parse()
+
+
+def from_environment(
+    name, prefix, no_builds=False, ignore_channels=False, from_history=False
+):
+    """
+        Get ``Environment`` object from prefix
+    Args:
+        name: The name of environment
+        prefix: The path of prefix
+        no_builds: Whether has build requirement
+        ignore_channels: whether ignore_channels
+        from_history: Whether environment file should be based on explicit specs in history
+
+    Returns:     Environment object
+    """
+    pd = PrefixData(prefix, pip_interop_enabled=True)
+    variables = pd.get_environment_env_vars()
+
+    if from_history:
+        history = History(prefix).get_requested_specs_map()
+        deps = [str(package) for package in history.values()]
+        return Environment(
+            name=name,
+            dependencies=deps,
+            channels=list(context.channels),
+            prefix=prefix,
+            variables=variables,
+        )
+
+    precs = tuple(PrefixGraph(pd.iter_records()).graph)
+    grouped_precs = groupby(lambda x: x.package_type, precs)
+    conda_precs = sorted(
+        (
+            *grouped_precs.get(None, ()),
+            *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+            *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+        ),
+        key=lambda x: x.name,
+    )
+
+    pip_precs = sorted(
+        (
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
+        ),
+        key=lambda x: x.name,
+    )
+
+    if no_builds:
+        dependencies = ["=".join((a.name, a.version)) for a in conda_precs]
+    else:
+        dependencies = ["=".join((a.name, a.version, a.build)) for a in conda_precs]
+    if pip_precs:
+        dependencies.append({"pip": [f"{a.name}=={a.version}" for a in pip_precs]})
+
+    channels = list(context.channels)
+    if not ignore_channels:
+        for prec in conda_precs:
+            canonical_name = prec.channel.canonical_name
+            if canonical_name not in channels:
+                channels.insert(0, canonical_name)
+    return Environment(
+        name=name,
+        dependencies=dependencies,
+        channels=channels,
+        prefix=prefix,
+        variables=variables,
+    )
 
 
 class Environment:
