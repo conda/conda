@@ -92,7 +92,7 @@ def validate_src() -> str:
         )
     if prefix.samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
-    if prefix.samefile(context.active_prefix):
+    if context.active_prefix and prefix.samefile(context.active_prefix):
         raise CondaEnvException("Cannot rename the active environment")
 
     return context.target_prefix
