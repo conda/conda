@@ -2478,7 +2478,7 @@ def test_pinned_1(tmpdir):
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT:
         # libmamba decides to stay in python=2.6 unless explicit
-        specs_to_add = (MatchSpec("python=3.7"),)
+        specs_to_add = (MatchSpec("python=3"),)
     else:
         specs_to_add = (MatchSpec("python"),)
     history_specs = (
