@@ -1949,6 +1949,11 @@ def test_python2_update(tmpdir):
                     "channel-4::pycosat-0.6.3-py37h14c3975_0",
                 )
             )
+
+            pprint("Important parts")
+            pprint(set(important_parts))
+            pprint("Full solution")
+            pprint(set(full_solution))
             assert set(important_parts).issubset(set(full_solution))
         else:
             assert full_solution == order
