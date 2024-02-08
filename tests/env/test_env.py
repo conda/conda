@@ -10,12 +10,12 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
-from conda.cli.common import from_environment
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
     Environment,
+    from_environment,
     from_file,
 )
 from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
