@@ -69,7 +69,7 @@ We recommend the following methods to install conda:
 
 .. raw:: html
 
-    <p class="text-small">For more detailed instructions, see <a href="https://docs.conda.io/projects/miniconda/">Miniconda's installation guide</a></p>
+    <p class="text-small">For more detailed instructions, see <a href="https://docs.anaconda.com/free/miniconda/">Miniconda's installation guide</a></p>
 
 New to conda? :octicon:`rocket;1em;sd-text-primary`
 ...................................................

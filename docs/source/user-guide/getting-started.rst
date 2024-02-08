@@ -15,7 +15,7 @@ This guide to getting started with conda goes over the basics of starting up and
 Before you start
 ================
 
-You should have already installed conda before beginning this getting started guide. Conda can be found in many distributions, like `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_, `Miniconda <https://docs.conda.io/projects/miniconda/en/latest/>`_ or `Miniforge <https://github.com/conda-forge/miniforge>`_.
+You should have already installed conda before beginning this getting started guide. Conda can be found in many distributions, like `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_, `Miniconda <https://docs.anaconda.com/free/miniconda/>`_ or `Miniforge <https://github.com/conda-forge/miniforge>`_.
 
 Starting conda
 ==============
