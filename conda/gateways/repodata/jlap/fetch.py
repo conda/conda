@@ -265,6 +265,17 @@ def download_and_hash(
     return response  # can be 304 not modified
 
 
+def _is_http_error_most_400_codes(e: HTTPError) -> bool:
+    """
+    Return True if HTTPError is a fatal error, False if we should check the same
+    URL again next time.
+    """
+    if e.response is None:  # 404 e.response is falsey
+        return False
+    status_code = e.response.status_code
+    return 400 <= status_code < 500 and status_code != 416
+
+
 def request_url_jlap_state(
     url,
     state: RepodataState,
@@ -313,7 +324,7 @@ def request_url_jlap_state(
                         mask_anaconda_token(withext(url, ".json.zst")),
                         e,
                     )
-                if isinstance(e, HTTPError) and e.response.status_code != 404:
+                if isinstance(e, HTTPError) and not _is_http_error_most_400_codes(e):
                     raise
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
@@ -378,7 +389,7 @@ def request_url_jlap_state(
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
-            if e.response.status_code == 404:
+            if _is_http_error_most_400_codes(e):
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
                     url,
