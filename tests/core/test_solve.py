@@ -1895,7 +1895,7 @@ def test_python2_update(tmpdir):
         )
         assert convert_to_dist_str(final_state_1) == order1
 
-    specs_to_add = (MatchSpec("python=3"),)
+    specs_to_add = (MatchSpec("python=3.7"),)
     with get_solver_4(
         tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
     ) as solver:
