@@ -486,7 +486,7 @@ class Context(Configuration):
 
         # set plugin configuration parameters
         if initialize_plugin_config:
-            self.plugin_manager.load_configuration_parameters()
+            self.plugin_manager.load_settings()
             self.plugins = PluginConfig(context.raw_data)
 
     def post_build_validation(self):
@@ -1860,7 +1860,7 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
 
     # reset plugin config params
-    PluginConfig.remove_all_config_params()
+    PluginConfig.remove_all_settings()
 
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)

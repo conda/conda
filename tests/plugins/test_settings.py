@@ -27,7 +27,7 @@ STRING_PARAMETER_VALUE = "test_value"
 #: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_ENV_VAR_VALUE = "env_var_value"
 
-#: condarc file with our test configuration parameter present
+#: condarc file with our test setting present
 CONDARC_TEST_ONE = f"""
 plugins:
   {STRING_PARAMETER_NAME}: {STRING_PARAMETER_VALUE}
@@ -38,36 +38,36 @@ string_loader = ParameterLoader(
     aliases=(STRING_PARAMETER_NAME,),
 )
 
-string_config_parameter = plugins.CondaConfigurationParameter(
+string_config_parameter = plugins.CondaSetting(
     name=STRING_PARAMETER_NAME,
-    description="Test string type configuration parameter",
+    description="Test string type setting",
     loader=string_loader,
 )
 
 
-class ConfigurationParameterPlugin:
+class SettingPlugin:
     @plugins.hookimpl
-    def conda_configuration_parameters(self):
+    def conda_settings(self):
         yield string_config_parameter
 
 
 @pytest.fixture()
-def config_param_plugin_manager(
+def setting_plugin_manager(
     plugin_manager: CondaPluginManager,
 ) -> CondaPluginManager:
     """
-    Loads our ``ConfigurationParameterPlugin`` class using the ``plugin_manager`` fixture
+    Loads our ``SettingPlugin`` class using the ``plugin_manager`` fixture
     """
-    plugin = ConfigurationParameterPlugin()
+    plugin = SettingPlugin()
     plugin_manager.register(plugin)
 
     yield plugin_manager
 
 
 @pytest.fixture()
-def condarc_plugin_manager(config_param_plugin_manager):
+def condarc_plugin_manager(setting_plugin_manager):
     """
-    Update the context object to load our test condarc file containing a configuration parameter
+    Update the context object to load our test condarc file containing a setting
     defined by a plugin.
     """
     reset_context()
@@ -80,39 +80,39 @@ def condarc_plugin_manager(config_param_plugin_manager):
     )
 
     context.plugins = PluginConfig(context.raw_data)
-    return config_param_plugin_manager
+    return setting_plugin_manager
 
 
-def test_get_configuration_parameters(config_param_plugin_manager):
+def test_get_settings(setting_plugin_manager):
     """
-    Ensure the configuration parameters method returns what we expect
+    Ensure the settings method returns what we expect
     """
-    config_params = config_param_plugin_manager.get_configuration_parameters()
+    config_params = setting_plugin_manager.get_settings()
     assert len(config_params) == 1
     assert config_params.get(STRING_PARAMETER_NAME) is string_loader
 
 
-def test_load_configuration_parameters(config_param_plugin_manager):
+def test_load_configuration_parameters(setting_plugin_manager):
     """
-    Ensure that the configuration parameter is available via the context object
+    Ensure that the setting is available via the context object
     """
-    config_param_plugin_manager.load_configuration_parameters()
+    setting_plugin_manager.load_settings()
     assert hasattr(context.plugins, STRING_PARAMETER_NAME)
 
 
-def test_load_plugin_config_with_condarc(condarc_plugin_manager):
+def test_load_plugin_settings_with_condarc(condarc_plugin_manager):
     """
-    Ensure that when we define a custom plugin configuration parameter in a condarc
+    Ensure that when we define a custom plugin setting in a condarc
     file that the value shows up on the context object.
     """
     assert getattr(context.plugins, STRING_PARAMETER_NAME) == STRING_PARAMETER_VALUE
 
 
 def test_load_plugin_config_with_env_var(
-    monkeypatch: MonkeyPatch, config_param_plugin_manager
+    monkeypatch: MonkeyPatch, setting_plugin_manager
 ):
     """
-    Ensure that when an environment variable is set for a plugin configuration parameter
+    Ensure that when an environment variable is set for a plugin setting
     it is read correctly.
     """
     monkeypatch.setenv(

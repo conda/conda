@@ -190,17 +190,17 @@ class CondaPostSolve:
 
 
 @dataclass
-class CondaConfigurationParameter:
+class CondaSetting:
     """
-    Return type to use when defining a conda configuration parameter plugin hook.
+    Return type to use when defining a conda setting plugin hook.
 
     For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_configuration_parameters`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_settings`.
 
-    :param name: name of the configuration parameter (e.g., ``config_param``)
-    :param description: description of the configuration parameter that should be targeted
+    :param name: name of the setting (e.g., ``config_param``)
+    :param description: description of the setting that should be targeted
                         towards users of the plugin
-    :param loader: ParameterLoader class containing the configuration parameter definition
+    :param loader: ParameterLoader class containing the setting definition
     """
 
     name: str

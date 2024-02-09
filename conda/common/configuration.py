@@ -1636,13 +1636,13 @@ def get_plugin_config_data(
 
 class PluginConfig(metaclass=ConfigurationType):
     """
-    Class used to hold configuration for conda plugins.
+    Class used to hold settings for conda plugins.
 
     This object created by this class should only be accessed via
     :class:`conda.base.context.Context.plugins`.
 
-    This class is updated via the :meth:`add_config_param` method which
-    is called in :meth:`conda.plugins.manager.CondaPluginManager.load_configuration_parameters`.
+    This class is updated via the :meth:`add_setting` method which
+    is called in :meth:`conda.plugins.manager.CondaPluginManager.load_settings`.
     We do this because ``CondaPluginManager`` has access to all registered plugin hooks.
     """
 
@@ -1651,23 +1651,21 @@ class PluginConfig(metaclass=ConfigurationType):
         self.raw_data = get_plugin_config_data(data)
 
     @classmethod
-    def add_config_param(cls, name: str, loader: ParameterLoader) -> None:
+    def add_setting(cls, name: str, loader: ParameterLoader) -> None:
         """
-        Add a configuration parameter to available plugin parameters. This is accomplished
-        by mutating the ``cls``.
+        Add a setting to available plugin settings. This is accomplished by mutating the ``cls``.
 
         This should only be done via registered plugins. See
-        :meth:`conda.plugins.manager.CondaPluginManager.load_configuration_parameters` for
-        where this is performed.
+        :meth:`conda.plugins.manager.CondaPluginManager.load_settings` for where this is performed.
         """
         cls.parameter_names = cls.parameter_names + (name,)
         name = loader._set_name(name)
         setattr(cls, name, loader)
 
     @classmethod
-    def remove_all_config_params(cls) -> None:
+    def remove_all_settings(cls) -> None:
         """
-        Used to remove all attached configuration parameters.
+        Used to remove all attached settings.
         """
         for name in cls.parameter_names:
             try:

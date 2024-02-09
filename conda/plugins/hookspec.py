@@ -15,12 +15,12 @@ import pluggy
 
 from .types import (
     CondaAuthHandler,
-    CondaConfigurationParameter,
     CondaHealthCheck,
     CondaPostCommand,
     CondaPostSolve,
     CondaPreCommand,
     CondaPreSolve,
+    CondaSetting,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -304,9 +304,9 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_configuration_parameters(self) -> Iterable[CondaConfigurationParameter]:
+    def conda_settings(self) -> Iterable[CondaSetting]:
         """
-        Register new configuration parameters
+        Register new setting
 
         The example below defines a simple string type parameter
 
@@ -323,14 +323,12 @@ class CondaSpecs:
 
 
            @plugins.hookimpl
-           def conda_configuration_parameters():
+           def conda_settings():
                name = "example_option"
                description = "This is an example option"
                loader = ParameterLoader(
                    PrimitiveParameter(name, element_type=str), aliases=(name,)
                )
 
-               yield plugins.CondaConfigurationParameter(
-                   name=name, description=description, loader=loader
-               )
+               yield plugins.CondaSetting(name=name, description=description, loader=loader)
         """

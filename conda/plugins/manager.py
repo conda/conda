@@ -30,12 +30,12 @@ from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 from .types import (
     CondaAuthHandler,
-    CondaConfigurationParameter,
     CondaHealthCheck,
     CondaPostCommand,
     CondaPostSolve,
     CondaPreCommand,
     CondaPreSolve,
+    CondaSetting,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,
@@ -191,9 +191,7 @@ class CondaPluginManager(pluggy.PluginManager):
         ...
 
     @overload
-    def get_hook_results(
-        self, name: Literal["configuration_parameters"]
-    ) -> list[CondaConfigurationParameter]:
+    def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]:
         ...
 
     def get_hook_results(self, name):
@@ -294,13 +292,13 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
-    def get_configuration_parameters(self) -> dict[str, ParameterLoader]:
+    def get_settings(self) -> dict[str, ParameterLoader]:
         """
-        Return a mapping of plugin configuration parameter name to ParameterLoader class
+        Return a mapping of plugin setting name to ParameterLoader class
         """
         return {
             config_param.name.lower(): config_param.loader
-            for config_param in self.get_hook_results("configuration_parameters")
+            for config_param in self.get_hook_results("settings")
         }
 
     def invoke_pre_commands(self, command: str) -> None:
@@ -378,13 +376,13 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
 
-    def load_configuration_parameters(self) -> None:
+    def load_settings(self) -> None:
         """
-        Iterates through all registered configuration parameters and adds them to the
+        Iterates through all registered settings and adds them to the
         :class:`conda.common.configuration.PluginConfig` class.
         """
-        for name, loader in self.get_configuration_parameters().items():
-            PluginConfig.add_config_param(name, loader)
+        for name, loader in self.get_settings().items():
+            PluginConfig.add_setting(name, loader)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
