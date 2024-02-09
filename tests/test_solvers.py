@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import json
-import sys
+from logging import getLogger
 
 import pytest
 
+from conda.common.io import stderr_log_level
 from conda.core.solve import Solver
+from conda.exceptions import DryRunExit
 from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.testing.integration import TEST_LOG_LEVEL
 from conda.testing.solver_helpers import SolverTests
+
+log = getLogger(__name__)
+stderr_log_level(TEST_LOG_LEVEL, "conda")
+stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 
 class TestClassicSolver(SolverTests):
@@ -62,9 +69,10 @@ def test_remove_globbed_package_names(
             "--dry-run",
             "--json",
             f"--solver={solver}",
+            raises=DryRunExit,
         )
-        print(stdout)
-        print(stderr, file=sys.stderr)
+        log.info(stdout)
+        log.info(stderr)
         assert returncode == 0
         data = json.loads(stdout)
         assert data.get("success")
