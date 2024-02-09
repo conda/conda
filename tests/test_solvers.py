@@ -38,3 +38,30 @@ class TestLibMambaSolver(SolverTests):
                 "test_unintentional_feature_downgrade",
             ],
         }
+
+
+@pytest.mark.parametrize("solver", ("classic", "libmamba"))
+def test_remove_globbed_package_names(solver):
+    "https://github.com/conda/conda-libmamba-solver/issues/434"
+    with make_temp_env("zlib", "ca-certificates") as prefix:
+        process = conda_subprocess(
+            "remove",
+            "--yes",
+            f"--prefix={prefix}",
+            "*lib*",
+            "--dry-run",
+            "--json",
+            f"--solver={solver}",
+        )
+        print(process.stdout)
+        print(process.stderr, file=sys.stderr)
+        assert process.returncode == 0
+        data = json.loads(process.stdout)
+        assert data.get("success")
+        assert any(pkg["name"] == "zlib" for pkg in data["actions"]["UNLINK"])
+        if "LINK" in data["actions"]:
+            assert all(pkg["name"] != "zlib" for pkg in data["actions"]["LINK"])
+        # if ca-certificates is in the unlink list, it should also be in the link list (reinstall)
+        for package in data["actions"]["UNLINK"]:
+            if package["name"] == "ca-certificates":
+                assert any(pkg["name"] == "ca-certificates" for pkg in data["actions"]["LINK"])
