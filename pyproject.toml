@@ -112,8 +112,10 @@ target-version = "py38"
 # I = isort
 # D = pydocstyle
 # UP = pyupgrade
+# ISC = flake8-implicit-str-concat
+# TCH = flake8-type-checking
 # see also https://docs.astral.sh/ruff/rules/
-select = ["E", "W", "F", "I", "D1", "UP"]
+select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH"]
 # E402 module level import not at top of file
 # E501 line too long
 # E722 do not use bare 'except'
