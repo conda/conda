@@ -18,6 +18,8 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
+from conda.common.url import mask_anaconda_token
+
 from ....base.context import context
 from ...connection import Response, Session
 from .. import (
@@ -117,7 +119,7 @@ def request_jlap(
     if etag and not ignore_etag:
         headers["if-none-match"] = etag
 
-    log.debug("%s %s", url, headers)
+    log.debug("%s %s", mask_anaconda_token(url), headers)
 
     assert session is not None
 
@@ -304,7 +306,13 @@ def request_url_jlap_state(
                     )
                 else:
                     raise JlapSkipZst()
-            except (JlapSkipZst, HTTPError) as e:
+            except (JlapSkipZst, HTTPError, zstandard.ZstdError) as e:
+                if isinstance(e, zstandard.ZstdError):
+                    log.warning(
+                        "Could not decompress %s as zstd. Fall back to .json. (%s)",
+                        mask_anaconda_token(withext(url, ".json.zst")),
+                        e,
+                    )
                 if isinstance(e, HTTPError) and e.response.status_code != 404:
                     raise
                 if not isinstance(e, JlapSkipZst):
@@ -346,7 +354,12 @@ def request_url_jlap_state(
             pos = jlap_state.get("pos", 0)
             etag = headers.get(ETAG_KEY, None)
             jlap_url = withext(url, ".jlap")
-            log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
+            log.debug(
+                "Fetch %s from iv=%s, pos=%s",
+                mask_anaconda_token(jlap_url),
+                iv_hex,
+                pos,
+            )
             # wrong to read state outside of function, and totally rebuild inside
             buffer, jlap_state = fetch_jlap(
                 jlap_url,
