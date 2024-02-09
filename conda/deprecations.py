@@ -25,8 +25,8 @@ class DeprecatedError(RuntimeError):
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class DeprecationHandler:
-    _version_str: str
-    _version_tuple: tuple[int, ...]
+    _version_str: str | None
+    _version_tuple: tuple[int, ...] | None
     _version_object: Version | None
 
     def __init__(self, version: Version | str):
@@ -40,7 +40,10 @@ class DeprecationHandler:
         if version is not None:
             self._version_str = str(version)
             if not isinstance(version, str):
-                self._version_object = version
+                from packaging.version import Version
+
+                if isinstance(version, Version):
+                    self._version_object = version
             # Try to parse the version string as a simple tuple[int, ...] to
             # avoid packaging.version import and costlier version comparisons.
             self._version_tuple = self._get_version_tuple(self._version_str)
