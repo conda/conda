@@ -103,13 +103,17 @@ exclude_lines = [
 ]
 
 [tool.ruff]
+exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+target-version = "py38"
+
+[tool.ruff.lint]
 # E, W = pycodestyle errors and warnings
 # F = pyflakes
 # I = isort
 # D = pydocstyle
 # UP = pyupgrade
 # see also https://docs.astral.sh/ruff/rules/
-lint.select = ["E", "W", "F", "I", "D1", "UP"]
+select = ["E", "W", "F", "I", "D1", "UP"]
 # E402 module level import not at top of file
 # E501 line too long
 # E722 do not use bare 'except'
@@ -120,11 +124,9 @@ lint.select = ["E", "W", "F", "I", "D1", "UP"]
 # D104 Missing docstring in public package
 # D105 Missing docstring in magic method
 # D107 Missing docstring in `__init__`
-lint.ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
-exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
-lint.extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
-target-version = "py38"
-lint.pydocstyle = {convention = "pep257"}
+ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
+extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
+pydocstyle = {convention = "pep257"}
 
 [tool.pytest.ini_options]
 minversion = 3.0
