@@ -1,7 +1,6 @@
 from collections import OrderedDict as odict  # noqa: F401
 import os
 from shlex import split
-from tempfile import NamedTemporaryFile
 
 from ..deprecations import deprecated
 
@@ -33,6 +32,8 @@ def utf8_writer(fp):
 def Utf8NamedTemporaryFile(
     mode="w+b", buffering=-1, newline=None, suffix=None, prefix=None, dir=None, delete=True
 ):
+    from tempfile import NamedTemporaryFile
+
     if "CONDA_TEST_SAVE_TEMPS" in os.environ:
         delete = False
     encoding = None

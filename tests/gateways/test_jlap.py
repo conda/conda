@@ -742,6 +742,40 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
         repo.repodata({})
 
 
+def test_jlap_zst_not_zst(package_server, package_repository_base: Path, tmp_path):
+    """
+    Test that fallback is taken if repodata.json.zst is not decompressible.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+
+    url = f"{base}/osx-64"
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache=cache,
+        cache_path_json=Path(tmp_path, "repodata.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
+    )
+
+    (package_repository_base / "osx-64" / "repodata.json.zst").write_text(
+        "404 page that returns a 200 error code"
+    )
+
+    # will check
+    assert cache.state.has_format("zst")[0]
+
+    with pytest.raises(RepodataOnDisk):
+        # repodata was written to disk without being parsed
+        repo.repodata_parsed({})
+
+    # won't check until the timeout interval (days)
+    assert not cache.state.has_format("zst")[0]
+
+    assert len(json.loads(cache.cache_path_json.read_text())["packages"])
+
+
 def test_jlap_core(tmp_path: Path):
     """Code paths not excercised by other tests."""
     with pytest.raises(ValueError):
