@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+from importlib.metadata import version
 from logging import getLogger
 
 import pytest
 
+from conda.base.context import context
 from conda.common.io import stderr_log_level
 from conda.core.solve import Solver
 from conda.exceptions import DryRunExit
@@ -54,27 +56,28 @@ class TestLibMambaSolver(SolverTests):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("solver", ("classic", "libmamba"))
+@pytest.mark.usefixtures("parametrized_solver_fixture")
+@pytest.mark.xfail(
+    context.solver == "libmamba" and version("conda_libmamba_solver") <= "24.1",
+    reason="Removing using wildcards is not available in older versions of the libmamba solver.",
+)
 def test_remove_globbed_package_names(
-    solver,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    "https://github.com/conda/conda-libmamba-solver/issues/434"
     with tmp_env("zlib", "ca-certificates") as prefix:
-        stdout, stderr, returncode = conda_cli(
+        stdout, stderr, _ = conda_cli(
             "remove",
             "--yes",
             f"--prefix={prefix}",
             "*lib*",
             "--dry-run",
             "--json",
-            f"--solver={solver}",
+            f"--solver={context.solver}",
             raises=DryRunExit,
         )
         log.info(stdout)
         log.info(stderr)
-        assert returncode == 0
         data = json.loads(stdout)
         assert data.get("success")
         assert any(pkg["name"] == "zlib" for pkg in data["actions"]["UNLINK"])
