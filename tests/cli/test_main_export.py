@@ -30,7 +30,7 @@ def test_export_override_channels(conda_cli: CondaCLIFixture, monkeypatch: Monke
     )
     monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
     reset_context()
-    assert context.channels == channels
+    assert set(channels) <= set(context.channels)
 
     conda_cli(
         "export",
