@@ -103,6 +103,10 @@ exclude_lines = [
 ]
 
 [tool.ruff]
+exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+target-version = "py38"
+
+[tool.ruff.lint]
 # E, W = pycodestyle errors and warnings
 # F = pyflakes
 # I = isort
@@ -121,9 +125,7 @@ select = ["E", "W", "F", "I", "D1", "UP"]
 # D105 Missing docstring in magic method
 # D107 Missing docstring in `__init__`
 ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
-exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
-target-version = "py38"
 pydocstyle = {convention = "pep257"}
 
 [tool.pytest.ini_options]

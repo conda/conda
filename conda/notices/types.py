@@ -10,11 +10,14 @@ from typing import NamedTuple, Sequence
 
 from ..base.constants import NoticeLevel
 
+#: Value to use for message ID when it is not provided
+UNDEFINED_MESSAGE_ID = "undefined"
+
 
 class ChannelNotice(NamedTuple):
     """Represents an individual channel notice."""
 
-    id: str | None
+    id: str
     channel_name: str | None
     message: str | None
     level: NoticeLevel
@@ -51,7 +54,7 @@ class ChannelNoticeResponse(NamedTuple):
 
             return tuple(
                 ChannelNotice(
-                    id=notice.get("id"),
+                    id=str(notice.get("id", UNDEFINED_MESSAGE_ID)),
                     channel_name=self.name,
                     message=notice.get("message"),
                     level=self._parse_notice_level(notice.get("level")),
