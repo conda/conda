@@ -1614,9 +1614,9 @@ def get_plugin_config_data(
     data: dict[Path, dict[str, RawParameter]],
 ) -> dict[Path, dict[str, RawParameter]]:
     """
-    This is used to move everything under "plugins" to the top level of the dictionary.
-    The return dictionary is then passed to :class:`PluginConfig`. It currently only
-    supports sources from config files and environment variables.
+    This is used to move everything under the key "plugins" from the provided dictionary
+    to the top level of the returned dictionary. The returned dictionary is then passed
+    to :class:`PluginConfig`.
     """
     new_data = {}
 
