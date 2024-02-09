@@ -58,7 +58,7 @@ class TestLibMambaSolver(SolverTests):
 @pytest.mark.integration
 @pytest.mark.usefixtures("parametrized_solver_fixture")
 @pytest.mark.xfail(
-    context.solver == "libmamba" and version("conda_libmamba_solver") <= "24.1",
+    context.solver == "libmamba" and version("conda_libmamba_solver") <= "24.1.0",
     reason="Removing using wildcards is not available in older versions of the libmamba solver.",
 )
 def test_remove_globbed_package_names(
