@@ -118,6 +118,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         stdout_json(env.to_dict()) if args.json else print(env.to_yaml(), end="")
     else:
         filename = args.file
+        # check for the proper file extension; otherwise when the export file is used later,
+        # the user will get a file parsing error
         if not filename.endswith((".yml", ".yaml")):
             raise CondaValueError(
                 "Export files must have a .yml or .yaml extension: %s" % filename
