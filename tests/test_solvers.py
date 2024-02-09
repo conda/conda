@@ -2,7 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
+import sys
+
+import pytest
+
 from conda.core.solve import Solver
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.solver_helpers import SolverTests
 
 
@@ -41,10 +47,14 @@ class TestLibMambaSolver(SolverTests):
 
 
 @pytest.mark.parametrize("solver", ("classic", "libmamba"))
-def test_remove_globbed_package_names(solver):
+def test_remove_globbed_package_names(
+    solver,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     "https://github.com/conda/conda-libmamba-solver/issues/434"
-    with make_temp_env("zlib", "ca-certificates") as prefix:
-        process = conda_subprocess(
+    with tmp_env("zlib", "ca-certificates") as prefix:
+        process = conda_cli(
             "remove",
             "--yes",
             f"--prefix={prefix}",
@@ -64,4 +74,6 @@ def test_remove_globbed_package_names(solver):
         # if ca-certificates is in the unlink list, it should also be in the link list (reinstall)
         for package in data["actions"]["UNLINK"]:
             if package["name"] == "ca-certificates":
-                assert any(pkg["name"] == "ca-certificates" for pkg in data["actions"]["LINK"])
+                assert any(
+                    pkg["name"] == "ca-certificates" for pkg in data["actions"]["LINK"]
+                )
