@@ -25,68 +25,52 @@ class DeprecatedError(RuntimeError):
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class DeprecationHandler:
-    _version_str: str | None
+    _version: str | None
     _version_tuple: tuple[int, ...] | None
     _version_object: Version | None
 
-    def __init__(self, version: Version | str):
+    def __init__(self, version: str):
         """Factory to create a deprecation handle for the specified version.
 
         :param version: The version to compare against when checking deprecation statuses.
         """
-        self._version_str = None
+        self._version = version
+        # Try to parse the version string as a simple tuple[int, ...] to avoid
+        # packaging.version import and costlier version comparisons.
+        self._version_tuple = self._get_version_tuple(version)
         self._version_object = None
-        self._version_tuple = None
-        if version is not None:
-            self._version_str = str(version)
-            if not isinstance(version, str):
-                from packaging.version import Version
 
-                if isinstance(version, Version):
-                    self._version_object = version
-            # Try to parse the version string as a simple tuple[int, ...] to
-            # avoid packaging.version import and costlier version comparisons.
-            self._version_tuple = self._get_version_tuple(self._version_str)
+    @staticmethod
+    def _get_version_tuple(version: str) -> tuple[int, ...] | None:
+        """Return version as non-empty tuple of ints if possible, else None.
 
-    @property
-    def _version(self) -> Version:
-        """Populate and return self._version_object with parsed version string."""
-        # Lazily import this to reduce import time for conda activate.
+        :param version: Version string to parse.
+        """
+        try:
+            return tuple(int(part) for part in version.strip().split(".")) or None
+        except (AttributeError, ValueError):
+            return None
+
+    def _version_less_than(self, version: str) -> bool:
+        """Test whether own version is less than the given version.
+
+        :param version: Version string to compare against.
+        """
+        if self._version_tuple:
+            if version_tuple := self._get_version_tuple(version):
+                return self._version_tuple < version_tuple
+
+        # If self._version or version could not be represented by a simple
+        # tuple[int, ...], do a more elaborate version parsing and comparison.
+        # Avoid this import otherwise to reduce import time for conda activate.
         from packaging.version import parse
 
         if self._version_object is None:
             try:
-                self._version_object = parse(self._version_str)
+                self._version_object = parse(self._version)
             except TypeError:
                 self._version_object = parse("0.0.0.dev0+placeholder")
-        return self._version_object
-
-    @staticmethod
-    def _get_version_tuple(version_str: str) -> tuple[int, ...]:
-        """Parse version as a tuple of ints if possible, else return empty tuple.
-
-        :param version_str: Version string to parse.
-        """
-        try:
-            return tuple(int(part) for part in version_str.strip().split("."))
-        except (AttributeError, ValueError):
-            return tuple()
-
-    def _version_less_than(self, version_str: str) -> bool:
-        """Test whether own version is less than the given version.
-
-        :param version_str: Version string to compare against.
-        """
-        if self._version_tuple:
-            if version_tuple := self._get_version_tuple(version_str):
-                return self._version_tuple < version_tuple
-
-        # If self._version_str or version_str could not be represented by a
-        # simple tuple[int, ...], do a more elaborate version parse and compare.
-        # Avoid this import otherwise to reduce import time for conda activate.
-        from packaging.version import parse
-
-        return self._version < parse(version_str)
+        return self._version_object < parse(version)
 
     def __call__(
         self,
