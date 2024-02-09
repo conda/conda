@@ -65,6 +65,7 @@ def test_remove_globbed_package_names(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
+    log.error(f"libmamba-solver version: {version('conda_libmamba_solver')}")
     with tmp_env("zlib", "ca-certificates") as prefix:
         stdout, stderr, _ = conda_cli(
             "remove",
