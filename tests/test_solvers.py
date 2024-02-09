@@ -53,6 +53,7 @@ class TestLibMambaSolver(SolverTests):
         }
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("solver", ("classic", "libmamba"))
 def test_remove_globbed_package_names(
     solver,
