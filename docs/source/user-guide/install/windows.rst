@@ -5,7 +5,7 @@ Installing on Windows
 #. Download the installer:
 
    * `Miniconda installer for
-     Windows <https://docs.conda.io/projects/miniconda/>`_
+     Windows <https://docs.anaconda.com/free/miniconda/>`_
 
    * `Anaconda Distribution installer for
      Windows <https://www.anaconda.com/download/>`_

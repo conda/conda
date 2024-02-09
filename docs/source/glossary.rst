@@ -248,4 +248,4 @@ automatically accepted.
 
 .. _`Anaconda.org`: https://docs.anaconda.com/anacondaorg/
 .. _`Navigator`: https://docs.anaconda.com/navigator/
-.. _`Miniconda`: https://docs.conda.io/en/latest/miniconda.html
+.. _`Miniconda`: https://docs.anaconda.com/free/miniconda/
