@@ -54,7 +54,7 @@ def test_remove_globbed_package_names(
 ):
     "https://github.com/conda/conda-libmamba-solver/issues/434"
     with tmp_env("zlib", "ca-certificates") as prefix:
-        process = conda_cli(
+        stdout, stderr, returncode = conda_cli(
             "remove",
             "--yes",
             f"--prefix={prefix}",
@@ -63,15 +63,16 @@ def test_remove_globbed_package_names(
             "--json",
             f"--solver={solver}",
         )
-        print(process.stdout)
-        print(process.stderr, file=sys.stderr)
-        assert process.returncode == 0
-        data = json.loads(process.stdout)
+        print(stdout)
+        print(stderr, file=sys.stderr)
+        assert returncode == 0
+        data = json.loads(stdout)
         assert data.get("success")
         assert any(pkg["name"] == "zlib" for pkg in data["actions"]["UNLINK"])
         if "LINK" in data["actions"]:
             assert all(pkg["name"] != "zlib" for pkg in data["actions"]["LINK"])
-        # if ca-certificates is in the unlink list, it should also be in the link list (reinstall)
+        # if ca-certificates is in the unlink list,
+        # it should also be in the link list (reinstall)
         for package in data["actions"]["UNLINK"]:
             if package["name"] == "ca-certificates":
                 assert any(
