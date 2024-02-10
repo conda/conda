@@ -6,13 +6,12 @@ from __future__ import annotations
 import io
 import json
 import logging
-import pathlib
 import pprint
 import re
 import time
 from contextlib import contextmanager
 from hashlib import blake2b
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 
 import jsonpatch
 import zstandard
@@ -21,7 +20,6 @@ from requests import HTTPError
 from conda.common.url import mask_anaconda_token
 
 from ....base.context import context
-from ...connection import Response, Session
 from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
@@ -29,6 +27,11 @@ from .. import (
     RepodataState,
 )
 from .core import JLAP
+
+if TYPE_CHECKING:
+    import pathlib
+
+    from ...connection import Response, Session
 
 log = logging.getLogger(__name__)
 

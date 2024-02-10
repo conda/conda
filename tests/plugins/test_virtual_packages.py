@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
 import pytest
 from pytest import MonkeyPatch
@@ -14,10 +14,12 @@ from conda.__version__ import __version__
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.exceptions import PluginError
-from conda.models.records import PackageRecord
 from conda.plugins.types import CondaVirtualPackage
 from conda.plugins.virtual_packages import cuda
 from conda.testing.solver_helpers import package_dict
+
+if TYPE_CHECKING:
+    from conda.models.records import PackageRecord
 
 
 class VirtualPackagesPlugin:

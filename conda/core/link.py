@@ -14,7 +14,7 @@ from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
-from typing import Iterable, NamedTuple
+from typing import TYPE_CHECKING, Iterable, NamedTuple
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -58,8 +58,6 @@ from ..gateways.disk.test import (
 )
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
-from ..models.package_info import PackageInfo
-from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
@@ -81,6 +79,10 @@ from .path_actions import (
     _Action,
 )
 from .prefix_data import PrefixData, get_python_version_for_prefix
+
+if TYPE_CHECKING:
+    from ..models.package_info import PackageInfo
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 

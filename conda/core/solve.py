@@ -18,6 +18,8 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
+from typing import TYPE_CHECKING
+
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.collection import frozendict
@@ -39,13 +41,15 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
+
+if TYPE_CHECKING:
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 
