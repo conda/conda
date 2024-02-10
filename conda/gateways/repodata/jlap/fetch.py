@@ -267,8 +267,7 @@ def download_and_hash(
 
 def _is_http_error_most_400_codes(e: HTTPError) -> bool:
     """
-    Return True if HTTPError is a fatal error, False if we should check the same
-    URL again next time.
+    Determine whether the `HTTPError` is an HTTP 400 error code (except for 416).
     """
     if e.response is None:  # 404 e.response is falsey
         return False
