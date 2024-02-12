@@ -20,6 +20,8 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
+from typing import TYPE_CHECKING
+
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
@@ -33,11 +35,9 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
-    RepodataCache,
     RepodataFetch,
     RepodataIsEmpty,
     RepodataState,
-    RepoInterface,
     cache_fn_url,
     create_cache_dir,
     get_repo_interface,
@@ -48,6 +48,9 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+
+if TYPE_CHECKING:
+    from ..gateways.repodata import RepodataCache, RepoInterface
 
 log = getLogger(__name__)
 

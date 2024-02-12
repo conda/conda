@@ -25,14 +25,18 @@ except ImportError:
         pass
 
 
+from typing import TYPE_CHECKING
+
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
 from ..common.url import join_url
 from ..core.subdir_data import SubdirData
 from ..gateways.connection import HTTPError, InsecureRequestWarning
 from ..gateways.connection.session import get_session
-from ..models.records import PackageRecord
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
+
+if TYPE_CHECKING:
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 
