@@ -11,7 +11,7 @@ import re
 import time
 from contextlib import contextmanager
 from hashlib import blake2b
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING
 
 import jsonpatch
 import zstandard
@@ -20,18 +20,15 @@ from requests import HTTPError
 from conda.common.url import mask_anaconda_token
 
 from ....base.context import context
-from .. import (
-    ETAG_KEY,
-    LAST_MODIFIED_KEY,
-    RepodataCache,
-    RepodataState,
-)
+from .. import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 from .core import JLAP
 
 if TYPE_CHECKING:
     import pathlib
+    from typing import Iterator
 
     from ...connection import Response, Session
+    from .. import RepodataCache
 
 log = logging.getLogger(__name__)
 

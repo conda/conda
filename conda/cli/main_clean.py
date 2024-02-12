@@ -10,10 +10,11 @@ import os
 import sys
 from logging import getLogger
 from os.path import isdir, join
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any, Iterable
 
 log = getLogger(__name__)
 

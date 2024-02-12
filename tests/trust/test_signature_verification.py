@@ -6,10 +6,9 @@ import json
 from pathlib import Path
 from shutil import copyfile
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.constants import REPODATA_FN
 from conda.base.context import context, reset_context
@@ -20,6 +19,9 @@ from conda.trust.constants import KEY_MGR_FILE
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
 if TYPE_CHECKING:
+    from typing import Callable
+
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing import PathFactoryFixture

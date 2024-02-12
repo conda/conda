@@ -4,11 +4,10 @@
 from __future__ import annotations
 
 import warnings
-from typing import Iterable, Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 import py
 import pytest
-from pytest import FixtureRequest, MonkeyPatch
 
 from ..auxlib.ish import dals
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -17,6 +16,11 @@ from ..common.io import env_vars
 from ..common.serialize import yaml_round_trip_load
 from ..core.subdir_data import SubdirData
 from ..gateways.disk.create import TemporaryDirectory
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest import FixtureRequest, MonkeyPatch
 
 
 @pytest.fixture(autouse=True)

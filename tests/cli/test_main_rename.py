@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import context, locate_prefix_by_name
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import CondaEnvException, CondaError, EnvironmentNameNotFound
 
 if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture

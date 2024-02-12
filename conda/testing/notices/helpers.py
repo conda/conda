@@ -9,7 +9,7 @@ import os
 import uuid
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from ...models.channel import get_channel_objs
 from ...notices.cache import get_notices_cache_file
@@ -17,6 +17,7 @@ from ...notices.core import get_channel_name_and_urls
 from ...notices.types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
+    from typing import Sequence
     from unittest import mock
 
     from ...base.context import Context

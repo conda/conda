@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -19,6 +19,8 @@ from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_verbosity
 
 if TYPE_CHECKING:
+    from typing import Iterable
+
     from pytest_mock import MockerFixture
 
     from conda.testing import CondaCLIFixture, TmpEnvFixture

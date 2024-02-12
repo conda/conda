@@ -13,7 +13,7 @@ import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, overload
 
 import pluggy
 
@@ -25,6 +25,8 @@ from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from requests.auth import AuthBase
 
     from ..core.solve import Solver

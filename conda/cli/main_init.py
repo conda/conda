@@ -6,8 +6,12 @@ Prepares the user's profile for running conda, and sets up the conda shell inter
 """
 from __future__ import annotations
 
-from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
+from argparse import SUPPRESS
 from logging import getLogger
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 log = getLogger(__name__)
 

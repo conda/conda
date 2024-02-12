@@ -9,7 +9,6 @@ from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 from textwrap import dedent
-from typing import Iterable
 
 from genericpath import exists
 
@@ -49,6 +48,8 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
+    from typing import Iterable
+
     from ..models.records import PackageRecord
 
 log = getLogger(__name__)

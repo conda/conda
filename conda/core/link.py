@@ -14,7 +14,7 @@ from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
-from typing import TYPE_CHECKING, Iterable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -76,13 +76,15 @@ from .path_actions import (
     UnlinkPathAction,
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
-    _Action,
 )
 from .prefix_data import PrefixData, get_python_version_for_prefix
 
 if TYPE_CHECKING:
+    from typing import Iterable
+
     from ..models.package_info import PackageInfo
     from ..models.records import PackageRecord
+    from .path_actions import _Action
 
 log = getLogger(__name__)
 

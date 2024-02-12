@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import CaptureFixture
 
 from conda import plugins
 from conda.auxlib.ish import dals
@@ -15,6 +14,9 @@ from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
 from conda.plugins.types import CondaSubcommand
 
 if TYPE_CHECKING:
+    from typing import Callable
+
+    from pytest import CaptureFixture
     from pytest_mock import MockerFixture
 
     from conda.testing import CondaCLIFixture

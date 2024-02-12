@@ -6,7 +6,7 @@ from __future__ import annotations
 import codecs
 import os
 from collections import defaultdict
-from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -58,6 +58,7 @@ from ..utils import human_bytes
 from .path_actions import CacheUrlAction, ExtractPackageAction
 
 if TYPE_CHECKING:
+    from concurrent.futures import Future
     from pathlib import Path
 
 log = getLogger(__name__)

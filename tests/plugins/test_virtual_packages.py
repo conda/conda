@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 import conda.core.index
 from conda import plugins
@@ -19,6 +18,10 @@ from conda.plugins.virtual_packages import cuda
 from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest import MonkeyPatch
+
     from conda.models.records import PackageRecord
 
 
