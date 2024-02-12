@@ -115,8 +115,9 @@ target-version = "py38"
 # ISC = flake8-implicit-str-concat
 # TCH = flake8-type-checking
 # T10 = flake8-debugger
+# FA = flake8-future-annotations
 # see also https://docs.astral.sh/ruff/rules/
-select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10"]
+select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10", "FA"]
 # E402 module level import not at top of file
 # E501 line too long
 # E722 do not use bare 'except'
