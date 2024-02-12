@@ -16,6 +16,11 @@ from textwrap import indent
 from traceback import format_exception_only
 from typing import Iterable, NamedTuple
 
+try:
+    from boltons.setutils import IndexedSet
+except ImportError:  # pragma: no cover
+    from .._vendor.boltons.setutils import IndexedSet
+
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.ish import dals
@@ -38,11 +43,13 @@ from ..common.path import (
 )
 from ..common.signals import signal_handler
 from ..exceptions import (
+    CondaIndexError,
     CondaSystemExit,
     DisallowedPackageError,
     EnvironmentNotWritableError,
     KnownPackageClobberError,
     LinkError,
+    PackagesNotFoundError,
     RemoveError,
     SharedLinkPathClobberError,
     UnknownPackageClobberError,
@@ -58,10 +65,11 @@ from ..gateways.disk.test import (
 )
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
+from ..models.match_spec import ChannelMatch, MatchSpec
 from ..models.package_info import PackageInfo
+from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord
 from ..models.version import VersionOrder
-from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
 from .path_actions import (
@@ -1614,3 +1622,61 @@ def messages(prefix):
                 return m
     finally:
         rm_rf(path)
+
+
+def _get_best_prec_match(precs):
+    assert precs
+    for chn in context.channels:
+        channel_matcher = ChannelMatch(chn)
+        prec_matches = tuple(
+            prec for prec in precs if channel_matcher.match(prec.channel.name)
+        )
+        if prec_matches:
+            break
+    else:
+        prec_matches = precs
+    log.warn("Multiple packages found:%s", dashlist(prec_matches))
+    return prec_matches[0]
+
+
+def revert_actions(prefix, revision=-1, index=None):
+    from ..history import History
+    from .index import _supplement_index_with_prefix
+    from .solve import diff_for_unlink_link_precs
+
+    # TODO: If revision raise a revision error, should always go back to a safe revision
+    h = History(prefix)
+    # TODO: need a History method to get user-requested specs for revision number
+    #       Doing a revert right now messes up user-requested spec history.
+    #       Either need to wipe out history after ``revision``, or add the correct
+    #       history information to the new entry about to be created.
+    # TODO: This is wrong!!!!!!!!!!
+    user_requested_specs = h.get_requested_specs_map().values()
+    try:
+        target_state = {
+            MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)
+        }
+    except IndexError:
+        raise CondaIndexError("no such revision: %d" % revision)
+
+    _supplement_index_with_prefix(index, prefix)
+
+    not_found_in_index_specs = set()
+    link_precs = set()
+    for spec in target_state:
+        precs = tuple(prec for prec in index.values() if spec.match(prec))
+        if not precs:
+            not_found_in_index_specs.add(spec)
+        elif len(precs) > 1:
+            link_precs.add(_get_best_prec_match(precs))
+        else:
+            link_precs.add(precs[0])
+
+    if not_found_in_index_specs:
+        raise PackagesNotFoundError(not_found_in_index_specs)
+
+    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
+    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
+    txn = UnlinkLinkTransaction(stp)
+    return txn

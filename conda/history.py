@@ -19,7 +19,11 @@ from textwrap import dedent
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
-from .base.constants import DEFAULTS_CHANNEL_NAME
+from .base.constants import (
+    CONDA_PACKAGE_EXTENSIONS,
+    DEFAULTS_CHANNEL_NAME,
+    UNKNOWN_CHANNEL,
+)
 from .base.context import context
 from .common.compat import ensure_text_type, open
 from .common.iterators import groupby_to_dict as groupby
@@ -27,7 +31,6 @@ from .common.path import paths_equal
 from .core.prefix_data import PrefixData
 from .exceptions import CondaHistoryError, NotWritableError
 from .gateways.disk.update import touch
-from .models.dist import dist_str_to_quad
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder, version_relation_re
 
@@ -36,6 +39,25 @@ log = logging.getLogger(__name__)
 
 class CondaHistoryWarning(Warning):
     pass
+
+
+# originally from conda.models.dist
+def strip_extension(original_dist):
+    for ext in CONDA_PACKAGE_EXTENSIONS:
+        if original_dist.endswith(ext):
+            original_dist = original_dist[: -len(ext)]
+    return original_dist
+
+
+# originally from conda.models.dist
+def dist_str_to_quad(dist_str):
+    dist_str = strip_extension(dist_str)
+    if "::" in dist_str:
+        channel_str, dist_str = dist_str.split("::", 1)
+    else:
+        channel_str = UNKNOWN_CHANNEL
+    name, version, build = dist_str.rsplit("-", 2)
+    return name, version, build, channel_str
 
 
 def write_head(fo):

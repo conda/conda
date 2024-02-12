@@ -17,11 +17,18 @@ from ..common.compat import ensure_text_type
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 from ..deprecations import deprecated
+from ..history import dist_str_to_quad, strip_extension  # noqa: F401
 from .channel import Channel
 from .package_info import PackageInfo
 from .records import PackageRecord
 
 log = getLogger(__name__)
+
+deprecated.module(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.models.records.PackageRecord` instead.",
+)
 
 
 class DistDetails(NamedTuple):
@@ -69,13 +76,6 @@ class DistType(EntityType):
             return dist
         else:
             return super().__call__(*args, **kwargs)
-
-
-def strip_extension(original_dist):
-    for ext in CONDA_PACKAGE_EXTENSIONS:
-        if original_dist.endswith(ext):
-            original_dist = original_dist[: -len(ext)]
-    return original_dist
 
 
 def split_extension(original_dist):
@@ -354,13 +354,3 @@ class Dist(Entity, metaclass=DistType):
     @property
     def fn(self):
         return self.to_filename()
-
-
-def dist_str_to_quad(dist_str):
-    dist_str = strip_extension(dist_str)
-    if "::" in dist_str:
-        channel_str, dist_str = dist_str.split("::", 1)
-    else:
-        channel_str = UNKNOWN_CHANNEL
-    name, version, build = dist_str.rsplit("-", 2)
-    return name, version, build, channel_str
