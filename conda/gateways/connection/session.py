@@ -168,7 +168,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
             except ImportError:
                 raise CondaError(
                     "The `ssl_verify: truststore` setting is only supported on"
-                    + "Python 3.10 or later."
+                    "Python 3.10 or later."
                 )
             self.verify = True
         else:

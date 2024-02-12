@@ -7,7 +7,7 @@ corruption.
 
 from __future__ import annotations
 
-from argparse import ArgumentParser, Namespace
+from typing import TYPE_CHECKING
 
 from ....base.context import context
 from ....cli.helpers import (
@@ -17,6 +17,9 @@ from ....cli.helpers import (
 )
 from ....deprecations import deprecated
 from ... import CondaSubcommand, hookimpl
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace
 
 
 @deprecated(

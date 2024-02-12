@@ -11,8 +11,8 @@ from logging import getLogger
 from os.path import join
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
+from typing import TYPE_CHECKING
 
-import requests
 from requests.exceptions import JSONDecodeError
 
 from . import CondaError, CondaExitZero, CondaMultiError
@@ -28,6 +28,9 @@ from .common.url import join_url, maybe_unquote
 from .deprecations import DeprecatedError  # noqa: F401
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
+
+if TYPE_CHECKING:
+    import requests
 
 log = getLogger(__name__)
 

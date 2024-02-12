@@ -15,11 +15,10 @@ from shutil import which
 from signal import SIGINT
 from subprocess import CalledProcessError, check_output
 from tempfile import gettempdir
-from typing import Callable, Iterable
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
 from conda import __version__ as conda_version
@@ -49,10 +48,17 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.helpers import tempdir
 from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
+
+if TYPE_CHECKING:
+    from typing import Callable, Iterable
+
+    from pytest import MonkeyPatch
+
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+
 
 log = getLogger(__name__)
 

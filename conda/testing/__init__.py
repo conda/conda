@@ -24,11 +24,9 @@ from logging import getLogger
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
-from typing import Iterable, overload
+from typing import TYPE_CHECKING, overload
 
 import pytest
-from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
-from pytest_mock import MockerFixture
 
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context, reset_context
@@ -36,6 +34,12 @@ from ..cli.main import main_subshell
 from ..common.compat import on_win
 from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
+    from pytest_mock import MockerFixture
 
 log = getLogger(__name__)
 

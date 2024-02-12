@@ -13,31 +13,36 @@ import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from typing import Literal, overload
+from typing import TYPE_CHECKING, overload
 
 import pluggy
-from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
 from ..base.context import context
-from ..core.solve import Solver
 from ..exceptions import CondaValueError, PluginError
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
-from .types import (
-    CondaAuthHandler,
-    CondaHealthCheck,
-    CondaPostCommand,
-    CondaPostSolve,
-    CondaPreCommand,
-    CondaPreSolve,
-    CondaSolver,
-    CondaSubcommand,
-    CondaVirtualPackage,
-)
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from requests.auth import AuthBase
+
+    from ..core.solve import Solver
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSolver,
+        CondaSubcommand,
+        CondaVirtualPackage,
+    )
 
 log = logging.getLogger(__name__)
 
