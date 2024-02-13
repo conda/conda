@@ -1,5 +1,18 @@
 [//]: # (current developments)
 
+## 24.1.1 (2024-02-12)
+
+### Bug fixes
+
+* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as zstandard. (#13558)
+* Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes. (#13573)
+
+### Contributors
+
+* @dholth
+
+
+
 ## 24.1.0 (2024-01-24)
 
 ### Special announcement
