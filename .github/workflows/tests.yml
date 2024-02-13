@@ -258,7 +258,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11']
+        python-version: ['3.12']
     env:
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
