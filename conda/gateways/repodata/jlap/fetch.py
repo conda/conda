@@ -18,6 +18,8 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
+from conda.common.url import mask_anaconda_token
+
 from ....base.context import context
 from ...connection import Response, Session
 from .. import (
@@ -117,7 +119,7 @@ def request_jlap(
     if etag and not ignore_etag:
         headers["if-none-match"] = etag
 
-    log.debug("%s %s", url, headers)
+    log.debug("%s %s", mask_anaconda_token(url), headers)
 
     assert session is not None
 
@@ -263,6 +265,16 @@ def download_and_hash(
     return response  # can be 304 not modified
 
 
+def _is_http_error_most_400_codes(e: HTTPError) -> bool:
+    """
+    Determine whether the `HTTPError` is an HTTP 400 error code (except for 416).
+    """
+    if e.response is None:  # 404 e.response is falsey
+        return False
+    status_code = e.response.status_code
+    return 400 <= status_code < 500 and status_code != 416
+
+
 def request_url_jlap_state(
     url,
     state: RepodataState,
@@ -304,8 +316,14 @@ def request_url_jlap_state(
                     )
                 else:
                     raise JlapSkipZst()
-            except (JlapSkipZst, HTTPError) as e:
-                if isinstance(e, HTTPError) and e.response.status_code != 404:
+            except (JlapSkipZst, HTTPError, zstandard.ZstdError) as e:
+                if isinstance(e, zstandard.ZstdError):
+                    log.warning(
+                        "Could not decompress %s as zstd. Fall back to .json. (%s)",
+                        mask_anaconda_token(withext(url, ".json.zst")),
+                        e,
+                    )
+                if isinstance(e, HTTPError) and not _is_http_error_most_400_codes(e):
                     raise
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
@@ -346,7 +364,12 @@ def request_url_jlap_state(
             pos = jlap_state.get("pos", 0)
             etag = headers.get(ETAG_KEY, None)
             jlap_url = withext(url, ".jlap")
-            log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
+            log.debug(
+                "Fetch %s from iv=%s, pos=%s",
+                mask_anaconda_token(jlap_url),
+                iv_hex,
+                pos,
+            )
             # wrong to read state outside of function, and totally rebuild inside
             buffer, jlap_state = fetch_jlap(
                 jlap_url,
@@ -365,7 +388,7 @@ def request_url_jlap_state(
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
-            if e.response.status_code == 404:
+            if _is_http_error_most_400_codes(e):
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
                     url,
