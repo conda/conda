@@ -294,7 +294,7 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
       - name: Pip Install
-        run: pip install pytest-codspeed
+        run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
 
       - name: Conda Info
         run: conda info --verbose
