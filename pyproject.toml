@@ -135,7 +135,7 @@ flake8-type-checking = {exempt-modules = [], strict = true}
 
 [tool.pytest.ini_options]
 minversion = 3.0
-testpaths = ["tests/test_activate.py", "tests/cli/test_subcommands.py"]
+testpaths = ["tests"]
 norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
