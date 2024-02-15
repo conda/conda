@@ -156,7 +156,7 @@ def test_fetch_repodata_remote_request_invalid_arch():
     assert result is None
 
 
-def test_fetch_repodata_remote_request(package_server: socket, tmp_path: Path, mocker):
+def test_fetch_repodata_remote_request(package_server: socket):
     """Check legacy interface."""
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
