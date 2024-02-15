@@ -24,7 +24,7 @@ from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
-from ..exceptions import CondaValueError, InvalidMatchSpec
+from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
 
@@ -33,6 +33,17 @@ log = getLogger(__name__)
 
 class MatchSpecType(type):
     def __call__(cls, spec_arg=None, **kwargs):
+        try:
+            return cls._call(spec_arg, **kwargs)
+        except InvalidSpec as e:
+            msg = ""
+            if spec_arg:
+                msg += f"{spec_arg}"
+            if kwargs:
+                msg += " " + ", ".join(f"{k}={v}" for k, v in kwargs.items())
+            raise InvalidMatchSpec(msg, details=e) from e
+
+    def _call(cls, spec_arg=None, **kwargs):
         if spec_arg:
             if isinstance(spec_arg, MatchSpec) and not kwargs:
                 return spec_arg
@@ -62,9 +73,7 @@ class MatchSpecType(type):
                 else:
                     return spec
             else:
-                raise CondaValueError(
-                    f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
-                )
+                raise InvalidSpec
         else:
             return super().__call__(**kwargs)
 
