@@ -1,8 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 from logging import getLogger
 from os.path import join
 from pathlib import Path
+from socket import socket
 from time import sleep
 
 import pytest
@@ -152,6 +154,16 @@ def test_fetch_repodata_remote_request_invalid_arch():
     mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
     result = fetch_repodata_remote_request(url, etag, mod_stamp)
     assert result is None
+
+
+def test_fetch_repodata_remote_request(package_server: socket, tmp_path: Path, mocker):
+    """Check legacy interface."""
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    url = f"{base}/osx-64"
+
+    response = fetch_repodata_remote_request(url, "etag", "modstamp")
+    assert "packages" in json.loads(response)
 
 
 def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
