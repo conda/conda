@@ -15,7 +15,6 @@ import json
 import os
 import re
 import sys
-from collections.abc import Callable, Iterable
 from logging import getLogger
 from os.path import (
     abspath,
@@ -29,6 +28,7 @@ from os.path import (
 )
 from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -42,6 +42,9 @@ from .base.constants import (
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 log = getLogger(__name__)
 

@@ -9,22 +9,25 @@ an example of how to use it.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import pluggy
 
-from .types import (
-    CondaAuthHandler,
-    CondaHealthCheck,
-    CondaPostCommand,
-    CondaPostSolve,
-    CondaPreCommand,
-    CondaPreSolve,
-    CondaSetting,
-    CondaSolver,
-    CondaSubcommand,
-    CondaVirtualPackage,
-)
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSetting,
+        CondaSolver,
+        CondaSubcommand,
+        CondaVirtualPackage,
+    )
 
 spec_name = "conda"
 """Name used for organizing conda hook specifications"""

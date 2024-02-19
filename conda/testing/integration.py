@@ -19,6 +19,7 @@ from random import sample
 from shutil import copyfile, rmtree
 from subprocess import check_output
 from tempfile import gettempdir
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -49,8 +50,11 @@ from ..gateways.disk.link import link
 from ..gateways.disk.update import touch
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord, PrefixRecord
+from ..models.records import PackageRecord
 from ..utils import massage_arguments
+
+if TYPE_CHECKING:
+    from ..models.records import PrefixRecord
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"

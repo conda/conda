@@ -6,7 +6,7 @@ from __future__ import annotations
 import codecs
 import os
 from collections import defaultdict
-from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -14,9 +14,9 @@ from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
-from pathlib import Path
 from sys import platform
 from tarfile import ReadError
+from typing import TYPE_CHECKING
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -56,6 +56,10 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 from .path_actions import CacheUrlAction, ExtractPackageAction
+
+if TYPE_CHECKING:
+    from concurrent.futures import Future
+    from pathlib import Path
 
 log = getLogger(__name__)
 

@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
-from pathlib import Path
-from typing import NamedTuple, Sequence
+from typing import TYPE_CHECKING, NamedTuple
 
 from ..base.constants import NoticeLevel
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Sequence
 
 #: Value to use for message ID when it is not provided
 UNDEFINED_MESSAGE_ID = "undefined"

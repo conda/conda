@@ -5,11 +5,16 @@ from __future__ import annotations
 
 import re
 from functools import cached_property
-from types import ModuleType
+from typing import TYPE_CHECKING
 
-from ...env.env import Environment, from_yaml
+from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
+
+if TYPE_CHECKING:
+    from types import ModuleType
+
+    from ...env.env import Environment
 
 ENVIRONMENT_TYPE = "env"
 

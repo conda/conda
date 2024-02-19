@@ -6,13 +6,12 @@ from __future__ import annotations
 import io
 import json
 import logging
-import pathlib
 import pprint
 import re
 import time
 from contextlib import contextmanager
 from hashlib import blake2b
-from typing import Iterator
+from typing import TYPE_CHECKING
 
 import jsonpatch
 import zstandard
@@ -21,14 +20,15 @@ from requests import HTTPError
 from conda.common.url import mask_anaconda_token
 
 from ....base.context import context
-from ...connection import Response, Session
-from .. import (
-    ETAG_KEY,
-    LAST_MODIFIED_KEY,
-    RepodataCache,
-    RepodataState,
-)
+from .. import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 from .core import JLAP
+
+if TYPE_CHECKING:
+    import pathlib
+    from typing import Iterator
+
+    from ...connection import Response, Session
+    from .. import RepodataCache
 
 log = logging.getLogger(__name__)
 
@@ -265,6 +265,16 @@ def download_and_hash(
     return response  # can be 304 not modified
 
 
+def _is_http_error_most_400_codes(e: HTTPError) -> bool:
+    """
+    Determine whether the `HTTPError` is an HTTP 400 error code (except for 416).
+    """
+    if e.response is None:  # 404 e.response is falsey
+        return False
+    status_code = e.response.status_code
+    return 400 <= status_code < 500 and status_code != 416
+
+
 def request_url_jlap_state(
     url,
     state: RepodataState,
@@ -313,7 +323,7 @@ def request_url_jlap_state(
                         mask_anaconda_token(withext(url, ".json.zst")),
                         e,
                     )
-                if isinstance(e, HTTPError) and e.response.status_code != 404:
+                if isinstance(e, HTTPError) and not _is_http_error_most_400_codes(e):
                     raise
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
@@ -378,7 +388,7 @@ def request_url_jlap_state(
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
-            if e.response.status_code == 404:
+            if _is_http_error_most_400_codes(e):
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
                     url,
