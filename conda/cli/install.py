@@ -16,6 +16,7 @@ from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
+from ..common.io import Spinner
 from ..common.path import is_package_file, paths_equal
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
@@ -327,19 +328,30 @@ def install(args, parser, command="install"):
     for repodata_fn in repodata_fns:
         try:
             if isinstall and args.revision:
-                index = get_index(
-                    channel_urls=index_args["channel_urls"],
-                    prepend=index_args["prepend"],
-                    platform=None,
-                    use_local=index_args["use_local"],
-                    use_cache=index_args["use_cache"],
-                    unknown=index_args["unknown"],
-                    prefix=prefix,
-                    repodata_fn=repodata_fn,
-                )
-                unlink_link_transaction = revert_actions(
-                    prefix, get_revision(args.revision), index
-                )
+                with Spinner(
+                    "Collecting package metadata (%s)" % repodata_fn,
+                    not context.verbose and not context.quiet,
+                    context.json,
+                ):
+                    index = get_index(
+                        channel_urls=index_args["channel_urls"],
+                        prepend=index_args["prepend"],
+                        platform=None,
+                        use_local=index_args["use_local"],
+                        use_cache=index_args["use_cache"],
+                        unknown=index_args["unknown"],
+                        prefix=prefix,
+                        repodata_fn=repodata_fn,
+                    )
+                revision_idx = get_revision(args.revision)
+                with Spinner(
+                    f"Reverting to revision {revision_idx}",
+                    not context.verbose and not context.quiet,
+                    context.json,
+                ):
+                    unlink_link_transaction = revert_actions(
+                        prefix, revision_idx, index
+                    )
             else:
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
