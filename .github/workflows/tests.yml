@@ -27,6 +27,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+env:
+  COVERAGE_CORE: sysmon
+
 jobs:
   # detect whether any code changes are included in this PR
   changes:
