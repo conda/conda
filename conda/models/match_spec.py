@@ -73,7 +73,9 @@ class MatchSpecType(type):
                 else:
                     return spec
             else:
-                raise InvalidSpec
+                raise InvalidSpec(
+                    f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
+                )
         else:
             return super().__call__(**kwargs)
 
