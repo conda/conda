@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import sys
 import warnings
-from argparse import Action
 from functools import wraps
 from types import ModuleType
-from typing import Any, Callable
+from typing import TYPE_CHECKING
 
-from packaging.version import Version, parse
+if TYPE_CHECKING:
+    from argparse import Action
+    from typing import Any, Callable
+
+    from packaging.version import Version
 
 from . import __version__
 
@@ -22,17 +25,52 @@ class DeprecatedError(RuntimeError):
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class DeprecationHandler:
-    _version: Version
+    _version: str | None
+    _version_tuple: tuple[int, ...] | None
+    _version_object: Version | None
 
-    def __init__(self, version: Version | str):
+    def __init__(self, version: str):
         """Factory to create a deprecation handle for the specified version.
 
         :param version: The version to compare against when checking deprecation statuses.
         """
+        self._version = version
+        # Try to parse the version string as a simple tuple[int, ...] to avoid
+        # packaging.version import and costlier version comparisons.
+        self._version_tuple = self._get_version_tuple(version)
+        self._version_object = None
+
+    @staticmethod
+    def _get_version_tuple(version: str) -> tuple[int, ...] | None:
+        """Return version as non-empty tuple of ints if possible, else None.
+
+        :param version: Version string to parse.
+        """
         try:
-            self._version = parse(version)
-        except TypeError:
-            self._version = parse("0.0.0.dev0+placeholder")
+            return tuple(int(part) for part in version.strip().split(".")) or None
+        except (AttributeError, ValueError):
+            return None
+
+    def _version_less_than(self, version: str) -> bool:
+        """Test whether own version is less than the given version.
+
+        :param version: Version string to compare against.
+        """
+        if self._version_tuple:
+            if version_tuple := self._get_version_tuple(version):
+                return self._version_tuple < version_tuple
+
+        # If self._version or version could not be represented by a simple
+        # tuple[int, ...], do a more elaborate version parsing and comparison.
+        # Avoid this import otherwise to reduce import time for conda activate.
+        from packaging.version import parse
+
+        if self._version_object is None:
+            try:
+                self._version_object = parse(self._version)
+            except TypeError:
+                self._version_object = parse("0.0.0.dev0+placeholder")
+        return self._version_object < parse(version)
 
     def __call__(
         self,
@@ -41,7 +79,7 @@ class DeprecationHandler:
         *,
         addendum: str | None = None,
         stack: int = 0,
-    ) -> Callable[(Callable), Callable]:
+    ) -> Callable[[Callable], Callable]:
         """Deprecation decorator for functions, methods, & classes.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
@@ -83,7 +121,7 @@ class DeprecationHandler:
         rename: str | None = None,
         addendum: str | None = None,
         stack: int = 0,
-    ) -> Callable[(Callable), Callable]:
+    ) -> Callable[[Callable], Callable]:
         """Deprecation decorator for keyword arguments.
 
         :param deprecate_in: Version in which code will be marked as deprecated.
@@ -132,7 +170,7 @@ class DeprecationHandler:
         self,
         deprecate_in: str,
         remove_in: str,
-        action: Action,
+        action: type[Action],
         *,
         addendum: str | None = None,
         stack: int = 0,
@@ -262,7 +300,10 @@ class DeprecationHandler:
         """
         # detect function name and generate message
         category, message = self._generate_message(
-            deprecate_in, remove_in, topic, addendum
+            deprecate_in,
+            remove_in,
+            topic,
+            addendum,
         )
 
         # alert developer that it's time to remove something
@@ -278,17 +319,42 @@ class DeprecationHandler:
         :param stack: The stacklevel increment.
         :return: The module and module name.
         """
-        import inspect  # expensive
-
         try:
             frame = sys._getframe(2 + stack)
+        except IndexError:
+            # IndexError: 2 + stack is out of range
+            pass
+        else:
+            # Shortcut finding the module by manually inspecting loaded modules.
+            try:
+                filename = frame.f_code.co_filename
+            except AttributeError:
+                # AttributeError: frame.f_code.co_filename is undefined
+                pass
+            else:
+                for module in sys.modules.values():
+                    if not isinstance(module, ModuleType):
+                        continue
+                    if not hasattr(module, "__file__"):
+                        continue
+                    if module.__file__ == filename:
+                        return (module, module.__name__)
+
+            # If above failed, do an expensive import and costly getmodule call.
+            import inspect
+
             module = inspect.getmodule(frame)
-            return (module, module.__name__)
-        except (IndexError, AttributeError):
-            raise DeprecatedError("unable to determine the calling module") from None
+            if module is not None:
+                return (module, module.__name__)
+
+        raise DeprecatedError("unable to determine the calling module")
 
     def _generate_message(
-        self, deprecate_in: str, remove_in: str, prefix: str, addendum: str
+        self,
+        deprecate_in: str,
+        remove_in: str,
+        prefix: str,
+        addendum: str | None,
     ) -> tuple[type[Warning] | None, str]:
         """Deprecation decorator for functions, methods, & classes.
 
@@ -298,13 +364,11 @@ class DeprecationHandler:
         :param addendum: Additional messaging. Useful to indicate what to do instead.
         :return: The warning category (if applicable) and the message.
         """
-        deprecate_version = parse(deprecate_in)
-        remove_version = parse(remove_in)
-
-        if self._version < deprecate_version:
+        category: type[Warning] | None
+        if self._version_less_than(deprecate_in):
             category = PendingDeprecationWarning
             warning = f"is pending deprecation and will be removed in {remove_in}."
-        elif self._version < remove_version:
+        elif self._version_less_than(remove_in):
             category = DeprecationWarning
             warning = f"is deprecated and will be removed in {remove_in}."
         else:

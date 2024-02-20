@@ -43,12 +43,12 @@ This document seeks to outline how we as a community use GitHub Issues to track 
     - [Spikes](#spikes)
   - [Working on Issues](#working-on-issues)
 
-> **Note**
+> [!NOTE]
 > This document is written in the style of an FAQ. For easier navigation, use [GitHub's table of contents feature][docs-toc].
 
 ## What is "Issue Sorting"?
 
-> **Note**
+> [!NOTE]
 > "Issue sorting" is similar to that of "triaging", but we've chosen to use different terminology because "triaging" is a word related to very weighty topics (_e.g._, injuries and war) and we would like to be sensitive to those connotations. Additionally, we are taking a more "fuzzy" approach to sorting (_e.g._, severities may not be assigned, etc.).
 
 "Issue Sorting" refers to the process of assessing the priority of incoming issues. Below is a high-level diagram of the flow of issues:
@@ -213,7 +213,7 @@ Below are some boilerplate responses for the most commonly-seen issues to be sor
 This is a duplicate of <b>[link to primary issue]</b>; please feel free to continue the discussion there.
 </pre>
 
-> **Warning**
+> [!WARNING]
 > Apply the https://github.com/conda/infrastructure/labels/duplicate label to the issue being closed and https://github.com/conda/infrastructure/labels/duplicate%3A%3Aprimary to the original issue.
 
 </details>
@@ -225,7 +225,7 @@ This is a duplicate of <b>[link to primary issue]</b>; please feel free to conti
 <pre>
 
 Please uninstall your current version of `conda` and reinstall the latest version.
-Feel free to use either the [miniconda](https://docs.conda.io/en/latest/miniconda.html)
+Feel free to use either the [miniconda](https://docs.anaconda.com/free/miniconda/)
 or [anaconda](https://www.anaconda.com/products/individual) installer,
 whichever is more appropriate for your needs.
 </pre>
@@ -244,7 +244,7 @@ If you are still encountering this issue please reopen in the
 where `conda` installer/package issues are addressed.
 </pre>
 
-> **Warning**
+> [!WARNING]
 > Apply the https://github.com/conda/infrastructure/labels/off-topic label to these issues before closing them out.
 
 </details>
@@ -260,7 +260,7 @@ if you continue to experience the problems described here,
 please post details to the [Nucleus forums](https://community.anaconda.cloud/).
 </pre>
 
-> **Warning**
+> [!WARNING]
 > Apply the https://github.com/conda/infrastructure/labels/off-topic label to these issues before closing them out.
 
 </details>

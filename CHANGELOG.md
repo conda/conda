@@ -1,5 +1,282 @@
 [//]: # (current developments)
 
+## 24.1.2 (2024-02-15)
+
+### Bug fixes
+
+* Fix deprecated `fetch_repodata_remote_request` when `repodata_use_zst` is enabled. (#13595)
+
+### Contributors
+
+* @dholth
+
+
+
+## 24.1.1 (2024-02-12)
+
+### Bug fixes
+
+* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as zstandard. (#13558)
+* Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes. (#13573)
+
+### Contributors
+
+* @dholth
+
+
+
+## 24.1.0 (2024-01-24)
+
+### Special announcement
+
+#### The `conda_env.*` modules have been merged into the `conda` package!
+
+To improve the integration of the `conda env` subcommand (previously standalone), we've moved its
+code into the `conda` package, while allowing old `conda env` commands to still work via Python
+import redirects. This is a first step of many to improving the user experience of the conda
+command line interface related to environment management. (#13168)
+
+### Enhancements
+
+* Verify signatures on to-be-installed packages instead of on all packages. (#11545, #13053)
+* Add new `pre-solves` and `post-solves` plugin hooks. (#13053)
+* Add support for Python 3.12. (#13072)
+* Check `repodata.json.zst` for faster repodata downloads. (#13256)
+* Add `--skip-flexible-search` option in `conda search` to skip flexible search. (#13315)
+* Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
+* Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
+* Add a Y/N prompt warning users that `conda env remove` and `conda remove --all` deletes not only the conda packages but the entirety of the specified environment. (#13440)
+* Add `--repodata-use-zst/--no-repodata-use-zst` flag to control `repodata.json.zst` check; corresponding `repodata_use_zst: true/false` for `.condarc`. Default is to check for `repodata.json.zst`. Disable if remote returns unparseable `repodata.json.zst` instead of correct data or 404. (#13504)
+
+
+### Bug fixes
+
+* Create the `~/.conda` directory before trying to write to the `environments.txt` file. (#13338)
+* Ensure `PackageRecord.timestamp` is dumped in milliseconds. (#13483)
+* Fix error when setting a non-default repodata filename via `CONDA_REPODATA_FNS`. (#13490)
+* Fix the config file location where the integrated Anaconda client gateway loads user configuration from. This is a regression introduced in conda 23.11.0 when the `platformdirs` library was adopted. (#13517 via #13520)
+* Interpret missing `Cache-Control` header as `max-age=0` instead of exception. (#13522)
+
+### Deprecations
+
+* Mark `conda_env/cli/common` as pending deprecation. Use `conda.cli.common` instead. (#13168)
+* Mark `conda_env/cli/main_config` as pending deprecation. Use `conda.cli.main_env_config` instead. (#13168)
+* Mark `conda_env/cli/main_create` as pending deprecation. Use `conda.cli.main_env_create` instead. (#13168)
+* Mark `conda_env/cli/main_export` as pending deprecation. Use `conda.cli.main_env_export` instead. (#13168)
+* Mark `conda_env/cli/main_list` as pending deprecation. Use `conda.cli.main_env_list` instead. (#13168)
+* Mark `conda_env/cli/main_remove` as pending deprecation. Use `conda.cli.main_env_remove` instead. (#13168)
+* Mark `conda_env/cli/main_update` as pending deprecation. Use `conda.cli.main_env_update` instead. (#13168)
+* Mark `conda_env/cli/main_vars` as pending deprecation. Use `conda.cli.main_env_vars` instead. (#13168)
+* Mark `conda_env/env` as pending deprecation. Use `conda.env.env` instead. (#13168)
+* Mark `conda_env/installers/base` as pending deprecation. Use `conda.env.installers.base` instead. (#13168)
+* Mark `conda_env/installers/conda` as pending deprecation. Use `conda.env.installers.conda` instead. (#13168)
+* Mark `conda_env/installers/pip` as pending deprecation. Use `conda.env.installers.pip` instead. (#13168)
+* Mark `conda_env/pip_util` as pending deprecation. Use `conda.env.pip_util` instead. (#13168)
+* Mark `conda_env/specs` as pending deprecation. Use `conda.env.specs` instead. (#13168)
+* Mark `conda_env/specs/binstar` as pending deprecation. Use `conda.env.specs.binstar` instead. (#13168)
+* Mark `conda_env/specs/requirements` as pending deprecation. Use `conda.env.specs.requirements` instead. (#13168)
+* Mark `conda_env/specs/yaml_file` as pending deprecation. Use `conda.env.specs.yaml_file` instead. (#13168)
+* Mark `conda.testing.integration.make_temp_package_cache` as pending deprecation. (#13511)
+
+### Docs
+
+* Update Getting Started documentation in User Guide. (#13190)
+* Add GoatCounter (https://www.goatcounter.com/) as an analytics tool. (#13384)
+* Add type hints and doc strings to `conda.cli.main_info`. (#13445)
+* Add type hints and doc strings to `conda.cli.main_search`. (#13465)
+
+### Other
+
+* Add type hinting for `VersionOrder` class. (#13380)
+* Re-enable and apply `pyupgrade` via `ruff`. (#13272, #13433)
+* Start tracking performance in continuous integration and automatically report about it in pull requests. (#13460)
+* Add `tmp_pkgs_dir` fixture to replace `make_temp_package_cache`. (#13511)
+* Improve lock API for the repodata cache. (#13455)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @jezdez
+* @johnnynunez
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @marcoesters
+* @mfansler
+* @schuylermartin45 made their first contribution in https://github.com/conda/conda/pull/13385
+* @travishathaway
+* @pre-commit-ci[bot]
+* @samhaese made their first contribution in https://github.com/conda/conda/pull/13465
+
+
+
+## 23.11.0 (2023-11-30)
+
+### Special announcement
+
+New [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0) support!
+
+`conda` has supported Start menu items on Windows for a long time. This is what allows users to open up their Miniconda prompt on CMD (Command Prompt) with an initialized `conda` session. This menu item (or shortcut) creation logic is provided by the `menuinst` package.
+
+With the release of 23.11.0, `conda` now supports [`menuinst` v2](https://github.com/conda/menuinst/releases/tag/2.0.0), which enables the same experience across Windows, Linux, and macOS. This means package builders will be able to provide desktop icons across all operating systems, which can be especially useful for GUI applications. See the [documentation](https://conda.github.io/menuinst/) for more details.
+
+If you don't want `conda` to create shortcuts, you can disable it via:
+
+- `shortcuts: false` entry in your `.condarc` configuration
+- `CONDA_SHORTCUTS=false` environment variable
+- `--no-shortcuts` command-line flag
+
+
+### Enhancements
+
+* Add support for `menuinst` v2, enabling shortcuts across all platforms (Windows, Linux, macOS) using a new JSON schema (see [CEP-11](https://github.com/conda-incubator/ceps/blob/main/cep-11.md)). Retain support for old v1-style JSON menus. (#11882)
+* Stop using vendored `chardet` package by `requests`/`pip`; explicitly depend on `charset_normalizer`. (#13171)
+* Introduce a new plugin hook, `CondaHealthCheck`, as part of `conda doctor`. (#13186)
+* Include `activate` and `deactivate` in the `--help` command list. (#13191)
+* Prioritize download of larger packages to prevent smaller ones from waiting. (#13248)
+* Display the used solver in `conda info` output for debugging purposes. (#13265)
+* Add `__conda` virtual package. (#13266)
+* Switch from `appdirs` to `platformdirs`. (#13306)
+* Implement resume capability for interrupted package downloads. (#8695)
+
+### Bug fixes
+
+* Log expected JLAP range-request errors at `info` level, occurring when the remote file has rolled over. (#12913)
+* Fix a bug causing an error when options like `--debug` are used without specifying a command. (#13232)
+* Improve CTRL-C (cancellation) handling for parallel download threads. (#13234)
+* Allow overriding of `CONDA_FETCH_THREADS`/`fetch_threads` to set parallel package downloads beyond the default `5`. (#13263)
+* Require `requests >=2.28` for enhanced `response.json()` exception handling. (#13346)
+* Apply `callback=reset_context` in `conda.plan` to resolve `conda-build` + `conda-libmamba-solver` incompatibilities. ([conda-libmamba-solver#393](https://github.com/conda/conda-libmamba-solver/issues/393) and [conda-libmamba-solver#386](https://github.com/conda/conda-libmamba-solver/issues/386) via #13357)
+
+### Deprecations
+
+* Deprecate `conda.plugins.subcommands.doctor.health_checks.display_health_checks` function. (#13186)
+* Deprecate `conda.plugins.subcommands.doctor.health_checks.display_report_heading` function. (#13186)
+* Remove `ruamel_yaml` fallback; use `ruamel.yaml` exclusively. (#13218)
+* Deprecate `conda.gateways.anaconda_client.EnvAppDirs` in favor of `platformdirs`. (#13306)
+* Mark `conda._vendor.cpuinfo` for pending deprecation. (#13313)
+* Deprecate `conda._vendor.distro` in favor of the `distro` package. (#13317)
+
+### Docs
+
+* Add the `conda-sphinx-theme` to the conda documentation. (#13298)
+* Update specific pages to remove redundant TOC entries. (#13298)
+* Include instructions on updating `conda` in the main `README.md`. (#13343)
+
+### Other
+
+* Add a lighter weight s3 test; update embedded test package index. (#13085)
+* Refactor code to use lazy imports for all relative imports in `conda.cli.main_*`, and separate argparse configuration functions from `conda.cli.conda_argparse` to their respective `conda.cli.main_*` modules. (#13173)
+* Move custom `argparse.Actions` to `conda.cli.actions` (e.g., `NullCountAction`), and relocate helper argparse functions to `conda.cli.helpers` (e.g., `add_parser_prefix`). (#13173)
+* Update upper bound for `ruamel.yaml` to `<0.19` following the release of `0.18`. (#13258)
+* Replace `black` with `ruff format` in pre-commit. (#13272)
+
+### Contributors
+
+* @AniketP04 made their first contribution in https://github.com/conda/conda/pull/13224
+* @beeankha
+* @13rac1 made their first contribution in https://github.com/conda/conda/pull/13191
+* @conda-bot
+* @dholth
+* @eltociear
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @kennethlaskoski made their first contribution in https://github.com/conda/conda/pull/13322
+* @ForgottenProgramme
+* @marcoesters
+* @opoplawski
+* @scruel made their first contribution in https://github.com/conda/conda/pull/13274
+* @travishathaway
+* @gfggithubleet made their first contribution in https://github.com/conda/conda/pull/13270
+* @pre-commit-ci[bot]
+
+
+
+## 23.10.0 (2023-10-30)
+
+### ✨ Special announcement ✨
+
+This is an announcement about an important change in conda's functionality:
+
+#### **With this 23.10.0 release we are changing the default solver of conda to [`conda-libmamba-solver`](https://conda.github.io/conda-libmamba-solver/)!** 🥳 🚀
+
+The previously "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the foreseeable future, a fallback is possible and available.
+
+#### Why are we switching the solver?
+
+In short: to make conda faster and more accurate.
+
+A "solver" is the core component of most package managers; it calculates which dependencies (and which version of those dependencies) to install when a user requests to install a package from a package repository. To address growth-related challenges within the conda ecosystem, the conda maintainers, alongside partners Anaconda, Quansight and QuantStack, introduced [a new conda dependency solver based on the Mamba project](https://mamba.readthedocs.io) in December 2022.
+
+Since July 2023, the [`conda-libmamba-solver`](https://github.com/conda/conda-libmamba-solver) plugin has been included in all major conda ecosystem installers (miniforge, miniconda, mambaforge and Anaconda Distribution), but was disabled by default. As soon as these installers are updated to contain conda 23.10.0 or later, they will automatically default to using the conda-libmamba-solver plugin.
+
+#### What can I do if this update doesn't work for me?
+
+If the new solver is not working as you expect:
+
+- Check if the behavior you are observing is a [known issue](https://github.com/conda/conda-libmamba-solver/issues/283) or a [deliberate change](https://conda.github.io/conda-libmamba-solver/libmamba-vs-classic/#intentional-deviations-from-classic).
+- If that's not the case, please consider submitting a bug report or feature request in the [conda-libmamba-solver repository](https://github.com/conda/conda-libmamba-solver/issues/new/choose).
+- If necessary, you can go back to using the `classic` solver without modifying your conda installation:
+  - When possible, pass the command line option `--solver=classic` to your `conda` calls.
+  - Otherwise (e.g. for `conda build ...` or `constructor ...`), set the environment variable `CONDA_SOLVER=classic`.
+  - For permanent changes, use the conda configuration system: `conda config --set solver classic`.
+
+#### Where can I learn more about conda-libmamba-solver?
+
+The documentation of the `conda-libmamba-solver` plugin can be found on [conda.github.io/conda-libmamba-solver](https://conda.github.io/conda-libmamba-solver/).
+
+For more information about the `conda-libmamba-solver` rollout plan, please also see our [blog post from earlier this year](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout).
+
+### Enhancements
+
+* Provide `--platform` and `--subdir` flags to create environments for non-native platforms, remembering that choice in future operations. (#11505 via #11794)
+* IMPORTANT: Set `solver: libmamba` as the new default solver. (#12984)
+
+### Bug fixes
+
+* Check name of symlink, not its target against valid configuration file names (`condarc`, `.condarc`, or `*.yml/yaml`). (#12956)
+* Have `conda doctor` ignore blank lines in `~/.conda/environments.txt`. (#12984)
+
+### Deprecations
+
+* Mark `conda.cli.main.generate_parser` as pending deprecation. Use `conda.cli.conda_argparse.generate_parser` instead. (#13144)
+* Mark `conda.auxlib.collection.firstitem` as pending deprecation. (#13144)
+* Mark `conda.auxlib.collection.call_each` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.NoneType` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.primative_types` as pending deprecation. (#13144)
+* Mark `conda.auxlib.compat.utf8_writer` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.AuthenticationError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.NotFoundError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.InitializationError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.SenderError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.exceptions.AssignmentError` as pending deprecation. (#13144)
+* Mark `conda.auxlib.type_coercion.boolify_truthy_string_ok` as pending deprecation. (#13144)
+* Mark `conda.auxlib.type_coercion.listify` as pending deprecation. (#13144)
+* Mark `conda.models.dist.IndexRecord` as pending deprecation for removal in 24.9. (#13193)
+* Mark `conda.exports.fetch_index` as pending deprecation for removal in 24.9. Use `conda.core.index.fetch_index` instead. (#13194)
+
+### Other
+
+* Constrain minimum conda-build version to `>=3.27`. (#13177)
+
+### Contributors
+
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @timhoffm
+* @pre-commit-ci[bot]
+
+
+
 ## 23.9.0 (2023-09-27)
 
 ### Special announcement
@@ -10,7 +287,7 @@ This is an announcement about an important and positive future change in conda's
 
 You can already benefit from it _today_ by [configuring your conda installation to use it](https://conda.github.io/conda-libmamba-solver/getting-started/#usage) (e.g. by running `conda config --set solver libmamba`).
 
-The current "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the forseeable future, a fallback is possible and available (see below).
+The current "classic" solver is based on [pycosat](https://github.com/conda/pycosat)/[Picosat](http://fmv.jku.at/picosat/) and will remain part of conda for the foreseeable future, a fallback is possible and available (see below).
 
 #### Plan to change the default solver
 
@@ -1891,7 +2168,7 @@ Please read that CEP for more information, but here is a quick synopsis. We hope
 * Improve unsatisfiable hints  (#8638)
 * Add capability to use custom repodata filename, for smaller subsets of repodata  (#8670)
 * Parallelize SubdirData readup  (#8670)
-* Parallelize transacation verification and execution  (#8670)
+* Parallelize transaction verification and execution  (#8670)
 
 ### Bug fixes
 

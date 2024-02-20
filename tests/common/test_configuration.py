@@ -823,3 +823,21 @@ def test_parameter_flag():
 def test_custom_expandvars(path: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("VARIABLE", value := uuid4().hex)
     assert custom_expandvars(path, VARIABLE=value) == expandvars(path)
+
+
+@pytest.mark.skipif(on_win, reason="Test requires symlinks.")
+def test_expand_search_path(tmp_path):
+    """
+    _expand_search_path was testing the symlink target against valid condarc
+    filenames, instead of the symlink itself.
+
+    It may or may not be necessary to limit valid condarc filenames, but it is
+    even more confusing to reject based on the symlink target.
+    """
+    target = tmp_path / "condarc-symlink-target"
+    target.touch()
+    symlink = tmp_path / "condarc"
+    symlink.symlink_to(target)
+
+    expanded = list(Configuration._expand_search_path([target, symlink]))
+    assert expanded == [symlink], expanded

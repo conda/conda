@@ -4,22 +4,172 @@
 
 Query channels for packages matching the provided package spec.
 """
+from __future__ import annotations
+
+from argparse import SUPPRESS
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
-from ..base.context import context
-from ..cli.common import stdout_json
-from ..common.io import Spinner, dashlist
-from ..core.envs_manager import query_all_prefixes
-from ..core.index import calculate_channel_urls
-from ..core.subdir_data import SubdirData
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
-from ..models.version import VersionOrder
-from ..utils import human_bytes
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+
+    from ..models.records import PackageRecord
 
 
-def execute(args, parser):
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..auxlib.ish import dals
+    from ..common.constants import NULL
+    from .helpers import (
+        add_parser_channels,
+        add_parser_json,
+        add_parser_known,
+        add_parser_networking,
+    )
+
+    summary = "Search for packages and display associated information using the MatchSpec format."
+    description = dals(
+        f"""
+        {summary}
+
+        MatchSpec is a query language for conda packages.
+        """
+    )
+    epilog = dals(
+        """
+        Examples:
+
+        Search for a specific package named 'scikit-learn'::
+
+            conda search scikit-learn
+
+        Search for packages containing 'scikit' in the package name::
+
+            conda search *scikit*
+
+        Note that your shell may expand '*' before handing the command over to conda.
+        Therefore, it is sometimes necessary to use single or double quotes around the query::
+
+            conda search '*scikit'
+            conda search "*scikit*"
+
+        Search for packages for 64-bit Linux (by default, packages for your current
+        platform are shown)::
+
+            conda search numpy[subdir=linux-64]
+
+        Search for a specific version of a package::
+
+            conda search 'numpy>=1.12'
+
+        Search for a package on a specific channel::
+
+            conda search conda-forge::numpy
+            conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+        """
+    )
+
+    p = sub_parsers.add_parser(
+        "search",
+        help=summary,
+        description=description,
+        epilog=epilog,
+        **kwargs,
+    )
+    p.add_argument(
+        "--envs",
+        action="store_true",
+        help="Search all of the current user's environments. If run as Administrator "
+        "(on Windows) or UID 0 (on unix), search all known environments on the system.",
+    )
+    p.add_argument(
+        "-i",
+        "--info",
+        action="store_true",
+        help="Provide detailed information about each package.",
+    )
+    p.add_argument(
+        "--subdir",
+        "--platform",
+        action="store",
+        dest="subdir",
+        help="Search the given subdir. Should be formatted like 'osx-64', 'linux-32', "
+        "'win-64', and so on. The default is to search the current platform.",
+        default=NULL,
+    )
+    p.add_argument(
+        "--skip-flexible-search",
+        action="store_true",
+        help="Do not perform flexible search if initial search fails.",
+    )
+    p.add_argument(
+        "match_spec",
+        default="*",
+        nargs="?",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--canonical",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "-f",
+        "--full-name",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--names-only",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    add_parser_known(p)
+    p.add_argument(
+        "-o",
+        "--outdated",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--spec",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--reverse-dependency",
+        action="store_true",
+        # help="Perform a reverse dependency search. Use 'conda search package --info' "
+        #      "to see the dependencies of a package.",
+        help=SUPPRESS,  # TODO: re-enable once we have --reverse-dependency working again
+    )
+
+    add_parser_channels(p)
+    add_parser_networking(p)
+    add_parser_json(p)
+    p.set_defaults(func="conda.cli.main_search.execute")
+
+    return p
+
+
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    """
+    Implements `conda search` commands.
+
+    `conda search <spec>` searches channels for packages.
+    `conda search <spec> --envs` searches environments for packages.
+
+    """
+    from ..base.context import context
+    from ..cli.common import stdout_json
+    from ..common.io import Spinner
+    from ..core.envs_manager import query_all_prefixes
+    from ..core.index import calculate_channel_urls
+    from ..core.subdir_data import SubdirData
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
+    from ..models.version import VersionOrder
+
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value("subdir"):
         subdirs = (spec.get_exact_value("subdir"),)
@@ -92,7 +242,7 @@ def execute(args, parser):
             SubdirData.query_all(spec, channel_urls, subdirs),
             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
         )
-    if not matches and spec.get_exact_value("name"):
+    if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
@@ -145,9 +295,18 @@ def execute(args, parser):
                 )
             )
         print("\n".join(builder))
+    return 0
 
 
-def pretty_record(record):
+def pretty_record(record: PackageRecord) -> None:
+    """
+    Pretty prints a `PackageRecord`.
+
+    :param record:  The `PackageRecord` object to print.
+    """
+    from ..common.io import dashlist
+    from ..utils import human_bytes
+
     def push_line(display_name, attr_name):
         value = getattr(record, attr_name, None)
         if value is not None:

@@ -1,16 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from pathlib import Path
+
 import pytest
 from pytest_mock import MockerFixture
 
+from conda.base.context import context
 from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
+
 
 @pytest.mark.integration
 def test_pre_link_message(
-    test_recipes_channel: None,
+    test_recipes_channel: Path,
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -22,7 +27,6 @@ def test_pre_link_message(
             "install",
             *("--prefix", prefix),
             "pre_link_messages_package",
-            "--use-local",
             "--yes",
         )
         assert "Lorem ipsum dolor sit amet" in stdout
@@ -35,6 +39,9 @@ def test_find_conflicts_called_once(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
 ):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver handles conflicts differently")
+
     bad_deps = {
         "python": {
             (

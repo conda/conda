@@ -1,7 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from logging import getLogger
-from typing import NamedTuple, Union
+from typing import NamedTuple
 
 import pytest
 
@@ -83,7 +85,7 @@ class UrlTest(NamedTuple):
     username: str = None
     password: str = None
     hostname: str = None
-    port: Union[int, str] = None
+    port: int | str = None
 
 
 URLPARSE_TEST_DATA = [

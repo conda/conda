@@ -20,21 +20,7 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.gateways.repodata import (
-    CACHE_STATE_SUFFIX,
-    CondaRepoInterface,
-    RepodataCache,
-    RepodataFetch,
-    RepodataIsEmpty,
-    RepodataState,
-    RepoInterface,
-    cache_fn_url,
-    create_cache_dir,
-    get_repo_interface,
-)
-from conda.gateways.repodata import (
-    get_cache_control_max_age as _get_cache_control_max_age,
-)
+from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -46,10 +32,25 @@ from ..common.url import join_url
 from ..deprecations import deprecated
 from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
+from ..gateways.repodata import (
+    CACHE_STATE_SUFFIX,
+    CondaRepoInterface,
+    RepodataFetch,
+    RepodataIsEmpty,
+    RepodataState,
+    cache_fn_url,
+    create_cache_dir,
+    get_repo_interface,
+)
+from ..gateways.repodata import (
+    get_cache_control_max_age as _get_cache_control_max_age,
+)
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from ..trust.signature_verification import signature_verification
+
+if TYPE_CHECKING:
+    from ..gateways.repodata import RepodataCache, RepoInterface
 
 log = getLogger(__name__)
 
@@ -350,14 +351,18 @@ class SubdirData(metaclass=SubdirDataType):
         """Throw away the pickle if these don't all match."""
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
-        yield "_add_pip", pickled_state.get(
-            "_add_pip"
-        ), context.add_pip_as_python_dependency
+        yield (
+            "_add_pip",
+            pickled_state.get("_add_pip"),
+            context.add_pip_as_python_dependency,
+        )
         yield "_mod", pickled_state.get("_mod"), mod
         yield "_etag", pickled_state.get("_etag"), etag
-        yield "_pickle_version", pickled_state.get(
-            "_pickle_version"
-        ), REPODATA_PICKLE_VERSION
+        yield (
+            "_pickle_version",
+            pickled_state.get("_pickle_version"),
+            REPODATA_PICKLE_VERSION,
+        )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
     def _read_pickled(self, state: RepodataState):
@@ -428,8 +433,6 @@ class SubdirData(metaclass=SubdirDataType):
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
-        signatures = repodata.get("signatures", {})
-
         _internal_state = {
             "channel": self.channel,
             "url_w_subdir": self.url_w_subdir,
@@ -487,11 +490,6 @@ class SubdirData(metaclass=SubdirDataType):
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-                # Verify metadata signature before anything else so run-time
-                # updates to the info dictionary performed below do not
-                # invalidate the signatures provided in metadata.json.
-                signature_verification(info, fn, signatures)
-
                 if copy_legacy_md5:
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
@@ -547,7 +545,7 @@ def make_feature_record(feature_name):
     "24.3",
     addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
     "is pending deprecation and will be removed in the future. "
-    "Please use `conda.core.subdir_data.SubdirData` instead.",
+    "Please use `conda.core.subdir_data.SubdirData().repo_fetch.fetch_latest_parsed()` instead.",
 )
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     """
@@ -562,7 +560,14 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         cache_state = subdir.repo_cache.load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
-        raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
+        # force CondaRepoInterface to avoid RepodataOnDisk exception
+        repo_fetch = RepodataFetch(
+            Path(subdir.cache_path_base),
+            subdir.channel,
+            subdir.repodata_fn,
+            repo_interface_cls=CondaRepoInterface,
+        )
+        raw_repodata_str = repo_fetch._repo.repodata(cache_state)  # type: ignore
     except RepodataIsEmpty:
         if repodata_fn != REPODATA_FN:
             raise  # is UnavailableInvalidChannel subclass

@@ -23,7 +23,7 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 
    @conda.plugins.hookimpl
    def conda_subcommands():
-       yield plugins.CondaSubcommand(
+       yield conda.plugins.CondaSubcommand(
            name="example",
            action=command,
            summary="Example of a conda subcommand",
@@ -98,6 +98,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    :maxdepth: 1
 
    auth_handlers
+   health_checks
    post_commands
    pre_commands
    solvers

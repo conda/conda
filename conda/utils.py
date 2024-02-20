@@ -8,11 +8,11 @@ import re
 import sys
 from contextlib import contextmanager
 from functools import lru_cache, wraps
-from os import PathLike, environ
+from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
-from typing import Literal
+from typing import TYPE_CHECKING
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
@@ -21,6 +21,10 @@ from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 from .gateways.disk.read import compute_sum
+
+if TYPE_CHECKING:
+    from os import PathLike
+    from typing import Literal
 
 log = logging.getLogger(__name__)
 
@@ -383,7 +387,7 @@ def wrap_subprocess_call(
     if on_win:
         comspec = get_comspec()  # fail early with KeyError if undefined
         if dev_mode:
-            from conda import CONDA_PACKAGE_ROOT
+            from . import CONDA_PACKAGE_ROOT
 
             conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
         else:
@@ -467,12 +471,12 @@ def wrap_subprocess_call(
                 fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
             hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment before ***'\n" ">&2 env\n")
+                fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
                 fh.write(f'>&2 echo "$({hook_quoted})"\n')
             fh.write(f'eval "$({hook_quoted})"\n')
             fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
             if debug_wrapper_scripts:
-                fh.write(">&2 echo '*** environment after ***'\n" ">&2 env\n")
+                fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.

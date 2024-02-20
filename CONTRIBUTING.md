@@ -1,4 +1,4 @@
-# Contributing to Conda
+# Contributing to conda
 
 Thank you for your interest in improving conda! Below, we describe how our
 development process works and how you can be a part of it.
@@ -104,7 +104,7 @@ Conda in the middle of a sentence:
 
 #### In titles and headers
 
-Titles and headers should use the same capitalization and formmating standards as sentences.
+Titles and headers should use the same capitalization and formatting standards as sentences.
 
 #### In links
 

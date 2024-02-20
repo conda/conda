@@ -15,7 +15,7 @@ mklink /J \conda_src "%CONDA_SRC_PATH%" || goto :error
 
 cd \conda_src || goto :error
 CALL \conda_bin\scripts\activate.bat || goto :error
-CALL conda create -n conda-test-env -y python=%PYTHON% pywin32 --file=tests\requirements.txt --file=tests\requirements-extra.txt || goto :error
+CALL conda create -n conda-test-env -y python=%PYTHON% --file=tests\requirements.txt --file=tests\requirements-s3.txt --file=tests\requirements-Windows.txt --repodata-fn=repodata.json || goto :error
 CALL conda activate conda-test-env || goto :error
 python -m conda init --install || goto :error
 python -m conda init cmd.exe --dev || goto :error

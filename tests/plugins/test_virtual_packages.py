@@ -1,17 +1,28 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
 
 import pytest
 
 import conda.core.index
 from conda import plugins
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import env_var, env_vars
+from conda.__version__ import __version__
+from conda.base.context import context, reset_context
+from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
 from conda.plugins.virtual_packages import cuda
 from conda.testing.solver_helpers import package_dict
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest import MonkeyPatch
+
+    from conda.models.records import PackageRecord
 
 
 class VirtualPackagesPlugin:
@@ -92,71 +103,113 @@ def test_cuda_override_none(clear_cuda_version):
         assert version is None
 
 
-def test_subdir_override():
+def get_virtual_precs() -> Iterable[PackageRecord]:
+    yield from (
+        prec
+        for prec in conda.core.index.get_reduced_index(
+            context.default_prefix,
+            context.default_channels,
+            context.subdirs,
+            (),
+            context.repodata_fns[0],
+        )
+        if prec.channel.name == "@" and prec.name.startswith("__")
+    )
+
+
+@pytest.mark.parametrize(
+    "subdir,expected",
+    [
+        # see conda.base.constants.KNOWN_SUBDIRS
+        pytest.param("emscripten-wasm32", [], id="emscripten-wasm32"),
+        pytest.param("freebsd-64", ["__unix"], id="freebsd-64"),
+        pytest.param("linux-32", ["__linux", "__unix"], id="linux-32"),
+        pytest.param("linux-64", ["__linux", "__unix"], id="linux-64"),
+        pytest.param("linux-aarch64", ["__linux", "__unix"], id="linux-aarch64"),
+        pytest.param("linux-armv6l", ["__linux", "__unix"], id="linux-armv6l"),
+        pytest.param("linux-armv7l", ["__linux", "__unix"], id="linux-armv7l"),
+        pytest.param("linux-ppc64", ["__linux", "__unix"], id="linux-ppc64"),
+        pytest.param("linux-ppc64le", ["__linux", "__unix"], id="linux-ppc64le"),
+        pytest.param("linux-riscv64", ["__linux", "__unix"], id="linux-riscv64"),
+        pytest.param("linux-s390x", ["__linux", "__unix"], id="linux-s390x"),
+        pytest.param("osx-64", ["__osx", "__unix"], id="osx-64"),
+        pytest.param("osx-aarch64", ["__osx", "__unix"], id="osx-aarch64"),
+        pytest.param("osx-arm64", ["__osx", "__unix"], id="osx-arm64"),
+        pytest.param("wasi-wasm32", [], id="wasi-wasm32"),
+        pytest.param("win-32", ["__win"], id="win-32"),
+        pytest.param("win-64", ["__win"], id="win-64"),
+        pytest.param("win-64", ["__win"], id="win-64"),
+        pytest.param("win-arm64", ["__win"], id="win-arm64"),
+        pytest.param("zos-z", [], id="zos-z"),
+    ],
+)
+def test_subdir_override(
+    monkeypatch: MonkeyPatch,
+    subdir: str,
+    expected: list[str],
+    clear_cuda_version: None,
+):
     """
     Conda should create virtual packages for the appropriate platform, following
     context.subdir instead of the host operating system.
     """
-    platform_virtual_packages = ("__win", "__linux", "__osx")
-    for subdir, expected in (
-        ("win-64", "__win"),
-        ("linux-64", "__linux"),
-        ("osx-aarch64", "__osx"),
-    ):
-        with env_vars(
-            {
-                "CONDA_SUBDIR": subdir,
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            packages = conda.core.index.get_reduced_index(
-                context.default_prefix,
-                context.default_channels,
-                context.subdirs,
-                (),
-                context.repodata_fns[0],
-            )
-            virtual = [p for p in packages if p.channel.name == "@"]
-            assert any(p.name == expected for p in virtual)
-            assert not any(
-                (p.name in platform_virtual_packages and p.name != expected)
-                for p in virtual
-            )
+    monkeypatch.setenv("CONDA_SUBDIR", subdir)
+    monkeypatch.setenv("CONDA_OVERRIDE_ARCHSPEC", "")
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "")
+    reset_context()
+    assert context.subdir == subdir
+    assert {prec.name for prec in get_virtual_precs()} == {
+        "__conda",  # always present
+        *expected,
+    }
 
 
-def test_glibc_override():
+@pytest.mark.parametrize("version,expected", [(None, False), ("bla", True)])
+def test_archspec_override(
+    monkeypatch: MonkeyPatch,
+    version: str | None,
+    expected: bool,
+):
+    """Conda should not produce a archspec virtual package when CONDA_OVERRIDE_ARCHSPEC=""."""
+    monkeypatch.setenv("CONDA_OVERRIDE_ARCHSPEC", version or "")
+    reset_context()
+    assert any(prec.name == "__archspec" for prec in get_virtual_precs()) is expected
+
+
+@pytest.mark.parametrize("version,expected", [(None, True), ("1.0", True)])
+def test_linux_override(monkeypatch: MonkeyPatch, version: str | None, expected: bool):
+    """Conda will still produce a linux virtual package when CONDA_OVERRIDE_LINUX=""."""
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    monkeypatch.setenv("CONDA_OVERRIDE_LINUX", version or "")
+    reset_context()
+    assert context.subdir == "linux-64"
+    assert any(prec.name == "__linux" for prec in get_virtual_precs()) is expected
+
+
+@pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
+def test_glibc_override(monkeypatch: MonkeyPatch, version: str | None, expected: bool):
     """Conda should not produce a libc virtual package when CONDA_OVERRIDE_GLIBC=""."""
-    for version in "", "1.0":
-        with env_vars(
-            {"CONDA_SUBDIR": "linux-64", "CONDA_OVERRIDE_GLIBC": version},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            packages = conda.core.index.get_reduced_index(
-                context.default_prefix,
-                context.default_channels,
-                context.subdirs,
-                (),
-                context.repodata_fns[0],
-            )
-            virtual = [p for p in packages if p.channel.name == "@"]
-            libc_exported = any("libc" in p.name for p in virtual)
-            assert libc_exported == bool(version)
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", version or "")
+    reset_context()
+    assert context.subdir == "linux-64"
+    assert any(prec.name == "__glibc" for prec in get_virtual_precs()) == expected
 
 
-def test_osx_override():
+@pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
+def test_osx_override(monkeypatch: MonkeyPatch, version: str | None, expected: bool):
     """Conda should not produce a osx virtual package when CONDA_OVERRIDE_OSX=""."""
-    for version in "", "1.0":
-        with env_vars(
-            {"CONDA_SUBDIR": "osx-64", "CONDA_OVERRIDE_OSX": version},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            packages = conda.core.index.get_reduced_index(
-                context.default_prefix,
-                context.default_channels,
-                context.subdirs,
-                (),
-                context.repodata_fns[0],
-            )
-            virtual = [p for p in packages if p.channel.name == "@"]
-            osx_exported = any("osx" in p.name for p in virtual)
-            assert osx_exported == bool(version)
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-64")
+    monkeypatch.setenv("CONDA_OVERRIDE_OSX", version or "")
+    reset_context()
+    assert context.subdir == "osx-64"
+    assert any(prec.name == "__osx" for prec in get_virtual_precs()) == expected
+
+
+def test_conda_virtual_package():
+    """Conda always produces a conda virtual package."""
+    assert any(
+        prec.name == "__conda" and prec.version == __version__
+        for prec in get_virtual_precs()
+    )

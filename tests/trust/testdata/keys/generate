@@ -1,0 +1,132 @@
+#!/usr/bin/env python
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from subprocess import run
+from tempfile import NamedTemporaryFile
+from textwrap import dedent
+from typing import TYPE_CHECKING
+
+from securesystemslib.gpg.functions import export_pubkey
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+
+def generate_keyring(root: Path) -> Path | Literal[False]:
+    # generate GPG keyring (root_1, root_2)
+
+    keyring = root / "gpg"
+    keyring.mkdir(mode=0o700, parents=True, exist_ok=True)
+
+    if (keyring / "pubring.kbx").exists():
+        print("[ERROR] Keyring already exists.", file=sys.stderr)
+        return False
+
+    GPG = ("gpg", "--no-default-keyring", "--homedir", keyring)
+
+    with NamedTemporaryFile(mode="w+") as fh:
+        fh.write(
+            dedent(
+                r"""
+                %no-protection
+
+                Key-Type: EdDSA
+                Key-Curve: Ed25519
+                Key-Usage: sign
+                Subkey-Type: EdDSA
+                Subkey-Curve: Ed25519
+                Subkey-Usage: auth
+                Name-Real: Conda Bot (root_1)
+                Name-Email: ursa-core@anaconda.com
+                Expire-Date: 0
+                %commit
+
+                Key-Type: EdDSA
+                Key-Curve: Ed25519
+                Key-Usage: sign
+                Subkey-Type: EdDSA
+                Subkey-Curve: Ed25519
+                Subkey-Usage: auth
+                Name-Real: Conda Bot (root_2)
+                Name-Email: ursa-core@anaconda.com
+                Expire-Date: 0
+                %commit
+                """
+            ).strip()
+        )
+        fh.flush()  # ensure file is written to disk
+
+        run(
+            [*GPG, "--batch", "--quiet", "--generate-key", fh.name],
+            check=True,
+            capture_output=True,
+        )
+
+    # export fingerprints
+    for key in ("root_1", "root_2"):
+        fingerprint = (
+            run([*GPG, "--list-keys", key], check=True, capture_output=True, text=True)
+            .stdout.splitlines()[1]
+            .strip()
+        )
+        (root / f"{key}.fgr").write_text(fingerprint)
+
+        # gpg "${gpg_common_opts[@]}" --export "root 1" > "${root}/root_1.asc"
+
+    # export public keys
+    for key in ("root_1", "root_2"):
+        fingerprint = (root / f"{key}.fgr").read_text().strip()
+        bundle = export_pubkey(fingerprint, homedir=keyring)
+        pubkey = bundle["keyval"]["public"]["q"]
+        (root / f"{key}.pub").write_text(pubkey)
+
+    return keyring
+
+
+def generate_keys(root: Path) -> bool:
+    # generate OpenSSL keys (key_mgr, pkg_mgr)
+    for key in ("key_mgr", "pkg_mgr"):
+        if (root / f"{key}.pem").exists():
+            print(f"[ERROR] Key ({key}) already exists.", file=sys.stderr)
+            continue
+
+        # PEM private key
+        pri_pem = run(
+            ["openssl", "genpkey", "-algorithm", "Ed25519"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        (root / f"{key}.pem").write_text(pri_pem)
+
+        # Hex keys
+        hex_keys = run(
+            ["openssl", "pkey", "-in", root / f"{key}.pem", "-text"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+
+        # Hex private key
+        pri_hex = "".join(hex_keys[5:8]).replace(" ", "").replace(":", "")
+        (root / f"{key}.pri").write_text(pri_hex)
+
+        # Hex public key
+        pub_hex = "".join(hex_keys[9:12]).replace(" ", "").replace(":", "")
+        (root / f"{key}.pub").write_text(pub_hex)
+
+    return True
+
+
+if __name__ == "__main__":
+    root = Path(__file__).parent
+
+    keyring = generate_keyring(root)
+    keys = generate_keys(root)
+
+    if keyring and keys:
+        print("[SUCCESS] Keys generated.")
+        print("[INFO] Set the following before using conda-content-trust for signing:")
+        print(f"       GNUPGHOME={keyring}")

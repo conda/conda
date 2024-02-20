@@ -1,10 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 from logging import getLogger
 from os.path import join
 from pathlib import Path
+from socket import socket
 from time import sleep
-from unittest.mock import patch
 
 import pytest
 
@@ -19,7 +20,12 @@ from conda.core.subdir_data import (
 )
 from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
-from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepodataCache,
+    RepodataFetch,
+    get_repo_interface,
+)
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
@@ -150,6 +156,16 @@ def test_fetch_repodata_remote_request_invalid_arch():
     assert result is None
 
 
+def test_fetch_repodata_remote_request(package_server: socket):
+    """Check legacy interface."""
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    url = f"{base}/osx-64"
+
+    response = fetch_repodata_remote_request(url, "etag", "modstamp")
+    assert "packages" in json.loads(response)
+
+
 def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_vars(
@@ -221,7 +237,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
-def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
+def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
 
@@ -231,9 +247,19 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     sleep(3)
 
+    RepoInterface = get_repo_interface()
+
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ):
+        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+        if hasattr(RepoInterface, "repodata_parsed"):
+            fetcher = mocker.patch.object(
+                RepoInterface, "repodata_parsed", return_value={}
+            )
+
+        SubdirData(channel).cache_path_json.touch()
+
         sd_a = SubdirData(channel)
         tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -244,13 +270,22 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
         assert fetcher.call_count == 1
 
 
-def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
+def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR, platform))
     SubdirData.clear_cached_local_channel_data()
 
+    RepoInterface = get_repo_interface()
+
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ):
+        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+        if hasattr(RepoInterface, "repodata_parsed"):
+            fetcher = mocker.patch.object(
+                RepoInterface, "repodata_parsed", return_value={}
+            )
+        SubdirData(channel).cache_path_json.touch()
+
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1

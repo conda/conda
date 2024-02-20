@@ -15,14 +15,13 @@ from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
 from ..common.compat import isiterable
 from ..common.io import dashlist
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError, InvalidMatchSpec
@@ -64,8 +63,7 @@ class MatchSpecType(type):
                     return spec
             else:
                 raise CondaValueError(
-                    "Invalid MatchSpec:\n  spec_arg=%s\n  kwargs=%s"
-                    % (spec_arg, kwargs)
+                    f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
                 )
         else:
             return super().__call__(**kwargs)
@@ -245,7 +243,7 @@ class MatchSpec(metaclass=MatchSpecType):
 
     def match(self, rec):
         """
-        Accepts an `IndexRecord` or a dict, and matches can pull from any field
+        Accepts a `PackageRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
@@ -282,7 +280,7 @@ class MatchSpec(metaclass=MatchSpecType):
             return fn_field
         vals = tuple(self.get_exact_value(x) for x in ("name", "version", "build"))
         if not any(x is None for x in vals):
-            return ("%s-%s-%s" % vals) + CONDA_PACKAGE_EXTENSION_V1
+            return ("{}-{}-{}".format(*vals)) + CONDA_PACKAGE_EXTENSION_V1
         else:
             return None
 
@@ -815,8 +813,7 @@ class MatchInterface(metaclass=ABCMeta):
     def merge(self, other):
         if self.raw_value != other.raw_value:
             raise ValueError(
-                "Incompatible component merge:\n  - %r\n  - %r"
-                % (self.raw_value, other.raw_value)
+                f"Incompatible component merge:\n  - {self.raw_value!r}\n  - {other.raw_value!r}"
             )
         return self.raw_value
 

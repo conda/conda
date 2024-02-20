@@ -25,19 +25,24 @@ from logging import getLogger
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from re import IGNORECASE, VERBOSE, Match, compile
+from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:  # pragma: no cover
+    from re import Match
     from typing import Any, Hashable, Iterable, Sequence
 
 try:
     from boltons.setutils import IndexedSet
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
+
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.reader import ReaderError
+from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
 from .._vendor.frozendict import frozendict
@@ -48,20 +53,6 @@ from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
-
-try:
-    from ruamel.yaml.comments import CommentedMap, CommentedSeq
-    from ruamel.yaml.reader import ReaderError
-    from ruamel.yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    try:
-        from ruamel_yaml.comments import CommentedMap, CommentedSeq
-        from ruamel_yaml.reader import ReaderError
-        from ruamel_yaml.scanner import ScannerError
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
 
 log = getLogger(__name__)
 
@@ -111,10 +102,9 @@ class MultipleKeysError(ValidationError):
         self.source = source
         self.keys = keys
         msg = (
-            "Multiple aliased keys in file %s:\n"
-            "%s\n"
-            "Must declare only one. Prefer '%s'"
-            % (source, pretty_list(keys), preferred_key)
+            f"Multiple aliased keys in file {source}:\n"
+            f"{pretty_list(keys)}\n"
+            f"Must declare only one. Prefer '{preferred_key}'"
         )
         super().__init__(preferred_key, None, source, msg=msg)
 
@@ -127,9 +117,8 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = (
-                "Parameter %s = %r declared in %s has type %s.\n"
-                "Valid types:\n%s"
-                % (
+                "Parameter {} = {!r} declared in {} has type {}.\n"
+                "Valid types:\n{}".format(
                     parameter_name,
                     parameter_value,
                     source,
@@ -142,13 +131,15 @@ class InvalidTypeError(ValidationError):
 
 class CustomValidationError(ValidationError):
     def __init__(self, parameter_name, parameter_value, source, custom_message):
-        msg = "Parameter %s = %r declared in %s is invalid.\n" "%s" % (
+        super().__init__(
             parameter_name,
             parameter_value,
             source,
-            custom_message,
+            msg=(
+                f"Parameter {parameter_name} = {parameter_value!r} declared in "
+                f"{source} is invalid.\n{custom_message}"
+            ),
         )
-        super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class MultiValidationError(CondaMultiError, ConfigurationError):
@@ -1394,7 +1385,7 @@ class Configuration(metaclass=ConfigurationType):
                 path = search
             else:
                 template = custom_expandvars(search, environ, **kwargs)
-                path = Path(template).expanduser().resolve()
+                path = Path(template).expanduser()
 
             if path.is_file() and (
                 path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS
@@ -1460,7 +1451,7 @@ class Configuration(metaclass=ConfigurationType):
             items = argparse_args.items()
 
         self._argparse_args = argparse_args = AttrDict(
-            {k: v for k, v, in items if v is not NULL}
+            {k: v for k, v in items if v is not NULL}
         )
 
         # remove existing source so "insert" order is correct

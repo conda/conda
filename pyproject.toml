@@ -18,23 +18,29 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
+  "archspec",
   "boltons >=23.0.0",
-  "conda-package-handling >=1.3.0",
+  "charset-normalizer",
+  "conda-libmamba-solver >=23.11.0",
+  "conda-package-handling >=2.2.0",
+  "distro >=1.5.0",
   "jsonpatch >=1.32",
-  "menuinst >=1.4.11,<2 ; platform_system=='Windows'",
-  "packaging",
+  "menuinst >=2",
+  "packaging >=23.0",
+  "platformdirs >=3.10.0",
   "pluggy >=1.0.0",
   "pycosat >=0.6.3",
-  "pyopenssl >=16.2.0",
-  "requests >=2.27.0,<3",
-  "ruamel.yaml >=0.11.14,<0.18",
+  "requests >=2.28.0,<3",
+  "ruamel.yaml >=0.11.14,<0.19",
   "setuptools >=60.0.0",
   "tqdm >=4",
   "truststore >=0.8.0; python_version>='3.10'",
+  "zstandard >=0.15",
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]
@@ -62,9 +68,6 @@ include = ["conda", "conda_env"]
 
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/__version__.py"
-
-[tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311']
 
 [tool.coverage.run]
 # store relative paths in coverage information
@@ -97,16 +100,27 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "def __repr__",
   '\s*\.\.\.$',
+  "if TYPE_CHECKING:",  # ignoring type checking imports
 ]
 
 [tool.ruff]
-line-length = 99
+exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+target-version = "py38"
+
+[tool.ruff.lint]
 # E, W = pycodestyle errors and warnings
 # F = pyflakes
 # I = isort
 # D = pydocstyle
-select = ["E", "W", "F", "I", "D1"]
+# UP = pyupgrade
+# ISC = flake8-implicit-str-concat
+# TCH = flake8-type-checking
+# T10 = flake8-debugger
+# FA = flake8-future-annotations
+# see also https://docs.astral.sh/ruff/rules/
+select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10", "FA"]
 # E402 module level import not at top of file
+# E501 line too long
 # E722 do not use bare 'except'
 # E731 do not assign a lambda expression, use a def
 # D101 Missing docstring in public class
@@ -115,11 +129,10 @@ select = ["E", "W", "F", "I", "D1"]
 # D104 Missing docstring in public package
 # D105 Missing docstring in magic method
 # D107 Missing docstring in `__init__`
-ignore = ["E731", "E722", "E402", "F821", "E501", "D101", "D102", "D103", "D104", "D105", "D107"]
-exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
-# Use PEP 257-style docstrings.
 pydocstyle = {convention = "pep257"}
+flake8-type-checking = {exempt-modules = [], strict = true}
 
 [tool.pytest.ini_options]
 minversion = 3.0
@@ -128,6 +141,8 @@ norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
   "tests/plugins/data/*",
+  "docs",
+  ".git",
 ]
 addopts = [
   "--color=yes",
@@ -155,6 +170,7 @@ doctest_optionflags = [
 markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
+  "benchmark: benchmark tests",
 ]
 pythonpath = [
   # faking a test-plugin to test ImportError handling

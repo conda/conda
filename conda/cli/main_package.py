@@ -10,15 +10,66 @@ import os
 import re
 import tarfile
 import tempfile
+from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
-from ..auxlib.entity import EntityEncoder
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, PREFIX_PLACEHOLDER
-from ..base.context import context
-from ..common.path import paths_equal
-from ..core.prefix_data import PrefixData
-from ..gateways.disk.delete import rmtree
-from ..misc import untracked
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .helpers import add_parser_prefix
+
+    summary = "Create low-level conda packages. (EXPERIMENTAL)"
+    description = summary
+    epilog = ""
+
+    p = sub_parsers.add_parser(
+        "package",
+        help=summary,
+        description=description,
+        epilog=epilog,
+        **kwargs,
+    )
+    add_parser_prefix(p)
+    p.add_argument(
+        "-w",
+        "--which",
+        metavar="PATH",
+        nargs="+",
+        action="store",
+        help="Given some file's PATH, print which conda package the file came from.",
+    )
+    p.add_argument(
+        "-r",
+        "--reset",
+        action="store_true",
+        help="Remove all untracked files and exit.",
+    )
+    p.add_argument(
+        "-u",
+        "--untracked",
+        action="store_true",
+        help="Display all untracked files and exit.",
+    )
+    p.add_argument(
+        "--pkg-name",
+        action="store",
+        default="unknown",
+        help="Designate package name of the package being created.",
+    )
+    p.add_argument(
+        "--pkg-version",
+        action="store",
+        default="0.0",
+        help="Designate package version of the package being created.",
+    )
+    p.add_argument(
+        "--pkg-build",
+        action="store",
+        default=0,
+        help="Designate package build number of the package being created.",
+    )
+    p.set_defaults(func="conda.cli.main_package.execute")
+
+    return p
 
 
 def remove(prefix, files):
@@ -36,27 +87,30 @@ def remove(prefix, files):
             pass
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..base.context import context
+    from ..misc import untracked
+
     prefix = context.target_prefix
 
     if args.which:
         for path in args.which:
             for prec in which_package(path):
                 print("%-50s  %s" % (path, prec.dist_str()))
-        return
+        return 0
 
     print("# prefix:", prefix)
 
     if args.reset:
         remove(prefix, untracked(prefix))
-        return
+        return 0
 
     if args.untracked:
         files = sorted(untracked(prefix))
         print("# untracked files: %d" % len(files))
         for fn in files:
             print(fn)
-        return
+        return 0
 
     make_tarbz2(
         prefix,
@@ -64,9 +118,12 @@ def execute(args, parser):
         version=args.pkg_version,
         build_number=int(args.pkg_build),
     )
+    return 0
 
 
 def get_installed_version(prefix, name):
+    from ..core.prefix_data import PrefixData
+
     for info in PrefixData(prefix).iter_records():
         if info["name"] == name:
             return str(info["version"])
@@ -74,6 +131,8 @@ def get_installed_version(prefix, name):
 
 
 def create_info(name, version, build_number, requires_py):
+    from ..base.context import context
+
     d = dict(
         name=name,
         version=version,
@@ -93,6 +152,8 @@ shebang_pat = re.compile(r"^#!.+$", re.M)
 
 
 def fix_shebang(tmp_dir, path):
+    from ..base.constants import PREFIX_PLACEHOLDER
+
     if open(path, "rb").read(2) != "#!":
         return False
 
@@ -111,6 +172,8 @@ def fix_shebang(tmp_dir, path):
 
 
 def _add_info_dir(t, tmp_dir, files, has_prefix, info):
+    from ..auxlib.entity import EntityEncoder
+
     info_dir = join(tmp_dir, "info")
     os.mkdir(info_dir)
     with open(join(info_dir, "files"), "w") as fo:
@@ -131,6 +194,8 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
 
 def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     """Create a conda package and return a list of warnings."""
+    from ..gateways.disk.delete import rmtree
+
     files = sorted(files)
     warnings = []
     has_prefix = []
@@ -169,6 +234,9 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
 
 
 def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=None):
+    from ..base.constants import CONDA_PACKAGE_EXTENSION_V1
+    from ..misc import untracked
+
     if files is None:
         files = untracked(prefix)
     print("# files: %d" % len(files))
@@ -184,7 +252,7 @@ def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=Non
         requires_py = False
 
     info = create_info(name, version, build_number, requires_py)
-    tarbz2_fn = ("%(name)s-%(version)s-%(build)s" % info) + CONDA_PACKAGE_EXTENSION_V1
+    tarbz2_fn = ("{name}-{version}-{build}".format(**info)) + CONDA_PACKAGE_EXTENSION_V1
     create_conda_pkg(prefix, files, info, tarbz2_fn)
     print("# success")
     print(tarbz2_fn)
@@ -198,6 +266,9 @@ def which_package(path):
     the conda packages the file came from. Usually the iteration yields
     only one package.
     """
+    from ..common.path import paths_equal
+    from ..core.prefix_data import PrefixData
+
     path = abspath(path)
     prefix = which_prefix(path)
     if prefix is None:

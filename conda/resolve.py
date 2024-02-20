@@ -14,14 +14,13 @@ from logging import DEBUG, getLogger
 
 from tqdm import tqdm
 
-from conda.common.iterators import groupby_to_dict as groupby
-
 from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from .auxlib.decorators import memoizemethod
 from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .common.logic import (
     TRUE,
     Clauses,
@@ -876,12 +875,9 @@ class Resolve:
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if (
-                                    "track_features" not in new_ms
-                                    and not self._broader(
-                                        new_ms,
-                                        tuple(specs_by_name.get(new_ms.name, ())),
-                                    )
+                                if "track_features" not in new_ms and not self._broader(
+                                    new_ms,
+                                    tuple(specs_by_name.get(new_ms.name, ())),
                                 ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
@@ -1642,9 +1638,8 @@ class Resolve:
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
                 stdoutlog.info(
-                    "\nWarning: %s possible package resolutions "
-                    "(only showing differing packages):%s%s"
-                    % (
+                    "\nWarning: {} possible package resolutions "
+                    "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,
                         dashlist(", ".join(diff) for diff in diffs),
                         "\n  ... and others" if nsol > 10 else "",

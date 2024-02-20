@@ -46,6 +46,17 @@ def register_env(location):
         # Nothing to do. Location is already recorded in a known environments.txt file.
         return
 
+    user_environments_txt_directory = os.path.dirname(user_environments_txt_file)
+    try:
+        os.makedirs(user_environments_txt_directory, exist_ok=True)
+    except OSError as exc:
+        log.warn(
+            "Unable to register environment. "
+            f"Could not create {user_environments_txt_directory}. "
+            f"Reason: {exc}"
+        )
+        return
+
     try:
         with open(user_environments_txt_file, "a") as fh:
             fh.write(ensure_text_type(location))

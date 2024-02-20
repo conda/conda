@@ -1,18 +1,18 @@
 @CALL :CLEANUP
 
-@REM preserve script for help
+:: preserve script for help
 @SET "_SCRIPT=%~0"
 
-@REM get source path
+:: get source path
 @PUSHD "%~dp0\.."
 @SET "_SRC=%CD%"
 @POPD
 
-@REM parse args
+:: parse args
 :ARGS_LOOP
 @IF "%~1"=="" @GOTO :ARGS_END
 
-@REM convert to uppercase
+:: convert to uppercase
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "'%~1'.toUpper()"`) DO @SET "_ARG=%%~I"
 
 @IF "%_ARG%"=="/P" (
@@ -53,23 +53,23 @@
 @EXIT /B 1
 :ARGS_END
 
-@REM fallback to default values
+:: fallback to default values
 @IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
-@REM read devenv from ~\.condarc
+:: read devenv from ~\.condarc
 @IF "%_DEVENV%"=="" @CALL :CONDARC
-@REM fallback to devenv in source default
+:: fallback to devenv in source default
 @IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
-@REM include OS
-@REM put miniconda installer in _DEVENV_BASE, for an empty install target
-@SET "_DEVENV_BASE=%_DEVENV%"
+:: installer location
+@SET "_INSTALLER=%_DEVENV%"
+:: include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
-@REM ensure exists
+:: ensure exists
 @IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
-@REM other environment variables
+:: other environment variables
 @SET "_NAME=devenv-%_PYTHON%-c"
 @SET "_ENV=%_DEVENV%\envs\%_NAME%"
 @SET "_UPDATED=%_ENV%\.devenv-updated"
@@ -77,11 +77,12 @@
 @SET "_ENVEXE=%_ENV%\Scripts\conda.exe"
 @SET "_PYTHONEXE=%_ENV%\python.exe"
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
+@SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
 
-@REM dry-run printout
+:: dry-run printout
 @IF %_DRYRUN%==0 @GOTO :DRYRUN
 
-@REM deactivate any prior envs
+:: deactivate any prior envs
 @IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
 @IF %CONDA_SHLVL%==0 @GOTO DEACTIVATED
 @ECHO Deactivating %CONDA_SHLVL% environment(s)...
@@ -95,31 +96,31 @@
 @GOTO DEACTIVATING
 :DEACTIVATED
 
-@REM does miniconda install exist?
+:: does miniconda install exist?
 @IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
 
-@REM downloading miniconda
-@IF EXIST "%_DEVENV_BASE%\miniconda.exe" @GOTO DOWNLOADED
+:: downloading miniconda
+@IF EXIST "%_INSTALLER%\miniconda.exe" @GOTO DOWNLOADED
 @ECHO Downloading miniconda...
-@powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_DEVENV_BASE%\miniconda.exe' | Out-Null"
+@powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null"
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to download miniconda 1>&2
     @EXIT /B 1
 )
 :DOWNLOADED
 
-@REM installing miniconda
+:: installing miniconda
 @ECHO Installing development environment...
-@START /wait "" "%_DEVENV_BASE%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
+@START /wait "" "%_INSTALLER%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to install development environment 1>&2
     @EXIT /B 1
 )
-@REM Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
+:: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
 @CALL :CONDA "%_BASEEXE%" install -yq --name base defaults::git > NUL
 :INSTALLED
 
-@REM create empty env if it doesn't exist
+:: create empty env if it doesn't exist
 @IF EXIST "%_ENV%" @GOTO ENVEXISTS
 @ECHO Creating %_NAME%...
 
@@ -130,7 +131,7 @@
 )
 :ENVEXISTS
 
-@REM check if explicitly updating or if 24 hrs since last update
+:: check if explicitly updating or if 24 hrs since last update
 @CALL :UPDATING
 @IF NOT %ErrorLevel%==0 @GOTO UPTODATE
 @ECHO Updating %_NAME%...
@@ -147,40 +148,28 @@
     --override-channels ^
     -c defaults ^
     --file "%_SRC%\tests\requirements.txt" ^
-    pywin32 ^
+    --file "%_SRC%\tests\requirements-Windows.txt" ^
+    conda ^
     "python=%_PYTHON%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_NAME% 1>&2
     @EXIT /B 1
 )
 
-@REM update timestamp
+:: update timestamp
 @IF EXIST "%_UPDATED%" @DEL "%_UPDATED%"
 @ECHO > "%_UPDATED%"
 :UPTODATE
 
-@REM initialize conda command
+:: initialize conda command
 @ECHO Initializing shell integration...
-@IF "%CONDA_AUTO_ACTIVATE_BASE%"=="" (
-    @SET "_AUTOBASE=undefined"
-) ELSE (
-    @SET "_AUTOBASE=%CONDA_AUTO_ACTIVATE_BASE%"
-)
-@SET "CONDA_AUTO_ACTIVATE_BASE=false"
-@CALL :CONDA "%_ENVEXE%" init --dev cmd.exe > NUL
-@CALL dev-init.bat > NUL
-@IF "%_AUTOBASE%"=="undefined" (
-    @SET CONDA_AUTO_ACTIVATE_BASE=
-) ELSE (
-    @SET "CONDA_AUTO_ACTIVATE_BASE=%_AUTOBASE%"
-)
+@CALL "%_CONDAHOOK%"
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to initialize shell integration 1>&2
     @EXIT /B 1
 )
-@DEL /Q dev-init.bat
 
-@REM activate env
+:: activate env
 @ECHO Activating %_NAME%...
 @CALL conda activate "%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
@@ -190,15 +179,18 @@
 @SET "CONDA_BAT=%_CONDABAT%"
 @DOSKEY conda="%CONDA_BAT%" $*
 
+:: "install" conda
+@SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+
 :CLEANUP
 @SET _ARG=
-@SET _AUTOBASE=
 @SET _BASEEXE=
 @SET _CONDABAT=
 @SET _DEVENV=
 @SET _DRYRUN=
 @SET _ENV=
 @SET _ENVEXE=
+@SET _INSTALLER=
 @SET _NAME=
 @SET _PATH=
 @SET _PYTHON=
@@ -210,38 +202,38 @@
 @GOTO :EOF
 
 :CONDA *args
-@REM include OpenSSL & git on %PATH%
+:: include OpenSSL & git on %PATH%
 @SET "_PATH=%PATH%"
 @SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
 @CALL %*
 @IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%
 
-@REM restore %PATH%
+:: restore %PATH%
 @SET "PATH=%_PATH%"
 @SET _PATH=
 @GOTO :EOF
 
 :CONDARC
-@REM read devenv from ~\.condarc
-@REM check if ~\.condarc exists
+:: read devenv from ~\.condarc
+:: check if ~\.condarc exists
 @IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
-@REM check if devenv key is defined
+:: check if devenv key is defined
 @FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
 @IF NOT %ErrorLevel%==0 @EXIT /B 1
-@REM read devenv key
+:: read devenv key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
 @GOTO :EOF
 
 :UPDATING
-@REM check if explicitly updating or if 24 hrs since last update
+:: check if explicitly updating or if 24 hrs since last update
 @IF %_UPDATE%==0 @EXIT /B 0
 @IF NOT EXIST "%_UPDATED%" @EXIT /B 0
 @powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
 @EXIT /B %ErrorLevel%
 
 :DRYRUN
-@REM dry-run printout
+:: dry-run printout
 @ECHO Python: %_PYTHON%
 @CALL :UPDATING
 @IF %ErrorLevel%==0 (

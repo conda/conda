@@ -9,7 +9,7 @@ body:
       value: |
         Because processing new feature requests is time-consuming, we would like to ask you to fill out the following form to the best of your ability and as completely as possible.
 
-        > **Note**
+        > [!NOTE]
         > Feature requests that are incomplete or missing information may be closed as inactionable.
 
         Since there are already a lot of open issues, please also take a moment to search existing ones to see if your feature request has already been submitted. If you find something related, please upvote that issue and provide additional details as necessary.
@@ -41,7 +41,7 @@ body:
     id: what
     attributes:
       label: What should happen?
-      description: What should be the user experience with the feature? Describe from a user perpective what they would do and see.
+      description: What should be the user experience with the feature? Describe from a user perspective what they would do and see.
   - type: textarea
     id: context
     attributes:

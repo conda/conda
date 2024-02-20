@@ -4,29 +4,119 @@
 
 Display information about current conda installation.
 """
+from __future__ import annotations
+
 import json
 import os
 import re
 import sys
+from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
+from textwrap import wrap
+from typing import TYPE_CHECKING
 
-from .. import CONDA_PACKAGE_ROOT
-from .. import __version__ as conda_version
-from ..base.context import context, env_name, sys_rc_path, user_rc_path
-from ..common.compat import on_win
-from ..common.url import mask_anaconda_token
-from ..core.index import _supplement_index_with_system
 from ..deprecations import deprecated
-from ..models.channel import all_channel_urls, offline_keep
-from ..models.match_spec import MatchSpec
-from ..utils import human_bytes
-from .common import print_envs_list, stdout_json
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any, Iterable
+
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 
 
-def get_user_site():  # pragma: no cover
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..common.constants import NULL
+    from .helpers import add_parser_json
+
+    summary = "Display information about current conda install."
+    description = summary
+    epilog = ""
+
+    p = sub_parsers.add_parser(
+        "info",
+        help=summary,
+        description=description,
+        epilog=epilog,
+        **kwargs,
+    )
+    add_parser_json(p)
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "-a",
+        "--all",
+        dest="verbosity",
+        action=deprecated.action(
+            "24.3",
+            "24.9",
+            _StoreTrueAction,
+            addendum="Use `--verbose` instead.",
+        ),
+    )
+    p.add_argument(
+        "--base",
+        action="store_true",
+        help="Display base environment path.",
+    )
+    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
+    p.add_argument(
+        "-e",
+        "--envs",
+        action="store_true",
+        help="List all known conda environments.",
+    )
+    p.add_argument(
+        "-l",
+        "--license",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "-s",
+        "--system",
+        action="store_true",
+        help="List environment variables.",
+    )
+    p.add_argument(
+        "--root",
+        action="store_true",
+        help=SUPPRESS,
+        dest="base",
+    )
+    p.add_argument(
+        "--unsafe-channels",
+        action="store_true",
+        help="Display list of channels with tokens exposed.",
+    )
+
+    p.add_argument(
+        "packages",
+        action="store",
+        nargs="*",
+        help=SUPPRESS,
+    )
+
+    p.set_defaults(func="conda.cli.main_info.execute")
+
+    return p
+
+
+def get_user_site() -> list[str]:  # pragma: no cover
+    """
+    Method used to populate ``site_dirs`` in ``conda info``.
+
+    :returns: List of directories.
+    """
+
+    from ..common.compat import on_win
+
     site_dirs = []
     try:
         if not on_win:
@@ -49,9 +139,10 @@ def get_user_site():  # pragma: no cover
     return site_dirs
 
 
-IGNORE_FIELDS = {"files", "auth", "preferred_env", "priority"}
+IGNORE_FIELDS: set[str] = {"files", "auth", "preferred_env", "priority"}
 
-SKIP_FIELDS = IGNORE_FIELDS | {
+SKIP_FIELDS: set[str] = {
+    *IGNORE_FIELDS,
     "name",
     "version",
     "build",
@@ -64,11 +155,25 @@ SKIP_FIELDS = IGNORE_FIELDS | {
 }
 
 
-def dump_record(pkg):
-    return {k: v for k, v in pkg.dump().items() if k not in IGNORE_FIELDS}
+def dump_record(prec: PackageRecord) -> dict[str, Any]:
+    """
+    Returns a dictionary of key/value pairs from ``prec``.  Keys included in ``IGNORE_FIELDS`` are not returned.
+
+    :param prec: A ``PackageRecord`` object.
+    :returns: A dictionary of elements dumped from ``prec``
+    """
+    return {k: v for k, v in prec.dump().items() if k not in IGNORE_FIELDS}
 
 
-def pretty_package(prec):
+def pretty_package(prec: PackageRecord) -> None:
+    """
+    Pretty prints contents of a ``PackageRecord``
+
+    :param prec: A ``PackageRecord``
+    """
+
+    from ..utils import human_bytes
+
     pkg = dump_record(prec)
     d = {
         "file name": prec.fn,
@@ -93,8 +198,19 @@ def pretty_package(prec):
         print("    %s" % dep)
 
 
-def print_package_info(packages):
+def print_package_info(packages: list[str]) -> None:
+    """
+    Prints package information for each package spec in ``packages``.  Implements ``conda info <package> ...``.
+    Deprecated.
+
+    :param packages: Array of package arguments passed by ArgParse
+    """
+
+    from ..base.context import context
     from ..core.subdir_data import SubdirData
+    from ..deprecations import deprecated
+    from ..models.match_spec import MatchSpec
+    from .common import stdout_json
 
     results = {}
     for package in packages:
@@ -116,32 +232,37 @@ def print_package_info(packages):
     )
 
 
-def get_info_dict(system=False):
-    try:
-        from requests import __version__ as requests_version
+@deprecated.argument("24.9", "25.3", "system")
+def get_info_dict() -> dict[str, Any]:
+    """
+    Returns a dictionary of contextual information.
 
-        # These environment variables can influence requests' behavior, along with configuration
-        # in a .netrc file
-        #   CURL_CA_BUNDLE
-        #   REQUESTS_CA_BUNDLE
-        #   HTTP_PROXY
-        #   HTTPS_PROXY
-    except ImportError:  # pragma: no cover
-        try:
-            from pip._vendor.requests import __version__ as requests_version
-        except Exception as e:  # pragma: no cover
-            requests_version = "Error %r" % e
-    except Exception as e:  # pragma: no cover
-        requests_version = "Error %r" % e
+    :returns:  Dictionary of conda information to be sent to stdout.
+    """
+
+    from .. import CONDA_PACKAGE_ROOT
+    from .. import __version__ as conda_version
+    from ..base.context import (
+        DEFAULT_SOLVER,
+        context,
+        env_name,
+        sys_rc_path,
+        user_rc_path,
+    )
+    from ..common.compat import on_win
+    from ..common.url import mask_anaconda_token
+    from ..core.index import _supplement_index_with_system
+    from ..models.channel import all_channel_urls, offline_keep
 
     try:
-        import conda_build
-    except ImportError:  # pragma: no cover
+        from conda_build import __version__ as conda_build_version
+    except ImportError as err:
+        # ImportError: conda-build is not installed
+        log.debug("Unable to import conda-build: %s", err)
         conda_build_version = "not installed"
-    except Exception as e:  # pragma: no cover
-        conda_build_version = "Error %s" % e
-    else:  # pragma: no cover
-        conda_build_version = conda_build.__version__
+    except Exception as err:
+        log.error("Error importing conda-build: %s", err)
+        conda_build_version = "error"
 
     virtual_pkg_index = {}
     _supplement_index_with_system(virtual_pkg_index)
@@ -159,6 +280,12 @@ def get_info_dict(system=False):
             netrc_file = user_netrc
 
     active_prefix_name = env_name(context.active_prefix)
+
+    solver = {
+        "name": context.solver,
+        "user_agent": context.solver_user_agent(),
+        "default": context.solver == DEFAULT_SOLVER,
+    }
 
     info_dict = dict(
         platform=context.subdir,
@@ -184,12 +311,13 @@ def get_info_dict(system=False):
         offline=context.offline,
         envs=[],
         python_version=".".join(map(str, sys.version_info)),
-        requests_version=requests_version,
+        requests_version=context.requests_version,
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
         config_files=context.config_files,
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
+        solver=solver,
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -233,8 +361,13 @@ def get_info_dict(system=False):
     return info_dict
 
 
-def get_env_vars_str(info_dict):
-    from textwrap import wrap
+def get_env_vars_str(info_dict: dict[str, Any]) -> str:
+    """
+    Returns a printable string representing environment variables from the dictionary returned by ``get_info_dict``.
+
+    :param info_dict:  The returned dictionary from ``get_info_dict()``.
+    :returns:  String to print.
+    """
 
     builder = []
     builder.append("%23s:" % "environment variables")
@@ -249,84 +382,91 @@ def get_env_vars_str(info_dict):
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict):
-    for key in "pkgs_dirs", "envs_dirs", "channels", "config_files":
-        info_dict[f"_{key}"] = ("\n" + 26 * " ").join(map(str, info_dict[key]))
+def get_main_info_str(info_dict: dict[str, Any]) -> str:
+    """
+    Returns a printable string of the contents of ``info_dict``.
 
-    info_dict["_virtual_pkgs"] = ("\n" + 26 * " ").join(
-        ["%s=%s=%s" % tuple(x) for x in info_dict["virtual_pkgs"]]
-    )
-    info_dict["_rtwro"] = "writable" if info_dict["root_writable"] else "read only"
+    :param info_dict:  The output of ``get_info_dict()``.
+    :returns:  String to print.
+    """
 
-    format_param = lambda nm, val: "%23s : %s" % (nm, val)
+    from ..common.compat import on_win
 
-    builder = [""]
+    def flatten(lines: Iterable[str]) -> str:
+        return ("\n" + 26 * " ").join(map(str, lines))
 
-    if info_dict["active_prefix_name"]:
-        builder.append(
-            format_param("active environment", info_dict["active_prefix_name"])
+    def builder():
+        if info_dict["active_prefix_name"]:
+            yield ("active environment", info_dict["active_prefix_name"])
+            yield ("active env location", info_dict["active_prefix"])
+        else:
+            yield ("active environment", info_dict["active_prefix"])
+
+        if info_dict["conda_shlvl"] >= 0:
+            yield ("shell level", info_dict["conda_shlvl"])
+
+        yield ("user config file", info_dict["user_rc_path"])
+        yield ("populated config files", flatten(info_dict["config_files"]))
+        yield ("conda version", info_dict["conda_version"])
+        yield ("conda-build version", info_dict["conda_build_version"])
+        yield ("python version", info_dict["python_version"])
+        yield (
+            "solver",
+            f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}",
         )
-        builder.append(format_param("active env location", info_dict["active_prefix"]))
-    else:
-        builder.append(format_param("active environment", info_dict["active_prefix"]))
-
-    if info_dict["conda_shlvl"] >= 0:
-        builder.append(format_param("shell level", info_dict["conda_shlvl"]))
-
-    builder.extend(
-        (
-            format_param("user config file", info_dict["user_rc_path"]),
-            format_param("populated config files", info_dict["_config_files"]),
-            format_param("conda version", info_dict["conda_version"]),
-            format_param("conda-build version", info_dict["conda_build_version"]),
-            format_param("python version", info_dict["python_version"]),
-            format_param("virtual packages", info_dict["_virtual_pkgs"]),
-            format_param(
-                "base environment",
-                "{}  ({})".format(info_dict["root_prefix"], info_dict["_rtwro"]),
-            ),
-            format_param("conda av data dir", info_dict["av_data_dir"]),
-            format_param("conda av metadata url", info_dict["av_metadata_url_base"]),
-            format_param("channel URLs", info_dict["_channels"]),
-            format_param("package cache", info_dict["_pkgs_dirs"]),
-            format_param("envs directories", info_dict["_envs_dirs"]),
-            format_param("platform", info_dict["platform"]),
-            format_param("user-agent", info_dict["user_agent"]),
+        yield (
+            "virtual packages",
+            flatten("=".join(pkg) for pkg in info_dict["virtual_pkgs"]),
         )
-    )
+        writable = "writable" if info_dict["root_writable"] else "read only"
+        yield ("base environment", f"{info_dict['root_prefix']}  ({writable})")
+        yield ("conda av data dir", info_dict["av_data_dir"])
+        yield ("conda av metadata url", info_dict["av_metadata_url_base"])
+        yield ("channel URLs", flatten(info_dict["channels"]))
+        yield ("package cache", flatten(info_dict["pkgs_dirs"]))
+        yield ("envs directories", flatten(info_dict["envs_dirs"]))
+        yield ("platform", info_dict["platform"])
+        yield ("user-agent", info_dict["user_agent"])
 
-    if on_win:
-        builder.append(format_param("administrator", info_dict["is_windows_admin"]))
-    else:
-        builder.append(
-            format_param("UID:GID", "{}:{}".format(info_dict["UID"], info_dict["GID"]))
-        )
+        if on_win:
+            yield ("administrator", info_dict["is_windows_admin"])
+        else:
+            yield ("UID:GID", f"{info_dict['UID']}:{info_dict['GID']}")
 
-    builder.extend(
-        (
-            format_param("netrc file", info_dict["netrc_file"]),
-            format_param("offline mode", info_dict["offline"]),
-        )
-    )
+        yield ("netrc file", info_dict["netrc_file"])
+        yield ("offline mode", info_dict["offline"])
 
-    builder.append("")
-    return "\n".join(builder)
+    return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
 
 
-def execute(args, parser):
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    """
+    Implements ``conda info`` commands.
+
+     * ``conda info``
+     * ``conda info --base``
+     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
+     * ``conda info --unsafe-channels``
+     * ``conda info --envs`` (deprecated) (no ``--json``)
+     * ``conda info --system`` (deprecated) (no ``--json``)
+    """
+
+    from ..base.context import context
+    from .common import print_envs_list, stdout_json
+
     if args.base:
         if context.json:
             stdout_json({"root_prefix": context.root_prefix})
         else:
             print(f"{context.root_prefix}")
-        return
+        return 0
 
     if args.packages:
         from ..resolve import ResolvePackageNotFound
 
         try:
             print_package_info(args.packages)
-            return
+            return 0
         except ResolvePackageNotFound as e:  # pragma: no cover
             from ..exceptions import PackagesNotFoundError
 
@@ -344,7 +484,7 @@ def execute(args, parser):
     if context.verbose or context.json:
         for option in options:
             setattr(args, option, True)
-    info_dict = get_info_dict(args.system)
+    info_dict = get_info_dict()
 
     if (
         context.verbose or all(not getattr(args, opt) for opt in options)
@@ -383,3 +523,4 @@ def execute(args, parser):
 
     if context.json:
         stdout_json(info_dict)
+    return 0

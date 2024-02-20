@@ -2,11 +2,6 @@
 Troubleshooting
 ===============
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 Using conda in Windows Batch script exits early
 ===============================================
 
@@ -103,12 +98,12 @@ more drastic measures.
        * ``CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY``
        * ``CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD``
 
-     To set variables on Windows, you may use either the CLI (Anaconda Prompt, for example) or a Windows GUI.
+     To set variables on Windows, you may use either the CLI or a Windows GUI.
 
        * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
        * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
 
-     These should be set to a value of ``1`` to enable them.  For example, in an Anaconda Prompt terminal::
+     These should be set to a value of ``1`` to enable them.  For example, in a terminal::
 
        set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
 
@@ -194,7 +189,7 @@ work. See more information on activation in :ref:`Activating environments
 Solution
 ~~~~~~~~
 
-Use "Anaconda Prompt" or shells opened from Anaconda Navigator. If you use a GUI
+Use shells opened from Anaconda Navigator. If you use a GUI
 IDE and you see this error, ask the developers of your IDE to add activation for
 conda environments.
 
@@ -408,7 +403,7 @@ Install using the ``--force`` option.
 
 Download and install the appropriate Miniconda
 for your operating system from the `Miniconda download page
-<https://docs.conda.io/en/latest/miniconda.html>`_ using the force option
+<https://docs.anaconda.com/free/miniconda/>`_ using the force option
 ``--force`` or ``-f``:
 
 .. code-block::
@@ -1056,11 +1051,8 @@ Solution
 --------
 
 If you receive this warning, you need to activate your environment.
-To do so on Windows, use the Anaconda Prompt shortcut in your Windows
-start menu. If you have an existing cmd.exe session that you’d like to
-activate conda in, run:
+To do so on Windows, on a terminal via PowerShell or the Command Prompt, run:
 ``call <your anaconda/miniconda install location>\Scripts\activate base``.
-
 
 .. _path-error:
 

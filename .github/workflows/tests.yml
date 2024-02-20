@@ -70,7 +70,7 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.11']
+        python-version: ['3.8', '3.12']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache@v3
         env:
           # Increase this value to reset cache
-          CACHE_NUMBER: 3
+          CACHE_NUMBER: 4
         with:
           # setup.bat makes a directory junction from \conda_bin to
           # C:\Miniconda; cache on top of the C:\Miniconda directory that exists
@@ -156,7 +156,7 @@ jobs:
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         exclude:
@@ -166,6 +166,8 @@ jobs:
             python-version: '3.9'
           - default-channel: 'conda-forge'
             python-version: '3.10'
+          - default-channel: 'conda-forge'
+            python-version: '3.11'
     env:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
@@ -202,6 +204,37 @@ jobs:
             test-report.xml
           retention-days: 1
 
+  # linux benchmarks
+  linux-benchmarks:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11']
+
+    env:
+      OS: Linux
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Python ${{ matrix.python-version }} benchmarks
+        uses: CodSpeedHQ/action@v2
+        with:
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          run: >
+            docker run
+            --rm -v ${PWD}:/opt/conda-src
+            ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
+            /opt/conda-src/dev/linux/benchmarks.sh
+
+
   # linux-qemu test suite
   linux-qemu:
     # only run test suite if there are code changes
@@ -218,7 +251,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.11']
+        python-version: ['3.12']
         platform: ['arm64', 'ppc64le']
     env:
       PYTHON: ${{ matrix.python-version }}
@@ -263,7 +296,7 @@ jobs:
       fail-fast: false
       matrix:
         default-channel: ['defaults', 'conda-forge']
-        python-version: ['3.9']
+        python-version: ['3.10']
         test-type: ['unit', 'integration']
         test-group: ['1', '2', '3']
         # fewer test splits for quicker unit tests, keep 3 splits for integration
@@ -352,7 +385,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-qemu, macos]
+    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
     if: >-
       !cancelled()
       && needs.changes.outputs.code == 'true'
@@ -379,7 +412,7 @@ jobs:
   # required check
   analyze:
     name: Analyze results
-    needs: [windows, linux, linux-qemu, macos, aggregate]
+    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
@@ -452,7 +485,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v23.7.0
+        uses: conda/actions/canary-release@v23.10.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1

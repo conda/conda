@@ -11,7 +11,7 @@ import math
 import sys
 import time
 from pathlib import Path
-from socket import socket
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -39,9 +39,13 @@ from conda.gateways.repodata import (
     RepodataIsEmpty,
     RepodataState,
     conda_http_errors,
+    get_cache_control_max_age,
 )
 from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
+
+if TYPE_CHECKING:
+    from socket import socket
 
 
 def test_save(tmp_path):
@@ -373,3 +377,11 @@ def test_repodata_fetch_cached(
         for key in "mtime_ns", "size", "refresh_ns":
             state.pop(key)
         assert state == {}
+
+
+def test_get_cache_control_max_age():
+    """
+    Test that we are robust against None cache-control-max-age
+    """
+    assert get_cache_control_max_age('cache_control = "public, max-age=30"') == 30
+    assert get_cache_control_max_age(None) == 0

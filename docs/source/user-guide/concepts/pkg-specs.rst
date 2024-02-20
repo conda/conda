@@ -1,11 +1,6 @@
-===========================
-Conda package specification
-===========================
-
-.. contents::
-   :local:
-   :depth: 1
-
+=====================
+Package specification
+=====================
 
 .. _package_metadata:
 

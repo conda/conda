@@ -1,5 +1,5 @@
 ``conda env remove``
-*****************
+********************
 
 .. argparse::
    :module: conda_env.cli.main

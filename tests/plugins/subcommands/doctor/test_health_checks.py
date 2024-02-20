@@ -4,20 +4,29 @@ from __future__ import annotations
 
 import json
 import uuid
-from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.context import reset_context
 from conda.plugins.subcommands.doctor.health_checks import (
+    OK_MARK,
+    X_MARK,
+    altered_files,
     check_envs_txt_file,
     display_health_checks,
+    env_txt_check,
     find_altered_packages,
     find_packages_with_missing_files,
+    missing_files,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Iterable
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -133,6 +142,80 @@ def test_no_altered_files(env_ok: tuple[Path, str, str, str]):
 def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
     prefix, _, lib_doctor, package = env_altered_files
     assert find_altered_packages(prefix) == {package: [lib_doctor]}
+
+
+@pytest.mark.parametrize("verbose", [True, False])
+def test_missing_files_action(
+    env_missing_files: tuple[Path, str, str, str], capsys, verbose
+):
+    prefix, bin_doctor, _, package = env_missing_files
+    missing_files(prefix, verbose=verbose)
+    captured = capsys.readouterr()
+    if verbose:
+        assert str(bin_doctor) in captured.out
+    else:
+        assert f"{package}: 1" in captured.out
+
+
+@pytest.mark.parametrize("verbose", [True, False])
+def test_no_missing_files_action(env_ok: tuple[Path, str, str, str], capsys, verbose):
+    prefix, _, _, _ = env_ok
+    missing_files(prefix, verbose=verbose)
+    captured = capsys.readouterr()
+    assert "There are no packages with missing files." in captured.out
+
+
+@pytest.mark.parametrize("verbose", [True, False])
+def test_altered_files_action(
+    env_altered_files: tuple[Path, str, str, str], capsys, verbose
+):
+    prefix, _, lib_doctor, package = env_altered_files
+    altered_files(prefix, verbose=verbose)
+    captured = capsys.readouterr()
+    if verbose:
+        assert str(lib_doctor) in captured.out
+    else:
+        assert f"{package}: 1" in captured.out
+
+
+@pytest.mark.parametrize("verbose", [True, False])
+def test_no_altered_files_action(env_ok: tuple[Path, str, str, str], capsys, verbose):
+    prefix, _, _, _ = env_ok
+    altered_files(prefix, verbose=verbose)
+    captured = capsys.readouterr()
+    assert "There are no packages with altered files." in captured.out
+
+
+def test_env_txt_check_action(
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str], capsys
+):
+    prefix, _, _, _ = env_ok
+    tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text(f"{prefix}")
+
+    mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        return_value=tmp_envs_txt_file,
+    )
+    env_txt_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert OK_MARK in captured.out
+
+
+def test_not_env_txt_check_action(
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str], capsys
+):
+    prefix, _, _, _ = env_ok
+    tmp_envs_txt_file = tmp_path / "envs.txt"
+    tmp_envs_txt_file.write_text("Not environment name")
+
+    mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        return_value=tmp_envs_txt_file,
+    )
+    env_txt_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert X_MARK in captured.out
 
 
 def test_json_keys_missing(env_ok: tuple[Path, str, str, str], capsys):

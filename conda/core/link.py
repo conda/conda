@@ -14,7 +14,7 @@ from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
-from typing import Iterable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -58,8 +58,6 @@ from ..gateways.disk.test import (
 )
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
-from ..models.package_info import PackageInfo
-from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
@@ -78,9 +76,15 @@ from .path_actions import (
     UnlinkPathAction,
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
-    _Action,
 )
 from .prefix_data import PrefixData, get_python_version_for_prefix
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from ..models.package_info import PackageInfo
+    from ..models.records import PackageRecord
+    from .path_actions import _Action
 
 log = getLogger(__name__)
 
@@ -163,11 +167,11 @@ def match_specs_to_dists(packages_info_to_link, specs):
 
 class PrefixSetup(NamedTuple):
     target_prefix: str
-    unlink_precs: Iterable[PackageRecord]
-    link_precs: Iterable[PackageRecord]
-    remove_specs: Iterable[MatchSpec]
-    update_specs: Iterable[MatchSpec]
-    neutered_specs: Iterable[MatchSpec]
+    unlink_precs: tuple[PackageRecord, ...]
+    link_precs: tuple[PackageRecord, ...]
+    remove_specs: tuple[MatchSpec, ...]
+    update_specs: tuple[MatchSpec, ...]
+    neutered_specs: tuple[MatchSpec, ...]
 
 
 class ActionGroup(NamedTuple):
@@ -989,14 +993,14 @@ class UnlinkLinkTransaction:
         try:
             if axngroup.type == "unlink":
                 log.info(
-                    "===> UNLINKING PACKAGE: %s <===\n" "  prefix=%s\n",
+                    "===> UNLINKING PACKAGE: %s <===\n  prefix=%s\n",
                     prec.dist_str(),
                     target_prefix,
                 )
 
             elif axngroup.type == "link":
                 log.info(
-                    "===> LINKING PACKAGE: %s <===\n" "  prefix=%s\n" "  source=%s\n",
+                    "===> LINKING PACKAGE: %s <===\n  prefix=%s\n  source=%s\n",
                     prec.dist_str(),
                     target_prefix,
                     prec.extracted_package_dir,
@@ -1052,14 +1056,14 @@ class UnlinkLinkTransaction:
 
         if axngroup.type == "unlink":
             log.info(
-                "===> REVERSING PACKAGE UNLINK: %s <===\n" "  prefix=%s\n",
+                "===> REVERSING PACKAGE UNLINK: %s <===\n  prefix=%s\n",
                 prec.dist_str(),
                 target_prefix,
             )
 
         elif axngroup.type == "link":
             log.info(
-                "===> REVERSING PACKAGE LINK: %s <===\n" "  prefix=%s\n",
+                "===> REVERSING PACKAGE LINK: %s <===\n  prefix=%s\n",
                 prec.dist_str(),
                 target_prefix,
             )
@@ -1343,7 +1347,7 @@ class UnlinkLinkTransaction:
                 link_prec = change_report.new_precs[namekey]
                 add_single(
                     strip_global(namekey),
-                    f"{link_prec.record_id()} {link_prec['metadata_signature_status']}",
+                    f"{link_prec.record_id()} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.removed_precs:
@@ -1362,7 +1366,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.superseded_precs:
@@ -1376,7 +1380,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.downgraded_precs:
@@ -1387,7 +1391,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
         builder.append("")
         builder.append("")
@@ -1560,9 +1564,8 @@ def run_script(
                     #   create_env function
                     message = f"{action} failed for: {prec}"
                 else:
-                    message = (
-                        dals(
-                            """
+                    message = dals(
+                        """
                     %s script failed for package %s
                     location of failed script: %s
                     ==> script messages <==
@@ -1572,16 +1575,14 @@ def run_script(
                     stderr: %s
                     return code: %s
                     """
-                        )
-                        % (
-                            action,
-                            prec.dist_str(),
-                            path,
-                            m or "<None>",
-                            response.stdout,
-                            response.stderr,
-                            response.rc,
-                        )
+                    ) % (
+                        action,
+                        prec.dist_str(),
+                        path,
+                        m or "<None>",
+                        response.stdout,
+                        response.stderr,
+                        response.rc,
                     )
                 raise LinkError(message)
             else:
@@ -1601,9 +1602,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script {}".format(
-                        script_caller
-                    )
+                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
                 )
 
 

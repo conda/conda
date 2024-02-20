@@ -168,7 +168,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
             except ImportError:
                 raise CondaError(
                     "The `ssl_verify: truststore` setting is only supported on"
-                    + "Python 3.10 or later."
+                    "Python 3.10 or later."
                 )
             self.verify = True
         else:
@@ -204,6 +204,14 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    @classmethod
+    def cache_clear(cls):
+        try:
+            cls._thread_local.sessions.clear()
+        except AttributeError:
+            # AttributeError: thread's session cache has not been initialized
+            pass
 
 
 class CondaHttpAuth(AuthBase):
@@ -276,13 +284,11 @@ class CondaHttpAuth(AuthBase):
         if proxy_scheme not in proxies:
             raise ProxyError(
                 dals(
-                    """
-            Could not find a proxy for {!r}. See
-            {}/docs/html#configure-conda-for-use-behind-a-proxy-server
+                    f"""
+            Could not find a proxy for {proxy_scheme!r}. See
+            {CONDA_HOMEPAGE_URL}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """.format(
-                        proxy_scheme, CONDA_HOMEPAGE_URL
-                    )
+            """
                 )
             )
 

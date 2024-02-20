@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """The classic solver implementation."""
+from __future__ import annotations
+
 import copy
 import sys
 from itertools import chain
@@ -15,16 +17,18 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
-from conda.common.iterators import groupby_to_dict as groupby
+from typing import TYPE_CHECKING
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
+from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
 from ..common.constants import NULL
 from ..common.io import Spinner, dashlist, time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     PackagesNotFoundError,
@@ -43,6 +47,11 @@ from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from ..models.records import PackageRecord
+
 log = getLogger(__name__)
 
 
@@ -54,17 +63,16 @@ class Solver:
       * :meth:`solve_final_state`
       * :meth:`solve_for_diff`
       * :meth:`solve_for_transaction`
-
     """
 
     def __init__(
         self,
-        prefix,
-        channels,
-        subdirs=(),
-        specs_to_add=(),
-        specs_to_remove=(),
-        repodata_fn=REPODATA_FN,
+        prefix: str,
+        channels: Iterable[Channel],
+        subdirs: Iterable[str] = (),
+        specs_to_add: Iterable[MatchSpec] = (),
+        specs_to_remove: Iterable[MatchSpec] = (),
+        repodata_fn: str = REPODATA_FN,
         command=NULL,
     ):
         """
@@ -135,17 +143,35 @@ class Solver:
             # is in the commented out get_install_transaction() function below. Exercised at
             # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
-        else:
-            unlink_precs, link_precs = self.solve_for_diff(
-                update_modifier,
-                deps_modifier,
-                prune,
-                ignore_pinned,
-                force_remove,
-                force_reinstall,
-                should_retry_solve,
-            )
-            stp = PrefixSetup(
+
+        # run pre-solve processes here before solving for a solution
+        context.plugin_manager.invoke_pre_solves(
+            self.specs_to_add,
+            self.specs_to_remove,
+        )
+
+        unlink_precs, link_precs = self.solve_for_diff(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+            should_retry_solve,
+        )
+        # TODO: Only explicitly requested remove and update specs are being included in
+        #   History right now. Do we need to include other categories from the solve?
+
+        # run post-solve processes here before performing the transaction
+        context.plugin_manager.invoke_post_solves(
+            self._repodata_fn,
+            unlink_precs,
+            link_precs,
+        )
+
+        self._notify_conda_outdated(link_precs)
+        return UnlinkLinkTransaction(
+            PrefixSetup(
                 self.prefix,
                 unlink_precs,
                 link_precs,
@@ -153,11 +179,7 @@ class Solver:
                 self.specs_to_add,
                 self.neutered_specs,
             )
-            # TODO: Only explicitly requested remove and update specs are being included in
-            #   History right now. Do we need to include other categories from the solve?
-
-            self._notify_conda_outdated(link_precs)
-            return UnlinkLinkTransaction(stp)
+        )
 
     def solve_for_diff(
         self,
@@ -168,7 +190,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -408,7 +430,7 @@ class Solver:
 
         ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
-            "solved prefix %s\n" "  solved_linked_dists:\n" "    %s\n",
+            "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
             "\n    ".join(prec.dist_str() for prec in ssc.solution_precs),
         )
@@ -448,11 +470,7 @@ class Solver:
 
         print(f"\n\nUpdating {spec.name} is constricted by \n")
         for const in hard_constricting:
-            print(
-                "{package} -> requires {conflict_dep}".format(
-                    package=const[0], conflict_dep=const[1]
-                )
-            )
+            print(f"{const[0]} -> requires {const[1]}")
         print(
             "\nIf you are sure you want an update of your package either try "
             "`conda update --all` or install a specific version of the "
@@ -613,7 +631,13 @@ class Solver:
                 rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and rec.name in ssc.specs_from_history_map:
                     spec = ssc.specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop("features", None)
+                    spec._match_components = frozendict(
+                        {
+                            key: value
+                            for key, value in spec._match_components.items()
+                            if key != "features"
+                        }
+                    )
                     ssc.specs_map[spec.name] = spec
                 else:
                     ssc.specs_map.pop(rec.name, None)
@@ -1221,7 +1245,7 @@ class Solver:
                     self.subdirs,
                     repodata_fn=self._repodata_fn,
                 ),
-                key=lambda x: VersionOrder(x.version)
+                key=lambda x: VersionOrder(x.version),
                 # VersionOrder is fine here rather than r.version_key because all precs
                 # should come from the same channel
             )
@@ -1394,8 +1418,11 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(
-    prefix, final_precs, specs_to_add=(), force_reinstall=NULL
-):
+    prefix,
+    final_precs,
+    specs_to_add=(),
+    force_reinstall=NULL,
+) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
         assert hasattr(
@@ -1446,4 +1473,4 @@ def diff_for_unlink_link_precs(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
     link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return unlink_precs, link_precs
+    return tuple(unlink_precs), tuple(link_precs)
