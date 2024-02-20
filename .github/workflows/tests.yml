@@ -187,6 +187,7 @@ jobs:
           --rm -v ${PWD}:/opt/conda-src
           -e TEST_SPLITS
           -e TEST_GROUP
+          -e COVERAGE_CORE
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
@@ -234,6 +235,7 @@ jobs:
           run: >
             docker run
             --rm -v ${PWD}:/opt/conda-src
+            -e COVERAGE_CORE
             ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}
             /opt/conda-src/dev/linux/benchmarks.sh
 
@@ -272,6 +274,7 @@ jobs:
         run: >
           docker run
           --rm -v ${PWD}:/opt/conda-src
+          -e COVERAGE_CORE
           --platform linux/${{ matrix.platform }}
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
           /opt/conda-src/dev/linux/qemu.sh
