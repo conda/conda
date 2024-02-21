@@ -225,7 +225,7 @@ This is a duplicate of <b>[link to primary issue]</b>; please feel free to conti
 <pre>
 
 Please uninstall your current version of `conda` and reinstall the latest version.
-Feel free to use either the [miniconda](https://docs.anaconda.com/free/miniconda/)
+Feel free to use either the [miniconda](https://docs.conda.io/en/latest/miniconda.html)
 or [anaconda](https://www.anaconda.com/products/individual) installer,
 whichever is more appropriate for your needs.
 </pre>
