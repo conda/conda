@@ -15,7 +15,7 @@ if __name__ == "__main__":
     deprecated.module(
         "24.3",
         "24.9",
-        addendum="How did you get here? This is a for testing only. Use `dev/start[.bat]` instead.",
+        addendum="This script is intended for testing only. Use `dev/start[.bat]` instead.",
     )
 
     sys.exit(main())
