@@ -82,17 +82,6 @@ if on_win:
 else:
     PYTHONIOENCODING = None
 
-POP_THESE = (
-    "CONDA_SHLVL",
-    "CONDA_DEFAULT_ENV",
-    "CONDA_PREFIX",
-    "CONDA_PREFIX_0",
-    "CONDA_PREFIX_1",
-    "CONDA_PREFIX_2",
-    "PS1",
-    "prompt",
-)
-
 HDF5_VERSION = "1.12.1"
 
 
@@ -129,7 +118,16 @@ skipif_bash_unsupported_win = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def reset_environ(monkeypatch: MonkeyPatch) -> None:
-    for name in POP_THESE:
+    for name in (
+        "CONDA_SHLVL",
+        "CONDA_DEFAULT_ENV",
+        "CONDA_PREFIX",
+        "CONDA_PREFIX_0",
+        "CONDA_PREFIX_1",
+        "CONDA_PREFIX_2",
+        "PS1",
+        "prompt",
+    ):
         monkeypatch.delenv(name, raising=False)
 
 
