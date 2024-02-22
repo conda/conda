@@ -446,6 +446,8 @@ jobs:
             subdir: linux-64
           - runner: macos-latest
             subdir: osx-64
+          - runner: macos-14
+            subdir: osx-arm64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
