@@ -28,7 +28,7 @@ from os.path import (
 )
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -45,7 +45,7 @@ from .common.path import paths_equal
 from .deprecations import deprecated
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
+    from collections.abc import Iterable, Iterator
 
 log = getLogger(__name__)
 
@@ -75,9 +75,6 @@ class _Activator(metaclass=abc.ABCMeta):
     # The following instance variables must be defined by each implementation.
     pathsep_join: str
     sep: str
-    path_conversion: Callable[
-        [str | Iterable[str] | None], str | tuple[str, ...] | None
-    ]
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
@@ -93,6 +90,23 @@ class _Activator(metaclass=abc.ABCMeta):
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
         self.environ = os.environ.copy()
+
+    @overload
+    def path_conversion(self, paths: None) -> None:
+        ...
+
+    @overload
+    def path_conversion(self, paths: str) -> str:
+        ...
+
+    @overload
+    def path_conversion(self, paths: Iterable[str]) -> Iterable[str]:
+        ...
+
+    def path_conversion(
+        self, paths: None | str | Iterable[str]
+    ) -> None | str | Iterable[str]:
+        return path_identity(paths)
 
     def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
@@ -916,10 +930,49 @@ def backslash_to_forwardslash(
         return tuple([path.replace("\\", "/") for path in paths])
 
 
-class PosixActivator(_Activator):
+class _NativeToUnixActivator(_Activator):
+    @overload
+    def path_conversion(self, paths: None) -> None:
+        ...
+
+    @overload
+    def path_conversion(self, paths: str) -> str:
+        ...
+
+    @overload
+    def path_conversion(self, paths: Iterable[str]) -> Iterable[str]:
+        ...
+
+    def path_conversion(
+        self, paths: None | str | Iterable[str]
+    ) -> None | str | Iterable[str]:
+        return native_path_to_unix(paths)
+
+
+class _BackslashToForwardslashActivator(_Activator):
+    if on_win:
+
+        @overload
+        def path_conversion(self, paths: None) -> None:
+            ...
+
+        @overload
+        def path_conversion(self, paths: str) -> str:
+            ...
+
+        @overload
+        def path_conversion(self, paths: Iterable[str]) -> Iterable[str]:
+            ...
+
+        def path_conversion(
+            self, paths: None | str | Iterable[str]
+        ) -> None | str | Iterable[str]:
+            return backslash_to_forwardslash(paths)
+
+
+class PosixActivator(_NativeToUnixActivator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -969,10 +1022,9 @@ class PosixActivator(_Activator):
         return "\n".join(result) + "\n"
 
 
-class CshActivator(_Activator):
+class CshActivator(_NativeToUnixActivator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1022,12 +1074,9 @@ class CshActivator(_Activator):
             ).strip()
 
 
-class XonshActivator(_Activator):
+class XonshActivator(_BackslashToForwardslashActivator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
-    path_conversion = staticmethod(
-        backslash_to_forwardslash if on_win else path_identity
-    )
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
@@ -1053,7 +1102,6 @@ class XonshActivator(_Activator):
 class CmdExeActivator(_Activator):
     pathsep_join = ";".join
     sep = "\\"
-    path_conversion = staticmethod(path_identity)
     script_extension = ".bat"
     tempfile_extension = ".bat"
     command_join = "\n"
@@ -1072,10 +1120,9 @@ class CmdExeActivator(_Activator):
         pass
 
 
-class FishActivator(_Activator):
+class FishActivator(_NativeToUnixActivator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1118,7 +1165,6 @@ class FishActivator(_Activator):
 class PowerShellActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
-    path_conversion = staticmethod(path_identity)
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
