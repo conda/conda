@@ -104,18 +104,6 @@ ENV_VARS_FILE = """
   }
 }"""
 
-PKG_A_ENV_VARS = """
-{
-    "PKG_A_ENV": "yerp"
-}
-"""
-
-PKG_B_ENV_VARS = """
-{
-    "PKG_B_ENV": "berp"
-}
-"""
-
 HDF5_VERSION = "1.12.1"
 
 
@@ -163,13 +151,21 @@ def changeps1(monkeypatch: MonkeyPatch) -> None:
     assert context.changeps1
 
 
-def write_pkg_env_vars(prefix):
-    activate_pkg_env_vars = join(prefix, PACKAGE_ENV_VARS_DIR)
-    mkdir_p(activate_pkg_env_vars)
-    with open(join(activate_pkg_env_vars, "pkg_a.json"), "w") as f:
-        f.write(PKG_A_ENV_VARS)
-    with open(join(activate_pkg_env_vars, "pkg_b.json"), "w") as f:
-        f.write(PKG_B_ENV_VARS)
+def write_pkg_A(prefix: str | os.PathLike | Path) -> None:
+    activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
+    activate_pkg_env_vars.mkdir(exist_ok=True)
+    (activate_pkg_env_vars / "pkg_a.json").write_text('{"PKG_A_ENV": "yerp"}')
+
+
+def write_pkg_B(prefix: str | os.PathLike | Path) -> None:
+    activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
+    activate_pkg_env_vars.mkdir(exist_ok=True)
+    (activate_pkg_env_vars / "pkg_b.json").write_text('{"PKG_B_ENV": "berp"}')
+
+
+def write_pkgs(prefix: str | os.PathLike | Path) -> None:
+    write_pkg_A(prefix)
+    write_pkg_B(prefix)
 
 
 def test_activate_environment_not_found(reset_environ: None):
@@ -361,7 +357,7 @@ def test_build_activate_dont_activate_unset_var(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(env_vars_file)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         with env_var("CONDA_SHLVL", "0"):
             with env_var("CONDA_PREFIX", ""):
@@ -420,7 +416,7 @@ def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(env_vars_file)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         with env_var("CONDA_SHLVL", "0"):
             with env_var("CONDA_PREFIX", ""):
@@ -469,7 +465,7 @@ def test_build_activate_shlvl_0(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         with env_var("CONDA_SHLVL", "0"):
             with env_var("CONDA_PREFIX", ""):
@@ -520,7 +516,7 @@ def test_build_activate_shlvl_1(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         old_prefix = "/old/prefix"
         activator = PosixActivator()
@@ -640,7 +636,7 @@ def test_build_stack_shlvl_1(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         old_prefix = "/old/prefix"
         activator = PosixActivator()
@@ -796,10 +792,7 @@ def test_build_deactivate_shlvl_2_from_stack(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        activate_pkg_env_vars_a = join(td, PACKAGE_ENV_VARS_DIR)
-        mkdir_p(activate_pkg_env_vars_a)
-        with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
-            f.write(PKG_A_ENV_VARS)
+        write_pkg_A(td)
 
         old_prefix = join(td, "old")
         mkdir_p(join(old_prefix, "conda-meta"))
@@ -822,10 +815,8 @@ def test_build_deactivate_shlvl_2_from_stack(reset_environ: None):
                 }
             """
             )
-        activate_pkg_env_vars_b = join(old_prefix, PACKAGE_ENV_VARS_DIR)
-        mkdir_p(activate_pkg_env_vars_b)
-        with open(join(activate_pkg_env_vars_b, "pkg_b.json"), "w") as f:
-            f.write(PKG_B_ENV_VARS)
+
+        write_pkg_B(old_prefix)
 
         activator = PosixActivator()
         original_path = activator.pathsep_join(
@@ -910,10 +901,7 @@ def test_build_deactivate_shlvl_2_from_activate(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        activate_pkg_env_vars_a = join(td, PACKAGE_ENV_VARS_DIR)
-        mkdir_p(activate_pkg_env_vars_a)
-        with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
-            f.write(PKG_A_ENV_VARS)
+        write_pkg_A(td)
 
         old_prefix = join(td, "old")
         mkdir_p(join(old_prefix, "conda-meta"))
@@ -936,10 +924,8 @@ def test_build_deactivate_shlvl_2_from_activate(reset_environ: None):
                }
            """
             )
-        activate_pkg_env_vars_b = join(old_prefix, PACKAGE_ENV_VARS_DIR)
-        mkdir_p(activate_pkg_env_vars_b)
-        with open(join(activate_pkg_env_vars_b, "pkg_b.json"), "w") as f:
-            f.write(PKG_B_ENV_VARS)
+
+        write_pkg_B(old_prefix)
 
         activator = PosixActivator()
         original_path = activator.pathsep_join(
@@ -1017,7 +1003,7 @@ def test_build_deactivate_shlvl_1(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         with env_var("CONDA_SHLVL", "1"):
             with env_var("CONDA_PREFIX", td):
@@ -1101,7 +1087,7 @@ def test_build_activate_restore_unset_env_vars(reset_environ: None):
         with open(activate_env_vars, "w") as f:
             f.write(ENV_VARS_FILE)
 
-        write_pkg_env_vars(td)
+        write_pkgs(td)
 
         old_prefix = "/old/prefix"
         activator = PosixActivator()
