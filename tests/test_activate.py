@@ -174,12 +174,11 @@ def write_pkgs(prefix: str | os.PathLike | Path) -> None:
     write_pkg_B(prefix)
 
 
-def test_activate_environment_not_found():
+def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
-    with tempdir() as td:
-        with pytest.raises(EnvironmentLocationNotFound):
-            activator.build_activate(td)
+    with pytest.raises(EnvironmentLocationNotFound):
+        activator.build_activate(str(tmp_path))
 
     with pytest.raises(EnvironmentLocationNotFound):
         activator.build_activate("/not/an/environment")
@@ -211,10 +210,11 @@ def test_PS1_no_changeps1(
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
 
 
+@pytest.mark.skipif(
+    on_win and "PWD" not in os.environ,
+    "This test cannot be run from the cmd.exe shell.",
+)
 def test_add_prefix_to_path_posix():
-    if on_win and "PWD" not in os.environ:
-        pytest.skip("This test cannot be run from the cmd.exe shell.")
-
     activator = PosixActivator()
 
     path_dirs = activator.path_conversion(
