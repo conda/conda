@@ -138,7 +138,7 @@ skipif_bash_unsupported_win = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def reset_environ(monkeypatch: MonkeyPatch) -> None:
     for name in POP_THESE:
         monkeypatch.delenv(name, raising=False)
@@ -168,7 +168,7 @@ def write_pkgs(prefix: str | os.PathLike | Path) -> None:
     write_pkg_B(prefix)
 
 
-def test_activate_environment_not_found(reset_environ: None):
+def test_activate_environment_not_found():
     activator = PosixActivator()
 
     with tempdir() as td:
@@ -182,7 +182,7 @@ def test_activate_environment_not_found(reset_environ: None):
         activator.build_activate("wontfindmeIdontexist_abc123")
 
 
-def test_PS1(reset_environ: None, tmp_path: Path):
+def test_PS1(tmp_path: Path):
     activator = PosixActivator()
     assert activator._prompt_modifier(tmp_path, ROOT_ENV_NAME) == f"({ROOT_ENV_NAME}) "
 
@@ -191,7 +191,6 @@ def test_PS1(reset_environ: None, tmp_path: Path):
 
 
 def test_PS1_no_changeps1(
-    reset_environ: None,
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
 ):
@@ -206,7 +205,7 @@ def test_PS1_no_changeps1(
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
 
 
-def test_add_prefix_to_path_posix(reset_environ: None):
+def test_add_prefix_to_path_posix():
     if on_win and "PWD" not in os.environ:
         pytest.skip("This test cannot be run from the cmd.exe shell.")
 
@@ -229,7 +228,7 @@ def test_add_prefix_to_path_posix(reset_environ: None):
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_add_prefix_to_path_cmdexe(reset_environ: None):
+def test_add_prefix_to_path_cmdexe():
     activator = CmdExeActivator()
 
     path_dirs = activator.path_conversion(
@@ -248,7 +247,7 @@ def test_add_prefix_to_path_cmdexe(reset_environ: None):
     assert new_path[len(added_paths)].endswith("condabin")
 
 
-def test_remove_prefix_from_path_1(reset_environ: None):
+def test_remove_prefix_from_path_1():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
@@ -262,7 +261,7 @@ def test_remove_prefix_from_path_1(reset_environ: None):
     assert final_path == new_path
 
 
-def test_remove_prefix_from_path_2(reset_environ: None):
+def test_remove_prefix_from_path_2():
     # this time prefix doesn't actually exist in path
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
@@ -277,7 +276,7 @@ def test_remove_prefix_from_path_2(reset_environ: None):
     assert final_path == new_path
 
 
-def test_replace_prefix_in_path_1(reset_environ: None):
+def test_replace_prefix_in_path_1():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     new_prefix = join(os.getcwd(), "mytestpath-new")
@@ -299,7 +298,7 @@ def test_replace_prefix_in_path_1(reset_environ: None):
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_replace_prefix_in_path_2(reset_environ: None):
+def test_replace_prefix_in_path_2():
     path1 = join("c:\\", "temp", "6663 31e0")
     path2 = join("c:\\", "temp", "6663 31e0", "envs", "charizard")
     one_more = join("d:\\", "one", "more")
@@ -320,7 +319,7 @@ def test_replace_prefix_in_path_2(reset_environ: None):
     assert len(path_elements) == len(old_path)
 
 
-def test_default_env(reset_environ: None):
+def test_default_env():
     activator = PosixActivator()
     assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
@@ -331,9 +330,7 @@ def test_default_env(reset_environ: None):
         assert "named-env" == activator._default_env(p)
 
 
-def test_build_activate_dont_activate_unset_var(
-    reset_environ: None, tmp_env: TmpEnvFixture
-):
+def test_build_activate_dont_activate_unset_var(tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         activate_d_dir = prefix / "etc" / "conda" / "activate.d"
         activate_d_dir.mkdir(parents=True)
@@ -392,7 +389,7 @@ def test_build_activate_dont_activate_unset_var(
         assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
+def test_build_activate_shlvl_warn_clobber_vars():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -452,7 +449,7 @@ def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
                 assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_0(reset_environ: None):
+def test_build_activate_shlvl_0():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -503,7 +500,7 @@ def test_build_activate_shlvl_0(reset_environ: None):
 
 
 @skipif_bash_unsupported_win
-def test_build_activate_shlvl_1(reset_environ: None):
+def test_build_activate_shlvl_1():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -623,7 +620,7 @@ def test_build_activate_shlvl_1(reset_environ: None):
 
 
 @skipif_bash_unsupported_win
-def test_build_stack_shlvl_1(reset_environ: None):
+def test_build_stack_shlvl_1():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -733,7 +730,7 @@ def test_build_stack_shlvl_1(reset_environ: None):
                 assert builder["deactivate_scripts"] == ()
 
 
-def test_activate_same_environment(reset_environ: None):
+def test_activate_same_environment():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -779,7 +776,7 @@ def test_activate_same_environment(reset_environ: None):
 
 
 @skipif_bash_unsupported_win
-def test_build_deactivate_shlvl_2_from_stack(reset_environ: None):
+def test_build_deactivate_shlvl_2_from_stack():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         deactivate_d_dir = mkdir_p(join(td, "etc", "conda", "deactivate.d"))
@@ -888,7 +885,7 @@ def test_build_deactivate_shlvl_2_from_stack(reset_environ: None):
 
 
 @skipif_bash_unsupported_win
-def test_build_deactivate_shlvl_2_from_activate(reset_environ: None):
+def test_build_deactivate_shlvl_2_from_activate():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         deactivate_d_dir = mkdir_p(join(td, "etc", "conda", "deactivate.d"))
@@ -990,7 +987,7 @@ def test_build_deactivate_shlvl_2_from_activate(reset_environ: None):
             )
 
 
-def test_build_deactivate_shlvl_1(reset_environ: None):
+def test_build_deactivate_shlvl_1():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         deactivate_d_dir = mkdir_p(join(td, "etc", "conda", "deactivate.d"))
@@ -1038,7 +1035,7 @@ def test_build_deactivate_shlvl_1(reset_environ: None):
                 )
 
 
-def test_get_env_vars_big_whitespace(reset_environ: None):
+def test_get_env_vars_big_whitespace():
     with tempdir() as td:
         STATE_FILE = join(td, PREFIX_STATE_FILE)
         mkdir_p(dirname(STATE_FILE))
@@ -1058,7 +1055,7 @@ def test_get_env_vars_big_whitespace(reset_environ: None):
         assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "you", "ENV_THREE": "me"}
 
 
-def test_get_env_vars_empty_file(reset_environ: None):
+def test_get_env_vars_empty_file():
     with tempdir() as td:
         env_var_parent_dir = join(td, "conda-meta")
         mkdir_p(env_var_parent_dir)
@@ -1074,7 +1071,7 @@ def test_get_env_vars_empty_file(reset_environ: None):
 
 
 @skipif_bash_unsupported_win
-def test_build_activate_restore_unset_env_vars(reset_environ: None):
+def test_build_activate_restore_unset_env_vars():
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -1200,7 +1197,7 @@ def test_build_activate_restore_unset_env_vars(reset_environ: None):
 
 
 @pytest.fixture
-def shell_wrapper_unit(reset_environ: None, path_factory: PathFactoryFixture) -> str:
+def shell_wrapper_unit(path_factory: PathFactoryFixture) -> str:
     prefix = path_factory()
     history = prefix / "conda-meta" / "history"
     history.parent.mkdir(parents=True, exist_ok=True)
