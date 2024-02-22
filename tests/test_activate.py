@@ -428,14 +428,13 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
         },
         unset_vars=[],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -471,14 +470,13 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
         },
         unset_vars=[],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -509,14 +507,13 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
         },
         unset_vars=[],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -566,14 +563,13 @@ def test_build_activate_shlvl_1(
         },
         unset_vars=[],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(acivate_sh),)
 
@@ -594,7 +590,6 @@ def test_build_activate_shlvl_1(
 
     activator = PosixActivator()
 
-    export_path = {"PATH": old_path}
     export_vars, unset_vars = activator.add_export_unset_vars(
         export_vars={
             "CONDA_PREFIX": old_prefix,
@@ -614,14 +609,13 @@ def test_build_activate_shlvl_1(
             "ENV_WITH_SAME_VALUE",
         ],
     )
-    set_vars = {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
-    assert builder["export_path"] == export_path
+    assert builder["export_path"] == {"PATH": old_path}
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == ()
 
@@ -670,14 +664,13 @@ def test_build_stack_shlvl_1(
         },
         unset_vars=[],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_stack(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -716,14 +709,13 @@ def test_build_stack_shlvl_1(
             "ENV_WITH_SAME_VALUE",
         ],
     )
-    set_vars = {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
     assert set(builder["export_path"]) == {"PATH"}
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == ()
 
@@ -746,14 +738,13 @@ def test_activate_same_environment(
         "CONDA_SHLVL": 1,
         "CONDA_PROMPT_MODIFIER": f"({prefix}) ",
     }
-    set_vars = {"PS1": f"({prefix}) {os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
     assert builder["unset_vars"] == ()
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"({prefix}) {os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -821,15 +812,13 @@ def test_build_deactivate_shlvl_2_from_stack(
             "ENV_WITH_SAME_VALUE",
         ],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
-    export_path = {"PATH": original_path}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
-    assert builder["export_path"] == export_path
+    assert builder["export_path"] == {"PATH": original_path}
     assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -889,15 +878,13 @@ def test_build_deactivate_shlvl_2_from_activate(
             "ENV_WITH_SAME_VALUE",
         ],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
-    export_path = {"PATH": original_path}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
-    assert builder["export_path"] == export_path
+    assert builder["export_path"] == {"PATH": original_path}
     assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
@@ -1013,14 +1000,13 @@ def test_build_activate_restore_unset_env_vars(
         },
         unset_vars=[],
     )
-    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
     assert builder["deactivate_scripts"] == ()
     assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
+    assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
     assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
 
