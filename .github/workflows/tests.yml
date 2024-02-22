@@ -291,10 +291,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
+        runs-on: [macos-latest, macos-14]
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.10']
         test-type: ['unit', 'integration']
