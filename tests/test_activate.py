@@ -140,37 +140,28 @@ def changeps1(monkeypatch: MonkeyPatch) -> None:
 
 def write_state_file(
     prefix: str | os.PathLike | Path,
-    content: str | None = None,
+    **envvars,
 ) -> None:
     activate_env_vars = Path(prefix, PREFIX_STATE_FILE)
-    activate_env_vars.write_text(
-        content
-        or dals(
-            """
-            {
-              "version": 1,
-              "env_vars": {
-                "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
-                "ENV_WITH_SAME_VALUE": "with_same_value"
-              }
-            }
-            """
-        )
-    )
+    envvars |= {
+        "ENV_ONE": "one",
+        "ENV_TWO": "two",
+        "ENV_THREE": "three",
+        "ENV_WITH_SAME_VALUE": "with_same_value",
+    }
+    activate_env_vars.write_text(json.dumps({"version": 1, **envvars}))
 
 
 def write_pkg_A(prefix: str | os.PathLike | Path) -> None:
     activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
     activate_pkg_env_vars.mkdir(exist_ok=True)
-    (activate_pkg_env_vars / "pkg_a.json").write_text('{"PKG_A_ENV": "yerp"}')
+    (activate_pkg_env_vars / "pkg_a.json").write_text('{"PKG_A_ENV": "pkg_a"}')
 
 
 def write_pkg_B(prefix: str | os.PathLike | Path) -> None:
     activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
     activate_pkg_env_vars.mkdir(exist_ok=True)
-    (activate_pkg_env_vars / "pkg_b.json").write_text('{"PKG_B_ENV": "berp"}')
+    (activate_pkg_env_vars / "pkg_b.json").write_text('{"PKG_B_ENV": "pkg_b"}')
 
 
 def write_pkgs(prefix: str | os.PathLike | Path) -> None:
@@ -375,41 +366,31 @@ def test_build_activate_dont_activate_unset_var(env: Path, activate_sh: Path):
 
     write_state_file(
         env,
-        dals(
-            f"""
-            {{
-              "version": 1,
-              "env_vars": {{
-                "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "{CONDA_ENV_VARS_UNSET_VAR}"
-              }}
-            }}
-            """
-        ),
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
     )
     write_pkgs(env)  # pkg_a & pkg_b
 
     activator = PosixActivator()
-    builder = activator.build_activate(sprefix)
-    new_path = activator.pathsep_join(activator._add_prefix_to_path(sprefix))
-    conda_prompt_modifier = f"({sprefix}) "
-    ps1 = f"{conda_prompt_modifier}{os.getenv('PS1', '')}"
-    unset_vars = []
 
-    set_vars = {"PS1": ps1}
-    export_vars = {
-        "PATH": new_path,
-        "CONDA_PREFIX": sprefix,
-        "CONDA_SHLVL": 1,
-        "CONDA_DEFAULT_ENV": sprefix,
-        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-        "PKG_A_ENV": "yerp",
-        "PKG_B_ENV": "berp",
-        "ENV_ONE": "one",
-        "ENV_TWO": "you",
-    }
-    export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
+    export_vars, unset_vars = activator.add_export_unset_vars(
+        export_vars={
+            "PATH": activator.pathsep_join(activator._add_prefix_to_path(sprefix)),
+            "CONDA_PREFIX": sprefix,
+            "CONDA_SHLVL": 1,
+            "CONDA_DEFAULT_ENV": sprefix,
+            "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix}) "),
+            "PKG_A_ENV": "pkg_a",
+            "PKG_B_ENV": "pkg_b",
+            "ENV_ONE": "one",
+            "ENV_TWO": "two",
+        },
+        unset_vars=[],
+    )
+    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
+
+    builder = activator.build_activate(sprefix)
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
     assert builder["export_vars"] == export_vars
@@ -423,43 +404,33 @@ def test_build_activate_shlvl_warn_clobber_vars(env: Path, activate_sh: Path):
 
     write_state_file(
         env,
-        dals(
-            """
-            {
-              "version": 1,
-              "env_vars": {
-                "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
-                "PKG_A_ENV": "teamnope"
-              }
-            }
-            """
-        ),
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+        PKG_A_ENV="overwrite_a",
     )
     write_pkgs(env)  # pkg_a & pkg_b
 
     activator = PosixActivator()
-    builder = activator.build_activate(sprefix)
-    new_path = activator.pathsep_join(activator._add_prefix_to_path(sprefix))
-    conda_prompt_modifier = f"({sprefix}) "
-    ps1 = f"{conda_prompt_modifier}{os.getenv('PS1', '')}"
-    unset_vars = []
 
-    set_vars = {"PS1": ps1}
-    export_vars = {
-        "PATH": new_path,
-        "CONDA_PREFIX": sprefix,
-        "CONDA_SHLVL": 1,
-        "CONDA_DEFAULT_ENV": sprefix,
-        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-        "PKG_A_ENV": "teamnope",
-        "PKG_B_ENV": "berp",
-        "ENV_ONE": "one",
-        "ENV_TWO": "you",
-        "ENV_THREE": "me",
-    }
-    export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
+    export_vars, unset_vars = activator.add_export_unset_vars(
+        export_vars={
+            "PATH": activator.pathsep_join(activator._add_prefix_to_path(sprefix)),
+            "CONDA_PREFIX": sprefix,
+            "CONDA_SHLVL": 1,
+            "CONDA_DEFAULT_ENV": sprefix,
+            "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix}) "),
+            "PKG_A_ENV": "overwrite_a",
+            "PKG_B_ENV": "pkg_b",
+            "ENV_ONE": "one",
+            "ENV_TWO": "two",
+            "ENV_THREE": "three",
+        },
+        unset_vars=[],
+    )
+    set_vars = {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
+
+    builder = activator.build_activate(sprefix)
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
     assert builder["export_vars"] == export_vars
@@ -475,27 +446,26 @@ def test_build_activate_shlvl_0(env: Path, activate_sh: Path):
     write_pkgs(env)  # pkg_a & pkg_b
 
     activator = PosixActivator()
-    builder = activator.build_activate(sprefix)
-    new_path = activator.pathsep_join(activator._add_prefix_to_path(sprefix))
-    conda_prompt_modifier = f"({sprefix}) "
-    ps1 = f"{conda_prompt_modifier}{os.environ.get('PS1', '')}"
-    unset_vars = []
 
-    set_vars = {"PS1": ps1}
-    export_vars = {
-        "PATH": new_path,
-        "CONDA_PREFIX": sprefix,
-        "CONDA_SHLVL": 1,
-        "CONDA_DEFAULT_ENV": sprefix,
-        "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-        "PKG_A_ENV": "yerp",
-        "PKG_B_ENV": "berp",
-        "ENV_ONE": "one",
-        "ENV_TWO": "you",
-        "ENV_THREE": "me",
-        "ENV_WITH_SAME_VALUE": "with_same_value",
-    }
-    export_vars, unset_vars = activator.add_export_unset_vars(export_vars, unset_vars)
+    export_vars, unset_vars = activator.add_export_unset_vars(
+        export_vars={
+            "PATH": activator.pathsep_join(activator._add_prefix_to_path(sprefix)),
+            "CONDA_PREFIX": sprefix,
+            "CONDA_SHLVL": 1,
+            "CONDA_DEFAULT_ENV": sprefix,
+            "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix}) "),
+            "PKG_A_ENV": "pkg_a",
+            "PKG_B_ENV": "pkg_b",
+            "ENV_ONE": "one",
+            "ENV_TWO": "two",
+            "ENV_THREE": "three",
+            "ENV_WITH_SAME_VALUE": "with_same_value",
+        },
+        unset_vars=[],
+    )
+    set_vars = {"PS1": f"{modifier}{os.environ.get('PS1', '')}"}
+
+    builder = activator.build_activate(sprefix)
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
     assert builder["export_vars"] == export_vars
@@ -549,11 +519,11 @@ def test_build_activate_shlvl_1():
                 "CONDA_SHLVL": 2,
                 "CONDA_DEFAULT_ENV": td,
                 "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
+                "PKG_A_ENV": "pkg_a",
+                "PKG_B_ENV": "pkg_b",
                 "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
+                "ENV_TWO": "two",
+                "ENV_THREE": "three",
                 "ENV_WITH_SAME_VALUE": "with_same_value",
             }
             export_vars, _ = activator.add_export_unset_vars(export_vars, None)
@@ -578,11 +548,11 @@ def test_build_activate_shlvl_1():
                     "CONDA_SHLVL": 2,
                     "CONDA_DEFAULT_ENV": td,
                     "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_B_ENV": "berp",
-                    "PKG_A_ENV": "yerp",
+                    "PKG_B_ENV": "pkg_b",
+                    "PKG_A_ENV": "pkg_a",
                     "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me",
+                    "ENV_TWO": "two",
+                    "ENV_THREE": "three",
                     "ENV_WITH_SAME_VALUE": "with_same_value",
                 }
             ):
@@ -662,11 +632,11 @@ def test_build_stack_shlvl_1():
                 "CONDA_SHLVL": 2,
                 "CONDA_DEFAULT_ENV": td,
                 "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
+                "PKG_A_ENV": "pkg_a",
+                "PKG_B_ENV": "pkg_b",
                 "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
+                "ENV_TWO": "two",
+                "ENV_THREE": "three",
                 "ENV_WITH_SAME_VALUE": "with_same_value",
             }
             export_vars, unset_vars = activator.add_export_unset_vars(export_vars, [])
@@ -690,11 +660,11 @@ def test_build_stack_shlvl_1():
                     "CONDA_DEFAULT_ENV": td,
                     "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
                     "CONDA_STACKED_2": "true",
-                    "PKG_A_ENV": "yerp",
-                    "PKG_B_ENV": "berp",
+                    "PKG_A_ENV": "pkg_a",
+                    "PKG_B_ENV": "pkg_b",
                     "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me",
+                    "ENV_TWO": "two",
+                    "ENV_THREE": "three",
                 }
             ):
                 activator = PosixActivator()
@@ -826,12 +796,12 @@ def test_build_deactivate_shlvl_2_from_stack():
                     "CONDA_STACKED_2": "true",
                     "PATH": starting_path,
                     "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me",
+                    "ENV_TWO": "two",
+                    "ENV_THREE": "three",
                     "ENV_FOUR": "roar",
                     "ENV_FIVE": "hive",
-                    "PKG_A_ENV": "yerp",
-                    "PKG_B_ENV": "berp",
+                    "PKG_A_ENV": "pkg_a",
+                    "PKG_B_ENV": "pkg_b",
                 },
                 stack_callback=conda_tests_ctxt_mgmt_def_pol,
             ):
@@ -857,7 +827,7 @@ def test_build_deactivate_shlvl_2_from_stack():
                     "CONDA_SHLVL": 1,
                     "CONDA_DEFAULT_ENV": old_prefix,
                     "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_B_ENV": "berp",
+                    "PKG_B_ENV": "pkg_b",
                     "ENV_FOUR": "roar",
                     "ENV_FIVE": "hive",
                 }
@@ -928,10 +898,10 @@ def test_build_deactivate_shlvl_2_from_activate():
                 "CONDA_PREFIX": td,
                 "PATH": new_path,
                 "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
+                "ENV_TWO": "two",
+                "ENV_THREE": "three",
+                "PKG_A_ENV": "pkg_a",
+                "PKG_B_ENV": "pkg_b",
             },
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
@@ -956,7 +926,7 @@ def test_build_deactivate_shlvl_2_from_activate():
                 "CONDA_SHLVL": 1,
                 "CONDA_DEFAULT_ENV": old_prefix,
                 "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_B_ENV": "berp",
+                "PKG_B_ENV": "pkg_b",
                 "ENV_FOUR": "roar",
                 "ENV_FIVE": "hive",
             }
@@ -1035,13 +1005,13 @@ def test_get_env_vars_big_whitespace():
                   "version": 1,
                   "env_vars": {
                     "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me"
+                    "ENV_TWO": "two",
+                    "ENV_THREE": "three"
                   }}"""
             )
         activator = PosixActivator()
         env_vars = activator._get_environment_env_vars(td)
-        assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "you", "ENV_THREE": "me"}
+        assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "two", "ENV_THREE": "three"}
 
 
 def test_get_env_vars_empty_file():
@@ -1107,11 +1077,11 @@ def test_build_activate_restore_unset_env_vars():
                 "CONDA_SHLVL": 2,
                 "CONDA_DEFAULT_ENV": td,
                 "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
+                "PKG_A_ENV": "pkg_a",
+                "PKG_B_ENV": "pkg_b",
                 "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
+                "ENV_TWO": "two",
+                "ENV_THREE": "three",
                 "ENV_WITH_SAME_VALUE": "with_same_value",
                 "__CONDA_SHLVL_1_ENV_ONE": "already_set_env_var",
                 "__CONDA_SHLVL_1_ENV_WITH_SAME_VALUE": "with_same_value",
@@ -1139,11 +1109,11 @@ def test_build_activate_restore_unset_env_vars():
                     "CONDA_DEFAULT_ENV": td,
                     "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
                     "__CONDA_SHLVL_1_ENV_ONE": "already_set_env_var",
-                    "PKG_B_ENV": "berp",
-                    "PKG_A_ENV": "yerp",
+                    "PKG_B_ENV": "pkg_b",
+                    "PKG_A_ENV": "pkg_a",
                     "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me",
+                    "ENV_TWO": "two",
+                    "ENV_THREE": "three",
                     "ENV_WITH_SAME_VALUE": "with_same_value",
                 }
             ):
