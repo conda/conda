@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Introducing the `conda export` command to replace `conda env export`. (#13577)
+* Move `conda env export` to `conda export` and alias the old command to the new command. (#13577)
 
 ### Bug fixes
 

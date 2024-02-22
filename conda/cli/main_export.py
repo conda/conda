@@ -88,7 +88,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         required=False,
         help="Build environment spec from explicit specs in history",
     )
-    p.set_defaults(func="conda.cli.main_env_export.execute")
+    p.set_defaults(func="conda.cli.main_export.execute")
 
     return p
 
