@@ -1026,19 +1026,14 @@ def test_get_env_vars_big_whitespace(env: Path):
     assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "two", "ENV_THREE": "three"}
 
 
-def test_get_env_vars_empty_file():
-    with tempdir() as td:
-        env_var_parent_dir = join(td, "conda-meta")
-        mkdir_p(env_var_parent_dir)
-        activate_env_vars = join(env_var_parent_dir, "env_vars")
-        with open(activate_env_vars, "w") as f:
-            f.write(
-                """
-            """
-            )
-        activator = PosixActivator()
-        env_vars = activator._get_environment_env_vars(td)
-        assert env_vars == {}
+def test_get_env_vars_empty_file(env: Path):
+    sprefix = str(env)
+
+    (env / "conda-meta" / "env_vars").touch()
+
+    activator = PosixActivator()
+    env_vars = activator._get_environment_env_vars(sprefix)
+    assert env_vars == {}
 
 
 @skipif_bash_unsupported_win
