@@ -325,15 +325,15 @@ def test_replace_prefix_in_path_2():
     assert len(path_elements) == len(old_path)
 
 
-def test_default_env():
+def test_default_env(tmp_path: Path):
     activator = PosixActivator()
     assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
-    with tempdir() as td:
-        assert td == activator._default_env(td)
+    assert str(tmp_path) == activator._default_env(str(tmp_path))
 
-        p = mkdir_p(join(td, "envs", "named-env"))
-        assert "named-env" == activator._default_env(p)
+    prefix = tmp_path / "envs" / "named-env"
+    prefix.mkdir(parents=True)
+    assert prefix.name == activator._default_env(str(prefix))
 
 
 def test_build_activate_dont_activate_unset_var(tmp_env: TmpEnvFixture):
