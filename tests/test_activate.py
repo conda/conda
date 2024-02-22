@@ -138,10 +138,14 @@ def changeps1(monkeypatch: MonkeyPatch) -> None:
     assert context.changeps1
 
 
-def write_state_file(prefix: str | os.PathLike | Path) -> None:
+def write_state_file(
+    prefix: str | os.PathLike | Path,
+    content: str | None = None,
+) -> None:
     activate_env_vars = Path(prefix, PREFIX_STATE_FILE)
     activate_env_vars.write_text(
-        dals(
+        content
+        or dals(
             """
             {
               "version": 1,
@@ -346,7 +350,8 @@ def test_build_activate_dont_activate_unset_var(tmp_env: TmpEnvFixture):
         activate_d_1.touch()
         activate_d_2.touch()
 
-        (prefix / PREFIX_STATE_FILE).write_text(
+        write_state_file(
+            prefix,
             dals(
                 f"""
                 {{
@@ -358,16 +363,15 @@ def test_build_activate_dont_activate_unset_var(tmp_env: TmpEnvFixture):
                   }}
                 }}
                 """
-            )
+            ),
         )
-
         write_pkgs(prefix)
 
         sprefix = str(prefix)
         activator = PosixActivator()
         builder = activator.build_activate(sprefix)
         new_path = activator.pathsep_join(activator._add_prefix_to_path(sprefix))
-        conda_prompt_modifier = f"({sprefix}) "
+        conda_prompt_modifier = f"({prefix}) "
         ps1 = f"{conda_prompt_modifier}{os.getenv('PS1', '')}"
         unset_vars = []
 
@@ -395,64 +399,65 @@ def test_build_activate_dont_activate_unset_var(tmp_env: TmpEnvFixture):
         assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_warn_clobber_vars():
-    with tempdir() as td:
-        mkdir_p(join(td, "conda-meta"))
-        activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
-        activate_d_1 = join(activate_d_dir, "see-me.sh")
-        activate_d_2 = join(activate_d_dir, "dont-see-me.bat")
-        touch(join(activate_d_1))
-        touch(join(activate_d_2))
+def test_build_activate_shlvl_warn_clobber_vars(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        activate_d_dir = prefix / "etc" / "conda" / "activate.d"
+        activate_d_dir.mkdir(parents=True)
 
-        env_vars_file = """
-        {
-          "version": 1,
-          "env_vars": {
-            "ENV_ONE": "one",
-            "ENV_TWO": "you",
-            "ENV_THREE": "me",
-            "PKG_A_ENV": "teamnope"
-          }
-        }"""
+        activate_d_1 = activate_d_dir / "see-me.sh"
+        activate_d_2 = activate_d_dir / "dont-see-me.bat"
+        activate_d_1.touch()
+        activate_d_2.touch()
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(env_vars_file)
-
-        write_pkgs(td)
-
-        with env_var("CONDA_SHLVL", "0"):
-            with env_var("CONDA_PREFIX", ""):
-                activator = PosixActivator()
-                builder = activator.build_activate(td)
-                new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
-                conda_prompt_modifier = "(%s) " % td
-                ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
-                unset_vars = []
-
-                set_vars = {"PS1": ps1}
-                export_vars = {
-                    "PATH": new_path,
-                    "CONDA_PREFIX": td,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": td,
-                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_A_ENV": "teamnope",
-                    "PKG_B_ENV": "berp",
+        write_state_file(
+            prefix,
+            dals(
+                """
+                {
+                  "version": 1,
+                  "env_vars": {
                     "ENV_ONE": "one",
                     "ENV_TWO": "you",
                     "ENV_THREE": "me",
+                    "PKG_A_ENV": "teamnope"
+                  }
                 }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
-                )
-                assert builder["unset_vars"] == unset_vars
-                assert builder["set_vars"] == set_vars
-                assert builder["export_vars"] == export_vars
-                assert builder["activate_scripts"] == (
-                    activator.path_conversion(activate_d_1),
-                )
-                assert builder["deactivate_scripts"] == ()
+                """
+            ),
+        )
+        write_pkgs(prefix)
+
+        sprefix = str(prefix)
+        activator = PosixActivator()
+        builder = activator.build_activate(sprefix)
+        new_path = activator.pathsep_join(activator._add_prefix_to_path(sprefix))
+        conda_prompt_modifier = f"({prefix}) "
+        ps1 = f"{conda_prompt_modifier}{os.getenv('PS1', '')}"
+        unset_vars = []
+
+        set_vars = {"PS1": ps1}
+        export_vars = {
+            "PATH": new_path,
+            "CONDA_PREFIX": sprefix,
+            "CONDA_SHLVL": 1,
+            "CONDA_DEFAULT_ENV": sprefix,
+            "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
+            "PKG_A_ENV": "teamnope",
+            "PKG_B_ENV": "berp",
+            "ENV_ONE": "one",
+            "ENV_TWO": "you",
+            "ENV_THREE": "me",
+        }
+        export_vars, unset_vars = activator.add_export_unset_vars(
+            export_vars, unset_vars
+        )
+        assert builder["unset_vars"] == unset_vars
+        assert builder["set_vars"] == set_vars
+        assert builder["export_vars"] == export_vars
+        assert builder["activate_scripts"] == (
+            activator.path_conversion(str(activate_d_1)),
+        )
+        assert builder["deactivate_scripts"] == ()
 
 
 def test_build_activate_shlvl_0():
