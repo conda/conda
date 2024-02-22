@@ -93,17 +93,6 @@ POP_THESE = (
     "prompt",
 )
 
-ENV_VARS_FILE = """
-{
-  "version": 1,
-  "env_vars": {
-    "ENV_ONE": "one",
-    "ENV_TWO": "you",
-    "ENV_THREE": "me",
-    "ENV_WITH_SAME_VALUE": "with_same_value"
-  }
-}"""
-
 HDF5_VERSION = "1.12.1"
 
 
@@ -149,6 +138,25 @@ def changeps1(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("CONDA_CHANGEPS1", "true")
     reset_context()
     assert context.changeps1
+
+
+def write_state_file(prefix: str | os.PathLike | Path) -> None:
+    activate_env_vars = Path(prefix, PREFIX_STATE_FILE)
+    activate_env_vars.write_text(
+        dals(
+            """
+            {
+              "version": 1,
+              "env_vars": {
+                "ENV_ONE": "one",
+                "ENV_TWO": "you",
+                "ENV_THREE": "me",
+                "ENV_WITH_SAME_VALUE": "with_same_value"
+              }
+            }
+            """
+        )
+    )
 
 
 def write_pkg_A(prefix: str | os.PathLike | Path) -> None:
@@ -458,10 +466,7 @@ def test_build_activate_shlvl_0():
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkgs(td)
 
         with env_var("CONDA_SHLVL", "0"):
@@ -509,10 +514,7 @@ def test_build_activate_shlvl_1():
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkgs(td)
 
         old_prefix = "/old/prefix"
@@ -629,10 +631,7 @@ def test_build_stack_shlvl_1():
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkgs(td)
 
         old_prefix = "/old/prefix"
@@ -785,10 +784,7 @@ def test_build_deactivate_shlvl_2_from_stack():
         touch(join(deactivate_d_1))
         touch(join(deactivate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkg_A(td)
 
         old_prefix = join(td, "old")
@@ -894,10 +890,7 @@ def test_build_deactivate_shlvl_2_from_activate():
         touch(join(deactivate_d_1))
         touch(join(deactivate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkg_A(td)
 
         old_prefix = join(td, "old")
@@ -996,10 +989,7 @@ def test_build_deactivate_shlvl_1():
         touch(join(deactivate_d_1))
         touch(join(deactivate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkgs(td)
 
         with env_var("CONDA_SHLVL", "1"):
@@ -1080,10 +1070,7 @@ def test_build_activate_restore_unset_env_vars():
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
+        write_state_file(td)
         write_pkgs(td)
 
         old_prefix = "/old/prefix"
