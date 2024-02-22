@@ -364,13 +364,13 @@ def test_build_activate_dont_activate_unset_var(env: Path, activate_sh: Path):
     sprefix = str(env)
     sactivate_sh = str(activate_sh)
 
+    write_pkgs(env)  # pkg_a & pkg_b
     write_state_file(
         env,
         ENV_ONE="one",
         ENV_TWO="two",
         ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
     )
-    write_pkgs(env)  # pkg_a & pkg_b
 
     activator = PosixActivator()
 
@@ -381,8 +381,10 @@ def test_build_activate_dont_activate_unset_var(env: Path, activate_sh: Path):
             "CONDA_SHLVL": 1,
             "CONDA_DEFAULT_ENV": sprefix,
             "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix}) "),
+            # write_pkgs
             "PKG_A_ENV": "pkg_a",
             "PKG_B_ENV": "pkg_b",
+            # write_state_file
             "ENV_ONE": "one",
             "ENV_TWO": "two",
         },
@@ -402,6 +404,7 @@ def test_build_activate_shlvl_warn_clobber_vars(env: Path, activate_sh: Path):
     sprefix = str(env)
     sactivate_sh = str(activate_sh)
 
+    write_pkgs(env)  # pkg_a & pkg_b
     write_state_file(
         env,
         ENV_ONE="one",
@@ -409,7 +412,6 @@ def test_build_activate_shlvl_warn_clobber_vars(env: Path, activate_sh: Path):
         ENV_THREE="three",
         PKG_A_ENV="overwrite_a",
     )
-    write_pkgs(env)  # pkg_a & pkg_b
 
     activator = PosixActivator()
 
@@ -420,11 +422,13 @@ def test_build_activate_shlvl_warn_clobber_vars(env: Path, activate_sh: Path):
             "CONDA_SHLVL": 1,
             "CONDA_DEFAULT_ENV": sprefix,
             "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix}) "),
-            "PKG_A_ENV": "overwrite_a",
+            # write_pkgs
             "PKG_B_ENV": "pkg_b",
+            # write_state_file
             "ENV_ONE": "one",
             "ENV_TWO": "two",
             "ENV_THREE": "three",
+            "PKG_A_ENV": "overwrite_a",
         },
         unset_vars=[],
     )
@@ -442,8 +446,8 @@ def test_build_activate_shlvl_0(env: Path, activate_sh: Path):
     sprefix = str(env)
     sactivate_sh = str(activate_sh)
 
-    write_state_file(env)
     write_pkgs(env)  # pkg_a & pkg_b
+    write_state_file(env)
 
     activator = PosixActivator()
 
@@ -454,8 +458,10 @@ def test_build_activate_shlvl_0(env: Path, activate_sh: Path):
             "CONDA_SHLVL": 1,
             "CONDA_DEFAULT_ENV": sprefix,
             "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix}) "),
+            # write_pkgs
             "PKG_A_ENV": "pkg_a",
             "PKG_B_ENV": "pkg_b",
+            # write_state_file
             "ENV_ONE": "one",
             "ENV_TWO": "two",
             "ENV_THREE": "three",
@@ -478,8 +484,8 @@ def test_build_activate_shlvl_1(env: Path, activate_sh: Path, monkeypatch: Monke
     sprefix = str(env)
     sacivate_sh = str(activate_sh)
 
+    write_pkgs(env)  # pkg_a & pkg_b
     write_state_file(env)
-    write_pkgs(env)
 
     activator = PosixActivator()
     old_prefix = "/old/prefix"
@@ -505,8 +511,10 @@ def test_build_activate_shlvl_1(env: Path, activate_sh: Path, monkeypatch: Monke
             "CONDA_SHLVL": 2,
             "CONDA_DEFAULT_ENV": sprefix,
             "CONDA_PROMPT_MODIFIER": (modifier := f"({sprefix})"),
+            # write_pkgs
             "PKG_A_ENV": "pkg_a",
             "PKG_B_ENV": "pkg_b",
+            # write_state_file
             "ENV_ONE": "one",
             "ENV_TWO": "two",
             "ENV_THREE": "three",
@@ -576,8 +584,8 @@ def test_build_stack_shlvl_1():
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        write_state_file(td)
         write_pkgs(td)
+        write_state_file(td)
 
         old_prefix = "/old/prefix"
         activator = PosixActivator()
@@ -934,8 +942,8 @@ def test_build_deactivate_shlvl_1():
         touch(join(deactivate_d_1))
         touch(join(deactivate_d_2))
 
-        write_state_file(td)
         write_pkgs(td)
+        write_state_file(td)
 
         with env_var("CONDA_SHLVL", "1"):
             with env_var("CONDA_PREFIX", td):
@@ -1015,8 +1023,8 @@ def test_build_activate_restore_unset_env_vars():
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        write_state_file(td)
         write_pkgs(td)
+        write_state_file(td)
 
         old_prefix = "/old/prefix"
         activator = PosixActivator()
