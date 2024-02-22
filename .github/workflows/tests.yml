@@ -291,11 +291,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-latest') || 'macos-14' }}
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [macos-latest, macos-14]
+        arch: [osx-64, osx-arm64]
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.10']
         test-type: ['unit', 'integration']
@@ -368,7 +368,7 @@ jobs:
 
       - uses: codecov/codecov-action@v4
         with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+          flags: ${{ matrix.test-type }},${{ matrix.arch }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: '!cancelled()'
@@ -376,7 +376,7 @@ jobs:
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          name: test-results-${{ github.sha }}-${{ matrix.arch }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
             ./tools/durations/${{ runner.os }}.json
