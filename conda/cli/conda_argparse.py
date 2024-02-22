@@ -49,7 +49,7 @@ from .main_compare import configure_parser as configure_parser_compare
 from .main_config import configure_parser as configure_parser_config
 from .main_create import configure_parser as configure_parser_create
 from .main_env import configure_parser as configure_parser_env
-from .main_export import configure_parser as configure_parser_export
+from .main_env_export import configure_parser as configure_parser_export
 from .main_info import configure_parser as configure_parser_info
 from .main_init import configure_parser as configure_parser_init
 from .main_install import configure_parser as configure_parser_install
