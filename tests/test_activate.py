@@ -1011,24 +1011,19 @@ def test_build_deactivate_shlvl_1(
     assert builder["activate_scripts"] == ()
 
 
-def test_get_env_vars_big_whitespace():
-    with tempdir() as td:
-        STATE_FILE = join(td, PREFIX_STATE_FILE)
-        mkdir_p(dirname(STATE_FILE))
-        with open(STATE_FILE, "w") as f:
-            f.write(
-                """
-                {
-                  "version": 1,
-                  "env_vars": {
-                    "ENV_ONE": "one",
-                    "ENV_TWO": "two",
-                    "ENV_THREE": "three"
-                  }}"""
-            )
-        activator = PosixActivator()
-        env_vars = activator._get_environment_env_vars(td)
-        assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "two", "ENV_THREE": "three"}
+def test_get_env_vars_big_whitespace(env: Path):
+    sprefix = str(env)
+
+    write_state_file(
+        env,
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+    )
+
+    activator = PosixActivator()
+    env_vars = activator._get_environment_env_vars(sprefix)
+    assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "two", "ENV_THREE": "three"}
 
 
 def test_get_env_vars_empty_file():
