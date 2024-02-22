@@ -42,9 +42,10 @@ from .base.constants import (
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
+from .deprecations import deprecated
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
 
 log = getLogger(__name__)
 
@@ -612,7 +613,9 @@ class _Activator(metaclass=abc.ABCMeta):
         path_split = path.split(os.pathsep)
         return path_split
 
-    def _get_path_dirs(self, prefix, extra_library_bin=False):
+    @deprecated.argument("24.9", "25.3", "extra_library_bin")
+    def _get_path_dirs(self, prefix: str | os.PathLike | Path) -> Iterator[str]:
+        prefix = str(prefix)
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield self.sep.join((prefix, "Library", "mingw-w64", "bin"))
