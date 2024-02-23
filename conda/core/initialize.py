@@ -856,7 +856,7 @@ def run_plan_elevated(plan):
                 plan,
                 ensure_ascii=False,
                 default=lambda x: x.__dict__,
-            ).encode('utf-8')
+            ).encode("utf-8")
             result = subprocess_call(
                 "sudo %s -m conda.core.initialize" % sys.executable,
                 env={},
