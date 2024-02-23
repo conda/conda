@@ -8,13 +8,12 @@ import sys
 from functools import lru_cache
 from itertools import chain
 from logging import getLogger
-from os.path import dirname, isdir, join
+from os.path import dirname, join
 from pathlib import Path
 from re import escape
 from shutil import which
 from signal import SIGINT
 from subprocess import CalledProcessError, check_output
-from tempfile import gettempdir
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -2884,25 +2883,6 @@ def test_legacy_activate_deactivate_cmd_exe(
         assert conda_shlvl == "0", conda_shlvl
 
 
-@pytest.fixture(scope="module")
-def prefix():
-    tempdirdir = gettempdir()
-
-    root_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
-    root = join(tempdirdir, root_dirname)
-    mkdir_p(join(root, "conda-meta"))
-    assert isdir(root)
-    touch(join(root, "conda-meta", "history"))
-
-    prefix = join(root, "envs", "charizard")
-    mkdir_p(join(prefix, "conda-meta"))
-    touch(join(prefix, "conda-meta", "history"))
-
-    yield prefix
-
-    rm_rf(root)
-
-
 @pytest.mark.integration
 @pytest.mark.parametrize(
     ["shell"],
@@ -2921,19 +2901,20 @@ def prefix():
 )
 def test_activate_deactivate_modify_path(
     test_recipes_channel: Path,
-    shell,
-    prefix,
+    shell: str,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
 ):
     original_path = os.environ.get("PATH")
-    conda_cli(
-        "install",
-        *("--prefix", prefix),
-        "activate_deactivate_package",
-        "--yes",
-    )
 
-    with InteractiveShell(shell) as sh:
+    # inject a space into the prefix to ensure proper handling
+    uuid_hex = uuid4().hex
+    prefix = path_factory(name=f"{uuid_hex[:4]} {uuid_hex[-4:]}")
+
+    with tmp_env("activate_deactivate_package", prefix=prefix), InteractiveShell(
+        shell
+    ) as sh:
         sh.sendline('conda activate "%s"' % prefix)
         activated_env_path = sh.get_env_var("PATH")
         sh.sendline("conda deactivate")
