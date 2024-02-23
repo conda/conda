@@ -606,12 +606,12 @@ class _Activator(metaclass=abc.ABCMeta):
             "activate_scripts": self._get_activate_scripts(conda_prefix),
         }
 
-    def _get_starting_path_list(self):
+    def _get_starting_path_list(self) -> tuple[str, ...]:
         # For isolation, running the conda test suite *without* env. var. inheritance
         # every so often is a good idea. We should probably make this a pytest fixture
         # along with one that tests both hardlink-only and copy-only, but before that
         # conda's testsuite needs to be a lot faster!
-        clean_paths = {
+        fallback = {
             "darwin": "/usr/bin:/bin:/usr/sbin:/sbin",
             # You may think 'let us do something more clever here and interpolate
             # `%windir%`' but the point here is the the whole env. is cleaned out
@@ -619,13 +619,9 @@ class _Activator(metaclass=abc.ABCMeta):
             "C:\\Windows;"
             "C:\\Windows\\System32\\Wbem;"
             "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\",
-        }
-        path = self.environ.get(
-            "PATH",
-            clean_paths[sys.platform] if sys.platform in clean_paths else "/usr/bin",
-        )
-        path_split = path.split(os.pathsep)
-        return path_split
+        }.get(sys.platform, "/usr/bin")
+        path = self.environ.get("PATH", fallback)
+        return tuple(path.split(os.pathsep))
 
     @deprecated.argument("24.9", "25.3", "extra_library_bin")
     def _get_path_dirs(self, prefix: str | os.PathLike | Path) -> Iterator[str]:
@@ -640,12 +636,14 @@ class _Activator(metaclass=abc.ABCMeta):
         else:
             yield self.sep.join((prefix, "bin"))
 
-    def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
-        prefix = self.path_conversion(prefix)
-        if starting_path_dirs is None:
-            path_list = list(self.path_conversion(self._get_starting_path_list()))
-        else:
-            path_list = list(self.path_conversion(starting_path_dirs))
+    def _add_prefix_to_path(
+        self,
+        prefix: str | os.PathLike | Path,
+        starting_path_dirs: Iterable[str] | None = None,
+    ) -> tuple[str, ...]:
+        prefix = self.path_conversion(str(prefix))
+        starting_path_dirs = starting_path_dirs or self._get_starting_path_list()
+        path_list = list(self.path_conversion(starting_path_dirs))
 
         # If this is the first time we're activating an environment, we need to ensure that
         # the condabin directory is included in the path list.
@@ -659,16 +657,23 @@ class _Activator(metaclass=abc.ABCMeta):
         path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
         return tuple(path_list)
 
-    def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
+    def _remove_prefix_from_path(
+        self,
+        prefix: str | os.PathLike | Path,
+        starting_path_dirs: Iterable[str] | None = None,
+    ) -> tuple[str, ...]:
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
-    def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
-        old_prefix = self.path_conversion(old_prefix)
-        new_prefix = self.path_conversion(new_prefix)
-        if starting_path_dirs is None:
-            path_list = list(self.path_conversion(self._get_starting_path_list()))
-        else:
-            path_list = list(self.path_conversion(starting_path_dirs))
+    def _replace_prefix_in_path(
+        self,
+        old_prefix: str | os.PathLike | Path,
+        new_prefix: str | os.PathLike | Path | None,
+        starting_path_dirs: Iterable[str] | None = None,
+    ) -> tuple[str, ...]:
+        old_prefix = self.path_conversion(str(old_prefix))
+        new_prefix = self.path_conversion(str(new_prefix) if new_prefix else None)
+        starting_path_dirs = starting_path_dirs or self._get_starting_path_list()
+        path_list = list(self.path_conversion(starting_path_dirs))
 
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
