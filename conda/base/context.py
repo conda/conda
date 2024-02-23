@@ -14,7 +14,7 @@ import struct
 import sys
 from contextlib import contextmanager
 from errno import ENOENT
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
@@ -41,6 +41,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    remove_all_plugin_settings,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -483,7 +484,6 @@ class Context(Configuration):
         self,
         search_path=None,
         argparse_args=None,
-        initialize_plugin_config: bool = True,
         **kwargs,
     ):
         super().__init__(argparse_args=argparse_args)
@@ -495,11 +495,6 @@ class Context(Configuration):
         )
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
-
-        # set plugin configuration parameters
-        if initialize_plugin_config:
-            self.plugin_manager.load_settings()
-            self.plugins = PluginConfig(context.raw_data)
 
     def post_build_validation(self):
         errors = []
@@ -532,6 +527,14 @@ class Context(Configuration):
         from ..plugins.manager import get_plugin_manager
 
         return get_plugin_manager()
+
+    @cached_property
+    def plugins(self) -> PluginConfig:
+        """
+        Preferred way of accessing settings introduced by the settings plugin hook
+        """
+        self.plugin_manager.load_settings()
+        return PluginConfig(self.raw_data)
 
     @property
     def conda_build_local_paths(self):
@@ -1872,7 +1875,7 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
 
     # reset plugin config params
-    PluginConfig.remove_all_settings()
+    remove_all_plugin_settings()
 
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)

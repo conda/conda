@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from typing import Callable
 
-    from ..common.configuration import ParameterLoader
+    from ..common.configuration import Parameter
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -206,4 +206,5 @@ class CondaSetting:
 
     name: str
     description: str
-    loader: ParameterLoader
+    parameter: Parameter
+    aliases: tuple[str, ...] = tuple()

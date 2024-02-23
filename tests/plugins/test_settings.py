@@ -8,8 +8,6 @@ from pytest import MonkeyPatch
 from conda import plugins
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
-    ParameterLoader,
-    PluginConfig,
     PrimitiveParameter,
     YamlRawParameter,
     yaml_round_trip_load,
@@ -20,6 +18,7 @@ log = logging.getLogger(__name__)
 
 #: Name for a string type parameter
 STRING_PARAMETER_NAME = "string_parameter"
+STRING_PARAMETER_ALIAS = "string_parameter_alias"
 
 #: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_VALUE = "test_value"
@@ -33,15 +32,13 @@ plugins:
   {STRING_PARAMETER_NAME}: {STRING_PARAMETER_VALUE}
 """
 
-string_loader = ParameterLoader(
-    PrimitiveParameter("", element_type=str),
-    aliases=(STRING_PARAMETER_NAME,),
-)
+string_parameter = PrimitiveParameter("", element_type=str)
 
 string_config_parameter = plugins.CondaSetting(
     name=STRING_PARAMETER_NAME,
     description="Test string type setting",
-    loader=string_loader,
+    parameter=string_parameter,
+    aliases=(STRING_PARAMETER_ALIAS,),
 )
 
 
@@ -79,7 +76,8 @@ def condarc_plugin_manager(setting_plugin_manager):
         }
     )
 
-    context.plugins = PluginConfig(context.raw_data)
+    del context.plugins  # clear cached property
+
     return setting_plugin_manager
 
 
@@ -89,7 +87,10 @@ def test_get_settings(setting_plugin_manager):
     """
     config_params = setting_plugin_manager.get_settings()
     assert len(config_params) == 1
-    assert config_params.get(STRING_PARAMETER_NAME) is string_loader
+    assert config_params.get(STRING_PARAMETER_NAME) == (
+        string_parameter,
+        (STRING_PARAMETER_ALIAS,),
+    )
 
 
 def test_load_configuration_parameters(setting_plugin_manager):
@@ -119,7 +120,7 @@ def test_load_plugin_config_with_env_var(
         f"CONDA_PLUGINS_{STRING_PARAMETER_NAME.upper()}", STRING_PARAMETER_ENV_VAR_VALUE
     )
     reset_context()
-    context.plugins = PluginConfig(context.raw_data)
+    del context.plugins
 
     assert (
         getattr(context.plugins, STRING_PARAMETER_NAME)

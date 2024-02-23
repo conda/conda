@@ -19,7 +19,7 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.context import context
-from ..common.configuration import PluginConfig
+from ..common.configuration import add_plugin_setting
 from ..exceptions import CondaValueError, PluginError
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -303,7 +303,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Return a mapping of plugin setting name to ParameterLoader class
         """
         return {
-            config_param.name.lower(): config_param.loader
+            config_param.name.lower(): (config_param.parameter, config_param.aliases)
             for config_param in self.get_hook_results("settings")
         }
 
@@ -387,8 +387,8 @@ class CondaPluginManager(pluggy.PluginManager):
         Iterates through all registered settings and adds them to the
         :class:`conda.common.configuration.PluginConfig` class.
         """
-        for name, loader in self.get_settings().items():
-            PluginConfig.add_setting(name, loader)
+        for name, (parameter, aliases) in self.get_settings().items():
+            add_plugin_setting(name, parameter, aliases)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

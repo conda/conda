@@ -318,20 +318,15 @@ class CondaSpecs:
         .. code-block:: python
 
            from conda import plugins
-           from conda.common.configuration import (
-               ParameterLoader,
-               PrimitiveParameter,
-               SequenceParameter,
-           )
+           from conda.common.configuration import PrimitiveParameter, SequenceParameter
 
 
            @plugins.hookimpl
            def conda_settings():
-               name = "example_option"
-               description = "This is an example option"
-               loader = ParameterLoader(
-                   PrimitiveParameter(name, element_type=str), aliases=(name,)
+               yield plugins.CondaSetting(
+                   name="example_option",
+                   description="This is an example option",
+                   parameter=PrimitiveParameter(name, element_type=str),
+                   aliases=("example_option_alias",),
                )
-
-               yield plugins.CondaSetting(name=name, description=description, loader=loader)
         """
