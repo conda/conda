@@ -537,7 +537,6 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("PATH", old_path)
     monkeypatch.setenv("CONDA_ENV_PROMPT", "({default_env})")
 
-    activator = PosixActivator()
     new_path = activator.pathsep_join(
         activator._replace_prefix_in_path(old_prefix, prefix)
     )
@@ -588,8 +587,6 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
 
-    activator = PosixActivator()
-
     export_vars, unset_vars = activator.add_export_unset_vars(
         export_vars={
             "CONDA_PREFIX": old_prefix,
@@ -639,7 +636,6 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("PATH", old_path)
     monkeypatch.setenv("CONDA_ENV_PROMPT", "({default_env})")
 
-    activator = PosixActivator()
     new_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
     assert prefix in new_path
     assert old_prefix in new_path
@@ -688,8 +684,6 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("ENV_ONE", "one")
     monkeypatch.setenv("ENV_TWO", "two")
     monkeypatch.setenv("ENV_THREE", "three")
-
-    activator = PosixActivator()
 
     export_vars, unset_vars = activator.add_export_unset_vars(
         export_vars={
@@ -774,7 +768,6 @@ def test_build_deactivate_shlvl_2_from_stack(
 
     monkeypatch.setenv("PATH", original_path)
 
-    activator = PosixActivator()
     starting_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
 
     monkeypatch.setenv("CONDA_SHLVL", "2")
@@ -789,8 +782,6 @@ def test_build_deactivate_shlvl_2_from_stack(
     monkeypatch.setenv("ENV_FIVE", "five")
     monkeypatch.setenv("PKG_A_ENV", "pkg_a")
     monkeypatch.setenv("PKG_B_ENV", "pkg_b")
-
-    activator = PosixActivator()
 
     export_vars, unset_vars = activator.add_export_unset_vars(
         export_vars={
@@ -856,8 +847,6 @@ def test_build_deactivate_shlvl_2_from_activate(
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("PKG_A_ENV", "pkg_a")
     monkeypatch.setenv("PKG_B_ENV", "pkg_b")
-
-    activator = PosixActivator()
 
     export_vars, unset_vars = activator.add_export_unset_vars(
         export_vars={
@@ -974,7 +963,6 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("ENV_ONE", "already_set_env_var")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
 
-    activator = PosixActivator()
     new_path = activator.pathsep_join(
         activator._replace_prefix_in_path(old_prefix, prefix)
     )
@@ -1023,8 +1011,6 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("ENV_TWO", "two")
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
-
-    activator = PosixActivator()
 
     export_vars, unset_vars = activator.add_export_unset_vars(
         export_vars={
@@ -1158,7 +1144,6 @@ def test_posix_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = PosixActivator()
         with captured() as c:
             rc = main_sourced("shell.posix", *reactivate_args)
         assert not c.stderr
@@ -1289,7 +1274,6 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = CmdExeActivator()
         with captured() as c:
             assert main_sourced("shell.cmd.exe", "reactivate") == 0
         assert not c.stderr
@@ -1415,7 +1399,6 @@ def test_csh_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = CshActivator()
         with captured() as c:
             rc = main_sourced("shell.csh", *reactivate_args)
         assert not c.stderr
@@ -1551,7 +1534,6 @@ def test_xonsh_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = XonshActivator()
         with captured() as c:
             rc = main_sourced("shell.xonsh", *reactivate_args)
         assert not c.stderr
@@ -1692,7 +1674,6 @@ def test_fish_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = FishActivator()
         with captured() as c:
             rc = main_sourced("shell.fish", *reactivate_args)
         assert not c.stderr
@@ -1813,7 +1794,6 @@ def test_powershell_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = PowerShellActivator()
         with captured() as c:
             rc = main_sourced("shell.powershell", *reactivate_args)
         assert not c.stderr
@@ -1940,7 +1920,6 @@ def test_json_basic(shell_wrapper_unit: str):
             "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
         }
     ):
-        activator = _build_activator_cls("posix+json")()
         with captured() as c:
             rc = main_sourced("shell.posix+json", *reactivate_args)
         assert not c.stderr
