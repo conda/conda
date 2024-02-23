@@ -45,7 +45,7 @@ from .common.path import paths_equal
 from .deprecations import deprecated
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Any, Callable, Iterable, Iterator
 
 log = getLogger(__name__)
 
@@ -73,7 +73,7 @@ class _Activator(metaclass=abc.ABCMeta):
     # information to the __init__ method of this class.
 
     # The following instance variables must be defined by each implementation.
-    pathsep_join: str
+    pathsep_join: Callable[[Iterable[str]], Any]
     sep: str
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
@@ -971,7 +971,7 @@ class _BackslashToForwardslashActivator(_Activator):
 
 
 class PosixActivator(_NativeToUnixActivator):
-    pathsep_join = ":".join
+    pathsep_join: Callable[[Iterable[str]], str] = ":".join
     sep = "/"
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
@@ -1023,7 +1023,7 @@ class PosixActivator(_NativeToUnixActivator):
 
 
 class CshActivator(_NativeToUnixActivator):
-    pathsep_join = ":".join
+    pathsep_join: Callable[[Iterable[str]], str] = ":".join
     sep = "/"
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
@@ -1075,7 +1075,7 @@ class CshActivator(_NativeToUnixActivator):
 
 
 class XonshActivator(_BackslashToForwardslashActivator):
-    pathsep_join = ";".join if on_win else ":".join
+    pathsep_join: Callable[[Iterable[str]], str] = ";".join if on_win else ":".join
     sep = "/"
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
@@ -1100,7 +1100,7 @@ class XonshActivator(_BackslashToForwardslashActivator):
 
 
 class CmdExeActivator(_Activator):
-    pathsep_join = ";".join
+    pathsep_join: Callable[[Iterable[str]], str] = ";".join
     sep = "\\"
     script_extension = ".bat"
     tempfile_extension = ".bat"
@@ -1121,7 +1121,7 @@ class CmdExeActivator(_Activator):
 
 
 class FishActivator(_NativeToUnixActivator):
-    pathsep_join = '" "'.join
+    pathsep_join: Callable[[Iterable[str]], str] = '" "'.join
     sep = "/"
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
@@ -1163,7 +1163,7 @@ class FishActivator(_NativeToUnixActivator):
 
 
 class PowerShellActivator(_Activator):
-    pathsep_join = ";".join if on_win else ":".join
+    pathsep_join: Callable[[Iterable[str]], str] = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
@@ -1213,7 +1213,7 @@ class PowerShellActivator(_Activator):
 class JSONFormatMixin(_Activator):
     """Returns the necessary values for activation as JSON, so that tools can use them."""
 
-    pathsep_join = list
+    pathsep_join: Callable[[Iterable[str]], list[str]] = list
     tempfile_extension = None  # output to stdout
     command_join = list
 
