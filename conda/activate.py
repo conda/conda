@@ -91,19 +91,23 @@ class _Activator(metaclass=abc.ABCMeta):
         self._raw_arguments = arguments
 
     @overload
-    def path_conversion(self, paths: None) -> None:
+    @staticmethod
+    def path_conversion(paths: None) -> None:
         ...
 
     @overload
-    def path_conversion(self, paths: str) -> str:
+    @staticmethod
+    def path_conversion(paths: str) -> str:
         ...
 
     @overload
-    def path_conversion(self, paths: Iterable[str]) -> Iterable[str]:
+    @staticmethod
+    def path_conversion(paths: Iterable[str]) -> Iterable[str]:
         ...
 
+    @staticmethod
     def path_conversion(
-        self, paths: None | str | Iterable[str]
+        paths: None | str | Iterable[str],
     ) -> None | str | Iterable[str]:
         return path_identity(paths)
 
@@ -934,19 +938,23 @@ def backslash_to_forwardslash(
 
 class _NativeToUnixActivator(_Activator):
     @overload
-    def path_conversion(self, paths: None) -> None:
+    @staticmethod
+    def path_conversion(paths: None) -> None:
         ...
 
     @overload
-    def path_conversion(self, paths: str) -> str:
+    @staticmethod
+    def path_conversion(paths: str) -> str:
         ...
 
     @overload
-    def path_conversion(self, paths: Iterable[str]) -> Iterable[str]:
+    @staticmethod
+    def path_conversion(paths: Iterable[str]) -> Iterable[str]:
         ...
 
+    @staticmethod
     def path_conversion(
-        self, paths: None | str | Iterable[str]
+        paths: None | str | Iterable[str],
     ) -> None | str | Iterable[str]:
         return native_path_to_unix(paths)
 
@@ -955,19 +963,23 @@ class _BackslashToForwardslashActivator(_Activator):
     if on_win:
 
         @overload
-        def path_conversion(self, paths: None) -> None:
+        @staticmethod
+        def path_conversion(paths: None) -> None:
             ...
 
         @overload
-        def path_conversion(self, paths: str) -> str:
+        @staticmethod
+        def path_conversion(paths: str) -> str:
             ...
 
         @overload
-        def path_conversion(self, paths: Iterable[str]) -> Iterable[str]:
+        @staticmethod
+        def path_conversion(paths: Iterable[str]) -> Iterable[str]:
             ...
 
+        @staticmethod
         def path_conversion(
-            self, paths: None | str | Iterable[str]
+            paths: None | str | Iterable[str],
         ) -> None | str | Iterable[str]:
             return backslash_to_forwardslash(paths)
 

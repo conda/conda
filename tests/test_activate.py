@@ -274,7 +274,7 @@ def test_PS1_no_changeps1(
 
 @pytest.mark.skipif(
     on_win and "PWD" not in os.environ,
-    "This test cannot be run from the cmd.exe shell.",
+    reason="This test cannot be run from the cmd.exe shell.",
 )
 def test_add_prefix_to_path_posix():
     activator = PosixActivator()
@@ -1895,7 +1895,7 @@ def test_json_basic(shell_wrapper_unit: str):
                 **conda_exe_export,
             ),
             "set": {
-                "PS1": "(%s) " % shell_wrapper_unit,
+                "PS1": f"({shell_wrapper_unit}) {os.getenv('PS1', '')}",
             },
             "unset": [],
         },
@@ -1938,7 +1938,7 @@ def test_json_basic(shell_wrapper_unit: str):
                     "CONDA_PROMPT_MODIFIER": "(%s) " % shell_wrapper_unit,
                 },
                 "set": {
-                    "PS1": "(%s) " % shell_wrapper_unit,
+                    "PS1": f"({shell_wrapper_unit}) {os.getenv('PS1', '')}",
                 },
                 "unset": [],
             },
@@ -1989,7 +1989,7 @@ def test_json_basic(shell_wrapper_unit: str):
             "vars": {
                 "export": dict(CONDA_SHLVL=0, **conda_exe_export),
                 "set": {
-                    "PS1": "",
+                    "PS1": os.getenv("PS1", ""),
                 },
                 "unset": [
                     "CONDA_PREFIX",
