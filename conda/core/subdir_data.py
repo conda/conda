@@ -20,6 +20,8 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
 
+from typing import TYPE_CHECKING
+
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
@@ -33,11 +35,9 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
-    RepodataCache,
     RepodataFetch,
     RepodataIsEmpty,
     RepodataState,
-    RepoInterface,
     cache_fn_url,
     create_cache_dir,
     get_repo_interface,
@@ -48,6 +48,9 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+
+if TYPE_CHECKING:
+    from ..gateways.repodata import RepodataCache, RepoInterface
 
 log = getLogger(__name__)
 
@@ -542,7 +545,7 @@ def make_feature_record(feature_name):
     "24.3",
     addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
     "is pending deprecation and will be removed in the future. "
-    "Please use `conda.core.subdir_data.SubdirData` instead.",
+    "Please use `conda.core.subdir_data.SubdirData().repo_fetch.fetch_latest_parsed()` instead.",
 )
 def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
     """
@@ -557,7 +560,14 @@ def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN)
         cache_state = subdir.repo_cache.load_state()
         cache_state.etag = etag
         cache_state.mod = mod_stamp
-        raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
+        # force CondaRepoInterface to avoid RepodataOnDisk exception
+        repo_fetch = RepodataFetch(
+            Path(subdir.cache_path_base),
+            subdir.channel,
+            subdir.repodata_fn,
+            repo_interface_cls=CondaRepoInterface,
+        )
+        raw_repodata_str = repo_fetch._repo.repodata(cache_state)  # type: ignore
     except RepodataIsEmpty:
         if repodata_fn != REPODATA_FN:
             raise  # is UnavailableInvalidChannel subclass

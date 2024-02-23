@@ -100,6 +100,7 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "def __repr__",
   '\s*\.\.\.$',
+  "if TYPE_CHECKING:",  # ignoring type checking imports
 ]
 
 [tool.ruff]
@@ -112,8 +113,12 @@ target-version = "py38"
 # I = isort
 # D = pydocstyle
 # UP = pyupgrade
+# ISC = flake8-implicit-str-concat
+# TCH = flake8-type-checking
+# T10 = flake8-debugger
+# FA = flake8-future-annotations
 # see also https://docs.astral.sh/ruff/rules/
-select = ["E", "W", "F", "I", "D1", "UP"]
+select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10", "FA"]
 # E402 module level import not at top of file
 # E501 line too long
 # E722 do not use bare 'except'
@@ -127,6 +132,7 @@ select = ["E", "W", "F", "I", "D1", "UP"]
 ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
 pydocstyle = {convention = "pep257"}
+flake8-type-checking = {exempt-modules = [], strict = true}
 
 [tool.pytest.ini_options]
 minversion = 3.0

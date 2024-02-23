@@ -25,13 +25,14 @@ from logging import getLogger
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from re import IGNORECASE, VERBOSE, Match, compile
+from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:  # pragma: no cover
+    from re import Match
     from typing import Any, Hashable, Iterable, Sequence
 
 try:
