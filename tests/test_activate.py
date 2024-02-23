@@ -177,6 +177,66 @@ def write_pkgs(prefix: str | os.PathLike | Path) -> None:
     write_pkg_B(prefix)
 
 
+@pytest.fixture
+def env_activate(tmp_env: TmpEnvFixture) -> tuple[str, str, str]:
+    with tmp_env() as prefix:
+        activate_d = prefix / "etc" / "conda" / "activate.d"
+        activate_d.mkdir(parents=True)
+
+        activate_sh = activate_d / "activate.sh"
+        activate_sh.touch()
+
+        activate_bat = activate_d / "activate.bat"
+        activate_bat.touch()
+
+        return str(prefix), str(activate_sh), str(activate_bat)
+
+
+@pytest.fixture
+def env_activate_deactivate(tmp_env: TmpEnvFixture) -> tuple[str, str, str, str, str]:
+    with tmp_env() as prefix:
+        activate_d = prefix / "etc" / "conda" / "activate.d"
+        activate_d.mkdir(parents=True)
+
+        activate_sh = activate_d / "activate.sh"
+        activate_sh.touch()
+
+        activate_bat = activate_d / "activate.bat"
+        activate_bat.touch()
+
+        deactivate_d = prefix / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True)
+
+        deactivate_sh = deactivate_d / "deactivate.sh"
+        deactivate_sh.touch()
+
+        deactivate_bat = deactivate_d / "deactivate.bat"
+        deactivate_bat.touch()
+
+        return (
+            str(prefix),
+            str(activate_sh),
+            str(activate_bat),
+            str(deactivate_sh),
+            str(deactivate_bat),
+        )
+
+
+@pytest.fixture
+def env_deactivate(tmp_env: TmpEnvFixture) -> tuple[str, str, str]:
+    with tmp_env() as prefix:
+        deactivate_d = prefix / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True)
+
+        deactivate_sh = deactivate_d / "deactivate.sh"
+        deactivate_sh.touch()
+
+        deactivate_bat = deactivate_d / "deactivate.bat"
+        deactivate_bat.touch()
+
+        return str(prefix), str(deactivate_sh), str(deactivate_bat)
+
+
 def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
@@ -337,66 +397,6 @@ def test_default_env(tmp_path: Path):
     prefix = tmp_path / "envs" / "named-env"
     prefix.mkdir(parents=True)
     assert prefix.name == activator._default_env(str(prefix))
-
-
-@pytest.fixture
-def env_activate(tmp_env: TmpEnvFixture) -> tuple[str, str, str]:
-    with tmp_env() as prefix:
-        activate_d = prefix / "etc" / "conda" / "activate.d"
-        activate_d.mkdir(parents=True)
-
-        activate_sh = activate_d / "activate.sh"
-        activate_sh.touch()
-
-        activate_bat = activate_d / "activate.bat"
-        activate_bat.touch()
-
-        return str(prefix), str(activate_sh), str(activate_bat)
-
-
-@pytest.fixture
-def env_activate_deactivate(tmp_env: TmpEnvFixture) -> tuple[str, str, str, str, str]:
-    with tmp_env() as prefix:
-        activate_d = prefix / "etc" / "conda" / "activate.d"
-        activate_d.mkdir(parents=True)
-
-        activate_sh = activate_d / "activate.sh"
-        activate_sh.touch()
-
-        activate_bat = activate_d / "activate.bat"
-        activate_bat.touch()
-
-        deactivate_d = prefix / "etc" / "conda" / "deactivate.d"
-        deactivate_d.mkdir(parents=True)
-
-        deactivate_sh = deactivate_d / "deactivate.sh"
-        deactivate_sh.touch()
-
-        deactivate_bat = deactivate_d / "deactivate.bat"
-        deactivate_bat.touch()
-
-        return (
-            str(prefix),
-            str(activate_sh),
-            str(activate_bat),
-            str(deactivate_sh),
-            str(deactivate_bat),
-        )
-
-
-@pytest.fixture
-def env_deactivate(tmp_env: TmpEnvFixture) -> tuple[str, str, str]:
-    with tmp_env() as prefix:
-        deactivate_d = prefix / "etc" / "conda" / "deactivate.d"
-        deactivate_d.mkdir(parents=True)
-
-        deactivate_sh = deactivate_d / "deactivate.sh"
-        deactivate_sh.touch()
-
-        deactivate_bat = deactivate_d / "deactivate.bat"
-        deactivate_bat.touch()
-
-        return str(prefix), str(deactivate_sh), str(deactivate_bat)
 
 
 def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
