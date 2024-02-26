@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.common.compat.encode_arguments` as pending deprecation. (#13240)
 
 ### Docs
 
