@@ -9,21 +9,24 @@ an example of how to use it.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import pluggy
 
-from .types import (
-    CondaAuthHandler,
-    CondaHealthCheck,
-    CondaPostCommand,
-    CondaPostSolve,
-    CondaPreCommand,
-    CondaPreSolve,
-    CondaSolver,
-    CondaSubcommand,
-    CondaVirtualPackage,
-)
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSolver,
+        CondaSubcommand,
+        CondaVirtualPackage,
+    )
 
 spec_name = "conda"
 """Name used for organizing conda hook specifications"""
@@ -143,7 +146,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_commands():
-               yield CondaPreCommand(
+               yield plugins.CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
                    run_for={"install", "create"},
@@ -168,7 +171,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_commands():
-               yield CondaPostCommand(
+               yield plugins.CondaPostCommand(
                    name="example-post-command",
                    action=example_post_command,
                    run_for={"install", "create"},
@@ -233,7 +236,7 @@ class CondaSpecs:
 
                 @plugins.hookimpl
                 def conda_health_checks():
-                    yield CondaHealthCheck(
+                    yield plugins.CondaHealthCheck(
                         name="example-health-check",
                         action=example_health_check,
                     )

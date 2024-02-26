@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Parse integer channel notice IDs as `str` instead of raising an exception. (#13543)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.cli.main_info`. (#13445)
+* <news item>
 
 ### Other
 

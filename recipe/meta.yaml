@@ -52,6 +52,7 @@ requirements:
     - setuptools >=60.0.0
     - tqdm >=4
     - truststore >=0.8.0           # [py>=310]
+    - zstandard >=0.15
   run_constrained:
     - conda-build >=3.27
     - conda-content-trust >=0.1.1

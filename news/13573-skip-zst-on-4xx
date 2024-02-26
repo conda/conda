@@ -1,10 +1,11 @@
 ### Enhancements
 
-* Add `--skip-flexible-search` option to skip flexible search. (#13315)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes
+  (#13573)
 
 ### Deprecations
 

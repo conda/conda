@@ -21,11 +21,6 @@ from os.path import split as path_split
 from typing import TYPE_CHECKING
 
 try:
-    from platformdirs import user_data_dir
-except ImportError:  # pragma: no cover
-    from .._vendor.appdirs import user_data_dir
-
-try:
     from boltons.setutils import IndexedSet
 except ImportError:  # pragma: no cover
     from .._vendor.boltons.setutils import IndexedSet
@@ -46,11 +41,11 @@ from ..common.configuration import (
     SequenceParameter,
     ValidationError,
 )
+from ..common.constants import TRACE
 from ..common.iterators import unique
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
-from ..gateways.logging import TRACE
 from .constants import (
     APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -78,6 +73,8 @@ from .constants import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from ..plugins.manager import CondaPluginManager
 
 
@@ -118,6 +115,21 @@ _arch_names = {
 
 user_rc_path = abspath(expanduser("~/.condarc"))
 sys_rc_path = join(sys.prefix, ".condarc")
+
+
+def user_data_dir(
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
+    roaming: bool = False,
+):
+    # Defer platformdirs import to reduce import time for conda activate.
+    global user_data_dir
+    try:
+        from platformdirs import user_data_dir
+    except ImportError:  # pragma: no cover
+        from .._vendor.appdirs import user_data_dir
+    return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
 def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
@@ -416,7 +428,7 @@ class Context(Configuration):
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
-    no_repodata_zst = ParameterLoader(PrimitiveParameter(False))
+    repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
     #               Solver Configuration               #
@@ -1164,7 +1176,7 @@ class Context(Configuration):
                 "fetch_threads",
                 "experimental",
                 "no_lock",
-                "no_repodata_zst",
+                "repodata_use_zst",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1836,7 +1848,7 @@ class Context(Configuration):
                 Disable index cache lock (defaults to enabled).
                 """
             ),
-            no_repodata_zst=dals(
+            repodata_use_zst=dals(
                 """
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
                 """

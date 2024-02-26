@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Optimize module imports to speed up `conda activate`. (#13567 via 13568)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Update Getting Started documentation in User Guide. (#13190)
+* <news item>
 
 ### Other
 

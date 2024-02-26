@@ -6,6 +6,7 @@ Test that SubdirData is able to use (or skip) incremental jlap downloads.
 import datetime
 import json
 import time
+import warnings
 from pathlib import Path
 from socket import socket
 from unittest.mock import Mock
@@ -14,6 +15,7 @@ import jsonpatch
 import pytest
 import requests
 import zstandard
+from pytest import FixtureRequest, MonkeyPatch
 
 import conda.gateways.repodata
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -131,9 +133,24 @@ def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
 @pytest.mark.parametrize("verify_ssl", [True, False])
 @pytest.mark.benchmark
 def test_jlap_fetch_ssl(
-    package_server_ssl: socket, tmp_path: Path, monkeypatch, verify_ssl: bool
+    package_server_ssl: socket,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    verify_ssl: bool,
+    request: FixtureRequest,
 ):
     """Check that JlapRepoInterface doesn't raise exceptions."""
+    # clear leftover wrong-ssl-verify sessions
+    CondaSession.cache_clear()
+    request.addfinalizer(CondaSession.cache_clear)
+
+    # clear lru_cache from the `get_session` function
+    request.addfinalizer(get_session.cache_clear)
+
+    monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl))
+    reset_context()
+    assert context.ssl_verify is verify_ssl
+
     host, port = package_server_ssl.getsockname()
     base = f"https://{host}:{port}/test"
 
@@ -149,30 +166,12 @@ def test_jlap_fetch_ssl(
     )
 
     expected_exception = CondaSSLError if verify_ssl else RepodataOnDisk
+    with pytest.raises(expected_exception), warnings.catch_warnings():
+        # warnings are disabled internally otherwise we would see InsecureRequestWarning
+        # detect accidental warnings by treating them as errors
+        warnings.simplefilter("error")
 
-    # clear session cache to avoid leftover wrong-ssl-verify Session()
-    try:
-        CondaSession._thread_local.sessions = {}
-    except AttributeError:
-        pass
-
-    state = {}
-    with pytest.raises(expected_exception), pytest.warns() as record:
-        monkeypatch.setenv("CONDA_SSL_VERIFY", str(verify_ssl).lower())
-        reset_context()
-        repo.repodata(state)
-
-    # Clear lru_cache from the `get_session` function
-    get_session.cache_clear()
-
-    # If we didn't disable warnings, we will see two 'InsecureRequestWarning'
-    assert len(record) == 0, f"Unexpected warning {record[0]._category_name}"
-
-    # clear session cache to avoid leftover wrong-ssl-verify Session()
-    try:
-        CondaSession._thread_local.sessions = {}
-    except AttributeError:
-        pass
+        repo.repodata({})
 
 
 def test_download_and_hash(
@@ -368,11 +367,13 @@ def test_jlap_flag(use_jlap):
             assert get_repo_interface() is interface.JlapRepoInterface
 
 
-@pytest.mark.parametrize("no_repodata_zst", [True, False])
-def test_no_repodata_zst(no_repodata_zst):
-    expected = CondaRepoInterface if no_repodata_zst else interface.ZstdRepoInterface
+@pytest.mark.parametrize("repodata_use_zst", [True, False])
+def test_repodata_use_zst(repodata_use_zst):
+    expected = (
+        CondaRepoInterface if not repodata_use_zst else interface.ZstdRepoInterface
+    )
     with env_vars(
-        {"CONDA_NO_REPODATA_ZST": no_repodata_zst},
+        {"CONDA_REPODATA_USE_ZST": repodata_use_zst},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         assert get_repo_interface() is expected
@@ -739,6 +740,40 @@ def test_jlap_zst_not_404(mocker, package_server, tmp_path):
 
     with pytest.raises(CondaHTTPError, match="HTTP 405"):
         repo.repodata({})
+
+
+def test_jlap_zst_not_zst(package_server, package_repository_base: Path, tmp_path):
+    """
+    Test that fallback is taken if repodata.json.zst is not decompressible.
+    """
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+
+    url = f"{base}/osx-64"
+    cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
+    repo = interface.JlapRepoInterface(
+        url,
+        repodata_fn="repodata.json",
+        cache=cache,
+        cache_path_json=Path(tmp_path, "repodata.json"),
+        cache_path_state=Path(tmp_path, f"repodata{CACHE_STATE_SUFFIX}"),
+    )
+
+    (package_repository_base / "osx-64" / "repodata.json.zst").write_text(
+        "404 page that returns a 200 error code"
+    )
+
+    # will check
+    assert cache.state.has_format("zst")[0]
+
+    with pytest.raises(RepodataOnDisk):
+        # repodata was written to disk without being parsed
+        repo.repodata_parsed({})
+
+    # won't check until the timeout interval (days)
+    assert not cache.state.has_format("zst")[0]
+
+    assert len(json.loads(cache.cache_path_json.read_text())["packages"])
 
 
 def test_jlap_core(tmp_path: Path):

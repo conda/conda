@@ -95,7 +95,6 @@ def main_sourced(shell, *args, **kwargs):
     from ..base.context import context
 
     context.__init__()
-    init_loggers()
 
     from ..activate import _build_activator_cls
 

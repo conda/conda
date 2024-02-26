@@ -38,11 +38,11 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         # dorny/paths-filter needs git clone for push events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
-      - uses: dorny/paths-filter@v2.11.1
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
@@ -82,12 +82,12 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache conda packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           # Increase this value to reset cache
           CACHE_NUMBER: 4
@@ -127,13 +127,13 @@ jobs:
         run: |
           call .\dev\windows\${{ matrix.test-type }}.bat
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
@@ -174,7 +174,7 @@ jobs:
       TEST_SPLITS: 3
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -187,13 +187,13 @@ jobs:
           ghcr.io/conda/conda-ci:main-linux-python${{ matrix.python-version }}${{ matrix.default-channel == 'conda-forge' && '-conda-forge' || '' }}
           /opt/conda-src/dev/linux/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
@@ -220,7 +220,7 @@ jobs:
       OS: Linux
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -256,12 +256,12 @@ jobs:
     env:
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         # Equivalent to locally run:
         #   `docker run --privileged --rm tonistiigi/binfmt --install all`
 
@@ -275,7 +275,7 @@ jobs:
 
       - name: Upload test results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
@@ -319,12 +319,12 @@ jobs:
       TEST_SPLITS: ${{ matrix.test-splits }}
       TEST_GROUP: ${{ matrix.test-group }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache conda packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           # Increase this value to reset cache
           CACHE_NUMBER: 4
@@ -334,7 +334,7 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         name: Setup miniconda for defaults
         if: matrix.default-channel == 'defaults'
         env:
@@ -344,7 +344,7 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         name: Setup miniconda for conda-forge
         if: matrix.default-channel == 'conda-forge'
         env:
@@ -365,13 +365,13 @@ jobs:
         run: |
           ./dev/macos/${{ matrix.test-type }}.sh
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
@@ -393,12 +393,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download test results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Upload combined test results
         # provides one downloadable archive of all .coverage/test-report.xml files
         # of all matrix runs for further analysis.
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ github.sha }}-all
           path: test-results-${{ github.sha }}-*
@@ -452,14 +452,14 @@ jobs:
     steps:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       # Explicitly use Python 3.11 since each of the OSes has a different default Python
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -495,4 +495,3 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
-          conda-build-arguments: --no-test  # skip tests for initial Python 3.12 builds

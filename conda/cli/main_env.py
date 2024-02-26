@@ -3,9 +3,13 @@
 """Entry point for all conda-env subcommands."""
 from __future__ import annotations
 
-from argparse import ArgumentParser, Namespace, _SubParsersAction
+from argparse import ArgumentParser
+from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
+
+if TYPE_CHECKING:
+    from argparse import Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> ArgumentParser:

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Modernize tests. (#13547, #13292)

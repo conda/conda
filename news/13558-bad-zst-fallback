@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* <news item>
+* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as
+  zstandard. (#13558)
 
 ### Deprecations
 
@@ -12,7 +13,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.cli.main_search`. (#13465)
+* <news item>
 
 ### Other
 
