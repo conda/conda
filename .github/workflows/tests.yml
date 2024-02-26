@@ -149,7 +149,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: false # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -371,7 +371,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: false # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: macos-latest
     defaults:
