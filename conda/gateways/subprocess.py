@@ -1,12 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Helpler functions for subprocess."""
+from __future__ import annotations
+
 import os
 import sys
 from collections import namedtuple
 from logging import getLogger
 from os.path import abspath
 from subprocess import PIPE, CalledProcessError, Popen
+from typing import TYPE_CHECKING
 
 from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.compat import shlex_split_unicode
@@ -16,6 +19,10 @@ from ..common.compat import encode_environment, isiterable
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
 from .logging import TRACE
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Sequence
 
 log = getLogger(__name__)
 Response = namedtuple("Response", ("stdout", "stderr", "rc"))
@@ -67,7 +74,12 @@ def any_subprocess(args, prefix, env=None, cwd=None):
 
 
 def subprocess_call(
-    command, env=None, path=None, stdin=None, raise_on_error=True, capture_output=True
+    command: str | os.PathLike | Path | Sequence[str | os.PathLike | Path],
+    env: dict[str, str] | None = None,
+    path: str | os.PathLike | Path | None = None,
+    stdin: str | None = None,
+    raise_on_error: bool = True,
+    capture_output: bool = True,
 ):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
@@ -76,7 +88,11 @@ def subprocess_call(
     cwd = sys.prefix if path is None else abspath(path)
     if not isiterable(command):
         command = shlex_split_unicode(command)
-    command_str = command if isinstance(command, str) else " ".join(command)
+    try:
+        command_str = os.fspath(command)
+    except TypeError:
+        # TypeError: command is not a str or PathLike
+        command_str = " ".join(map(os.fspath, command))
     log.debug("executing>> %s", command_str)
 
     pipe = None
