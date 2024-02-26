@@ -76,7 +76,10 @@ def condarc_plugin_manager(setting_plugin_manager):
         }
     )
 
-    del context.plugins  # clear cached property
+    try:
+        del context.plugins  # clear cached property
+    except AttributeError:
+        pass
 
     return setting_plugin_manager
 
