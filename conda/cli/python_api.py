@@ -5,7 +5,6 @@ from logging import getLogger
 
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
-from ..common.compat import encode_arguments
 from ..common.io import CaptureTarget, argv, captured
 from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
@@ -104,9 +103,7 @@ def run_command(command, *arguments, **kwargs):
     else:
         cap_args = (stdout, stderr)
     try:
-        with argv(["python_api"] + encode_arguments(arguments)), captured(
-            *cap_args
-        ) as c:
+        with argv(["python_api", *arguments]), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:

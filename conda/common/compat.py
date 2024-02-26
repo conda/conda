@@ -10,6 +10,8 @@
 import builtins
 import sys
 
+from ..deprecations import deprecated
+
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
 on_linux = bool(sys.platform == "linux")
@@ -18,7 +20,6 @@ FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 # Control some tweakables that will be removed finally.
 ENCODE_ENVIRONMENT = True
-ENCODE_ARGS = False
 
 
 def encode_for_env_var(value) -> str:
@@ -36,9 +37,8 @@ def encode_environment(env):
     return env
 
 
+@deprecated("24.9", "25.3")
 def encode_arguments(arguments):
-    if ENCODE_ARGS:
-        arguments = {encode_for_env_var(arg) for arg in arguments}
     return arguments
 
 

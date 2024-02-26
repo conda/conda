@@ -29,7 +29,7 @@ from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.conda_argparse import do_call, generate_parser
 from ..cli.main import init_loggers
-from ..common.compat import encode_arguments, on_win
+from ..common.compat import on_win
 from ..common.io import (
     argv,
     captured,
@@ -280,8 +280,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(
         TEST_LOG_LEVEL, "requests"
     ):
-        arguments = encode_arguments(arguments)
-        with argv(["python_api"] + arguments), captured(*cap_args) as c:
+        with argv(["python_api", *arguments]), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:

@@ -12,7 +12,7 @@ from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import encode_arguments, encode_environment, isiterable
+from ..common.compat import encode_environment, isiterable
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
 from .logging import TRACE
@@ -89,7 +89,7 @@ def subprocess_call(
 
     # spawn subprocess
     process = Popen(
-        encode_arguments(command),
+        command,
         cwd=cwd,
         stdin=pipe,
         stdout=pipe,
