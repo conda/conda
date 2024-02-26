@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import json
+import platform
 import re
 import sys
 from datetime import datetime
@@ -1615,7 +1616,8 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
-    context.subdir == "win-32", reason="metadata is wrong; give python2.7"
+    context.subdir == "win-32" or platform.machine() == "arm64",
+    reason="metadata is wrong; give python2.7 or no osx-arm64 package versions",
 )
 def test_conda_pip_interop_pip_clobbers_conda(
     monkeypatch: MonkeyPatch,
@@ -1952,6 +1954,9 @@ def test_conda_pip_interop_conda_editable_package(
         assert unlink_dists[0]["channel"] == "pypi"
 
 
+@pytest.mark.xfail(
+    platform.machine() == "arm64", reason="packages missing for osx-arm64"
+)
 def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
@@ -2420,7 +2425,10 @@ def test_conda_downgrade(
         assert json.loads(result.stdout)["conda_version"] == conda_prec.version
 
 
-@pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
+@pytest.mark.skipif(
+    on_win or platform.machine() == "arm64",
+    reason="openssl only has a postlink script on unix / package missing for osx-arm64",
+)
 def test_run_script_called(tmp_env: TmpEnvFixture):
     import conda.core.link
 
@@ -2481,8 +2489,8 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "--dry-run",
             "--channel=conda-forge",
             "python",
-            "boost==1.70.0",
-            "boost-cpp==1.70.0",
+            "boost==1.82.0",
+            "boost-cpp==1.82.0",
             "--yes",
         )
 

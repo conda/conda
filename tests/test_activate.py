@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import sys
 from functools import lru_cache
 from itertools import chain
@@ -2794,7 +2795,10 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
         shell.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.skipif(not which_powershell(), reason="PowerShell not installed")
+@pytest.mark.skipif(
+    not which_powershell() or platform.machine() == "arm64",
+    reason="PowerShell not installed or not supported on platform",
+)
 @pytest.mark.integration
 def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, venusaur = shell_wrapper_integration

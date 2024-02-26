@@ -373,7 +373,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: macos-latest
+    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-latest') || 'macos-14' }}
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -381,6 +381,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        arch: [osx-64, osx-arm64]
         # test defaults with integration tests and conda-forge with unit tests
         python-version: ['3.10']
         default-channel: [defaults, conda-forge]
@@ -523,6 +524,8 @@ jobs:
             subdir: linux-64
           - runner: macos-latest
             subdir: osx-64
+          - runner: macos-14
+            subdir: osx-arm64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
@@ -564,7 +567,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@v23.10.0
+        uses: conda/actions/canary-release@v24.2.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
