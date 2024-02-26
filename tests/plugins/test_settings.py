@@ -123,7 +123,11 @@ def test_load_plugin_config_with_env_var(
         f"CONDA_PLUGINS_{STRING_PARAMETER_NAME.upper()}", STRING_PARAMETER_ENV_VAR_VALUE
     )
     reset_context()
-    del context.plugins
+
+    try:
+        del context.plugins
+    except AttributeError:
+        pass
 
     assert (
         getattr(context.plugins, STRING_PARAMETER_NAME)
