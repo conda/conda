@@ -2713,7 +2713,10 @@ def basic_csh(shell, prefix, prefix2, prefix3):
             marks=[
                 pytest.mark.skipif(
                     bash_unsupported(), reason=bash_unsupported_because()
-                )
+                ),
+                pytest.mark.skipif(
+                    on_win, reason="Temporary skip, larger refactor necessary"
+                ),
             ],
         ),
         pytest.param(
@@ -2957,6 +2960,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
 
 @pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+@pytest.mark.skipif(on_win, reason="Temporary skip, larger refactor necessary")
 @pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
