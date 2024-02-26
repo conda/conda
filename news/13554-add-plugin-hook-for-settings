@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds a new plugin hook giving plugin authors the ability to define new configuration parameters (#13554)
+* Adds a new plugin hook giving plugin authors the ability to define new settings (#13554)
 
 ### Bug fixes
 

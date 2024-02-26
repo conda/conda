@@ -301,6 +301,8 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_settings(self) -> dict[str, ParameterLoader]:
         """
         Return a mapping of plugin setting name to ParameterLoader class
+
+        This method intentionally overwrites any duplicates that may be present
         """
         return {
             config_param.name.lower(): (config_param.parameter, config_param.aliases)

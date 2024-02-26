@@ -2127,7 +2127,7 @@ def _first_writable_envs_dir():
 
 
 try:
-    context = Context((), None, initialize_plugin_config=False)
+    context = Context((), None)
 
 except ConfigurationLoadError as e:  # pragma: no cover
     print(repr(e), file=sys.stderr)

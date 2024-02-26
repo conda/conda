@@ -1619,7 +1619,7 @@ def get_plugin_config_data(
     to the top level of the returned dictionary. The returned dictionary is then passed
     to :class:`PluginConfig`.
     """
-    new_data = {}
+    new_data = defaultdict(dict)
 
     for source, config in data.items():
         if plugin_data := config.get("plugins"):
@@ -1629,13 +1629,13 @@ def get_plugin_config_data(
                 continue
 
             for param_name, raw_param in plugin_data_value.items():
-                new_data[source] = {param_name: raw_param}
+                new_data[source][param_name] = raw_param
 
-        if source == "envvars":
+        if source == EnvRawParameter.source:
             for env_var, raw_param in config.items():
                 if env_var.startswith("plugins_"):
                     _, param_name = env_var.split("plugins_")
-                    new_data[source] = {param_name: raw_param}
+                    new_data[source][param_name] = raw_param
 
     return new_data
 
@@ -1644,12 +1644,16 @@ class PluginConfig(metaclass=ConfigurationType):
     """
     Class used to hold settings for conda plugins.
 
-    This object created by this class should only be accessed via
+    The object created by this class should only be accessed via
     :class:`conda.base.context.Context.plugins`.
 
-    This class is updated via the :func:`add_plugin_setting` function which
-    is called in :meth:`conda.plugins.manager.CondaPluginManager.load_settings`.
-    We do this because ``CondaPluginManager`` has access to all registered plugin hooks.
+    When this class is updated via the :func:`add_plugin_setting` function it adds new setting
+    properties which can be accessed later via the context object.
+
+    We currently call that function in
+    :meth:`conda.plugins.manager.CondaPluginManager.load_settings`.
+    because ``CondaPluginManager`` has access to all registered plugin settings via the settings
+    plugin hook.
     """
 
     def __init__(self, data):

@@ -9,7 +9,7 @@ in conda, see :doc:`Configuration <user-guide/configuration>`.
 
 The plugin hooks relies on using the various :class:`conda.common.configuration.Parameter`
 sub-classes (e.g. :class:`conda.common.configuration.PrimitiveParameter` or
-:class:`conda.common.configuration.SequenceParameter`) For more examples of how these parameter
+:class:`conda.common.configuration.SequenceParameter`). For more examples of how these parameter
 classes are used, please see the :class:`conda.base.context.Context` class.
 
 .. autoapiclass:: conda.plugins.types.CondaSetting
