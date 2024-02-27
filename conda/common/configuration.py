@@ -1625,13 +1625,13 @@ def get_plugin_config_data(
         if plugin_data := config.get("plugins"):
             plugin_data_value = plugin_data.value(None)
 
-            if not isinstance(plugin_data_value, frozendict):
+            if not isinstance(plugin_data_value, Mapping):
                 continue
 
             for param_name, raw_param in plugin_data_value.items():
                 new_data[source][param_name] = raw_param
 
-        if source == EnvRawParameter.source:
+        elif source == EnvRawParameter.source:
             for env_var, raw_param in config.items():
                 if env_var.startswith("plugins_"):
                     _, param_name = env_var.split("plugins_")

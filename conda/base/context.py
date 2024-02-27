@@ -480,12 +480,7 @@ class Context(Configuration):
 
     no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
 
-    def __init__(
-        self,
-        search_path=None,
-        argparse_args=None,
-        **kwargs,
-    ):
+    def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(argparse_args=argparse_args)
 
         self._set_search_path(
