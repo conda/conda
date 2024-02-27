@@ -10,6 +10,7 @@ from argparse import (
     _SubParsersAction,
 )
 
+from ..common.configuration import YAML_EXTENSIONS
 from ..exceptions import CondaValueError
 
 
@@ -119,7 +120,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         filename = args.file
         # check for the proper file extension; otherwise when the export file is used later,
         # the user will get a file parsing error
-        if not filename.endswith((".yml", ".yaml")):
+        if not filename.endswith(YAML_EXTENSIONS):
             raise CondaValueError(
                 "Export files must have a .yml or .yaml extension: %s" % filename
             )
