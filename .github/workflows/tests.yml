@@ -373,7 +373,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-latest') || 'macos-14' }}
+    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
