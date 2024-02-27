@@ -201,7 +201,8 @@ class CondaSetting:
     :param name: name of the setting (e.g., ``config_param``)
     :param description: description of the setting that should be targeted
                         towards users of the plugin
-    :param loader: ParameterLoader class containing the setting definition
+    :param parameter: Parameter instance containing the setting definition
+    :param aliases: alternative names of the setting
     """
 
     name: str

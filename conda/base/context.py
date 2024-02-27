@@ -2128,7 +2128,6 @@ def _first_writable_envs_dir():
 
 try:
     context = Context((), None)
-
 except ConfigurationLoadError as e:  # pragma: no cover
     print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit

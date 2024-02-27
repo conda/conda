@@ -850,16 +850,15 @@ def test_get_plugin_config_data_file_source(tmp_path):
     """
     condarc = tmp_path / "condarc"
 
-    with condarc.open("w") as fp:
-        fp.write(
-            dals(
-                """
+    condarc.write_text(
+        dals(
+            """
             plugins:
               option_one: value_one
               option_two: value_two
-        """
-            )
+            """
         )
+    )
 
     config_data = {
         path: data for path, data in Configuration._load_search_path((condarc,))
