@@ -428,6 +428,8 @@ jobs:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           python-version: ${{ matrix.python-version }}
           run-post: false  # skip post cleanup
+          miniconda-version: latest  # auto-install conda if missing
+          architecture: ${{ runner.arch }}
 
       - name: Conda Install
         run: conda install
