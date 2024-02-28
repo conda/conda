@@ -62,7 +62,8 @@ def test_export_add_channels(conda_cli: CondaCLIFixture):
 
 def test_export_yaml_file_extension(conda_cli: CondaCLIFixture):
     with pytest.raises(
-        CondaValueError, match="Export files must have a .yml or .yaml extension"
+        CondaValueError,
+        match="Export files must have a valid extension \\('.yml', '.yaml'\\)",
     ):
         conda_cli("export", f"--name={TEST_ENV_NAME}", f"--file={TEST_ENV_NAME}.txt")
 

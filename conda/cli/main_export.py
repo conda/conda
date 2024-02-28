@@ -122,7 +122,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         # the user will get a file parsing error
         if not filename.endswith(YAML_EXTENSIONS):
             raise CondaValueError(
-                "Export files must have a .yml or .yaml extension: %s" % filename
+                f"Export files must have a valid extension {YAML_EXTENSIONS}: {filename}"
             )
         fp = open(args.file, "wb")
         env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
