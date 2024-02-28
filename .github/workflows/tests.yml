@@ -83,6 +83,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
+      COVERAGE_CORE: sysmon
 
     steps:
       - name: Checkout Source
@@ -187,6 +188,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      COVERAGE_CORE: sysmon
 
     steps:
       - name: Checkout Source
@@ -348,7 +350,9 @@ jobs:
             platform: ppc64le
           - image: 'condaforge/miniforge3:latest'
             platform: s390x
-
+    env:
+      PYTHON: ${{ matrix.python-version }}
+      COVERAGE_CORE: sysmon
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -363,6 +367,7 @@ jobs:
           --rm
           --volume ${PWD}:/opt/conda-src
           --workdir /opt/conda-src
+          -e COVERAGE_CORE
           --platform linux/${{ matrix.platform }}
           ${{ matrix.image }}
           bash -lc
