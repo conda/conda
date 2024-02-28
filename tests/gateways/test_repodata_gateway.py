@@ -400,7 +400,7 @@ def test_repodata_fetch_jsondecodeerror(tmp_path):
     with pytest.raises(json.JSONDecodeError, match="not json"):
         fetch.fetch_latest_parsed()
 
-        
+
 def test_get_cache_control_max_age():
     """
     Test that we are robust against None cache-control-max-age
