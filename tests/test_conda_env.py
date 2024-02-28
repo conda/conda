@@ -38,6 +38,11 @@ import pytest
             "conda.cli.main_export.configure_parser",
         ),
         ("conda_env.cli.main_export.execute", "conda.cli.main_export.execute"),
+        (
+            "conda_env.cli.main_export.configure_parser",
+            "conda.cli.main_env_export.configure_parser",
+        ),
+        ("conda_env.cli.main_export.execute", "conda.cli.main_env_export.execute"),
         ("conda_env.cli.main_list.description", None),
         ("conda_env.cli.main_list.example", None),
         (

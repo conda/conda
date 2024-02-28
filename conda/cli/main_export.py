@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""CLI implementation for `conda-env export`.
+"""CLI implementation for `conda export`.
 
 Dumps specified environment package specifications to the screen.
 """
