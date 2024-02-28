@@ -177,7 +177,7 @@ pythonpath = [
   "tests/plugins/data/test-plugin",
 ]
 filterwarnings = [
-    "ignore::CoverageWarning"
+    "ignore::coverage.exceptions.CoverageWarning"
 ]
 
 [tool.vendoring]
