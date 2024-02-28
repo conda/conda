@@ -49,8 +49,23 @@ class SettingPlugin:
 
 
 @pytest.fixture()
+def clear_plugins_context_cache():
+    """
+    This fixture is used to ensure that the cache on the property ``plugins`` for the ``context``
+    object is cleared before each test run.
+
+    More info: https://docs.python.org/3/library/functools.html#functools.cached_property
+    """
+
+    try:
+        del context.plugins  # clear cached property
+    except AttributeError:
+        pass
+
+
+@pytest.fixture()
 def setting_plugin_manager(
-    plugin_manager: CondaPluginManager,
+    plugin_manager: CondaPluginManager, clear_plugins_context_cache
 ) -> CondaPluginManager:
     """
     Loads our ``SettingPlugin`` class using the ``plugin_manager`` fixture
@@ -75,11 +90,6 @@ def condarc_plugin_manager(setting_plugin_manager):
             )
         }
     )
-
-    try:
-        del context.plugins  # clear cached property
-    except AttributeError:
-        pass
 
     return setting_plugin_manager
 
@@ -123,11 +133,6 @@ def test_load_plugin_config_with_env_var(
         f"CONDA_PLUGINS_{STRING_PARAMETER_NAME.upper()}", STRING_PARAMETER_ENV_VAR_VALUE
     )
     reset_context()
-
-    try:
-        del context.plugins
-    except AttributeError:
-        pass
 
     assert (
         getattr(context.plugins, STRING_PARAMETER_NAME)
