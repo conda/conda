@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Create the `~/.conda` directory before trying to write to the `environments.txt` file. (#13338)
+* Parse integer channel notice IDs as `str` instead of raising an exception. (#13543)
 
 ### Deprecations
 

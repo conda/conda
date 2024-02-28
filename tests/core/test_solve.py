@@ -1895,7 +1895,7 @@ def test_python2_update(tmpdir):
         )
         assert convert_to_dist_str(final_state_1) == order1
 
-    specs_to_add = (MatchSpec("python=3"),)
+    specs_to_add = (MatchSpec("python=3.7"),)
     with get_solver_4(
         tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
     ) as solver:
@@ -1949,6 +1949,11 @@ def test_python2_update(tmpdir):
                     "channel-4::pycosat-0.6.3-py37h14c3975_0",
                 )
             )
+
+            pprint("Important parts")
+            pprint(set(important_parts))
+            pprint("Full solution")
+            pprint(set(full_solution))
             assert set(important_parts).issubset(set(full_solution))
         else:
             assert full_solution == order

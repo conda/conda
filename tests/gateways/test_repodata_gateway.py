@@ -11,7 +11,7 @@ import math
 import sys
 import time
 from pathlib import Path
-from socket import socket
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -43,6 +43,9 @@ from conda.gateways.repodata import (
 )
 from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
+
+if TYPE_CHECKING:
+    from socket import socket
 
 
 def test_save(tmp_path):

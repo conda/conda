@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* <news item>
+* Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes
+  (#13573)
 
 ### Deprecations
 
@@ -12,7 +13,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.cli.main_info`. (#13445)
+* <news item>
 
 ### Other
 

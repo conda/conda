@@ -168,7 +168,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
             except ImportError:
                 raise CondaError(
                     "The `ssl_verify: truststore` setting is only supported on"
-                    + "Python 3.10 or later."
+                    "Python 3.10 or later."
                 )
             self.verify = True
         else:
@@ -204,6 +204,14 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    @classmethod
+    def cache_clear(cls):
+        try:
+            cls._thread_local.sessions.clear()
+        except AttributeError:
+            # AttributeError: thread's session cache has not been initialized
+            pass
 
 
 class CondaHttpAuth(AuthBase):

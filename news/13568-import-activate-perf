@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Optimize module imports to speed up `conda activate`. (#13567 via 13568)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Improve lock API for repodata cache. (#13455)
+* <news item>

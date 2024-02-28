@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Fix error when setting a non-default repodata filename via `CONDA_REPODATA_FNS`. (#13490)
+* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as
+  zstandard. (#13558)
 
 ### Deprecations
 

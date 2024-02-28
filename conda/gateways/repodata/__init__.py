@@ -17,8 +17,7 @@ import warnings
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
@@ -42,12 +41,17 @@ from ..connection import (
     InsecureRequestWarning,
     InvalidSchema,
     RequestsProxyError,
-    Response,
     SSLError,
 )
 from ..connection.session import get_session
 from ..disk import mkdir_p_sudo_safe
 from ..disk.lock import lock
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Any
+
+    from ..connection import Response
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
@@ -109,7 +113,7 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
-    if not context.no_repodata_zst:
+    if context.repodata_use_zst:
         try:
             from .jlap.interface import ZstdRepoInterface
 
