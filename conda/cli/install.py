@@ -329,7 +329,7 @@ def install(args, parser, command="install"):
         try:
             if isinstall and args.revision:
                 with Spinner(
-                    "Collecting package metadata (%s)" % repodata_fn,
+                    f"Collecting package metadata ({repodata_fn})",
                     not context.verbose and not context.quiet,
                     context.json,
                 ):
