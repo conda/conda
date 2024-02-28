@@ -291,10 +291,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: macos-latest
+    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-latest') || 'macos-14' }}
     strategy:
       fail-fast: false
       matrix:
+        arch: [osx-64, osx-arm64]
         default-channel: ['defaults', 'conda-forge']
         python-version: ['3.10']
         test-type: ['unit', 'integration']
@@ -331,7 +332,7 @@ jobs:
         with:
           path: ~/conda_pkgs_dir
           key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
+            ${{ matrix.arch }}-conda-${{ env.CACHE_NUMBER }}-py${{ env.PYTHON }}-${{ matrix.default-channel }}-${{
             hashFiles('recipe/meta.yaml', 'dev/macos/setup.sh', 'tests/requirements.txt') }}
 
       - uses: conda-incubator/setup-miniconda@v3
@@ -367,7 +368,7 @@ jobs:
 
       - uses: codecov/codecov-action@v4
         with:
-          flags: ${{ matrix.test-type }},${{ runner.os }},${{ matrix.python-version }}
+          flags: ${{ matrix.test-type }},${{ matrix.arch }},${{ matrix.python-version }}
 
       - name: Upload test results
         if: '!cancelled()'
@@ -375,7 +376,7 @@ jobs:
         with:
           # name has to be unique, to not overwrite uploads of other matrix runs. sha1 is optional and only to differentiate
           # when locally dowloading and comparing results of different workflow runs.
-          name: test-results-${{ github.sha }}-${{ runner.os }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
+          name: test-results-${{ github.sha }}-${{ matrix.arch }}-${{ matrix.default-channel }}-${{ matrix.python-version }}-${{ matrix.test-type }}-${{ matrix.test-group }}
           path: |
             .coverage
             ./tools/durations/${{ runner.os }}.json
@@ -446,6 +447,8 @@ jobs:
             subdir: linux-64
           - runner: macos-latest
             subdir: osx-64
+          - runner: macos-14
+            subdir: osx-arm64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
@@ -485,7 +488,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v23.10.0
+        uses: conda/actions/canary-release@v24.2.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
