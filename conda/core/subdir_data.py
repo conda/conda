@@ -219,7 +219,7 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Object to get repodata. Not cached since self.repodata_fn is mutable.
 
-        Replaces fetch_repodata_remote_request, self._repo, self.repo_cache.
+        Replaces self._repo & self.repo_cache.
         """
         return RepodataFetch(
             Path(self.cache_path_base),

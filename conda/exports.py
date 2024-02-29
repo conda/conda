@@ -56,7 +56,6 @@ from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
 from .gateways.disk.delete import rm_rf as _rm_rf
 from .gateways.disk.link import lchmod  # noqa: F401
-from .gateways.disk.read import compute_md5sum  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
@@ -77,13 +76,7 @@ from .resolve import (  # noqa: F401
     ResolvePackageNotFound,
     Unsatisfiable,
 )
-from .utils import (  # noqa: F401
-    hashsum_file,
-    human_bytes,
-    md5_file,
-    unix_path_to_win,
-    url_path,
-)
+from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401
 
 reset_context()  # initialize context when conda.exports is imported
 
