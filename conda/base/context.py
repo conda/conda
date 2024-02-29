@@ -20,10 +20,7 @@ from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
 from typing import TYPE_CHECKING
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
