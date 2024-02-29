@@ -20,6 +20,7 @@ from conda.core.envs_manager import (
     get_user_environments_txt_file,
     list_all_known_prefixes,
     register_env,
+    set_environment_no_site_packages,
     unregister_env,
 )
 from conda.gateways.disk import mkdir_p
@@ -186,3 +187,51 @@ def test_register_env_directory_creation_error(mocker):
     mock_call, *_ = mock_log.warn.mock_calls
 
     assert f"Could not create {conda_dir}" in mock_call.args[0]
+
+
+def test_set_environment_no_site_packages(tmpdir):
+    """
+    Ensure that the ``pyvenv.cfg`` file is created in the expected location with the expected
+    file contents.
+    """
+    set_environment_no_site_packages(tmpdir)
+
+    config_file = tmpdir / "pyvenv.cfg"
+
+    assert config_file.exists()
+    assert config_file.open().read() == "include-system-site-packages = false\n"
+
+
+def test_set_environment_no_site_packages_remove(tmpdir):
+    """
+    Ensure that the ``pyvenv.cfg`` is removed when remove = True is passed.
+    """
+    config_file = tmpdir / "pyvenv.cfg"
+    config_file.open("w").write("include-system-site-packages = false\n")
+
+    set_environment_no_site_packages(tmpdir, remove=True)
+
+    config_file = tmpdir / "pyvenv.cfg"
+
+    assert not config_file.exists()
+
+
+def test_set_environment_no_site_packages_error(mocker, tmpdir):
+    """
+    Ensure we call the logger when an error is encountered. This will happen on
+    the ``path.unlink`` call
+    """
+    path_mock = mocker.patch("conda.core.envs_manager.Path")
+    log_mock = mocker.patch("conda.core.envs_manager.log")
+    path_mock().unlink.side_effect = OSError("test")
+
+    config_file = tmpdir / "pyvenv.cfg"
+    config_file.open("w").write("include-system-site-packages = false\n")
+
+    set_environment_no_site_packages(tmpdir, remove=True)
+
+    assert log_mock.info.mock_calls == [
+        mocker.call(
+            'Unable to set "no-python-site-packages" for environment. Reason: test'
+        )
+    ]

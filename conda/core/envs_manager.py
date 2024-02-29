@@ -5,6 +5,7 @@ import os
 from errno import EACCES, ENOENT, EROFS
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normpath
+from pathlib import Path
 
 from ..base.context import context
 from ..common._os import is_admin
@@ -159,3 +160,25 @@ def _rewrite_environments_txt(environments_txt_file, prefixes):
     except OSError as e:
         log.info("File not cleaned: %s", environments_txt_file)
         log.debug("%r", e, exc_info=True)
+
+
+def set_environment_no_site_packages(prefix: str, remove: bool = False) -> None:
+    """
+    Marks an environment as not using Python's user site packages by inserting a ``pyvenv.cfg``
+    file with ``include-system-site-packages`` set to ``false``
+    """
+    try:
+        path = Path(prefix, "pyvenv.cfg")
+
+        # If it already exists, we simply delete what is there, so we can replace it
+        if path.exists():
+            path.unlink()
+
+        if not remove:
+            with path.open("w") as fp:
+                fp.write("include-system-site-packages = false\n")
+
+    except OSError as exc:
+        log.info(
+            f'Unable to set "no-python-site-packages" for environment. Reason: {exc}'
+        )
