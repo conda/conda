@@ -5,9 +5,7 @@ import errno
 import functools
 import os
 import sys
-import threading
 from builtins import input  # noqa: F401, UP029
-from collections.abc import Hashable as _Hashable
 from io import StringIO  # noqa: F401, for conda-build
 
 from . import CondaError, plan  # noqa: F401
@@ -144,40 +142,6 @@ class Completer:  # pragma: no cover
 
 class InstalledPackages:
     pass
-
-
-@deprecated("23.3", "24.3", addendum="Use `functools.lru_cache` instead.")
-class memoized:  # pragma: no cover
-    """Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    """
-
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-        self.lock = threading.Lock()
-
-    def __call__(self, *args, **kw):
-        newargs = []
-        for arg in args:
-            if isinstance(arg, list):
-                newargs.append(tuple(arg))
-            elif not isinstance(arg, _Hashable):
-                # uncacheable. a list, for instance.
-                # better to not cache than blow up.
-                return self.func(*args, **kw)
-            else:
-                newargs.append(arg)
-        newargs = tuple(newargs)
-        key = (newargs, frozenset(sorted(kw.items())))
-        with self.lock:
-            if key in self.cache:
-                return self.cache[key]
-            else:
-                value = self.func(*args, **kw)
-                self.cache[key] = value
-                return value
 
 
 def rm_rf(path, max_retries=5, trash=True):
