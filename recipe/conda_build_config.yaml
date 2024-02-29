@@ -3,4 +3,4 @@ python:
   - "3.9"
   - "3.10"
   - "3.11"
-  - "3.12"   # [not ppc64le or not s390x]
+  - "3.12"   # [not ppc64le]
