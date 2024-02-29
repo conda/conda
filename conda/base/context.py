@@ -761,7 +761,7 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.3",
+        "24.9",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
