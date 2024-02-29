@@ -193,10 +193,9 @@ def get_archspec_name():
     else:
         return None
 
-    # This has to match what Context.platform is doing
-    native_plat = _platform_map.get(sys.platform, "unknown")
+    native_subdir = context._native_subdir()
 
-    if native_plat != target_plat or platform.machine() != machine:
+    if native_subdir != context.subdir:
         return machine
     else:
         import archspec.cpu

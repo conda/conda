@@ -1,4 +1,4 @@
-archspec
+archspec >=0.2.3
 boltons >=23.0.0
 charset-normalizer
 conda-content-trust

@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "archspec",
+  "archspec >=0.2.3",
   "boltons >=23.0.0",
   "charset-normalizer",
   "conda-libmamba-solver >=23.11.0",
