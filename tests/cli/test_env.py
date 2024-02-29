@@ -6,10 +6,9 @@ from uuid import uuid4
 
 import pytest
 
-from conda.auxlib.ish import dals
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.common.serialize import yaml_safe_load
+from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import (
     CondaEnvException,
@@ -27,91 +26,66 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 TEST_ENV1 = "env1"
 
 # Environment config files we use for out tests
-ENVIRONMENT_1 = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependencies:
-      - python
-    channels:
-      - defaults
-    """
+ENVIRONMENT_1 = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["python"],
+        "channels": context.channels,
+    }
 )
 
-ENVIRONMENT_1_WITH_VARIABLES = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependencies:
-      - python
-    channels:
-      - defaults
-    variables:
-      DUDE: woah
-      SWEET: yaaa
-      API_KEY: AaBbCcDd===EeFf
-    """
+ENVIRONMENT_1_WITH_VARIABLES = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["python"],
+        "channels": context.channels,
+        "variables": {
+            "DUDE": "woah",
+            "SWEET": "yaaa",
+            "API_KEY": "AaBbCcDd===EeFf",
+        },
+    }
 )
 
-ENVIRONMENT_2 = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependencies:
-      - python
-      - flask
-    channels:
-      - defaults
-    """
+ENVIRONMENT_2 = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["python", "flask"],
+        "channels": context.channels,
+    }
 )
 
-ENVIRONMENT_3_INVALID = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependecies:
-      - python
-      - flask
-    channels:
-      - defaults
-    foo: bar
-    """
+ENVIRONMENT_3_INVALID = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependecies": ["python", "flask"],
+        "channels": context.channels,
+        "foo": "bar",
+    }
 )
 
-ENVIRONMENT_PYTHON_PIP_CLICK = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependencies:
-      - python=3
-      - pip
-      - pip:
-        - click
-    channels:
-      - defaults
-    """
+ENVIRONMENT_PYTHON_PIP_CLICK = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["python=3", "pip", {"pip": ["click"]}],
+        "channels": context.channels,
+    }
 )
 
-ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependencies:
-      - python=3
-      - pip
-      - pip:
-        - click
-        - attrs
-    channels:
-      - defaults
-    """
+ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["python=3", "pip", {"pip": ["click", "attrs"]}],
+        "channels": context.channels,
+    }
 )
 
-ENVIRONMENT_PYTHON_PIP_NONEXISTING = dals(
-    f"""
-    name: {TEST_ENV1}
-    dependencies:
-      - python=3
-      - pip
-      - pip:
-        - nonexisting_
-    channels:
-      - defaults
-    """
+ENVIRONMENT_PYTHON_PIP_NONEXISTING = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["python=3", "pip", {"pip": ["nonexisting_"]}],
+        "channels": context.channels,
+    }
 )
 
 
@@ -280,12 +254,15 @@ def test_update(env1: str, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_1)
     conda_cli("env", "create")
     create_env(ENVIRONMENT_2)
+    conda_cli("env", "create", f"--name={env1}")
 
     conda_cli("env", "update", "--name", env1)
+    conda_cli("env", "update", f"--name={env1}")
 
     stdout, _, _ = conda_cli("list", "--name", env1, "flask", "--json")
     parsed = json.loads(stdout)
     assert parsed
+    assert json.loads(stdout)
 
 
 @pytest.mark.integration
