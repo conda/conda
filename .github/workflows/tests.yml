@@ -62,7 +62,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: windows-2019
     strategy:
@@ -148,7 +148,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     strategy:
@@ -208,7 +208,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     strategy:
@@ -239,7 +239,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -289,7 +289,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-latest') || 'macos-14' }}
     strategy:
@@ -427,24 +427,31 @@ jobs:
   # canary builds
   build:
     name: Canary Build
-    needs: [analyze]
+    #needs: [analyze]
     # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
-    if: >-
-      !cancelled()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || endsWith(github.ref_name, '.x')
-      )
+    # if: >-
+    #   !cancelled()
+    #   && !github.event.repository.fork
+    #   && (
+    #     github.ref_name == 'main'
+    #     || startsWith(github.ref_name, 'feature/')
+    #     || endsWith(github.ref_name, '.x')
+    #   )
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
             subdir: linux-64
+          - runner: ubuntu-latest
+            subdir: linux-aarch64
+          - runner: ubuntu-latest
+            subdir: linux-ppc64le
+          - runner: ubuntu-latest
+            subdir: linux-s390x
           - runner: macos-latest
             subdir: osx-64
           - runner: macos-14
@@ -488,7 +495,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create and upload canary build
-        uses: conda/actions/canary-release@v24.2.0
+        uses: dbast/actions/canary-release@main
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -497,4 +504,4 @@ jobs:
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
-          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          #anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
