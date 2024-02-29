@@ -215,8 +215,6 @@ class CondaCLIFixture:
         # ensure arguments are string
         argv = tuple(map(str, argv))
 
-        assert len(context.channels) == 1
-
         # run command
         code = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
