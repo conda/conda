@@ -125,6 +125,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
+    from ..core.envs_manager import set_environment_no_site_packages
     from .install import install
 
     if context.force:
@@ -137,4 +138,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-    return install(args, parser, "install")
+    install(args, parser, "install")
+
+    if context.no_python_user_site_packages:
+        set_environment_no_site_packages(context.target_prefix)
