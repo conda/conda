@@ -72,13 +72,17 @@ from conda.gateways.subprocess import (
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.resolve import Resolve
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+from conda.testing import (
+    CondaCLIFixture,
+    PathFactoryFixture,
+    TmpChannelFixture,
+    TmpEnvFixture,
+)
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     get_shortcut_dir,
-    make_temp_channel,
     package_is_installed,
     which_or_where,
 )
@@ -836,6 +840,7 @@ def test_install_tarball_from_file_based_channel(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    tmp_channel: TmpChannelFixture,
 ):
     # Regression test for #2812
     # handle file-based channels
@@ -843,7 +848,7 @@ def test_install_tarball_from_file_based_channel(
     reset_context()
     assert context.bld_path == str(tmp_path)
 
-    with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+    with tmp_env() as prefix, tmp_channel("flask=2.1.3") as channel:
         conda_cli(
             "install",
             f"--prefix={prefix}",
@@ -2066,6 +2071,7 @@ def test_offline_with_empty_index_cache(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    tmp_channel: TmpChannelFixture,
 ):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
@@ -2073,7 +2079,7 @@ def test_offline_with_empty_index_cache(
     SubdirData._cache_.clear()
 
     try:
-        with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+        with tmp_env() as prefix, tmp_channel("flask=2.1.3") as channel:
             # Clear the index cache.
             index_cache_dir = create_cache_dir()
             conda_cli("clean", "--index-cache", "--yes")

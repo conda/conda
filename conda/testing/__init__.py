@@ -14,6 +14,7 @@
 # CONDA_PREFIX too in some instances and that really needs fixing.
 from __future__ import annotations
 
+import json
 import os
 import sys
 import uuid
@@ -24,16 +25,21 @@ from logging import getLogger
 from os.path import dirname, isfile, join, normpath
 from pathlib import Path
 from subprocess import check_output
+from shutil import copyfile
 from typing import TYPE_CHECKING, overload
 
 import pytest
 
+from ..auxlib.entity import EntityEncoder
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.compat import on_win
+from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
+from ..exceptions import CondaExitZero
+from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -293,6 +299,70 @@ def tmp_env(
 ) -> TmpEnvFixture:
     """Fixture returning TmpEnvFixture instance."""
     yield TmpEnvFixture(path_factory, conda_cli)
+
+
+@dataclass
+class TmpChannelFixture:
+    path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture
+
+    @contextmanager
+    def __call__(self, *packages: str):
+        # download packages
+        self.conda_cli(
+            "create",
+            f"--prefix={self.path_factory()}",
+            *packages,
+            "--yes",
+            "--quiet",
+            "--download-only",
+            raises=CondaExitZero,
+        )
+
+        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
+        pkgs_cache = PackageCacheData(pkgs_dir)
+
+        repodata = {"info": {}, "packages": {}}
+        tarfiles = {}
+        for package in packages:
+            for pkg_data in pkgs_cache.query(package):
+                fname = pkg_data["fn"]
+                tarfiles[fname] = Path(
+                    PackageCacheData.first_writable().pkgs_dir, fname
+                )
+                repodata["packages"][fname] = PackageRecord(
+                    **{
+                        field: value
+                        for field, value in pkg_data.dump().items()
+                        if field not in ("url", "channel", "schannel")
+                    }
+                )
+
+        channel = self.path_factory()
+        subchan = channel / context.subdir
+        subchan.mkdir(parents=True)
+        noarch_dir = channel / "noarch"
+        noarch_dir.mkdir(parents=True)
+
+        channel = path_to_url(str(channel))
+
+        for fname, tar_old_path in tarfiles.items():
+            tar_new_path = subchan / fname
+            copyfile(tar_old_path, tar_new_path)
+
+        (subchan / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
+        (noarch_dir / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
+
+        yield channel
+
+
+@pytest.fixture
+def tmp_channel(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+) -> TmpChannelFixture:
+    """Fixture returning TmpChannelFixture instance."""
+    yield TmpChannelFixture(path_factory, conda_cli)
 
 
 @pytest.fixture(name="monkeypatch")
