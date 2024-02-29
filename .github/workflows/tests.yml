@@ -24,6 +24,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+env:
+  # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
+  CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
+
 jobs:
   # detect whether any code changes are included in this PR
   changes:
