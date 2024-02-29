@@ -1376,13 +1376,16 @@ def test_shortcut_creation_installs_shortcut(
     # register cleanup
     request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
 
-    with tmp_env("main::console_shortcut", prefix=prefix):
-        assert package_is_installed(prefix, "console_shortcut")
+    # depending on channel priorities match one of:
+    #   - main::console_shortcut
+    #   - conda-forge::miniforge_console_shortcut
+    with tmp_env("*console_shortcut", prefix=prefix):
+        assert package_is_installed(prefix, "*console_shortcut")
         assert shortcut_file.is_file()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
-        assert not package_is_installed(prefix, "console_shortcut")
+        conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
 
@@ -1404,14 +1407,17 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     # register cleanup
     request.addfinalizer(lambda: rmtree(shortcut_file.parent, ignore_errors=True))
 
+    # depending on channel priorities match one of:
+    #   - main::console_shortcut
+    #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("main::console_shortcut", "--no-shortcuts", prefix=prefix):
-        assert package_is_installed(prefix, "console_shortcut")
+    with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
+        assert package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
-        assert not package_is_installed(prefix, "console_shortcut")
+        conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
 
@@ -1439,14 +1445,17 @@ def test_shortcut_absent_when_condarc_set(
     reset_context()
     assert not context.shortcuts
 
-    with tmp_env("main::console_shortcut", prefix=prefix):
-        # including shortcuts: False from condarc should not get shortcuts installed
-        assert package_is_installed(prefix, "console_shortcut")
+    # depending on channel priorities match one of:
+    #   - main::console_shortcut
+    #   - conda-forge::miniforge_console_shortcut
+    # shortcuts: False from condarc should not get shortcuts installed
+    with tmp_env("*console_shortcut", prefix=prefix):
+        assert package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
-        assert not package_is_installed(prefix, "console_shortcut")
+        conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
 
