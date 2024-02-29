@@ -425,7 +425,9 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          miniconda-version: latest  # auto-install conda if missing
+          # conda not preinstalled in arm64 runners
+          miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.arch == 'osx-arm64') && 'latest' || null }}
+          miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           architecture: ${{ runner.arch }}
 
       - name: Conda Install
@@ -481,7 +483,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Upload Combined Test Results
         # provides one downloadable archive of all matrix run test results for further analysis

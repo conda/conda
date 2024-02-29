@@ -120,7 +120,7 @@ target-version = "py38"
 # see also https://docs.astral.sh/ruff/rules/
 select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10", "FA"]
 # E402 module level import not at top of file
-# E501 line too long (82 > 79 characters)
+# E501 line too long
 # E722 do not use bare 'except'
 # E731 do not assign a lambda expression, use a def
 # D101 Missing docstring in public class
