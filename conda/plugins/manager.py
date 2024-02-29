@@ -18,8 +18,7 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
-from ..base.context import context
-from ..common.configuration import add_plugin_setting
+from ..base.context import add_plugin_setting, context
 from ..exceptions import CondaValueError, PluginError
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name

@@ -27,7 +27,6 @@ from conda.common.configuration import (
     ValidationError,
     YamlRawParameter,
     custom_expandvars,
-    get_plugin_config_data,
     load_file_configs,
     pretty_list,
     raise_errors,
@@ -842,77 +841,3 @@ def test_expand_search_path(tmp_path):
 
     expanded = list(Configuration._expand_search_path([target, symlink]))
     assert expanded == [symlink], expanded
-
-
-def test_get_plugin_config_data_file_source(tmp_path):
-    """
-    Test file source of plugin configuration values
-    """
-    condarc = tmp_path / "condarc"
-
-    condarc.write_text(
-        dals(
-            """
-            plugins:
-              option_one: value_one
-              option_two: value_two
-            """
-        )
-    )
-
-    config_data = {
-        path: data for path, data in Configuration._load_search_path((condarc,))
-    }
-
-    plugin_config_data = get_plugin_config_data(config_data)
-
-    assert plugin_config_data.get(condarc) is not None
-
-    option_one = plugin_config_data.get(condarc).get("option_one")
-    assert option_one is not None
-    assert option_one.value(None) == "value_one"
-
-    option_two = plugin_config_data.get(condarc).get("option_two")
-    assert option_two is not None
-    assert option_two.value(None) == "value_two"
-
-
-def test_get_plugin_config_data_env_var_source():
-    """
-    Test environment variable source of plugin configuration values
-    """
-    raw_data = {
-        "envvars": {
-            "plugins_option_one": {"_raw_value": "value_one"},
-            "plugins_option_two": {"_raw_value": "value_two"},
-        }
-    }
-
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data.get("envvars") is not None
-
-    option_one = plugin_config_data.get("envvars").get("option_one")
-    assert option_one is not None
-    assert option_one.get("_raw_value") == "value_one"
-
-    option_two = plugin_config_data.get("envvars").get("option_two")
-    assert option_two is not None
-    assert option_two.get("_raw_value") == "value_two"
-
-
-def test_get_plugin_config_data_skip_bad_values():
-    """
-    Make sure that values that are not frozendict for file sources are skipped
-    """
-    path = Path("/tmp/")
-
-    class Value:
-        def value(self, _):
-            return "some_value"
-
-    raw_data = {path: {"plugins": Value()}}
-
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data == {}
