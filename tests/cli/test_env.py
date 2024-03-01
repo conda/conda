@@ -34,18 +34,18 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 TEST_ENV1 = "env1"
 
 # Environment config files we use for out tests
-ENVIRONMENT_1 = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["python"],
+        "dependencies": ["ca-certificates"],
         "channels": context.channels,
     }
 )
 
-ENVIRONMENT_1_WITH_VARIABLES = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["python"],
+        "dependencies": ["ca-certificates"],
         "channels": context.channels,
         "variables": {
             "DUDE": "woah",
@@ -55,43 +55,34 @@ ENVIRONMENT_1_WITH_VARIABLES = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_2 = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["python", "flask"],
+        "dependencies": ["ca-certificates", "zlib"],
         "channels": context.channels,
     }
 )
 
-ENVIRONMENT_3_INVALID = yaml_safe_dump(
+ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependecies": ["python", "flask"],
-        "channels": context.channels,
-        "foo": "bar",
-    }
-)
-
-ENVIRONMENT_PYTHON_PIP_CLICK = yaml_safe_dump(
-    {
-        "name": TEST_ENV1,
-        "dependencies": ["python=3", "pip", {"pip": ["click"]}],
+        "dependencies": ["pip", {"pip": ["click"]}],
         "channels": context.channels,
     }
 )
 
-ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS = yaml_safe_dump(
+ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["python=3", "pip", {"pip": ["click", "attrs"]}],
+        "dependencies": ["pip", {"pip": ["click", "attrs"]}],
         "channels": context.channels,
     }
 )
 
-ENVIRONMENT_PYTHON_PIP_NONEXISTING = yaml_safe_dump(
+ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["python=3", "pip", {"pip": ["nonexisting_"]}],
+        "dependencies": ["pip", {"pip": ["nonexisting_"]}],
         "channels": context.channels,
     }
 )
@@ -174,7 +165,7 @@ def test_create_valid_env(env1: str, conda_cli: CondaCLIFixture):
     Creates an environment.yml file and
     creates and environment with it
     """
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create")
     assert env_is_created(env1)
 
@@ -185,7 +176,7 @@ def test_create_valid_env(env1: str, conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_create_dry_run_yaml(env1: str, conda_cli: CondaCLIFixture):
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     stdout, _, _ = conda_cli("env", "create", "--dry-run")
     assert not env_is_created(env1)
 
@@ -204,7 +195,7 @@ def test_create_dry_run_yaml(env1: str, conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_create_dry_run_json(env1: str, conda_cli: CondaCLIFixture):
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     stdout, _, _ = conda_cli("env", "create", "--dry-run", "--json")
     assert not env_is_created(env1)
 
@@ -219,7 +210,7 @@ def test_create_valid_env_with_variables(env1: str, conda_cli: CondaCLIFixture):
     Creates an environment.yml file and
     creates and environment with it
     """
-    create_env(ENVIRONMENT_1_WITH_VARIABLES)
+    create_env(ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES)
     conda_cli("env", "create")
     assert env_is_created(env1)
 
@@ -268,13 +259,13 @@ def test_conda_env_create_http(conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_update(env1: str, conda_cli: CondaCLIFixture):
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create")
 
-    create_env(ENVIRONMENT_2)
+    create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
     conda_cli("env", "update", f"--name={env1}")
 
-    stdout, _, _ = conda_cli("list", f"--name={env1}", "flask", "--json")
+    stdout, _, _ = conda_cli("list", f"--name={env1}", "zlib", "--json")
     parsed = json.loads(stdout)
     assert parsed
     assert json.loads(stdout)
@@ -286,7 +277,7 @@ def test_name(env1: str, conda_cli: CondaCLIFixture):
     # smoke test for gh-254
     Test that --name can override the `name` key inside an environment.yml
     """
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create", "--file=environment.yml", f"--name={env1}", "--yes")
 
     stdout, _, _ = conda_cli("info", "--json")
@@ -301,7 +292,7 @@ def test_create_valid_env_json_output(env1: str, conda_cli: CondaCLIFixture):
     Creates an environment from an environment.yml file with conda packages (no pip)
     Check the json output
     """
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     stdout, _, _ = conda_cli(
         "env", "create", f"--name={env1}", "--quiet", "--json", "--yes"
     )
@@ -319,7 +310,7 @@ def test_create_valid_env_with_conda_and_pip_json_output(
     Creates an environment from an environment.yml file with conda and pip dependencies
     Check the json output
     """
-    create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
+    create_env(ENVIRONMENT_PIP_CLICK)
     stdout, _, _ = conda_cli(
         "env", "create", f"--name={env1}", "--quiet", "--json", "--yes"
     )
@@ -334,9 +325,9 @@ def test_update_env_json_output(env1: str, conda_cli: CondaCLIFixture):
     Update an environment by adding a conda package
     Check the json output
     """
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create", f"--name={env1}", "--json", "--yes")
-    create_env(ENVIRONMENT_2)
+    create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
     stdout, _, _ = conda_cli("env", "update", f"--name={env1}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["success"] is True
@@ -358,9 +349,9 @@ def test_update_env_only_pip_json_output(
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
         )
     )
-    create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
+    create_env(ENVIRONMENT_PIP_CLICK)
     conda_cli("env", "create", f"--name={env1}", "--json", "--yes")
-    create_env(ENVIRONMENT_PYTHON_PIP_CLICK_ATTRS)
+    create_env(ENVIRONMENT_PIP_CLICK_ATTRS)
     stdout, _, _ = conda_cli("env", "update", f"--name={env1}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["success"] is True
@@ -385,7 +376,7 @@ def test_update_env_no_action_json_output(
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
         )
     )
-    create_env(ENVIRONMENT_PYTHON_PIP_CLICK)
+    create_env(ENVIRONMENT_PIP_CLICK)
     conda_cli("env", "create", f"--name={env1}", "--json", "--yes")
     stdout, _, _ = conda_cli("env", "update", f"--name={env1}", "--quiet", "--json")
     output = json.loads(stdout)
@@ -395,7 +386,7 @@ def test_update_env_no_action_json_output(
 @pytest.mark.integration
 def test_remove_dry_run(env1: str, conda_cli: CondaCLIFixture):
     # Test for GH-10231
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create")
     conda_cli("env", "remove", f"--name={env1}", "--dry-run")
     assert env_is_created(env1)
@@ -403,7 +394,7 @@ def test_remove_dry_run(env1: str, conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_set_unset_env_vars(env1: str, conda_cli: CondaCLIFixture):
-    create_env(ENVIRONMENT_1)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create")
     conda_cli(
         *("env", "config", "vars", "set"),
@@ -459,7 +450,7 @@ def test_pip_error_is_propagated(env1: str, conda_cli: CondaCLIFixture):
     The output must clearly show pip error.
     Check the json output
     """
-    create_env(ENVIRONMENT_PYTHON_PIP_NONEXISTING)
+    create_env(ENVIRONMENT_PIP_NONEXISTING)
     with pytest.raises(CondaEnvException, match="Pip failed"):
         conda_cli("env", "create")
 
@@ -487,7 +478,7 @@ def test_env_export(
     env1: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "flask", "--yes")
+    conda_cli("create", f"--name={env1}", "zlib", "--yes")
     assert env_is_created(env1)
 
     stdout, _, _ = conda_cli("env", "export", f"--name={env1}")
@@ -517,7 +508,7 @@ def test_env_export_with_variables(
     env1: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "flask", "--yes")
+    conda_cli("create", f"--name={env1}", "zlib", "--yes")
     assert env_is_created(env1)
 
     conda_cli(
@@ -550,7 +541,7 @@ def test_env_export_with_variables(
 @pytest.mark.integration
 def test_env_export_json(env1: str, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "flask", "--yes")
+    conda_cli("create", f"--name={env1}", "zlib", "--yes")
     assert env_is_created(env1)
 
     stdout, _, _ = conda_cli("env", "export", f"--name={env1}", "--json")
