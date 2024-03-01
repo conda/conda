@@ -5,7 +5,7 @@ import platform
 import re
 import sys
 from datetime import datetime
-from importlib.metadata import version as metadata_version
+from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
@@ -1380,11 +1380,14 @@ def test_shortcut_creation_installs_shortcut(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     with tmp_env("*console_shortcut", prefix=prefix):
-        assert package_is_installed(prefix, "*console_shortcut")
+        assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert shortcut_file.is_file()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        if version("conda_libmamba_solver") <= "24.1.0":
+            conda_cli("remove", f"--prefix={prefix}", pkg.name, "--yes")
+        else:
+            conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
         assert not package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
@@ -1412,11 +1415,14 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
     with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
-        assert package_is_installed(prefix, "*console_shortcut")
+        assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not shortcut_file.exists()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        if version("conda_libmamba_solver") <= "24.1.0":
+            conda_cli("remove", f"--prefix={prefix}", pkg.name, "--yes")
+        else:
+            conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
         assert not package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
@@ -2125,7 +2131,7 @@ def test_offline_with_empty_index_cache(
             )
             if (
                 context.solver == "libmamba"
-                and metadata_version("conda-libmamba-solver") <= "23.12.0"
+                and version("conda-libmamba-solver") <= "23.12.0"
             ):
                 # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
                 with pytest.raises((RuntimeError, UnsatisfiableError)):
