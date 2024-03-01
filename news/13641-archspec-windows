@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes __archspec virtual package on windows
+* Fixes `__archspec` virtual package on Windows. (#13641)
 
 ### Deprecations
 
