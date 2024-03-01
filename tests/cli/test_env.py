@@ -66,7 +66,7 @@ ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
 ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["pip", {"pip": ["click"]}],
+        "dependencies": ["pip>=23", {"pip": ["click"]}],
         "channels": context.channels,
     }
 )
@@ -74,7 +74,7 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
 ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["pip", {"pip": ["click", "attrs"]}],
+        "dependencies": ["pip>=23", {"pip": ["click", "attrs"]}],
         "channels": context.channels,
     }
 )
@@ -82,7 +82,7 @@ ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
 ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     {
         "name": TEST_ENV1,
-        "dependencies": ["pip", {"pip": ["nonexisting_"]}],
+        "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
         "channels": context.channels,
     }
 )

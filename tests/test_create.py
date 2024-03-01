@@ -1456,11 +1456,14 @@ def test_shortcut_absent_when_condarc_set(
     #   - conda-forge::miniforge_console_shortcut
     # shortcuts: False from condarc should not get shortcuts installed
     with tmp_env("*console_shortcut", prefix=prefix):
-        assert package_is_installed(prefix, "*console_shortcut")
+        assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not shortcut_file.exists()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        if version("conda_libmamba_solver") <= "24.1.0":
+            conda_cli("remove", f"--prefix={prefix}", pkg.name, "--yes")
+        else:
+            conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
         assert not package_is_installed(prefix, "*console_shortcut")
         assert not shortcut_file.exists()
 
