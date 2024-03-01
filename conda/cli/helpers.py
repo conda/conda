@@ -490,11 +490,11 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         dest="shortcuts_only",
     )
     package_install_options.add_argument(
-        "--no-python-user-site-packages",
+        "--isolate-python-env",
         action="store_true",
         help="Disables using user site packages, which are installed via `pip install --user`, in "
         "conda environments.",
-        dest="no_python_user_site_packages",
+        dest="isolate_python_env",
         default=NULL,
     )
     return package_install_options

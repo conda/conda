@@ -3,7 +3,7 @@
 from conda.testing import CondaCLIFixture, PathFactoryFixture
 
 
-def test_environment_create_no_python_user_site_packages(
+def test_environment_create_isolate_python_env(
     conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """
@@ -14,7 +14,7 @@ def test_environment_create_no_python_user_site_packages(
     conda_cli(
         "create",
         f"--prefix={prefix}",
-        "--no-python-user-site-packages",
+        "--isolate-python-env",
         "--yes",
     )
 

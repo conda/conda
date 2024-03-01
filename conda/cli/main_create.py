@@ -125,5 +125,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     install(args, parser, "create")
 
-    if context.no_python_user_site_packages:
+    if context.isolate_python_env:
         set_environment_no_site_packages(context.target_prefix)

@@ -3,7 +3,7 @@
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 
-def test_environment_update_no_python_user_site_packages(
+def test_environment_update_isolate_python_env(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
@@ -17,7 +17,7 @@ def test_environment_update_no_python_user_site_packages(
         conda_cli(
             "update",
             f"--prefix={prefix}",
-            "--no-python-user-site-packages",
+            "--isolate-python-env",
             "--yes",
             "python",
         )
