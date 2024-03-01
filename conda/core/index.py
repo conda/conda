@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for fetching the current index."""
-import platform
-import sys
 from itertools import chain
 from logging import getLogger
 
@@ -180,7 +178,7 @@ def _supplement_index_with_system(index):
 
 
 def get_archspec_name():
-    from ..base.context import _arch_names, _platform_map, non_x86_machines
+    from ..base.context import _arch_names, non_x86_machines
 
     target_plat, target_arch = context.subdir.split("-")
     # This has to reverse what Context.subdir is doing
