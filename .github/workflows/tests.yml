@@ -351,7 +351,6 @@ jobs:
           - image: 'condaforge/miniforge3:latest'
             platform: s390x
     env:
-      PYTHON: ${{ matrix.python-version }}
       COVERAGE_CORE: sysmon
     steps:
       - name: Checkout Source

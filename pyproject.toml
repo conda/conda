@@ -177,7 +177,9 @@ pythonpath = [
   "tests/plugins/data/test-plugin",
 ]
 filterwarnings = [
-    "ignore::coverage.exceptions.CoverageWarning"
+  "error",
+  # Python <= 3.11
+  "ignore:sys.monitoring isn't available, using default core:coverage.exceptions.CoverageWarning",
 ]
 
 [tool.vendoring]
