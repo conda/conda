@@ -272,8 +272,6 @@ def test_update(env1: str, conda_cli: CondaCLIFixture):
     conda_cli("env", "create")
 
     create_env(ENVIRONMENT_2)
-    conda_cli("env", "create", f"--name={env1}")
-
     conda_cli("env", "update", f"--name={env1}")
 
     stdout, _, _ = conda_cli("list", f"--name={env1}", "flask", "--json")
