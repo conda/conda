@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Fixes `__archspec` virtual package on Windows. (#13641)
+* Fixes `__archspec` virtual package on Windows to return
+  microarchitecture instead of the default `x86_64`. (#13641)
 
 ### Deprecations
 
