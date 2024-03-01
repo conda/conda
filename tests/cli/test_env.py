@@ -147,16 +147,16 @@ def test_create_valid_remote_env(conda_cli: CondaCLIFixture):
     This tests the `remote_origin` command line argument.
     """
     try:
-        conda_cli("env", "create", "conda-test/env-42")
-        assert env_is_created("env-42")
+        conda_cli("env", "create", "conda-test/env-remote")
+        assert env_is_created("env-remote")
 
         stdout, _, _ = conda_cli("info", "--json")
 
         parsed = json.loads(stdout)
-        assert [env for env in parsed["envs"] if env.endswith("env-42")]
+        assert [env for env in parsed["envs"] if env.endswith("env-remote")]
     finally:
         # manual cleanup
-        conda_cli("remove", "--name=env-42", "--all", "--yes")
+        conda_cli("remove", "--name=env-remote", "--all", "--yes")
 
 
 @pytest.mark.integration
