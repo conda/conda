@@ -52,7 +52,7 @@ Solving package specifications: .Linking packages ...
 [      COMPLETE      ] |#################################################| 100%
 #
 # To activate this environment, use:
-# $ conda activate stats
+# $ source activate stats
 #
 # To deactivate this environment, use:
 # $ conda deactivate

@@ -114,7 +114,7 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
         #
         # To activate this environment, use
         #
-        #     $ conda activate {env_name_or_prefix}
+        #     $ source activate {env_name_or_prefix}
         #
         # To deactivate an active environment, use
         #
