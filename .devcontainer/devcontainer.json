@@ -1,34 +1,24 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.194.3/containers/python-3
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
-	"name": "Linux / Python 3.11",
-	"image": "ghcr.io/conda/conda-ci:main-linux-python3.11-conda-forge",
-	"containerEnv": {
-		"RUNNING_ON_DEVCONTAINER": "1"
-	},
+	"name": "Miniconda (Python 3)",
+	"build": {
+		"context": "..",
+		"dockerfile": "Dockerfile"
+	}
 
-	"customizations": {
-		"vscode": {
-			// Set *default* container specific settings.json values on container create.
-			"settings": {
-				"python.pythonPath": "/opt/conda/bin/python",
-				"terminal.integrated.profiles.linux": {
-					"Conda Bash": {
-						"path": "/bin/bash",
-						"args": ["--rcfile", "/home/test_user/.bashrc"]
-					}
-				},
-				"terminal.integrated.defaultProfile.linux": "bash"
-			},
-			"extensions": [
-				"ms-python.python",
-				"ms-python.vscode-pylance",
-				"eamodio.gitlens"
-			]
-		}
-	},
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
 
-	"postAttachCommand": ["/bin/bash", "/workspaces/src/conda/dev/linux/bashrc.sh"],
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
 
-	"remoteUser": "test_user"
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "python --version",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
 }
