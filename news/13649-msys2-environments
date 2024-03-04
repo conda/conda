@@ -1,17 +1,4 @@
 ### Enhancements
 
-* On Windows platforms using MSYS2, `conda activate` will now look for
-  one of the [MSYS2 64-bit
-  environments](https://www.msys2.org/docs/environments/), `UCRT64`,
-  `CLANG64`, CLANGARM64` or `MINGW64`, as a preferential location for
-  Windows native compilers and libraries.  `mingw-w64` will continue
-  to be added to the user's `PATH` as a fallback location.
-
-  This allows for multiple MSYS2 environments to be accommodated: for
-  example either the GCC suite using either UCRTBASE or MSVCRT or the
-  LLVM suite using UCRTBASE.
-
-  New MSYS2 packages can now use the upstream installation prefixes,
-  `{prefix}/ucrt64`, `{prefix}/clang64`, etc. and will be found and
-  used in preference automatically.
+* MSYS2 packages can now use the upstream installation prefixes. (#13649)
 
