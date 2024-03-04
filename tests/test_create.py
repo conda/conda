@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 import platform
 import re
@@ -17,13 +19,11 @@ from os.path import (
 from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import check_call, check_output
-from typing import Literal
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import menuinst
 import pytest
-from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
@@ -72,7 +72,6 @@ from conda.gateways.subprocess import (
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.resolve import Resolve
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
@@ -82,6 +81,14 @@ from conda.testing.integration import (
     package_is_installed,
     which_or_where,
 )
+
+if TYPE_CHECKING:
+    from typing import Callable, Iterator, Literal
+
+    from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
@@ -1358,30 +1365,39 @@ def test_update_deps_flag_present(
         assert package_is_installed(prefix, "another_dependent")
 
 
+@pytest.fixture
+def shortcut_files(
+    path_factory: PathFactoryFixture,
+) -> Iterator[tuple[Path, Callable[[], tuple[Path, ...]]]]:
+    prefix = path_factory()
+
+    def get_shortcut() -> tuple[Path, ...]:
+        shortcut_path = Path(get_shortcut_dir())
+        return tuple(shortcut_path.glob(f"**/*Prompt ({basename(prefix)}).lnk"))
+
+    assert not get_shortcut()
+
+    yield (prefix, get_shortcut)
+
+    for shortcut in get_shortcut():
+        rmtree(shortcut.parent, ignore_errors=True)
+
+
 @pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
 def test_shortcut_creation_installs_shortcut(
-    request: FixtureRequest,
-    path_factory: PathFactoryFixture,
+    shortcut_files: tuple[Path, Callable[[], tuple[Path, ...]]],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    prefix = path_factory()
-    shortcut_file = Path(
-        get_shortcut_dir(),
-        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
-        f"Anaconda Prompt ({basename(prefix)}).lnk",
-    )
-    assert not shortcut_file.exists()
-
-    # register cleanup
-    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
+    prefix, get_shortcut = shortcut_files
 
     # depending on channel priorities match one of:
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     with tmp_env("*console_shortcut", prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
-        assert shortcut_file.is_file()
+
+        assert get_shortcut()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
         if version("conda_libmamba_solver") <= "24.1.0":
@@ -1389,26 +1405,16 @@ def test_shortcut_creation_installs_shortcut(
         else:
             conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
         assert not package_is_installed(prefix, "*console_shortcut")
-        assert not shortcut_file.exists()
+        assert not get_shortcut()
 
 
 @pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
 def test_shortcut_absent_does_not_barf_on_uninstall(
-    request: FixtureRequest,
-    path_factory: PathFactoryFixture,
+    shortcut_files: tuple[Path, Callable[[], tuple[Path, ...]]],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    prefix = path_factory()
-    shortcut_file = Path(
-        get_shortcut_dir(),
-        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
-        f"Anaconda Prompt ({basename(prefix)}).lnk",
-    )
-    assert not shortcut_file.exists()
-
-    # register cleanup
-    request.addfinalizer(lambda: rmtree(shortcut_file.parent, ignore_errors=True))
+    prefix, get_shortcut = shortcut_files
 
     # depending on channel priorities match one of:
     #   - main::console_shortcut
@@ -1416,7 +1422,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     # including --no-shortcuts should not get shortcuts installed
     with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
-        assert not shortcut_file.exists()
+        assert not get_shortcut()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
         if version("conda_libmamba_solver") <= "24.1.0":
@@ -1424,32 +1430,22 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
         else:
             conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
         assert not package_is_installed(prefix, "*console_shortcut")
-        assert not shortcut_file.exists()
+        assert not get_shortcut()
 
 
 @pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
 def test_shortcut_absent_when_condarc_set(
-    request: FixtureRequest,
-    path_factory: PathFactoryFixture,
+    shortcut_files: tuple[Path, Callable[[], tuple[Path, ...]]],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     monkeypatch: MonkeyPatch,
 ):
-    prefix = path_factory()
-    shortcut_file = Path(
-        get_shortcut_dir(),
-        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
-        f"Anaconda Prompt ({basename(prefix)}).lnk",
-    )
-    assert not shortcut_file.exists()
-
-    # register cleanup
-    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
-
     # mock condarc
     monkeypatch.setenv("CONDA_SHORTCUTS", "false")
     reset_context()
     assert not context.shortcuts
+
+    prefix, get_shortcut = shortcut_files
 
     # depending on channel priorities match one of:
     #   - main::console_shortcut
@@ -1457,7 +1453,7 @@ def test_shortcut_absent_when_condarc_set(
     # shortcuts: False from condarc should not get shortcuts installed
     with tmp_env("*console_shortcut", prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
-        assert not shortcut_file.exists()
+        assert not get_shortcut()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
         if version("conda_libmamba_solver") <= "24.1.0":
@@ -1465,7 +1461,7 @@ def test_shortcut_absent_when_condarc_set(
         else:
             conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
         assert not package_is_installed(prefix, "*console_shortcut")
-        assert not shortcut_file.exists()
+        assert not get_shortcut()
 
 
 def test_menuinst_v2(
