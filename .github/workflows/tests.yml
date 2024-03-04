@@ -361,6 +361,7 @@ jobs:
           ${{ matrix.image }}
           bash -lc
           ". /opt/conda/etc/profile.d/conda.sh
+          && set -x
           && conda create
             --name test
             --yes
