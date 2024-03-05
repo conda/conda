@@ -17,7 +17,7 @@ from os.path import (
     isdir,
 )
 from pathlib import Path
-from shutil import copyfile, rmtree
+from shutil import rmtree
 from subprocess import check_call, check_output
 from typing import TYPE_CHECKING
 from unittest.mock import patch
@@ -849,46 +849,37 @@ def test_install_tarball_from_file_based_channel(
     conda_cli: CondaCLIFixture,
     tmp_channel: TmpChannelFixture,
 ):
-    # Regression test for #2812
-    # handle file-based channels
-    monkeypatch.setenv("CONDA_BLD_PATH", str(tmp_path))
-    reset_context()
-    assert context.bld_path == str(tmp_path)
-
-    with tmp_env() as prefix, tmp_channel("flask=2.1.3") as channel:
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
+    with tmp_channel("ca-certificates") as (path, url):
+        # regression test for #2812
+        # handle file-based channels
+        with tmp_env(
             "--override-channels",
-            f"--channel={channel}",
-            "flask=2.1.3",
-            "--json",
-            "--yes",
-        )
-        assert package_is_installed(prefix, f"{channel}::flask")
-        flask_fname = PrefixData(prefix).get("flask")["fn"]
+            f"--channel={url}",
+            "ca-certificates",
+        ) as prefix:
+            assert package_is_installed(prefix, f"{url}::ca-certificates")
 
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
+        # regression test for #2970
+        # install from build channel
+        # mock CONDA_BLD_PATH by setting it to the temporary channel
+        monkeypatch.setenv("CONDA_BLD_PATH", str(path))
+        reset_context()
+        assert context.bld_path == str(path)
 
-        # Regression test for 2970
-        # install from build channel as a tarball
-        tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
-        if not tar_path.is_file():
-            tar_path = tar_path.with_suffix(".tar.bz2")
+        with tmp_env(
+            "--override-channels",
+            "--channel=local",
+            "ca-certificates",
+        ) as prefix:
+            assert package_is_installed(prefix, "local::ca-certificates")
 
-        # create a temporary conda-bld
-        conda_bld_sub = tmp_path / context.subdir
-        conda_bld_sub.mkdir(exist_ok=True)
-        tar_bld_path = str(conda_bld_sub / tar_path.name)
-        copyfile(tar_path, tar_bld_path)
-
-        conda_cli("install", f"--prefix={prefix}", tar_bld_path, "--yes")
-        assert package_is_installed(prefix, "flask")
-
-        # Regression test for #462
-        with tmp_env(tar_bld_path) as prefix2:
-            assert package_is_installed(prefix2, "flask")
+    # install from a local tarball
+    # regression test for #462
+    tar_path = next(
+        PackageCacheData.query_all("ca-certificates")
+    ).package_tarball_full_path
+    with tmp_env(tar_path) as prefix2:
+        assert package_is_installed(prefix2, "ca-certificates")
 
 
 def test_tarball_install(
@@ -2094,13 +2085,13 @@ def test_offline_with_empty_index_cache(
     SubdirData._cache_.clear()
 
     try:
-        with tmp_env() as prefix, tmp_channel("flask=2.1.3") as channel:
+        with tmp_env() as prefix, tmp_channel("zlib") as (_, channel):
             # Clear the index cache.
             index_cache_dir = create_cache_dir()
             conda_cli("clean", "--index-cache", "--yes")
             assert not exists(index_cache_dir)
 
-            # Then attempt to install a package with --offline. The package (flask) is
+            # Then attempt to install a package with --offline. The package (zlib) is
             # available in a local channel, however its dependencies are not. Make sure
             # that a) it fails because the dependencies are not available and b)
             # we don't try to download the repodata from non-local channels but we do
@@ -2125,13 +2116,13 @@ def test_offline_with_empty_index_cache(
 
             SubdirData._cache_.clear()
 
-            assert not package_is_installed(prefix, "flask")
+            assert not package_is_installed(prefix, "zlib")
             command = (
                 "install",
                 f"--prefix={prefix}",
                 "--override-channels",
                 f"--channel={channel}",
-                "flask",
+                "zlib",
                 "--offline",
                 "--yes",
             )
@@ -2143,10 +2134,10 @@ def test_offline_with_empty_index_cache(
                 with pytest.raises((RuntimeError, UnsatisfiableError)):
                     conda_cli(*command)
             else:
-                # This first install passes because flask and its dependencies are in the
+                # This first install passes because zlib and its dependencies are in the
                 # package cache.
                 conda_cli(*command)
-                assert package_is_installed(prefix, "flask")
+                assert package_is_installed(prefix, "zlib")
 
                 # The mock should have been called with our local channel URL though.
                 if context.solver != "libmamba":
