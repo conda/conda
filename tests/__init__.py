@@ -6,10 +6,6 @@ from conda.gateways.logging import initialize_logging
 
 initialize_logging()
 
-from conda.testing import (
-    conda_ensure_sys_python_is_base_env_python,
-    conda_move_to_front_of_PATH,
-)
+from conda.testing import conda_move_to_front_of_PATH
 
-conda_ensure_sys_python_is_base_env_python()
 conda_move_to_front_of_PATH()
