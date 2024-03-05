@@ -41,7 +41,7 @@ from ..exceptions import CondaExitZero
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from typing import Iterator
 
     from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
     from pytest_mock import MockerFixture
@@ -224,7 +224,7 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
-    ) -> Iterable[Path]:
+    ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
         :param packages: The packages to install into environment
@@ -254,7 +254,7 @@ class TmpChannelFixture:
     conda_cli: CondaCLIFixture
 
     @contextmanager
-    def __call__(self, *packages: str):
+    def __call__(self, *packages: str) -> Iterator[tuple[Path, str]]:
         # download packages
         self.conda_cli(
             "create",
@@ -270,17 +270,17 @@ class TmpChannelFixture:
         pkgs_cache = PackageCacheData(pkgs_dir)
 
         channel = self.path_factory()
-        subchan = channel / context.subdir
-        subchan.mkdir(parents=True)
-        noarch_dir = channel / "noarch"
-        noarch_dir.mkdir(parents=True)
+        subdir = channel / context.subdir
+        subdir.mkdir(parents=True)
+        noarch = channel / "noarch"
+        noarch.mkdir(parents=True)
 
         repodata = {"info": {}, "packages": {}}
         for package in packages:
             for pkg_data in pkgs_cache.query(package):
                 fname = pkg_data["fn"]
 
-                copyfile(pkgs_dir / fname, subchan / fname)
+                copyfile(pkgs_dir / fname, subdir / fname)
 
                 repodata["packages"][fname] = PackageRecord(
                     **{
@@ -290,10 +290,13 @@ class TmpChannelFixture:
                     }
                 )
 
-        (subchan / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
-        (noarch_dir / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
+        (subdir / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
+        (noarch / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
 
-        yield path_to_url(str(channel))
+        for package in packages:
+            assert any(PackageCacheData.query_all(package))
+
+        yield channel, path_to_url(str(channel))
 
 
 @pytest.fixture
