@@ -41,9 +41,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
     add_parser_channels(p)
-    p.set_defaults(func="conda.cli.main_notices.execute")
-
     add_parser_json(p)
+
     p.set_defaults(func="conda.cli.main_notices.execute")
 
     return p
