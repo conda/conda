@@ -149,8 +149,8 @@ addopts = [
   # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
   "--cov-append",
   "--cov-branch",
-  "--cov-report=term-missing",
-  "--cov-report=xml",
+  "--cov-report=term",  # print summary table to screen
+  "--cov-report=xml",  # for codecov/codecov-action upload
   "--durations=16",
   "--junitxml=test-report.xml",
   "--splitting-algorithm=least_duration",

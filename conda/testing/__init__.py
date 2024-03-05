@@ -36,6 +36,7 @@ from ..cli.main import main_subshell
 from ..common.compat import on_win
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
+from ..deprecations import deprecated
 from ..exceptions import CondaExitZero
 from ..models.records import PackageRecord
 
@@ -48,6 +49,11 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="It don't matter which environment the test suite is run from.",
+)
 def conda_ensure_sys_python_is_base_env_python():
     # Exit if we try to run tests from a non-base env. The tests end up installing
     # menuinst into the env they are called with and that breaks non-base env activation
