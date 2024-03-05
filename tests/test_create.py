@@ -852,6 +852,7 @@ def test_install_tarball_from_file_based_channel(
         conda_cli(
             "install",
             f"--prefix={prefix}",
+            "--override-channels",
             f"--channel={channel}",
             "flask=2.1.3",
             "--json",
