@@ -71,6 +71,30 @@ def test_main_notices(
             assert message not in captured.out
 
 
+@pytest.mark.parametrize("status_code", (200, 404))
+def test_main_notices_json(
+    status_code,
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+):
+    context.json = True
+    args, parser = conda_notices_args_n_parser
+    messages = ("Test One", "Test Two")
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_fetch_get_session, status_code, messages_json)
+
+    notices.execute(args, parser)
+
+    captured = capsys.readouterr()
+    # assert "Retrieving" in captured.out
+    if status_code < 300:
+        assert str(messages_json.get("notices")) in captured.out
+    else:
+        assert str(messages_json.get("notices")) not in captured.out
+
+
 def test_main_notices_reads_from_cache(
     capsys,
     conda_notices_args_n_parser,

@@ -1,8 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Handles all display/view logic."""
+import json
 from typing import Sequence
 
+from ..base.context import context
 from .types import ChannelNotice
 
 
@@ -15,17 +17,35 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
     """
     current_channel = None
 
-    for channel_notice in channel_notices:
-        if current_channel != channel_notice.channel_name:
+    if context.json:
+        json_output = json.dumps(
+            [
+                {
+                    "id": channel_notice.id,
+                    "channel_name": channel_notice.channel_name,
+                    "message": channel_notice.message,
+                    "level": channel_notice.level.name,
+                    "created_at": str(channel_notice.created_at),
+                    "expired_at": str(channel_notice.expired_at),
+                    "interval": channel_notice.interval,
+                }
+                for channel_notice in channel_notices
+            ],
+            indent=2,
+        )
+        print(json_output)
+    else:
+        for channel_notice in channel_notices:
+            if current_channel != channel_notice.channel_name:
+                print()
+                channel_header = "Channel"
+                channel_header += (
+                    f' "{channel_notice.channel_name}" has the following notices:'
+                )
+                print(channel_header)
+                current_channel = channel_notice.channel_name
+            print_notice_message(channel_notice)
             print()
-            channel_header = "Channel"
-            channel_header += (
-                f' "{channel_notice.channel_name}" has the following notices:'
-            )
-            print(channel_header)
-            current_channel = channel_notice.channel_name
-        print_notice_message(channel_notice)
-        print()
 
 
 def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
