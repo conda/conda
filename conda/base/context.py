@@ -12,13 +12,14 @@ import os
 import platform
 import struct
 import sys
+from collections import defaultdict
 from contextlib import contextmanager
 from errno import ENOENT
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping
 
 try:
     from boltons.setutils import IndexedSet
@@ -35,6 +36,8 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
+    ConfigurationType,
+    EnvRawParameter,
     MapParameter,
     ParameterLoader,
     PrimitiveParameter,
@@ -73,8 +76,10 @@ from .constants import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Literal
 
+    from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
 
 
@@ -520,6 +525,14 @@ class Context(Configuration):
         from ..plugins.manager import get_plugin_manager
 
         return get_plugin_manager()
+
+    @cached_property
+    def plugins(self) -> PluginConfig:
+        """
+        Preferred way of accessing settings introduced by the settings plugin hook
+        """
+        self.plugin_manager.load_settings()
+        return PluginConfig(self.raw_data)
 
     @property
     def conda_build_local_paths(self):
@@ -1858,6 +1871,10 @@ class Context(Configuration):
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
+
+    # reset plugin config params
+    remove_all_plugin_settings()
+
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
     from ..models.channel import Channel
@@ -2105,6 +2122,79 @@ def _first_writable_envs_dir():
     from ..exceptions import NoWritableEnvsDirError
 
     raise NoWritableEnvsDirError(context.envs_dirs)
+
+
+def get_plugin_config_data(
+    data: dict[Path, dict[str, RawParameter]],
+) -> dict[Path, dict[str, RawParameter]]:
+    """
+    This is used to move everything under the key "plugins" from the provided dictionary
+    to the top level of the returned dictionary. The returned dictionary is then passed
+    to :class:`PluginConfig`.
+    """
+    new_data = defaultdict(dict)
+
+    for source, config in data.items():
+        if plugin_data := config.get("plugins"):
+            plugin_data_value = plugin_data.value(None)
+
+            if not isinstance(plugin_data_value, Mapping):
+                continue
+
+            for param_name, raw_param in plugin_data_value.items():
+                new_data[source][param_name] = raw_param
+
+        elif source == EnvRawParameter.source:
+            for env_var, raw_param in config.items():
+                if env_var.startswith("plugins_"):
+                    _, param_name = env_var.split("plugins_")
+                    new_data[source][param_name] = raw_param
+
+    return new_data
+
+
+class PluginConfig(metaclass=ConfigurationType):
+    """
+    Class used to hold settings for conda plugins.
+
+    The object created by this class should only be accessed via
+    :class:`conda.base.context.Context.plugins`.
+
+    When this class is updated via the :func:`add_plugin_setting` function it adds new setting
+    properties which can be accessed later via the context object.
+
+    We currently call that function in
+    :meth:`conda.plugins.manager.CondaPluginManager.load_settings`.
+    because ``CondaPluginManager`` has access to all registered plugin settings via the settings
+    plugin hook.
+    """
+
+    def __init__(self, data):
+        self._cache_ = {}
+        self.raw_data = get_plugin_config_data(data)
+
+
+def add_plugin_setting(name: str, parameter: Parameter, aliases: tuple[str, ...] = ()):
+    """
+    Adds a setting to the :class:`PluginConfig` class
+    """
+    PluginConfig.parameter_names = PluginConfig.parameter_names + (name,)
+    loader = ParameterLoader(parameter, aliases=aliases)
+    name = loader._set_name(name)
+    setattr(PluginConfig, name, loader)
+
+
+def remove_all_plugin_settings() -> None:
+    """
+    Removes all attached settings from the :class:`PluginConfig` class
+    """
+    for name in PluginConfig.parameter_names:
+        try:
+            delattr(PluginConfig, name)
+        except AttributeError:
+            continue
+
+    PluginConfig.parameter_names = tuple()
 
 
 try:

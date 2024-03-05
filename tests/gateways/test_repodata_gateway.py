@@ -379,6 +379,28 @@ def test_repodata_fetch_cached(
         assert state == {}
 
 
+def test_repodata_fetch_jsondecodeerror(tmp_path):
+    """
+    Show that repodata's JSONDecodeError contains sample of bad data.
+    """
+
+    channel_url = "file:///path/does/not/exist"
+
+    class UndecodeableRepodataFetch(RepodataFetch):
+        def fetch_latest(self):
+            return "not json", {}
+
+    fetch = UndecodeableRepodataFetch(
+        tmp_path,
+        Channel(channel_url),
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+
+    with pytest.raises(json.JSONDecodeError, match="not json"):
+        fetch.fetch_latest_parsed()
+
+
 def test_get_cache_control_max_age():
     """
     Test that we are robust against None cache-control-max-age
