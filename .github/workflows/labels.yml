@@ -26,14 +26,14 @@ jobs:
         with:
           files: ${{ env.LOCAL }}
       - name: Global Only
-        uses: EndBug/label-sync@v2.3.2
+        uses: EndBug/label-sync@v2.3.3
         if: steps.has_local.outputs.files_exists == 'false'
         with:
           config-file: ${{ env.GLOBAL }}
           delete-other-labels: true
           dry-run: ${{ github.event.inputs.dryrun }}
       - name: Global & Local
-        uses: EndBug/label-sync@v2.3.2
+        uses: EndBug/label-sync@v2.3.3
         if: steps.has_local.outputs.files_exists == 'true'
         with:
           config-file: |

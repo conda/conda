@@ -130,5 +130,5 @@ def test_info_conda_json(conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch):
 
 
 def test_info_python_output(conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("info", "python=3.5")
-    assert "python 3.5.4" in stdout
+    stdout, _, _ = conda_cli("info", "python=3.9")
+    assert "python 3.9.18" in stdout
