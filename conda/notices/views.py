@@ -24,14 +24,13 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
                     "id": channel_notice.id,
                     "channel_name": channel_notice.channel_name,
                     "message": channel_notice.message,
-                    "level": channel_notice.level.name,
-                    "created_at": str(channel_notice.created_at),
-                    "expired_at": str(channel_notice.expired_at),
+                    "level": channel_notice.level.name.lower(),
+                    "created_at": channel_notice.created_at.isoformat(),
+                    "expired_at": channel_notice.expired_at.isoformat(),
                     "interval": channel_notice.interval,
                 }
                 for channel_notice in channel_notices
             ],
-            indent=2,
         )
         print(json_output)
     else:
