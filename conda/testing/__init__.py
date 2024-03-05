@@ -266,17 +266,22 @@ class TmpChannelFixture:
             raises=CondaExitZero,
         )
 
-        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
+        pkgs_dir = Path(PackageCacheData.first_writable().pkgs_dir)
         pkgs_cache = PackageCacheData(pkgs_dir)
 
+        channel = self.path_factory()
+        subchan = channel / context.subdir
+        subchan.mkdir(parents=True)
+        noarch_dir = channel / "noarch"
+        noarch_dir.mkdir(parents=True)
+
         repodata = {"info": {}, "packages": {}}
-        tarfiles = {}
         for package in packages:
             for pkg_data in pkgs_cache.query(package):
                 fname = pkg_data["fn"]
-                tarfiles[fname] = Path(
-                    PackageCacheData.first_writable().pkgs_dir, fname
-                )
+
+                copyfile(pkgs_dir / fname, subchan / fname)
+
                 repodata["packages"][fname] = PackageRecord(
                     **{
                         field: value
@@ -285,22 +290,10 @@ class TmpChannelFixture:
                     }
                 )
 
-        channel = self.path_factory()
-        subchan = channel / context.subdir
-        subchan.mkdir(parents=True)
-        noarch_dir = channel / "noarch"
-        noarch_dir.mkdir(parents=True)
-
-        channel = path_to_url(str(channel))
-
-        for fname, tar_old_path in tarfiles.items():
-            tar_new_path = subchan / fname
-            copyfile(tar_old_path, tar_new_path)
-
         (subchan / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
         (noarch_dir / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
 
-        yield channel
+        yield path_to_url(str(channel))
 
 
 @pytest.fixture
