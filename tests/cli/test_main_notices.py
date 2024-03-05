@@ -7,10 +7,11 @@ import json
 import os
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.exceptions import CondaError, PackagesNotFoundError
@@ -77,9 +78,9 @@ def test_main_notices_json(
     conda_notices_args_n_parser,
     notices_cache_dir,
     notices_mock_fetch_get_session,
+    monkeypatch: MonkeyPatch,
     status_code=200,
 ):
-    context.json = True
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
@@ -92,10 +93,15 @@ def test_main_notices_json(
     messages_json = {"notices": json_list}
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
+    monkeypatch.setenv("CONDA_JSON", "true")
+    reset_context()
+    assert context.json
+
     notices.execute(args, parser)
 
     captured = capsys.readouterr()
-    assert json.dumps(messages_json.get("notices")) in captured.out
+    json_data = json.loads(captured.out)
+    assert messages_json.get("notices") == json_data
 
 
 def test_main_notices_reads_from_cache(
