@@ -17,23 +17,6 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
     """
     current_channel = None
 
-    # if context.json:
-    #     json_output = json.dumps(
-    #         [
-    #             {
-    #                 "id": channel_notice.id,
-    #                 "channel_name": channel_notice.channel_name,
-    #                 "message": channel_notice.message,
-    #                 "level": channel_notice.level.name.lower(),
-    #                 "created_at": channel_notice.created_at.isoformat(),
-    #                 "expired_at": channel_notice.expired_at.isoformat(),
-    #                 "interval": channel_notice.interval,
-    #             }
-    #             for channel_notice in channel_notices
-    #         ],
-    #     )
-    #     print(json_output)
-
     if context.json:
         json_output = json.dumps(
             [
@@ -41,7 +24,6 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
                 for channel_notice in channel_notices
             ]
         )
-
         print(json_output)
 
     else:
