@@ -28,7 +28,7 @@ class ChannelNotice(NamedTuple):
     expired_at: datetime | None
     interval: int | None
 
-    def notice_to_json_notice(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "channel_name": self.channel_name,

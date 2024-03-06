@@ -19,10 +19,7 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
 
     if context.json:
         json_output = json.dumps(
-            [
-                ChannelNotice.notice_to_json_notice(channel_notice)
-                for channel_notice in channel_notices
-            ]
+            [channel_notice.to_dict() for channel_notice in channel_notices]
         )
         print(json_output)
 

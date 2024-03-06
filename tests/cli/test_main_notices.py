@@ -94,8 +94,7 @@ def test_main_notices_json(
     json_list = messages_json.get("notices")
 
     for item in json_list:
-        item.update({"channel_name": channel_str})
-        item.update({"interval": "null"})
+        item.update({"channel_name": channel_str, "interval": "null"})
 
     messages_json = {"notices": json_list}
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
