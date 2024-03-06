@@ -5,7 +5,7 @@ Settings
 The settings plugin hook allows plugin authors to add new settings to conda.
 Users will be able to use these new parameters either in ``.condarc`` files
 or define them as environment variables. For more information on configuration
-in conda, see :doc:`Configuration <user-guide/configuration>`.
+in conda, see :doc:`Configuration </user-guide/configuration/index>`.
 
 The plugin hooks relies on using the various :class:`conda.common.configuration.Parameter`
 sub-classes (e.g. :class:`conda.common.configuration.PrimitiveParameter` or
