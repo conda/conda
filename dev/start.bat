@@ -117,14 +117,14 @@
     @EXIT /B 1
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install -yq --name base defaults::git > NUL
+@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git > NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
 @IF EXIST "%_ENV%" @GOTO ENVEXISTS
 @ECHO Creating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" create -yq --prefix "%_ENV%" > NUL
+@CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to create %_NAME% 1>&2
     @EXIT /B 1
@@ -136,20 +136,21 @@
 @IF NOT %ErrorLevel%==0 @GOTO UPTODATE
 @ECHO Updating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" update -yq --all > NUL
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update development environment 1>&2
     @EXIT /B 1
 )
 
 @CALL :CONDA "%_BASEEXE%" install ^
-    -yq ^
-    --prefix "%_ENV%" ^
+    --yes ^
+    --quiet ^
+    "--prefix=%_ENV%" ^
     --override-channels ^
-    -c defaults ^
-    --file "%_SRC%\tests\requirements.txt" ^
-    --file "%_SRC%\tests\requirements-Windows.txt" ^
-    conda ^
+    --channel=defaults ^
+    "--file=%_SRC%\tests\requirements.txt" ^
+    "--file=%_SRC%\tests\requirements-ci.txt" ^
+    "--file=%_SRC%\tests\requirements-Windows.txt" ^
     "python=%_PYTHON%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_NAME% 1>&2
