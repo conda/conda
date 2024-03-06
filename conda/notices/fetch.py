@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Sequence
+from typing import TYPE_CHECKING
 
 import requests
 
@@ -13,6 +13,9 @@ from ..common.io import Spinner
 from ..gateways.connection.session import get_session
 from .cache import cached_response
 from .types import ChannelNoticeResponse
+
+if TYPE_CHECKING:
+    from typing import Sequence
 
 logger = logging.getLogger(__name__)
 

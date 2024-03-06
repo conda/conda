@@ -101,6 +101,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    health_checks
    post_commands
    pre_commands
+   settings
    solvers
    subcommands
    virtual_packages

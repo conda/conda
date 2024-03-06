@@ -18,7 +18,6 @@ import pytest
 from ..auxlib.compat import shlex_split_unicode
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
-from ..common.compat import encode_arguments
 from ..common.io import argv, env_var
 from ..common.io import captured as common_io_captured
 from ..core.prefix_data import PrefixData
@@ -129,9 +128,7 @@ def run_inprocess_conda_command(command, disallow_stderr: bool = True):
     # anything that uses this function is an integration test
     reset_context(())
 
-    with argv(encode_arguments(shlex_split_unicode(command))), captured(
-        disallow_stderr
-    ) as c:
+    with argv(shlex_split_unicode(command)), captured(disallow_stderr) as c:
         initialize_logging()
         try:
             exit_code = main_subshell()

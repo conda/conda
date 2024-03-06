@@ -5,10 +5,9 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,
@@ -18,7 +17,13 @@ from conda.base.constants import (
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_verbosity
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 
 def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:

@@ -10,21 +10,18 @@ import json
 import os
 import re
 import sys
-from argparse import (
-    SUPPRESS,
-    ArgumentParser,
-    Namespace,
-    _StoreTrueAction,
-    _SubParsersAction,
-)
+from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any, Iterable
+
     from ..models.records import PackageRecord
 
 log = getLogger(__name__)

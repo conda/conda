@@ -1,4 +1,4 @@
-conda-sphinx-theme==0.2.0
+conda-sphinx-theme==0.2.1
 linkify-it-py==2.0.2
 myst-parser==2.0.0
 Pillow==10.1.0

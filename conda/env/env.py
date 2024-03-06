@@ -77,7 +77,6 @@ def from_environment(
 
     Returns:     Environment object
     """
-    # requested_specs_map = History(prefix).get_requested_specs_map()
     pd = PrefixData(prefix, pip_interop_enabled=True)
     variables = pd.get_environment_env_vars()
 

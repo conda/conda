@@ -309,7 +309,7 @@ def create_fake_executable_softlink(src, dst):
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:
-        f.write("@echo off\n" 'call "%s" %%*\n' "" % src_root)
+        f.write('@echo off\ncall "%s" %%*\n' % src_root)
     return dst
 
 

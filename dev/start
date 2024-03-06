@@ -223,7 +223,7 @@ fi
 # create empty env if it doesn't exist
 if ! [ -d "${_ENV}" ]; then
     echo "Creating ${_NAME}..."
-    if ! PYTHONPATH="" "${_BASEEXE}" create -yq --prefix "${_ENV}" > /dev/null; then
+    if ! PYTHONPATH="" "${_BASEEXE}" create --yes --quiet "--prefix=${_ENV}" > /dev/null; then
         echo "Error: failed to create ${_NAME}" 1>&2
         return 1
     fi
@@ -233,18 +233,20 @@ fi
 if updating; then
     echo "Updating ${_NAME}..."
 
-    if ! PYTHONPATH="" "${_BASEEXE}" update -yq --all > /dev/null; then
+    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all > /dev/null; then
         echo "Error: failed to update development environment" 1>&2
         return 1
     fi
 
     if ! PYTHONPATH="" "${_BASEEXE}" install \
-        -yq \
-        --prefix "${_ENV}" \
+        --yes \
+        --quiet \
+        "--prefix=${_ENV}" \
         --override-channels \
-        -c defaults \
-        --file "${_SRC}/tests/requirements.txt" \
-        conda \
+        --channel=defaults \
+        "--file=${_SRC}/tests/requirements.txt" \
+        "--file=${_SRC}/tests/requirements-ci.txt" \
+        "$([ "${_MACH}" = "Linux" ] && echo "--file=${_SRC}/tests/requirements-Linux.txt")" \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1

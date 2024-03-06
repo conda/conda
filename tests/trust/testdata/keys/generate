@@ -6,9 +6,12 @@ from pathlib import Path
 from subprocess import run
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
-from typing import Literal
+from typing import TYPE_CHECKING
 
 from securesystemslib.gpg.functions import export_pubkey
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 
 def generate_keyring(root: Path) -> Path | Literal[False]:

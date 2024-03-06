@@ -444,7 +444,6 @@ Authors are sorted alphabetically.
 * ovz
 * peter1000
 * pre-commit CI
-* samhaese
 * saraneem
 * shadow_walker
 * ugurthemaster

@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.common.compat import on_win
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 

@@ -14,7 +14,7 @@ import os
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
-from typing import Sequence
+from typing import TYPE_CHECKING
 
 try:
     from platformdirs import user_cache_dir
@@ -23,7 +23,12 @@ except ImportError:  # pragma: no cover
 
 from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
 from ..utils import ensure_dir_exists
-from .types import ChannelNotice, ChannelNoticeResponse
+from .types import ChannelNoticeResponse
+
+if TYPE_CHECKING:
+    from typing import Sequence
+
+    from .types import ChannelNotice
 
 logger = logging.getLogger(__name__)
 

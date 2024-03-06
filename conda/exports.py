@@ -90,11 +90,6 @@ from .utils import (  # noqa: F401
 reset_context()  # initialize context when conda.exports is imported
 
 
-@deprecated("23.3", "24.3", addendum="Handled by CondaSession.")
-def handle_proxy_407(x, y):
-    pass
-
-
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 non_x86_linux_machines = non_x86_machines
 get_default_urls = lambda: DEFAULT_CHANNELS  # noqa: E731

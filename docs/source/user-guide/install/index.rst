@@ -7,7 +7,7 @@ The following are the most popular installers currently available:
 
 .. glossary::
 
-    `Miniconda <https://docs.conda.io/projects/miniconda/>`_
+    `Miniconda <https://docs.anaconda.com/free/miniconda/>`_
         Miniconda is a minimal installer provided by Anaconda. Use this installer
         if you want to install most packages yourself.
 
@@ -24,7 +24,7 @@ The following are the most popular installers currently available:
 .. admonition:: Tip
 
     If you are just starting out, we recommend installing conda via the
-    `Miniconda installer <https://docs.conda.io/projects/miniconda/>`_.
+    `Miniconda installer <https://docs.anaconda.com/free/miniconda/>`_.
 
 
 .. _system-reqs:
@@ -75,7 +75,7 @@ Cryptographic hash verification
 ===============================
 
 SHA-256 checksums are available for
-`Miniconda <https://docs.conda.io/projects/miniconda/en/latest>`_ and
+`Miniconda <https://docs.anaconda.com/free/miniconda/>`_ and
 `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 

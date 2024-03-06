@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import json
 import uuid
-from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.context import reset_context
 from conda.plugins.subcommands.doctor.health_checks import (
@@ -23,6 +20,13 @@ from conda.plugins.subcommands.doctor.health_checks import (
     find_packages_with_missing_files,
     missing_files,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Iterable
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture

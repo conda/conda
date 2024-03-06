@@ -14,7 +14,7 @@ from itertools import chain
 from logging import getLogger
 from os.path import isdir, isfile, join  # noqa
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING
 
 from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
@@ -35,6 +35,9 @@ from ...models.package_info import PackageInfo, PackageMetadata
 from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 log = getLogger(__name__)
 

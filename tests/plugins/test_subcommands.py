@@ -3,18 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import CaptureFixture
-from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
 from conda.plugins.types import CondaSubcommand
-from conda.testing import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from typing import Callable
+
+    from pytest import CaptureFixture
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture
 
 
 @dataclass(frozen=True)

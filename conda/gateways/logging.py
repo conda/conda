@@ -18,6 +18,7 @@ from logging import (
 )
 
 from .. import CondaError
+from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
 
@@ -28,7 +29,7 @@ _VERBOSITY_LEVELS = {
     1: WARN,  # -v, detailed output
     2: INFO,  # -vv, info logging
     3: DEBUG,  # -vvv, debug logging
-    4: (TRACE := 5),  # -vvvv, trace logging
+    4: TRACE,  # -vvvv, trace logging
 }
 deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 

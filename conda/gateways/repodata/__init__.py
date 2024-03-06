@@ -17,8 +17,7 @@ import warnings
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
@@ -42,12 +41,17 @@ from ..connection import (
     InsecureRequestWarning,
     InvalidSchema,
     RequestsProxyError,
-    Response,
     SSLError,
 )
 from ..connection.session import get_session
 from ..disk import mkdir_p_sudo_safe
 from ..disk.lock import lock
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Any
+
+    from ..connection import Response
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
@@ -62,6 +66,9 @@ ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
+
+# show some unparseable json in error
+ERROR_SNIPPET_LENGTH = 32
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -721,7 +728,14 @@ class RepodataFetch:
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
-            return json.loads(parsed), state
+            try:
+                return json.loads(parsed), state
+            except json.JSONDecodeError as e:
+                e.args = (
+                    f'{e.args[0]}; got "{parsed[:ERROR_SNIPPET_LENGTH]}"',
+                    *e.args[1:],
+                )
+                raise
         else:
             return parsed, state
 

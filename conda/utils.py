@@ -8,11 +8,11 @@ import re
 import sys
 from contextlib import contextmanager
 from functools import lru_cache, wraps
-from os import PathLike, environ
+from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
-from typing import Literal
+from typing import TYPE_CHECKING
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
@@ -21,6 +21,10 @@ from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 from .gateways.disk.read import compute_sum
+
+if TYPE_CHECKING:
+    from os import PathLike
+    from typing import Literal
 
 log = logging.getLogger(__name__)
 

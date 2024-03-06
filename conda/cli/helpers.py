@@ -5,13 +5,11 @@ Collection of helper functions to standardize reused CLI arguments.
 """
 from __future__ import annotations
 
-from argparse import (
-    SUPPRESS,
-    ArgumentParser,
-    _ArgumentGroup,
-    _HelpAction,
-    _MutuallyExclusiveGroup,
-)
+from argparse import SUPPRESS, _HelpAction
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
 try:
     from argparse import BooleanOptionalAction

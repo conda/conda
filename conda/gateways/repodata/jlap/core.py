@@ -7,7 +7,10 @@ import logging
 from collections import UserList
 from hashlib import blake2b
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Iterable, Iterator
 
 log = logging.getLogger(__name__)
 

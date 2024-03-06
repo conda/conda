@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from ....base.context import context
 from ...connection.download import disable_ssl_verify_warning
@@ -14,7 +15,6 @@ from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     URL_KEY,
-    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     RepoInterface,
@@ -22,6 +22,9 @@ from .. import (
     conda_http_errors,
 )
 from . import fetch
+
+if TYPE_CHECKING:
+    from .. import RepodataCache
 
 log = logging.getLogger(__name__)
 

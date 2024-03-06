@@ -49,6 +49,7 @@ from .main_compare import configure_parser as configure_parser_compare
 from .main_config import configure_parser as configure_parser_config
 from .main_create import configure_parser as configure_parser_create
 from .main_env import configure_parser as configure_parser_env
+from .main_export import configure_parser as configure_parser_export
 from .main_info import configure_parser as configure_parser_info
 from .main_init import configure_parser as configure_parser_init
 from .main_install import configure_parser as configure_parser_install
@@ -76,6 +77,7 @@ BUILTIN_COMMANDS = {
     "config",
     "create",
     "deactivate",  # Mock entry for shell command
+    "export",
     "info",
     "init",
     "install",
@@ -142,6 +144,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
     configure_parser_env(sub_parsers)
+    configure_parser_export(sub_parsers)
     configure_parser_info(sub_parsers)
     configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)

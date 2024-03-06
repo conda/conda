@@ -7,11 +7,14 @@ Renames an existing environment by cloning it and then removing the original env
 from __future__ import annotations
 
 import os
-from argparse import ArgumentParser, Namespace, _SubParsersAction
 from functools import partial
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:

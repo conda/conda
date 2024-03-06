@@ -61,14 +61,13 @@ def test_find_conflicts_called_once(
     with tmp_env("python=3.9") as prefix:
         with pytest.raises(UnsatisfiableError):
             # Statistics is a py27 only package allowing us a simple unsatisfiable case
-            conda_cli("install", "--prefix", prefix, "statistics", "--yes")
+            conda_cli("install", f"--prefix={prefix}", "statistics", "--yes")
         assert mocked_find_conflicts.call_count == 1
 
         with pytest.raises(UnsatisfiableError):
             conda_cli(
                 "install",
-                "--prefix",
-                prefix,
+                f"--prefix={prefix}",
                 "statistics",
                 "--freeze-installed",
                 "--yes",
@@ -78,6 +77,6 @@ def test_find_conflicts_called_once(
     with pytest.raises(UnsatisfiableError):
         # statistics seems to be available on 3.10 though
         conda_cli(
-            "create", "--prefix", path_factory(), "statistics", "python=3.9", "--yes"
+            "create", f"--prefix={path_factory()}", "statistics", "python=3.9", "--yes"
         )
     assert mocked_find_conflicts.call_count == 3

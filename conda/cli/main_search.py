@@ -6,12 +6,14 @@ Query channels for packages matching the provided package spec.
 """
 from __future__ import annotations
 
-from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
+from argparse import SUPPRESS
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+
     from ..models.records import PackageRecord
 
 

@@ -97,7 +97,7 @@ CONDA_INITIALIZE_RE_BLOCK = (
 )
 
 CONDA_INITIALIZE_PS_RE_BLOCK = (
-    r"^#region conda initialize(?:\n|\r\n)" r"([\s\S]*?)" r"#endregion(?:\n|\r\n)?"
+    r"^#region conda initialize(?:\n|\r\n)([\s\S]*?)#endregion(?:\n|\r\n)?"
 )
 
 
@@ -1076,7 +1076,7 @@ def install_deactivate_bat(target_path, conda_prefix):
 def install_activate(target_path, conda_prefix):
     # target_path: join(conda_prefix, get_bin_directory_short_path(), 'activate')
     src_path = join(CONDA_PACKAGE_ROOT, "shell", "bin", "activate")
-    file_content = ("#!/bin/sh\n" '_CONDA_ROOT="%s"\n') % conda_prefix
+    file_content = '#!/bin/sh\n_CONDA_ROOT="%s"\n' % conda_prefix
     with open(src_path) as fsrc:
         file_content += fsrc.read()
     return _install_file(target_path, file_content)
@@ -1085,7 +1085,7 @@ def install_activate(target_path, conda_prefix):
 def install_deactivate(target_path, conda_prefix):
     # target_path: join(conda_prefix, get_bin_directory_short_path(), 'deactivate')
     src_path = join(CONDA_PACKAGE_ROOT, "shell", "bin", "deactivate")
-    file_content = ("#!/bin/sh\n" '_CONDA_ROOT="%s"\n') % conda_prefix
+    file_content = '#!/bin/sh\n_CONDA_ROOT="%s"\n' % conda_prefix
     with open(src_path) as fsrc:
         file_content += fsrc.read()
     return _install_file(target_path, file_content)
