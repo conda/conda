@@ -79,15 +79,22 @@ def test_main_notices_json(
     notices_cache_dir,
     notices_mock_fetch_get_session,
     monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
     status_code=200,
 ):
+    channel_str = "test"
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(channel_str,),
+    )
     args, parser = conda_notices_args_n_parser
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
     json_list = messages_json.get("notices")
 
     for item in json_list:
-        item.update({"channel_name": "defaults"})
+        item.update({"channel_name": channel_str})
         item.update({"interval": "null"})
 
     messages_json = {"notices": json_list}
