@@ -1,15 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import copy
+import os
 import sys
 from pprint import pprint
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.compat import on_linux
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
@@ -378,6 +379,22 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError):
                 solver.solve_final_state()
+
+
+@pytest.mark.skipif(
+    not (on_win or on_mac or on_linux),
+    reason="archspec is only supported on win, mac or linux",
+)
+def test_archspec_call(tmpdir):
+    specs = (MatchSpec("numpy"),)
+
+    with env_vars(), patch("archspec.cpu.host") as archspec:
+        if "CONDA_OVERRIDE_ARCHSPEC" in os.environ:
+            del os.environ["CONDA_OVERRIDE_ARCHSPEC"]
+
+        with get_solver_cuda(tmpdir, specs) as solver:
+            solver.solve_final_state()
+            archspec.assert_called()
 
 
 def test_prune_1(tmpdir, request):

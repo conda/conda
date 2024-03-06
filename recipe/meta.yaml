@@ -34,7 +34,7 @@ requirements:
     - ruamel.yaml >=0.11.14,<0.19
     - tqdm >=4
   run:
-    - archspec
+    - archspec >=0.2.3
     - boltons >=23.0.0
     - charset-normalizer
     - conda-libmamba-solver >=23.11.0
