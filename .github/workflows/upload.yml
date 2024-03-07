@@ -14,6 +14,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   # create compressed tarballs and upload them to the published release
   upload:
@@ -23,30 +26,40 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        file-format: ['gz', 'bz2']
     env:
-      FILE_NAME: "${{ github.event.repository.name }}-${{ github.ref_name }}.tar.${{ matrix.file-format }}"
+      REPO_NAME: "${{ github.event.repository.name }}"
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Gzip Source
-        if: matrix.file-format == 'gz'
-        run: tar -cfzv ${{ env.FILE_NAME }} ${{ github.workspace }}
+      - name: Archive Source
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
 
-      - name: Bzip2 Source
-        if: matrix.file-format == 'bz2'
-        run: tar -cfjv ${{ env.FILE_NAME }} ${{ github.workspace }}
+          echo ::group::Creating gzip archive
+          export ARCHIVE_NAME="$RUNNER_TEMP/release/$REPO_NAME-$GITHUB_REF_NAME.tar"
+          tar \
+          --dereference --hard-dereference \
+          --directory "$GITHUB_WORKSPACE" \
+          -cvzf "$ARCHIVE_NAME.gz" \
+          .
+          sha256sum "$ARCHIVE_NAME.gz" | awk '{print $1}' > "$ARCHIVE_NAME.gz.sha256sum"
+          echo ::endgroup::
 
-      - name: Run sha256sum
-        run: sha256sum ${{ env.FILE_NAME }} > "${{ env.FILE_NAME }}.sha256sum"
+          echo ::group::Creating bz2 archive
+          tar \
+          --dereference --hard-dereference \
+          --directory "$GITHUB_WORKSPACE" \
+          -cvjf "$ARCHIVE_NAME.bz2" \
+          .
+          sha256sum "$ARCHIVE_NAME.bz2" | awk '{print $1}' > "$ARCHIVE_NAME.bz2.sha256sum"
+          echo ::endgroup::
 
-      - name: Upload Release
-        run: gh release
-          upload
-          --clobber "${{ github.ref_name }}"
-          --repo "${{ github.repository }}"
-          "${{ env.FILE_NAME }}"
-          "${{ env.FILE_NAME }}.sha256sum"
+      - name: Upload Archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload \
+          --clobber "$GITHUB_REF_NAME" \
+          --repo "$GITHUB_REPOSITORY" \
+          $RUNNER_TEMP/release/*
