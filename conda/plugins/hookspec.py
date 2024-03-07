@@ -323,8 +323,9 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_settings():
+               name = "example_option"
                yield plugins.CondaSetting(
-                   name="example_option",
+                   name=name,
                    description="This is an example option",
                    parameter=PrimitiveParameter(name, element_type=str),
                    aliases=("example_option_alias",),
