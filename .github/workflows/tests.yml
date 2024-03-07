@@ -597,12 +597,3 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
-
-      - name: Reset checkout
-        run: git clean -ffdx && git reset --hard HEAD
-
-      - name: Compress checkout
-        run: tar -czf ${{ github.event.repository.name }}-${{ github.ref_name }}.tar.gz .
-
-      - name: Upload
-        run: gh release upload ${{ github.ref_name }} ${{ github.event.repository.name }}-${{ github.ref_name }}.tar.gz --clobber
