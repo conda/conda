@@ -27,39 +27,22 @@ jobs:
     strategy:
       fail-fast: true
     env:
-      REPO_NAME: "${{ github.event.repository.name }}"
+      ARCHIVE_NAME: "${{ github.event.repository.name }}-${{ github.ref_name }}"
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
       - name: Archive Source
         run: |
-          mkdir -p "$RUNNER_TEMP/release"
+          mkdir -p release
+          git archive --prefix="${{ env.ARCHIVE_NAME }}/" --output "release/${{ env.ARCHIVE_NAME }}.tar.gz" HEAD
+          sha256sum "release/${{ env.ARCHIVE_NAME }}.tar.gz" | awk '{print $1}' > "release/${{ env.ARCHIVE_NAME }}.tar.gz.sha256sum"
 
-          echo ::group::Creating gzip archive
-          export ARCHIVE_NAME="$RUNNER_TEMP/release/$REPO_NAME-$GITHUB_REF_NAME.tar"
-          tar \
-          --dereference --hard-dereference \
-          --directory "$GITHUB_WORKSPACE" \
-          -cvzf "$ARCHIVE_NAME.gz" \
-          .
-          sha256sum "$ARCHIVE_NAME.gz" | awk '{print $1}' > "$ARCHIVE_NAME.gz.sha256sum"
-          echo ::endgroup::
-
-          echo ::group::Creating bz2 archive
-          tar \
-          --dereference --hard-dereference \
-          --directory "$GITHUB_WORKSPACE" \
-          -cvjf "$ARCHIVE_NAME.bz2" \
-          .
-          sha256sum "$ARCHIVE_NAME.bz2" | awk '{print $1}' > "$ARCHIVE_NAME.bz2.sha256sum"
-          echo ::endgroup::
-
-      - name: Upload Archives
+      - name: Upload Archive
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload \
-          --clobber "$GITHUB_REF_NAME" \
-          --repo "$GITHUB_REPOSITORY" \
-          $RUNNER_TEMP/release/*
+          --clobber "${{ github.ref_name }}" \
+          --repo "${{ github.repository }}" \
+          release/*
