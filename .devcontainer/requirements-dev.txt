@@ -1,0 +1,2 @@
+esbonio
+conda-forge::pre-commit
