@@ -9,5 +9,3 @@ RUN umask 0002 \
     --file=/tmp/conda-tmp/requirements-ci.txt \
     --file=/tmp/conda-tmp/requirements-Linux.txt \
     && rm -rf /tmp/conda-tmp
-
-RUN /bin/bash -c /opt/conda/bin/python -m conda init --dev bash
