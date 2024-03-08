@@ -326,7 +326,7 @@ class CondaSpecs:
                yield plugins.CondaSetting(
                    name="example_option",
                    description="This is an example option",
-                   parameter=PrimitiveParameter(name, element_type=str),
+                   parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
         """

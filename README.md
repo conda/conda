@@ -9,7 +9,6 @@
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
 
 [![Tests (GitHub Actions)][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml)
-[![Images (GitHub Actions)][images-badge]](https://github.com/conda/conda/actions/workflows/images.yml)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
 [![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
 [![latest release version][release-badge]](https://github.com/conda/conda/releases)

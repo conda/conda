@@ -35,11 +35,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from re import Match
     from typing import Any, Hashable, Iterable, Sequence
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
-
+from boltons.setutils import IndexedSet
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError

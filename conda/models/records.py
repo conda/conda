@@ -16,10 +16,7 @@ from __future__ import annotations
 
 from os.path import basename, join
 
-try:
-    from boltons.timeutils import dt_to_timestamp, isoparse
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
+from boltons.timeutils import dt_to_timestamp, isoparse
 
 from ..auxlib.entity import (
     BooleanField,

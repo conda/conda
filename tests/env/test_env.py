@@ -18,15 +18,10 @@ from conda.env.env import (
     from_environment,
     from_file,
 )
-from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
+from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
-
-# Note: The conda_env module will be deprecated in 25.3,
-#       this is the only place that the load_from_directory function
-#       utilized in the codebase.
-from conda_env.env import load_from_directory
 
 from . import support_file
 from .utils import make_temp_envs_dir
@@ -300,49 +295,6 @@ def test_invalid_keys():
     e_dict = e.to_dict()
     assert "name" in e_dict
     assert len(e_dict) == 1
-
-
-@pytest.mark.parametrize(
-    "directory",
-    ["example", "example-yaml", "foo/bar", "foo/bar/baz", "foo/bar/baz/"],
-)
-def test_load_from_directory(directory: str):
-    env = load_from_directory(support_file(directory))
-
-    assert isinstance(env, Environment)
-    assert "test" == env.name
-    assert len(env.dependencies["conda"]) == 1
-    assert "numpy" in env.dependencies["conda"]
-
-
-def test_raises_when_unable_to_find():
-    with pytest.raises(EnvironmentFileNotFound):
-        load_from_directory("/path/to/unknown/env-spec")
-
-
-def test_raised_exception_has_environment_yml_as_file():
-    with pytest.raises(EnvironmentFileNotFound) as err:
-        load_from_directory("/path/to/unknown/env-spec")
-    assert err.value.filename == "environment.yml"
-
-
-def test_load_from_directory_and_save(tmp_path: Path):
-    original = Path(support_file("saved-env/environment.yml")).read_text()
-
-    tmp = tmp_path / "environment.yml"
-    tmp.write_text(original)
-
-    env = load_from_directory(tmp)
-
-    assert len(env.dependencies["conda"]) == 1
-    assert "numpy" not in env.dependencies["conda"]
-
-    env.dependencies.add("numpy")
-    env.save()
-
-    new_env = load_from_directory(tmp)
-    assert len(new_env.dependencies["conda"]) == 2
-    assert "numpy" in new_env.dependencies["conda"]
 
 
 def test_creates_file_on_save(tmp_path: Path):

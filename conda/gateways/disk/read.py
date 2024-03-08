@@ -27,7 +27,6 @@ from ...common.pkg_formats.python import (
     PythonEggLinkDistribution,
     PythonInstalledDistribution,
 )
-from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PackageType, PathType
@@ -68,13 +67,6 @@ def yield_lines(path):
             raise
 
 
-@deprecated(
-    "23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead."
-)
-def _digest_path(algo: Literal["md5", "sha256"], path: str | os.PathLike) -> str:
-    return compute_sum(path, algo)
-
-
 def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
     path = Path(path)
     if not path.is_file():
@@ -86,24 +78,6 @@ def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
         for chunk in iter(partial(fh.read, 8192), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
-)
-def compute_md5sum(path: str | os.PathLike) -> str:
-    return compute_sum(path, "md5")
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead.',
-)
-def compute_sha256sum(path: str | os.PathLike) -> str:
-    return compute_sum(path, "sha256")
 
 
 # ####################################################

@@ -3,9 +3,6 @@
 import json
 from os.path import isdir
 
-from pytest import MonkeyPatch
-
-from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.testing import CondaCLIFixture
 
@@ -98,37 +95,3 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "root_writable",
         "solver",
     } <= set(parsed)
-
-
-# DEPRECATED: conda info PACKAGE --json
-def test_info_conda_json(conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch):
-    stdout, _, _ = conda_cli("info", "conda", "--json")
-    parsed = json.loads(stdout.strip())
-    assert isinstance(parsed, dict)
-    assert "conda" in parsed
-    assert isinstance(parsed["conda"], list)
-
-    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
-    reset_context()
-    # assert context.channels == ("defaults",)
-
-    stdout, _, _ = conda_cli(
-        "info",
-        "pkgs/main::itsdangerous=2.0.0=pyhd3eb1b0_0",
-        "--json",
-    )
-    parsed = json.loads(stdout.strip())
-    assert set(parsed.keys()) == {"pkgs/main::itsdangerous=2.0.0=pyhd3eb1b0_0"}
-    assert len(parsed["pkgs/main::itsdangerous=2.0.0=pyhd3eb1b0_0"]) == 1
-    assert isinstance(parsed["pkgs/main::itsdangerous=2.0.0=pyhd3eb1b0_0"], list)
-
-    stdout, _, _ = conda_cli("info", "pkgs/main::itsdangerous", "--json")
-    parsed = json.loads(stdout.strip())
-    assert set(parsed.keys()) == {"pkgs/main::itsdangerous"}
-    assert len(parsed["pkgs/main::itsdangerous"]) > 1
-    assert isinstance(parsed["pkgs/main::itsdangerous"], list)
-
-
-def test_info_python_output(conda_cli: CondaCLIFixture):
-    stdout, _, _ = conda_cli("info", "python=3.9")
-    assert "python 3.9.18" in stdout

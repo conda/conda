@@ -14,10 +14,7 @@ import sys
 from collections import defaultdict
 from logging import getLogger
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from ._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context

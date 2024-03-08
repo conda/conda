@@ -1,10 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import json
 from logging import getLogger
 from os.path import join
 from pathlib import Path
-from socket import socket
 from time import sleep
 
 import pytest
@@ -13,11 +11,7 @@ from conda import CondaError
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
-from conda.core.subdir_data import (
-    SubdirData,
-    cache_fn_url,
-    fetch_repodata_remote_request,
-)
+from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
 from conda.exports import url_path
 from conda.gateways.repodata import (
@@ -145,25 +139,6 @@ def test_cache_fn_url_repo_anaconda_com():
 
     hash6 = cache_fn_url("https://repo.anaconda.com/pkgs/r/osx-64")
     assert hash4 != hash6
-
-
-def test_fetch_repodata_remote_request_invalid_arch():
-    # see https://github.com/conda/conda/issues/8150
-    url = "file:///fake/fake/fake/linux-64"
-    etag = None
-    mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
-    result = fetch_repodata_remote_request(url, etag, mod_stamp)
-    assert result is None
-
-
-def test_fetch_repodata_remote_request(package_server: socket):
-    """Check legacy interface."""
-    host, port = package_server.getsockname()
-    base = f"http://{host}:{port}/test"
-    url = f"{base}/osx-64"
-
-    response = fetch_repodata_remote_request(url, "etag", "modstamp")
-    assert "packages" in json.loads(response)
 
 
 def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):

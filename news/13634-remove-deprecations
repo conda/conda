@@ -1,0 +1,56 @@
+### Enhancements
+
+* Add `conda.testing.tmp_channel` pytest fixture to create a temporary local channel for testing. (#13634)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.testing.integration.make_temp_channel` as pending deprecation. Use `conda.testing.tmp_channel` fixture instead. (#13634)
+* Mark `conda.testing.integration.running_a_python_capable_of_unicode_subprocessing` as pending deprecation. (#13634)
+* Mark `conda.testing.integration.set_tmpdir` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration._get_temp_prefix` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration.make_temp_prefix` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration.FORCE_temp_prefix` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration.create_temp_location` as pending deprecation. Use `tmp_path` or `conda.testing.path_factory` instead. (#13634)
+* Mark `conda.testing.integration.tempdir` as pending deprecation. Use `tmp_path` or `conda.testing.path_factory` instead. (#13634)
+* Mark `conda.testing.integration.reload_config` as pending deprecation. Use `conda.base.context.reset_context` instead. (#13634)
+* Postpone `conda.base.context.Context.conda_exe` deprecation to `conda 24.9`. (#13634)
+* Postpone `conda.testing.integration.run_command` deprecation to `conda 25.3`. (#13634)
+* Postpone loading subcommands from executables deprecation to `conda 25.3`. (#13634)
+* Remove vendored `conda._vendor.boltons`. Use `boltons` package instead. (#12681 via #13634)
+* Remove `conda.auxlib.packaging`. Use a modern build systems instead, see https://packaging.python.org/en/latest/tutorials/ packaging-projects#creating-pyproject-toml for more details. (#12681 via #13634)
+* Remove `conda env create --force`. Use `conda env create --yes` instead. (#12681 via #13634)
+* Remove `conda info PACKAGE`. Use `conda search PACKAGE --info` instead. (#12681 via #13634)
+* Remove `conda.core.subdir_data.fetch_repodata_remote_request`. Use `conda.core.subdir_data.SubdirData.repo_fetch.fetch_latest_parsed` instead." (#12681 via #13634)
+* Remove `conda.exports.memoized`. Use `functools.lru_cache` instead. (#12681 via #13634)
+* Remove `conda.gateways.disk.read._digest_path`. Use `conda.gateways.disk.read.compute_sum` instead. (#12681 via #13634)
+* Remove `conda.gateways.disk.read.compute_md5sum`. Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead. (#12681 via #13634)
+* Remove `conda.gateways.disk.read.compute_sha256sum`. Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead. (#12681 via #13634)
+* Remove `conda.instructions.PREFIX`. (#12681 via #13634)
+* Remove `conda.instructions.PREFIX_CMD`. (#12681 via #13634)
+* Remove `conda.testing.encode_for_env_var`. (#12681 via #13634)
+* Remove `conda.testing.conda_check_versions_aligned`. (#12681 via #13634)
+* Remove `conda.testing.helpers.run_inprocess_conda_command`. Use `conda.testing.tmp_env` instead. (#12681 via #13634)
+* Remove `conda.testing.helpers.capture_json_with_argv`. (#12681 via #13634)
+* Remove `conda.testing.integration.get_conda_list_tuple`. Use `conda.core.prefix_data.PrefixData.get` instead. (#12681 via #13634)
+* Remove `conda.utils.md5_file`. Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead. (#12681 via #13634)
+* Remove `conda.utils.hashsum_file`. Use `conda.gateways.disk.read.compute_sum` instead. (#12681 via #13634)
+* Remove `conda.utils.safe_open`. Use `open` instead. (#12681 via #13634)
+* Remove `python -m conda_env`. Use `conda env` or `python -m conda env` instead. (#12681 via #13634)
+* Remove `conda_env.env.load_from_directory`. (#12681 via #13634)
+* Remove `conda_env.pip_util.get_pip_version`. (#12681 via #13634)
+* Remove `conda_env.pip_util.PipPackage`. (#12681 via #13634)
+* Remove `conda_env.pip_util.installed`. (#12681 via #13634)
+* Remove `conda_env.pip_util._canonicalize_name`. (#12681 via #13634)
+* Remove `conda_env.pip_util.add_pip_installed`. (#12681 via #13634)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

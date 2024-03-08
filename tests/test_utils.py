@@ -239,31 +239,3 @@ def test_ensure_dir_errors():
             get_test_dir()
 
     assert exc_message in str(exc_info.value)
-
-
-def test_safe_open(tmpdir):
-    """Ensures this context manager open and closes files appropriately."""
-    new_file = Path(tmpdir).joinpath("test.file")
-    content = "test"
-
-    with utils.safe_open(new_file, "w") as fp:
-        fp.write(content)
-
-    assert fp.closed
-
-    written_content = new_file.read_text()
-
-    assert written_content == content
-
-
-def test_safe_open_errors():
-    """Test to ensure correct error handling."""
-    exc_message = "Test!"
-
-    with patch("conda.utils.open") as mock_open:
-        mock_open.side_effect = OSError(exc_message)
-
-        with pytest.raises(CondaError) as exc_info, utils.safe_open("test", "w"):
-            pass
-
-        assert exc_message in str(exc_info.value)
