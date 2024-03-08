@@ -226,7 +226,7 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
-      - name: Install Alternative Shells
+      - name: Install Shells
         # for conda activate tests
         run: sudo apt update && sudo apt install ash csh fish tcsh zsh
 
@@ -465,7 +465,7 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
-      - name: Install Alternative Shells
+      - name: Install Shells
         # for conda activate tests
         run: brew update && brew install fish
 
