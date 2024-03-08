@@ -1,8 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import hashlib
 from logging import getLogger
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -26,7 +29,9 @@ from conda.gateways.connection.session import (
 from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
-from conda.testing.integration import make_temp_env
+
+if TYPE_CHECKING:
+    from conda.testing import TmpEnvFixture
 
 log = getLogger(__name__)
 
@@ -80,18 +85,18 @@ def test_local_file_adapter_200():
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
 @pytest.mark.integration
-def test_s3_server(minio_s3_server):
+def test_s3_server(minio_s3_server, tmp_env: TmpEnvFixture):
     endpoint = minio_s3_server.endpoint
     bucket_name = minio_s3_server.name
     channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"
 
     minio_s3_server.populate_bucket(endpoint, bucket_name, channel_dir)
 
-    inner_s3_test(endpoint, bucket_name)
+    inner_s3_test(tmp_env, endpoint, bucket_name)
 
 
 @pytest.mark.integration
-def test_s3_server_with_mock(package_server):
+def test_s3_server_with_mock(package_server, tmp_env: TmpEnvFixture):
     """
     Use boto3 to fetch from a mock s3 server pointing at the test package
     repository. This works since conda only GET's against s3 and s3 is http.
@@ -100,10 +105,10 @@ def test_s3_server_with_mock(package_server):
     endpoint_url = f"http://{host}:{port}"
     bucket_name = "test"
 
-    inner_s3_test(endpoint_url, bucket_name)
+    inner_s3_test(tmp_env, endpoint_url, bucket_name)
 
 
-def inner_s3_test(endpoint_url, bucket_name):
+def inner_s3_test(tmp_env: TmpEnvFixture, endpoint_url, bucket_name):
     """
     Called by functions that build a populated s3 server.
 
@@ -135,16 +140,14 @@ def inner_s3_test(endpoint_url, bucket_name):
             with env_vars(
                 {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"}
             ):
-                with make_temp_env(
+                with tmp_env(
                     "--override-channels",
                     f"--channel=s3://{bucket_name}",
                     "--download-only",
                     "--no-deps",  # this fake repo only includes the zlib tarball
                     "zlib",
-                    use_exception_handler=False,
-                    no_capture=True,
                 ):
-                    # we just want to run make_temp_env and cleanup after
+                    # we just want to run tmp_env and cleanup after
                     pass
 
 
