@@ -21,7 +21,7 @@ jobs:
   # create source archive and upload it to the published release
   # URL to the archive: https://github.com/conda/<repo>/releases/download/<tag>/<repo>-<tag>.tar.gz
   upload:
-    if: !github.event.repository.fork
+    if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
