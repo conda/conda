@@ -78,6 +78,7 @@ jobs:
             python-version: '3.8'
           - test-type: unit
             test-group: 3
+          - test-type: integration
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
@@ -179,6 +180,7 @@ jobs:
             default-channel: conda-forge
           - test-type: unit
             test-group: 3
+          - test-type: integration
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -410,6 +412,7 @@ jobs:
             test-type: unit
           - test-type: unit
             test-group: 3
+          - test-type: integration
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
