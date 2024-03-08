@@ -25,15 +25,15 @@ requirements:
   host:
     - python
     - pip
-    - boltons >=23.0.0
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
+    - wheel
     # for `conda init` in build/script above
+    - boltons >=23.0.0
     - menuinst >=2
     - requests >=2.28.0,<3
     - ruamel.yaml >=0.11.14,<0.19
     - tqdm >=4
-    - wheel
   run:
     - archspec >=0.2.3
     - boltons >=23.0.0
