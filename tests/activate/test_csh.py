@@ -6,8 +6,12 @@ import pytest
 
 from conda.common.compat import on_win
 
-pytestmark = pytest.mark.skipif(on_win, reason="csh is not available on Windows")
 
-
+@pytest.mark.skipif(on_win, reason="csh is not available on Windows")
 def test_csh_available():
     assert which("csh")
+
+
+@pytest.mark.skipif(on_win, reason="tcsh is not available on Windows")
+def test_tcsh_available():
+    assert which("tcsh")
