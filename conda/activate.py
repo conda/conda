@@ -61,11 +61,11 @@ if TYPE_CHECKING:
         PATH: str
 
     class Builder(TypedDict):
-        unset_vars: tuple[str, ...]
+        unset_vars: list[str]
         set_vars: dict[str, str]
         export_vars: dict[str, str]
-        deactivate_scripts: tuple[str, ...]
-        activate_scripts: tuple[str, ...]
+        deactivate_scripts: list[str]
+        activate_scripts: list[str]
         export_path: NotRequired[BuilderExportPath]
 
 
@@ -124,18 +124,18 @@ class _Activator(metaclass=abc.ABCMeta):
 
     @overload
     @staticmethod
-    def path_conversion(paths: Iterable[str]) -> tuple[str, ...]:
+    def path_conversion(paths: Iterable[str]) -> list[str]:
         ...
 
     @staticmethod
     def path_conversion(
         paths: None | str | Iterable[str],
-    ) -> None | str | tuple[str, ...]:
+    ) -> None | str | list[str]:
         return path_identity(paths)
 
     def get_export_unset_vars(
         self, export_metavars: bool = True, /, **kwargs: str
-    ) -> tuple[dict[str, str], tuple[str, ...]]:
+    ) -> tuple[dict[str, str], list[str]]:
         """
         :param export_metavars: whether to export `conda_exe_vars` meta variables.
         :param kwargs: environment variables to export.
@@ -168,16 +168,16 @@ class _Activator(metaclass=abc.ABCMeta):
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)
 
-        return export_vars, tuple(unset_vars)
+        return export_vars, unset_vars
 
     @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
     def add_export_unset_vars(
         self, export_vars: Mapping[str, str], unset_vars: Iterable[str], **kwargs: str
-    ) -> tuple[dict[str, str], tuple[str, ...]]:
+    ) -> tuple[dict[str, str], list[str]]:
         new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
         return (
             {**(export_vars or {}), **new_export_vars},
-            (*(unset_vars or ()), *new_unset_vars),
+            [*(unset_vars or []), *new_unset_vars],
         )
 
     @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
@@ -188,7 +188,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
             ),
             self.command_join.join(
-                self.unset_var_tmpl % (k) for k in (unset_vars or ())
+                self.unset_var_tmpl % (k) for k in (unset_vars or [])
             ),
         )
 
@@ -439,6 +439,7 @@ class _Activator(metaclass=abc.ABCMeta):
         for name in clobber_vars:
             env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
 
+        deactivate_scripts: list[str]
         if old_conda_shlvl == 0:
             export_vars, unset_vars = self.get_export_unset_vars(
                 path=self.pathsep_join(self._add_prefix_to_path(prefix)),
@@ -448,7 +449,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 conda_prompt_modifier=conda_prompt_modifier,
                 **env_vars,
             )
-            deactivate_scripts = ()
+            deactivate_scripts = []
         elif stack:
             export_vars, unset_vars = self.get_export_unset_vars(
                 path=self.pathsep_join(self._add_prefix_to_path(prefix)),
@@ -462,7 +463,7 @@ class _Activator(metaclass=abc.ABCMeta):
                     f"CONDA_STACKED_{conda_shlvl}": "true",
                 },
             )
-            deactivate_scripts = ()
+            deactivate_scripts = []
         else:
             export_vars, unset_vars = self.get_export_unset_vars(
                 path=self.pathsep_join(
@@ -499,11 +500,11 @@ class _Activator(metaclass=abc.ABCMeta):
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
-                "unset_vars": (),
+                "unset_vars": [],
                 "set_vars": {},
                 "export_vars": {},
-                "deactivate_scripts": (),
-                "activate_scripts": (),
+                "deactivate_scripts": [],
+                "activate_scripts": [],
             }
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         old_conda_environment_env_vars = self._get_environment_env_vars(
@@ -512,6 +513,8 @@ class _Activator(metaclass=abc.ABCMeta):
 
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars: dict[str, str] = {}
+        unset_vars: list[str]
+        activate_scripts: list[str]
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(
                 self._remove_prefix_from_path(old_conda_prefix)
@@ -530,7 +533,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 conda_prompt_modifier=None,
             )
             conda_prompt_modifier = ""
-            activate_scripts = ()
+            activate_scripts = []
             export_path = new_path
         else:
             assert old_conda_shlvl > 1
@@ -588,11 +591,11 @@ class _Activator(metaclass=abc.ABCMeta):
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
-                "unset_vars": (),
+                "unset_vars": [],
                 "set_vars": {},
                 "export_vars": {},
-                "deactivate_scripts": (),
-                "activate_scripts": (),
+                "deactivate_scripts": [],
+                "activate_scripts": [],
             }
         conda_default_env = os.getenv(
             "CONDA_DEFAULT_ENV", self._default_env(conda_prefix)
@@ -605,7 +608,7 @@ class _Activator(metaclass=abc.ABCMeta):
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
-        env_vars_to_unset = ()
+        env_vars_to_unset = []
         env_vars_to_export = {
             "PATH": new_path,
             "CONDA_SHLVL": conda_shlvl,
@@ -616,7 +619,7 @@ class _Activator(metaclass=abc.ABCMeta):
         conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
         for k, v in conda_environment_env_vars.items():
             if v == CONDA_ENV_VARS_UNSET_VAR:
-                env_vars_to_unset = env_vars_to_unset + (k,)
+                env_vars_to_unset.append(k)
             else:
                 env_vars_to_export[k] = v
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
@@ -792,7 +795,7 @@ class _Activator(metaclass=abc.ABCMeta):
         else:
             return ""
 
-    def _get_activate_scripts(self, prefix: str) -> tuple[str, ...]:
+    def _get_activate_scripts(self, prefix: str) -> list[str]:
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
@@ -801,12 +804,12 @@ class _Activator(metaclass=abc.ABCMeta):
                 for entry in os.scandir(join(prefix, "etc", "conda", "activate.d"))
             )
         except OSError:
-            return ()
+            return []
         return self.path_conversion(
             sorted(p for p in paths if p[se_len:] == _script_extension)
         )
 
-    def _get_deactivate_scripts(self, prefix: str) -> tuple[str, ...]:
+    def _get_deactivate_scripts(self, prefix: str) -> list[str]:
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
@@ -815,7 +818,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 for entry in os.scandir(join(prefix, "etc", "conda", "deactivate.d"))
             )
         except OSError:
-            return ()
+            return []
         return self.path_conversion(
             sorted((p for p in paths if p[se_len:] == _script_extension), reverse=True)
         )
@@ -874,8 +877,8 @@ def ensure_fs_path_encoding(value):
 
 
 def native_path_to_unix(
-    paths: str | Iterable[str] | None,
-) -> str | tuple[str, ...] | None:
+    paths: None | str | Iterable[str],
+) -> None | str | list[str]:
     if paths is None:
         return None
     elif not on_win:
@@ -937,24 +940,24 @@ def native_path_to_unix(
         return tuple(unix_path.split(":"))
 
 
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
+def path_identity(paths: None | str | Iterable[str]) -> None | str | list[str]:
     if paths is None:
         return None
     elif isinstance(paths, str):
         return os.path.normpath(paths)
     else:
-        return tuple(os.path.normpath(path) for path in paths)
+        return [os.path.normpath(path) for path in paths]
 
 
 def backslash_to_forwardslash(
-    paths: str | Iterable[str] | None,
-) -> str | tuple[str, ...] | None:
+    paths: None | str | Iterable[str],
+) -> None | str | list[str]:
     if paths is None:
         return None
     elif isinstance(paths, str):
         return paths.replace("\\", "/")
     else:
-        return tuple([path.replace("\\", "/") for path in paths])
+        return [path.replace("\\", "/") for path in paths]
 
 
 class _NativeToUnixActivator(_Activator):
@@ -970,13 +973,13 @@ class _NativeToUnixActivator(_Activator):
 
     @overload
     @staticmethod
-    def path_conversion(paths: Iterable[str]) -> tuple[str, ...]:
+    def path_conversion(paths: Iterable[str]) -> list[str]:
         ...
 
     @staticmethod
     def path_conversion(
         paths: None | str | Iterable[str],
-    ) -> None | str | tuple[str, ...]:
+    ) -> None | str | list[str]:
         return native_path_to_unix(paths)
 
 
@@ -995,13 +998,13 @@ class _BackslashToForwardslashActivator(_Activator):
 
         @overload
         @staticmethod
-        def path_conversion(paths: Iterable[str]) -> tuple[str, ...]:
+        def path_conversion(paths: Iterable[str]) -> list[str]:
             ...
 
         @staticmethod
         def path_conversion(
             paths: None | str | Iterable[str],
-        ) -> None | str | tuple[str, ...]:
+        ) -> None | str | list[str]:
             return backslash_to_forwardslash(paths)
 
 
