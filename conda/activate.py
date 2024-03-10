@@ -45,7 +45,29 @@ from .common.path import paths_equal
 from .deprecations import deprecated
 
 if TYPE_CHECKING:
-    from collections.abc import Any, Callable, Iterable, Iterator
+    from typing import (
+        Any,
+        Callable,
+        Iterable,
+        Iterator,
+        Mapping,
+        NoReturn,
+        NotRequired,
+        Sequence,
+        TypedDict,
+    )
+
+    class BuilderExportPath(TypedDict):
+        PATH: str
+
+    class Builder(TypedDict):
+        unset_vars: tuple[str, ...]
+        set_vars: dict[str, str]
+        export_vars: dict[str, str]
+        deactivate_scripts: tuple[str, ...]
+        activate_scripts: tuple[str, ...]
+        export_path: NotRequired[BuilderExportPath]
+
 
 log = getLogger(__name__)
 
@@ -102,16 +124,18 @@ class _Activator(metaclass=abc.ABCMeta):
 
     @overload
     @staticmethod
-    def path_conversion(paths: Iterable[str]) -> Iterable[str]:
+    def path_conversion(paths: Iterable[str]) -> tuple[str, ...]:
         ...
 
     @staticmethod
     def path_conversion(
         paths: None | str | Iterable[str],
-    ) -> None | str | Iterable[str]:
+    ) -> None | str | tuple[str, ...]:
         return path_identity(paths)
 
-    def get_export_unset_vars(self, export_metavars=True, **kwargs):
+    def get_export_unset_vars(
+        self, export_metavars: bool = True, /, **kwargs: str
+    ) -> tuple[dict[str, str], tuple[str, ...]]:
         """
         :param export_metavars: whether to export `conda_exe_vars` meta variables.
         :param kwargs: environment variables to export.
@@ -144,30 +168,29 @@ class _Activator(metaclass=abc.ABCMeta):
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)
 
-        return export_vars, unset_vars
+        return export_vars, tuple(unset_vars)
 
     # Used in tests only.
-    def add_export_unset_vars(self, export_vars, unset_vars, **kwargs):
+    def add_export_unset_vars(
+        self, export_vars: Mapping[str, str], unset_vars: Iterable[str], **kwargs: str
+    ) -> tuple[dict[str, str], tuple[str, ...]]:
         new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
-        if export_vars is not None:
-            export_vars = {**export_vars, **new_export_vars}
-        if unset_vars is not None:
-            unset_vars = [*unset_vars, *new_unset_vars]
-        return export_vars, unset_vars
+        return (
+            {**(export_vars or {}), **new_export_vars},
+            (*(unset_vars or ()), *new_unset_vars),
+        )
 
     # Used in tests only.
-    def get_scripts_export_unset_vars(self, **kwargs):
+    def get_scripts_export_unset_vars(self, **kwargs: str) -> tuple[str, str]:
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        script_export_vars = script_unset_vars = None
-        if export_vars:
-            script_export_vars = self.command_join.join(
-                [self.export_var_tmpl % (k, v) for k, v in export_vars.items()]
-            )
-        if unset_vars:
-            script_unset_vars = self.command_join.join(
-                [self.unset_var_tmpl % (k) for k in unset_vars]
-            )
-        return script_export_vars or "", script_unset_vars or ""
+        return (
+            self.command_join.join(
+                self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
+            ),
+            self.command_join.join(
+                self.unset_var_tmpl % (k) for k in (unset_vars or ())
+            ),
+        )
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
@@ -249,8 +272,8 @@ class _Activator(metaclass=abc.ABCMeta):
     def _hook_postamble(self) -> str | None:
         return None
 
-    def _parse_and_set_args(self, arguments):
-        def raise_invalid_command_error(actual_command=None):
+    def _parse_and_set_args(self, arguments: Sequence[str] | None) -> None:
+        def raise_invalid_command_error(actual_command: str | None = None) -> NoReturn:
             from .exceptions import ArgumentError
 
             message = (
@@ -261,7 +284,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 message += ". Instead got '%s'." % actual_command
             raise ArgumentError(message)
 
-        if arguments is None or len(arguments) < 1:
+        if not arguments:
             raise_invalid_command_error()
 
         command, *arguments = arguments
@@ -344,7 +367,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
         self.command = command
 
-    def _yield_commands(self, cmds_dict):
+    def _yield_commands(self, cmds_dict: Builder) -> Iterator[str]:
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
             yield self.export_var_tmpl % (key, value)
 
@@ -363,13 +386,13 @@ class _Activator(metaclass=abc.ABCMeta):
         for script in cmds_dict.get("activate_scripts", ()):
             yield self.run_script_tmpl % script
 
-    def build_activate(self, env_name_or_prefix):
+    def build_activate(self, env_name_or_prefix: str) -> Builder:
         return self._build_activate_stack(env_name_or_prefix, False)
 
-    def build_stack(self, env_name_or_prefix):
+    def build_stack(self, env_name_or_prefix: str) -> Builder:
         return self._build_activate_stack(env_name_or_prefix, True)
 
-    def _build_activate_stack(self, env_name_or_prefix, stack):
+    def _build_activate_stack(self, env_name_or_prefix: str, stack: bool) -> Builder:
         # get environment prefix
         if re.search(r"\\|/", env_name_or_prefix):
             prefix = expand(env_name_or_prefix)
@@ -456,7 +479,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
-        set_vars = {}
+        set_vars: dict[str, str] = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
@@ -468,7 +491,7 @@ class _Activator(metaclass=abc.ABCMeta):
             "activate_scripts": activate_scripts,
         }
 
-    def build_deactivate(self):
+    def build_deactivate(self) -> Builder:
         self._deactivate = True
         # query environment
         old_conda_prefix = os.getenv("CONDA_PREFIX")
@@ -488,7 +511,7 @@ class _Activator(metaclass=abc.ABCMeta):
         )
 
         new_conda_shlvl = old_conda_shlvl - 1
-        set_vars = {}
+        set_vars: dict[str, str] = {}
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(
                 self._remove_prefix_from_path(old_conda_prefix)
@@ -508,9 +531,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             conda_prompt_modifier = ""
             activate_scripts = ()
-            export_path = {
-                "PATH": new_path,
-            }
+            export_path = new_path
         else:
             assert old_conda_shlvl > 1
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
@@ -540,9 +561,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 **new_conda_environment_env_vars,
             )
             unset_vars += unset_vars2
-            export_path = {
-                "PATH": new_path,
-            }
+            export_path = new_path
             activate_scripts = self._get_activate_scripts(new_prefix)
 
         if context.changeps1:
@@ -557,12 +576,12 @@ class _Activator(metaclass=abc.ABCMeta):
             "unset_vars": unset_vars,
             "set_vars": set_vars,
             "export_vars": export_vars,
-            "export_path": export_path,
+            "export_path": {"PATH": export_path},
             "deactivate_scripts": deactivate_scripts,
             "activate_scripts": activate_scripts,
         }
 
-    def build_reactivate(self):
+    def build_reactivate(self) -> Builder:
         self._reactivate = True
         conda_prefix = os.getenv("CONDA_PREFIX")
         conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
@@ -581,7 +600,7 @@ class _Activator(metaclass=abc.ABCMeta):
         new_path = self.pathsep_join(
             self._replace_prefix_in_path(conda_prefix, conda_prefix)
         )
-        set_vars = {}
+        set_vars: dict[str, str] = {}
         conda_prompt_modifier = self._prompt_modifier(conda_prefix, conda_default_env)
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
@@ -716,15 +735,17 @@ class _Activator(metaclass=abc.ABCMeta):
 
         return tuple(path_list)
 
-    def _update_prompt(self, set_vars, conda_prompt_modifier):
+    def _update_prompt(
+        self, set_vars: dict[str, str], conda_prompt_modifier: str
+    ) -> None:
         pass
 
-    def _default_env(self, prefix):
+    def _default_env(self, prefix: str) -> str:
         if paths_equal(prefix, context.root_prefix):
             return "base"
         return basename(prefix) if basename(dirname(prefix)) == "envs" else prefix
 
-    def _prompt_modifier(self, prefix, conda_default_env):
+    def _prompt_modifier(self, prefix: str, conda_default_env: str) -> str:
         if context.changeps1:
             # Get current environment and prompt stack
             env_stack = []
@@ -771,7 +792,7 @@ class _Activator(metaclass=abc.ABCMeta):
         else:
             return ""
 
-    def _get_activate_scripts(self, prefix):
+    def _get_activate_scripts(self, prefix: str) -> tuple[str, ...]:
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
@@ -785,7 +806,7 @@ class _Activator(metaclass=abc.ABCMeta):
             sorted(p for p in paths if p[se_len:] == _script_extension)
         )
 
-    def _get_deactivate_scripts(self, prefix):
+    def _get_deactivate_scripts(self, prefix: str) -> tuple[str, ...]:
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
@@ -799,7 +820,7 @@ class _Activator(metaclass=abc.ABCMeta):
             sorted((p for p in paths if p[se_len:] == _script_extension), reverse=True)
         )
 
-    def _get_environment_env_vars(self, prefix):
+    def _get_environment_env_vars(self, prefix: str) -> dict[str, str]:
         env_vars_file = join(prefix, PREFIX_STATE_FILE)
         pkg_env_var_dir = join(prefix, PACKAGE_ENV_VARS_DIR)
         env_vars = {}
@@ -949,13 +970,13 @@ class _NativeToUnixActivator(_Activator):
 
     @overload
     @staticmethod
-    def path_conversion(paths: Iterable[str]) -> Iterable[str]:
+    def path_conversion(paths: Iterable[str]) -> tuple[str, ...]:
         ...
 
     @staticmethod
     def path_conversion(
         paths: None | str | Iterable[str],
-    ) -> None | str | Iterable[str]:
+    ) -> None | str | tuple[str, ...]:
         return native_path_to_unix(paths)
 
 
@@ -974,18 +995,18 @@ class _BackslashToForwardslashActivator(_Activator):
 
         @overload
         @staticmethod
-        def path_conversion(paths: Iterable[str]) -> Iterable[str]:
+        def path_conversion(paths: Iterable[str]) -> tuple[str, ...]:
             ...
 
         @staticmethod
         def path_conversion(
             paths: None | str | Iterable[str],
-        ) -> None | str | Iterable[str]:
+        ) -> None | str | tuple[str, ...]:
             return backslash_to_forwardslash(paths)
 
 
 class PosixActivator(_NativeToUnixActivator):
-    pathsep_join: Callable[[Iterable[str]], str] = ":".join
+    pathsep_join = ":".join
     sep = "/"
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
@@ -1004,7 +1025,9 @@ class PosixActivator(_NativeToUnixActivator):
         "conda.sh",
     )
 
-    def _update_prompt(self, set_vars, conda_prompt_modifier):
+    def _update_prompt(
+        self, set_vars: dict[str, str], conda_prompt_modifier: str
+    ) -> None:
         ps1 = os.getenv("PS1", "")
         if "POWERLINE_COMMAND" in ps1:
             # Defer to powerline (https://github.com/powerline/powerline) if it's in use.
@@ -1037,7 +1060,7 @@ class PosixActivator(_NativeToUnixActivator):
 
 
 class CshActivator(_NativeToUnixActivator):
-    pathsep_join: Callable[[Iterable[str]], str] = ":".join
+    pathsep_join = ":".join
     sep = "/"
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
@@ -1056,7 +1079,9 @@ class CshActivator(_NativeToUnixActivator):
         "conda.csh",
     )
 
-    def _update_prompt(self, set_vars, conda_prompt_modifier):
+    def _update_prompt(
+        self, set_vars: dict[str, str], conda_prompt_modifier: str
+    ) -> None:
         prompt = os.getenv("prompt", "")
         current_prompt_modifier = os.getenv("CONDA_PROMPT_MODIFIER")
         if current_prompt_modifier:
@@ -1089,7 +1114,7 @@ class CshActivator(_NativeToUnixActivator):
 
 
 class XonshActivator(_BackslashToForwardslashActivator):
-    pathsep_join: Callable[[Iterable[str]], str] = ";".join if on_win else ":".join
+    pathsep_join = ";".join if on_win else ":".join
     sep = "/"
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
@@ -1114,7 +1139,7 @@ class XonshActivator(_BackslashToForwardslashActivator):
 
 
 class CmdExeActivator(_Activator):
-    pathsep_join: Callable[[Iterable[str]], str] = ";".join
+    pathsep_join = ";".join
     sep = "\\"
     script_extension = ".bat"
     tempfile_extension = ".bat"
@@ -1135,7 +1160,7 @@ class CmdExeActivator(_Activator):
 
 
 class FishActivator(_NativeToUnixActivator):
-    pathsep_join: Callable[[Iterable[str]], str] = '" "'.join
+    pathsep_join = '" "'.join
     sep = "/"
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
@@ -1177,7 +1202,7 @@ class FishActivator(_NativeToUnixActivator):
 
 
 class PowerShellActivator(_Activator):
-    pathsep_join: Callable[[Iterable[str]], str] = ";".join if on_win else ":".join
+    pathsep_join = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
@@ -1227,11 +1252,11 @@ class PowerShellActivator(_Activator):
 class JSONFormatMixin(_Activator):
     """Returns the necessary values for activation as JSON, so that tools can use them."""
 
-    pathsep_join: Callable[[Iterable[str]], list[str]] = list
+    pathsep_join = list
     tempfile_extension = None  # output to stdout
     command_join = list
 
-    def _hook_preamble(self):
+    def _hook_preamble(self) -> dict[str, str]:
         if context.dev:
             return {
                 "PYTHONPATH": CONDA_SOURCE_ROOT,
@@ -1259,7 +1284,7 @@ class JSONFormatMixin(_Activator):
             script_unset_vars = unset_vars
         return script_export_vars or {}, script_unset_vars or []
 
-    def _finalize(self, commands, ext):
+    def _finalize(self, commands, ext: str | None) -> Any:
         merged = {}
         for _cmds in commands:
             merged.update(_cmds)
@@ -1276,7 +1301,7 @@ class JSONFormatMixin(_Activator):
         else:
             raise NotImplementedError()
 
-    def _yield_commands(self, cmds_dict):
+    def _yield_commands(self, cmds_dict: Builder) -> Iterator[dict]:
         # TODO: _Is_ defining our own object shape here any better than
         # just dumping the `cmds_dict`?
         path = cmds_dict.get("export_path", {})
@@ -1315,12 +1340,12 @@ activator_map: dict[str, type[_Activator]] = {
     "powershell": PowerShellActivator,
 }
 
-formatter_map = {
+formatter_map: dict[str, type[_Activator]] = {
     "json": JSONFormatMixin,
 }
 
 
-def _build_activator_cls(shell):
+def _build_activator_cls(shell: str) -> type[_Activator]:
     """Dynamically construct the activator class.
 
     Detect the base activator and any number of formatters (appended using '+' to the base name).
@@ -1330,9 +1355,11 @@ def _build_activator_cls(shell):
     shell_etc = shell.split("+")
     activator, formatters = shell_etc[0], shell_etc[1:]
 
-    bases = [activator_map[activator]]
-    for f in formatters:
-        bases.append(formatter_map[f])
-
-    cls = type("Activator", tuple(reversed(bases)), {})
-    return cls
+    return type(
+        "Activator",
+        (
+            *(formatter_map[formatter] for formatter in reversed(formatters)),
+            activator_map[activator],
+        ),
+        {},
+    )
