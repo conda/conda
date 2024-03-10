@@ -53,10 +53,11 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable, Literal
+    from typing import Callable, Iterable, Literal, Mapping
 
     from pytest import MonkeyPatch
 
+    from conda.activate import _Activator
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
@@ -399,6 +400,33 @@ def test_default_env(tmp_path: Path):
     assert prefix.name == activator._default_env(str(prefix))
 
 
+def add_export_unset_vars(
+    activator: _Activator,
+    export_vars: Mapping[str, str],
+    unset_vars: Iterable[str],
+    **kwargs: str,
+) -> tuple[dict[str, str], tuple[str, ...]]:
+    new_export_vars, new_unset_vars = activator.get_export_unset_vars(**kwargs)
+    return (
+        {**(export_vars or {}), **new_export_vars},
+        (*(unset_vars or ()), *new_unset_vars),
+    )
+
+
+def get_scripts_export_unset_vars(
+    activator: _Activator, **kwargs: str
+) -> tuple[str, str]:
+    export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
+    return (
+        activator.command_join.join(
+            activator.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
+        ),
+        activator.command_join.join(
+            activator.unset_var_tmpl % (k) for k in (unset_vars or ())
+        ),
+    )
+
+
 def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
@@ -412,7 +440,8 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
 
     activator = PosixActivator()
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "PATH": activator.pathsep_join(activator._add_prefix_to_path(prefix)),
             "CONDA_PREFIX": prefix,
@@ -453,7 +482,8 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
 
     activator = PosixActivator()
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "PATH": activator.pathsep_join(activator._add_prefix_to_path(prefix)),
             "CONDA_PREFIX": prefix,
@@ -489,7 +519,8 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
 
     activator = PosixActivator()
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "PATH": activator.pathsep_join(activator._add_prefix_to_path(prefix)),
             "CONDA_PREFIX": prefix,
@@ -543,7 +574,8 @@ def test_build_activate_shlvl_1(
     assert activator.path_conversion(prefix) in new_path
     assert old_prefix not in new_path
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "PATH": new_path,
             "CONDA_PREFIX": prefix,
@@ -587,7 +619,8 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "CONDA_PREFIX": old_prefix,
             "CONDA_SHLVL": 1,
@@ -640,7 +673,8 @@ def test_build_stack_shlvl_1(
     assert prefix in new_path
     assert old_prefix in new_path
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "PATH": new_path,
             "CONDA_PREFIX": prefix,
@@ -685,7 +719,8 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("ENV_TWO", "two")
     monkeypatch.setenv("ENV_THREE", "three")
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "CONDA_PREFIX": old_prefix,
             "CONDA_SHLVL": 1,
@@ -783,7 +818,8 @@ def test_build_deactivate_shlvl_2_from_stack(
     monkeypatch.setenv("PKG_A_ENV", "pkg_a")
     monkeypatch.setenv("PKG_B_ENV", "pkg_b")
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "CONDA_PREFIX": old_prefix,
             "CONDA_SHLVL": 1,
@@ -848,7 +884,8 @@ def test_build_deactivate_shlvl_2_from_activate(
     monkeypatch.setenv("PKG_A_ENV", "pkg_a")
     monkeypatch.setenv("PKG_B_ENV", "pkg_b")
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "CONDA_PREFIX": old_prefix,
             "CONDA_SHLVL": 1,
@@ -894,7 +931,8 @@ def test_build_deactivate_shlvl_1(
     original_path = tuple(activator._get_starting_path_list())
     new_path = activator.pathsep_join(activator.path_conversion(original_path))
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         {"CONDA_SHLVL": 0},
         [
             "CONDA_PREFIX",
@@ -969,7 +1007,8 @@ def test_build_activate_restore_unset_env_vars(
     assert activator.path_conversion(prefix) in new_path
     assert old_prefix not in new_path
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         {
             "PATH": new_path,
             "CONDA_PREFIX": prefix,
@@ -1012,7 +1051,8 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
 
-    export_vars, unset_vars = activator.add_export_unset_vars(
+    export_vars, unset_vars = add_export_unset_vars(
+        activator,
         export_vars={
             "CONDA_PREFIX": old_prefix,
             "CONDA_SHLVL": 1,
@@ -1108,7 +1148,7 @@ def test_posix_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1193,7 +1233,7 @@ def test_posix_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
 
         e_deactivate_data = dals(
             """
@@ -1243,7 +1283,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
     rm_rf(activate_result)
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1366,7 +1406,7 @@ def test_csh_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1454,7 +1494,7 @@ def test_csh_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
 
         e_deactivate_data = dals(
             """
@@ -1495,7 +1535,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_template = dals(
         """
     $PATH = '%(new_path)s'
@@ -1595,7 +1635,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
         e_deactivate_template = dals(
             """
         $PATH = '%(new_path)s'
@@ -1644,7 +1684,7 @@ def test_fish_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
     set -gx PATH "%(new_path)s";
@@ -1727,7 +1767,7 @@ def test_fish_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
         e_deactivate_data = dals(
             """
         set -gx PATH "%(new_path)s";
@@ -1765,7 +1805,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
     $Env:PATH = "%(new_path)s"
@@ -1882,7 +1922,7 @@ def test_json_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_data = {
         "path": {
             "PATH": list(new_path_parts),
@@ -1982,7 +2022,7 @@ def test_json_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
         e_deactivate_data = {
             "path": {
                 "PATH": list(new_path),

@@ -170,7 +170,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
         return export_vars, tuple(unset_vars)
 
-    # Used in tests only.
+    @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
     def add_export_unset_vars(
         self, export_vars: Mapping[str, str], unset_vars: Iterable[str], **kwargs: str
     ) -> tuple[dict[str, str], tuple[str, ...]]:
@@ -180,7 +180,7 @@ class _Activator(metaclass=abc.ABCMeta):
             (*(unset_vars or ()), *new_unset_vars),
         )
 
-    # Used in tests only.
+    @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
     def get_scripts_export_unset_vars(self, **kwargs: str) -> tuple[str, str]:
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         return (
