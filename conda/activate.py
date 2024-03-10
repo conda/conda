@@ -173,7 +173,11 @@ class _Activator(metaclass=abc.ABCMeta):
 
         return export_vars, unset_vars
 
-    @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
+    @deprecated(
+        "24.9",
+        "25.3",
+        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
+    )
     def add_export_unset_vars(
         self, export_vars: Mapping[str, str], unset_vars: Iterable[str], **kwargs: str
     ) -> tuple[dict[str, str], list[str]]:

@@ -1081,18 +1081,18 @@ def test_posix_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_script, unset_script = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
     PS1='%(ps1)s'
-    %(conda_exe_unset)s
+    %(unset_script)s
     export PATH='%(new_path)s'
     export CONDA_PREFIX='%(native_prefix)s'
     export CONDA_SHLVL='1'
     export CONDA_DEFAULT_ENV='%(native_prefix)s'
     export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
-    %(conda_exe_export)s
+    %(export_script)s
     . "%(activate1)s"
     """
     ) % {
@@ -1103,8 +1103,8 @@ def test_posix_basic(shell_wrapper_unit: str):
             join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
         ),
         "ps1": "(%s) " % shell_wrapper_unit + os.environ.get("PS1", ""),
-        "conda_exe_unset": conda_exe_unset,
-        "conda_exe_export": conda_exe_export,
+        "unset_script": unset_script,
+        "export_script": export_script,
     }
     import re
 
@@ -1163,22 +1163,19 @@ def test_posix_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
+        export_script, unset_script = get_scripts_export_unset_vars(activator)
 
         e_deactivate_data = dals(
             """
         export PATH='%(new_path)s'
         . "%(deactivate1)s"
-        %(conda_exe_unset)s
+        %(unset_script)s
         unset CONDA_PREFIX
         unset CONDA_DEFAULT_ENV
         unset CONDA_PROMPT_MODIFIER
         PS1='%(ps1)s'
         export CONDA_SHLVL='0'
-        %(conda_exe_export)s
+        %(export_script)s
         """
         ) % {
             "new_path": new_path,
@@ -1192,8 +1189,8 @@ def test_posix_basic(shell_wrapper_unit: str):
                 )
             ),
             "ps1": os.environ.get("PS1", ""),
-            "conda_exe_unset": conda_exe_unset,
-            "conda_exe_export": conda_exe_export,
+            "unset_script": unset_script,
+            "export_script": export_script,
         }
         assert deactivate_data == re.sub(r"\n\n+", "\n", e_deactivate_data)
 
@@ -1216,7 +1213,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
     rm_rf(activate_result)
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_script, unset_script = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1225,7 +1222,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
     @SET "CONDA_SHLVL=1"
     @SET "CONDA_DEFAULT_ENV=%(native_prefix)s"
     @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
-    %(conda_exe_export)s
+    %(export_script)s
     @CALL "%(activate1)s"
     """
     ) % {
@@ -1236,7 +1233,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
         "activate1": activator.path_conversion(
             join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.bat")
         ),
-        "conda_exe_export": conda_exe_export,
+        "export_script": export_script,
     }
     assert activate_data == e_activate_data
 
@@ -1310,7 +1307,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
         @SET CONDA_DEFAULT_ENV=
         @SET CONDA_PROMPT_MODIFIER=
         @SET "CONDA_SHLVL=0"
-        %(conda_exe_export)s
+        %(export_script)s
         """
         ) % {
             "new_path": new_path,
@@ -1323,7 +1320,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
                     "deactivate1.bat",
                 )
             ),
-            "conda_exe_export": conda_exe_export,
+            "export_script": export_script,
         }
         assert deactivate_data == e_deactivate_data
 
@@ -1339,7 +1336,7 @@ def test_csh_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_script, unset_script = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1349,7 +1346,7 @@ def test_csh_basic(shell_wrapper_unit: str):
     setenv CONDA_SHLVL "1";
     setenv CONDA_DEFAULT_ENV "%(native_prefix)s";
     setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-    %(conda_exe_export)s;
+    %(export_script)s;
     source "%(activate1)s";
     """
     ) % {
@@ -1361,7 +1358,7 @@ def test_csh_basic(shell_wrapper_unit: str):
             join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.csh")
         ),
         "prompt": "(%s) " % shell_wrapper_unit + os.environ.get("prompt", ""),
-        "conda_exe_export": conda_exe_export,
+        "export_script": export_script,
     }
     assert activate_data == e_activate_data
 
@@ -1424,10 +1421,7 @@ def test_csh_basic(shell_wrapper_unit: str):
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
 
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
+        export_script, unset_script = get_scripts_export_unset_vars(activator)
 
         e_deactivate_data = dals(
             """
@@ -1438,7 +1432,7 @@ def test_csh_basic(shell_wrapper_unit: str):
         unsetenv CONDA_PROMPT_MODIFIER;
         set prompt='%(prompt)s';
         setenv CONDA_SHLVL "0";
-        %(conda_exe_export)s;
+        %(export_script)s;
         """
         ) % {
             "new_path": new_path,
@@ -1452,7 +1446,7 @@ def test_csh_basic(shell_wrapper_unit: str):
                 )
             ),
             "prompt": os.environ.get("prompt", ""),
-            "conda_exe_export": conda_exe_export,
+            "export_script": export_script,
         }
         assert deactivate_data == e_deactivate_data
 
@@ -1468,7 +1462,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_script, unset_script = get_scripts_export_unset_vars(activator)
     e_activate_template = dals(
         """
     $PATH = '%(new_path)s'
@@ -1476,7 +1470,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
     $CONDA_SHLVL = '1'
     $CONDA_DEFAULT_ENV = '%(native_prefix)s'
     $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-    %(conda_exe_export)s
+    %(export_script)s
     %(sourcer)s "%(activate1)s"
     """
     )
@@ -1485,7 +1479,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         "native_prefix": shell_wrapper_unit,
         "new_path": activator.pathsep_join(new_path_parts),
         "sys_executable": activator.path_conversion(sys.executable),
-        "conda_exe_export": conda_exe_export,
+        "export_script": export_script,
     }
     if on_win:
         e_activate_info["sourcer"] = "source-cmd --suppress-skip-message"
@@ -1565,10 +1559,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
+        export_script, unset_script = get_scripts_export_unset_vars(activator)
         e_deactivate_template = dals(
             """
         $PATH = '%(new_path)s'
@@ -1577,12 +1568,12 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         del $CONDA_DEFAULT_ENV
         del $CONDA_PROMPT_MODIFIER
         $CONDA_SHLVL = '0'
-        %(conda_exe_export)s
+        %(export_script)s
         """
         )
         e_deactivate_info = {
             "new_path": new_path,
-            "conda_exe_export": conda_exe_export,
+            "export_script": export_script,
         }
         if on_win:
             e_deactivate_info["sourcer"] = "source-cmd --suppress-skip-message"
@@ -1617,7 +1608,7 @@ def test_fish_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_script, unset_script = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
     set -gx PATH "%(new_path)s";
@@ -1625,7 +1616,7 @@ def test_fish_basic(shell_wrapper_unit: str):
     set -gx CONDA_SHLVL "1";
     set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
     set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-    %(conda_exe_export)s;
+    %(export_script)s;
     source "%(activate1)s";
     """
     ) % {
@@ -1636,7 +1627,7 @@ def test_fish_basic(shell_wrapper_unit: str):
         "activate1": activator.path_conversion(
             join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.fish")
         ),
-        "conda_exe_export": conda_exe_export,
+        "export_script": export_script,
     }
     assert activate_data == e_activate_data
 
@@ -1697,10 +1688,7 @@ def test_fish_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
+        export_script, unset_script = get_scripts_export_unset_vars(activator)
         e_deactivate_data = dals(
             """
         set -gx PATH "%(new_path)s";
@@ -1709,7 +1697,7 @@ def test_fish_basic(shell_wrapper_unit: str):
         set -e CONDA_DEFAULT_ENV;
         set -e CONDA_PROMPT_MODIFIER;
         set -gx CONDA_SHLVL "0";
-        %(conda_exe_export)s;
+        %(export_script)s;
         """
         ) % {
             "new_path": new_path,
@@ -1722,7 +1710,7 @@ def test_fish_basic(shell_wrapper_unit: str):
                     "deactivate1.fish",
                 )
             ),
-            "conda_exe_export": conda_exe_export,
+            "export_script": export_script,
         }
         assert deactivate_data == e_deactivate_data
 
@@ -1738,7 +1726,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_script, unset_script = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
     $Env:PATH = "%(new_path)s"
@@ -1746,7 +1734,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
     $Env:CONDA_SHLVL = "1"
     $Env:CONDA_DEFAULT_ENV = "%(prefix)s"
     $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
-    %(conda_exe_export)s
+    %(export_script)s
     . "%(activate1)s"
     """
     ) % {
@@ -1756,7 +1744,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
         "activate1": join(
             shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1"
         ),
-        "conda_exe_export": conda_exe_export,
+        "export_script": export_script,
     }
     assert activate_data == e_activate_data
 
@@ -1817,7 +1805,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
         $Env:CONDA_DEFAULT_ENV = ""
         $Env:CONDA_PROMPT_MODIFIER = ""
         $Env:CONDA_SHLVL = "0"
-        %(conda_exe_export)s
+        %(export_script)s
         """
         ) % {
             "new_path": new_path,
@@ -1828,7 +1816,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
                 "deactivate.d",
                 "deactivate1.ps1",
             ),
-            "conda_exe_export": conda_exe_export,
+            "export_script": export_script,
         }
 
 
