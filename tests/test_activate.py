@@ -53,7 +53,7 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable, Literal, Mapping
+    from typing import Callable, Iterable, Literal
 
     from pytest import MonkeyPatch
 
@@ -336,11 +336,11 @@ def test_remove_prefix_from_path_2():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = [keep_path, *original_path]
+    final_path = (keep_path, *original_path)
     final_path = activator.path_conversion(final_path)
 
     test_prefix = join(os.getcwd(), "mytestpath")
-    prefix_added_path = [keep_path, *original_path]
+    prefix_added_path = (keep_path, *original_path)
     new_path = activator._remove_prefix_from_path(test_prefix, prefix_added_path)
 
     assert final_path == new_path
@@ -398,21 +398,9 @@ def test_default_env(tmp_path: Path):
     assert prefix.name == activator._default_env(str(prefix))
 
 
-def add_export_unset_vars(
-    activator: _Activator,
-    export_vars: Mapping[str, str],
-    unset_vars: Iterable[str],
-    **kwargs: str,
-) -> tuple[dict[str, str], list[str]]:
-    new_export_vars, new_unset_vars = activator.get_export_unset_vars(**kwargs)
-    return (
-        {**(export_vars or {}), **new_export_vars},
-        [*(unset_vars or []), *new_unset_vars],
-    )
-
-
 def get_scripts_export_unset_vars(
-    activator: _Activator, **kwargs: str
+    activator: _Activator,
+    **kwargs: str,
 ) -> tuple[str, str]:
     export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
     return (
@@ -438,22 +426,18 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
 
     activator = PosixActivator()
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "PATH": activator.pathsep_join(activator._add_prefix_to_path(prefix)),
-            "CONDA_PREFIX": prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({prefix}) "),
-            # write_pkgs
-            "PKG_A_ENV": "pkg_a",
-            "PKG_B_ENV": "pkg_b",
-            # write_state_file
-            "ENV_ONE": "one",
-            "ENV_TWO": "two",
-        },
-        unset_vars=[],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
+        CONDA_PREFIX=prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
+        # write_pkgs
+        PKG_A_ENV="pkg_a",
+        PKG_B_ENV="pkg_b",
+        # write_state_file
+        ENV_ONE="one",
+        ENV_TWO="two",
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -480,23 +464,19 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
 
     activator = PosixActivator()
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "PATH": activator.pathsep_join(activator._add_prefix_to_path(prefix)),
-            "CONDA_PREFIX": prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({prefix}) "),
-            # write_pkgs
-            "PKG_B_ENV": "pkg_b",
-            # write_state_file
-            "ENV_ONE": "one",
-            "ENV_TWO": "two",
-            "ENV_THREE": "three",
-            "PKG_A_ENV": "overwrite_a",
-        },
-        unset_vars=[],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
+        CONDA_PREFIX=prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
+        # write_pkgs
+        PKG_B_ENV="pkg_b",
+        # write_state_file
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+        PKG_A_ENV="overwrite_a",
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -517,24 +497,20 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
 
     activator = PosixActivator()
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "PATH": activator.pathsep_join(activator._add_prefix_to_path(prefix)),
-            "CONDA_PREFIX": prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({prefix}) "),
-            # write_pkgs
-            "PKG_A_ENV": "pkg_a",
-            "PKG_B_ENV": "pkg_b",
-            # write_state_file
-            "ENV_ONE": "one",
-            "ENV_TWO": "two",
-            "ENV_THREE": "three",
-            "ENV_WITH_SAME_VALUE": "with_same_value",
-        },
-        unset_vars=[],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
+        CONDA_PREFIX=prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
+        # write_pkgs
+        PKG_A_ENV="pkg_a",
+        PKG_B_ENV="pkg_b",
+        # write_state_file
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+        ENV_WITH_SAME_VALUE="with_same_value",
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -572,25 +548,21 @@ def test_build_activate_shlvl_1(
     assert activator.path_conversion(prefix) in new_path
     assert old_prefix not in new_path
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "PATH": new_path,
-            "CONDA_PREFIX": prefix,
-            "CONDA_PREFIX_1": old_prefix,
-            "CONDA_SHLVL": 2,
-            "CONDA_DEFAULT_ENV": prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({prefix}) "),
-            # write_pkgs
-            "PKG_A_ENV": "pkg_a",
-            "PKG_B_ENV": "pkg_b",
-            # write_state_file
-            "ENV_ONE": "one",
-            "ENV_TWO": "two",
-            "ENV_THREE": "three",
-            "ENV_WITH_SAME_VALUE": "with_same_value",
-        },
-        unset_vars=[],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=new_path,
+        CONDA_PREFIX=prefix,
+        CONDA_PREFIX_1=old_prefix,
+        CONDA_SHLVL="2",
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
+        # write_pkgs
+        PKG_A_ENV="pkg_a",
+        PKG_B_ENV="pkg_b",
+        # write_state_file
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+        ENV_WITH_SAME_VALUE="with_same_value",
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -617,25 +589,20 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "CONDA_PREFIX": old_prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": old_prefix,
-            "CONDA_PROMPT_MODIFIER": f"({old_prefix}) ",
-        },
-        unset_vars=[
-            "CONDA_PREFIX_1",
-            # write_pkgs
-            "PKG_A_ENV",
-            "PKG_B_ENV",
-            # write_state_file
-            "ENV_ONE",
-            "ENV_TWO",
-            "ENV_THREE",
-            "ENV_WITH_SAME_VALUE",
-        ],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=old_prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=old_prefix,
+        CONDA_PROMPT_MODIFIER=f"({old_prefix}) ",
+        CONDA_PREFIX_1=None,
+        # write_pkgs
+        PKG_A_ENV=None,
+        PKG_B_ENV=None,
+        # write_state_file
+        ENV_ONE=None,
+        ENV_TWO=None,
+        ENV_THREE=None,
+        ENV_WITH_SAME_VALUE=None,
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -671,26 +638,22 @@ def test_build_stack_shlvl_1(
     assert prefix in new_path
     assert old_prefix in new_path
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "PATH": new_path,
-            "CONDA_PREFIX": prefix,
-            "CONDA_PREFIX_1": old_prefix,
-            "CONDA_SHLVL": 2,
-            "CONDA_DEFAULT_ENV": prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({prefix}) "),
-            "CONDA_STACKED_2": "true",
-            # write_pkgs
-            "PKG_A_ENV": "pkg_a",
-            "PKG_B_ENV": "pkg_b",
-            # write_state_file
-            "ENV_ONE": "one",
-            "ENV_TWO": "two",
-            "ENV_THREE": "three",
-            "ENV_WITH_SAME_VALUE": "with_same_value",
-        },
-        unset_vars=[],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=new_path,
+        CONDA_PREFIX=prefix,
+        CONDA_PREFIX_1=old_prefix,
+        CONDA_SHLVL="2",
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
+        CONDA_STACKED_2="true",
+        # write_pkgs
+        PKG_A_ENV="pkg_a",
+        PKG_B_ENV="pkg_b",
+        # write_state_file
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+        ENV_WITH_SAME_VALUE="with_same_value",
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -717,24 +680,19 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("ENV_TWO", "two")
     monkeypatch.setenv("ENV_THREE", "three")
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "CONDA_PREFIX": old_prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": old_prefix,
-            "CONDA_PROMPT_MODIFIER": f"({old_prefix}) ",
-        },
-        unset_vars=[
-            "CONDA_PREFIX_1",
-            "CONDA_STACKED_2",
-            "PKG_A_ENV",
-            "PKG_B_ENV",
-            "ENV_ONE",
-            "ENV_TWO",
-            "ENV_THREE",
-            "ENV_WITH_SAME_VALUE",
-        ],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=old_prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=old_prefix,
+        CONDA_PROMPT_MODIFIER=f"({old_prefix}) ",
+        CONDA_PREFIX_1=None,
+        CONDA_STACKED_2=None,
+        PKG_A_ENV=None,
+        PKG_B_ENV=None,
+        ENV_ONE=None,
+        ENV_TWO=None,
+        ENV_THREE=None,
+        ENV_WITH_SAME_VALUE=None,
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -816,26 +774,21 @@ def test_build_deactivate_shlvl_2_from_stack(
     monkeypatch.setenv("PKG_A_ENV", "pkg_a")
     monkeypatch.setenv("PKG_B_ENV", "pkg_b")
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "CONDA_PREFIX": old_prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": old_prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({old_prefix}) "),
-            "PKG_B_ENV": "pkg_b",
-            "ENV_FOUR": "four",
-            "ENV_FIVE": "five",
-        },
-        unset_vars=[
-            "CONDA_PREFIX_1",
-            "CONDA_STACKED_2",
-            "PKG_A_ENV",
-            "ENV_ONE",
-            "ENV_TWO",
-            "ENV_THREE",
-            "ENV_WITH_SAME_VALUE",
-        ],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=old_prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=old_prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({old_prefix}) "),
+        PKG_B_ENV="pkg_b",
+        ENV_FOUR="four",
+        ENV_FIVE="five",
+        CONDA_PREFIX_1=None,
+        CONDA_STACKED_2=None,
+        PKG_A_ENV=None,
+        ENV_ONE=None,
+        ENV_TWO=None,
+        ENV_THREE=None,
+        ENV_WITH_SAME_VALUE=None,
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -882,25 +835,20 @@ def test_build_deactivate_shlvl_2_from_activate(
     monkeypatch.setenv("PKG_A_ENV", "pkg_a")
     monkeypatch.setenv("PKG_B_ENV", "pkg_b")
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "CONDA_PREFIX": old_prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": old_prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({old_prefix}) "),
-            "PKG_B_ENV": "pkg_b",
-            "ENV_FOUR": "four",
-            "ENV_FIVE": "five",
-        },
-        unset_vars=[
-            "CONDA_PREFIX_1",
-            "PKG_A_ENV",
-            "ENV_ONE",
-            "ENV_TWO",
-            "ENV_THREE",
-            "ENV_WITH_SAME_VALUE",
-        ],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=old_prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=old_prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({old_prefix}) "),
+        PKG_B_ENV="pkg_b",
+        ENV_FOUR="four",
+        ENV_FIVE="five",
+        CONDA_PREFIX_1=None,
+        PKG_A_ENV=None,
+        ENV_ONE=None,
+        ENV_TWO=None,
+        ENV_THREE=None,
+        ENV_WITH_SAME_VALUE=None,
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -929,20 +877,17 @@ def test_build_deactivate_shlvl_1(
     original_path = tuple(activator._get_starting_path_list())
     new_path = activator.pathsep_join(activator.path_conversion(original_path))
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        {"CONDA_SHLVL": 0},
-        [
-            "CONDA_PREFIX",
-            "CONDA_DEFAULT_ENV",
-            "CONDA_PROMPT_MODIFIER",
-            "PKG_A_ENV",
-            "PKG_B_ENV",
-            "ENV_ONE",
-            "ENV_TWO",
-            "ENV_THREE",
-            "ENV_WITH_SAME_VALUE",
-        ],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_SHLVL="0",
+        CONDA_PREFIX=None,
+        CONDA_DEFAULT_ENV=None,
+        CONDA_PROMPT_MODIFIER=None,
+        PKG_A_ENV=None,
+        PKG_B_ENV=None,
+        ENV_ONE=None,
+        ENV_TWO=None,
+        ENV_THREE=None,
+        ENV_WITH_SAME_VALUE=None,
     )
 
     # see conda.activate._Activator._yield_commands order
@@ -1005,31 +950,27 @@ def test_build_activate_restore_unset_env_vars(
     assert activator.path_conversion(prefix) in new_path
     assert old_prefix not in new_path
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        {
-            "PATH": new_path,
-            "CONDA_PREFIX": prefix,
-            "CONDA_PREFIX_1": old_prefix,
-            "CONDA_SHLVL": 2,
-            "CONDA_DEFAULT_ENV": prefix,
-            "CONDA_PROMPT_MODIFIER": (modifier := f"({prefix}) "),
-            "PKG_A_ENV": "pkg_a",
-            "PKG_B_ENV": "pkg_b",
-            "ENV_ONE": "one",
-            "ENV_TWO": "two",
-            "ENV_THREE": "three",
-            "ENV_WITH_SAME_VALUE": "with_same_value",
-            "__CONDA_SHLVL_1_ENV_ONE": "already_set_env_var",
-            "__CONDA_SHLVL_1_ENV_WITH_SAME_VALUE": "with_same_value",
-        },
-        unset_vars=[],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=new_path,
+        CONDA_PREFIX=prefix,
+        CONDA_PREFIX_1=old_prefix,
+        CONDA_SHLVL="2",
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
+        PKG_A_ENV="pkg_a",
+        PKG_B_ENV="pkg_b",
+        ENV_ONE="one",
+        ENV_TWO="two",
+        ENV_THREE="three",
+        ENV_WITH_SAME_VALUE="with_same_value",
+        __CONDA_SHLVL_1_ENV_ONE="already_set_env_var",
+        __CONDA_SHLVL_1_ENV_WITH_SAME_VALUE="with_same_value",
     )
 
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
@@ -1049,24 +990,18 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("ENV_THREE", "three")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
 
-    export_vars, unset_vars = add_export_unset_vars(
-        activator,
-        export_vars={
-            "CONDA_PREFIX": old_prefix,
-            "CONDA_SHLVL": 1,
-            "CONDA_DEFAULT_ENV": old_prefix,
-            "CONDA_PROMPT_MODIFIER": f"({old_prefix}) ",
-            "ENV_ONE": "already_set_env_var",
-        },
-        unset_vars=[
-            "CONDA_PREFIX_1",
-            "PKG_A_ENV",
-            "PKG_B_ENV",
-            "ENV_ONE",
-            "ENV_TWO",
-            "ENV_THREE",
-            "ENV_WITH_SAME_VALUE",
-        ],
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=old_prefix,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=old_prefix,
+        CONDA_PROMPT_MODIFIER=f"({old_prefix}) ",
+        CONDA_PREFIX_1=None,
+        PKG_A_ENV=None,
+        PKG_B_ENV=None,
+        ENV_ONE="already_set_env_var",
+        ENV_TWO=None,
+        ENV_THREE=None,
+        ENV_WITH_SAME_VALUE=None,
     )
 
     builder = activator.build_deactivate()
@@ -1120,7 +1055,7 @@ def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
     elif isinstance(paths, str):
         paths = str(tmp_path / paths)
     else:
-        paths = tuple(str(tmp_path / path) for path in paths)
+        paths = [str(tmp_path / path) for path in paths]
 
     # test that we receive a unix path
     if isinstance(paths, str) and not paths:
@@ -1920,23 +1855,20 @@ def test_json_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=shell_wrapper_unit,
+        CONDA_SHLVL="1",
+        CONDA_DEFAULT_ENV=shell_wrapper_unit,
+        CONDA_PROMPT_MODIFIER="(%s) " % shell_wrapper_unit,
+    )
     e_activate_data = {
         "path": {
             "PATH": list(new_path_parts),
         },
         "vars": {
-            "export": dict(
-                CONDA_PREFIX=shell_wrapper_unit,
-                CONDA_SHLVL=1,
-                CONDA_DEFAULT_ENV=shell_wrapper_unit,
-                CONDA_PROMPT_MODIFIER="(%s) " % shell_wrapper_unit,
-                **conda_exe_export,
-            ),
-            "set": {
-                "PS1": f"({shell_wrapper_unit}) {os.getenv('PS1', '')}",
-            },
-            "unset": [],
+            "export": export_vars,
+            "set": {"PS1": f"({shell_wrapper_unit}) {os.getenv('PS1', '')}"},
+            "unset": unset_vars,
         },
         "scripts": {
             "activate": [
@@ -2017,19 +1949,12 @@ def test_json_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
+        conda_exe_export, _ = activator.get_export_unset_vars(CONDA_SHLVL="0")
         e_deactivate_data = {
-            "path": {
-                "PATH": list(new_path),
-            },
+            "path": {"PATH": list(new_path)},
             "vars": {
-                "export": dict(CONDA_SHLVL=0, **conda_exe_export),
-                "set": {
-                    "PS1": os.getenv("PS1", ""),
-                },
+                "export": conda_exe_export,
+                "set": {"PS1": os.getenv("PS1", "")},
                 "unset": [
                     "CONDA_PREFIX",
                     "CONDA_DEFAULT_ENV",

@@ -134,7 +134,10 @@ class _Activator(metaclass=abc.ABCMeta):
         return path_identity(paths)
 
     def get_export_unset_vars(
-        self, export_metavars: bool = True, /, **kwargs: str
+        self,
+        export_metavars: bool = True,
+        /,
+        **kwargs: str | None,
     ) -> tuple[dict[str, str], list[str]]:
         """
         :param export_metavars: whether to export `conda_exe_vars` meta variables.
@@ -1276,6 +1279,7 @@ class JSONFormatMixin(_Activator):
                 "_CONDA_EXE": context.conda_exe,
             }
 
+    @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
     def get_scripts_export_unset_vars(self, **kwargs):
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         script_export_vars = script_unset_vars = None
