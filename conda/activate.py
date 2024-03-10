@@ -100,7 +100,7 @@ class _Activator(metaclass=abc.ABCMeta):
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
-    command_join: str
+    command_join: Callable[[Iterable[str]], Any]
 
     unset_var_tmpl: str
     export_var_tmpl: str
@@ -184,23 +184,21 @@ class _Activator(metaclass=abc.ABCMeta):
     def get_scripts_export_unset_vars(self, **kwargs: str) -> tuple[str, str]:
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         return (
-            self.command_join.join(
+            self.command_join(
                 self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
             ),
-            self.command_join.join(
-                self.unset_var_tmpl % (k) for k in (unset_vars or [])
-            ),
+            self.command_join(self.unset_var_tmpl % (k) for k in (unset_vars or [])),
         )
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
         if ext is None:
-            return self.command_join.join(commands)
+            return self.command_join(commands)
         elif ext:
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
                 # command_join should account for that
-                tf.write(self.command_join.join(commands))
+                tf.write(self.command_join(commands))
             return tf.name
         else:
             raise NotImplementedError()
@@ -371,10 +369,10 @@ class _Activator(metaclass=abc.ABCMeta):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
             yield self.export_var_tmpl % (key, value)
 
-        for script in cmds_dict.get("deactivate_scripts", ()):
+        for script in cmds_dict.get("deactivate_scripts", []):
             yield self.run_script_tmpl % script
 
-        for key in cmds_dict.get("unset_vars", ()):
+        for key in cmds_dict.get("unset_vars", []):
             yield self.unset_var_tmpl % key
 
         for key, value in cmds_dict.get("set_vars", {}).items():
@@ -383,7 +381,7 @@ class _Activator(metaclass=abc.ABCMeta):
         for key, value in cmds_dict.get("export_vars", {}).items():
             yield self.export_var_tmpl % (key, value)
 
-        for script in cmds_dict.get("activate_scripts", ()):
+        for script in cmds_dict.get("activate_scripts", []):
             yield self.run_script_tmpl % script
 
     def build_activate(self, env_name_or_prefix: str) -> Builder:
@@ -887,7 +885,7 @@ def native_path_to_unix(
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
     if not paths:
-        return "." if isinstance(paths, str) else ()
+        return "." if isinstance(paths, str) else []
 
     # on windows, uses cygpath to convert windows native paths to posix paths
     from shutil import which
@@ -935,9 +933,9 @@ def native_path_to_unix(
     if isinstance(paths, str):
         return unix_path
     elif not unix_path:
-        return ()
+        return []
     else:
-        return tuple(unix_path.split(":"))
+        return unix_path.split(":")
 
 
 def path_identity(paths: None | str | Iterable[str]) -> None | str | list[str]:
@@ -1013,7 +1011,7 @@ class PosixActivator(_NativeToUnixActivator):
     sep = "/"
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
-    command_join = "\n"
+    command_join = "\n".join
 
     unset_var_tmpl = "unset %s"
     export_var_tmpl = "export %s='%s'"
@@ -1067,7 +1065,7 @@ class CshActivator(_NativeToUnixActivator):
     sep = "/"
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
-    command_join = ";\n"
+    command_join = ";\n".join
 
     unset_var_tmpl = "unsetenv %s"
     export_var_tmpl = 'setenv %s "%s"'
@@ -1123,7 +1121,7 @@ class XonshActivator(_BackslashToForwardslashActivator):
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
     tempfile_extension = None  # output to stdout
-    command_join = "\n"
+    command_join = "\n".join
 
     unset_var_tmpl = "del $%s"
     export_var_tmpl = "$%s = '%s'"
@@ -1146,7 +1144,7 @@ class CmdExeActivator(_Activator):
     sep = "\\"
     script_extension = ".bat"
     tempfile_extension = ".bat"
-    command_join = "\n"
+    command_join = "\n".join
 
     unset_var_tmpl = "@SET %s="
     export_var_tmpl = '@SET "%s=%s"'
@@ -1167,7 +1165,7 @@ class FishActivator(_NativeToUnixActivator):
     sep = "/"
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
-    command_join = ";\n"
+    command_join = ";\n".join
 
     unset_var_tmpl = "set -e %s"
     export_var_tmpl = 'set -gx %s "%s"'
@@ -1209,7 +1207,7 @@ class PowerShellActivator(_Activator):
     sep = "\\" if on_win else "/"
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
-    command_join = "\n"
+    command_join = "\n".join
 
     unset_var_tmpl = '$Env:%s = ""'
     export_var_tmpl = '$Env:%s = "%s"'

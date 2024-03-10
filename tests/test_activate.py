@@ -278,7 +278,7 @@ def test_PS1_no_changeps1(
     on_win and "PWD" not in os.environ,
     reason="This test cannot be run from the cmd.exe shell.",
 )
-def test_add_prefix_to_path_posix():
+def test_add_prefix_to_path_posix() -> None:
     activator = PosixActivator()
 
     path_dirs = activator.path_conversion(
@@ -286,19 +286,19 @@ def test_add_prefix_to_path_posix():
     )
     assert len(path_dirs) == 5
     test_prefix = "/usr/mytest/prefix"
-    added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-    if isinstance(added_paths, str):
-        added_paths = (added_paths,)
+    added_paths: list[str] = activator.path_conversion(
+        activator._get_path_dirs(test_prefix)
+    )
 
     new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
     condabin_dir = activator.path_conversion(
         os.path.join(context.conda_prefix, "condabin")
     )
-    assert new_path == added_paths + (condabin_dir,) + path_dirs
+    assert new_path == [*added_paths, condabin_dir, *path_dirs]
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_add_prefix_to_path_cmdexe():
+def test_add_prefix_to_path_cmdexe() -> None:
     activator = CmdExeActivator()
 
     path_dirs = activator.path_conversion(
@@ -306,9 +306,9 @@ def test_add_prefix_to_path_cmdexe():
     )
     assert len(path_dirs) == 3
     test_prefix = "/usr/mytest/prefix"
-    added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-    if isinstance(added_paths, str):
-        added_paths = (added_paths,)
+    added_paths: list[str] = activator.path_conversion(
+        activator._get_path_dirs(test_prefix)
+    )
 
     new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
     assert new_path[: len(added_paths)] == added_paths
@@ -321,12 +321,12 @@ def test_remove_prefix_from_path_1():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + original_path
+    final_path = [keep_path, *original_path]
     final_path = activator.path_conversion(final_path)
 
     test_prefix = join(os.getcwd(), "mytestpath")
     new_paths = tuple(activator._get_path_dirs(test_prefix))
-    prefix_added_path = (keep_path,) + new_paths + original_path
+    prefix_added_path = [keep_path, *new_paths, *original_path]
     new_path = activator._remove_prefix_from_path(test_prefix, prefix_added_path)
     assert final_path == new_path
 
@@ -336,11 +336,11 @@ def test_remove_prefix_from_path_2():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + original_path
+    final_path = [keep_path, *original_path]
     final_path = activator.path_conversion(final_path)
 
     test_prefix = join(os.getcwd(), "mytestpath")
-    prefix_added_path = (keep_path,) + original_path
+    prefix_added_path = [keep_path, *original_path]
     new_path = activator._remove_prefix_from_path(test_prefix, prefix_added_path)
 
     assert final_path == new_path
@@ -351,15 +351,13 @@ def test_replace_prefix_in_path_1():
     original_path = tuple(activator._get_starting_path_list())
     new_prefix = join(os.getcwd(), "mytestpath-new")
     new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
-    if isinstance(new_paths, str):
-        new_paths = (new_paths,)
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + new_paths + original_path
+    final_path = [keep_path, *new_paths, *original_path]
     final_path = activator.path_conversion(final_path)
 
     replace_prefix = join(os.getcwd(), "mytestpath")
     replace_paths = tuple(activator._get_path_dirs(replace_prefix))
-    prefix_added_path = (keep_path,) + replace_paths + original_path
+    prefix_added_path = [keep_path, *replace_paths, *original_path]
     new_path = activator._replace_prefix_in_path(
         replace_prefix, new_prefix, prefix_added_path
     )
@@ -405,11 +403,11 @@ def add_export_unset_vars(
     export_vars: Mapping[str, str],
     unset_vars: Iterable[str],
     **kwargs: str,
-) -> tuple[dict[str, str], tuple[str, ...]]:
+) -> tuple[dict[str, str], list[str]]:
     new_export_vars, new_unset_vars = activator.get_export_unset_vars(**kwargs)
     return (
         {**(export_vars or {}), **new_export_vars},
-        (*(unset_vars or ()), *new_unset_vars),
+        [*(unset_vars or []), *new_unset_vars],
     )
 
 
@@ -418,11 +416,11 @@ def get_scripts_export_unset_vars(
 ) -> tuple[str, str]:
     export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
     return (
-        activator.command_join.join(
+        activator.command_join(
             activator.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
         ),
-        activator.command_join.join(
-            activator.unset_var_tmpl % (k) for k in (unset_vars or ())
+        activator.command_join(
+            activator.unset_var_tmpl % (k) for k in (unset_vars or [])
         ),
     )
 
@@ -461,11 +459,11 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
 def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, str]):
@@ -504,11 +502,11 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
 def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
@@ -542,11 +540,11 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
 @skipif_bash_unsupported_win
@@ -602,7 +600,7 @@ def test_build_activate_shlvl_1(
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(acivate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(acivate_sh)]
 
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
@@ -702,7 +700,7 @@ def test_build_stack_shlvl_1(
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
@@ -771,11 +769,11 @@ def test_activate_same_environment(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
-    assert builder["unset_vars"] == ()
+    assert builder["deactivate_scripts"] == [activator.path_conversion(deactivate_sh)]
+    assert builder["unset_vars"] == []
     assert builder["set_vars"] == {"PS1": f"({prefix}) {os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
 @skipif_bash_unsupported_win
@@ -843,11 +841,11 @@ def test_build_deactivate_shlvl_2_from_stack(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
     assert builder["export_path"] == {"PATH": original_path}
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
+    assert builder["deactivate_scripts"] == [activator.path_conversion(deactivate_sh)]
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
 @skipif_bash_unsupported_win
@@ -908,11 +906,11 @@ def test_build_deactivate_shlvl_2_from_activate(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
     assert builder["export_path"] == {"PATH": original_path}
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
+    assert builder["deactivate_scripts"] == [activator.path_conversion(deactivate_sh)]
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
 def test_build_deactivate_shlvl_1(
@@ -950,11 +948,11 @@ def test_build_deactivate_shlvl_1(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
     assert builder["export_path"] == {"PATH": new_path}
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
+    assert builder["deactivate_scripts"] == [activator.path_conversion(deactivate_sh)]
     assert builder["set_vars"] == {"PS1": os.getenv("PS1", "")}
     assert builder["export_vars"] == export_vars
     assert builder["unset_vars"] == unset_vars
-    assert builder["activate_scripts"] == ()
+    assert builder["activate_scripts"] == []
 
 
 def test_get_env_vars_big_whitespace(tmp_env: TmpEnvFixture):
@@ -1035,7 +1033,7 @@ def test_build_activate_restore_unset_env_vars(
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
+    assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
@@ -2979,17 +2977,22 @@ def create_stackable_envs(tmp_env: TmpEnvFixture):
     which = f"{'where' if on_win else 'which -a'} curl"
 
     class Env:
-        def __init__(self, prefix=None, paths=None):
+        def __init__(
+            self,
+            prefix: str | os.PathLike | Path | None = None,
+            paths: Iterable[str | os.PathLike | Path] | None = None,
+        ):
             self.prefix = Path(prefix) if prefix else None
 
             if not paths:
+                assert self.prefix
                 if on_win:
                     path = self.prefix / "Library" / "bin" / "curl.exe"
                 else:
                     path = self.prefix / "bin" / "curl"
 
-                paths = (path,) if path.exists() else ()
-            self.paths = paths
+                paths = [path] if path.exists() else []
+            self.paths = tuple(paths)
 
     sys = _run_command(
         "conda config --set auto_activate_base false",
