@@ -14,6 +14,7 @@
 # CONDA_PREFIX too in some instances and that really needs fixing.
 from __future__ import annotations
 
+import json
 import os
 import sys
 import uuid
@@ -21,22 +22,26 @@ import warnings
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from logging import getLogger
-from os.path import dirname, isfile, join, normpath
+from os.path import join
 from pathlib import Path
-from subprocess import check_output
+from shutil import copyfile
 from typing import TYPE_CHECKING, overload
 
 import pytest
 
+from ..auxlib.entity import EntityEncoder
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.compat import on_win
+from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..deprecations import deprecated
+from ..exceptions import CondaExitZero
+from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from typing import Iterator
 
     from pytest import CaptureFixture, ExceptionInfo, MonkeyPatch
     from pytest_mock import MockerFixture
@@ -44,16 +49,11 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-@deprecated("23.9", "24.3")
-def encode_for_env_var(value) -> str:
-    """Environment names and values need to be string."""
-    if isinstance(value, str):
-        return value
-    elif isinstance(value, bytes):
-        return value.decode()
-    return str(value)
-
-
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="It don't matter which environment the test suite is run from.",
+)
 def conda_ensure_sys_python_is_base_env_python():
     # Exit if we try to run tests from a non-base env. The tests end up installing
     # menuinst into the env they are called with and that breaks non-base env activation
@@ -125,53 +125,6 @@ def conda_move_to_front_of_PATH():
         activator = activator_cls()
         p = activator._add_prefix_to_path(os.environ["CONDA_PREFIX"])
         os.environ["PATH"] = os.pathsep.join(p)
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum="Unnecessary with transition to hatchling for build system.",
-)
-def conda_check_versions_aligned():
-    # Next problem. If we use conda to provide our git or otherwise do not
-    # have it on PATH and if we also have no .version file then conda is
-    # unable to figure out its version without throwing an exception. The
-    # tests this broke most badly (test_activate.py) have a workaround of
-    # installing git into one of the conda prefixes that gets used but it
-    # is slow. Instead write .version if it does not exist, and also fix
-    # it if it disagrees.
-
-    import conda
-
-    version_file = normpath(join(dirname(conda.__file__), ".version"))
-    if isfile(version_file):
-        version_from_file = open(version_file).read().split("\n")[0]
-    else:
-        version_from_file = None
-
-    git_exe = "git.exe" if on_win else "git"
-    version_from_git = None
-    for pe in os.environ.get("PATH", "").split(os.pathsep):
-        if isfile(join(pe, git_exe)):
-            try:
-                cmd = join(pe, git_exe) + " describe --tags --long"
-                version_from_git = check_output(cmd).decode("utf-8").split("\n")[0]
-                from ..auxlib.packaging import _get_version_from_git_tag
-
-                version_from_git = _get_version_from_git_tag(version_from_git)
-                break
-            except:
-                continue
-    if not version_from_git:
-        print("WARNING :: Could not check versions.")
-
-    if version_from_git and version_from_git != version_from_file:
-        print(
-            "WARNING :: conda/.version ({}) and git describe ({}) "
-            "disagree, rewriting .version".format(version_from_git, version_from_file)
-        )
-        with open(version_file, "w") as fh:
-            fh.write(version_from_git)
 
 
 @dataclass
@@ -271,7 +224,7 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
-    ) -> Iterable[Path]:
+    ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
         :param packages: The packages to install into environment
@@ -293,6 +246,66 @@ def tmp_env(
 ) -> TmpEnvFixture:
     """Fixture returning TmpEnvFixture instance."""
     yield TmpEnvFixture(path_factory, conda_cli)
+
+
+@dataclass
+class TmpChannelFixture:
+    path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture
+
+    @contextmanager
+    def __call__(self, *packages: str) -> Iterator[tuple[Path, str]]:
+        # download packages
+        self.conda_cli(
+            "create",
+            f"--prefix={self.path_factory()}",
+            *packages,
+            "--yes",
+            "--quiet",
+            "--download-only",
+            raises=CondaExitZero,
+        )
+
+        pkgs_dir = Path(PackageCacheData.first_writable().pkgs_dir)
+        pkgs_cache = PackageCacheData(pkgs_dir)
+
+        channel = self.path_factory()
+        subdir = channel / context.subdir
+        subdir.mkdir(parents=True)
+        noarch = channel / "noarch"
+        noarch.mkdir(parents=True)
+
+        repodata = {"info": {}, "packages": {}}
+        for package in packages:
+            for pkg_data in pkgs_cache.query(package):
+                fname = pkg_data["fn"]
+
+                copyfile(pkgs_dir / fname, subdir / fname)
+
+                repodata["packages"][fname] = PackageRecord(
+                    **{
+                        field: value
+                        for field, value in pkg_data.dump().items()
+                        if field not in ("url", "channel", "schannel")
+                    }
+                )
+
+        (subdir / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
+        (noarch / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
+
+        for package in packages:
+            assert any(PackageCacheData.query_all(package))
+
+        yield channel, path_to_url(str(channel))
+
+
+@pytest.fixture
+def tmp_channel(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+) -> TmpChannelFixture:
+    """Fixture returning TmpChannelFixture instance."""
+    yield TmpChannelFixture(path_factory, conda_cli)
 
 
 @pytest.fixture(name="monkeypatch")

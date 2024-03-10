@@ -1,35 +1,18 @@
-archspec
+archspec >=0.2.3
 boltons >=23.0.0
 charset-normalizer
-conda-content-trust
-conda-forge::anaconda-client
-conda-forge::pytest-split
-conda-forge::pytest-xprocess
-conda-forge::xdoctest
+conda-content-trust >=0.2.0
 conda-libmamba-solver >=23.11.0
 conda-package-handling >=2.2.0
 distro >=1.5.0
-flask >=2.2  # jlap pytest fixture
 jsonpatch >=1.32  # jlap
 menuinst >=2
 packaging >=23.0
-pexpect
-pip
 platformdirs >=3.10.0
 pluggy >=1.0.0
-pre-commit
 pycosat >=0.6.3
-pytest
-pytest-cov
-pytest-mock
-pytest-rerunfailures
-pytest-timeout
-pytest-xdist
 requests >=2.28.0,<3
-responses
 ruamel.yaml >=0.11.14,<0.19
 setuptools >=60.0.0
 setuptools_scm  # for devenv version detection
-tomli  # [py<3.11] for coverage pyproject.toml
 tqdm >=4
-werkzeug >=2.2  # jlap pytest fixture

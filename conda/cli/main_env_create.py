@@ -9,7 +9,6 @@ import os
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreTrueAction,
     _SubParsersAction,
 )
 
@@ -19,11 +18,11 @@ from ..notices import notices
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..deprecations import deprecated
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
         add_parser_networking,
+        add_parser_platform,
         add_parser_prefix,
         add_parser_solver,
     )
@@ -87,20 +86,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=None,
         nargs="?",
     )
-    p.add_argument(
-        "--force",
-        dest="yes",
-        action=deprecated.action(
-            "23.9",
-            "24.3",
-            _StoreTrueAction,
-            addendum="Use `--yes` instead.",
-        ),
-        default=False,
-    )
     add_parser_default_packages(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)
+    add_parser_platform(p)
 
     p.set_defaults(func="conda.cli.main_env_create.execute")
 

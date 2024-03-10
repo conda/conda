@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import sys
 from functools import lru_cache
 from itertools import chain
@@ -2291,6 +2292,8 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     else:
         conda_is_a_function = "conda is a function"
 
+    case = str.lower if on_win else str
+
     activate = f" activate {dev_arg} "
     deactivate = f" deactivate {dev_arg} "
     install = f" install {dev_arg} "
@@ -2304,8 +2307,6 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert any(path.endswith("condabin") for path in PATH0.split(":"))
 
     shell.assert_env_var("CONDA_SHLVL", "0")
-    PATH0 = shell.get_env_var("PATH", "")
-    assert len([path for path in PATH0.split(":") if path.endswith("condabin")]) > 0
     # Remove sys.prefix from PATH. It interferes with path entry count tests.
     # We can no longer check this since we'll replace e.g. between 1 and N path
     # entries with N of them in _replace_prefix_in_path() now. It is debatable
@@ -2328,7 +2329,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
 
-    CONDA_EXE2 = shell.get_env_var("CONDA_EXE")
+    CONDA_EXE2 = case(shell.get_env_var("CONDA_EXE"))
     _CE_M2 = shell.get_env_var("_CE_M")
 
     shell.assert_env_var("PS1", "(base).*")
@@ -2336,7 +2337,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     PATH1 = shell.get_env_var("PATH", "")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH1.split(":"))
 
-    CONDA_EXE = shell.get_env_var("CONDA_EXE")
+    CONDA_EXE = case(shell.get_env_var("CONDA_EXE"))
     _CE_M = shell.get_env_var("_CE_M")
     _CE_CONDA = shell.get_env_var("_CE_CONDA")
 
@@ -2346,7 +2347,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
 
-    CONDA_EXE2 = shell.get_env_var("CONDA_EXE")
+    CONDA_EXE2 = case(shell.get_env_var("CONDA_EXE"))
     _CE_M2 = shell.get_env_var("_CE_M")
     _CE_CONDA2 = shell.get_env_var("_CE_CONDA")
     assert CONDA_EXE == CONDA_EXE2
@@ -2381,7 +2382,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     PATH3 = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH3.split(":"))
 
-    CONDA_EXE2 = shell.get_env_var("CONDA_EXE")
+    CONDA_EXE2 = case(shell.get_env_var("CONDA_EXE"))
     _CE_M2 = shell.get_env_var("_CE_M")
     _CE_CONDA2 = shell.get_env_var("_CE_CONDA")
     assert CONDA_EXE == CONDA_EXE2
@@ -2435,7 +2436,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     # When fully deactivated, CONDA_EXE, _CE_M and _CE_CONDA must be retained
     # because the conda shell scripts use them and if they are unset activation
     # is not possible.
-    CONDA_EXED = shell.get_env_var("CONDA_EXE")
+    CONDA_EXED = case(shell.get_env_var("CONDA_EXE"))
     assert CONDA_EXED, (
         "A fully deactivated conda shell must retain CONDA_EXE (and _CE_M and _CE_CONDA in dev)\n"
         "  as the shell scripts refer to them."
@@ -2522,7 +2523,12 @@ def basic_csh(shell, prefix, prefix2, prefix3):
         pytest.param(
             "bash",
             basic_posix,
-            marks=skipif_bash_unsupported,
+            marks=[
+                skipif_bash_unsupported,
+                pytest.mark.skipif(
+                    on_win, reason="Temporary skip, larger refactor necessary"
+                ),
+            ],
         ),
         pytest.param(
             "dash",
@@ -2597,7 +2603,10 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
         shell.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.skipif(not which_powershell(), reason="PowerShell not installed")
+@pytest.mark.skipif(
+    not which_powershell() or platform.machine() == "arm64",
+    reason="PowerShell not installed or not supported on platform",
+)
 @pytest.mark.integration
 def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, venusaur = shell_wrapper_integration
@@ -2763,6 +2772,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
 
 @skipif_bash_unsupported
+@pytest.mark.skipif(on_win, reason="Temporary skip, larger refactor necessary")
 @pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True

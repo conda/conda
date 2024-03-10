@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaSetting,
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
@@ -302,5 +303,30 @@ class CondaSpecs:
                yield plugins.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
+               )
+        """
+
+    @_hookspec
+    def conda_settings(self) -> Iterable[CondaSetting]:
+        """
+        Register new setting
+
+        The example below defines a simple string type parameter
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.common.configuration import PrimitiveParameter, SequenceParameter
+
+
+           @plugins.hookimpl
+           def conda_settings():
+               yield plugins.CondaSetting(
+                   name="example_option",
+                   description="This is an example option",
+                   parameter=PrimitiveParameter("default_value", element_type=str),
+                   aliases=("example_option_alias",),
                )
         """

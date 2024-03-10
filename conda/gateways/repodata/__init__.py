@@ -67,6 +67,9 @@ CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
 
+# show some unparseable json in error
+ERROR_SNIPPET_LENGTH = 32
+
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
     """
@@ -725,7 +728,14 @@ class RepodataFetch:
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
-            return json.loads(parsed), state
+            try:
+                return json.loads(parsed), state
+            except json.JSONDecodeError as e:
+                e.args = (
+                    f'{e.args[0]}; got "{parsed[:ERROR_SNIPPET_LENGTH]}"',
+                    *e.args[1:],
+                )
+                raise
         else:
             return parsed, state
 

@@ -76,10 +76,3 @@ def test_check_files_in_tarball_files_not_exist():
 
     with pytest.raises(CondaFileIOError):
         instructions.check_files_in_package(source_dir, files)
-
-
-def test_prefix_cmd():
-    """Unused, but run it anyway."""
-    state = {}
-    instructions.PREFIX_CMD(state, "prefix")
-    assert state["prefix"] == "prefix"

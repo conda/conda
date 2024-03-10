@@ -1,10 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
+import platform
 import re
 import sys
 from datetime import datetime
-from importlib.metadata import version as metadata_version
+from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
@@ -14,15 +17,13 @@ from os.path import (
     isdir,
 )
 from pathlib import Path
-from shutil import copyfile, rmtree
+from shutil import rmtree
 from subprocess import check_call, check_output
-from typing import Literal
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import menuinst
 import pytest
-from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
@@ -71,16 +72,27 @@ from conda.gateways.subprocess import (
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.resolve import Resolve
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     get_shortcut_dir,
-    make_temp_channel,
     package_is_installed,
     which_or_where,
 )
+
+if TYPE_CHECKING:
+    from typing import Callable, Iterator, Literal
+
+    from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpChannelFixture,
+        TmpEnvFixture,
+    )
 
 log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
@@ -835,46 +847,39 @@ def test_install_tarball_from_file_based_channel(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    tmp_channel: TmpChannelFixture,
 ):
-    # Regression test for #2812
-    # handle file-based channels
-    monkeypatch.setenv("CONDA_BLD_PATH", str(tmp_path))
-    reset_context()
-    assert context.bld_path == str(tmp_path)
+    with tmp_channel("ca-certificates") as (path, url):
+        # regression test for #2812
+        # handle file-based channels
+        with tmp_env(
+            "--override-channels",
+            f"--channel={url}",
+            "ca-certificates",
+        ) as prefix:
+            assert package_is_installed(prefix, f"{url}::ca-certificates")
 
-    with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
-            f"--channel={channel}",
-            "flask=2.1.3",
-            "--json",
-            "--yes",
-        )
-        assert package_is_installed(prefix, f"{channel}::flask")
-        flask_fname = PrefixData(prefix).get("flask")["fn"]
+        # regression test for #2970
+        # install from build channel
+        # mock CONDA_BLD_PATH by setting it to the temporary channel
+        monkeypatch.setenv("CONDA_BLD_PATH", str(path))
+        reset_context()
+        assert context.bld_path == str(path)
 
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
+        with tmp_env(
+            "--override-channels",
+            "--channel=local",
+            "ca-certificates",
+        ) as prefix:
+            assert package_is_installed(prefix, "local::ca-certificates")
 
-        # Regression test for 2970
-        # install from build channel as a tarball
-        tar_path = Path(PackageCacheData.first_writable().pkgs_dir, flask_fname)
-        if not tar_path.is_file():
-            tar_path = tar_path.with_suffix(".tar.bz2")
-
-        # create a temporary conda-bld
-        conda_bld_sub = tmp_path / context.subdir
-        conda_bld_sub.mkdir(exist_ok=True)
-        tar_bld_path = str(conda_bld_sub / tar_path.name)
-        copyfile(tar_path, tar_bld_path)
-
-        conda_cli("install", f"--prefix={prefix}", tar_bld_path, "--yes")
-        assert package_is_installed(prefix, "flask")
-
-        # Regression test for #462
-        with tmp_env(tar_bld_path) as prefix2:
-            assert package_is_installed(prefix2, "flask")
+    # install from a local tarball
+    # regression test for #462
+    tar_path = next(
+        PackageCacheData.query_all("ca-certificates")
+    ).package_tarball_full_path
+    with tmp_env(tar_path) as prefix2:
+        assert package_is_installed(prefix2, "ca-certificates")
 
 
 def test_tarball_install(
@@ -1357,96 +1362,103 @@ def test_update_deps_flag_present(
         assert package_is_installed(prefix, "another_dependent")
 
 
+@pytest.fixture
+def shortcut_files(
+    path_factory: PathFactoryFixture,
+) -> Iterator[tuple[Path, Callable[[], tuple[Path, ...]]]]:
+    prefix = path_factory()
+
+    def get_shortcut() -> tuple[Path, ...]:
+        shortcut_path = Path(get_shortcut_dir())
+        return tuple(shortcut_path.glob(f"**/*Prompt ({basename(prefix)}).lnk"))
+
+    assert not get_shortcut()
+
+    yield (prefix, get_shortcut)
+
+    for shortcut in get_shortcut():
+        rmtree(shortcut.parent, ignore_errors=True)
+
+
 @pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
 def test_shortcut_creation_installs_shortcut(
-    request: FixtureRequest,
-    path_factory: PathFactoryFixture,
+    shortcut_files: tuple[Path, Callable[[], tuple[Path, ...]]],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    prefix = path_factory()
-    shortcut_file = Path(
-        get_shortcut_dir(),
-        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
-        f"Anaconda Prompt ({basename(prefix)}).lnk",
-    )
-    assert not shortcut_file.exists()
+    prefix, get_shortcut = shortcut_files
 
-    # register cleanup
-    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
+    # depending on channel priorities match one of:
+    #   - main::console_shortcut
+    #   - conda-forge::miniforge_console_shortcut
+    with tmp_env("*console_shortcut", prefix=prefix):
+        assert (pkg := package_is_installed(prefix, "*console_shortcut"))
 
-    with tmp_env("console_shortcut", prefix=prefix):
-        assert package_is_installed(prefix, "console_shortcut")
-        assert shortcut_file.is_file()
+        assert get_shortcut()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
-        assert not package_is_installed(prefix, "console_shortcut")
-        assert not shortcut_file.exists()
+        if version("conda_libmamba_solver") <= "24.1.0":
+            conda_cli("remove", f"--prefix={prefix}", pkg.name, "--yes")
+        else:
+            conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "*console_shortcut")
+        assert not get_shortcut()
 
 
 @pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
 def test_shortcut_absent_does_not_barf_on_uninstall(
-    request: FixtureRequest,
-    path_factory: PathFactoryFixture,
+    shortcut_files: tuple[Path, Callable[[], tuple[Path, ...]]],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    prefix = path_factory()
-    shortcut_file = Path(
-        get_shortcut_dir(),
-        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
-        f"Anaconda Prompt ({basename(prefix)}).lnk",
-    )
-    assert not shortcut_file.exists()
+    prefix, get_shortcut = shortcut_files
 
-    # register cleanup
-    request.addfinalizer(lambda: rmtree(shortcut_file.parent, ignore_errors=True))
-
+    # depending on channel priorities match one of:
+    #   - main::console_shortcut
+    #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
-        assert package_is_installed(prefix, "console_shortcut")
-        assert not shortcut_file.exists()
+    with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
+        assert (pkg := package_is_installed(prefix, "*console_shortcut"))
+        assert not get_shortcut()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
-        assert not package_is_installed(prefix, "console_shortcut")
-        assert not shortcut_file.exists()
+        if version("conda_libmamba_solver") <= "24.1.0":
+            conda_cli("remove", f"--prefix={prefix}", pkg.name, "--yes")
+        else:
+            conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "*console_shortcut")
+        assert not get_shortcut()
 
 
 @pytest.mark.xfail(not on_win, reason="console_shortcut is only on Windows")
 def test_shortcut_absent_when_condarc_set(
-    request: FixtureRequest,
-    path_factory: PathFactoryFixture,
+    shortcut_files: tuple[Path, Callable[[], tuple[Path, ...]]],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     monkeypatch: MonkeyPatch,
 ):
-    prefix = path_factory()
-    shortcut_file = Path(
-        get_shortcut_dir(),
-        f"Anaconda{sys.version_info.major} ({context.bits}-bit)",
-        f"Anaconda Prompt ({basename(prefix)}).lnk",
-    )
-    assert not shortcut_file.exists()
-
-    # register cleanup
-    request.addfinalizer(lambda: shortcut_file.unlink(missing_ok=True))
-
     # mock condarc
     monkeypatch.setenv("CONDA_SHORTCUTS", "false")
     reset_context()
     assert not context.shortcuts
 
-    with tmp_env("console_shortcut", prefix=prefix):
-        # including shortcuts: False from condarc should not get shortcuts installed
-        assert package_is_installed(prefix, "console_shortcut")
-        assert not shortcut_file.exists()
+    prefix, get_shortcut = shortcut_files
+
+    # depending on channel priorities match one of:
+    #   - main::console_shortcut
+    #   - conda-forge::miniforge_console_shortcut
+    # shortcuts: False from condarc should not get shortcuts installed
+    with tmp_env("*console_shortcut", prefix=prefix):
+        assert (pkg := package_is_installed(prefix, "*console_shortcut"))
+        assert not get_shortcut()
 
         # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        conda_cli("remove", f"--prefix={prefix}", "console_shortcut", "--yes")
-        assert not package_is_installed(prefix, "console_shortcut")
-        assert not shortcut_file.exists()
+        if version("conda_libmamba_solver") <= "24.1.0":
+            conda_cli("remove", f"--prefix={prefix}", pkg.name, "--yes")
+        else:
+            conda_cli("remove", f"--prefix={prefix}", "*console_shortcut", "--yes")
+        assert not package_is_installed(prefix, "*console_shortcut")
+        assert not get_shortcut()
 
 
 def test_menuinst_v2(
@@ -1615,7 +1627,8 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
-    context.subdir == "win-32", reason="metadata is wrong; give python2.7"
+    context.subdir == "win-32" or platform.machine() == "arm64",
+    reason="metadata is wrong; give python2.7 or no osx-arm64 package versions",
 )
 def test_conda_pip_interop_pip_clobbers_conda(
     monkeypatch: MonkeyPatch,
@@ -1952,6 +1965,9 @@ def test_conda_pip_interop_conda_editable_package(
         assert unlink_dists[0]["channel"] == "pypi"
 
 
+@pytest.mark.xfail(
+    platform.machine() == "arm64", reason="packages missing for osx-arm64"
+)
 def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
@@ -2061,6 +2077,7 @@ def test_offline_with_empty_index_cache(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    tmp_channel: TmpChannelFixture,
 ):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
@@ -2068,13 +2085,13 @@ def test_offline_with_empty_index_cache(
     SubdirData._cache_.clear()
 
     try:
-        with tmp_env() as prefix, make_temp_channel(["flask-2.1.3"]) as channel:
+        with tmp_env() as prefix, tmp_channel("zlib") as (_, channel):
             # Clear the index cache.
             index_cache_dir = create_cache_dir()
             conda_cli("clean", "--index-cache", "--yes")
             assert not exists(index_cache_dir)
 
-            # Then attempt to install a package with --offline. The package (flask) is
+            # Then attempt to install a package with --offline. The package (zlib) is
             # available in a local channel, however its dependencies are not. Make sure
             # that a) it fails because the dependencies are not available and b)
             # we don't try to download the repodata from non-local channels but we do
@@ -2099,28 +2116,28 @@ def test_offline_with_empty_index_cache(
 
             SubdirData._cache_.clear()
 
-            assert not package_is_installed(prefix, "flask")
+            assert not package_is_installed(prefix, "zlib")
             command = (
                 "install",
                 f"--prefix={prefix}",
                 "--override-channels",
                 f"--channel={channel}",
-                "flask",
+                "zlib",
                 "--offline",
                 "--yes",
             )
             if (
                 context.solver == "libmamba"
-                and metadata_version("conda-libmamba-solver") <= "23.12.0"
+                and version("conda-libmamba-solver") <= "23.12.0"
             ):
                 # conda-libmamba-solver <=23.12.0 didn't load pkgs_dirs when offline
                 with pytest.raises((RuntimeError, UnsatisfiableError)):
                     conda_cli(*command)
             else:
-                # This first install passes because flask and its dependencies are in the
+                # This first install passes because zlib and its dependencies are in the
                 # package cache.
                 conda_cli(*command)
-                assert package_is_installed(prefix, "flask")
+                assert package_is_installed(prefix, "zlib")
 
                 # The mock should have been called with our local channel URL though.
                 if context.solver != "libmamba":
@@ -2420,7 +2437,10 @@ def test_conda_downgrade(
         assert json.loads(result.stdout)["conda_version"] == conda_prec.version
 
 
-@pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
+@pytest.mark.skipif(
+    on_win or platform.machine() == "arm64",
+    reason="openssl only has a postlink script on unix / package missing for osx-arm64",
+)
 def test_run_script_called(tmp_env: TmpEnvFixture):
     import conda.core.link
 
@@ -2481,8 +2501,8 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "--dry-run",
             "--channel=conda-forge",
             "python",
-            "boost==1.70.0",
-            "boost-cpp==1.70.0",
+            "boost==1.82.0",
+            "boost-cpp==1.82.0",
             "--yes",
         )
 

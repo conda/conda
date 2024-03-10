@@ -30,7 +30,7 @@ from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.conda_argparse import do_call, generate_parser
 from ..cli.main import init_loggers
-from ..common.compat import encode_arguments, on_win
+from ..common.compat import on_win
 from ..common.io import (
     argv,
     captured,
@@ -54,6 +54,8 @@ from ..models.records import PackageRecord
 from ..utils import massage_arguments
 
 if TYPE_CHECKING:
+    from typing import Iterator
+
     from ..models.records import PrefixRecord
 
 TEST_LOG_LEVEL = DEBUG
@@ -81,6 +83,7 @@ def escape_for_winpath(p):
 
 
 @lru_cache(maxsize=None)
+@deprecated("24.9", "25.3")
 def running_a_python_capable_of_unicode_subprocessing():
     name = None
     # try:
@@ -109,6 +112,11 @@ tmpdir_in_use = None
 
 
 @pytest.fixture(autouse=True)
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
+)
 def set_tmpdir(tmpdir):
     global tmpdir_in_use
     if not tmpdir:
@@ -118,6 +126,11 @@ def set_tmpdir(tmpdir):
     tmpdir_in_use = td
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
+)
 def _get_temp_prefix(name=None, use_restricted_unicode=False):
     tmpdir = tmpdir_in_use or gettempdir()
     capable = running_a_python_capable_of_unicode_subprocessing()
@@ -158,6 +171,11 @@ def _get_temp_prefix(name=None, use_restricted_unicode=False):
     return prefix
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
+)
 def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None):
     """
     When the env. you are creating will be used to install Python 2.7 on Windows
@@ -179,6 +197,11 @@ def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None)
     return _temp_prefix
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
+)
 def FORCE_temp_prefix(name=None, use_restricted_unicode=False):
     _temp_prefix = _get_temp_prefix(
         name=name, use_restricted_unicode=use_restricted_unicode
@@ -203,21 +226,8 @@ class Commands:
     RUN = "run"
 
 
-@deprecated("23.9", "24.3", addendum="Use `monkeypatch.chdir` instead.")
-@contextmanager
-def temp_chdir(target_dir):
-    curdir = os.getcwd()
-    if not target_dir:
-        target_dir = curdir
-    try:
-        os.chdir(target_dir)
-        yield
-    finally:
-        os.chdir(curdir)
-
-
-@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
-def run_command(command, prefix, *arguments, **kwargs):
+@deprecated("23.9", "25.3", addendum="Use `conda.testing.conda_cli` instead.")
+def run_command(command, prefix, *arguments, **kwargs) -> tuple[str, str, int]:
     assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
     arguments = massage_arguments(arguments)
 
@@ -284,8 +294,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(
         TEST_LOG_LEVEL, "requests"
     ):
-        arguments = encode_arguments(arguments)
-        with argv(["python_api"] + arguments), captured(*cap_args) as c:
+        with argv(["python_api", *arguments]), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:
@@ -304,7 +313,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
 @deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_env` instead.")
 @contextmanager
-def make_temp_env(*packages, **kwargs):
+def make_temp_env(*packages, **kwargs) -> Iterator[str]:
     name = kwargs.pop("name", None)
     use_restricted_unicode = kwargs.pop("use_restricted_unicode", False)
 
@@ -337,7 +346,7 @@ def make_temp_env(*packages, **kwargs):
 
 @deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_pkgs_dir` instead.")
 @contextmanager
-def make_temp_package_cache() -> str:
+def make_temp_package_cache() -> Iterator[str]:
     prefix = make_temp_prefix(use_restricted_unicode=on_win)
     pkgs_dir = join(prefix, "pkgs")
     mkdir_p(pkgs_dir)
@@ -356,8 +365,9 @@ def make_temp_package_cache() -> str:
         PackageCacheData._cache_.pop(pkgs_dir, None)
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_channel` instead.")
 @contextmanager
-def make_temp_channel(packages):
+def make_temp_channel(packages) -> Iterator[str]:
     package_reqs = [pkg.replace("-", "=") for pkg in packages]
     package_names = [pkg.split("-")[0] for pkg in packages]
 
@@ -401,12 +411,18 @@ def make_temp_channel(packages):
         yield channel
 
 
-def create_temp_location():
+@deprecated(
+    "24.9", "25.3", addendum="Use `tmp_path` or `conda.testing.path_factory` instead."
+)
+def create_temp_location() -> str:
     return _get_temp_prefix()
 
 
+@deprecated(
+    "24.9", "25.3", addendum="Use `tmp_path` or `conda.testing.path_factory` instead."
+)
 @contextmanager
-def tempdir():
+def tempdir() -> Iterator[str]:
     prefix = create_temp_location()
     try:
         os.makedirs(prefix)
@@ -416,7 +432,8 @@ def tempdir():
             rm_rf(prefix)
 
 
-def reload_config(prefix):
+@deprecated("24.9", "25.3", addendum="Use `conda.base.context.reset_context` instead.")
+def reload_config(prefix) -> None:
     prefix_condarc = join(prefix, "condarc")
     reset_context([prefix_condarc])
 
@@ -436,21 +453,6 @@ def package_is_installed(
         )
     else:
         return prefix_recs[0]
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum="Use `conda.core.prefix_data.PrefixData().get()` instead.",
-)
-def get_conda_list_tuple(prefix, package_name):
-    stdout, stderr, _ = run_command(Commands.LIST, prefix)
-    stdout_lines = stdout.split("\n")
-    package_line = next(
-        (line for line in stdout_lines if line.lower().startswith(package_name + " ")),
-        None,
-    )
-    return package_line.split()
 
 
 def get_shortcut_dir(prefix_for_unix=sys.prefix):
