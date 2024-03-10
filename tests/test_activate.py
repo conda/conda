@@ -429,7 +429,7 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
     export_vars, unset_vars = activator.get_export_unset_vars(
         PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
         CONDA_PREFIX=prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
         # write_pkgs
@@ -467,7 +467,7 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
     export_vars, unset_vars = activator.get_export_unset_vars(
         PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
         CONDA_PREFIX=prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
         # write_pkgs
@@ -500,7 +500,7 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
     export_vars, unset_vars = activator.get_export_unset_vars(
         PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
         CONDA_PREFIX=prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
         # write_pkgs
@@ -552,7 +552,7 @@ def test_build_activate_shlvl_1(
         PATH=new_path,
         CONDA_PREFIX=prefix,
         CONDA_PREFIX_1=old_prefix,
-        CONDA_SHLVL="2",
+        CONDA_SHLVL=2,
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
         # write_pkgs
@@ -591,7 +591,7 @@ def test_build_activate_shlvl_1(
 
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=old_prefix,
         CONDA_PROMPT_MODIFIER=f"({old_prefix}) ",
         CONDA_PREFIX_1=None,
@@ -642,7 +642,7 @@ def test_build_stack_shlvl_1(
         PATH=new_path,
         CONDA_PREFIX=prefix,
         CONDA_PREFIX_1=old_prefix,
-        CONDA_SHLVL="2",
+        CONDA_SHLVL=2,
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
         CONDA_STACKED_2="true",
@@ -682,7 +682,7 @@ def test_build_stack_shlvl_1(
 
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=old_prefix,
         CONDA_PROMPT_MODIFIER=f"({old_prefix}) ",
         CONDA_PREFIX_1=None,
@@ -776,7 +776,7 @@ def test_build_deactivate_shlvl_2_from_stack(
 
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=old_prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({old_prefix}) "),
         PKG_B_ENV="pkg_b",
@@ -837,7 +837,7 @@ def test_build_deactivate_shlvl_2_from_activate(
 
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=old_prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({old_prefix}) "),
         PKG_B_ENV="pkg_b",
@@ -878,7 +878,7 @@ def test_build_deactivate_shlvl_1(
     new_path = activator.pathsep_join(activator.path_conversion(original_path))
 
     export_vars, unset_vars = activator.get_export_unset_vars(
-        CONDA_SHLVL="0",
+        CONDA_SHLVL=0,
         CONDA_PREFIX=None,
         CONDA_DEFAULT_ENV=None,
         CONDA_PROMPT_MODIFIER=None,
@@ -954,7 +954,7 @@ def test_build_activate_restore_unset_env_vars(
         PATH=new_path,
         CONDA_PREFIX=prefix,
         CONDA_PREFIX_1=old_prefix,
-        CONDA_SHLVL="2",
+        CONDA_SHLVL=2,
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(modifier := f"({prefix}) "),
         PKG_A_ENV="pkg_a",
@@ -992,7 +992,7 @@ def test_build_activate_restore_unset_env_vars(
 
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=old_prefix,
         CONDA_PROMPT_MODIFIER=f"({old_prefix}) ",
         CONDA_PREFIX_1=None,
@@ -1857,7 +1857,7 @@ def test_json_basic(shell_wrapper_unit: str):
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=shell_wrapper_unit,
-        CONDA_SHLVL="1",
+        CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=shell_wrapper_unit,
         CONDA_PROMPT_MODIFIER="(%s) " % shell_wrapper_unit,
     )
@@ -1949,17 +1949,13 @@ def test_json_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        conda_exe_export, _ = activator.get_export_unset_vars(CONDA_SHLVL="0")
+        export_vars, unset_vars = activator.get_export_unset_vars(CONDA_SHLVL=0)
         e_deactivate_data = {
             "path": {"PATH": list(new_path)},
             "vars": {
-                "export": conda_exe_export,
+                "export": export_vars,
                 "set": {"PS1": os.getenv("PS1", "")},
-                "unset": [
-                    "CONDA_PREFIX",
-                    "CONDA_DEFAULT_ENV",
-                    "CONDA_PROMPT_MODIFIER",
-                ],
+                "unset": unset_vars,
             },
             "scripts": {
                 "activate": [],

@@ -137,7 +137,7 @@ class _Activator(metaclass=abc.ABCMeta):
         self,
         export_metavars: bool = True,
         /,
-        **kwargs: str | None,
+        **kwargs: str | int | None,
     ) -> tuple[dict[str, str], list[str]]:
         """
         :param export_metavars: whether to export `conda_exe_vars` meta variables.
