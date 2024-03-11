@@ -26,6 +26,7 @@ from .. import CondaError
 from .compat import on_win
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Iterable, Sequence
 
 log = getLogger(__name__)
@@ -55,7 +56,10 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
-def paths_equal(path1, path2):
+def paths_equal(
+    path1: str | os.PathLike | Path,
+    path2: str | os.PathLike | Path,
+) -> bool:
     """
     Examples:
         >>> paths_equal('/a/b/c', '/a/b/c/d/..')
