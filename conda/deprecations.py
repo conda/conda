@@ -47,8 +47,11 @@ class DeprecationHandler:
         :param version: Version string to parse.
         """
         try:
-            return tuple(int(part) for part in version.strip().split(".")) or None
-        except (AttributeError, ValueError):
+            version = version.strip()
+            if not set(version).issubset(".0123456789"):
+                raise ValueError
+            return tuple(int(part) for part in version.split(".")) or None
+        except (AttributeError, TypeError, ValueError):
             return None
 
     def _version_less_than(self, version: str) -> bool:
