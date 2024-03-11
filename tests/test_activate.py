@@ -1091,16 +1091,16 @@ def test_posix_basic(shell_wrapper_unit: str):
 
     e_activate_data = dals(
         """
-    PS1='%(ps1)s'
-    %(unset_script)s
-    export PATH='%(new_path)s'
-    export CONDA_PREFIX='%(native_prefix)s'
-    export CONDA_SHLVL='1'
-    export CONDA_DEFAULT_ENV='%(native_prefix)s'
-    export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
-    %(export_script)s
-    . "%(activate1)s"
-    """
+        PS1='%(ps1)s'
+        %(unset_script)s
+        export PATH='%(new_path)s'
+        export CONDA_PREFIX='%(native_prefix)s'
+        export CONDA_SHLVL='1'
+        export CONDA_DEFAULT_ENV='%(native_prefix)s'
+        export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
+        %(export_script)s
+        . "%(activate1)s"
+        """
     ) % {
         "native_prefix": shell_wrapper_unit,
         "new_path": activator.pathsep_join(new_path_parts),
@@ -1134,13 +1134,13 @@ def test_posix_basic(shell_wrapper_unit: str):
         )
         e_reactivate_data = dals(
             """
-        . "%(deactivate1)s"
-        PS1='%(ps1)s'
-        export PATH='%(new_path)s'
-        export CONDA_SHLVL='1'
-        export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
-        . "%(activate1)s"
-        """
+            . "%(deactivate1)s"
+            PS1='%(ps1)s'
+            export PATH='%(new_path)s'
+            export CONDA_SHLVL='1'
+            export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
+            . "%(activate1)s"
+            """
         ) % {
             "activate1": activator.path_conversion(
                 join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
@@ -1173,16 +1173,16 @@ def test_posix_basic(shell_wrapper_unit: str):
 
         e_deactivate_data = dals(
             """
-        export PATH='%(new_path)s'
-        . "%(deactivate1)s"
-        %(unset_script)s
-        unset CONDA_PREFIX
-        unset CONDA_DEFAULT_ENV
-        unset CONDA_PROMPT_MODIFIER
-        PS1='%(ps1)s'
-        export CONDA_SHLVL='0'
-        %(export_script)s
-        """
+            export PATH='%(new_path)s'
+            . "%(deactivate1)s"
+            %(unset_script)s
+            unset CONDA_PREFIX
+            unset CONDA_DEFAULT_ENV
+            unset CONDA_PROMPT_MODIFIER
+            PS1='%(ps1)s'
+            export CONDA_SHLVL='0'
+            %(export_script)s
+            """
         ) % {
             "new_path": new_path,
             "deactivate1": activator.path_conversion(
@@ -1223,14 +1223,14 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
 
     e_activate_data = dals(
         """
-    @SET "PATH=%(new_path)s"
-    @SET "CONDA_PREFIX=%(converted_prefix)s"
-    @SET "CONDA_SHLVL=1"
-    @SET "CONDA_DEFAULT_ENV=%(native_prefix)s"
-    @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
-    %(export_script)s
-    @CALL "%(activate1)s"
-    """
+        @SET "PATH=%(new_path)s"
+        @SET "CONDA_PREFIX=%(converted_prefix)s"
+        @SET "CONDA_SHLVL=1"
+        @SET "CONDA_DEFAULT_ENV=%(native_prefix)s"
+        @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
+        %(export_script)s
+        @CALL "%(activate1)s"
+        """
     ) % {
         "converted_prefix": activator.path_conversion(shell_wrapper_unit),
         "native_prefix": shell_wrapper_unit,
@@ -1264,12 +1264,12 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
         )
         assert reactivate_data == dals(
             """
-        @CALL "%(deactivate1)s"
-        @SET "PATH=%(new_path)s"
-        @SET "CONDA_SHLVL=1"
-        @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
-        @CALL "%(activate1)s"
-        """
+            @CALL "%(deactivate1)s"
+            @SET "PATH=%(new_path)s"
+            @SET "CONDA_SHLVL=1"
+            @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
+            @CALL "%(activate1)s"
+            """
         ) % {
             "activate1": activator.path_conversion(
                 join(
@@ -1307,14 +1307,14 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
         )
         e_deactivate_data = dals(
             """
-        @SET "PATH=%(new_path)s"
-        @CALL "%(deactivate1)s"
-        @SET CONDA_PREFIX=
-        @SET CONDA_DEFAULT_ENV=
-        @SET CONDA_PROMPT_MODIFIER=
-        @SET "CONDA_SHLVL=0"
-        %(export_script)s
-        """
+            @SET "PATH=%(new_path)s"
+            @CALL "%(deactivate1)s"
+            @SET CONDA_PREFIX=
+            @SET CONDA_DEFAULT_ENV=
+            @SET CONDA_PROMPT_MODIFIER=
+            @SET "CONDA_SHLVL=0"
+            %(export_script)s
+            """
         ) % {
             "new_path": new_path,
             "deactivate1": activator.path_conversion(
@@ -1346,15 +1346,15 @@ def test_csh_basic(shell_wrapper_unit: str):
 
     e_activate_data = dals(
         """
-    set prompt='%(prompt)s';
-    setenv PATH "%(new_path)s";
-    setenv CONDA_PREFIX "%(native_prefix)s";
-    setenv CONDA_SHLVL "1";
-    setenv CONDA_DEFAULT_ENV "%(native_prefix)s";
-    setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-    %(export_script)s;
-    source "%(activate1)s";
-    """
+        set prompt='%(prompt)s';
+        setenv PATH "%(new_path)s";
+        setenv CONDA_PREFIX "%(native_prefix)s";
+        setenv CONDA_SHLVL "1";
+        setenv CONDA_DEFAULT_ENV "%(native_prefix)s";
+        setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+        %(export_script)s;
+        source "%(activate1)s";
+        """
     ) % {
         "converted_prefix": activator.path_conversion(shell_wrapper_unit),
         "native_prefix": shell_wrapper_unit,
@@ -1386,13 +1386,13 @@ def test_csh_basic(shell_wrapper_unit: str):
         )
         e_reactivate_data = dals(
             """
-        source "%(deactivate1)s";
-        set prompt='%(prompt)s';
-        setenv PATH "%(new_path)s";
-        setenv CONDA_SHLVL "1";
-        setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-        source "%(activate1)s";
-        """
+            source "%(deactivate1)s";
+            set prompt='%(prompt)s';
+            setenv PATH "%(new_path)s";
+            setenv CONDA_SHLVL "1";
+            setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+            source "%(activate1)s";
+            """
         ) % {
             "prompt": "(%s) " % shell_wrapper_unit + os.environ.get("prompt", ""),
             "new_path": activator.pathsep_join(new_path_parts),
@@ -1431,15 +1431,15 @@ def test_csh_basic(shell_wrapper_unit: str):
 
         e_deactivate_data = dals(
             """
-        setenv PATH "%(new_path)s";
-        source "%(deactivate1)s";
-        unsetenv CONDA_PREFIX;
-        unsetenv CONDA_DEFAULT_ENV;
-        unsetenv CONDA_PROMPT_MODIFIER;
-        set prompt='%(prompt)s';
-        setenv CONDA_SHLVL "0";
-        %(export_script)s;
-        """
+            setenv PATH "%(new_path)s";
+            source "%(deactivate1)s";
+            unsetenv CONDA_PREFIX;
+            unsetenv CONDA_DEFAULT_ENV;
+            unsetenv CONDA_PROMPT_MODIFIER;
+            set prompt='%(prompt)s';
+            setenv CONDA_SHLVL "0";
+            %(export_script)s;
+            """
         ) % {
             "new_path": new_path,
             "deactivate1": activator.path_conversion(
@@ -1471,14 +1471,14 @@ def test_xonsh_basic(shell_wrapper_unit: str):
     export_script, unset_script = get_scripts_export_unset_vars(activator)
     e_activate_template = dals(
         """
-    $PATH = '%(new_path)s'
-    $CONDA_PREFIX = '%(native_prefix)s'
-    $CONDA_SHLVL = '1'
-    $CONDA_DEFAULT_ENV = '%(native_prefix)s'
-    $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-    %(export_script)s
-    %(sourcer)s "%(activate1)s"
-    """
+        $PATH = '%(new_path)s'
+        $CONDA_PREFIX = '%(native_prefix)s'
+        $CONDA_SHLVL = '1'
+        $CONDA_DEFAULT_ENV = '%(native_prefix)s'
+        $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
+        %(export_script)s
+        %(sourcer)s "%(activate1)s"
+        """
     )
     e_activate_info = {
         "converted_prefix": activator.path_conversion(shell_wrapper_unit),
@@ -1518,12 +1518,12 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         )
         e_reactivate_template = dals(
             """
-        %(sourcer)s "%(deactivate1)s"
-        $PATH = '%(new_path)s'
-        $CONDA_SHLVL = '1'
-        $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-        %(sourcer)s "%(activate1)s"
-        """
+            %(sourcer)s "%(deactivate1)s"
+            $PATH = '%(new_path)s'
+            $CONDA_SHLVL = '1'
+            $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
+            %(sourcer)s "%(activate1)s"
+            """
         )
         e_reactivate_info = {
             "new_path": activator.pathsep_join(new_path_parts),
@@ -1568,14 +1568,14 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         export_script, unset_script = get_scripts_export_unset_vars(activator)
         e_deactivate_template = dals(
             """
-        $PATH = '%(new_path)s'
-        %(sourcer)s "%(deactivate1)s"
-        del $CONDA_PREFIX
-        del $CONDA_DEFAULT_ENV
-        del $CONDA_PROMPT_MODIFIER
-        $CONDA_SHLVL = '0'
-        %(export_script)s
-        """
+            $PATH = '%(new_path)s'
+            %(sourcer)s "%(deactivate1)s"
+            del $CONDA_PREFIX
+            del $CONDA_DEFAULT_ENV
+            del $CONDA_PROMPT_MODIFIER
+            $CONDA_SHLVL = '0'
+            %(export_script)s
+            """
         )
         e_deactivate_info = {
             "new_path": new_path,
@@ -1617,14 +1617,14 @@ def test_fish_basic(shell_wrapper_unit: str):
     export_script, unset_script = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
-    set -gx PATH "%(new_path)s";
-    set -gx CONDA_PREFIX "%(native_prefix)s";
-    set -gx CONDA_SHLVL "1";
-    set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
-    set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-    %(export_script)s;
-    source "%(activate1)s";
-    """
+        set -gx PATH "%(new_path)s";
+        set -gx CONDA_PREFIX "%(native_prefix)s";
+        set -gx CONDA_SHLVL "1";
+        set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
+        set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+        %(export_script)s;
+        source "%(activate1)s";
+        """
     ) % {
         "converted_prefix": activator.path_conversion(shell_wrapper_unit),
         "native_prefix": shell_wrapper_unit,
@@ -1655,12 +1655,12 @@ def test_fish_basic(shell_wrapper_unit: str):
         )
         e_reactivate_data = dals(
             """
-        source "%(deactivate1)s";
-        set -gx PATH "%(new_path)s";
-        set -gx CONDA_SHLVL "1";
-        set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-        source "%(activate1)s";
-        """
+            source "%(deactivate1)s";
+            set -gx PATH "%(new_path)s";
+            set -gx CONDA_SHLVL "1";
+            set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+            source "%(activate1)s";
+            """
         ) % {
             "new_path": activator.pathsep_join(new_path_parts),
             "activate1": activator.path_conversion(
@@ -1697,14 +1697,14 @@ def test_fish_basic(shell_wrapper_unit: str):
         export_script, unset_script = get_scripts_export_unset_vars(activator)
         e_deactivate_data = dals(
             """
-        set -gx PATH "%(new_path)s";
-        source "%(deactivate1)s";
-        set -e CONDA_PREFIX;
-        set -e CONDA_DEFAULT_ENV;
-        set -e CONDA_PROMPT_MODIFIER;
-        set -gx CONDA_SHLVL "0";
-        %(export_script)s;
-        """
+            set -gx PATH "%(new_path)s";
+            source "%(deactivate1)s";
+            set -e CONDA_PREFIX;
+            set -e CONDA_DEFAULT_ENV;
+            set -e CONDA_PROMPT_MODIFIER;
+            set -gx CONDA_SHLVL "0";
+            %(export_script)s;
+            """
         ) % {
             "new_path": new_path,
             "deactivate1": activator.path_conversion(
@@ -1735,14 +1735,14 @@ def test_powershell_basic(shell_wrapper_unit: str):
     export_script, unset_script = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
-    $Env:PATH = "%(new_path)s"
-    $Env:CONDA_PREFIX = "%(prefix)s"
-    $Env:CONDA_SHLVL = "1"
-    $Env:CONDA_DEFAULT_ENV = "%(prefix)s"
-    $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
-    %(export_script)s
-    . "%(activate1)s"
-    """
+        $Env:PATH = "%(new_path)s"
+        $Env:CONDA_PREFIX = "%(prefix)s"
+        $Env:CONDA_SHLVL = "1"
+        $Env:CONDA_DEFAULT_ENV = "%(prefix)s"
+        $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+        %(export_script)s
+        . "%(activate1)s"
+        """
     ) % {
         "prefix": shell_wrapper_unit,
         "new_path": activator.pathsep_join(new_path_parts),
@@ -1772,12 +1772,12 @@ def test_powershell_basic(shell_wrapper_unit: str):
         )
         assert reactivate_data == dals(
             """
-        . "%(deactivate1)s"
-        $Env:PATH = "%(new_path)s"
-        $Env:CONDA_SHLVL = "1"
-        $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
-        . "%(activate1)s"
-        """
+            . "%(deactivate1)s"
+            $Env:PATH = "%(new_path)s"
+            $Env:CONDA_SHLVL = "1"
+            $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+            . "%(activate1)s"
+            """
         ) % {
             "activate1": join(
                 shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1"
@@ -1805,14 +1805,14 @@ def test_powershell_basic(shell_wrapper_unit: str):
 
         assert deactivate_data == dals(
             """
-        $Env:PATH = "%(new_path)s"
-        . "%(deactivate1)s"
-        $Env:CONDA_PREFIX = ""
-        $Env:CONDA_DEFAULT_ENV = ""
-        $Env:CONDA_PROMPT_MODIFIER = ""
-        $Env:CONDA_SHLVL = "0"
-        %(export_script)s
-        """
+            $Env:PATH = "%(new_path)s"
+            . "%(deactivate1)s"
+            $Env:CONDA_PREFIX = ""
+            $Env:CONDA_DEFAULT_ENV = ""
+            $Env:CONDA_PROMPT_MODIFIER = ""
+            $Env:CONDA_SHLVL = "0"
+            %(export_script)s
+            """
         ) % {
             "new_path": new_path,
             "deactivate1": join(
