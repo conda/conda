@@ -568,7 +568,7 @@ def test_build_activate_shlvl_1(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_activate(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
@@ -608,11 +608,11 @@ def test_build_activate_shlvl_1(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
     assert builder["export_path"] == {"PATH": old_path}
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == ()
+    assert builder["activate_scripts"] == []
 
 
 @skipif_posix_path_unsupported
@@ -659,7 +659,7 @@ def test_build_stack_shlvl_1(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_stack(prefix)
     assert "export_path" not in builder
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"{modifier}{os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
@@ -698,11 +698,11 @@ def test_build_stack_shlvl_1(
     # see conda.activate._Activator._yield_commands order
     builder = activator.build_deactivate()
     assert set(builder["export_path"]) == {"PATH"}
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
     assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == ()
+    assert builder["activate_scripts"] == []
 
 
 def test_activate_same_environment(
@@ -1006,11 +1006,11 @@ def test_build_activate_restore_unset_env_vars(
 
     builder = activator.build_deactivate()
     assert builder["export_path"] == {"PATH": old_path}
-    assert builder["deactivate_scripts"] == ()
+    assert builder["deactivate_scripts"] == []
     assert builder["unset_vars"] == unset_vars
     assert builder["export_vars"] == export_vars
     assert builder["set_vars"] == {"PS1": f"(/old/prefix) {os.getenv('PS1', '')}"}
-    assert builder["activate_scripts"] == ()
+    assert builder["activate_scripts"] == []
 
 
 @pytest.fixture
