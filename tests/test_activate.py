@@ -109,7 +109,7 @@ skipif_bash_unsupported = pytest.mark.skipif(
     bash_unsupported(),
     reason=bash_unsupported(),
 )
-skipif_bash_unsupported_win = pytest.mark.skipif(
+skipif_posix_path_unsupported = pytest.mark.skipif(
     on_win,
     reason=(
         "You are using Windows. These tests involve setting PATH to POSIX values\n"
@@ -523,7 +523,7 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
     assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
-@skipif_bash_unsupported_win
+@skipif_posix_path_unsupported
 def test_build_activate_shlvl_1(
     env_activate: tuple[str, str, str],
     monkeypatch: MonkeyPatch,
@@ -615,7 +615,7 @@ def test_build_activate_shlvl_1(
     assert builder["activate_scripts"] == ()
 
 
-@skipif_bash_unsupported_win
+@skipif_posix_path_unsupported
 def test_build_stack_shlvl_1(
     env_activate: tuple[str, str, str],
     monkeypatch: MonkeyPatch,
@@ -734,7 +734,7 @@ def test_activate_same_environment(
     assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
-@skipif_bash_unsupported_win
+@skipif_posix_path_unsupported
 def test_build_deactivate_shlvl_2_from_stack(
     env_activate: tuple[str, str, str],
     env_deactivate: tuple[str, str, str],
@@ -801,7 +801,7 @@ def test_build_deactivate_shlvl_2_from_stack(
     assert builder["activate_scripts"] == [activator.path_conversion(activate_sh)]
 
 
-@skipif_bash_unsupported_win
+@skipif_posix_path_unsupported
 def test_build_deactivate_shlvl_2_from_activate(
     env_activate: tuple[str, str, str],
     env_deactivate: tuple[str, str, str],
@@ -923,7 +923,7 @@ def test_get_env_vars_empty_file(tmp_env: Path):
         assert env_vars == {}
 
 
-@skipif_bash_unsupported_win
+@skipif_posix_path_unsupported
 def test_build_activate_restore_unset_env_vars(
     env_activate: tuple[str, str, str],
     monkeypatch: MonkeyPatch,
