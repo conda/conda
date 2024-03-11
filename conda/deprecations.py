@@ -22,19 +22,17 @@ class DeprecatedError(RuntimeError):
     pass
 
 
-# inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
-# CPython's warnings._deprecated
-class DeprecationHandler:
-    _version: str | None
+class _Version:
+    _version_str: str | None
     _version_tuple: tuple[int, ...] | None
     _version_object: Version | None
 
     def __init__(self, version: str):
-        """Factory to create a deprecation handle for the specified version.
+        """Simple upper bound version comparer with packaging.version fallback
 
-        :param version: The version to compare against when checking deprecation statuses.
+        :param version: Version string.
         """
-        self._version = version
+        self._version_str = version
         # Try to parse the version string as a simple tuple[int, ...] to avoid
         # packaging.version import and costlier version comparisons.
         self._version_tuple = self._get_version_tuple(version)
@@ -46,6 +44,10 @@ class DeprecationHandler:
 
         :param version: Version string to parse.
         """
+        # NOTE: This is intentionally stringent and limited in functionality.
+        #       Do not expand its functionality; if you want it to do more,
+        #       you want something elaborate and error-prone.
+        #       In that case, always use packaging.version.parse directly!
         try:
             version = version.strip()
             if not set(version).issubset(".0123456789"):
@@ -54,7 +56,7 @@ class DeprecationHandler:
         except (AttributeError, TypeError, ValueError):
             return None
 
-    def _version_less_than(self, version: str) -> bool:
+    def __lt__(self, version: str) -> bool:
         """Test whether own version is less than the given version.
 
         :param version: Version string to compare against.
@@ -63,17 +65,30 @@ class DeprecationHandler:
             if version_tuple := self._get_version_tuple(version):
                 return self._version_tuple < version_tuple
 
-        # If self._version or version could not be represented by a simple
+        # If self._version_str or version could not be represented by a simple
         # tuple[int, ...], do a more elaborate version parsing and comparison.
         # Avoid this import otherwise to reduce import time for conda activate.
         from packaging.version import parse
 
         if self._version_object is None:
             try:
-                self._version_object = parse(self._version)
+                self._version_object = parse(self._version_str)
             except TypeError:
                 self._version_object = parse("0.0.0.dev0+placeholder")
         return self._version_object < parse(version)
+
+
+# inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
+# CPython's warnings._deprecated
+class DeprecationHandler:
+    _version: _Version
+
+    def __init__(self, version: str):
+        """Factory to create a deprecation handle for the specified version.
+
+        :param version: The version to compare against when checking deprecation statuses.
+        """
+        self._version = _Version(version)
 
     def __call__(
         self,
@@ -368,10 +383,10 @@ class DeprecationHandler:
         :return: The warning category (if applicable) and the message.
         """
         category: type[Warning] | None
-        if self._version_less_than(deprecate_in):
+        if self._version < deprecate_in:
             category = PendingDeprecationWarning
             warning = f"is pending deprecation and will be removed in {remove_in}."
-        elif self._version_less_than(remove_in):
+        elif self._version < remove_in:
             category = DeprecationWarning
             warning = f"is deprecated and will be removed in {remove_in}."
         else:
