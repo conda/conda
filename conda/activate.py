@@ -670,7 +670,7 @@ class _Activator(metaclass=abc.ABCMeta):
         self,
         prefix: str | os.PathLike | Path,
         starting_path_dirs: Iterable[str] | None = None,
-    ) -> tuple[str, ...]:
+    ) -> list[str]:
         prefix = self.path_conversion(str(prefix))
         starting_path_dirs = starting_path_dirs or self._get_starting_path_list()
         path_list = list(self.path_conversion(starting_path_dirs))
@@ -685,13 +685,13 @@ class _Activator(metaclass=abc.ABCMeta):
             path_list.insert(0, condabin_dir)
 
         path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
-        return tuple(path_list)
+        return path_list
 
     def _remove_prefix_from_path(
         self,
         prefix: str | os.PathLike | Path,
         starting_path_dirs: Iterable[str] | None = None,
-    ) -> tuple[str, ...]:
+    ) -> list[str]:
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(
@@ -699,7 +699,7 @@ class _Activator(metaclass=abc.ABCMeta):
         old_prefix: str | os.PathLike | Path,
         new_prefix: str | os.PathLike | Path | None,
         starting_path_dirs: Iterable[str] | None = None,
-    ) -> tuple[str, ...]:
+    ) -> list[str]:
         old_prefix = self.path_conversion(str(old_prefix))
         new_prefix = self.path_conversion(str(new_prefix) if new_prefix else None)
         starting_path_dirs = starting_path_dirs or self._get_starting_path_list()
@@ -718,7 +718,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 first_idx = 0
             else:
                 prefix_dirs_idx = len(prefix_dirs) - 1
-                last_idx = None
+                last_idx: int | None = None
                 while last_idx is None and prefix_dirs_idx > -1:
                     last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
                     if last_idx is None:
@@ -741,7 +741,7 @@ class _Activator(metaclass=abc.ABCMeta):
         if new_prefix is not None:
             path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
 
-        return tuple(path_list)
+        return path_list
 
     def _update_prompt(
         self, set_vars: dict[str, str], conda_prompt_modifier: str
@@ -1283,7 +1283,11 @@ class JSONFormatMixin(_Activator):
                 "_CONDA_EXE": context.conda_exe,
             }
 
-    @deprecated("24.9", "25.3", addendum="Only used in testing. Moved to test suite.")
+    @deprecated(
+        "24.9",
+        "25.3",
+        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
+    )
     def get_scripts_export_unset_vars(self, **kwargs):
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         script_export_vars = script_unset_vars = None
