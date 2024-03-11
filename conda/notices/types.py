@@ -28,6 +28,17 @@ class ChannelNotice(NamedTuple):
     expired_at: datetime | None
     interval: int | None
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "channel_name": self.channel_name,
+            "message": self.message,
+            "level": self.level.name.lower(),
+            "created_at": self.created_at.isoformat(),
+            "expired_at": self.expired_at.isoformat(),
+            "interval": self.interval,
+        }
+
 
 class ChannelNoticeResultSet(NamedTuple):
     """
