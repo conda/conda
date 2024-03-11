@@ -1039,6 +1039,7 @@ def make_dot_d_files(prefix, extension):
     [
         pytest.param(None, id="None"),
         pytest.param("", id="empty string"),
+        pytest.param([], id="empty list"),
         pytest.param((), id="empty tuple"),
         pytest.param("path/number/one", id="single path"),
         pytest.param(["path/number/one"], id="list with path"),
@@ -1061,7 +1062,12 @@ def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
     if isinstance(paths, str) and not paths:
         assert native_path_to_unix(paths) == "."
     elif not on_win:
-        assert native_path_to_unix(paths) == paths
+        if paths is None:
+            assert native_path_to_unix(paths) is None
+        elif isinstance(paths, str):
+            assert native_path_to_unix(paths) == paths
+        else:
+            assert native_path_to_unix(paths) == list(paths)
     elif paths is None:
         assert native_path_to_unix(paths) is None
     elif isinstance(paths, str):
