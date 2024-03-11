@@ -1937,7 +1937,12 @@ def test_json_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        export_vars, unset_vars = activator.get_export_unset_vars(CONDA_SHLVL=0)
+        export_vars, unset_vars = activator.get_export_unset_vars(
+            CONDA_SHLVL=0,
+            CONDA_PREFIX=None,
+            CONDA_DEFAULT_ENV=None,
+            CONDA_PROMPT_MODIFIER=None,
+        )
         e_deactivate_data = {
             "path": {"PATH": list(new_path)},
             "vars": {
