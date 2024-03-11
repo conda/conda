@@ -914,7 +914,7 @@ def test_get_env_vars_big_whitespace(tmp_env: TmpEnvFixture):
         assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "two", "ENV_THREE": "three"}
 
 
-def test_get_env_vars_empty_file(tmp_env: Path):
+def test_get_env_vars_empty_file(tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         (prefix / "conda-meta" / "env_vars").touch()
 
