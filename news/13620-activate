@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.activate._Activator.add_export_unset_vars` for pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13620)
+* Mark `conda.activate._Activator.get_scripts_export_unset_vars` for pending deprecation. For testing only. Moved to test suite. (#13620)
+* Mark `conda.activate.JSONFormatMixin.get_scripts_export_unset_vars` for pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13620)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
