@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Remove setuptools remainings (MANIFEST.in, wheel build dependency) not required since the move to hatch in #12509. (#13684)
