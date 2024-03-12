@@ -21,10 +21,7 @@ from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
 from typing import TYPE_CHECKING, Mapping
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
@@ -777,7 +774,7 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.3",
+        "24.9",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):

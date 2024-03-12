@@ -96,13 +96,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Display list of channels with tokens exposed.",
     )
 
-    p.add_argument(
-        "packages",
-        action="store",
-        nargs="*",
-        help=SUPPRESS,
-    )
-
     p.set_defaults(func="conda.cli.main_info.execute")
 
     return p
@@ -196,40 +189,6 @@ def pretty_package(prec: PackageRecord) -> None:
     print("dependencies:")
     for dep in pkg["depends"]:
         print("    %s" % dep)
-
-
-def print_package_info(packages: list[str]) -> None:
-    """
-    Prints package information for each package spec in ``packages``.  Implements ``conda info <package> ...``.
-    Deprecated.
-
-    :param packages: Array of package arguments passed by ArgParse
-    """
-
-    from ..base.context import context
-    from ..core.subdir_data import SubdirData
-    from ..deprecations import deprecated
-    from ..models.match_spec import MatchSpec
-    from .common import stdout_json
-
-    results = {}
-    for package in packages:
-        spec = MatchSpec(package)
-        results[package] = tuple(SubdirData.query_all(spec))
-
-    if context.json:
-        stdout_json({package: results[package] for package in packages})
-    else:
-        for result in results.values():
-            for prec in result:
-                pretty_package(prec)
-
-    deprecated.topic(
-        "23.9",
-        "24.3",
-        topic="`conda info package_name`",
-        addendum="Use `conda search package_name --info` instead.",
-    )
 
 
 @deprecated.argument("24.9", "25.3", "system")
@@ -460,17 +419,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         else:
             print(f"{context.root_prefix}")
         return 0
-
-    if args.packages:
-        from ..resolve import ResolvePackageNotFound
-
-        try:
-            print_package_info(args.packages)
-            return 0
-        except ResolvePackageNotFound as e:  # pragma: no cover
-            from ..exceptions import PackagesNotFoundError
-
-            raise PackagesNotFoundError(e.bad_deps)
 
     if args.unsafe_channels:
         if not context.json:

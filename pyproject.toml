@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "archspec",
+  "archspec >=0.2.3",
   "boltons >=23.0.0",
   "charset-normalizer",
   "conda-libmamba-solver >=23.11.0",
@@ -190,8 +190,6 @@ drop = [
   # contains unnecessary scripts
   "bin/",
   # remove unwanted modules
-  '^boltons/(cache|debug|depr|dict|easter|eco|exc|file|format|func|gc|io|iter|json|list|math|mbox|named|path|queue|socket|stats|str|table|tb||type|url)utils\.py',
-  "boltons/txurl_notes.md",
   "cpuinfo/__main__.py",
 ]
 substitute = []
@@ -199,14 +197,12 @@ substitute = []
 [tool.vendoring.typing-stubs]
 # prevent stubs from being generated
 appdirs = []
-boltons = []
 cpuinfo = []
 distro = []
 frozendict = []
 
 [tool.vendoring.license.fallback-urls]
 appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt" # MIT
-boltons = "https://raw.githubusercontent.com/mahmoud/boltons/master/LICENSE" # BSD
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE" # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE" # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt" # LGPL

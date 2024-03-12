@@ -178,7 +178,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # run the subcommand from executables; legacy path
         deprecated.topic(
             "23.3",
-            "24.3",
+            "25.3",
             topic="Loading conda subcommands via executables",
             addendum="Use the plugin system instead.",
         )
