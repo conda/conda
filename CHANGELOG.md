@@ -906,6 +906,7 @@ Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-l
 * @beeankha
 * @dholth
 * @dariocurr made their first contribution in https://github.com/conda/conda/pull/12128
+* @FFY00 made their first contribution in https://github.com/conda/conda/pull/11600
 * @jezdez
 * @jay-tau made their first contribution in https://github.com/conda/conda/pull/11738
 * @kenodegard
