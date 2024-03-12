@@ -97,7 +97,7 @@
 * @jezdez
 * @jjhelmus
 * @kenodegard
-* @zklaus
+* @zklaus made their first contribution in https://github.com/conda/conda/pull/13579
 * @ForgottenProgramme
 * @mbargull
 * @travishathaway
