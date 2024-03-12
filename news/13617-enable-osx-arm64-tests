@@ -16,5 +16,5 @@
 
 ### Other
 
-* Run Github Test workflow also on `osx-arm64` aka Apple Silicon Runners. Enable
-  `osx-arm64` canary builds. Fix / disable broken tests. (#13617)
+* Run GitHub tests workflow also on `osx-arm64` (aka Apple Silicon) runners. Enable
+  `osx-arm64` canary builds. Fix or disable broken tests. (#13617)

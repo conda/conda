@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes. (#13573)
+* Add direct runtime dependency on `zstandard` for use when downloading `repodata.json.zst`. (#13551)
 
 ### Deprecations
 
