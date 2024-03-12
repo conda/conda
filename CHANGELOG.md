@@ -7,7 +7,7 @@
 * Show first few characters of undecodeable response if `repodata.json` raises
   `JSONDecodeError`. (#11804)
 * Update `conda.gateways.subprocess.subprocess_call` to use `text=True` to avoid manual encoding/decoding. (#13240)
-* Adds a new plugin hook giving plugin authors the ability to define new settings. (#13554)
+* Add a new plugin hook giving plugin authors the ability to define new settings. (#13554)
 * Optimize module imports to speed up `conda activate`. (#13567 via #13568)
 * Move `conda env export` to `conda export` and alias the old command to the new command. (#13577)
 * Report progress while running `conda install --revision <idx>`. (#13611)
@@ -18,12 +18,12 @@
 * Print traceback on `KeyboardInterrupt` instead of raising another `AttributeError` exception, when conda debugging logs are enabled. (#13531)
 * Parse integer channel notice IDs as `str` instead of raising an exception. (#13543)
 * Add direct runtime dependency on `zstandard` for use when downloading `repodata.json.zst`. (#13551)
-* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as zstandard. (#13558)
+* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as `zstandard`. (#13558)
 * `conda rename` command no longer throws an error when conda is not active. (#13565)
 * Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes. (#13573)
 * Fix excess resource usage by log handling when fetching repodata. (#13541 via #13628)
 * Re-enable `--subdir` and `--platform` flags to be available for `conda env create` command. (#13632)
-* Fixes `__archspec` virtual package on Windows to return microarchitecture instead of the default `x86_64`. (#13641)
+* Fix `__archspec` virtual package on Windows to return microarchitecture instead of the default `x86_64`. (#13641)
 
 ### Deprecations
 
@@ -43,7 +43,7 @@
 * Postpone `conda.testing.integration.run_command` deprecation to `conda 25.3`. (#13634)
 * Postpone loading subcommands from executables deprecation to `conda 25.3`. (#13634)
 * Remove vendored `conda._vendor.boltons`. Use `boltons` package instead. (#12681 via #13634)
-* Remove `conda.auxlib.packaging`. Use a modern build systems instead, see https://packaging.python.org/en/latest/tutorials/ packaging-projects#creating-pyproject-toml for more details. (#12681 via #13634)
+* Remove `conda.auxlib.packaging`. Use a modern build system instead; see https://packaging.python.org/en/latest/tutorials/packaging-projects#creating-pyproject-toml for more details. (#12681 via #13634)
 * Remove `conda env create --force`. Use `conda env create --yes` instead. (#12681 via #13634)
 * Remove `conda info PACKAGE`. Use `conda search PACKAGE --info` instead. (#12681 via #13634)
 * Remove `conda.core.subdir_data.fetch_repodata_remote_request`. Use `conda.core.subdir_data.SubdirData.repo_fetch.fetch_latest_parsed` instead." (#12681 via #13634)
