@@ -78,8 +78,7 @@
 * Remove `dev/*` scripts in favor of `conda-incubator/setup-miniconda` GitHub Action in `.github/workflows/tests.yml`. (#13162)
 * Stop chaining commands for steps in `.github/workflows/tests.yml`.  (#12418 via #13162)
 * Modernize tests. (#13547, #13292)
-* Run GitHub tests workflow also on `osx-arm64` (aka Apple Silicon) runners. Enable
-  `osx-arm64` canary builds. Fix or disable broken tests. (#13617)
+* Run GitHub tests workflow also on `osx-arm64` (aka Apple Silicon) runners. Enable `osx-arm64` canary builds. Fix or disable broken tests. (#13617)
 * Upload stable release artifacts to GitHub releases during releases. (#13399)
 
 ### Contributors
