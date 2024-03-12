@@ -7,6 +7,7 @@ Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
 an example of how to use it.
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

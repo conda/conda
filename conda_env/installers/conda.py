@@ -4,6 +4,7 @@
 
 Conda-flavored installer.
 """
+
 from conda.deprecations import deprecated
 from conda.env.installers.conda import _solve, dry_run, install  # noqa
 

@@ -4,6 +4,7 @@
 
 Pip-flavored installer.
 """
+
 from conda.deprecations import deprecated
 from conda.env.installers.pip import _pip_install_via_requirements, install  # noqa
 

@@ -4,6 +4,7 @@
 
 Compare the packages in an environment with the packages listed in an environment file.
 """
+
 from __future__ import annotations
 
 import logging

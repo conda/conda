@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Implements all conda.notices types."""
+
 from __future__ import annotations
 
 import hashlib

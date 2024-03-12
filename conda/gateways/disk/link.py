@@ -7,6 +7,7 @@ which is MIT licensed by Jason R. Coombs.
 
 https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
 """
+
 import sys
 from logging import getLogger
 from os import chmod as os_chmod
