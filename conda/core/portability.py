@@ -151,7 +151,11 @@ def replace_prefix(
 
 
 def binary_replace(
-    data: bytes, search: bytes, replacement: bytes, encoding: str = "utf-8", subdir: str = "noarch"
+    data: bytes,
+    search: bytes,
+    replacement: bytes,
+    encoding: str = "utf-8",
+    subdir: str = "noarch",
 ) -> bytes:
     """
     Perform a binary replacement of `data`, where the placeholder `search` is
