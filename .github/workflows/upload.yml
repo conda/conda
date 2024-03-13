@@ -37,13 +37,24 @@ jobs:
       - name: Archive Source
         run: git archive
           --prefix="${{ env.ARCHIVE_NAME }}/"
-          --output="release/${{ env.ARCHIVE_NAME }}.tar.gz"
+          --output="release/${{ env.ARCHIVE_NAME }}_full.tar.gz"
           HEAD
 
-      - name: Compute Checksum
-        run: sha256sum "release/${{ env.ARCHIVE_NAME }}.tar.gz"
-          | awk '{print $1}'
-          > "release/${{ env.ARCHIVE_NAME }}.tar.gz.sha256sum"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build
+        run: pip install build
+
+      - name: Build Source Distribution
+        run: python -m build --sdist --outdir release
+
+      - name: Compute Checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS
 
       - name: Upload Archive
         env:
