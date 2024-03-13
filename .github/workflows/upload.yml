@@ -37,7 +37,7 @@ jobs:
       - name: Archive Source
         run: git archive
           --prefix="${{ env.ARCHIVE_NAME }}/"
-          --output="release/${{ env.ARCHIVE_NAME }}_full.tar.gz"
+          --output="release/${{ env.ARCHIVE_NAME }}_archive.tar.gz"
           HEAD
 
       - name: Setup Python
