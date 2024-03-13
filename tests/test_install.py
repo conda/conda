@@ -125,8 +125,14 @@ def test_multiple(request, subdir):
                 reason="binary replacement on windows skipped", strict=True
             )
         )
-    assert binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbb") == b"bbbbcbbbb\x00"
-    assert binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbb") == b"bbbcbbb\x00\x00\x00"
+    assert (
+        binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbb", subdir=subdir)
+        == b"bbbbcbbbb\x00"
+    )
+    assert (
+        binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbb", subdir=subdir)
+        == b"bbbcbbb\x00\x00\x00"
+    )
     with pytest.raises(_PaddingError):
         binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbbb", subdir=subdir)
 
