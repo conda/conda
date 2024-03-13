@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 24.1.2 (2024-02-15)
+
+### Bug fixes
+
+* Fix deprecated `fetch_repodata_remote_request` when `repodata_use_zst` is enabled. (#13595)
+
+### Contributors
+
+* @dholth
+
+
+
 ## 24.1.1 (2024-02-12)
 
 ### Bug fixes
