@@ -106,7 +106,7 @@ jobs:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: conda install
           --yes
           --file tests\requirements.txt
@@ -116,10 +116,8 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
-      - name: Install conda
-        run: |
-          python -m pip install . --no-deps -vv
-          python -m conda init --all
+      - name: Install Conda
+        run: python -m pip install . --no-deps -vv
 
       - name: Conda Info
         run: python -m conda info --verbose
@@ -210,7 +208,7 @@ jobs:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: conda install
           --yes
           --file tests/requirements.txt
@@ -220,10 +218,8 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
-      - name: Install conda
-        run: |
-          python -m pip install . --no-deps -vv
-          python -m conda init --all
+      - name: Install Conda
+        run: python -m pip install . --no-deps -vv
 
       - name: Conda Info
         run: python -m conda info --verbose
@@ -297,7 +293,7 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: conda install
           --yes
           --file tests/requirements.txt
@@ -307,10 +303,8 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
-      - name: Install conda
-        run: |
-          python -m pip install . --no-deps -vv
-          python -m conda init --all
+      - name: Install Conda
+        run: python -m pip install . --no-deps -vv
 
       - name: Install CodSpeed
         run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
@@ -456,7 +450,7 @@ jobs:
           miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           architecture: ${{ runner.arch }}
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: conda install
           --yes
           --file tests/requirements.txt
@@ -465,10 +459,8 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
-      - name: Install conda
-        run: |
-          python -m pip install . --no-deps -vv
-          python -m conda init --all
+      - name: Install Conda
+        run: python -m pip install . --no-deps -vv
 
       - name: Conda Info
         run: python -m conda info --verbose
