@@ -3,6 +3,7 @@
 """Collection of pytest fixtures used in conda tests."""
 from __future__ import annotations
 
+import os
 import warnings
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -93,7 +94,13 @@ def temp_package_cache(tmp_path_factory):
         yield pkgs_dir
 
 
-@pytest.fixture(params=["libmamba", "classic"])
+_solver_params = ["libmamba"]
+if os.environ.get("CI_DEFAULT_CHANNEL") != "conda-forge":
+    # Do not test conda-forge with solver=classic to save some time on GHA
+    # Locally, this env var won't be set, so we will test both solvers
+    _solver_params.append("classic")
+
+@pytest.fixture(params=_solver_params)
 def parametrized_solver_fixture(
     request: FixtureRequest,
     monkeypatch: MonkeyPatch,
