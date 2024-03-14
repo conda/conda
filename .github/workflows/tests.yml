@@ -105,8 +105,6 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          activate-environment: ""
-          auto-activate-base: true
 
       - name: Install dependencies
         run: conda install
@@ -120,17 +118,17 @@ jobs:
 
       - name: Install conda
         run: |
-          CALL python.exe -m pip install . --no-deps -vv
-          CALL python.exe -m conda init
+          CALL python -m pip install . --no-deps -vv
+          CALL python -m conda init
 
       - name: Conda Info
-        run: conda info --verbose
+        run: python -m conda info --verbose
 
       - name: Conda Config
-        run: conda config --show-sources
+        run: python -m conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: python -m conda list --show-channel-urls
 
       - name: Run Tests
         run: pytest
@@ -211,8 +209,6 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          activate-environment: ""
-          auto-activate-base: true
 
       - name: Install dependencies
         run: conda install
@@ -230,13 +226,13 @@ jobs:
           python -m conda init bash
 
       - name: Conda Info
-        run: conda info --verbose
+        run: python -m conda info --verbose
 
       - name: Conda Config
-        run: conda config --show-sources
+        run: python -m conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: python -m conda list --show-channel-urls
 
       - name: Run Tests
         run: pytest
@@ -300,8 +296,6 @@ jobs:
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
-          activate-environment: ""
-          auto-activate-base: true
 
       - name: Install dependencies
         run: conda install
@@ -322,13 +316,13 @@ jobs:
         run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
 
       - name: Conda Info
-        run: conda info --verbose
+        run: python -m conda info --verbose
 
       - name: Conda Config
-        run: conda config --show-sources
+        run: python -m conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: python -m conda list --show-channel-urls
 
       - name: Run Benchmarks
         uses: CodSpeedHQ/action@v2
@@ -461,11 +455,11 @@ jobs:
           miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           architecture: ${{ runner.arch }}
-          activate-environment: ""
-          auto-activate-base: true
 
       - name: Install dependencies
-        run: conda install
+        run: |
+          echo "" > $CONDA_PREFIX/conda-meta/history
+          conda install
           --yes
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
@@ -479,13 +473,13 @@ jobs:
           python -m conda init bash
 
       - name: Conda Info
-        run: conda info --verbose
+        run: python -m conda info --verbose
 
       - name: Conda Config
-        run: conda config --show-sources
+        run: python -m conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: python -m conda list --show-channel-urls
 
       - name: Run Tests
         run: pytest
