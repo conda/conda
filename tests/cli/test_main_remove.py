@@ -54,12 +54,12 @@ def test_remove_globbed_package_names(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    reset_context()
     if context.solver == "libmamba" and version("conda_libmamba_solver") <= "24.1.0":
         pytest.xfail(
             reason="Removing using wildcards is not available in older versions of the libmamba solver.",
         )
-    with tmp_env("zlib", "ca-certificates") as prefix:
+    channels = "--override-channels", "--channel=defaults"
+    with tmp_env("zlib", "ca-certificates", *channels) as prefix:
         stdout, stderr, _ = conda_cli(
             "remove",
             "--yes",
@@ -68,6 +68,7 @@ def test_remove_globbed_package_names(
             "--dry-run",
             "--json",
             f"--solver={context.solver}",
+            *channels,
             raises=DryRunExit,
         )
         log.info(stdout)

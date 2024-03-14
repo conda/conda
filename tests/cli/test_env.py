@@ -244,17 +244,14 @@ def test_conda_env_create_empty_file(
 
 
 @pytest.mark.integration
-def test_conda_env_create_http(conda_cli: CondaCLIFixture):
+def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
-    try:
-        conda_cli(
-            *("env", "create"),
-            "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
-        )
-        assert env_is_created("nlp")
-    finally:
-        # manual cleanup
-        conda_cli("remove", "--name=nlp", "--all", "--yes")
+    conda_cli(
+        *("env", "create"),
+        f"--path={tmp_path}",
+        "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
+    )
+    assert (tmp_path / "conda-meta" / "history").is_file()
 
 
 @pytest.mark.integration

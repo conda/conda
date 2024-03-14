@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of pytest fixtures used in conda tests."""
+
 from __future__ import annotations
 
 import os
@@ -95,10 +96,11 @@ def temp_package_cache(tmp_path_factory):
 
 
 _solver_params = ["libmamba"]
-if os.environ.get("CI_DEFAULT_CHANNEL") != "conda-forge":
-    # Do not test conda-forge with solver=classic to save some time on GHA
-    # Locally, this env var won't be set, so we will test both solvers
+if os.environ.get("CI") and os.environ.get("GITHUB_EVENT_NAME") != "pull_request":
+    # Do not test the classic solver on PR runs
+    # Local tests and runs on the main branch will test both solvers
     _solver_params.append("classic")
+
 
 @pytest.fixture(params=_solver_params)
 def parametrized_solver_fixture(

@@ -87,7 +87,6 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
-      CI_DEFAULT_CHANNEL: ${{ matrix.default-channel }}
 
     steps:
       - name: Checkout Source
@@ -193,7 +192,6 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-      CI_DEFAULT_CHANNEL: ${{ matrix.default-channel }}
 
     steps:
       - name: Checkout Source
@@ -357,7 +355,6 @@ jobs:
           - image: 'condaforge/miniforge3:latest'
             platform: s390x
     env:
-      CI_DEFAULT_CHANNEL: ${{ matrix.image == 'condaforge/miniforge3:latest' && 'conda-forge' || 'defaults' }}
 
     steps:
       - name: Checkout Source
@@ -431,7 +428,6 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-      CI_DEFAULT_CHANNEL: ${{ matrix.default-channel }}
 
     steps:
       - name: Checkout Source
