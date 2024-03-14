@@ -126,8 +126,11 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Tests
+        # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
+        # keep the test directories shorter
         run: pytest
           --cov=conda
+          --basetemp=${{ runner.temp }}
           --durations-path=tools\durations\${{ runner.os }}.json
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
