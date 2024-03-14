@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Fix prefix replacement for windows subdir on unixes.
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Fix prefix replacement for windows subdir on unixes. (#13689)
 
 ### Deprecations
 
