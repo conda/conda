@@ -118,8 +118,8 @@ jobs:
 
       - name: Install conda
         run: |
-          CALL python -m pip install . --no-deps -vv
-          CALL python -m conda init
+          python -m pip install . --no-deps -vv
+          python -m conda init --all
 
       - name: Conda Info
         run: python -m conda info --verbose
@@ -223,7 +223,7 @@ jobs:
       - name: Install conda
         run: |
           python -m pip install . --no-deps -vv
-          python -m conda init bash
+          python -m conda init --all
 
       - name: Conda Info
         run: python -m conda info --verbose
@@ -310,7 +310,7 @@ jobs:
       - name: Install conda
         run: |
           python -m pip install . --no-deps -vv
-          python -m conda init bash
+          python -m conda init --all
 
       - name: Install CodSpeed
         run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
@@ -468,7 +468,7 @@ jobs:
       - name: Install conda
         run: |
           python -m pip install . --no-deps -vv
-          python -m conda init bash
+          python -m conda init --all
 
       - name: Conda Info
         run: python -m conda info --verbose
