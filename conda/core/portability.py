@@ -102,7 +102,11 @@ def update_prefix(
 
 
 def replace_prefix(
-    mode: FileMode, data: bytes, placeholder: str, new_prefix: str, subdir: str
+    mode: FileMode,
+    data: bytes,
+    placeholder: str,
+    new_prefix: str,
+    subdir: str = "noarch",
 ) -> bytes:
     """
     Replaces `placeholder` text with the `new_prefix` provided. The `mode` provided can
