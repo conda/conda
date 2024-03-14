@@ -102,8 +102,7 @@ html_theme_options = {
     "switcher": {
         # This should live in "latest" (=in-development version) since
         # we can modify the supported versions in the version switcher
-        # "json_url": "https://docs.conda.io/projects/conda/en/latest/_static/switcher.json",
-        "json_url": "https://continuumio-conda-docs--13693.com.readthedocs.build/projects/conda/en/13693/_static/switcher.json",
+        "json_url": "https://docs.conda.io/projects/conda/en/latest/_static/switcher.json",
         # Use RTD's automatic version variable, and fallback to "stable"
         "version_match": os.environ.get("READTHEDOCS_VERSION", "stable"),
     },
