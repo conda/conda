@@ -457,9 +457,7 @@ jobs:
           architecture: ${{ runner.arch }}
 
       - name: Install dependencies
-        run: |
-          echo "" > $CONDA_PREFIX/conda-meta/history
-          conda install
+        run: conda install
           --yes
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
