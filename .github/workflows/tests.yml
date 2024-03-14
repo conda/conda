@@ -105,9 +105,11 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+          activate-environment: ""
+          auto-activate-base: true
 
       - name: Install Dependencies
-        run: conda install
+        run: conda create -n test
           --yes
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
@@ -117,7 +119,10 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install Conda
-        run: python -m pip install . --no-deps -vv
+        run: |
+          conda activate test
+          python -m pip install . --no-deps -vv
+          python -m conda init --dev --all
 
       - name: Conda Info
         run: python -m conda info --verbose
@@ -207,9 +212,11 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+          activate-environment: ""
+          auto-activate-base: true
 
       - name: Install Dependencies
-        run: conda install
+        run: conda create -n test
           --yes
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
@@ -219,7 +226,10 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install Conda
-        run: python -m pip install . --no-deps -vv
+        run: |
+          conda activate test
+          python -m pip install . --no-deps -vv
+          python -m conda init --dev --all
 
       - name: Conda Info
         run: python -m conda info --verbose
@@ -292,9 +302,11 @@ jobs:
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
+          activate-environment: ""
+          auto-activate-base: true
 
       - name: Install Dependencies
-        run: conda install
+        run: conda create -n test
           --yes
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
@@ -304,7 +316,10 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install Conda
-        run: python -m pip install . --no-deps -vv
+        run: |
+          conda activate test
+          python -m pip install . --no-deps -vv
+          python -m conda init --dev --all
 
       - name: Install CodSpeed
         run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
@@ -449,9 +464,11 @@ jobs:
           miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           architecture: ${{ runner.arch }}
+          activate-environment: ""
+          auto-activate-base: true
 
       - name: Install Dependencies
-        run: conda install
+        run: conda create -n test
           --yes
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
@@ -460,7 +477,10 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install Conda
-        run: python -m pip install . --no-deps -vv
+        run: |
+          conda activate test
+          python -m pip install . --no-deps -vv
+          python -m conda init --dev --all
 
       - name: Conda Info
         run: python -m conda info --verbose
