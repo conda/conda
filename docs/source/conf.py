@@ -236,6 +236,3 @@ redirects = {
     "user-guide/tasks/use-mro-with-conda": "https://docs.anaconda.com/anaconda/user-guide/tasks/use-r-language",
     "user-guide/tasks/use-r-with-conda": "https://docs.anaconda.com/anaconda/user-guide/tasks/use-r-language",
 }
-
-# -- For conda_sphinx_theme ------------------------------------------------
-
