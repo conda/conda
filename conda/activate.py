@@ -8,6 +8,7 @@ parser, an abstract shell class, and special path handling for Windows.
 
 See conda.cli.main.main_sourced for the entry point into this module.
 """
+
 from __future__ import annotations
 
 import abc

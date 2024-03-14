@@ -136,12 +136,10 @@ class CondaCLIFixture:
         self,
         *argv: str | os.PathLike | Path,
         raises: type[Exception] | tuple[type[Exception], ...],
-    ) -> tuple[str, str, ExceptionInfo]:
-        ...
+    ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
-    def __call__(self, *argv: str | os.PathLike | Path) -> tuple[str, str, int]:
-        ...
+    def __call__(self, *argv: str | os.PathLike | Path) -> tuple[str, str, int]: ...
 
     def __call__(
         self,

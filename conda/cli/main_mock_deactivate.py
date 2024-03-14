@@ -4,6 +4,7 @@
 
 A mock implementation of the deactivate shell command for better UX.
 """
+
 from .. import CondaError
 
 

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Wrapper for running conda CLI commands as a Python API."""
+
 from logging import getLogger
 
 from ..base.constants import SEARCH_PATH

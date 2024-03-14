@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of pytest fixtures used in conda tests."""
+
 from __future__ import annotations
 
 import warnings

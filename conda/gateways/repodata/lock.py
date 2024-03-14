@@ -5,4 +5,5 @@ Backwards compatibility import.
 
 Moved to prevent circular imports.
 """
+
 from ..disk.lock import lock  # noqa: F401
