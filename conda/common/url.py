@@ -492,8 +492,9 @@ def remove_auth(url: str) -> str:
     """Remove embedded authentication from URL.
 
     .. code-block:: pycon
-        >>> remove_auth("https://user:password@anaconda.com")
-        'https://anaconda.com'
+
+       >>> remove_auth("https://user:password@anaconda.com")
+       'https://anaconda.com'
     """
     url = urlparse(url)
     url_no_auth = url.replace(username="", password="")
