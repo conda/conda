@@ -98,6 +98,7 @@ html_theme_options = {
     "navbar_start": ["navbar-logo"],
     "use_edit_page_button": True,
     "goatcounter_url": "https://docs-conda-io.goatcounter.com/count",
+    "show_version_warning_banner": True,
 }
 
 html_context = {
@@ -227,3 +228,6 @@ redirects = {
     "user-guide/tasks/use-mro-with-conda": "https://docs.anaconda.com/anaconda/user-guide/tasks/use-r-language",
     "user-guide/tasks/use-r-with-conda": "https://docs.anaconda.com/anaconda/user-guide/tasks/use-r-language",
 }
+
+# -- For conda_sphinx_theme ------------------------------------------------
+
