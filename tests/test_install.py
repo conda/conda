@@ -34,7 +34,7 @@ def generate_random_path():
 
 @pytest.fixture
 def subdir(request):
-    if subdir == "win-64" or (subdir == "noarch" and on_win):
+    if request.param == "win-64" or (request.param == "noarch" and on_win):
         request.node.add_marker(
             pytest.mark.xfail(
                 reason="binary replacement on windows skipped", strict=True
