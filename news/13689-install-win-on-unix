@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix prefix replacement for windows subdir on unixes. (#13689)
+* Fix prefix replacement for Windows subdir on unixes. (#13689)
 
 ### Deprecations
 

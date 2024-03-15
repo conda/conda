@@ -51,7 +51,7 @@ class _PaddingError(Exception):
 
 def _subdir_is_win(subdir: str) -> bool:
     if "-" in subdir:
-        os, _ = subdir.split("-")
+        os, _ = subdir.lower().split("-", 1)
         return os == "win"
     else:
         # For noarch, check that we are running on windows
