@@ -20,7 +20,11 @@
             "extensions": [
                 "charliermarsh.ruff",
                 "eamodio.gitlens",
-                "ms-toolsai.jupyter"
+                "ms-toolsai.jupyter",
+                "lextudio.restructuredtext-pack",
+                "lextudio.restructuredtext@prerelease",
+                "swyddfa.esbonio@prerelease",
+                "ms-azuretools.vscode-docker"
             ]
         }
     }
