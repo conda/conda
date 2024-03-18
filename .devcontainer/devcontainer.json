@@ -2,10 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
     "name": "Miniconda (Python 3)",
-    "build": {
-        "context": "..",
-        "dockerfile": "Dockerfile"
-    },
+    "image": "continuumio/miniconda3",
 
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -14,7 +11,8 @@
     // "forwardPorts": [],
 
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "/opt/conda/bin/python -m conda init --dev bash",
+    "postCreateCommand": "bash /workspaces/conda/.devcontainer/post_create.sh",
+    "postStartCommand": "/opt/conda/bin/python -m conda init --dev bash",
 
     // Configure tool-specific properties.
     "customizations": {

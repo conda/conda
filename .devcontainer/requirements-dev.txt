@@ -1,2 +1,3 @@
-esbonio
 conda-forge::pre-commit
+conda-forge::doc8
+conda-forge::rstcheck
