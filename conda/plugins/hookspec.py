@@ -229,19 +229,20 @@ class CondaSpecs:
         **Example:**
 
         .. code-block:: python
-                from conda import plugins
+
+            from conda import plugins
 
 
-                def example_health_check(prefix: str, verbose: bool):
-                    print("This is an example health check!")
+            def example_health_check(prefix: str, verbose: bool):
+                print("This is an example health check!")
 
 
-                @plugins.hookimpl
-                def conda_health_checks():
-                    yield plugins.CondaHealthCheck(
-                        name="example-health-check",
-                        action=example_health_check,
-                    )
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="example-health-check",
+                    action=example_health_check,
+                )
         """
 
     @_hookspec
