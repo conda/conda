@@ -32,54 +32,77 @@ def generate_random_path():
     return "/some/path/to/file%s" % random.randint(100, 200)
 
 
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_simple():
+@pytest.fixture
+def subdir(request):
+    if request.param == "win-64" or (request.param == "noarch" and on_win):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="binary replacement on windows skipped", strict=True
+            )
+        )
+    return request.param
+
+
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_simple(subdir):
     for encoding in ("utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"):
         a = "aaaaa".encode(encoding)
         b = "bbbb".encode(encoding)
         data = "xxxaaaaaxyz\0zz".encode(encoding)
         result = "xxxbbbbxyz\0\0zz".encode(encoding)
-        assert binary_replace(data, a, b, encoding=encoding) == result
+        assert binary_replace(data, a, b, encoding=encoding, subdir=subdir) == result
 
 
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_shorter():
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_shorter(subdir):
     assert (
-        binary_replace(b"xxxaaaaaxyz\x00zz", b"aaaaa", b"bbbb")
+        binary_replace(b"xxxaaaaaxyz\x00zz", b"aaaaa", b"bbbb", subdir=subdir)
         == b"xxxbbbbxyz\x00\x00zz"
     )
 
 
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_too_long():
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_too_long(subdir):
     with pytest.raises(_PaddingError):
-        binary_replace(b"xxxaaaaaxyz\x00zz", b"aaaaa", b"bbbbbbbb")
+        binary_replace(b"xxxaaaaaxyz\x00zz", b"aaaaa", b"bbbbbbbb", subdir=subdir)
 
 
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_no_extra():
-    assert binary_replace(b"aaaaa\x00", b"aaaaa", b"bbbbb") == b"bbbbb\x00"
-
-
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_two():
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_no_extra(subdir):
     assert (
-        binary_replace(b"aaaaa\x001234aaaaacc\x00\x00", b"aaaaa", b"bbbbb")
+        binary_replace(b"aaaaa\x00", b"aaaaa", b"bbbbb", subdir=subdir) == b"bbbbb\x00"
+    )
+
+
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_two(subdir):
+    assert (
+        binary_replace(
+            b"aaaaa\x001234aaaaacc\x00\x00", b"aaaaa", b"bbbbb", subdir=subdir
+        )
         == b"bbbbb\x001234bbbbbcc\x00\x00"
     )
 
 
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_spaces():
-    assert binary_replace(b" aaaa \x00", b"aaaa", b"bbbb") == b" bbbb \x00"
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_spaces(subdir):
+    assert (
+        binary_replace(b" aaaa \x00", b"aaaa", b"bbbb", subdir=subdir) == b" bbbb \x00"
+    )
 
 
-@pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
-def test_multiple():
-    assert binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbb") == b"bbbbcbbbb\x00"
-    assert binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbb") == b"bbbcbbb\x00\x00\x00"
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_multiple(subdir):
+    assert (
+        binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbb", subdir=subdir)
+        == b"bbbbcbbbb\x00"
+    )
+    assert (
+        binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbb", subdir=subdir)
+        == b"bbbcbbb\x00\x00\x00"
+    )
     with pytest.raises(_PaddingError):
-        binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbbb")
+        binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbbb", subdir=subdir)
 
 
 @pytest.mark.integration
@@ -163,8 +186,8 @@ def test_long_default_text(path_factory: PathFactoryFixture):
     assert tmp.read_text() == '#!/usr/bin/env python -O\necho "Hello"\n'
 
 
-@pytest.mark.skipif(on_win, reason="no binary replacement done on win")
-def test_binary(path_factory: PathFactoryFixture):
+@pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
+def test_binary(path_factory: PathFactoryFixture, subdir: str):
     tmp = path_factory()
     tmp.write_bytes(b"\x7fELF.../some-placeholder/lib/libfoo.so\0")
     update_prefix(
@@ -172,6 +195,7 @@ def test_binary(path_factory: PathFactoryFixture):
         "/usr/local",
         placeholder="/some-placeholder",
         mode=FileMode.binary,
+        subdir=subdir,
     )
     assert tmp.read_bytes() == b"\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0"
 

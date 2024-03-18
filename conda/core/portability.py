@@ -49,6 +49,15 @@ class _PaddingError(Exception):
     pass
 
 
+def _subdir_is_win(subdir: str) -> bool:
+    if "-" in subdir:
+        os, _ = subdir.lower().split("-", 1)
+        return os == "win"
+    else:
+        # For noarch, check that we are running on windows
+        return on_win
+
+
 def update_prefix(
     path,
     new_prefix,
@@ -56,18 +65,18 @@ def update_prefix(
     mode=FileMode.text,
     subdir=context.subdir,
 ):
-    if on_win and mode == FileMode.text:
+    if _subdir_is_win(subdir) and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
         new_prefix = new_prefix.replace("\\", "/")
 
     def _update_prefix(original_data):
         # Step 1. do all prefix replacement
-        data = replace_prefix(mode, original_data, placeholder, new_prefix)
+        data = replace_prefix(mode, original_data, placeholder, new_prefix, subdir)
 
         # Step 2. if the shebang is too long or the new prefix contains spaces, shorten it using
         # /usr/bin/env trick -- NOTE: this trick assumes the environment WILL BE activated
-        if not on_win:
+        if not _subdir_is_win(subdir):
             data = replace_long_shebang(mode, data)
 
         # Step 3. if the before and after content is the same, skip writing
@@ -93,7 +102,11 @@ def update_prefix(
 
 
 def replace_prefix(
-    mode: FileMode, data: bytes, placeholder: str, new_prefix: str
+    mode: FileMode,
+    data: bytes,
+    placeholder: str,
+    new_prefix: str,
+    subdir: str = "noarch",
 ) -> bytes:
     """
     Replaces `placeholder` text with the `new_prefix` provided. The `mode` provided can
@@ -108,7 +121,7 @@ def replace_prefix(
     """
     for encoding in POPULAR_ENCODINGS:
         if mode == FileMode.text:
-            if not on_win:
+            if not _subdir_is_win(subdir):
                 # if new_prefix contains spaces, it might break the shebang!
                 # handle this by escaping the spaces early, which will trigger a
                 # /usr/bin/env replacement later on
@@ -134,6 +147,7 @@ def replace_prefix(
                 placeholder.encode(encoding),
                 new_prefix.encode(encoding),
                 encoding=encoding,
+                subdir=subdir,
             )
         else:
             raise CondaIOError("Invalid mode: %r" % mode)
@@ -141,7 +155,11 @@ def replace_prefix(
 
 
 def binary_replace(
-    data: bytes, search: bytes, replacement: bytes, encoding: str = "utf-8"
+    data: bytes,
+    search: bytes,
+    replacement: bytes,
+    encoding: str = "utf-8",
+    subdir: str = "noarch",
 ) -> bytes:
     """
     Perform a binary replacement of `data`, where the placeholder `search` is
@@ -160,7 +178,7 @@ def binary_replace(
         The encoding of the expected string in the binary.
     """
     zeros = "\0".encode(encoding)
-    if on_win:
+    if _subdir_is_win(subdir):
         # on Windows for binary files, we currently only replace a pyzzer-type entry point
         #   we skip all other prefix replacement
         if has_pyzzer_entry_point(data):
