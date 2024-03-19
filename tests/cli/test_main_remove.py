@@ -60,7 +60,13 @@ def test_remove_globbed_package_names(
             reason="Removing using wildcards is not available in older versions of the libmamba solver.",
         )
     # classic takes too long with conda-forge
-    channels = ("--repodata-fn", "current_repodata.json", "--override-channels", "-c", "defaults")
+    channels = (
+        "--repodata-fn",
+        "current_repodata.json",
+        "--override-channels",
+        "-c",
+        "defaults",
+    )
     with tmp_env("zlib", "ca-certificates", *channels) as prefix:
         stdout, stderr, _ = conda_cli(
             "remove",

@@ -57,7 +57,13 @@ def test_find_conflicts_called_once(
         "conda.resolve.Resolve.find_conflicts",
         side_effect=UnsatisfiableError(bad_deps, strict=True),
     )
-    channels = ("--repodata-fn", "current_repodata.json", "--override-channels", "-c", "defaults")
+    channels = (
+        "--repodata-fn",
+        "current_repodata.json",
+        "--override-channels",
+        "-c",
+        "defaults",
+    )
     with tmp_env("python=3.9", *channels) as prefix:
         with pytest.raises(UnsatisfiableError):
             # Statistics is a py27 only package allowing us a simple unsatisfiable case
@@ -78,6 +84,11 @@ def test_find_conflicts_called_once(
     with pytest.raises(UnsatisfiableError):
         # statistics seems to be available on 3.10 though
         conda_cli(
-            "create", f"--prefix={path_factory()}", "statistics", "python=3.9", "--yes", *channels
+            "create",
+            f"--prefix={path_factory()}",
+            "statistics",
+            "python=3.9",
+            "--yes",
+            *channels,
         )
     assert mocked_find_conflicts.call_count == 3
