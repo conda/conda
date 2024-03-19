@@ -95,14 +95,10 @@ def temp_package_cache(tmp_path_factory):
         yield pkgs_dir
 
 
-_solver_params = ["libmamba"]
-if os.environ.get("CI") and os.environ.get("GITHUB_EVENT_NAME") != "pull_request":
-    # Do not test the classic solver on PR runs
-    # Local tests and runs on the main branch will test both solvers
-    _solver_params.append("classic")
-
-
-@pytest.fixture(params=_solver_params)
+@pytest.fixture(
+    # allow CI to set the solver backends via the CONDA_TEST_SOLVERS env var
+    params=os.environ.get("CONDA_TEST_SOLVERS", "libmamba,classic").split(",")
+)
 def parametrized_solver_fixture(
     request: FixtureRequest,
     monkeypatch: MonkeyPatch,
