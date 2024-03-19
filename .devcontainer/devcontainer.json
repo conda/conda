@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
-    "name": "Miniconda (Python 3)",
+    "name": "Miniconda (default-channel=defaults)",
     "image": "continuumio/miniconda3",
 
     // Features to add to the dev container. More info: https://containers.dev/features.
