@@ -305,6 +305,9 @@ jobs:
       - name: Install CodSpeed
         run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
 
+      - name: Install Memray
+        run: python -m conda install conda-forge::pytest-memray
+
       - name: Conda Info
         # view test env info (not base)
         run: python -m conda info --verbose
