@@ -246,6 +246,8 @@ def test_conda_env_create_empty_file(
 @pytest.mark.integration
 def test_conda_env_create_http(conda_cli: CondaCLIFixture):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
+    if "conda-forge" in context.channels and context.solver == "classic":
+        pytest.skip("This test is too slow with conda-forge as default channel in classic.")
     try:
         conda_cli(
             *("env", "create"),
