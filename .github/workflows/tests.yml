@@ -69,19 +69,15 @@ jobs:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        # python-version: ['3.8', '3.12']
-        # default-channel: [defaults, conda-forge]
-        # test-type: [unit, integration]
-        # test-group: [1, 2, 3]
-        # exclude:
-        #   - default-channel: conda-forge
-        #     python-version: '3.8'
-        #   - test-type: unit
-        #     test-group: 3
-        python-version: ['3.12']
-        default-channel: [conda-forge]
-        test-type: [integration]
+        python-version: ['3.8', '3.12']
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
         test-group: [1, 2, 3]
+        exclude:
+          - default-channel: conda-forge
+            python-version: '3.8'
+          - test-type: unit
+            test-group: 3
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
@@ -110,7 +106,6 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
       - name: Conda Install
         run: conda install
@@ -170,25 +165,21 @@ jobs:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        # default-channel: [defaults, conda-forge]
-        # test-type: [unit, integration]
-        # test-group: [1, 2, 3]
-        # exclude:
-        #   - python-version: '3.8'
-        #     default-channel: conda-forge
-        #   - python-version: '3.9'
-        #     default-channel: conda-forge
-        #   - python-version: '3.10'
-        #     default-channel: conda-forge
-        #   - python-version: '3.11'
-        #     default-channel: conda-forge
-        #   - test-type: unit
-        #     test-group: 3
-        python-version: ['3.12']
-        default-channel: [conda-forge]
-        test-type: [integration]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
         test-group: [1, 2, 3]
+        exclude:
+          - python-version: '3.8'
+            default-channel: conda-forge
+          - python-version: '3.9'
+            default-channel: conda-forge
+          - python-version: '3.10'
+            default-channel: conda-forge
+          - python-version: '3.11'
+            default-channel: conda-forge
+          - test-type: unit
+            test-group: 3
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -215,7 +206,6 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
       - name: Conda Install
         run: conda install
@@ -264,8 +254,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: false
-    # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -332,8 +321,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: false
-    # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -356,7 +344,6 @@ jobs:
             platform: ppc64le
           - image: 'condaforge/miniforge3:latest'
             platform: s390x
-    env:
 
     steps:
       - name: Checkout Source
