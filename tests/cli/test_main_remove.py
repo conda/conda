@@ -6,7 +6,7 @@ from logging import getLogger
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.common.io import stderr_log_level
 from conda.exceptions import DryRunExit, PackagesNotFoundError
 from conda.gateways.disk.delete import path_is_clean
