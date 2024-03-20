@@ -178,6 +178,7 @@ pythonpath = [
 ]
 filterwarnings = [
   # elevate conda's deprecated warning to an error
+  "error::PendingDeprecationWarning:conda",
   "error::DeprecationWarning:conda",
 ]
 
