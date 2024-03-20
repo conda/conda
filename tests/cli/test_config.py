@@ -273,7 +273,7 @@ def test_get_all(conda_cli: CondaCLIFixture):
             --add create_default_packages 'ipython'
             """
         )
-        assert stderr.strip() == "unknown key invalid_key"
+        assert stderr.strip() == "Unknown key: invalid_key"
 
 
 def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
@@ -291,7 +291,7 @@ def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
             --set proxy_servers.https 1.2.3.4:5678
             """
         )
-        assert stderr.strip() == "unknown key invalid_key"
+        assert stderr.strip() == "Unknown key: invalid_key"
 
 
 def test_get_channels_list(conda_cli: CondaCLIFixture):
@@ -408,7 +408,7 @@ def test_get_invalid_key(conda_cli: CondaCLIFixture):
     with make_temp_condarc(condarc) as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "invalid_key")
         assert stdout == ""
-        assert stderr.strip() == "unknown key invalid_key"
+        assert stderr.strip() == "Unknown key: invalid_key"
 
 
 def test_set_key(conda_cli: CondaCLIFixture):
