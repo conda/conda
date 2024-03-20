@@ -24,6 +24,7 @@
 * Fix excess resource usage by log handling when fetching repodata. (#13541 via #13628)
 * Re-enable `--subdir` and `--platform` flags to be available for `conda env create` command. (#13632)
 * Fix `__archspec` virtual package on Windows to return microarchitecture instead of the default `x86_64`. (#13641)
+* Check `Content-Length` is nonzero before calculating progress, avoiding a possible `ZeroDivisionError`. (#13653, #13671)
 
 ### Deprecations
 
