@@ -203,7 +203,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     config_modifiers.add_argument(
         "--remove-key",
-        nargs=1,
         action="append",
         help="""Remove a configuration key (and all its values).""",
         default=[],
@@ -374,22 +373,25 @@ def get_key(
             sub_config = sub_config[part]
     except KeyError:
         # KeyError: part not found, nothing to get
-        if context.json:
-            warnings.append(f"Key not defined: {key}")
-        else:
-            print(f"Key not defined: {key}", file=sys.stderr)
-
-    if context.json:
-        json[key] = sub_config
+        pass
     else:
-        print_config_item(key, sub_config)
+        if context.json:
+            json[key] = sub_config
+        else:
+            print_config_item(key, sub_config)
 
 
 def set_key(key: str, item: Any, config: dict):
     from ..base.context import context
 
-    parameter_type = context.describe_parameter(key)["parameter_type"]
     key_parts = key.split(".")
+    try:
+        parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
+    except KeyError:
+        # KeyError: key_parts[0] is not a known parameter
+        from ..exceptions import CondaValueError
+
+        raise CondaValueError(f"Key '{key}' is not a known primitive parameter.")
 
     if parameter_type == "primitive" and len(key_parts) == 1:
         (key,) = key_parts
@@ -406,8 +408,14 @@ def set_key(key: str, item: Any, config: dict):
 def remove_item(key: str, item: Any, config: dict):
     from ..base.context import context
 
-    parameter_type = context.describe_parameter(key)["parameter_type"]
     key_parts = key.split(".")
+    try:
+        parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
+    except KeyError:
+        # KeyError: key_parts[0] is not a known parameter
+        from ..exceptions import CondaValueError
+
+        raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
 
     if parameter_type == "sequence" and len(key_parts) == 1:
         (key,) = key_parts
@@ -438,13 +446,12 @@ def remove_key(key: str, config: dict):
     try:
         for part in key_parts[:-1]:
             sub_config = sub_config[part]
+        del sub_config[key_parts[-1]]
     except KeyError:
         # KeyError: part not found, nothing to remove
         from ..exceptions import CondaKeyError
 
         raise CondaKeyError(key, f"key {key!r} is not in the config file")
-
-    del config[key_parts[-1]]
 
 
 def read_rc(path: str | os.PathLike | Path) -> dict:
