@@ -6,6 +6,7 @@ from os.path import isdir
 import pytest
 
 from conda.common.io import env_var
+from conda.deprecations import deprecated
 from conda.testing import CondaCLIFixture
 
 
@@ -77,6 +78,10 @@ def test_info(conda_cli: CondaCLIFixture):
 
 
 # conda info --all
+@pytest.mark.skipif(
+    deprecated._version_less_than("24.3.0"),
+    reason="DeprecationWarning is only displayed after 24.3.0.",
+)
 def test_info_all(conda_cli: CondaCLIFixture):
     with pytest.warns(
         DeprecationWarning,
