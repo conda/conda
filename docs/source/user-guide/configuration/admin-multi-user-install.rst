@@ -16,9 +16,9 @@ from installing unwanted packages with conda:
 
 #. Create a
    :doc:`.condarc system configuration file <use-condarc>` in
-   the root directory of the installation. This system-level
-   configuration file will override any user-level configuration
-   files installed by the user.
+   the appropriate folder for your operating system.
+   This system-level configuration file will override any
+   user-level configuration files installed by the user.
 
 Each user accesses the central conda installation, which reads
 settings from the user ``.condarc`` configuration file located
@@ -47,16 +47,26 @@ attempts to access a file from a blocked channel. It then
 describes how the user must modify their configuration file to
 access the channels allowed by the administrator.
 
+.. _system_config_location:
+
 System configuration file
 -------------------------
 
-#. The system configuration file must be in the top-level conda
-   installation directory. Check the path where conda is located:
+#. The system configuration file should be in the system conda directory,
+   which is installation-invariant, and varies by operating system:
 
-   .. code-block:: bash
+   - **Windows**: ``C:/ProgramData/conda/.condarc``
+   - **All others**: ``/etc/conda/.condarc``
 
-      $ which conda
-      /tmp/miniconda/bin/conda
+   Configuration files at the above paths will affect all installations
+   of conda on the machine.  Other possible paths that you may place
+   the .condarc file can be seen :ref:`here <_condarc_search_precedence>`.
+
+   If you want to configure individual installations of conda,
+   place the .condarc file inside the base environment directory of the
+   installation.  This is not recommended for securely administering
+   multi-user installations as enforcement of `#!final` parameters
+   is unreliable.
 
 #. View the contents of the ``.condarc`` file in the
    administrator's directory:
