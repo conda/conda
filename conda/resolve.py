@@ -4,6 +4,7 @@
 
 See conda.core.solver.Solver for the high-level API.
 """
+
 from __future__ import annotations
 
 import copy

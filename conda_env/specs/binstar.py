@@ -4,6 +4,7 @@
 
 Define binstar spec.
 """
+
 from conda.deprecations import deprecated
 from conda.env.specs.binstar import ENVIRONMENT_TYPE, BinstarSpec  # noqa
 

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
+
 import json
 import os
 from contextlib import contextmanager
@@ -88,17 +89,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
-        output,
-        a.lower(),
-        b.lower(),
-    )
+    assert (
+        a.lower() not in b.lower()
+    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
-        output, a.lower(), b.lower()
-    )
+    assert (
+        a.lower() in b.lower()
+    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
 
 
 def add_subdir(dist_string):

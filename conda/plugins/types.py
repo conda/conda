@@ -6,6 +6,7 @@ Definition of specific return types for use when defining a conda plugin hook.
 Each type corresponds to the plugin hook for which it is used.
 
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

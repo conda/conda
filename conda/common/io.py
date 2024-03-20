@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
+
 import json
 import logging
 import os
@@ -173,12 +174,13 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
 
     .. code-block:: pycon
-        >>> from conda.common.io import captured
-        >>> with captured() as c:
-        ...     print("hello world!")
-        ...
-        >>> c.stdout
-        'hello world!\n'
+
+       >>> from conda.common.io import captured
+       >>> with captured() as c:
+       ...     print("hello world!")
+       ...
+       >>> c.stdout
+       'hello world!\n'
 
     Args:
         stdout: capture target for sys.stdout, one of STRING, None, or file-like object

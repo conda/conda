@@ -4,6 +4,7 @@
 
 Define YAML spec.
 """
+
 from conda.deprecations import deprecated
 from conda.env.specs.yaml_file import YamlFileSpec  # noqa
 

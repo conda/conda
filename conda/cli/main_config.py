@@ -4,6 +4,7 @@
 
 Allows for programmatically interacting with conda's configuration files (e.g., `~/.condarc`).
 """
+
 from __future__ import annotations
 
 import json

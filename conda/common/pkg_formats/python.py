@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common Python package format utilities."""
+
 import platform
 import re
 import sys
@@ -956,12 +957,10 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     if egg_info_fnames:
         if len(egg_info_fnames) != 1:
             raise CondaError(
-                "Expected exactly one `egg-info` directory in '{}', via egg-link '{}'."
-                " Instead found: {}.  These are often left over from "
+                f"Expected exactly one `egg-info` directory in '{egg_link_contents}', via egg-link '{egg_link_file}'."
+                f" Instead found: {egg_info_fnames}.  These are often left over from "
                 "legacy operations that did not clean up correctly.  Please "
-                "remove all but one of these.".format(
-                    egg_link_contents, egg_link_file, egg_info_fnames
-                )
+                "remove all but one of these."
             )
 
         egg_info_full_path = join(egg_link_contents, egg_info_fnames[0])

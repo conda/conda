@@ -4,12 +4,13 @@
 
 Manually retrieves channel notifications, caches them and displays them.
 """
+
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .helpers import add_parser_channels
+    from .helpers import add_parser_channels, add_parser_json
 
     summary = "Retrieve latest channel notifications."
     description = dals(
@@ -41,6 +42,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
     add_parser_channels(p)
+    add_parser_json(p)
+
     p.set_defaults(func="conda.cli.main_notices.execute")
 
     return p

@@ -5,6 +5,7 @@
 The context aggregates all configuration files, environment variables, and command line arguments
 into one global stateful object to be used across all of conda.
 """
+
 from __future__ import annotations
 
 import logging

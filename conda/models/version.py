@@ -8,6 +8,7 @@ Object inheritance:
    :top-classes: conda.models.version.BaseSpec
    :parts: 1
 """
+
 from __future__ import annotations
 
 import operator as op
@@ -562,9 +563,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
                     log.warning(
                         "Using .* with relational operator is superfluous and deprecated "
                         "and will be removed in a future version of conda. Your spec was "
-                        "{}, but conda is ignoring the .* and treating it as {}".format(
-                            vo_str, vo_str[:-2]
-                        )
+                        f"{vo_str}, but conda is ignoring the .* and treating it as {vo_str[:-2]}"
                     )
                     vo_str = vo_str[:-2]
             try:

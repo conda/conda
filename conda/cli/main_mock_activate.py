@@ -4,6 +4,7 @@
 
 A mock implementation of the activate shell command for better UX.
 """
+
 from argparse import SUPPRESS
 
 from .. import CondaError

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
+
 import os
 import sys
 from json import JSONEncoder
