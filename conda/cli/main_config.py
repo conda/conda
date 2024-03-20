@@ -457,7 +457,11 @@ def remove_key(key: str, config: dict):
 def read_rc(path: str | os.PathLike | Path) -> dict:
     from ..common.serialize import yaml_round_trip_load
 
-    return yaml_round_trip_load(Path(path).read_text()) or {}
+    try:
+        return yaml_round_trip_load(Path(path).read_text()) or {}
+    except FileNotFoundError:
+        # FileNotFoundError: path does not exist
+        return {}
 
 
 def write_rc(path: str | os.PathLike | Path, config: dict) -> None:
