@@ -1,4 +1,5 @@
 anaconda-client
+conda-forge::coverage >=7.4.2
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
 conda-forge::xdoctest
