@@ -28,12 +28,11 @@ from os.path import (
     join,
 )
 from pathlib import Path
-from textwrap import dedent
 from typing import TYPE_CHECKING
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
-from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
+from . import CONDA_PACKAGE_ROOT
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
@@ -954,17 +953,17 @@ class PosixActivator(_Activator):
         )
 
     def _hook_preamble(self) -> str:
-        result = []
+        preamble: list[str] = []
         for key, value in context.conda_exe_vars_dict.items():
             if value is None:
                 # Using `unset_var_tmpl` would cause issues for people running
                 # with shell flag -u set (error on unset).
-                result.append(self.export_var_tmpl % (key, ""))
+                preamble.append(self.export_var_tmpl % (key, ""))
             elif on_win and ("/" in value or "\\" in value):
-                result.append(f'''export {key}="$(cygpath '{value}')"''')
+                preamble.append(f'''export {key}="$(cygpath '{value}')"''')
             else:
-                result.append(self.export_var_tmpl % (key, value))
-        return "\n".join(result) + "\n"
+                preamble.append(self.export_var_tmpl % (key, value))
+        return "\n".join(preamble) + "\n"
 
 
 class CshActivator(_Activator):
@@ -1000,24 +999,18 @@ class CshActivator(_Activator):
         )
 
     def _hook_preamble(self) -> str:
-        if on_win:
-            return dedent(
-                f"""
-                setenv CONDA_EXE `cygpath {context.conda_exe}`
-                setenv _CONDA_ROOT `cygpath {context.conda_prefix}`
-                setenv _CONDA_EXE `cygpath {context.conda_exe}`
-                setenv CONDA_PYTHON_EXE `cygpath {sys.executable}`
-                """
-            ).strip()
-        else:
-            return dedent(
-                f"""
-                setenv CONDA_EXE "{context.conda_exe}"
-                setenv _CONDA_ROOT "{context.conda_prefix}"
-                setenv _CONDA_EXE "{context.conda_exe}"
-                setenv CONDA_PYTHON_EXE "{sys.executable}"
-                """
-            ).strip()
+        preamble: list[str] = []
+        for key, value in {
+            **context.conda_exe_vars_dict,
+            "_CONDA_ROOT": context.conda_prefix,
+        }.items():
+            if value is None:
+                preamble.append(self.unset_var_tmpl % key)
+            elif on_win and ("/" in value or "\\" in value):
+                preamble.append(f"setenv {key} `cygpath {value}`")
+            else:
+                preamble.append(self.export_var_tmpl % (key, value))
+        return "\n".join(preamble) + "\n"
 
 
 class XonshActivator(_Activator):
@@ -1045,7 +1038,16 @@ class XonshActivator(_Activator):
     hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
-        return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
+        preamble: list[str] = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                preamble.append(self.unset_var_tmpl % key)
+            elif on_win and ("/" in value or "\\" in value):
+                value = self.path_conversion(value)
+                preamble.append(self.export_var_tmpl % (key, value))
+            else:
+                preamble.append(self.export_var_tmpl % (key, value))
+        return "\n".join(preamble) + "\n"
 
 
 class CmdExeActivator(_Activator):
@@ -1093,24 +1095,15 @@ class FishActivator(_Activator):
     )
 
     def _hook_preamble(self) -> str:
-        if on_win:
-            return dedent(
-                f"""
-                set -gx CONDA_EXE (cygpath "{context.conda_exe}")
-                set _CONDA_ROOT (cygpath "{context.conda_prefix}")
-                set _CONDA_EXE (cygpath "{context.conda_exe}")
-                set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}")
-                """
-            ).strip()
-        else:
-            return dedent(
-                f"""
-                set -gx CONDA_EXE "{context.conda_exe}"
-                set _CONDA_ROOT "{context.conda_prefix}"
-                set _CONDA_EXE "{context.conda_exe}"
-                set -gx CONDA_PYTHON_EXE "{sys.executable}"
-                """
-            ).strip()
+        preamble: list[str] = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                preamble.append(self.unset_var_tmpl % key)
+            elif on_win and ("/" in value or "\\" in value):
+                preamble.append(f'set -gx {key} (cygpath "{value}")')
+            else:
+                preamble.append(self.export_var_tmpl % (key, value))
+        return "\n".join(preamble) + "\n"
 
 
 class PowerShellActivator(_Activator):
@@ -1134,29 +1127,14 @@ class PowerShellActivator(_Activator):
     )
 
     def _hook_preamble(self) -> str:
-        if context.dev:
-            return dedent(
-                f"""
-                $Env:PYTHONPATH = "{CONDA_SOURCE_ROOT}"
-                $Env:CONDA_EXE = "{sys.executable}"
-                $Env:_CE_M = "-m"
-                $Env:_CE_CONDA = "conda"
-                $Env:_CONDA_ROOT = "{CONDA_PACKAGE_ROOT}"
-                $Env:_CONDA_EXE = "{context.conda_exe}"
-                $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
-                """
-            ).strip()
-        else:
-            return dedent(
-                f"""
-                $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M = ""
-                $Env:_CE_CONDA = ""
-                $Env:_CONDA_ROOT = "{context.conda_prefix}"
-                $Env:_CONDA_EXE = "{context.conda_exe}"
-                $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
-                """
-            ).strip()
+        preamble: list[str] = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                preamble.append(self.unset_var_tmpl % key)
+            else:
+                preamble.append(self.export_var_tmpl % (key, value))
+        preamble.append(f"$CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}")
+        return "\n".join(preamble) + "\n"
 
     def _hook_postamble(self) -> str:
         return "Remove-Variable CondaModuleArgs"
@@ -1169,24 +1147,8 @@ class JSONFormatMixin(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = list
 
-    def _hook_preamble(self):
-        if context.dev:
-            return {
-                "PYTHONPATH": CONDA_SOURCE_ROOT,
-                "CONDA_EXE": sys.executable,
-                "_CE_M": "-m",
-                "_CE_CONDA": "conda",
-                "_CONDA_ROOT": CONDA_PACKAGE_ROOT,
-                "_CONDA_EXE": context.conda_exe,
-            }
-        else:
-            return {
-                "CONDA_EXE": context.conda_exe,
-                "_CE_M": "",
-                "_CE_CONDA": "",
-                "_CONDA_ROOT": context.conda_prefix,
-                "_CONDA_EXE": context.conda_exe,
-            }
+    def _hook_preamble(self) -> dict[str, str | None]:
+        return context.conda_exe_vars_dict
 
     def get_scripts_export_unset_vars(self, **kwargs):
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)

@@ -798,7 +798,7 @@ class Context(Configuration):
             return None
 
     @property
-    def conda_exe_vars_dict(self):
+    def conda_exe_vars_dict(self) -> dict[str, str | None]:
         """
         The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
