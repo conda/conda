@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 from . import __version__
 
 warnings.filterwarnings("default", category=DeprecationWarning, module="conda")
+warnings.filterwarnings("default", category=DeprecationWarning, module="conda_env")
 
 
 class DeprecatedError(RuntimeError):
