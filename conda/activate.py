@@ -1000,10 +1000,7 @@ class CshActivator(_Activator):
 
     def _hook_preamble(self) -> str:
         preamble: list[str] = []
-        for key, value in {
-            **context.conda_exe_vars_dict,
-            "_CONDA_ROOT": context.conda_prefix,
-        }.items():
+        for key, value in context.conda_exe_vars_dict.items():
             if value is None:
                 preamble.append(self.unset_var_tmpl % key)
             elif on_win and ("/" in value or "\\" in value):

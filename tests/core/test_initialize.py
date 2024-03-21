@@ -536,18 +536,23 @@ def test_install_conda_csh(verbose):
             second_line,
             third_line,
             fourth_line,
+            fifth_line,
+            newline,
             remainder,
-        ) = created_file_contents.split("\n", 4)
+        ) = created_file_contents.split("\n", 6)
         if on_win:
-            assert first_line == "setenv CONDA_EXE `cygpath %s`" % conda_exe
+            assert first_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % python_exe
             assert second_line == "setenv _CONDA_ROOT `cygpath %s`" % conda_prefix
-            assert third_line == "setenv _CONDA_EXE `cygpath %s`" % conda_exe
-            assert fourth_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % python_exe
+            assert third_line == "setenv CONDA_EXE `cygpath %s`" % conda_exe
+            # assert ??? == "setenv _CONDA_EXE `cygpath %s`" % conda_exe
         else:
-            assert first_line == 'setenv CONDA_EXE "%s"' % conda_exe
+            assert first_line == 'setenv CONDA_PYTHON_EXE "%s"' % python_exe
             assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'setenv _CONDA_EXE "%s"' % conda_exe
-            assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % python_exe
+            assert third_line == 'setenv CONDA_EXE "%s"' % conda_exe
+            # assert ??? == 'setenv _CONDA_EXE "%s"' % conda_exe
+        assert fourth_line == 'setenv _CE_M ""'
+        assert fifth_line == 'setenv _CE_CONDA ""'
+        assert not newline
 
         with open(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")

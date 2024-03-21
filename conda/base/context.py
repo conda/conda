@@ -812,8 +812,13 @@ class Context(Configuration):
         The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
         """
+        base = {
+            "CONDA_PYTHON_EXE": sys.executable,
+            "_CONDA_ROOT": self.conda_prefix,
+        }
         if context.dev:
             return {
+                **base,
                 "CONDA_EXE": sys.executable,
                 # do not confuse with os.path.join, we are joining paths with ; or : delimiters
                 "PYTHONPATH": os.pathsep.join(
@@ -821,7 +826,6 @@ class Context(Configuration):
                 ),
                 "_CE_M": "-m",
                 "_CE_CONDA": "conda",
-                "CONDA_PYTHON_EXE": sys.executable,
             }
         else:
             bin_dir = "Scripts" if on_win else "bin"
@@ -829,10 +833,10 @@ class Context(Configuration):
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
             return {
+                **base,
                 "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
                 "_CE_M": "",
                 "_CE_CONDA": "",
-                "CONDA_PYTHON_EXE": sys.executable,
             }
 
     @memoizedproperty
