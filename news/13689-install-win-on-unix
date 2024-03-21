@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* <news item>
+* Fix prefix replacement for Windows subdir on unixes. (#13689)
 
 ### Deprecations
 
-* Remove `conda.export.handle_proxy_407`. (#13629)
+* <news item>
 
 ### Docs
 

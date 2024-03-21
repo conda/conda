@@ -5,6 +5,7 @@ Functions related to core conda functionality that relates to pip
 
 NOTE: This modules used to in conda, as conda/pip.py
 """
+
 import os
 import re
 import sys

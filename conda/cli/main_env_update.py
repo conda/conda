@@ -4,6 +4,7 @@
 
 Updates the conda environments with the specified packages.
 """
+
 import os
 from argparse import (
     ArgumentParser,

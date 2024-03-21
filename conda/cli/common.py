@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
+
 import re
 import sys
 from logging import getLogger

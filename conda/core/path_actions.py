@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Atomic actions that make up a package installation or removal transaction."""
+
 import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -349,15 +350,11 @@ class LinkPathAction(CreateInPrefixPathAction):
         ):  # pragma: no cover  # NOQA
             return CondaVerificationError(
                 dals(
-                    """
-            The package for {} located at {}
-            appears to be corrupted. The path '{}'
+                    f"""
+            The package for {self.package_info.repodata_record.name} located at {self.package_info.extracted_package_dir}
+            appears to be corrupted. The path '{self.source_short_path}'
             specified in the package manifest cannot be found.
-            """.format(
-                        self.package_info.repodata_record.name,
-                        self.package_info.extracted_package_dir,
-                        self.source_short_path,
-                    )
+            """
                 )
             )
 
@@ -397,19 +394,13 @@ class LinkPathAction(CreateInPrefixPathAction):
                 if reported_size_in_bytes != source_size_in_bytes:
                     return SafetyError(
                         dals(
-                            """
-                    The package for {} located at {}
-                    appears to be corrupted. The path '{}'
+                            f"""
+                    The package for {self.package_info.repodata_record.name} located at {self.package_info.extracted_package_dir}
+                    appears to be corrupted. The path '{self.source_short_path}'
                     has an incorrect size.
-                      reported size: {} bytes
-                      actual size: {} bytes
-                    """.format(
-                                self.package_info.repodata_record.name,
-                                self.package_info.extracted_package_dir,
-                                self.source_short_path,
-                                reported_size_in_bytes,
-                                source_size_in_bytes,
-                            )
+                      reported size: {reported_size_in_bytes} bytes
+                      actual size: {source_size_in_bytes} bytes
+                    """
                         )
                     )
 
@@ -428,19 +419,13 @@ class LinkPathAction(CreateInPrefixPathAction):
                 if reported_sha256 and reported_sha256 != source_sha256:
                     return SafetyError(
                         dals(
-                            """
-                    The package for {} located at {}
-                    appears to be corrupted. The path '{}'
+                            f"""
+                    The package for {self.package_info.repodata_record.name} located at {self.package_info.extracted_package_dir}
+                    appears to be corrupted. The path '{self.source_short_path}'
                     has a sha256 mismatch.
-                    reported sha256: {}
-                    actual sha256: {}
-                    """.format(
-                                self.package_info.repodata_record.name,
-                                self.package_info.extracted_package_dir,
-                                self.source_short_path,
-                                reported_sha256,
-                                source_sha256,
-                            )
+                    reported sha256: {reported_sha256}
+                    actual sha256: {source_sha256}
+                    """
                         )
                     )
             self.prefix_path_data = PathDataV1.from_objects(
@@ -1343,9 +1328,7 @@ class CacheUrlAction(PathAction):
         return join(self.target_pkgs_dir, self.target_package_basename)
 
     def __str__(self):
-        return "CacheUrlAction<url={!r}, target_full_path={!r}>".format(
-            self.url, self.target_full_path
-        )
+        return f"CacheUrlAction<url={self.url!r}, target_full_path={self.target_full_path!r}>"
 
 
 class ExtractPackageAction(PathAction):
@@ -1455,9 +1438,4 @@ class ExtractPackageAction(PathAction):
         return join(self.target_pkgs_dir, self.target_extracted_dirname)
 
     def __str__(self):
-        return (
-            "ExtractPackageAction<source_full_path={!r}, target_full_path={!r}>".format(
-                self.source_full_path,
-                self.target_full_path,
-            )
-        )
+        return f"ExtractPackageAction<source_full_path={self.source_full_path!r}, target_full_path={self.target_full_path!r}>"

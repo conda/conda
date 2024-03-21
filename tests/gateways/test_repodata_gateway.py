@@ -3,6 +3,7 @@
 """
 Strongly related to subdir_data / test_subdir_data.
 """
+
 from __future__ import annotations
 
 import datetime

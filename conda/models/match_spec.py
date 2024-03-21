@@ -5,6 +5,7 @@
 The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
 `cryptography * *_0`) and is used to communicate the desired packages to install.
 """
+
 import re
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty

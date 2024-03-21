@@ -4,6 +4,7 @@
 
 Environment object describing the conda environment.yaml file.
 """
+
 import re
 
 from conda.deprecations import deprecated

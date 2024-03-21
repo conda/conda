@@ -27,7 +27,6 @@ requirements:
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
-    - wheel
     # for `conda init` in build/script above
     - boltons >=23.0.0
     - menuinst >=2

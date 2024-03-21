@@ -4,6 +4,7 @@
 
 Define requirements.txt spec.
 """
+
 from conda.deprecations import deprecated
 from conda.env.specs.requirements import RequirementsSpec  # noqa
 

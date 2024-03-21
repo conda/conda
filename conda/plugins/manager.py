@@ -7,6 +7,7 @@ This module contains a subclass implementation of pluggy's
 Additionally, it contains a function we use to construct the ``PluginManager`` object and
 register all plugins during conda's startup process.
 """
+
 from __future__ import annotations
 
 import functools
@@ -152,52 +153,48 @@ class CondaPluginManager(pluggy.PluginManager):
         return count
 
     @overload
-    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["subcommands"]
+    ) -> list[CondaSubcommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["virtual_packages"]
-    ) -> list[CondaVirtualPackage]:
-        ...
+    ) -> list[CondaVirtualPackage]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
-        ...
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["pre_commands"]
+    ) -> list[CondaPreCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["post_commands"]
-    ) -> list[CondaPostCommand]:
-        ...
+    ) -> list[CondaPostCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["auth_handlers"]
-    ) -> list[CondaAuthHandler]:
-        ...
+    ) -> list[CondaAuthHandler]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["health_checks"]
-    ) -> list[CondaHealthCheck]:
-        ...
+    ) -> list[CondaHealthCheck]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]:
-        ...
+    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
-        ...
+    def get_hook_results(
+        self, name: Literal["post_solves"]
+    ) -> list[CondaPostSolve]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]:
-        ...
+    def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
     def get_hook_results(self, name):
         """

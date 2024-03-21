@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Requests session configured with all accepted scheme adapters."""
+
 from __future__ import annotations
 
 from functools import lru_cache

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions testing path properties (e.g., writable, hardlinks, softlinks, etc.)."""
+
 from functools import lru_cache
 from logging import getLogger
 from os import W_OK, access
