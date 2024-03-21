@@ -3,7 +3,10 @@
 import json
 from os.path import isdir
 
+import pytest
+
 from conda.common.io import env_var
+from conda.deprecations import deprecated
 from conda.testing import CondaCLIFixture
 
 
@@ -66,12 +69,22 @@ def test_info(conda_cli: CondaCLIFixture):
     assert not stderr
     assert not err
 
-    stdout_all, stderr, err = conda_cli("info", "--verbose")
-    assert stdout_basic in stdout_all
-    assert stdout_envs in stdout_all
-    assert stdout_sys in stdout_all
+    stdout_verbose, stderr, err = conda_cli("info", "--verbose")
+    assert stdout_basic in stdout_verbose
+    assert stdout_envs in stdout_verbose
+    assert stdout_sys in stdout_verbose
     assert not stderr
     assert not err
+
+
+# conda info --all
+def test_info_all(conda_cli: CondaCLIFixture):
+    with pytest.warns(
+        PendingDeprecationWarning
+        if deprecated._version_less_than("24.3")
+        else DeprecationWarning,
+    ):
+        conda_cli("info", "--all")
 
 
 # conda info --json
