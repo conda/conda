@@ -4,9 +4,10 @@ import json
 from os.path import isdir
 
 import pytest
+from packaging.version import parse
 
+import conda
 from conda.common.io import env_var
-from conda.deprecations import deprecated
 from conda.testing import CondaCLIFixture
 
 
@@ -81,7 +82,7 @@ def test_info(conda_cli: CondaCLIFixture):
 def test_info_all(conda_cli: CondaCLIFixture):
     with pytest.warns(
         PendingDeprecationWarning
-        if deprecated._version_less_than("24.3")
+        if parse(conda.__version__) < parse("24.3")
         else DeprecationWarning,
     ):
         conda_cli("info", "--all")
