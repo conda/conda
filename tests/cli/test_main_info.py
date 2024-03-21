@@ -69,23 +69,20 @@ def test_info(conda_cli: CondaCLIFixture):
     assert not stderr
     assert not err
 
-    stdout_all, stderr, err = conda_cli("info", "--verbose")
-    assert stdout_basic in stdout_all
-    assert stdout_envs in stdout_all
-    assert stdout_sys in stdout_all
+    stdout_verbose, stderr, err = conda_cli("info", "--verbose")
+    assert stdout_basic in stdout_verbose
+    assert stdout_envs in stdout_verbose
+    assert stdout_sys in stdout_verbose
     assert not stderr
     assert not err
 
 
 # conda info --all
-@pytest.mark.skipif(
-    deprecated._version_less_than("24.3.0"),
-    reason="DeprecationWarning is only displayed after 24.3.0.",
-)
 def test_info_all(conda_cli: CondaCLIFixture):
     with pytest.warns(
-        DeprecationWarning,
-        match="`--all` is deprecated and will be removed in 24.9. Use `--verbose` instead.",
+        PendingDeprecationWarning
+        if deprecated._version_less_than("24.3")
+        else DeprecationWarning,
     ):
         conda_cli("info", "--all")
 
