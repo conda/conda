@@ -112,6 +112,7 @@ jobs:
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
+          --file tests\requirements-activate.txt
           --file tests\requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -215,6 +216,7 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
+          --file tests/requirements-activate.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -302,6 +304,7 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
+          --file tests/requirements-activate.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -455,6 +458,7 @@ jobs:
           --yes
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
+          --file tests/requirements-activate.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
