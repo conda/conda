@@ -1862,7 +1862,7 @@ def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_powershell_basic(shell_wrapper_unit: str):
+def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1895,77 +1895,74 @@ def test_powershell_basic(shell_wrapper_unit: str):
     }
     assert activate_data == e_activate_data
 
-    with env_vars(
-        {
-            "CONDA_PREFIX": shell_wrapper_unit,
-            "CONDA_SHLVL": "1",
-            "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
-        }
-    ):
-        activator = PowerShellActivator()
-        with captured() as c:
-            rc = main_sourced("shell.powershell", *reactivate_args)
-        assert not c.stderr
-        assert rc == 0
-        reactivate_data = c.stdout
+    monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
+    monkeypatch.setenv("CONDA_SHLVL", "1")
+    monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
-        new_path_parts = activator._replace_prefix_in_path(
-            shell_wrapper_unit, shell_wrapper_unit
-        )
-        assert reactivate_data == dals(
-            """
-        . "%(deactivate1)s"
-        $Env:PATH = "%(new_path)s"
-        $Env:CONDA_SHLVL = "1"
-        $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
-        . "%(activate1)s"
+    activator = PowerShellActivator()
+    with captured() as c:
+        rc = main_sourced("shell.powershell", *reactivate_args)
+    assert not c.stderr
+    assert rc == 0
+    reactivate_data = c.stdout
+
+    new_path_parts = activator._replace_prefix_in_path(
+        shell_wrapper_unit, shell_wrapper_unit
+    )
+    assert reactivate_data == dals(
         """
-        ) % {
-            "activate1": join(
-                shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1"
-            ),
-            "deactivate1": join(
-                shell_wrapper_unit,
-                "etc",
-                "conda",
-                "deactivate.d",
-                "deactivate1.ps1",
-            ),
-            "prefix": shell_wrapper_unit,
-            "new_path": activator.pathsep_join(new_path_parts),
-        }
+    . "%(deactivate1)s"
+    $Env:PATH = "%(new_path)s"
+    $Env:CONDA_SHLVL = "1"
+    $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+    . "%(activate1)s"
+    """
+    ) % {
+        "activate1": join(
+            shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1"
+        ),
+        "deactivate1": join(
+            shell_wrapper_unit,
+            "etc",
+            "conda",
+            "deactivate.d",
+            "deactivate1.ps1",
+        ),
+        "prefix": shell_wrapper_unit,
+        "new_path": activator.pathsep_join(new_path_parts),
+    }
 
-        with captured() as c:
-            rc = main_sourced("shell.powershell", *deactivate_args)
-        assert not c.stderr
-        assert rc == 0
-        deactivate_data = c.stdout
+    with captured() as c:
+        rc = main_sourced("shell.powershell", *deactivate_args)
+    assert not c.stderr
+    assert rc == 0
+    deactivate_data = c.stdout
 
-        new_path = activator.pathsep_join(
-            activator._remove_prefix_from_path(shell_wrapper_unit)
-        )
+    new_path = activator.pathsep_join(
+        activator._remove_prefix_from_path(shell_wrapper_unit)
+    )
 
-        assert deactivate_data == dals(
-            """
-        $Env:PATH = "%(new_path)s"
-        . "%(deactivate1)s"
-        $Env:CONDA_PREFIX = ""
-        $Env:CONDA_DEFAULT_ENV = ""
-        $Env:CONDA_PROMPT_MODIFIER = ""
-        $Env:CONDA_SHLVL = "0"
-        %(conda_exe_export)s
+    assert deactivate_data == dals(
         """
-        ) % {
-            "new_path": new_path,
-            "deactivate1": join(
-                shell_wrapper_unit,
-                "etc",
-                "conda",
-                "deactivate.d",
-                "deactivate1.ps1",
-            ),
-            "conda_exe_export": conda_exe_export,
-        }
+    $Env:PATH = "%(new_path)s"
+    . "%(deactivate1)s"
+    $Env:CONDA_PREFIX = ""
+    $Env:CONDA_DEFAULT_ENV = ""
+    $Env:CONDA_PROMPT_MODIFIER = ""
+    $Env:CONDA_SHLVL = "0"
+    %(conda_exe_export)s
+    """
+    ) % {
+        "new_path": new_path,
+        "deactivate1": join(
+            shell_wrapper_unit,
+            "etc",
+            "conda",
+            "deactivate.d",
+            "deactivate1.ps1",
+        ),
+        "conda_exe_export": conda_exe_export,
+    }
 
 
 def test_unicode(shell_wrapper_unit: str):
