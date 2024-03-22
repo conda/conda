@@ -14,16 +14,18 @@ from os.path import join
 
 from ..common.compat import on_win, six_with_metaclass
 
-PREFIX_PLACEHOLDER = (
+PREFIX_PLACEHOLDER: str = (
     "/opt/anaconda1anaconda2"
     # this is intentionally split into parts, such that running
     # this program on itself will leave it unchanged
     "anaconda3"
 )
 
-machine_bits = 8 * struct.calcsize("P")
+machine_bits: int = 8 * struct.calcsize("P")
 
-APP_NAME = "conda"
+APP_NAME: str = "conda"
+
+SEARCH_PATH: tuple[str]
 
 if on_win:  # pragma: no cover
     SEARCH_PATH = (
@@ -61,10 +63,13 @@ SEARCH_PATH += (
     "$CONDARC",
 )
 
-DEFAULT_CHANNEL_ALIAS = "https://conda.anaconda.org"
-CONDA_HOMEPAGE_URL = "https://conda.io"
-ERROR_UPLOAD_URL = "https://conda.io/conda-post/unexpected-error"
-DEFAULTS_CHANNEL_NAME = "defaults"
+DEFAULT_CHANNEL_ALIAS: str = "https://conda.anaconda.org"
+CONDA_HOMEPAGE_URL: str = "https://conda.io"
+ERROR_UPLOAD_URL: str = "https://conda.io/conda-post/unexpected-error"
+DEFAULTS_CHANNEL_NAME: str = "defaults"
+
+KNOWN_SUBDIRS: tuple[str]
+PLATFORM_DIRECTORIES: tuple[str]
 
 KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "noarch",
@@ -88,29 +93,29 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "zos-z",
 )
 
-RECOGNIZED_URL_SCHEMES = ("http", "https", "ftp", "s3", "file")
+RECOGNIZED_URL_SCHEMES: tuple[str] = ("http", "https", "ftp", "s3", "file")
 
 
-DEFAULT_CHANNELS_UNIX = (
+DEFAULT_CHANNELS_UNIX: tuple[str] = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
 )
 
-DEFAULT_CHANNELS_WIN = (
+DEFAULT_CHANNELS_WIN: tuple[str] = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
     "https://repo.anaconda.com/pkgs/msys2",
 )
 
-DEFAULT_CUSTOM_CHANNELS = {
+DEFAULT_CUSTOM_CHANNELS: tuple[str] = {
     "pkgs/pro": "https://repo.anaconda.com",
 }
 
-DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
+DEFAULT_CHANNELS: tuple[str] = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
-ROOT_ENV_NAME = "base"
+ROOT_ENV_NAME: str = "base"
 
-ROOT_NO_RM = (
+ROOT_NO_RM: tuple[str] = (
     "python",
     "pycosat",
     "ruamel.yaml",
@@ -119,11 +124,13 @@ ROOT_NO_RM = (
     "requests",
 )
 
-DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
+DEFAULT_AGGRESSIVE_UPDATE_PACKAGES: tuple[str] = (
     "ca-certificates",
     "certifi",
     "openssl",
 )
+
+COMPATIBLE_SHELLS: tuple[str]
 
 if on_win:  # pragma: no cover
     COMPATIBLE_SHELLS = (
@@ -147,37 +154,41 @@ else:
 
 
 # Maximum priority, reserved for packages we really want to remove
-MAX_CHANNEL_PRIORITY = 10000
+MAX_CHANNEL_PRIORITY: int = 10000
 
-CONDA_PACKAGE_EXTENSION_V1 = ".tar.bz2"
-CONDA_PACKAGE_EXTENSION_V2 = ".conda"
-CONDA_PACKAGE_EXTENSIONS = (
+CONDA_PACKAGE_EXTENSION_V1: str = ".tar.bz2"
+CONDA_PACKAGE_EXTENSION_V2: str = ".conda"
+CONDA_PACKAGE_EXTENSIONS: tuple[str] = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_PACKAGE_PARTS = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
-CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
-CONDA_TEMP_EXTENSION = ".c~"
-CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
-CONDA_LOGS_DIR = ".logs"
+CONDA_PACKAGE_PARTS: tuple[str] = tuple(
+    f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS
+)
+CONDA_TARBALL_EXTENSION: str = (
+    CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+)
+CONDA_TEMP_EXTENSION: str = ".c~"
+CONDA_TEMP_EXTENSIONS: tuple[str] = (CONDA_TEMP_EXTENSION, ".trash")
+CONDA_LOGS_DIR: str = ".logs"
 
-UNKNOWN_CHANNEL = "<unknown>"
-REPODATA_FN = "repodata.json"
+UNKNOWN_CHANNEL: str = "<unknown>"
+REPODATA_FN: str = "repodata.json"
 
 #: Default name of the notices file on the server we look for
-NOTICES_FN = "notices.json"
+NOTICES_FN: str = "notices.json"
 
 #: Name of cache file where read notice IDs are stored
-NOTICES_CACHE_FN = "notices.cache"
+NOTICES_CACHE_FN: str = "notices.cache"
 
 #: Determines the subdir for notices cache
-NOTICES_CACHE_SUBDIR = "notices"
+NOTICES_CACHE_SUBDIR: str = "notices"
 
 #: Determines the subdir for notices cache
-NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
+NOTICES_DECORATOR_DISPLAY_INTERVAL: int = 86400  # in seconds
 
-DRY_RUN_PREFIX = "Dry run action:"
-PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
+DRY_RUN_PREFIX: str = "Dry run action:"
+PREFIX_NAME_DISALLOWED_CHARS: set[str] = {"/", " ", ":", "#"}
 
 
 class SafetyChecks(Enum):
@@ -262,8 +273,8 @@ class SatSolverChoice(ValueEnum):
 
 
 #: The name of the default solver, currently "libmamba"
-DEFAULT_SOLVER = "libmamba"
-CLASSIC_SOLVER = "classic"
+DEFAULT_SOLVER: str = "libmamba"
+CLASSIC_SOLVER: str = "classic"
 
 
 class NoticeLevel(ValueEnum):
@@ -273,16 +284,16 @@ class NoticeLevel(ValueEnum):
 
 
 # Magic files for permissions determination
-PACKAGE_CACHE_MAGIC_FILE = "urls.txt"
-PREFIX_MAGIC_FILE = join("conda-meta", "history")
+PACKAGE_CACHE_MAGIC_FILE: str = "urls.txt"
+PREFIX_MAGIC_FILE: str = join("conda-meta", "history")
 
-PREFIX_STATE_FILE = join("conda-meta", "state")
-PACKAGE_ENV_VARS_DIR = join("etc", "conda", "env_vars.d")
-CONDA_ENV_VARS_UNSET_VAR = "***unset***"
+PREFIX_STATE_FILE: str = join("conda-meta", "state")
+PACKAGE_ENV_VARS_DIR: str = join("etc", "conda", "env_vars.d")
+CONDA_ENV_VARS_UNSET_VAR: str = "***unset***"
 
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
-NAMESPACES_MAP = {  # base package name, namespace
+NAMESPACES_MAP: dict[str, str] = {  # base package name, namespace
     "python": "python",
     "r": "r",
     "r-base": "r",
@@ -301,8 +312,8 @@ NAMESPACES_MAP = {  # base package name, namespace
     "msys2-conda-epoch": "m2w64",
 }
 
-NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
-NAMESPACES = frozenset(NAMESPACES_MAP.values())
+NAMESPACE_PACKAGE_NAMES: frozenset[str] = frozenset(NAMESPACES_MAP)
+NAMESPACES: frozenset[str] = frozenset(NAMESPACES_MAP.values())
 
 # Namespace arbiters of uniqueness
 #  global: some repository established by Anaconda, Inc. and conda-forge
@@ -327,4 +338,4 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
-NO_PLUGINS = False
+NO_PLUGINS: bool = False
