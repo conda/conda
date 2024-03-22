@@ -1473,7 +1473,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_csh_basic(shell_wrapper_unit: str):
+def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1510,97 +1510,94 @@ def test_csh_basic(shell_wrapper_unit: str):
     }
     assert activate_data == e_activate_data
 
-    with env_vars(
-        {
-            "CONDA_PREFIX": shell_wrapper_unit,
-            "CONDA_SHLVL": "1",
-            "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
-        }
-    ):
-        activator = CshActivator()
-        with captured() as c:
-            rc = main_sourced("shell.csh", *reactivate_args)
-        assert not c.stderr
-        assert rc == 0
-        reactivate_data = c.stdout
+    monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
+    monkeypatch.setenv("CONDA_SHLVL", "1")
+    monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
-        new_path_parts = activator._replace_prefix_in_path(
-            shell_wrapper_unit, shell_wrapper_unit
-        )
-        e_reactivate_data = dals(
-            """
-        source "%(deactivate1)s";
-        set prompt='%(prompt)s';
-        setenv PATH "%(new_path)s";
-        setenv CONDA_SHLVL "1";
-        setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
-        source "%(activate1)s";
+    activator = CshActivator()
+    with captured() as c:
+        rc = main_sourced("shell.csh", *reactivate_args)
+    assert not c.stderr
+    assert rc == 0
+    reactivate_data = c.stdout
+
+    new_path_parts = activator._replace_prefix_in_path(
+        shell_wrapper_unit, shell_wrapper_unit
+    )
+    e_reactivate_data = dals(
         """
-        ) % {
-            "prompt": "(%s) " % shell_wrapper_unit + os.environ.get("prompt", ""),
-            "new_path": activator.pathsep_join(new_path_parts),
-            "activate1": activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "activate.d",
-                    "activate1.csh",
-                )
-            ),
-            "deactivate1": activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "deactivate.d",
-                    "deactivate1.csh",
-                )
-            ),
-            "native_prefix": shell_wrapper_unit,
-        }
-        assert reactivate_data == e_reactivate_data
-        with captured() as c:
-            rc = main_sourced("shell.csh", *deactivate_args)
-        assert not c.stderr
-        assert rc == 0
-        deactivate_data = c.stdout
+    source "%(deactivate1)s";
+    set prompt='%(prompt)s';
+    setenv PATH "%(new_path)s";
+    setenv CONDA_SHLVL "1";
+    setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+    source "%(activate1)s";
+    """
+    ) % {
+        "prompt": "(%s) " % shell_wrapper_unit + os.environ.get("prompt", ""),
+        "new_path": activator.pathsep_join(new_path_parts),
+        "activate1": activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "activate.d",
+                "activate1.csh",
+            )
+        ),
+        "deactivate1": activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "deactivate.d",
+                "deactivate1.csh",
+            )
+        ),
+        "native_prefix": shell_wrapper_unit,
+    }
+    assert reactivate_data == e_reactivate_data
+    with captured() as c:
+        rc = main_sourced("shell.csh", *deactivate_args)
+    assert not c.stderr
+    assert rc == 0
+    deactivate_data = c.stdout
 
-        new_path = activator.pathsep_join(
-            activator._remove_prefix_from_path(shell_wrapper_unit)
-        )
+    new_path = activator.pathsep_join(
+        activator._remove_prefix_from_path(shell_wrapper_unit)
+    )
 
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
+    (
+        conda_exe_export,
+        conda_exe_unset,
+    ) = get_scripts_export_unset_vars(activator)
 
-        e_deactivate_data = dals(
-            """
-        setenv PATH "%(new_path)s";
-        source "%(deactivate1)s";
-        unsetenv CONDA_PREFIX;
-        unsetenv CONDA_DEFAULT_ENV;
-        unsetenv CONDA_PROMPT_MODIFIER;
-        set prompt='%(prompt)s';
-        setenv CONDA_SHLVL "0";
-        %(conda_exe_export)s;
+    e_deactivate_data = dals(
         """
-        ) % {
-            "new_path": new_path,
-            "deactivate1": activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "deactivate.d",
-                    "deactivate1.csh",
-                )
-            ),
-            "prompt": os.environ.get("prompt", ""),
-            "conda_exe_export": conda_exe_export,
-        }
-        assert deactivate_data == e_deactivate_data
+    setenv PATH "%(new_path)s";
+    source "%(deactivate1)s";
+    unsetenv CONDA_PREFIX;
+    unsetenv CONDA_DEFAULT_ENV;
+    unsetenv CONDA_PROMPT_MODIFIER;
+    set prompt='%(prompt)s';
+    setenv CONDA_SHLVL "0";
+    %(conda_exe_export)s;
+    """
+    ) % {
+        "new_path": new_path,
+        "deactivate1": activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "deactivate.d",
+                "deactivate1.csh",
+            )
+        ),
+        "prompt": os.environ.get("prompt", ""),
+        "conda_exe_export": conda_exe_export,
+    }
+    assert deactivate_data == e_deactivate_data
 
 
 def test_xonsh_basic(shell_wrapper_unit: str):
