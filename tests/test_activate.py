@@ -378,22 +378,18 @@ def test_build_activate_dont_activate_unset_var(reset_environ: None):
                 new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
                 conda_prompt_modifier = "(%s) " % td
                 ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
-                unset_vars = []
 
                 set_vars = {"PS1": ps1}
-                export_vars = {
-                    "PATH": new_path,
-                    "CONDA_PREFIX": td,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": td,
-                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_A_ENV": "yerp",
-                    "PKG_B_ENV": "berp",
-                    "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    PATH=new_path,
+                    CONDA_PREFIX=td,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=td,
+                    CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                    PKG_A_ENV="yerp",
+                    PKG_B_ENV="berp",
+                    ENV_ONE="one",
+                    ENV_TWO="you",
                 )
                 assert builder["unset_vars"] == unset_vars
                 assert builder["set_vars"] == set_vars
@@ -437,23 +433,19 @@ def test_build_activate_shlvl_warn_clobber_vars(reset_environ: None):
                 new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
                 conda_prompt_modifier = "(%s) " % td
                 ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
-                unset_vars = []
 
                 set_vars = {"PS1": ps1}
-                export_vars = {
-                    "PATH": new_path,
-                    "CONDA_PREFIX": td,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": td,
-                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_A_ENV": "teamnope",
-                    "PKG_B_ENV": "berp",
-                    "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me",
-                }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    PATH=new_path,
+                    CONDA_PREFIX=td,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=td,
+                    CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                    PKG_A_ENV="teamnope",
+                    PKG_B_ENV="berp",
+                    ENV_ONE="one",
+                    ENV_TWO="you",
+                    ENV_THREE="me",
                 )
                 assert builder["unset_vars"] == unset_vars
                 assert builder["set_vars"] == set_vars
@@ -486,24 +478,20 @@ def test_build_activate_shlvl_0(reset_environ: None):
                 new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
                 conda_prompt_modifier = "(%s) " % td
                 ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
-                unset_vars = []
 
                 set_vars = {"PS1": ps1}
-                export_vars = {
-                    "PATH": new_path,
-                    "CONDA_PREFIX": td,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": td,
-                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_A_ENV": "yerp",
-                    "PKG_B_ENV": "berp",
-                    "ENV_ONE": "one",
-                    "ENV_TWO": "you",
-                    "ENV_THREE": "me",
-                    "ENV_WITH_SAME_VALUE": "with_same_value",
-                }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    PATH=new_path,
+                    CONDA_PREFIX=td,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=td,
+                    CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                    PKG_A_ENV="yerp",
+                    PKG_B_ENV="berp",
+                    ENV_ONE="one",
+                    ENV_TWO="you",
+                    ENV_THREE="me",
+                    ENV_WITH_SAME_VALUE="with_same_value",
                 )
                 assert builder["unset_vars"] == unset_vars
                 assert builder["set_vars"] == set_vars
@@ -554,28 +542,21 @@ def test_build_activate_shlvl_1(reset_environ: None):
             assert activator.path_conversion(td) in new_path
             assert old_prefix not in new_path
 
-            unset_vars = []
-
             set_vars = {"PS1": ps1}
-            export_vars = {
-                "PATH": new_path,
-                "CONDA_PREFIX": td,
-                "CONDA_SHLVL": 2,
-                "CONDA_DEFAULT_ENV": td,
-                "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
-                "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
-                "ENV_WITH_SAME_VALUE": "with_same_value",
-            }
-            export_vars, _ = activator.add_export_unset_vars(export_vars, None)
-            export_vars["CONDA_PREFIX_1"] = old_prefix
-            export_vars, unset_vars = activator.add_export_unset_vars(
-                export_vars, unset_vars
+            export_vars, unset_vars = activator.get_export_unset_vars(
+                PATH=new_path,
+                CONDA_PREFIX=td,
+                CONDA_PREFIX_1=old_prefix,
+                CONDA_SHLVL=2,
+                CONDA_DEFAULT_ENV=td,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                PKG_A_ENV="yerp",
+                PKG_B_ENV="berp",
+                ENV_ONE="one",
+                ENV_TWO="you",
+                ENV_THREE="me",
+                ENV_WITH_SAME_VALUE="with_same_value",
             )
-
             assert builder["unset_vars"] == unset_vars
             assert builder["set_vars"] == set_vars
             assert builder["export_vars"] == export_vars
@@ -603,29 +584,24 @@ def test_build_activate_shlvl_1(reset_environ: None):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
-                unset_vars = [
-                    "CONDA_PREFIX_1",
-                    "PKG_A_ENV",
-                    "PKG_B_ENV",
-                    "ENV_ONE",
-                    "ENV_TWO",
-                    "ENV_THREE",
-                    "ENV_WITH_SAME_VALUE",
-                ]
                 assert builder["set_vars"] == {
                     "PS1": "(/old/prefix)",
-                }
-                export_vars = {
-                    "CONDA_PREFIX": old_prefix,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": old_prefix,
-                    "CONDA_PROMPT_MODIFIER": "(%s)" % old_prefix,
                 }
                 export_path = {
                     "PATH": old_path,
                 }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    CONDA_PREFIX=old_prefix,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=old_prefix,
+                    CONDA_PROMPT_MODIFIER="(%s)" % old_prefix,
+                    CONDA_PREFIX_1=None,
+                    PKG_A_ENV=None,
+                    PKG_B_ENV=None,
+                    ENV_ONE=None,
+                    ENV_TWO=None,
+                    ENV_THREE=None,
+                    ENV_WITH_SAME_VALUE=None,
                 )
                 assert builder["unset_vars"] == unset_vars
                 assert builder["export_vars"] == export_vars
@@ -673,23 +649,21 @@ def test_build_stack_shlvl_1(reset_environ: None):
             assert old_prefix in new_path
 
             set_vars = {"PS1": ps1}
-            export_vars = {
-                "PATH": new_path,
-                "CONDA_PREFIX": td,
-                "CONDA_SHLVL": 2,
-                "CONDA_DEFAULT_ENV": td,
-                "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
-                "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
-                "ENV_WITH_SAME_VALUE": "with_same_value",
-            }
-            export_vars, unset_vars = activator.add_export_unset_vars(export_vars, [])
-            export_vars["CONDA_PREFIX_1"] = old_prefix
-            export_vars["CONDA_STACKED_2"] = "true"
-
+            export_vars, unset_vars = activator.get_export_unset_vars(
+                PATH=new_path,
+                CONDA_PREFIX=td,
+                CONDA_PREFIX_1=old_prefix,
+                CONDA_SHLVL=2,
+                CONDA_DEFAULT_ENV=td,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                CONDA_STACKED_2="true",
+                PKG_A_ENV="yerp",
+                PKG_B_ENV="berp",
+                ENV_ONE="one",
+                ENV_TWO="you",
+                ENV_THREE="me",
+                ENV_WITH_SAME_VALUE="with_same_value",
+            )
             assert builder["unset_vars"] == unset_vars
             assert builder["set_vars"] == set_vars
             assert builder["export_vars"] == export_vars
@@ -717,27 +691,22 @@ def test_build_stack_shlvl_1(reset_environ: None):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
-                unset_vars = [
-                    "CONDA_PREFIX_1",
-                    "CONDA_STACKED_2",
-                    "PKG_A_ENV",
-                    "PKG_B_ENV",
-                    "ENV_ONE",
-                    "ENV_TWO",
-                    "ENV_THREE",
-                    "ENV_WITH_SAME_VALUE",
-                ]
                 assert builder["set_vars"] == {
                     "PS1": "(/old/prefix)",
                 }
-                export_vars = {
-                    "CONDA_PREFIX": old_prefix,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": old_prefix,
-                    "CONDA_PROMPT_MODIFIER": f"({old_prefix})",
-                }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    CONDA_PREFIX=old_prefix,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=old_prefix,
+                    CONDA_PROMPT_MODIFIER=f"({old_prefix})",
+                    CONDA_PREFIX_1=None,
+                    CONDA_STACKED_2=None,
+                    PKG_A_ENV=None,
+                    PKG_B_ENV=None,
+                    ENV_ONE=None,
+                    ENV_TWO=None,
+                    ENV_THREE=None,
+                    ENV_WITH_SAME_VALUE=None,
                 )
                 assert builder["unset_vars"] == unset_vars
                 assert builder["export_vars"] == export_vars
@@ -863,34 +832,28 @@ def test_build_deactivate_shlvl_2_from_stack(reset_environ: None):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
-                unset_vars = [
-                    "CONDA_PREFIX_1",
-                    "CONDA_STACKED_2",
-                    "PKG_A_ENV",
-                    "ENV_ONE",
-                    "ENV_TWO",
-                    "ENV_THREE",
-                    "ENV_WITH_SAME_VALUE",
-                ]
-
                 conda_prompt_modifier = "(%s) " % old_prefix
                 ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
 
                 set_vars = {"PS1": ps1}
-                export_vars = {
-                    "CONDA_PREFIX": old_prefix,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": old_prefix,
-                    "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                    "PKG_B_ENV": "berp",
-                    "ENV_FOUR": "roar",
-                    "ENV_FIVE": "hive",
-                }
                 export_path = {
                     "PATH": original_path,
                 }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    CONDA_PREFIX=old_prefix,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=old_prefix,
+                    CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                    PKG_B_ENV="berp",
+                    ENV_FOUR="roar",
+                    ENV_FIVE="hive",
+                    CONDA_PREFIX_1=None,
+                    CONDA_STACKED_2=None,
+                    PKG_A_ENV=None,
+                    ENV_ONE=None,
+                    ENV_TWO=None,
+                    ENV_THREE=None,
+                    ENV_WITH_SAME_VALUE=None,
                 )
                 assert builder["unset_vars"] == unset_vars
                 assert builder["set_vars"] == set_vars
@@ -971,33 +934,27 @@ def test_build_deactivate_shlvl_2_from_activate(reset_environ: None):
             activator = PosixActivator()
             builder = activator.build_deactivate()
 
-            unset_vars = [
-                "CONDA_PREFIX_1",
-                "PKG_A_ENV",
-                "ENV_ONE",
-                "ENV_TWO",
-                "ENV_THREE",
-                "ENV_WITH_SAME_VALUE",
-            ]
-
             conda_prompt_modifier = "(%s) " % old_prefix
             ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
 
             set_vars = {"PS1": ps1}
-            export_vars = {
-                "CONDA_PREFIX": old_prefix,
-                "CONDA_SHLVL": 1,
-                "CONDA_DEFAULT_ENV": old_prefix,
-                "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_B_ENV": "berp",
-                "ENV_FOUR": "roar",
-                "ENV_FIVE": "hive",
-            }
             export_path = {
                 "PATH": original_path,
             }
-            export_vars, unset_vars = activator.add_export_unset_vars(
-                export_vars, unset_vars
+            export_vars, unset_vars = activator.get_export_unset_vars(
+                CONDA_PREFIX=old_prefix,
+                CONDA_SHLVL=1,
+                CONDA_DEFAULT_ENV=old_prefix,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                PKG_B_ENV="berp",
+                ENV_FOUR="roar",
+                ENV_FIVE="hive",
+                CONDA_PREFIX_1=None,
+                PKG_A_ENV=None,
+                ENV_ONE=None,
+                ENV_TWO=None,
+                ENV_THREE=None,
+                ENV_WITH_SAME_VALUE=None,
             )
 
             assert builder["unset_vars"] == unset_vars
@@ -1036,19 +993,17 @@ def test_build_deactivate_shlvl_1(reset_environ: None):
                 new_path = activator.pathsep_join(
                     activator.path_conversion(original_path)
                 )
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    {"CONDA_SHLVL": 0},
-                    [
-                        "CONDA_PREFIX",
-                        "CONDA_DEFAULT_ENV",
-                        "CONDA_PROMPT_MODIFIER",
-                        "PKG_A_ENV",
-                        "PKG_B_ENV",
-                        "ENV_ONE",
-                        "ENV_TWO",
-                        "ENV_THREE",
-                        "ENV_WITH_SAME_VALUE",
-                    ],
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    CONDA_SHLVL=0,
+                    CONDA_PREFIX=None,
+                    CONDA_DEFAULT_ENV=None,
+                    CONDA_PROMPT_MODIFIER=None,
+                    PKG_A_ENV=None,
+                    PKG_B_ENV=None,
+                    ENV_ONE=None,
+                    ENV_TWO=None,
+                    ENV_THREE=None,
+                    ENV_WITH_SAME_VALUE=None,
                 )
                 assert builder["set_vars"] == {"PS1": os.environ.get("PS1", "")}
                 assert builder["export_vars"] == export_vars
@@ -1137,28 +1092,22 @@ def test_build_activate_restore_unset_env_vars(reset_environ: None):
             assert activator.path_conversion(td) in new_path
             assert old_prefix not in new_path
 
-            unset_vars = []
-
             set_vars = {"PS1": ps1}
-            export_vars = {
-                "PATH": new_path,
-                "CONDA_PREFIX": td,
-                "CONDA_SHLVL": 2,
-                "CONDA_DEFAULT_ENV": td,
-                "CONDA_PROMPT_MODIFIER": conda_prompt_modifier,
-                "PKG_A_ENV": "yerp",
-                "PKG_B_ENV": "berp",
-                "ENV_ONE": "one",
-                "ENV_TWO": "you",
-                "ENV_THREE": "me",
-                "ENV_WITH_SAME_VALUE": "with_same_value",
-                "__CONDA_SHLVL_1_ENV_ONE": "already_set_env_var",
-                "__CONDA_SHLVL_1_ENV_WITH_SAME_VALUE": "with_same_value",
-            }
-            export_vars, _ = activator.add_export_unset_vars(export_vars, None)
-            export_vars["CONDA_PREFIX_1"] = old_prefix
-            export_vars, unset_vars = activator.add_export_unset_vars(
-                export_vars, unset_vars
+            export_vars, unset_vars = activator.get_export_unset_vars(
+                PATH=new_path,
+                CONDA_PREFIX=td,
+                CONDA_PREFIX_1=old_prefix,
+                CONDA_SHLVL=2,
+                CONDA_DEFAULT_ENV=td,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
+                PKG_A_ENV="yerp",
+                PKG_B_ENV="berp",
+                ENV_ONE="one",
+                ENV_TWO="you",
+                ENV_THREE="me",
+                ENV_WITH_SAME_VALUE="with_same_value",
+                __CONDA_SHLVL_1_ENV_ONE="already_set_env_var",
+                __CONDA_SHLVL_1_ENV_WITH_SAME_VALUE="with_same_value",
             )
 
             assert builder["unset_vars"] == unset_vars
@@ -1189,29 +1138,24 @@ def test_build_activate_restore_unset_env_vars(reset_environ: None):
                 activator = PosixActivator()
                 builder = activator.build_deactivate()
 
-                unset_vars = [
-                    "CONDA_PREFIX_1",
-                    "PKG_A_ENV",
-                    "PKG_B_ENV",
-                    "ENV_ONE",
-                    "ENV_TWO",
-                    "ENV_THREE",
-                    "ENV_WITH_SAME_VALUE",
-                ]
                 assert builder["set_vars"] == {
                     "PS1": "(/old/prefix)",
-                }
-                export_vars = {
-                    "CONDA_PREFIX": old_prefix,
-                    "CONDA_SHLVL": 1,
-                    "CONDA_DEFAULT_ENV": old_prefix,
-                    "CONDA_PROMPT_MODIFIER": f"({old_prefix})",
                 }
                 export_path = {
                     "PATH": old_path,
                 }
-                export_vars, unset_vars = activator.add_export_unset_vars(
-                    export_vars, unset_vars
+                export_vars, unset_vars = activator.get_export_unset_vars(
+                    CONDA_PREFIX=old_prefix,
+                    CONDA_SHLVL=1,
+                    CONDA_DEFAULT_ENV=old_prefix,
+                    CONDA_PROMPT_MODIFIER=f"({old_prefix})",
+                    CONDA_PREFIX_1=None,
+                    PKG_A_ENV=None,
+                    PKG_B_ENV=None,
+                    ENV_ONE=None,
+                    ENV_TWO=None,
+                    ENV_THREE=None,
+                    ENV_WITH_SAME_VALUE=None,
                 )
                 export_vars["ENV_ONE"] = "already_set_env_var"
                 assert builder["unset_vars"] == unset_vars

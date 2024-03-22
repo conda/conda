@@ -43,6 +43,7 @@ from .base.constants import (
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
+from .deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -129,14 +130,17 @@ class _Activator(metaclass=abc.ABCMeta):
 
         return export_vars, unset_vars
 
-    # Used in tests only.
+    @deprecated(
+        "24.9",
+        "25.3",
+        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
+    )
     def add_export_unset_vars(self, export_vars, unset_vars, **kwargs):
         new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
-        if export_vars is not None:
-            export_vars = {**export_vars, **new_export_vars}
-        if unset_vars is not None:
-            unset_vars = [*unset_vars, *new_unset_vars]
-        return export_vars, unset_vars
+        return {
+            {**(export_vars or {}), **new_export_vars},
+            [*(unset_vars or []), *new_unset_vars],
+        }
 
     # Used in tests only.
     def get_scripts_export_unset_vars(self, **kwargs):
