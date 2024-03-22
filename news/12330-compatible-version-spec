@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* The compatible version spec format "packagename ~= x.y" no longer raises an unrelated deprecation warning (#12330)
+
+*
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <new item>

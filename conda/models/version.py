@@ -552,7 +552,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
                 raise InvalidVersionSpec(vspec_str, "invalid operator")
             operator_str, vo_str = m.groups()
             if vo_str[-2:] == ".*":
-                if operator_str in ("=", ">="):
+                if operator_str in ("=", ">=", "=="):
                     vo_str = vo_str[:-2]
                 elif operator_str == "!=":
                     vo_str = vo_str[:-2]

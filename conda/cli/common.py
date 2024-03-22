@@ -118,7 +118,7 @@ def specs_from_args(args, json=False):
 
 spec_pat = re.compile(
     r"""
-    (?P<name>[^=<>!\s]+)                # package name
+    (?P<name>[^=<>!~\s]+)                # package name
     \s*                                 # ignore spaces
     (
         (?P<cc>=[^=]+(=[^=]+)?)         # conda constraint
@@ -142,12 +142,12 @@ def spec_from_line(line):
     if cc:
         return name + cc.replace("=", " ")
     elif pc:
-        if pc.startswith("~= "):
+        if pc.startswith("~="):
             assert (
                 pc.count("~=") == 1
             ), f"Overly complex 'Compatible release' spec not handled {line}"
             assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
-            ver = pc.replace("~= ", "")
+            ver = pc.replace("~=", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
             return name + " >=" + ver + ",==" + ver2
         else:
