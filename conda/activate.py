@@ -617,7 +617,8 @@ class _Activator(metaclass=abc.ABCMeta):
         path_split = path.split(os.pathsep)
         return path_split
 
-    def _get_path_dirs(self, prefix, extra_library_bin=False):
+    @deprecated.argument("24.9", "25.3", "extra_library_bin")
+    def _get_path_dirs(self, prefix):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield self.sep.join((prefix, "Library", "mingw-w64", "bin"))
