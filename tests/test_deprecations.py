@@ -153,9 +153,12 @@ def test_module(
     message: str | None,
 ) -> None:
     """Importing a deprecated module displays associated warning (or error)."""
-    with nullcontext() if warning else pytest.raises(DeprecatedError):
-        with pytest.warns(warning, match=message):
-            deprecated.module("2.0", "3.0")
+    with (
+        pytest.warns(warning, match=message)
+        if warning
+        else pytest.raises(DeprecatedError)
+    ):
+        deprecated.module("2.0", "3.0")
 
 
 @parametrize_dev
@@ -180,9 +183,12 @@ def test_topic(
     message: str | None,
 ) -> None:
     """Reaching a deprecated topic displays associated warning (or error)."""
-    with nullcontext() if warning else pytest.raises(DeprecatedError):
-        with pytest.warns(warning, match=message):
-            deprecated.topic("2.0", "3.0", topic="Some special topic")
+    with (
+        pytest.warns(warning, match=message)
+        if warning
+        else pytest.raises(DeprecatedError)
+    ):
+        deprecated.topic("2.0", "3.0", topic="Some special topic")
 
 
 def test_version_fallback() -> None:
