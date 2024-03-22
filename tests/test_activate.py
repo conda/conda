@@ -722,7 +722,10 @@ def test_build_stack_shlvl_1(
         assert builder["deactivate_scripts"] == ()
 
 
-def test_activate_same_environment(reset_environ: None):
+def test_activate_same_environment(
+    reset_environ: None,
+    monkeypatch: MonkeyPatch,
+):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
         activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
@@ -738,33 +741,30 @@ def test_activate_same_environment(reset_environ: None):
         touch(join(deactivate_d_1))
         touch(join(deactivate_d_2))
 
-        with env_var("CONDA_SHLVL", "1"):
-            with env_var("CONDA_PREFIX", old_prefix):
-                activator = PosixActivator()
+        monkeypatch.setenv("CONDA_SHLVL", "1")
+        monkeypatch.setenv("CONDA_PREFIX", old_prefix)
 
-                builder = activator.build_activate(td)
+        activator = PosixActivator()
 
-                new_path_parts = activator._replace_prefix_in_path(
-                    old_prefix, old_prefix
-                )
-                conda_prompt_modifier = "(%s) " % old_prefix
-                ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
+        builder = activator.build_activate(td)
 
-                set_vars = {"PS1": ps1}
-                export_vars = {
-                    "PATH": activator.pathsep_join(new_path_parts),
-                    "CONDA_SHLVL": 1,
-                    "CONDA_PROMPT_MODIFIER": "(%s) " % td,
-                }
-                assert builder["unset_vars"] == ()
-                assert builder["set_vars"] == set_vars
-                assert builder["export_vars"] == export_vars
-                assert builder["activate_scripts"] == (
-                    activator.path_conversion(activate_d_1),
-                )
-                assert builder["deactivate_scripts"] == (
-                    activator.path_conversion(deactivate_d_1),
-                )
+        new_path_parts = activator._replace_prefix_in_path(old_prefix, old_prefix)
+        conda_prompt_modifier = "(%s) " % old_prefix
+        ps1 = conda_prompt_modifier + os.environ.get("PS1", "")
+
+        set_vars = {"PS1": ps1}
+        export_vars = {
+            "PATH": activator.pathsep_join(new_path_parts),
+            "CONDA_SHLVL": 1,
+            "CONDA_PROMPT_MODIFIER": "(%s) " % td,
+        }
+        assert builder["unset_vars"] == ()
+        assert builder["set_vars"] == set_vars
+        assert builder["export_vars"] == export_vars
+        assert builder["activate_scripts"] == (activator.path_conversion(activate_d_1),)
+        assert builder["deactivate_scripts"] == (
+            activator.path_conversion(deactivate_d_1),
+        )
 
 
 @pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
