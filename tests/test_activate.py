@@ -327,7 +327,7 @@ def test_replace_prefix_in_path_1(reset_environ: None):
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_replace_prefix_in_path_2(reset_environ: None):
+def test_replace_prefix_in_path_2(reset_environ: None, monkeypatch: MonkeyPatch):
     path1 = join("c:\\", "temp", "6663 31e0")
     path2 = join("c:\\", "temp", "6663 31e0", "envs", "charizard")
     one_more = join("d:\\", "one", "more")
@@ -336,16 +336,16 @@ def test_replace_prefix_in_path_2(reset_environ: None):
     activator = CmdExeActivator()
     old_path = activator.pathsep_join(activator._add_prefix_to_path(path1))
     old_path = one_more + ";" + old_path
-    with env_var("PATH", old_path):
-        activator = PosixActivator()
-        path_elements = activator._replace_prefix_in_path(path1, path2)
-    old_path = native_path_to_unix(old_path.split(";"))
+
+    monkeypatch.setenv("PATH", old_path)
+    activator = PosixActivator()
+    path_elements = activator._replace_prefix_in_path(path1, path2)
 
     assert path_elements[0] == native_path_to_unix(one_more)
     assert path_elements[1] == native_path_to_unix(
         next(activator._get_path_dirs(path2))
     )
-    assert len(path_elements) == len(old_path)
+    assert len(path_elements) == len(old_path.split(";"))
 
 
 def test_default_env(reset_environ: None):
