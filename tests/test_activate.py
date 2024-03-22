@@ -1600,7 +1600,7 @@ def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_xonsh_basic(shell_wrapper_unit: str):
+def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1643,111 +1643,104 @@ def test_xonsh_basic(shell_wrapper_unit: str):
     e_activate_data = e_activate_template % e_activate_info
     assert activate_data == e_activate_data
 
-    with env_vars(
-        {
-            "CONDA_PREFIX": shell_wrapper_unit,
-            "CONDA_SHLVL": "1",
-            "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
-        }
-    ):
-        activator = XonshActivator()
-        with captured() as c:
-            rc = main_sourced("shell.xonsh", *reactivate_args)
-        assert not c.stderr
-        assert rc == 0
-        reactivate_data = c.stdout
+    monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
+    monkeypatch.setenv("CONDA_SHLVL", "1")
+    monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
-        new_path_parts = activator._replace_prefix_in_path(
-            shell_wrapper_unit, shell_wrapper_unit
-        )
-        e_reactivate_template = dals(
-            """
-        %(sourcer)s "%(deactivate1)s"
-        $PATH = '%(new_path)s'
-        $CONDA_SHLVL = '1'
-        $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
-        %(sourcer)s "%(activate1)s"
+    activator = XonshActivator()
+    with captured() as c:
+        rc = main_sourced("shell.xonsh", *reactivate_args)
+    assert not c.stderr
+    assert rc == 0
+    reactivate_data = c.stdout
+
+    new_path_parts = activator._replace_prefix_in_path(
+        shell_wrapper_unit, shell_wrapper_unit
+    )
+    e_reactivate_template = dals(
         """
+    %(sourcer)s "%(deactivate1)s"
+    $PATH = '%(new_path)s'
+    $CONDA_SHLVL = '1'
+    $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
+    %(sourcer)s "%(activate1)s"
+    """
+    )
+    e_reactivate_info = {
+        "new_path": activator.pathsep_join(new_path_parts),
+        "native_prefix": shell_wrapper_unit,
+    }
+    if on_win:
+        e_reactivate_info["sourcer"] = "source-cmd --suppress-skip-message"
+        e_reactivate_info["activate1"] = activator.path_conversion(
+            join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.bat")
         )
-        e_reactivate_info = {
-            "new_path": activator.pathsep_join(new_path_parts),
-            "native_prefix": shell_wrapper_unit,
-        }
-        if on_win:
-            e_reactivate_info["sourcer"] = "source-cmd --suppress-skip-message"
-            e_reactivate_info["activate1"] = activator.path_conversion(
-                join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.bat")
+        e_reactivate_info["deactivate1"] = activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "deactivate.d",
+                "deactivate1.bat",
             )
-            e_reactivate_info["deactivate1"] = activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "deactivate.d",
-                    "deactivate1.bat",
-                )
-            )
-        else:
-            e_reactivate_info["sourcer"] = "source-bash --suppress-skip-message -n"
-            e_reactivate_info["activate1"] = activator.path_conversion(
-                join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
-            )
-            e_reactivate_info["deactivate1"] = activator.path_conversion(
-                join(
-                    shell_wrapper_unit, "etc", "conda", "deactivate.d", "deactivate1.sh"
-                )
-            )
-        e_reactivate_data = e_reactivate_template % e_reactivate_info
-        assert reactivate_data == e_reactivate_data
-
-        with captured() as c:
-            rc = main_sourced("shell.xonsh", *deactivate_args)
-        assert not c.stderr
-        assert rc == 0
-        deactivate_data = c.stdout
-
-        new_path = activator.pathsep_join(
-            activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = get_scripts_export_unset_vars(activator)
-        e_deactivate_template = dals(
-            """
-        $PATH = '%(new_path)s'
-        %(sourcer)s "%(deactivate1)s"
-        del $CONDA_PREFIX
-        del $CONDA_DEFAULT_ENV
-        del $CONDA_PROMPT_MODIFIER
-        $CONDA_SHLVL = '0'
-        %(conda_exe_export)s
+    else:
+        e_reactivate_info["sourcer"] = "source-bash --suppress-skip-message -n"
+        e_reactivate_info["activate1"] = activator.path_conversion(
+            join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
+        )
+        e_reactivate_info["deactivate1"] = activator.path_conversion(
+            join(shell_wrapper_unit, "etc", "conda", "deactivate.d", "deactivate1.sh")
+        )
+    e_reactivate_data = e_reactivate_template % e_reactivate_info
+    assert reactivate_data == e_reactivate_data
+
+    with captured() as c:
+        rc = main_sourced("shell.xonsh", *deactivate_args)
+    assert not c.stderr
+    assert rc == 0
+    deactivate_data = c.stdout
+
+    new_path = activator.pathsep_join(
+        activator._remove_prefix_from_path(shell_wrapper_unit)
+    )
+    (
+        conda_exe_export,
+        conda_exe_unset,
+    ) = get_scripts_export_unset_vars(activator)
+    e_deactivate_template = dals(
         """
+    $PATH = '%(new_path)s'
+    %(sourcer)s "%(deactivate1)s"
+    del $CONDA_PREFIX
+    del $CONDA_DEFAULT_ENV
+    del $CONDA_PROMPT_MODIFIER
+    $CONDA_SHLVL = '0'
+    %(conda_exe_export)s
+    """
+    )
+    e_deactivate_info = {
+        "new_path": new_path,
+        "conda_exe_export": conda_exe_export,
+    }
+    if on_win:
+        e_deactivate_info["sourcer"] = "source-cmd --suppress-skip-message"
+        e_deactivate_info["deactivate1"] = activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "deactivate.d",
+                "deactivate1.bat",
+            )
         )
-        e_deactivate_info = {
-            "new_path": new_path,
-            "conda_exe_export": conda_exe_export,
-        }
-        if on_win:
-            e_deactivate_info["sourcer"] = "source-cmd --suppress-skip-message"
-            e_deactivate_info["deactivate1"] = activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "deactivate.d",
-                    "deactivate1.bat",
-                )
-            )
-        else:
-            e_deactivate_info["sourcer"] = "source-bash --suppress-skip-message -n"
-            e_deactivate_info["deactivate1"] = activator.path_conversion(
-                join(
-                    shell_wrapper_unit, "etc", "conda", "deactivate.d", "deactivate1.sh"
-                )
-            )
-        e_deactivate_data = e_deactivate_template % e_deactivate_info
-        assert deactivate_data == e_deactivate_data
+    else:
+        e_deactivate_info["sourcer"] = "source-bash --suppress-skip-message -n"
+        e_deactivate_info["deactivate1"] = activator.path_conversion(
+            join(shell_wrapper_unit, "etc", "conda", "deactivate.d", "deactivate1.sh")
+        )
+    e_deactivate_data = e_deactivate_template % e_deactivate_info
+    assert deactivate_data == e_deactivate_data
 
 
 def test_fish_basic(shell_wrapper_unit: str):
