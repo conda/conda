@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
+    from conda.activate import _Activator
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
@@ -178,6 +179,21 @@ def write_pkg_env_vars(prefix):
         f.write(PKG_A_ENV_VARS)
     with open(join(activate_pkg_env_vars, "pkg_b.json"), "w") as f:
         f.write(PKG_B_ENV_VARS)
+
+
+def get_scripts_export_unset_vars(
+    activator: _Activator,
+    **kwargs: str,
+) -> tuple[str, str]:
+    export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
+    return (
+        activator.command_join(
+            activator.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
+        ),
+        activator.command_join(
+            activator.unset_var_tmpl % (k) for k in (unset_vars or [])
+        ),
+    )
 
 
 def test_activate_environment_not_found(reset_environ: None):
@@ -1233,7 +1249,7 @@ def test_posix_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1319,7 +1335,7 @@ def test_posix_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
 
         e_deactivate_data = dals(
             """
@@ -1369,7 +1385,7 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
     rm_rf(activate_result)
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1493,7 +1509,7 @@ def test_csh_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
 
     e_activate_data = dals(
         """
@@ -1582,7 +1598,7 @@ def test_csh_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
 
         e_deactivate_data = dals(
             """
@@ -1623,7 +1639,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_template = dals(
         """
     $PATH = '%(new_path)s'
@@ -1724,7 +1740,7 @@ def test_xonsh_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
         e_deactivate_template = dals(
             """
         $PATH = '%(new_path)s'
@@ -1773,7 +1789,7 @@ def test_fish_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
     set -gx PATH "%(new_path)s";
@@ -1857,7 +1873,7 @@ def test_fish_basic(shell_wrapper_unit: str):
         (
             conda_exe_export,
             conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        ) = get_scripts_export_unset_vars(activator)
         e_deactivate_data = dals(
             """
         set -gx PATH "%(new_path)s";
@@ -1895,7 +1911,7 @@ def test_powershell_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
     e_activate_data = dals(
         """
     $Env:PATH = "%(new_path)s"

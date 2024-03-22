@@ -142,19 +142,15 @@ class _Activator(metaclass=abc.ABCMeta):
             [*(unset_vars or []), *new_unset_vars],
         }
 
-    # Used in tests only.
+    @deprecated("24.9", "25.3", addendum="For testing only. Moved to test suite.")
     def get_scripts_export_unset_vars(self, **kwargs):
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        script_export_vars = script_unset_vars = None
-        if export_vars:
-            script_export_vars = self.command_join.join(
-                [self.export_var_tmpl % (k, v) for k, v in export_vars.items()]
-            )
-        if unset_vars:
-            script_unset_vars = self.command_join.join(
-                [self.unset_var_tmpl % (k) for k in unset_vars]
-            )
-        return script_export_vars or "", script_unset_vars or ""
+        return (
+            self.command_join(
+                self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
+            ),
+            self.command_join(self.unset_var_tmpl % (k) for k in (unset_vars or [])),
+        )
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
