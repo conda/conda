@@ -16,31 +16,51 @@ if TYPE_CHECKING:
 
     from conda.deprecations import DevDeprecationType, UserDeprecationType
 
-PENDING = pytest.param("1.0", PendingDeprecationWarning, "pending", id="pending")
-FUTURE = pytest.param("2.0", FutureWarning, "deprecated", id="future")
-DEPRECATED = pytest.param("2.0", DeprecationWarning, "deprecated", id="deprecated")
-REMOVE = pytest.param("3.0", None, None, id="remove")
+PENDING = pytest.param(
+    DeprecationHandler("1.0"),  # deprecated
+    PendingDeprecationWarning,  # warning
+    "pending deprecation",  # message
+    id="pending",
+)
+FUTURE = pytest.param(
+    DeprecationHandler("2.0"),  # deprecated
+    FutureWarning,  # warning
+    "deprecated",  # message
+    id="future",
+)
+DEPRECATED = pytest.param(
+    DeprecationHandler("2.0"),  # deprecated
+    DeprecationWarning,  # warning
+    "deprecated",  # message
+    id="deprecated",
+)
+REMOVE = pytest.param(
+    DeprecationHandler("3.0"),  # deprecated
+    None,  # warning
+    None,  # message
+    id="remove",
+)
 
 parametrize_user = pytest.mark.parametrize(
-    "version,warning,message",
+    "deprecated,warning,message",
     [PENDING, FUTURE, REMOVE],
 )
 parametrize_dev = pytest.mark.parametrize(
-    "version,warning,message",
+    "deprecated,warning,message",
     [PENDING, DEPRECATED, REMOVE],
 )
 
 
 @parametrize_dev
 def test_function(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated function displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
 
-        @DeprecationHandler(version)("2.0", "3.0")
+        @deprecated("2.0", "3.0")
         def foo():
             return True
 
@@ -50,7 +70,7 @@ def test_function(
 
 @parametrize_dev
 def test_method(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
@@ -58,7 +78,7 @@ def test_method(
     with nullcontext() if warning else pytest.raises(DeprecatedError):
 
         class Bar:
-            @DeprecationHandler(version)("2.0", "3.0")
+            @deprecated("2.0", "3.0")
             def foo(self):
                 return True
 
@@ -68,14 +88,14 @@ def test_method(
 
 @parametrize_dev
 def test_class(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated class displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
 
-        @DeprecationHandler(version)("2.0", "3.0")
+        @deprecated("2.0", "3.0")
         class Foo:
             pass
 
@@ -85,14 +105,14 @@ def test_class(
 
 @parametrize_dev
 def test_arguments(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated argument displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
 
-        @DeprecationHandler(version).argument("2.0", "3.0", "three")
+        @deprecated.argument("2.0", "3.0", "three")
         def foo(one, two):
             return True
 
@@ -110,7 +130,7 @@ def test_arguments(
 
 @parametrize_user
 def test_action(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: UserDeprecationType | None,
     message: str | None,
 ) -> None:
@@ -119,7 +139,7 @@ def test_action(
         parser = ArgumentParser()
         parser.add_argument(
             "--foo",
-            action=DeprecationHandler(version).action("2.0", "3.0", _StoreTrueAction),
+            action=deprecated.action("2.0", "3.0", _StoreTrueAction),
         )
 
         with pytest.warns(warning, match=message):
@@ -128,25 +148,25 @@ def test_action(
 
 @parametrize_dev
 def test_module(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
     """Importing a deprecated module displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
         with pytest.warns(warning, match=message):
-            DeprecationHandler(version).module("2.0", "3.0")
+            deprecated.module("2.0", "3.0")
 
 
 @parametrize_dev
 def test_constant(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
     """Using a deprecated constant displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
-        DeprecationHandler(version).constant("2.0", "3.0", "SOME_CONSTANT", 42)
+        deprecated.constant("2.0", "3.0", "SOME_CONSTANT", 42)
         module = sys.modules[__name__]
 
         with pytest.warns(warning, match=message):
@@ -155,14 +175,14 @@ def test_constant(
 
 @parametrize_dev
 def test_topic(
-    version: str,
+    deprecated: DeprecationHandler,
     warning: DevDeprecationType | None,
     message: str | None,
 ) -> None:
     """Reaching a deprecated topic displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
         with pytest.warns(warning, match=message):
-            DeprecationHandler(version).topic("2.0", "3.0", topic="Some special topic")
+            deprecated.topic("2.0", "3.0", topic="Some special topic")
 
 
 def test_version_fallback() -> None:
