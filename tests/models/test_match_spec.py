@@ -1225,6 +1225,6 @@ def test_catch_invalid_regexes():
 
 
 def test_compatible_version_whitespace():
-    specs = ['asdf~=1.2', 'asdf ~=1.2', 'asdf~= 1.2', 'asdf ~= 1.2']
+    specs = ["asdf~=1.2", "asdf ~=1.2", "asdf~= 1.2", "asdf ~= 1.2"]
     results = set([spec_from_line(spec) for spec in specs])
     assert len(results) == 1
