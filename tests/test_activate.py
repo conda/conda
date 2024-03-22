@@ -1965,19 +1965,17 @@ def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     }
 
 
-def test_unicode(shell_wrapper_unit: str):
-    shell = "shell.posix"
-    prompt = "PS1"
-    prompt_value = "%{\xc2\xbb".encode(sys.getfilesystemencoding())
-    with env_vars({prompt: prompt_value}):
-        # use a file as output stream to simulate PY2 default stdout
-        with tempdir() as td:
-            with open(join(td, "stdout"), "w") as stdout:
-                with captured(stdout=stdout):
-                    main_sourced(shell, *activate_args, shell_wrapper_unit)
+def test_unicode(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("PS1", "%{\xc2\xbb".encode())
+
+    # use a file as output stream to simulate PY2 default stdout
+    with tempdir() as td:
+        with open(join(td, "stdout"), "w") as stdout:
+            with captured(stdout=stdout):
+                main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
 
 
-def test_json_basic(shell_wrapper_unit: str):
+def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
