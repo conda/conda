@@ -1192,14 +1192,14 @@ class JSONFormatMixin(_Activator):
                 "_CONDA_EXE": context.conda_exe,
             }
 
+    @deprecated(
+        "24.9",
+        "25.3",
+        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
+    )
     def get_scripts_export_unset_vars(self, **kwargs):
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        script_export_vars = script_unset_vars = None
-        if export_vars:
-            script_export_vars = dict(export_vars.items())
-        if unset_vars:
-            script_unset_vars = unset_vars
-        return script_export_vars or {}, script_unset_vars or []
+        return export_vars or {}, unset_vars or []
 
     def _finalize(self, commands, ext):
         merged = {}

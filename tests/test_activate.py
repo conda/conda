@@ -2013,23 +2013,18 @@ def test_json_basic(shell_wrapper_unit: str):
     activate_data = c.stdout
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, conda_exe_unset = activator.get_scripts_export_unset_vars()
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        CONDA_PREFIX=shell_wrapper_unit,
+        CONDA_SHLVL=1,
+        CONDA_DEFAULT_ENV=shell_wrapper_unit,
+        CONDA_PROMPT_MODIFIER="(%s) " % shell_wrapper_unit,
+    )
     e_activate_data = {
-        "path": {
-            "PATH": list(new_path_parts),
-        },
+        "path": {"PATH": list(new_path_parts)},
         "vars": {
-            "export": dict(
-                CONDA_PREFIX=shell_wrapper_unit,
-                CONDA_SHLVL=1,
-                CONDA_DEFAULT_ENV=shell_wrapper_unit,
-                CONDA_PROMPT_MODIFIER="(%s) " % shell_wrapper_unit,
-                **conda_exe_export,
-            ),
-            "set": {
-                "PS1": "(%s) " % shell_wrapper_unit,
-            },
-            "unset": [],
+            "export": export_vars,
+            "set": {"PS1": "(%s) " % shell_wrapper_unit},
+            "unset": unset_vars,
         },
         "scripts": {
             "activate": [
@@ -2062,17 +2057,13 @@ def test_json_basic(shell_wrapper_unit: str):
             shell_wrapper_unit, shell_wrapper_unit
         )
         e_reactivate_data = {
-            "path": {
-                "PATH": list(new_path_parts),
-            },
+            "path": {"PATH": list(new_path_parts)},
             "vars": {
                 "export": {
                     "CONDA_SHLVL": 1,
                     "CONDA_PROMPT_MODIFIER": "(%s) " % shell_wrapper_unit,
                 },
-                "set": {
-                    "PS1": "(%s) " % shell_wrapper_unit,
-                },
+                "set": {"PS1": "(%s) " % shell_wrapper_unit},
                 "unset": [],
             },
             "scripts": {
@@ -2111,24 +2102,18 @@ def test_json_basic(shell_wrapper_unit: str):
         new_path = activator.pathsep_join(
             activator._remove_prefix_from_path(shell_wrapper_unit)
         )
-        (
-            conda_exe_export,
-            conda_exe_unset,
-        ) = activator.get_scripts_export_unset_vars()
+        export_vars, unset_vars = activator.get_export_unset_vars(
+            CONDA_SHLVL=0,
+            CONDA_PREFIX=None,
+            CONDA_DEFAULT_ENV=None,
+            CONDA_PROMPT_MODIFIER=None,
+        )
         e_deactivate_data = {
-            "path": {
-                "PATH": list(new_path),
-            },
+            "path": {"PATH": list(new_path)},
             "vars": {
-                "export": dict(CONDA_SHLVL=0, **conda_exe_export),
-                "set": {
-                    "PS1": "",
-                },
-                "unset": [
-                    "CONDA_PREFIX",
-                    "CONDA_DEFAULT_ENV",
-                    "CONDA_PROMPT_MODIFIER",
-                ],
+                "export": export_vars,
+                "set": {"PS1": ""},
+                "unset": unset_vars,
             },
             "scripts": {
                 "activate": [],
