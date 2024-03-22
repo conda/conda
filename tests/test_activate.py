@@ -1346,7 +1346,7 @@ def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
-def test_cmd_exe_basic(shell_wrapper_unit: str):
+def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     # NOTE :: We do not want dev mode here.
     context.dev = False
     activator = CmdExeActivator()
@@ -1387,93 +1387,90 @@ def test_cmd_exe_basic(shell_wrapper_unit: str):
     }
     assert activate_data == e_activate_data
 
-    with env_vars(
-        {
-            "CONDA_PREFIX": shell_wrapper_unit,
-            "CONDA_SHLVL": "1",
-            "PATH": os.pathsep.join((*new_path_parts, os.environ["PATH"])),
-        }
-    ):
-        activator = CmdExeActivator()
-        with captured() as c:
-            assert main_sourced("shell.cmd.exe", "reactivate") == 0
-        assert not c.stderr
-        reactivate_result = c.stdout
+    monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
+    monkeypatch.setenv("CONDA_SHLVL", "1")
+    monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
-        with open(reactivate_result) as fh:
-            reactivate_data = fh.read()
-        rm_rf(reactivate_result)
+    activator = CmdExeActivator()
+    with captured() as c:
+        assert main_sourced("shell.cmd.exe", "reactivate") == 0
+    assert not c.stderr
+    reactivate_result = c.stdout
 
-        new_path_parts = activator._replace_prefix_in_path(
-            shell_wrapper_unit, shell_wrapper_unit
-        )
-        assert reactivate_data == dals(
-            """
-        @CALL "%(deactivate1)s"
-        @SET "PATH=%(new_path)s"
-        @SET "CONDA_SHLVL=1"
-        @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
-        @CALL "%(activate1)s"
+    with open(reactivate_result) as fh:
+        reactivate_data = fh.read()
+    rm_rf(reactivate_result)
+
+    new_path_parts = activator._replace_prefix_in_path(
+        shell_wrapper_unit, shell_wrapper_unit
+    )
+    assert reactivate_data == dals(
         """
-        ) % {
-            "activate1": activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "activate.d",
-                    "activate1.bat",
-                )
-            ),
-            "deactivate1": activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "deactivate.d",
-                    "deactivate1.bat",
-                )
-            ),
-            "native_prefix": shell_wrapper_unit,
-            "new_path": activator.pathsep_join(new_path_parts),
-        }
+    @CALL "%(deactivate1)s"
+    @SET "PATH=%(new_path)s"
+    @SET "CONDA_SHLVL=1"
+    @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
+    @CALL "%(activate1)s"
+    """
+    ) % {
+        "activate1": activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "activate.d",
+                "activate1.bat",
+            )
+        ),
+        "deactivate1": activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "deactivate.d",
+                "deactivate1.bat",
+            )
+        ),
+        "native_prefix": shell_wrapper_unit,
+        "new_path": activator.pathsep_join(new_path_parts),
+    }
 
-        with captured() as c:
-            assert main_sourced("shell.cmd.exe", "deactivate") == 0
-        assert not c.stderr
-        deactivate_result = c.stdout
+    with captured() as c:
+        assert main_sourced("shell.cmd.exe", "deactivate") == 0
+    assert not c.stderr
+    deactivate_result = c.stdout
 
-        with open(deactivate_result) as fh:
-            deactivate_data = fh.read()
-        rm_rf(deactivate_result)
+    with open(deactivate_result) as fh:
+        deactivate_data = fh.read()
+    rm_rf(deactivate_result)
 
-        new_path = activator.pathsep_join(
-            activator._remove_prefix_from_path(shell_wrapper_unit)
-        )
-        e_deactivate_data = dals(
-            """
-        @SET "PATH=%(new_path)s"
-        @CALL "%(deactivate1)s"
-        @SET CONDA_PREFIX=
-        @SET CONDA_DEFAULT_ENV=
-        @SET CONDA_PROMPT_MODIFIER=
-        @SET "CONDA_SHLVL=0"
-        %(conda_exe_export)s
+    new_path = activator.pathsep_join(
+        activator._remove_prefix_from_path(shell_wrapper_unit)
+    )
+    e_deactivate_data = dals(
         """
-        ) % {
-            "new_path": new_path,
-            "deactivate1": activator.path_conversion(
-                join(
-                    shell_wrapper_unit,
-                    "etc",
-                    "conda",
-                    "deactivate.d",
-                    "deactivate1.bat",
-                )
-            ),
-            "conda_exe_export": conda_exe_export,
-        }
-        assert deactivate_data == e_deactivate_data
+    @SET "PATH=%(new_path)s"
+    @CALL "%(deactivate1)s"
+    @SET CONDA_PREFIX=
+    @SET CONDA_DEFAULT_ENV=
+    @SET CONDA_PROMPT_MODIFIER=
+    @SET "CONDA_SHLVL=0"
+    %(conda_exe_export)s
+    """
+    ) % {
+        "new_path": new_path,
+        "deactivate1": activator.path_conversion(
+            join(
+                shell_wrapper_unit,
+                "etc",
+                "conda",
+                "deactivate.d",
+                "deactivate1.bat",
+            )
+        ),
+        "conda_exe_export": conda_exe_export,
+    }
+    assert deactivate_data == e_deactivate_data
 
 
 def test_csh_basic(shell_wrapper_unit: str):
