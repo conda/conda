@@ -187,10 +187,10 @@ def get_scripts_export_unset_vars(
 ) -> tuple[str, str]:
     export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
     return (
-        activator.command_join(
+        activator.command_join.join(
             activator.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
         ),
-        activator.command_join(
+        activator.command_join.join(
             activator.unset_var_tmpl % (k) for k in (unset_vars or [])
         ),
     )

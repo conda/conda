@@ -143,13 +143,15 @@ class _Activator(metaclass=abc.ABCMeta):
         }
 
     @deprecated("24.9", "25.3", addendum="For testing only. Moved to test suite.")
-    def get_scripts_export_unset_vars(self, **kwargs):
+    def get_scripts_export_unset_vars(self, **kwargs) -> tuple[str, str]:
         export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
         return (
-            self.command_join(
+            self.command_join.join(
                 self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
             ),
-            self.command_join(self.unset_var_tmpl % (k) for k in (unset_vars or [])),
+            self.command_join.join(
+                self.unset_var_tmpl % (k) for k in (unset_vars or [])
+            ),
         )
 
     def _finalize(self, commands, ext):
