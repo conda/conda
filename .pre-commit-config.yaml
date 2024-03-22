@@ -68,6 +68,17 @@ repos:
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        language_version: "3.12"
+        args: [--follow-imports=silent, --strict]
+        additional_dependencies: [packaging >=23.0]
+        files: |
+          (?x)^(
+            conda/deprecations.py
+          )$
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
     hooks:
