@@ -1,0 +1,19 @@
+### Enhancements
+
+* (windows) the stub-exe's that are used for python entry_point's in packages are now codesigned. (Thanks to Anaconda, Inc)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
