@@ -1170,6 +1170,7 @@ class Context(Configuration):
             "Channel Configuration": (
                 "channels",
                 "channel_alias",
+                "channel_settings",
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
@@ -1271,7 +1272,6 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
-                "channel_settings",
                 "debug",
                 "trace",
                 "dev",
