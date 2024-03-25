@@ -495,7 +495,8 @@ class PrefixReplaceLinkAction(LinkPathAction):
             return validation_error
 
         if islink(self.source_full_path):
-            trace(log, 
+            trace(
+                log,
                 "ignoring prefix update for symlink with source path %s",
                 self.source_full_path,
             )
@@ -841,7 +842,9 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
-            trace(log, "reversing python entry point creation %s", self.target_full_path)
+            trace(
+                log, "reversing python entry point creation %s", self.target_full_path
+            )
             rm_rf(self.target_full_path)
 
 
@@ -1097,14 +1100,18 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 
     def execute(self):
         if self.link_type != LinkType.directory:
-            trace(log, 
-                "renaming %s => %s", self.target_short_path, self.holding_short_path
+            trace(
+                log,
+                "renaming %s => %s",
+                self.target_short_path,
+                self.holding_short_path,
             )
             backoff_rename(self.target_full_path, self.holding_full_path, force=True)
 
     def reverse(self):
         if self.link_type != LinkType.directory and lexists(self.holding_full_path):
-            trace(log, 
+            trace(
+                log,
                 "reversing rename %s => %s",
                 self.holding_short_path,
                 self.target_short_path,

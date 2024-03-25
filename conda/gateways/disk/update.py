@@ -87,7 +87,8 @@ def rename(source_path, destination_path, force=False):
             elif e.errno in (EINVAL, EXDEV, EPERM):
                 # https://github.com/conda/conda/issues/6811
                 # https://github.com/conda/conda/issues/6711
-                trace(log, 
+                trace(
+                    log,
                     "Could not rename %s => %s due to errno [%s]. Falling back"
                     " to copy/unlink",
                     source_path,

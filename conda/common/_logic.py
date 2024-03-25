@@ -724,9 +724,10 @@ class Clauses:
                     self.Require(self.LinearBound, lits, coeffs, lo, mid, False)
 
                 if log.isEnabledFor(DEBUG):
-                    trace(log, 
+                    trace(
+                        log,
                         "Bisection attempt: (%d,%d), (%d+%d) clauses"
-                        % (lo, mid, nz, self.get_clause_count() - nz)
+                        % (lo, mid, nz, self.get_clause_count() - nz),
                     )
                 newsol = self.sat()
                 if newsol is None:
