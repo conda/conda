@@ -177,10 +177,6 @@ pythonpath = [
   "tests/plugins/data/test-plugin",
 ]
 
-[tool.mypy]
-mypy_path = "conda"
-modules = ["conda"]
-
 [tool.vendoring]
 destination = "conda/_vendor/"
 namespace = "conda._vendor"
