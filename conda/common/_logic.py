@@ -5,6 +5,8 @@ from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
 
+from conda.gateways.logging import trace
+
 log = getLogger(__name__)
 
 
@@ -588,7 +590,7 @@ class Clauses:
         nterms = len(coeffs)
         if nterms and coeffs[-1] > hi:
             nprune = sum(c > hi for c in coeffs)
-            log.trace("Eliminating %d/%d terms for bound violation" % (nprune, nterms))
+            trace(log, "Eliminating %d/%d terms for bound violation" % (nprune, nterms))
             nterms -= nprune
         else:
             nprune = 0
@@ -686,10 +688,10 @@ class Clauses:
         try0 = 0
         for peak in (True, False) if maxval > 1 else (False,):
             if peak:
-                log.trace("Beginning peak minimization")
+                trace(log, "Beginning peak minimization")
                 objval = peak_val
             else:
-                log.trace("Beginning sum minimization")
+                trace(log, "Beginning sum minimization")
                 objval = sum_val
 
             objective_dict = {a: c for c, a in zip(coeffs, lits)}
@@ -706,7 +708,7 @@ class Clauses:
             if trymax and not peak:
                 try0 = hi - 1
 
-            log.trace("Initial range (%d,%d)" % (lo, hi))
+            trace(log, "Initial range (%d,%d)" % (lo, hi))
             while True:
                 if try0 is None:
                     mid = (lo + hi) // 2
@@ -722,14 +724,14 @@ class Clauses:
                     self.Require(self.LinearBound, lits, coeffs, lo, mid, False)
 
                 if log.isEnabledFor(DEBUG):
-                    log.trace(
+                    trace(log, 
                         "Bisection attempt: (%d,%d), (%d+%d) clauses"
                         % (lo, mid, nz, self.get_clause_count() - nz)
                     )
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
-                    log.trace("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    trace(log, "Bisection failure, new range=(%d,%d)" % (lo, hi))
                     if lo > hi:
                         # FIXME: This is not supposed to happen!
                         # TODO: Investigate and fix the cause.
@@ -742,7 +744,7 @@ class Clauses:
                     bestsol = newsol
                     bestval = objval(newsol, objective_dict)
                     hi = bestval
-                    log.trace("Bisection success, new range=(%d,%d)" % (lo, hi))
+                    trace(log, "Bisection success, new range=(%d,%d)" % (lo, hi))
                     if done:
                         break
                 self.m = m_orig

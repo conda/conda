@@ -53,6 +53,7 @@ from ..gateways.disk.read import (
     read_repodata_json,
 )
 from ..gateways.disk.test import file_path_is_writable
+from ..gateways.logging import trace
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
@@ -321,7 +322,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             self.__is_writable = i_wri
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
-            log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
+            trace(log, "package cache directory '%s' does not exist", self.pkgs_dir)
             self.__is_writable = i_wri = None
         return i_wri
 
@@ -361,7 +362,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         from conda_package_handling.api import InvalidArchiveError
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
-        log.trace("adding to package cache %s", package_tarball_full_path)
+        trace(log, "adding to package cache %s", package_tarball_full_path)
         extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)
 
         # try reading info/repodata_record.json

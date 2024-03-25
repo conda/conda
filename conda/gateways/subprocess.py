@@ -128,7 +128,7 @@ def subprocess_call(
         log.info(formatted_output)
         raise CalledProcessError(rc, command, output=formatted_output)
     if log.isEnabledFor(TRACE):
-        log.trace(formatted_output)
+        log.log(TRACE, formatted_output)
 
     return Response(stdout, stderr, int(rc))
 
