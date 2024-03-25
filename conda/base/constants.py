@@ -328,3 +328,6 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS = False
+
+# The name of the file where Python's venv settings are stored
+PYVENV_CONFIG = "pyvenv.cfg"

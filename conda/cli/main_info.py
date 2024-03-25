@@ -14,9 +14,12 @@ import sys
 from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
+from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
+from ..base.constants import PYVENV_CONFIG
+from ..core.envs_manager import is_environment_no_python_user_packages
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
@@ -247,6 +250,15 @@ def get_info_dict() -> dict[str, Any]:
         "default": context.solver == DEFAULT_SOLVER,
     }
 
+    no_python_user_packages = is_environment_no_python_user_packages(context.active_prefix)
+
+    if no_python_user_packages:
+        use_python_user = "no"
+    elif no_python_user_packages is False:
+        use_python_user = "yes"
+    else:
+        use_python_user = "unknown"
+
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
@@ -278,6 +290,7 @@ def get_info_dict() -> dict[str, Any]:
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
         solver=solver,
+        use_python_user=use_python_user,
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -395,6 +408,8 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
 
         yield ("netrc file", info_dict["netrc_file"])
         yield ("offline mode", info_dict["offline"])
+
+        yield ("use_python_user", info_dict["use_python_user"])
 
     return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
 

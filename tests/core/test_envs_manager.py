@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 from conda.auxlib.collection import AttrDict
-from conda.base.constants import PREFIX_MAGIC_FILE
+from conda.base.constants import PREFIX_MAGIC_FILE, PYVENV_CONFIG
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import on_win
 from conda.common.io import env_var
@@ -21,6 +21,7 @@ from conda.core.envs_manager import (
     list_all_known_prefixes,
     register_env,
     set_environment_no_site_packages,
+    is_environment_no_python_user_packages,
     unregister_env,
 )
 from conda.gateways.disk import mkdir_p
@@ -230,8 +231,43 @@ def test_set_environment_no_site_packages_error(mocker, tmpdir):
 
     set_environment_no_site_packages(tmpdir, remove=True)
 
-    assert log_mock.info.mock_calls == [
+    assert log_mock.error.mock_calls == [
         mocker.call(
-            'Unable to set "no-python-site-packages" for environment. Reason: test'
+            f"Unable to edit \"{PYVENV_CONFIG}\" to set \"include-system-site-packages\""
+            f" to \"false\". Reason: test"
         )
     ]
+
+
+def test_is_environment_no_python_user_packages_is_true(tmpdir):
+    """
+    Ensure that ``is_environment_no_python_user_packages`` returns ``True``
+    """
+    config_file = tmpdir / "pyvenv.cfg"
+    config_file.open("w").write("include-system-site-packages = false\n")
+
+    result = is_environment_no_python_user_packages(tmpdir)
+
+    assert result == True
+
+
+def test_is_environment_no_python_user_packages_is_false(tmpdir):
+    """
+    Ensure that ``is_environment_no_python_user_packages`` returns ``False``
+    """
+    result = is_environment_no_python_user_packages(tmpdir)
+
+    assert result == False
+
+
+def test_is_environment_no_python_user_packages_is_none(mocker, tmpdir):
+    """
+    Ensure that ``is_environment_no_python_user_packages`` returns ``None``.
+    This happens when an error occurs while trying to open the file.
+    """
+    path_mock = mocker.patch("conda.core.envs_manager.Path")
+    path_mock().read_text.side_effect = OSError("test")
+
+    result = is_environment_no_python_user_packages(tmpdir)
+
+    assert result is None
