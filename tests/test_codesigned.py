@@ -82,7 +82,7 @@ def signtool_unsupported_because() -> str:
 
 
 def signtool_unsupported() -> bool:
-    return True if signtool_unsupported_because() else False
+    return bool(signtool_unsupported_because())
 
 
 @pytest.mark.skipif(signtool_unsupported(), reason=signtool_unsupported_because())
