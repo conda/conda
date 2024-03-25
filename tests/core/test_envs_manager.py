@@ -197,7 +197,7 @@ def test_set_environment_no_site_packages(tmpdir):
     """
     set_environment_no_site_packages(tmpdir)
 
-    config_file = tmpdir / "pyvenv.cfg"
+    config_file = tmpdir / PYVENV_CONFIG
 
     assert config_file.exists()
     assert config_file.open().read() == "include-system-site-packages = false\n"
@@ -207,12 +207,12 @@ def test_set_environment_no_site_packages_remove(tmpdir):
     """
     Ensure that the ``pyvenv.cfg`` is removed when remove = True is passed.
     """
-    config_file = tmpdir / "pyvenv.cfg"
+    config_file = tmpdir / PYVENV_CONFIG
     config_file.open("w").write("include-system-site-packages = false\n")
 
     set_environment_no_site_packages(tmpdir, remove=True)
 
-    config_file = tmpdir / "pyvenv.cfg"
+    config_file = tmpdir / PYVENV_CONFIG
 
     assert not config_file.exists()
 
@@ -226,7 +226,7 @@ def test_set_environment_no_site_packages_error(mocker, tmpdir):
     log_mock = mocker.patch("conda.core.envs_manager.log")
     path_mock().unlink.side_effect = OSError("test")
 
-    config_file = tmpdir / "pyvenv.cfg"
+    config_file = tmpdir / PYVENV_CONFIG
     config_file.open("w").write("include-system-site-packages = false\n")
 
     set_environment_no_site_packages(tmpdir, remove=True)
@@ -243,7 +243,7 @@ def test_is_environment_no_python_user_packages_is_true(tmpdir):
     """
     Ensure that ``is_environment_no_python_user_packages`` returns ``True``
     """
-    config_file = tmpdir / "pyvenv.cfg"
+    config_file = tmpdir / PYVENV_CONFIG
     config_file.open("w").write("include-system-site-packages = false\n")
 
     result = is_environment_no_python_user_packages(tmpdir)

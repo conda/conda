@@ -171,7 +171,7 @@ def set_environment_no_site_packages(prefix: str, remove: bool = False) -> None:
     file with ``include-system-site-packages`` set to ``false``
     """
     try:
-        path = Path(prefix, "pyvenv.cfg")
+        path = Path(prefix, PYVENV_CONFIG)
 
         # If it already exists, we simply delete what is there, so we can replace it
         if path.exists():
