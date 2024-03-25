@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing the packages installed within an environment."""
+
 from __future__ import annotations
 
 import json

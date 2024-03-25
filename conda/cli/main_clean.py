@@ -4,6 +4,7 @@
 
 Removes cached package tarballs, index files, package metadata, temporary files, and log files.
 """
+
 from __future__ import annotations
 
 import os

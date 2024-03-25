@@ -4,6 +4,7 @@
 
 Common utilities for conda-env command line tools.
 """
+
 from conda.base.constants import ROOT_ENV_NAME
 from conda.deprecations import deprecated
 

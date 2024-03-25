@@ -4,6 +4,7 @@
 
 Renames an existing environment by cloning it and then removing the original environment.
 """
+
 from __future__ import annotations
 
 import os

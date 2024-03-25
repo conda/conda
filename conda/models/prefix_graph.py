@@ -8,6 +8,7 @@ Object inheritance:
    :top-classes: conda.models.prefix_graph.PrefixGraph
    :parts: 1
 """
+
 from collections import defaultdict
 from logging import getLogger
 

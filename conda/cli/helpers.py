@@ -3,6 +3,7 @@
 """
 Collection of helper functions to standardize reused CLI arguments.
 """
+
 from __future__ import annotations
 
 from argparse import SUPPRESS, _HelpAction

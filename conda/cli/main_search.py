@@ -4,6 +4,7 @@
 
 Query channels for packages matching the provided package spec.
 """
+
 from __future__ import annotations
 
 from argparse import SUPPRESS

@@ -1,0 +1,87 @@
+[
+    {
+        "name": "latest",
+        "version": "latest",
+        "url": "https://docs.conda.io/projects/conda/en/latest/"
+    },
+    {
+        "name": "stable",
+        "version": "stable",
+        "url": "https://docs.conda.io/projects/conda/en/stable/"
+    },
+    {
+        "name": "4.11.x",
+        "version": "4.11.x",
+        "url": "https://docs.conda.io/projects/conda/en/4.11.x/"
+    },
+    {
+        "name": "4.12.x",
+        "version": "4.12.x",
+        "url": "https://docs.conda.io/projects/conda/en/4.12.x/"
+    },
+    {
+        "name": "4.13.x",
+        "version": "4.13.x",
+        "url": "https://docs.conda.io/projects/conda/en/4.13.x/"
+    },
+    {
+        "name": "4.14.x",
+        "version": "4.14.x",
+        "url": "https://docs.conda.io/projects/conda/en/4.14.x/"
+    },
+    {
+        "name": "22.9.x",
+        "version": "22.9.x",
+        "url": "https://docs.conda.io/projects/conda/en/22.9.x/"
+    },
+    {
+        "name": "22.11.x",
+        "version": "22.11.x",
+        "url": "https://docs.conda.io/projects/conda/en/22.11.x/"
+    },
+    {
+        "name": "23.1.x",
+        "version": "23.1.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.1.x/"
+    },
+    {
+        "name": "23.3.x",
+        "version": "23.3.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.3.x/"
+    },
+    {
+        "name": "23.5.x",
+        "version": "23.5.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.5.x/"
+    },
+    {
+        "name": "23.7.x",
+        "version": "23.7.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.7.x/"
+    },
+    {
+        "name": "23.9.x",
+        "version": "23.9.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.9.x/"
+    },
+    {
+        "name": "23.10.x",
+        "version": "23.10.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.10.x/"
+    },
+    {
+        "name": "23.11.x",
+        "version": "23.11.x",
+        "url": "https://docs.conda.io/projects/conda/en/23.11.x/"
+    },
+    {
+        "name": "24.1.x",
+        "version": "24.1.x",
+        "url": "https://docs.conda.io/projects/conda/en/24.1.x/"
+    },
+    {
+        "name": "24.3.x",
+        "version": "24.3.x",
+        "url": "https://docs.conda.io/projects/conda/en/24.3.x/"
+    }
+]

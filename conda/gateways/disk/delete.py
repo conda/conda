@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for deleting files and folders."""
+
 import fnmatch
 import shutil
 import sys
@@ -174,14 +175,12 @@ def unlink_or_rename_to_trash(path):
 
                 else:
                     log.debug(
-                        "{} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo.".format(
-                            trash_script
-                        )
+                        f"{trash_script} is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo."
                     )
             log.warn(
-                "Could not remove or rename {}.  Please remove this file manually (you "
-                "may need to reboot to free file handles)".format(path)
+                f"Could not remove or rename {path}.  Please remove this file manually (you "
+                "may need to reboot to free file handles)"
             )
 
 
