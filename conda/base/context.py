@@ -413,6 +413,7 @@ class Context(Configuration):
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
+    rich = ParameterLoader(PrimitiveParameter(False))
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))

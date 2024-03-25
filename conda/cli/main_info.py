@@ -16,6 +16,10 @@ from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
+from rich.console import Console
+from rich.table import Table
+
+from ..base.context import context
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
@@ -41,6 +45,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         description=description,
         epilog=epilog,
         **kwargs,
+    )
+
+    p.add_argument(
+        "--rich",
+        action="store_true",
+        default=NULL,
+        help="print rich info.",
     )
     add_parser_json(p)
     p.add_argument(
@@ -203,7 +214,6 @@ def get_info_dict() -> dict[str, Any]:
     from .. import __version__ as conda_version
     from ..base.context import (
         DEFAULT_SOLVER,
-        context,
         env_name,
         sys_rc_path,
         user_rc_path,
@@ -341,7 +351,7 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict: dict[str, Any]) -> str:
+def get_main_info_str(info_dict: dict[str, Any], context):
     """
     Returns a printable string of the contents of ``info_dict``.
 
@@ -395,7 +405,23 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
         yield ("netrc file", info_dict["netrc_file"])
         yield ("offline mode", info_dict["offline"])
 
-    return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
+    if context.rich:
+        table = Table(
+            title="conda info", show_header=False, show_lines=True, style="black"
+        )
+
+        table.add_column("", no_wrap=True)
+        table.add_column("", no_wrap=True)
+
+        for k, v in builder():
+            table.add_row(str(k), str(v))
+        console = Console()
+        console.print(table)
+    else:
+        output_string = "\n".join(
+            ("", *(f"{key:>23} : {value}" for key, value in builder()), "")
+        )
+        print(output_string)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -410,7 +436,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
      * ``conda info --system`` (deprecated) (no ``--json``)
     """
 
-    from ..base.context import context
     from .common import print_envs_list, stdout_json
 
     if args.base:
@@ -437,7 +462,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if (
         context.verbose or all(not getattr(args, opt) for opt in options)
     ) and not context.json:
-        print(get_main_info_str(info_dict) + "\n")
+        # print(get_main_info_str(info_dict) + "\n")
+        get_main_info_str(info_dict, context)
+        print("\n")
 
     if args.envs:
         from ..core.envs_manager import list_all_known_prefixes
