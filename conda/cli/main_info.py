@@ -410,8 +410,8 @@ def get_main_info_str(info_dict: dict[str, Any], context):
             title="conda info", show_header=False, show_lines=True, style="black"
         )
 
-        table.add_column("", no_wrap=True)
-        table.add_column("", no_wrap=True)
+        table.add_column("", no_wrap=False)
+        table.add_column("", no_wrap=False)
 
         for k, v in builder():
             table.add_row(str(k), str(v))
