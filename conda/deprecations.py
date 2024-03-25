@@ -21,11 +21,6 @@ if TYPE_CHECKING:
     P = ParamSpec("P")
 
     ActionType = TypeVar("ActionType", bound=type[Action])
-    PendingType = TypeVar("PendingType", bound=type[Warning])
-    DeprecatedType = TypeVar("DeprecatedType", bound=type[Warning])
-
-    UserDeprecationType = type[PendingDeprecationWarning] | type[FutureWarning]
-    DevDeprecationType = type[PendingDeprecationWarning] | type[DeprecationWarning]
 
 from . import __version__
 
@@ -102,7 +97,7 @@ class DeprecationHandler:
 
         def deprecated_decorator(func: Callable[P, T]) -> Callable[P, T]:
             # detect function name and generate message
-            category, message = self._generate_developer_message(
+            category, message = self._generate_message(
                 deprecate_in=deprecate_in,
                 remove_in=remove_in,
                 prefix=f"{func.__module__}.{func.__qualname__}",
@@ -146,7 +141,7 @@ class DeprecationHandler:
 
         def deprecated_decorator(func: Callable[P, T]) -> Callable[P, T]:
             # detect function name and generate message
-            category, message = self._generate_developer_message(
+            category, message = self._generate_message(
                 deprecate_in=deprecate_in,
                 remove_in=remove_in,
                 prefix=f"{func.__module__}.{func.__qualname__}({argument})",
@@ -190,13 +185,13 @@ class DeprecationHandler:
         """Wraps any argparse.Action to issue a deprecation warning."""
 
         class DeprecationMixin(Action):
-            category: UserDeprecationType
+            category: type[Warning]
             help: str  # override argparse.Action's help type annotation
 
             def __init__(inner_self: Self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args, **kwargs)
 
-                category, message = self._generate_user_message(
+                category, message = self._generate_message(
                     deprecate_in=deprecate_in,
                     remove_in=remove_in,
                     prefix=(
@@ -208,6 +203,7 @@ class DeprecationHandler:
                         else f"`{inner_self.dest}`"
                     ),
                     addendum=addendum,
+                    deprecation_type=FutureWarning,
                 )
 
                 # alert developer that it's time to remove something
@@ -280,7 +276,7 @@ class DeprecationHandler:
         # detect calling module
         module, fullname = self._get_module(stack)
         # detect function name and generate message
-        category, message = self._generate_developer_message(
+        category, message = self._generate_message(
             deprecate_in=deprecate_in,
             remove_in=remove_in,
             prefix=f"{fullname}.{constant}",
@@ -324,7 +320,7 @@ class DeprecationHandler:
         :param stack: Optional stacklevel increment.
         """
         # detect function name and generate message
-        category, message = self._generate_developer_message(
+        category, message = self._generate_message(
             deprecate_in=deprecate_in,
             remove_in=remove_in,
             prefix=topic,
@@ -374,54 +370,6 @@ class DeprecationHandler:
 
         raise DeprecatedError("unable to determine the calling module")
 
-    def _generate_user_message(
-        self: Self,
-        deprecate_in: str,
-        remove_in: str,
-        prefix: str,
-        addendum: str | None,
-    ) -> tuple[UserDeprecationType | None, str]:
-        """Generate the standardized deprecation message for users and determine
-        whether the deprecation is pending, active, or past.
-
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param prefix: The message prefix, usually the function name.
-        :param addendum: Additional messaging. Useful to indicate what to do instead.
-        """
-        return self._generate_message(
-            deprecate_in,
-            remove_in,
-            prefix,
-            addendum,
-            PendingDeprecationWarning=PendingDeprecationWarning,
-            DeprecationWarning=FutureWarning,
-        )
-
-    def _generate_developer_message(
-        self: Self,
-        deprecate_in: str,
-        remove_in: str,
-        prefix: str,
-        addendum: str | None,
-    ) -> tuple[DevDeprecationType | None, str]:
-        """Generate the standardized deprecation message for developers and determine
-        whether the deprecation is pending, active, or past.
-
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param prefix: The message prefix, usually the function name.
-        :param addendum: Additional messaging. Useful to indicate what to do instead.
-        """
-        return self._generate_message(
-            deprecate_in,
-            remove_in,
-            prefix,
-            addendum,
-            PendingDeprecationWarning=PendingDeprecationWarning,
-            DeprecationWarning=DeprecationWarning,
-        )
-
     def _generate_message(
         self: Self,
         deprecate_in: str,
@@ -429,9 +377,8 @@ class DeprecationHandler:
         prefix: str,
         addendum: str | None,
         *,
-        PendingDeprecationWarning: PendingType,
-        DeprecationWarning: DeprecatedType,
-    ) -> tuple[PendingType | DeprecatedType | None, str]:
+        deprecation_type: type[Warning] = DeprecationWarning,
+    ) -> tuple[type[Warning] | None, str]:
         """Generate the standardized deprecation message and determine whether the
         deprecation is pending, active, or past.
 
@@ -439,16 +386,15 @@ class DeprecationHandler:
         :param remove_in: Version in which code is expected to be removed.
         :param prefix: The message prefix, usually the function name.
         :param addendum: Additional messaging. Useful to indicate what to do instead.
-        :param PendingDeprecationWarning: The warning type to use for pending deprecations.
-        :param DeprecationWarning: The warning type to use for active deprecations.
+        :param deprecation_type: The warning type to use for active deprecations.
         :return: The warning category (if applicable) and the message.
         """
-        category: PendingType | DeprecatedType | None
+        category: type[Warning] | None
         if self._version_less_than(deprecate_in):
             category = PendingDeprecationWarning
             warning = f"is pending deprecation and will be removed in {remove_in}."
         elif self._version_less_than(remove_in):
-            category = DeprecationWarning
+            category = deprecation_type
             warning = f"is deprecated and will be removed in {remove_in}."
         else:
             category = None
