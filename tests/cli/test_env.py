@@ -244,21 +244,14 @@ def test_conda_env_create_empty_file(
 
 
 @pytest.mark.integration
-def test_conda_env_create_http(conda_cli: CondaCLIFixture):
+def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
-    if "conda-forge" in context.channels and context.solver == "classic":
-        pytest.skip(
-            "This test is too slow with conda-forge as default channel in classic."
-        )
-    try:
-        conda_cli(
-            *("env", "create"),
-            "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
-        )
-        assert env_is_created("nlp")
-    finally:
-        # manual cleanup
-        conda_cli("remove", "--name=nlp", "--all", "--yes")
+    conda_cli(
+        *("env", "create"),
+        f"--prefix={tmp_path}",
+        "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
+    )
+    assert (tmp_path / "conda-meta" / "history").is_file()
 
 
 @pytest.mark.integration
