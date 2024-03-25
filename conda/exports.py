@@ -1,13 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Backported exports for conda-build."""
+
 import errno
 import functools
 import os
 import sys
-import threading
 from builtins import input  # noqa: F401, UP029
-from collections.abc import Hashable as _Hashable
 from io import StringIO  # noqa: F401, for conda-build
 
 from . import CondaError, plan  # noqa: F401
@@ -58,7 +57,6 @@ from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
 from .gateways.disk.delete import rm_rf as _rm_rf
 from .gateways.disk.link import lchmod  # noqa: F401
-from .gateways.disk.read import compute_md5sum  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
@@ -79,13 +77,7 @@ from .resolve import (  # noqa: F401
     ResolvePackageNotFound,
     Unsatisfiable,
 )
-from .utils import (  # noqa: F401
-    hashsum_file,
-    human_bytes,
-    md5_file,
-    unix_path_to_win,
-    url_path,
-)
+from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401
 
 reset_context()  # initialize context when conda.exports is imported
 
@@ -144,40 +136,6 @@ class Completer:  # pragma: no cover
 
 class InstalledPackages:
     pass
-
-
-@deprecated("23.3", "24.3", addendum="Use `functools.lru_cache` instead.")
-class memoized:  # pragma: no cover
-    """Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    """
-
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-        self.lock = threading.Lock()
-
-    def __call__(self, *args, **kw):
-        newargs = []
-        for arg in args:
-            if isinstance(arg, list):
-                newargs.append(tuple(arg))
-            elif not isinstance(arg, _Hashable):
-                # uncacheable. a list, for instance.
-                # better to not cache than blow up.
-                return self.func(*args, **kw)
-            else:
-                newargs.append(arg)
-        newargs = tuple(newargs)
-        key = (newargs, frozenset(sorted(kw.items())))
-        with self.lock:
-            if key in self.cache:
-                return self.cache[key]
-            else:
-                value = self.func(*args, **kw)
-                self.cache[key] = value
-                return value
 
 
 def rm_rf(path, max_retries=5, trash=True):

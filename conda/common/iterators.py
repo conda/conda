@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Replacements for parts of the toolz library."""
+
 from __future__ import annotations
 
 import collections

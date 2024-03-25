@@ -243,10 +243,7 @@ from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 from pathlib import Path
 
-try:
-    from boltons.timeutils import isoparse
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.timeutils import isoparse
+from boltons.timeutils import isoparse
 
 from . import NULL
 from .._vendor.frozendict import frozendict

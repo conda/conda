@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+
 from __future__ import annotations
 
 import copy
@@ -35,11 +36,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from re import Match
     from typing import Any, Hashable, Iterable, Sequence
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
-
+from boltons.setutils import IndexedSet
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
@@ -117,14 +114,8 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = (
-                "Parameter {} = {!r} declared in {} has type {}.\n"
-                "Valid types:\n{}".format(
-                    parameter_name,
-                    parameter_value,
-                    source,
-                    wrong_type,
-                    pretty_list(valid_types),
-                )
+                f"Parameter {parameter_name} = {parameter_value!r} declared in {source} has type {wrong_type}.\n"
+                f"Valid types:\n{pretty_list(valid_types)}"
             )
         super().__init__(parameter_name, parameter_value, source, msg=msg)
 

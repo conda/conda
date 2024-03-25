@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Conda command line interface parsers."""
+
 from __future__ import annotations
 
 import argparse
@@ -178,7 +179,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # run the subcommand from executables; legacy path
         deprecated.topic(
             "23.3",
-            "24.3",
+            "25.3",
             topic="Loading conda subcommands via executables",
             addendum="Use the plugin system instead.",
         )

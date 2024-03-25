@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Package installation implemented as a series of link/unlink transactions."""
+
 from __future__ import annotations
 
 import itertools
@@ -116,8 +117,8 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = "{}-{}-{}".format(
-                prefix_record.name, prefix_record.version, prefix_record.build
+            extracted_package_dir = (
+                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
             )
 
     meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")

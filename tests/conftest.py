@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from pytest_mock import MockerFixture
 
+import conda
 from conda.base.context import context, reset_context
 
 from . import http_test_server
@@ -21,6 +22,14 @@ pytest_plugins = (
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
 )
+
+
+@pytest.hookimpl
+def pytest_report_header(config: pytest.Config):
+    # ensuring the expected development conda is being run
+    expected = Path(__file__).parent.parent / "conda" / "__init__.py"
+    assert expected.samefile(conda.__file__)
+    return f"conda.__file__: {conda.__file__}"
 
 
 @pytest.fixture

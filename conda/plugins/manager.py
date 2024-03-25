@@ -7,6 +7,7 @@ This module contains a subclass implementation of pluggy's
 Additionally, it contains a function we use to construct the ``PluginManager`` object and
 register all plugins during conda's startup process.
 """
+
 from __future__ import annotations
 
 import functools
@@ -18,7 +19,7 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
-from ..base.context import context
+from ..base.context import add_plugin_setting, context
 from ..exceptions import CondaValueError, PluginError
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
     from requests.auth import AuthBase
 
+    from ..common.configuration import ParameterLoader
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaSetting,
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
@@ -150,48 +153,48 @@ class CondaPluginManager(pluggy.PluginManager):
         return count
 
     @overload
-    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["subcommands"]
+    ) -> list[CondaSubcommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["virtual_packages"]
-    ) -> list[CondaVirtualPackage]:
-        ...
+    ) -> list[CondaVirtualPackage]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
-        ...
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["pre_commands"]
+    ) -> list[CondaPreCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["post_commands"]
-    ) -> list[CondaPostCommand]:
-        ...
+    ) -> list[CondaPostCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["auth_handlers"]
-    ) -> list[CondaAuthHandler]:
-        ...
+    ) -> list[CondaAuthHandler]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["health_checks"]
-    ) -> list[CondaHealthCheck]:
-        ...
+    ) -> list[CondaHealthCheck]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]:
-        ...
+    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
-        ...
+    def get_hook_results(
+        self, name: Literal["post_solves"]
+    ) -> list[CondaPostSolve]: ...
+
+    @overload
+    def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
     def get_hook_results(self, name):
         """
@@ -291,6 +294,17 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
+    def get_settings(self) -> dict[str, ParameterLoader]:
+        """
+        Return a mapping of plugin setting name to ParameterLoader class
+
+        This method intentionally overwrites any duplicates that may be present
+        """
+        return {
+            config_param.name.lower(): (config_param.parameter, config_param.aliases)
+            for config_param in self.get_hook_results("settings")
+        }
+
     def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
@@ -365,6 +379,14 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def load_settings(self) -> None:
+        """
+        Iterates through all registered settings and adds them to the
+        :class:`conda.common.configuration.PluginConfig` class.
+        """
+        for name, (parameter, aliases) in self.get_settings().items():
+            add_plugin_setting(name, parameter, aliases)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

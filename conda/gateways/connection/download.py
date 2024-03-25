@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Download logic for conda indices and packages."""
+
 from __future__ import annotations
 
 import hashlib
@@ -130,7 +131,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                 raise CondaError(message, target_path=target.name, errno=e.errno)
             size_builder += len(chunk)
 
-            if content_length and 0 <= streamed_bytes <= content_length:
+            if total_content_length and 0 <= streamed_bytes <= content_length:
                 if progress_update_callback:
                     progress_update_callback(
                         (stat_result.st_size + streamed_bytes) / total_content_length

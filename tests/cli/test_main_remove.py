@@ -6,7 +6,7 @@ from logging import getLogger
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.common.io import stderr_log_level
 from conda.exceptions import DryRunExit, PackagesNotFoundError
 from conda.gateways.disk.delete import path_is_clean
@@ -54,7 +54,6 @@ def test_remove_globbed_package_names(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    reset_context()
     if context.solver == "libmamba" and version("conda_libmamba_solver") <= "24.1.0":
         pytest.xfail(
             reason="Removing using wildcards is not available in older versions of the libmamba solver.",

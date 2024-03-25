@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Error handling and error reporting."""
+
 import os
 import sys
 from functools import lru_cache, partial

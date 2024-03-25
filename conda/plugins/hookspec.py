@@ -7,6 +7,7 @@ Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
 an example of how to use it.
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaSetting,
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
@@ -227,19 +229,20 @@ class CondaSpecs:
         **Example:**
 
         .. code-block:: python
-                from conda import plugins
+
+            from conda import plugins
 
 
-                def example_health_check(prefix: str, verbose: bool):
-                    print("This is an example health check!")
+            def example_health_check(prefix: str, verbose: bool):
+                print("This is an example health check!")
 
 
-                @plugins.hookimpl
-                def conda_health_checks():
-                    yield plugins.CondaHealthCheck(
-                        name="example-health-check",
-                        action=example_health_check,
-                    )
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="example-health-check",
+                    action=example_health_check,
+                )
         """
 
     @_hookspec
@@ -302,5 +305,30 @@ class CondaSpecs:
                yield plugins.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
+               )
+        """
+
+    @_hookspec
+    def conda_settings(self) -> Iterable[CondaSetting]:
+        """
+        Register new setting
+
+        The example below defines a simple string type parameter
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.common.configuration import PrimitiveParameter, SequenceParameter
+
+
+           @plugins.hookimpl
+           def conda_settings():
+               yield plugins.CondaSetting(
+                   name="example_option",
+                   description="This is an example option",
+                   parameter=PrimitiveParameter("default_value", element_type=str),
+                   aliases=("example_option_alias",),
                )
         """

@@ -8,13 +8,11 @@ Object inheritance:
    :top-classes: conda.models.prefix_graph.PrefixGraph
    :parts: 1
 """
+
 from collections import defaultdict
 from logging import getLogger
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..base.context import context
 from ..common.compat import on_win

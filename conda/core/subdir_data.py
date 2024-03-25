@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing a subdir's repodata.json."""
+
 from __future__ import annotations
 
 import json
@@ -12,15 +13,10 @@ from logging import getLogger
 from os.path import exists, join, splitext
 from pathlib import Path
 from time import time
-
-from genericpath import getmtime, isfile
-
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
-
 from typing import TYPE_CHECKING
+
+from boltons.setutils import IndexedSet
+from genericpath import getmtime, isfile
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -36,7 +32,6 @@ from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
     RepodataFetch,
-    RepodataIsEmpty,
     RepodataState,
     cache_fn_url,
     create_cache_dir,
@@ -225,7 +220,7 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Object to get repodata. Not cached since self.repodata_fn is mutable.
 
-        Replaces fetch_repodata_remote_request, self._repo, self.repo_cache.
+        Replaces self._repo & self.repo_cache.
         """
         return RepodataFetch(
             Path(self.cache_path_base),
@@ -538,40 +533,3 @@ def make_feature_record(feature_name):
         build_number=0,
         fn=pkg_name,
     )
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
-    "is pending deprecation and will be removed in the future. "
-    "Please use `conda.core.subdir_data.SubdirData().repo_fetch.fetch_latest_parsed()` instead.",
-)
-def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
-    """
-    :param etag: cached etag header
-    :param mod_stamp: cached last-modified header
-    """
-    # this function should no longer be used by conda but is kept for API stability
-
-    subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
-
-    try:
-        cache_state = subdir.repo_cache.load_state()
-        cache_state.etag = etag
-        cache_state.mod = mod_stamp
-        # force CondaRepoInterface to avoid RepodataOnDisk exception
-        repo_fetch = RepodataFetch(
-            Path(subdir.cache_path_base),
-            subdir.channel,
-            subdir.repodata_fn,
-            repo_interface_cls=CondaRepoInterface,
-        )
-        raw_repodata_str = repo_fetch._repo.repodata(cache_state)  # type: ignore
-    except RepodataIsEmpty:
-        if repodata_fn != REPODATA_FN:
-            raise  # is UnavailableInvalidChannel subclass
-        # the surrounding try/except/else will cache "{}"
-        raw_repodata_str = None
-
-    return raw_repodata_str

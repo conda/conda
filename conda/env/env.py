@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Environment object describing the conda environment.yaml file."""
+
 import json
 import os
 import re
