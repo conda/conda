@@ -17,11 +17,11 @@ from ...auxlib.ish import dals
 from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import on_linux, on_win
+from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import LinkType
-from ..logging import TRACE
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
 from .link import islink, lexists, link, readlink, symlink

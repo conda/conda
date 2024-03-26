@@ -17,9 +17,9 @@ from subprocess import PIPE, Popen
 from ...base.constants import DRY_RUN_PREFIX
 from ...base.context import context
 from ...common.compat import on_win
+from ...common.constants import TRACE
 from ...common.path import expand
 from ...exceptions import NotWritableError
-from ..logging import TRACE
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
 from .delete import rm_rf
 from .link import lexists

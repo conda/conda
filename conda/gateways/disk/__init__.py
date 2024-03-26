@@ -9,7 +9,7 @@ from subprocess import CalledProcessError
 from time import sleep
 
 from ...common.compat import on_win
-from ..logging import TRACE
+from ...common.constants import TRACE
 
 log = getLogger(__name__)
 

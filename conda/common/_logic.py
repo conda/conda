@@ -5,7 +5,7 @@ from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
 
-from conda.gateways.logging import TRACE
+from .constants import TRACE
 
 log = getLogger(__name__)
 

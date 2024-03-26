@@ -29,7 +29,7 @@ from ..base.constants import (
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -53,7 +53,6 @@ from ..gateways.disk.read import (
     read_repodata_json,
 )
 from ..gateways.disk.test import file_path_is_writable
-from ..gateways.logging import TRACE
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes

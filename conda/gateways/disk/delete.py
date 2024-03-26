@@ -24,7 +24,7 @@ from subprocess import STDOUT, CalledProcessError, check_output
 from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
-from ..logging import TRACE
+from ...common.constants import TRACE
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable

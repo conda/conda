@@ -22,7 +22,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
@@ -31,7 +31,6 @@ from ..exceptions import (
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
-from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType

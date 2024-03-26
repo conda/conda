@@ -10,7 +10,7 @@ from os.path import isdir, isfile, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from ...common.compat import on_win
-from ..logging import TRACE
+from ...common.constants import TRACE
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lchmod
 

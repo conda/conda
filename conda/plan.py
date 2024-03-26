@@ -18,13 +18,13 @@ from boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
+from .common.constants import TRACE
 from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
-from .gateways.logging import TRACE
 from .history import History
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels

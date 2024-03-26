@@ -16,6 +16,7 @@ from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
+from ..common.constants import TRACE
 from ..common.path import (
     get_bin_directory_short_path,
     get_leaf_directories,
@@ -50,7 +51,6 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
 from ..gateways.disk.read import compute_sum, islink, lexists, read_index_json
 from ..gateways.disk.update import backoff_rename, touch
-from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import LinkType, NoarchType, PathType

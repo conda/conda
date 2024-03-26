@@ -47,7 +47,6 @@ from ..common.iterators import unique
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
-from ..gateways.logging import TRACE
 from .constants import (
     APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,

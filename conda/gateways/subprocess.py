@@ -17,9 +17,9 @@ from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_environment, isiterable
+from ..common.constants import TRACE
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
-from .logging import TRACE
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -9,9 +9,9 @@ from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
 from ...base.constants import PREFIX_MAGIC_FILE
+from ...common.constants import TRACE
 from ...common.path import expand
 from ...models.enums import LinkType
-from ..logging import TRACE
 from .create import create_link
 from .delete import rm_rf
 from .link import islink, lexists
