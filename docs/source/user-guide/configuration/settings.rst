@@ -70,6 +70,8 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
 ``channel_settings``: Extra settings for individual channels
 ------------------------------------------------------------
 
+.. versionadded:: 23.3.0
+
 With ``channel_settings``, it is possible to add extra configuration options
 for individual channels. This is currently used to register additional authentication
 handlers for conda via the :doc:`/dev-guide/plugins/auth_handlers` plugin hook, but may also
