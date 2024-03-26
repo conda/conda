@@ -70,6 +70,11 @@ TEST_CONDARC = dals(
       rsync: 'false'
     aggressive_update_packages: []
     channel_priority: false
+    reporters:
+      - backend: json
+        output: test.json
+      - backend: stdlib
+        output: stdout
     """
 )
 
@@ -759,3 +764,53 @@ def test_get_plugin_config_data_skip_bad_values():
     plugin_config_data = get_plugin_config_data(raw_data)
 
     assert plugin_config_data == {}
+
+
+def test_reporters_from_config_file(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values
+    """
+    assert context.reporters == (
+        {"backend": "json", "output": "test.json"},
+        {"backend": "stdlib", "output": "stdout"}
+    )
+
+
+def test_reporters_json_is_true(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values when ``context.json``
+    is true.
+    """
+    json_old_value = context.json
+    context.json = True
+
+    assert context.reporters == (
+        {"backend": "json", "output": "stdout", "verbosity": context.verbosity},
+    )
+
+    context.json = json_old_value
+
+
+def test_reporters_quiet_is_true(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values when ``context.quiet``
+    is true.
+    """
+    quiet_old_value = context.quiet
+    context.quiet = True
+
+    assert context.reporters == (
+        {"backend": "stdlib", "output": "stdout", "verbosity": context.verbosity, "quiet": True},
+    )
+
+    context.quiet = quiet_old_value
+
+
+def test_reporters_default_value():
+    """
+    Ensure that the ``reporters`` property returns the correct values when nothing is set including
+    values from configuration files.
+    """
+    assert context.reporters == (
+        {"backend": "stdlib", "output": "stdout", "verbosity": context.verbosity},
+    )

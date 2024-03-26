@@ -75,7 +75,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal
+    from typing import Literal, Mapping, Sequence
 
     from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
@@ -333,6 +333,13 @@ class Context(Configuration):
 
     add_anaconda_token = ParameterLoader(
         PrimitiveParameter(True), aliases=("add_binstar_token",)
+    )
+
+    _reporters = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
+        aliases=(
+            "reporters",
+        )
     )
 
     ####################################################
@@ -1165,6 +1172,46 @@ class Context(Configuration):
         info = _get_cpu_info()
         return info["flags"]
 
+    @memoizedproperty
+    def reporters(self) -> Sequence[Mapping[str, str]]:
+        """
+        Determine the value of reporters based on other settings and the ``self._reporters``
+        value itself.
+        """
+        if context.json:
+            return ( {
+                "backend": "json",
+                "output": "stdout",
+                "verbosity": self.verbosity,
+            }, )
+
+        if context.quiet:
+            return ( {
+                "backend": "stdlib",
+                "output": "stdout",
+                "verbosity": self.verbosity,
+                "quiet": True,
+            }, )
+
+        # Remove duplicates based on ``backend``
+        flat_reporters = {
+            item.get("backend"): item
+            for item in self._reporters
+            if item.get("backend") is not None
+        }
+
+        # Default setting when nothing else has been provided
+        if not flat_reporters:
+            return ( {
+                "backend": "stdlib",
+                "output": "stdout",
+                "verbosity": context.verbosity,
+            }, )
+
+        return tuple(
+            item for key, item in flat_reporters.items()
+        )
+
     @property
     def category_map(self):
         return {
@@ -1291,6 +1338,7 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
+                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1668,6 +1716,12 @@ class Context(Configuration):
             quiet=dals(
                 """
                 Disable progress bar display and other output.
+                """
+            ),
+            reporters=dals(
+                """
+                A list of mappings that allow the configuration of one or more output streams
+                (e.g. stdout or file).
                 """
             ),
             remote_connect_timeout_secs=dals(
