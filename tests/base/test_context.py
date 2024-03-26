@@ -5,6 +5,7 @@ from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
 from tempfile import gettempdir
+from types import SimpleNamespace
 from unittest import mock
 
 import pytest
@@ -781,14 +782,14 @@ def test_reporters_json_is_true(testdata):
     Ensure that the ``reporters`` property returns the correct values when ``context.json``
     is true.
     """
-    json_old_value = context.json
-    context.json = True
+    args = SimpleNamespace(json=True)
+    reset_context((), args)
 
     assert context.reporters == (
         {"backend": "json", "output": "stdout", "verbosity": context.verbosity},
     )
 
-    context.json = json_old_value
+    reset_context()
 
 
 def test_reporters_quiet_is_true(testdata):
@@ -796,8 +797,8 @@ def test_reporters_quiet_is_true(testdata):
     Ensure that the ``reporters`` property returns the correct values when ``context.quiet``
     is true.
     """
-    quiet_old_value = context.quiet
-    context.quiet = True
+    args = SimpleNamespace(quiet=True)
+    reset_context((), args)
 
     assert context.reporters == (
         {
@@ -808,7 +809,7 @@ def test_reporters_quiet_is_true(testdata):
         },
     )
 
-    context.quiet = quiet_old_value
+    reset_context()
 
 
 def test_reporters_default_value():
