@@ -1222,3 +1222,16 @@ def test_catch_invalid_regexes():
     # Inspired by above crasher
     with pytest.raises(InvalidMatchSpec):
         MatchSpec("^(aaaa$")
+
+
+@pytest.mark.parametrize(
+    "spec",
+    (
+        "pkg 4.2.2<6.0.0",
+        "pkg>=0.10.0,<1.0.0<py312|>=0.13.0,<1.0.0>=py312",
+    ),
+)
+def test_invalid_version_reports_spec(spec):
+    with pytest.raises(InvalidMatchSpec) as exc:
+        MatchSpec(spec)
+    assert spec in str(exc.value)
