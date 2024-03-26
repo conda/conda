@@ -9,7 +9,7 @@ from subprocess import CalledProcessError
 from time import sleep
 
 from ...common.compat import on_win
-from ..logging import trace
+from ..logging import TRACE
 
 log = getLogger(__name__)
 
@@ -32,8 +32,8 @@ def exp_backoff_fn(fn, *args, **kwargs):
             raise
         sleep_time = ((2**n) + random.random()) * 0.1
         caller_frame = sys._getframe(1)
-        trace(
-            log,
+        log.log(
+                TRACE,
             "retrying %s/%s %s() in %g sec",
             basename(caller_frame.f_code.co_filename),
             caller_frame.f_lineno,
@@ -46,7 +46,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
         try:
             result = fn(*args, **kwargs)
         except OSError as e:
-            trace(log, repr(e))
+            log.log(TRACE, repr(e))
             if e.errno in (EPERM, EACCES):
                 sleep_some(n, e)
             elif e.errno in (ENOENT, ENOTEMPTY):
@@ -67,7 +67,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
 def mkdir_p(path):
     # putting this here to help with circular imports
     try:
-        trace(log, "making directory %s", path)
+        log.log(TRACE, "making directory %s", path)
         if path:
             os.makedirs(path)
             return isdir(path) and path
@@ -84,7 +84,7 @@ def mkdir_p_sudo_safe(path):
     base_dir = dirname(path)
     if not isdir(base_dir):
         mkdir_p_sudo_safe(base_dir)
-    trace(log, "making directory %s", path)
+    log.log(TRACE, "making directory %s", path)
     try:
         os.mkdir(path)
     except OSError as e:
@@ -97,7 +97,7 @@ def mkdir_p_sudo_safe(path):
     # if not on_win and os.environ.get('SUDO_UID') is not None:
     #     uid = int(os.environ['SUDO_UID'])
     #     gid = int(os.environ.get('SUDO_GID', -1))
-    #     trace(log, "chowning %s:%s %s", uid, gid, path)
+    #     log.log(TRACE, "chowning %s:%s %s", uid, gid, path)
     #     os.chown(path, uid, gid)
     if not on_win:
         # set newly-created directory permissions to 02775
@@ -105,8 +105,8 @@ def mkdir_p_sudo_safe(path):
         try:
             os.chmod(path, 0o2775)
         except OSError as e:
-            trace(
-                log,
+            log.log(
+                TRACE,
                 "Failed to set permissions to 2775 on %s (%d %d)",
                 path,
                 e.errno,

@@ -10,7 +10,7 @@ from os.path import isdir, isfile, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from ...common.compat import on_win
-from ..logging import trace
+from ..logging import TRACE
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lchmod
 
@@ -76,7 +76,7 @@ def recursive_make_writable(path, max_tries=MAX_TRIES):
 def make_executable(path):
     if isfile(path):
         mode = lstat(path).st_mode
-        trace(log, "chmod +x %s", path)
+        log.log(TRACE, "chmod +x %s", path)
         chmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
     else:
         log.error("Cannot make path '%s' executable", path)

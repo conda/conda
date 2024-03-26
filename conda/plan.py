@@ -24,7 +24,7 @@ from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
 from .exceptions import CondaIndexError, PackagesNotFoundError
-from .gateways.logging import trace
+from .gateways.logging import TRACE
 from .history import History
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
@@ -368,10 +368,10 @@ def _plan_from_actions(actions, index):  # pragma: no cover
     log.debug(f"Adding plans for operations: {op_order}")
     for op in op_order:
         if op not in actions:
-            trace(log, f"action {op} not in actions")
+            log.log(TRACE, f"action {op} not in actions")
             continue
         if not actions[op]:
-            trace(log, f"action {op} has None value")
+            log.log(TRACE, f"action {op} has None value")
             continue
         if "_" not in op:
             plan.append((PRINT, "%sing packages ..." % op.capitalize()))

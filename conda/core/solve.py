@@ -31,7 +31,7 @@ from ..exceptions import (
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
-from ..gateways.logging import trace
+from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import NoarchType
@@ -604,7 +604,7 @@ class Solver:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
-                trace(log, "using PrefixGraph to remove records for %s", spec)
+                log.log(TRACE, "using PrefixGraph to remove records for %s", spec)
                 removed_records = graph.remove_spec(spec)
                 if removed_records:
                     all_removed_records.extend(removed_records)

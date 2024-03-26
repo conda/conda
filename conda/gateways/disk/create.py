@@ -21,7 +21,7 @@ from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import LinkType
-from ..logging import trace
+from ..logging import TRACE
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
 from .link import islink, lexists, link, readlink, symlink
@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
 
 def write_as_json_to_file(file_path, obj):
-    trace(log, "writing json to file %s", file_path)
+    log.log(TRACE, "writing json to file %s", file_path)
     with codecs.open(file_path, mode="wb", encoding="utf-8") as fo:
         json_str = json_dump(obj)
         fo.write(json_str)
@@ -280,7 +280,7 @@ def create_hard_link_or_copy(src, dst):
         raise CondaOSError(message)
 
     try:
-        trace(log, "creating hard link %s => %s", src, dst)
+        log.log(TRACE, "creating hard link %s => %s", src, dst)
         link(src, dst)
     except OSError:
         log.info("hard link failed, so copying %s => %s", src, dst)
@@ -302,7 +302,7 @@ def _do_softlink(src, dst):
         # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
         copy(src, dst)
     else:
-        trace(log, "soft linking %s => %s", src, dst)
+        log.log(TRACE, "soft linking %s => %s", src, dst)
         symlink(src, dst)
 
 
@@ -321,14 +321,14 @@ def copy(src, dst):
         src_points_to = readlink(src)
         if not src_points_to.startswith("/"):
             # copy relative symlinks as symlinks
-            trace(log, "soft linking %s => %s", src, dst)
+            log.log(TRACE, "soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
     _do_copy(src, dst)
 
 
 def _do_copy(src, dst):
-    trace(log, "copying %s => %s", src, dst)
+    log.log(TRACE, "copying %s => %s", src, dst)
     # src and dst are always files. So we can bypass some checks that shutil.copy does.
     # Also shutil.copy calls shutil.copymode, which we can skip because we are explicitly
     # calling copystat.
@@ -376,7 +376,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
         try:
-            trace(log, "hard linking %s => %s", src, dst)
+            log.log(TRACE, "hard linking %s => %s", src, dst)
             link(src, dst)
         except OSError as e:
             log.debug("%r", e)
@@ -422,7 +422,7 @@ def compile_multiple_pyc(
             command.extend(["-j", "0"])
         command[0:0] = [python_exe_full_path]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
-        trace(log, command)
+        log.log(TRACE, command)
         from ..subprocess import any_subprocess
 
         # from ...common.io import env_vars
@@ -466,13 +466,13 @@ def compile_multiple_pyc(
 def create_package_cache_directory(pkgs_dir):
     # returns False if package cache directory cannot be created
     try:
-        trace(log, "creating package cache directory '%s'", pkgs_dir)
+        log.log(TRACE, "creating package cache directory '%s'", pkgs_dir)
         sudo_safe = expand(pkgs_dir).startswith(expand("~"))
         touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
         touch(join(pkgs_dir, "urls"), sudo_safe=sudo_safe)
     except OSError as e:
         if e.errno in (EACCES, EPERM, EROFS):
-            trace(log, "cannot create package cache directory '%s'", pkgs_dir)
+            log.log(TRACE, "cannot create package cache directory '%s'", pkgs_dir)
             return False
         else:
             raise
@@ -487,12 +487,12 @@ def create_envs_directory(envs_dir):
     # This value is duplicated in conda.base.context._first_writable_envs_dir().
     envs_dir_magic_file = join(envs_dir, ".conda_envs_dir_test")
     try:
-        trace(log, "creating envs directory '%s'", envs_dir)
+        log.log(TRACE, "creating envs directory '%s'", envs_dir)
         sudo_safe = expand(envs_dir).startswith(expand("~"))
         touch(join(envs_dir, envs_dir_magic_file), mkdir=True, sudo_safe=sudo_safe)
     except OSError as e:
         if e.errno in (EACCES, EPERM, EROFS):
-            trace(log, "cannot create envs directory '%s'", envs_dir)
+            log.log(TRACE, "cannot create envs directory '%s'", envs_dir)
             return False
         else:
             raise
