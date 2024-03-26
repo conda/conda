@@ -225,11 +225,12 @@ def test_activate_environment_not_found(reset_environ: None):
 
 
 def test_PS1(tmp_path: Path):
+    conda_prompt_modifier = get_prompt_modifier(ROOT_ENV_NAME)
     activator = PosixActivator()
-    assert activator._prompt_modifier(tmp_path, ROOT_ENV_NAME) == f"({ROOT_ENV_NAME}) "
+    assert activator._prompt_modifier(tmp_path, ROOT_ENV_NAME) == conda_prompt_modifier
 
     instructions = activator.build_activate("base")
-    assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == f"({ROOT_ENV_NAME}) "
+    assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == conda_prompt_modifier
 
 
 def test_PS1_no_changeps1(monkeypatch: MonkeyPatch, tmp_path: Path):
