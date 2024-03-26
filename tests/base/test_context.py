@@ -772,7 +772,7 @@ def test_reporters_from_config_file(testdata):
     """
     assert context.reporters == (
         {"backend": "json", "output": "test.json"},
-        {"backend": "stdlib", "output": "stdout"}
+        {"backend": "stdlib", "output": "stdout"},
     )
 
 
@@ -800,7 +800,12 @@ def test_reporters_quiet_is_true(testdata):
     context.quiet = True
 
     assert context.reporters == (
-        {"backend": "stdlib", "output": "stdout", "verbosity": context.verbosity, "quiet": True},
+        {
+            "backend": "stdlib",
+            "output": "stdout",
+            "verbosity": context.verbosity,
+            "quiet": True,
+        },
     )
 
     context.quiet = quiet_old_value

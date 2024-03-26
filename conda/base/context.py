@@ -75,7 +75,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal, Mapping, Sequence
+    from typing import Literal, Sequence
 
     from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
@@ -337,9 +337,7 @@ class Context(Configuration):
 
     _reporters = ParameterLoader(
         SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
-        aliases=(
-            "reporters",
-        )
+        aliases=("reporters",),
     )
 
     ####################################################
@@ -1179,19 +1177,23 @@ class Context(Configuration):
         value itself.
         """
         if context.json:
-            return ( {
-                "backend": "json",
-                "output": "stdout",
-                "verbosity": self.verbosity,
-            }, )
+            return (
+                {
+                    "backend": "json",
+                    "output": "stdout",
+                    "verbosity": self.verbosity,
+                },
+            )
 
         if context.quiet:
-            return ( {
-                "backend": "stdlib",
-                "output": "stdout",
-                "verbosity": self.verbosity,
-                "quiet": True,
-            }, )
+            return (
+                {
+                    "backend": "stdlib",
+                    "output": "stdout",
+                    "verbosity": self.verbosity,
+                    "quiet": True,
+                },
+            )
 
         # Remove duplicates based on ``backend``
         flat_reporters = {
@@ -1202,15 +1204,15 @@ class Context(Configuration):
 
         # Default setting when nothing else has been provided
         if not flat_reporters:
-            return ( {
-                "backend": "stdlib",
-                "output": "stdout",
-                "verbosity": context.verbosity,
-            }, )
+            return (
+                {
+                    "backend": "stdlib",
+                    "output": "stdout",
+                    "verbosity": context.verbosity,
+                },
+            )
 
-        return tuple(
-            item for key, item in flat_reporters.items()
-        )
+        return tuple(item for key, item in flat_reporters.items())
 
     @property
     def category_map(self):
