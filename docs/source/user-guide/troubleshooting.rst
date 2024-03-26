@@ -151,6 +151,7 @@ PATH folders goes from left to right. If you choose to put Anaconda's folders on
 PATH, there are several of them:
 
   * (install root)
+  * (install root)/Library/(MSYS2 env)/bin ## dependent on MSYS2 packages
   * (install root)/Library/mingw-w64/bin
   * (install root)/Library/usr/bin
   * (install root)/Library/bin

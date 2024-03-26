@@ -618,6 +618,36 @@ class _Activator(metaclass=abc.ABCMeta):
     def _get_path_dirs(self, prefix):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
+
+            msystem = False
+
+            # We need to stat(2) for possible environments because
+            # tests can't be told where to look!
+            #
+            # mingw-w64 is a legacy variant used by m2w64-* packages
+            #
+            # We could include clang32 and mingw32 variants
+            variants = []
+            for pmsystem in ['ucrt64', 'clang64', 'mingw64', 'clangarm64']:
+                pdir = self.sep.join((prefix, "Library", pmsystem))
+
+                # MSYS2 /c/
+                # cygwin /cygdrive/c/
+                if re.match ("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                    pdir = unix_path_to_native(pdir)
+
+                if isdir(pdir):
+                    variants.append(pmsystem)
+                    if not msystem:
+                        msystem = pmsystem
+
+            if len(variants) > 1:
+                print(f"WARNING: {prefix}: {variants} MSYS2 envs exist: please check your dependencies", file=sys.stderr)
+                print(f"WARNING: conda list -n {self._default_env(prefix)}", file=sys.stderr)
+
+            if msystem:
+                yield self.sep.join((prefix, "Library", msystem, "bin"))
+
             yield self.sep.join((prefix, "Library", "mingw-w64", "bin"))
             yield self.sep.join((prefix, "Library", "usr", "bin"))
             yield self.sep.join((prefix, "Library", "bin"))
@@ -892,6 +922,68 @@ def native_path_to_unix(
         return ()
     else:
         return tuple(unix_path.split(":"))
+
+
+def unix_path_to_native(
+    paths: str | Iterable[str] | None,
+) -> str | tuple[str, ...] | None:
+    if paths is None:
+        return None
+    elif not on_win:
+        return path_identity(paths)
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
+
+    # on windows, uses cygpath to convert posix paths to windows native paths
+    from shutil import which
+    from subprocess import run
+
+    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
+    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
+    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
+    # different points in the Windows filesystem.  We do our path conversions with one and
+    # expect the results to work with the other.  It does not.
+
+    bash = which("bash")
+    cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    joined = paths if isinstance(paths, str) else ":".join(paths)
+
+    try:
+        # if present, use cygpath to convert paths since its more reliable
+        win_path = run(
+            [cygpath, "--windows", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        def _translation(found_path):
+            found = (
+                found_path.group(1)
+                .replace("/", "\\")
+                .replace("", ":")
+                .replace("/", "//")
+            )
+            return "\\" + found.rstrip("\\")
+
+        win_path = (
+            re.sub(
+                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
+                _translation,
+                joined,
+            )
+            .replace(":/", ";/")
+            .rstrip(";")
+        )
+
+    win_path = win_path.split(os.pathsep) if win_path else ()
+
+    return win_path[0] if isinstance(paths, str) else tuple(win_path)
 
 
 def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
