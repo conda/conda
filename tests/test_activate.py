@@ -1489,7 +1489,7 @@ def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     set prompt='%(prompt)s';
     setenv PATH "%(new_path)s";
     setenv CONDA_SHLVL "1";
-    setenv CONDA_PROMPT_MODIFIER "%(codna_prompt_modifier)s";
+    setenv CONDA_PROMPT_MODIFIER "%(conda_prompt_modifier)s";
     source "%(activate1)s";
     """
     ) % {
