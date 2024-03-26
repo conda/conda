@@ -85,6 +85,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..misc import touch_nonadmin
 
+    # An update may update conda itself, for example if the Python version changes.
+    # When this occurs, imports from the file system will fail because the file have been removed!
+    # If the module is in the cache the import will succeed.
+    # Import install here as it is used in print_result, this ensures the module is in the cache.
+    # See https://github.com/conda/conda/issues/13560 for more details.
+    from . import install
+
     spec = install_specs.detect(
         name=args.name,
         filename=get_filename(args.file),
