@@ -54,7 +54,7 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable, Literal
+    from typing import Callable, Iterable
 
     from pytest import MonkeyPatch
 
@@ -122,7 +122,7 @@ HDF5_VERSION = "1.12.1"
 
 
 @lru_cache(maxsize=None)
-def bash_unsupported() -> str | Literal[False]:
+def bash_unsupported() -> str | None:
     if not (bash := which("bash")):
         return "bash: was not found on PATH"
     elif on_win:
@@ -137,7 +137,7 @@ def bash_unsupported() -> str | Literal[False]:
                 output = check_output(f"{bash} --version")
                 if b"msys" not in output and b"cygwin" not in output:
                     return f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output!r}\n"
-    return False
+    return None
 
 
 skip_unsupported_bash = pytest.mark.skipif(
