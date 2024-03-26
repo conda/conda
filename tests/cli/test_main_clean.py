@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from logging import WARN
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -16,7 +17,7 @@ from conda.base.constants import (
 )
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
-from conda.gateways.logging import set_verbosity
+from conda.gateways.logging import set_log_level
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -331,7 +332,7 @@ def test_clean_all(
     assert not has_pkg(pkg, tars)
     assert not cache
 
-    set_verbosity(0)  # reset verbosity
+    set_log_level(WARN)  # reset verbosity
 
 
 # conda clean --all --verbose
@@ -371,7 +372,7 @@ def test_clean_all_mock_lstat(
         assert has_pkg(pkg, tars)
         assert cache
 
-    set_verbosity(0)  # reset verbosity
+    set_log_level(WARN)  # reset verbosity
 
 
 # _get_size unittest, valid file
