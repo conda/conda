@@ -19,7 +19,7 @@ The root logger is not used directly as a logging target, but it is used as a bu
 
 ### The `conda` subhierarchy
 
-The `conda` subhierarchy consists of all loggers whose name starts with `conda.` and it is mostly configured via the `conda` logger itself in :ref:`conda.gateways.logging:initialize_logging`.
+The `conda` subhierarchy consists of all loggers whose name starts with `conda.` and it is mostly configured via the `conda` logger itself in {func}`conda.gateways.logging.initialize_logging`.
 
 Additionally, the following five loggers are used when logging output is immediately destined for the console, regardless of any other logging configuration that may happen in Conda or in user code.
 - `conda.stdout`
@@ -34,3 +34,7 @@ Three more loggers are used in `conda`:
 - `progress.update`
 - `progress.stop`
 - `auxlib`
+
+## Open questions
+
+There are three other functions that use {func}`logging.getLogger` and hence might affect other loggers. They are {func}`conda.gateways.logging.set_file_logging` that is never used in the code base and the context managers {func}`conda.common.io.disable_logger` and {func}`conda.common.io.stderr_log_level`, which are only used in testing.
