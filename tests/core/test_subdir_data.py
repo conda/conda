@@ -23,7 +23,6 @@ from conda.gateways.repodata import (
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR
-from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
 
@@ -180,7 +179,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
             Channel._cache_.clear()
 
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    with ChannelCacheClear(), make_temp_env(), env_vars(
+    with ChannelCacheClear(), env_vars(
         {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):

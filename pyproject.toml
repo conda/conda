@@ -176,6 +176,11 @@ pythonpath = [
   # faking a test-plugin to test ImportError handling
   "tests/plugins/data/test-plugin",
 ]
+filterwarnings = [
+  # elevate conda's deprecated warning to an error
+  "error::PendingDeprecationWarning:conda",
+  "error::DeprecationWarning:conda",
+]
 
 [tool.vendoring]
 destination = "conda/_vendor/"
