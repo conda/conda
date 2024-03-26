@@ -1635,6 +1635,8 @@ def test_conda_pip_interop_pip_clobbers_conda(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
+    if "conda-forge" in context.channels:
+        pytest.skip("This test is too slow with conda-forge as default channel.")
     # 1. conda install old six
     # 2. pip install -U six
     # 3. conda list shows new six and deletes old conda record
@@ -1973,6 +1975,8 @@ def test_conda_pip_interop_compatible_release_operator(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
+    if "conda-forge" in context.channels:
+        pytest.skip("This test is too slow with conda-forge as default channel.")
     # Regression test for #7776
     # important to start the env with six 1.9.  That version forces an upgrade later in the test
     monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
@@ -2499,7 +2503,9 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "create",
             f"--prefix={tmp_path}",
             "--dry-run",
+            "--override-channels",
             "--channel=conda-forge",
+            "--channel=defaults",
             "python",
             "boost==1.82.0",
             "boost-cpp==1.82.0",
