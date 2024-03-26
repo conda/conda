@@ -64,6 +64,33 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
 
 .. _auto-update-conda:
 
+
+.. _channel-settings:
+
+``channel_settings``: Extra settings for individual channels
+------------------------------------------------------------
+
+With ``channel_settings``, it is possible to add extra configuration options
+for individual channels. This is currently used to register additional authentication
+handlers for conda via the :doc:`/dev-guide/plugins/auth_handlers` plugin hook, but may also
+accommodate more use cases in the future.
+
+Here is an example of how it may be defined provided there was an available authentication
+handler called, "test-auth-handler" registered via the aforementioned plugin hook:
+
+.. code-block:: yaml
+
+  channel_settings:
+     - channel: https://some.custom/channel
+       auth: test-auth-handler
+       user: my-user-account
+
+.. note::
+
+   Each entry in ``channel_settings`` needs to define the ``channel`` attribute so that
+   the configuration knows which channel these settings are associated with.
+
+
 ``auto_update_conda``: Update conda automatically
 -------------------------------------------------
 
