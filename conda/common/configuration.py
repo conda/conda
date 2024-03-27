@@ -21,6 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
+from functools import wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -1600,3 +1601,55 @@ class Configuration(metaclass=ConfigurationType):
 
     def get_descriptions(self):
         raise NotImplementedError()
+
+
+def unique_sequence_map(
+    *, unique_key: str, property_name: str, allowed_keys: set | None = None
+):
+    """
+    Used to validate properties on :class:`Configuration` subclasses defined as a
+    ``SequenceParameter(MapParameter())`` where the map contains a single key that
+    should be regarded as unique. This decorator will handle removing duplicates and
+    merging to a single sequence.
+    """
+
+    def inner_wrap(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            sequence_map = func(self, *args, **kwargs)
+            known_keys = set()
+            new_sequence_mapping = []
+
+            for mapping in sequence_map:
+                unique_key_value = mapping.get(unique_key)
+
+                if unique_key_value is None:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
+                        f"{unique_key} not present on mapping"
+                    )
+                    continue
+
+                if unique_key_value in known_keys:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; value '
+                        f"{unique_key_value} already present"
+                    )
+                    continue
+
+                if allowed_keys is not None and unique_key_value not in allowed_keys:
+                    log.error(
+                        f"Configuration: skipping {mapping} for \"{func.__name__}\"; value "
+                        f"{unique_key_value} not allowed; allowed values are: "
+                        f"{', '.join(allowed_keys)}"
+                    )
+                    continue
+
+                known_keys.add(unique_key_value)
+                new_sequence_mapping.append(mapping)
+
+            return tuple(new_sequence_mapping)
+
+        return wrapper
+
+    return inner_wrap
