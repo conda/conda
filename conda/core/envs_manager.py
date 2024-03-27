@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing conda environments."""
+
 from __future__ import annotations
 
 import os
@@ -183,8 +184,8 @@ def set_environment_no_site_packages(prefix: str, remove: bool = False) -> None:
 
     except OSError as exc:
         log.error(
-            f"Unable to edit \"{PYVENV_CONFIG}\" to set \"include-system-site-packages\""
-            f" to \"false\". Reason: {exc}"
+            f'Unable to edit "{PYVENV_CONFIG}" to set "include-system-site-packages"'
+            f' to "false". Reason: {exc}'
         )
 
 
@@ -196,15 +197,11 @@ def is_environment_no_python_user_packages(prefix: str) -> bool | None:
         path = Path(prefix, PYVENV_CONFIG)
 
         if path.exists():
-            lines = tuple(
-                filter(None, path.read_text().replace(" ", "").split("\n"))
-            )
+            lines = tuple(filter(None, path.read_text().replace(" ", "").split("\n")))
 
             return "include-system-site-packages=false" in lines
 
         return False
 
     except OSError as exc:
-        log.error(
-            f"Unable to read \"{PYVENV_CONFIG}\" for environment. Reason: {exc}"
-        )
+        log.error(f'Unable to read "{PYVENV_CONFIG}" for environment. Reason: {exc}')

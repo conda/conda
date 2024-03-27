@@ -18,10 +18,10 @@ from conda.common.path import expand, paths_equal
 from conda.core.envs_manager import (
     _clean_environments_txt,
     get_user_environments_txt_file,
+    is_environment_no_python_user_packages,
     list_all_known_prefixes,
     register_env,
     set_environment_no_site_packages,
-    is_environment_no_python_user_packages,
     unregister_env,
 )
 from conda.gateways.disk import mkdir_p
@@ -233,8 +233,8 @@ def test_set_environment_no_site_packages_error(mocker, tmpdir):
 
     assert log_mock.error.mock_calls == [
         mocker.call(
-            f"Unable to edit \"{PYVENV_CONFIG}\" to set \"include-system-site-packages\""
-            f" to \"false\". Reason: test"
+            f'Unable to edit "{PYVENV_CONFIG}" to set "include-system-site-packages"'
+            f' to "false". Reason: test'
         )
     ]
 
@@ -248,7 +248,7 @@ def test_is_environment_no_python_user_packages_is_true(tmpdir):
 
     result = is_environment_no_python_user_packages(tmpdir)
 
-    assert result == True
+    assert result
 
 
 def test_is_environment_no_python_user_packages_is_false(tmpdir):
@@ -257,7 +257,7 @@ def test_is_environment_no_python_user_packages_is_false(tmpdir):
     """
     result = is_environment_no_python_user_packages(tmpdir)
 
-    assert result == False
+    assert not result
 
 
 def test_is_environment_no_python_user_packages_is_none(mocker, tmpdir):

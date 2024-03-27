@@ -14,11 +14,9 @@ import sys
 from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
-from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from ..base.constants import PYVENV_CONFIG
 from ..core.envs_manager import is_environment_no_python_user_packages
 from ..deprecations import deprecated
 
@@ -250,7 +248,9 @@ def get_info_dict() -> dict[str, Any]:
         "default": context.solver == DEFAULT_SOLVER,
     }
 
-    no_python_user_packages = is_environment_no_python_user_packages(context.active_prefix)
+    no_python_user_packages = is_environment_no_python_user_packages(
+        context.active_prefix
+    )
 
     if no_python_user_packages:
         use_python_user = "no"
