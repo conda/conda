@@ -41,6 +41,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -1171,6 +1172,11 @@ class Context(Configuration):
         return info["flags"]
 
     @memoizedproperty
+    @unique_sequence_map(
+        unique_key="backend",
+        property_name="_reporters",
+        allowed_keys={"json", "stdlib"},
+    )
     def reporters(self) -> Sequence[Mapping[str, str]]:
         """
         Determine the value of reporters based on other settings and the ``self._reporters``
@@ -1195,15 +1201,8 @@ class Context(Configuration):
                 },
             )
 
-        # Remove duplicates based on ``backend``
-        flat_reporters = {
-            item.get("backend"): item
-            for item in self._reporters
-            if item.get("backend") is not None
-        }
-
         # Default setting when nothing else has been provided
-        if not flat_reporters:
+        if not self._reporters:
             return (
                 {
                     "backend": "stdlib",
@@ -1212,7 +1211,7 @@ class Context(Configuration):
                 },
             )
 
-        return tuple(item for key, item in flat_reporters.items())
+        return self._reporters
 
     @property
     def category_map(self):
