@@ -4,7 +4,7 @@
 
 from itertools import chain
 from logging import getLogger
-from typing import List, NoReturn, Optional, Dict
+from typing import List, NoReturn, Optional, Dict, Any, bool 
 
 from boltons.setutils import IndexedSet
 
