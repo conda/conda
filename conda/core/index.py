@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for fetching the current index."""
 
+from __future__ import annotations
+
 from itertools import chain
 from logging import getLogger
-from typing import List, NoReturn, Optional, Dict, Any, bool 
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -20,10 +22,14 @@ from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
 
+if TYPE_CHECKING:
+    from typing import Any
+
+
 log = getLogger(__name__)
 
 
-def check_allowlist(channel_urls: List[str]) -> NoReturn:
+def check_allowlist(channel_urls: list[str]) -> None:
     """
     Check if the given channel URLs are allowed by the context's allowlist.
 
@@ -47,22 +53,22 @@ LAST_CHANNEL_URLS = []
 
 @time_recorder("get_index")
 def get_index(
-    channel_urls: List[str] = (),
+    channel_urls: list[str] = (),
     prepend: bool = True,
-    platform: Optional[str] = None,
+    platform: str | None = None,
     use_local: bool = False,
     use_cache: bool = False,
-    unknown: Optional[bool] = None,
-    prefix: Optional[str] = None,
+    unknown: bool | None = None,
+    prefix: str | None = None,
     repodata_fn: str = context.repodata_fns[-1],
-) -> Dict:
+) -> dict:
     """
     Return the index of packages available on the channels
 
     If prepend=False, only the channels passed in as arguments are used.
     If platform=None, then the current platform is used.
     If prefix is supplied, then the packages installed in that prefix are added.
-    
+
     :param channel_urls: Channels to include in the index.
     :param prepend: If False, only the channels passed in are used.
     :param platform: Target platform for the index.
@@ -96,11 +102,11 @@ def get_index(
 
 
 def fetch_index(
-    channel_urls: List[str], 
-    use_cache: bool = False, 
-    index: Optional[Dict] = None, 
-    repodata_fn: str = context.repodata_fns[-1]
-) -> Dict:
+    channel_urls: list[str],
+    use_cache: bool = False,
+    index: dict | None = None,
+    repodata_fn: str = context.repodata_fns[-1],
+) -> dict:
     """
     Fetch the package index from the specified channels.
 
@@ -121,7 +127,7 @@ def fetch_index(
     return index
 
 
-def dist_str_in_index(index: Dict[Any, Any], dist_str: str) -> bool:
+def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     """
     Check if a distribution string matches any package in the index.
 
@@ -133,7 +139,7 @@ def dist_str_in_index(index: Dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-def _supplement_index_with_prefix(index: Dict[Any, Any], prefix: str) -> None:
+def _supplement_index_with_prefix(index: dict[Any, Any], prefix: str) -> None:
     """
     Supplement the given index with information from the specified environment prefix.
 
@@ -175,7 +181,7 @@ def _supplement_index_with_prefix(index: Dict[Any, Any], prefix: str) -> None:
             index[prefix_record] = prefix_record
 
 
-def _supplement_index_with_cache(index: Dict[Any, Any]) -> None:
+def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
     """
     Supplement the given index with packages from the cache.
 
@@ -191,7 +197,9 @@ def _supplement_index_with_cache(index: Dict[Any, Any]) -> None:
             index[pcrec] = pcrec
 
 
-def _make_virtual_package(name: str, version: Optional[str] = None, build_string: Optional[str] = None) -> PackageRecord:
+def _make_virtual_package(
+    name: str, version: str | None = None, build_string: str | None = None
+) -> PackageRecord:
     """
     Create a virtual package record.
 
@@ -213,7 +221,9 @@ def _make_virtual_package(name: str, version: Optional[str] = None, build_string
     )
 
 
-def _supplement_index_with_features(index: Dict[Any, Any], features: List[str] = []) -> None:
+def _supplement_index_with_features(
+    index: dict[Any, Any], features: list[str] = []
+) -> None:
     """
     Supplement the given index with virtual feature records.
 
@@ -225,12 +235,12 @@ def _supplement_index_with_features(index: Dict[Any, Any], features: List[str] =
         index[rec] = rec
 
 
-def _supplement_index_with_system(index: Dict[Any, Any]) -> None:
+def _supplement_index_with_system(index: dict[Any, Any]) -> None:
     """
     Loads and populates virtual package records from conda plugins
     and adds them to the provided index, unless there is a naming
     conflict.
-    
+
     :param index: The package index to supplement.
     """
     for package in context.plugin_manager.get_virtual_packages():
@@ -238,7 +248,7 @@ def _supplement_index_with_system(index: Dict[Any, Any]) -> None:
         index[rec] = rec
 
 
-def get_archspec_name() -> Optional[str]:
+def get_archspec_name() -> str | None:
     """
     Determine the architecture specification name for the current environment.
 
@@ -268,11 +278,11 @@ def get_archspec_name() -> Optional[str]:
 
 
 def calculate_channel_urls(
-    channel_urls: List[str] = (),
+    channel_urls: list[str] = (),
     prepend: bool = True,
-    platform: Optional[str] = None,
-    use_local: bool = False
-) -> List[str]:
+    platform: str | None = None,
+    use_local: bool = False,
+) -> list[str]:
     """
     Calculate the full list of channel URLs to use based on the given parameters.
 
@@ -291,14 +301,13 @@ def calculate_channel_urls(
     return all_channel_urls(channel_urls, subdirs=subdirs)
 
 
-
 def get_reduced_index(
-    prefix: Optional[str],
-    channels: List[str],
-    subdirs: List[str],
-    specs: List[MatchSpec],
+    prefix: str | None,
+    channels: list[str],
+    subdirs: list[str],
+    specs: list[MatchSpec],
     repodata_fn: str,
-) -> Dict:
+) -> dict:
     """
     Generate a reduced package index based on the given specifications.
 

@@ -1,0 +1,6 @@
+name: test_env
+channels:
+  - include-me
+  - test
+  - conda-forge
+prefix: C:\Users\natha\OneDrive\Desktop\conda\devenv\Windows\envs\devenv-3.10-c\envs\test_env
