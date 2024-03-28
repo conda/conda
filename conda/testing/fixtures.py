@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import warnings
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -94,7 +95,10 @@ def temp_package_cache(tmp_path_factory):
         yield pkgs_dir
 
 
-@pytest.fixture(params=["libmamba", "classic"])
+@pytest.fixture(
+    # allow CI to set the solver backends via the CONDA_TEST_SOLVERS env var
+    params=os.environ.get("CONDA_TEST_SOLVERS", "libmamba,classic").split(",")
+)
 def parametrized_solver_fixture(
     request: FixtureRequest,
     monkeypatch: MonkeyPatch,
