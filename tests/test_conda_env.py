@@ -11,8 +11,8 @@ import pytest
     "old_path, new_path",
     [
         ("conda_env.cli.common.base_env_name", "conda.base.constants.ROOT_ENV_NAME"),
-        ("conda_env.cli.common.print_result", "conda.env.env.print_result"),
-        ("conda_env.cli.common.get_filename", "conda.env.env.get_filename"),
+        ("conda_env.cli.common.print_result", "conda.env.env_util.print_result"),
+        ("conda_env.cli.common.get_filename", "conda.env.env_util.get_filename"),
         ("conda_env.cli.main.show_help_on_empty_command", None),
         ("conda_env.cli.main.create_parser", None),
         ("conda_env.cli.main.do_call", None),
