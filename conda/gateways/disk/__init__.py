@@ -33,7 +33,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
         sleep_time = ((2**n) + random.random()) * 0.1
         caller_frame = sys._getframe(1)
         log.log(
-                TRACE,
+            TRACE,
             "retrying %s/%s %s() in %g sec",
             basename(caller_frame.f_code.co_filename),
             caller_frame.f_lineno,

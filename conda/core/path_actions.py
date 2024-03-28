@@ -508,7 +508,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
             self.transaction_context["temp_dir"], str(uuid4())
         )
 
-        log.log(TRACE, "copying %s => %s", self.source_full_path, self.intermediate_path)
+        log.log(
+            TRACE, "copying %s => %s", self.source_full_path, self.intermediate_path
+        )
         create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
         make_writable(self.intermediate_path)
 
@@ -721,7 +723,9 @@ class CompileMultiPycAction(MultiPathAction):
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
-            log.log(TRACE, "reversing pyc creation %s", " ".join(self.target_full_paths))
+            log.log(
+                TRACE, "reversing pyc creation %s", " ".join(self.target_full_paths)
+            )
             for target_full_path in self.target_full_paths:
                 rm_rf(target_full_path)
 
@@ -962,7 +966,9 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         self._execute_successful = True
 
     def reverse(self):
-        log.log(TRACE, "reversing linked package record creation %s", self.target_full_path)
+        log.log(
+            TRACE, "reversing linked package record creation %s", self.target_full_path
+        )
         if self._execute_successful:
             PrefixData(self.target_prefix).remove(
                 self.package_info.repodata_record.name
@@ -1367,7 +1373,9 @@ class ExtractPackageAction(PathAction):
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache_data import PackageCacheData
 
-        log.log(TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path)
+        log.log(
+            TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
+        )
 
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)

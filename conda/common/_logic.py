@@ -590,7 +590,9 @@ class Clauses:
         nterms = len(coeffs)
         if nterms and coeffs[-1] > hi:
             nprune = sum(c > hi for c in coeffs)
-            log.log(TRACE, "Eliminating %d/%d terms for bound violation" % (nprune, nterms))
+            log.log(
+                TRACE, "Eliminating %d/%d terms for bound violation" % (nprune, nterms)
+            )
             nterms -= nprune
         else:
             nprune = 0

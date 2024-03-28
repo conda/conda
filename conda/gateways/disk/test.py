@@ -55,7 +55,9 @@ def hardlink_supported(source_file, dest_dir):
         if is_supported:
             log.log(TRACE, "hard link supported for %s => %s", source_file, dest_dir)
         else:
-            log.log(TRACE, "hard link IS NOT supported for %s => %s", source_file, dest_dir)
+            log.log(
+                TRACE, "hard link IS NOT supported for %s => %s", source_file, dest_dir
+            )
         return is_supported
     except OSError:
         log.log(TRACE, "hard link IS NOT supported for %s => %s", source_file, dest_dir)
