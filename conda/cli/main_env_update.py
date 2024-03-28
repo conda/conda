@@ -90,6 +90,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # If the module is in the cache the import will succeed.
     # Import install here as it is used in print_result, this ensures the module is in the cache.
     # See https://github.com/conda/conda/issues/13560 for more details.
+    from . import install  # noqa
 
     spec = install_specs.detect(
         name=args.name,
