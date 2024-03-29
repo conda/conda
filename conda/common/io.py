@@ -327,6 +327,17 @@ def attach_stderr_handler(
     formatter=None,
     filters=None,
 ):
+    """Attach a new `stderr` handler to the given logger and configure both.
+
+    This function creates a new StreamHandler that writes to `stderr` and attaches it
+    to the logger given by `logger_name` (which maybe `None`, in which case the root
+    logger is used). If the logger already has a handler by the name of `stderr`, it is
+    removed first.
+
+    This function also set the level of the given logger to `NOTSET` and its propagate
+    property according to the `propagate` argument. The given level is set **for the handler**,
+    not for the logger. The `formatter` argument can be used to set the formatter of the handler.
+    """
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
