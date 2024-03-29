@@ -193,10 +193,7 @@ def initialize_root_logger(level=ERROR):
 
 
 def set_conda_log_level(level=WARN):
-    conda_logger = getLogger("conda")
-    conda_logger.setLevel(logging.NOTSET)
     attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])
-    conda_logger.propagate = False
 
 
 def set_all_logger_level(level=DEBUG):
