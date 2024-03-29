@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add support for `conda env create -f environment.json`. (#12942)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document support for `conda env create -f environment.json`. (#12942)
+
+### Other
+
+* <news item>
