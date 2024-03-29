@@ -12,8 +12,8 @@ from ...exceptions import (
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 from .binstar import BinstarSpec
-from .requirements import RequirementsSpec
 from .env_file import EnvironmentFileSpec
+from .requirements import RequirementsSpec
 
 FileSpecTypes = Union[Type[EnvironmentFileSpec], Type[RequirementsSpec]]
 

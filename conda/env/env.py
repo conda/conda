@@ -188,7 +188,7 @@ def from_file(filename):
                 yamlstr = yamlb.decode("utf-16")
         return from_yaml(yamlstr, filename=filename)
     elif filename.endswith("json"):
-        with open(filename, "r", encoding="utf-8") as fp:
+        with open(filename, encoding="utf-8") as fp:
             envstr = fp.read()
         return from_json(envstr, filename=filename)
 
