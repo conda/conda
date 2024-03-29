@@ -360,8 +360,8 @@ def attach_stderr_handler(
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        min_level = min(logr.getEffectiveLevel(), level)
-        logr.setLevel(min_level)
+        if level < logr.getEffectiveLevel():
+            logr.setLevel(level)
         logr.propagate = propagate
 
 
