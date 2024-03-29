@@ -8,10 +8,22 @@ In this guide, we'll describe the loggers and handlers used in Conda, as well as
 Python logging uses loggers as the source of logging messages.
 These loggers are organized as a single hierarchy defined by names given to individual loggers, with one nameless root logger.
 Other logger names are given as dot separated strings, such that, for example, the logger named `a.b.c` has the parent `a.b`, which in turn has the parent `a`, which in turn has the root logger as its parent.
-Python programs are free to use any name for loggers they like, but often the name will bear a relationship to the Python entity that is using it, most commonly there will be a module level logger, which is called `__name__`.
+Python programs are free to use any name for loggers they like, but often the name will bear a relationship to the Python entity that is using it, most commonly there will be a module level logger, which is called `__name__`, i.e. `conda.{pkg}.{module}`, e.g. `conda.gateways.logging`.
 This approach naturally arranges loggers used in a single code base into a hierarchy that follows the package structure.
 
 Conda largely follows this approach, however, it also makes use of some additional loggers.
+
+```{mermaid}
+flowchart LR
+    root["{root}"] -.-> conda
+    conda --> modules["conda.{pkg}.{module}"]
+    conda -.-> conda.stdout --> conda.stdout.verbose
+    conda -.-> conda.stderr
+    conda -.-> conda.stdoutlog
+    conda -.-> conda.stderrlog
+    root --> auxlib
+    root --> progress.update & progress.stop
+```
 
 ### The root logger
 
