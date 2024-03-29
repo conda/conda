@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from logging import getLogger
 from os.path import join
 from pathlib import Path
@@ -22,7 +24,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.testing.helpers import CHANNEL_DIR
+from conda.testing.helpers import CHANNEL_DIR, CHANNEL_DIR_V2
 from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
@@ -208,6 +210,54 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
 
     with pytest.raises(CondaUpgradeError):
         SubdirDataRepodataTooNew(channel).load()
+
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+
+@pytest.mark.parametrize(
+    "creds",
+    (
+        pytest.param({"auth": None, "token": None}, id="no-credentials"),
+        pytest.param({"auth": "user:password", "token": None}, id="with-auth"),
+        pytest.param({"auth": None, "token": "123456abcdef"}, id="with-token"),
+    ),
+)
+def test_repodata_version_2_base_url(monkeypatch: pytest.MonkeyPatch, creds: dict[str, str], platform=OVERRIDE_PLATFORM):
+    channel = Channel(url_path(join(CHANNEL_DIR_V2, platform)))
+    channel_parts = channel.dump()
+    base_url = f"https://repo.anaconda.com/pkgs/main/{platform}"
+    if creds["auth"]:
+        channel_parts["auth"] = creds["auth"]
+        channel = Channel(**channel_parts)
+        base_url_w_creds = (
+            f"https://{creds['auth']}@repo.anaconda.com/pkgs/main/{platform}"
+        )
+    elif creds["token"]:
+        channel_parts["token"] = creds["token"]
+        channel = Channel(**channel_parts)
+        base_url_w_creds = (
+            f"https://repo.anaconda.com/t/{creds['token']}/pkgs/main/{platform}"
+        )
+    else:
+        base_url_w_creds = base_url
+
+    if creds["auth"] or creds["token"]:
+        # Patch fetcher so it doesn't try to use the fake auth
+        def _no_auth_repo(self):
+            return self.repo_interface_cls(
+                self.url_w_subdir,  # this is the patch
+                repodata_fn=self.repodata_fn,
+                cache=self.repo_cache,
+            )
+        monkeypatch.setattr(RepodataFetch, "_repo", property(_no_auth_repo))
+
+    # clear, to see our testing class
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+    subdir_data = SubdirData(channel).load()
+    assert subdir_data._base_url == base_url
+    for pkg in subdir_data.iter_records():
+        assert pkg.url.startswith(base_url_w_creds)
 
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
 

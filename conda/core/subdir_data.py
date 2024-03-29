@@ -26,7 +26,7 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
 from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
+from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 REPODATA_PICKLE_VERSION = 30
-MAX_REPODATA_VERSION = 1
+MAX_REPODATA_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
 
@@ -198,6 +198,9 @@ class SubdirData(metaclass=SubdirDataType):
         # disallow None (typing)
         self.url_w_subdir = self.channel.url(with_credentials=False) or ""
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
+        # these can be overriden by repodata.json v2
+        self._base_url = self.url_w_subdir
+        self._base_url_w_credentials = self.url_w_credentials
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self.RepoInterface = RepoInterface
@@ -274,13 +277,16 @@ class SubdirData(metaclass=SubdirDataType):
 
                     %s
 
-                (This version only supports repodata_version 1.)
+                (This version only supports repodata_version 1 and 2.)
                 Please update conda to use this channel.
                 """
                 )
                 % self.url_w_repodata_fn
             )
-
+        self._base_url = _internal_state.get("base_url", self.url_w_subdir)
+        self._base_url_w_credentials = _internal_state.get(
+            "base_url_w_credentials", self.url_w_credentials
+        )
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
@@ -424,6 +430,35 @@ class SubdirData(metaclass=SubdirDataType):
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
+        maybe_base_url = repodata.get("info", {}).get("base_url")
+        if maybe_base_url:
+            try:
+                base_url_parts = Channel(maybe_base_url).dump()
+            except ValueError as exc:
+                raise ChannelError(
+                    f"Subdir for {schannel} at url '{self.url_w_subdir}' has invalid 'base_url'"
+                ) from exc
+            if self.url_w_credentials != self.url_w_subdir:  # has credentials
+                # base_url should carry the same credentials as the original channel
+                channel_parts = self.channel.dump()
+                for key in "auth", "token":
+                    if base_url_parts.get(key):
+                        raise ChannelError(
+                            f"'{self.url_w_subdir}' has 'base_url' with credentials"
+                        )
+                    channel_creds = channel_parts.get(key)
+                    if channel_creds:
+                        base_url_parts[key] = channel_creds
+                base_url = maybe_base_url
+                base_url_w_credentials = Channel(**base_url_parts).url(
+                    with_credentials=True
+                )
+            else:
+                base_url = base_url_w_credentials = maybe_base_url
+        else:
+            base_url = self.url_w_subdir
+            base_url_w_credentials = self.url_w_credentials
+
         self._package_records = _package_records = PackageRecordList()
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
@@ -432,6 +467,8 @@ class SubdirData(metaclass=SubdirDataType):
             "channel": self.channel,
             "url_w_subdir": self.url_w_subdir,
             "url_w_credentials": self.url_w_credentials,
+            "base_url": base_url,
+            "base_url_w_credentials": base_url_w_credentials,
             "cache_path_base": self.cache_path_base,
             "fn": self.repodata_fn,
             "_package_records": _package_records,
@@ -454,7 +491,7 @@ class SubdirData(metaclass=SubdirDataType):
 
                     %s
 
-                (This version only supports repodata_version 1.)
+                (This version only supports repodata_version 1 and 2.)
                 Please update conda to use this channel.
                 """
                 )
@@ -469,7 +506,6 @@ class SubdirData(metaclass=SubdirDataType):
             "subdir": subdir,
         }
 
-        channel_url = self.url_w_credentials
         legacy_packages = repodata.get("packages", {})
         conda_packages = (
             {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
@@ -510,7 +546,7 @@ class SubdirData(metaclass=SubdirDataType):
                 # lazy
                 # package_record = PackageRecord(**info)
                 info["fn"] = fn
-                info["url"] = join_url(channel_url, fn)
+                info["url"] = join_url(base_url_w_credentials, fn)
                 _package_records.append(info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)
