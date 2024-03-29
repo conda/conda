@@ -27,6 +27,8 @@ flowchart LR
     root --> progress.update & progress.stop
 ```
 
+The full hierarchy of all module level loggers is given below at {ref}`full-module-loggers`.
+
 ### The root logger
 
 The root logger is not used directly as a logging target, but it is used as a building block in the configuration of the logging system.
@@ -49,6 +51,27 @@ Three more loggers are used in `conda`:
 - `progress.stop`
 - `auxlib`
 
+## Handlers
+
+### Auxlib
+
+The `'auxlib'` logger get's a {class}`conda.auxlib.NullHandler`.
+
 ## Open questions
 
+### Potential affect of other loggers
+
 There are three other functions that use {func}`logging.getLogger` and hence might affect other loggers. They are {func}`conda.gateways.logging.set_file_logging` that is never used in the code base and the context managers {func}`conda.common.io.disable_logger` and {func}`conda.common.io.stderr_log_level`, which are only used in testing.
+
+### Root logger in auxlib
+
+In {module}`conda.auxlib.logz`, the root logger is modified.
+
+(full-module-loggers)=
+## Full module level logger hierarchy
+
+```{mermaid} loggers.mmd
+:caption: All loggers used in the `conda` package and its subpackages.
+:zoom:
+
+```
