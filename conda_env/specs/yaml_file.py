@@ -7,5 +7,6 @@ Define YAML spec.
 
 from conda.deprecations import deprecated
 from conda.env.specs.env_file import EnvironmentFileSpec  # noqa
+from conda.env.specs.env_file import EnvironmentFileSpec as YamlFileSpec  # noqa
 
 deprecated.module("24.9", "25.3", addendum="Use `conda.env.specs.env_file` instead.")

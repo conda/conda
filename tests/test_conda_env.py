@@ -134,8 +134,8 @@ import pytest
             "conda.env.specs.requirements.RequirementsSpec",
         ),
         (
-            "conda_env.specs.yaml_file.EnvironmentFileSpec",
-            "conda.env.specs.yaml_file.EnvironmentFileSpec",
+            "conda_env.specs.yaml_file.YamlFileSpec",
+            "conda.env.specs.env_file.EnvironmentFileSpec",
         ),
     ],
 )
