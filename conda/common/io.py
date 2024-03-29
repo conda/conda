@@ -16,7 +16,7 @@ from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
 from itertools import cycle
-from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
@@ -334,9 +334,12 @@ def attach_stderr_handler(
     logger is used). If the logger already has a handler by the name of `stderr`, it is
     removed first.
 
-    This function also set the level of the given logger to `NOTSET` and its propagate
-    property according to the `propagate` argument. The given level is set **for the handler**,
-    not for the logger. The `formatter` argument can be used to set the formatter of the handler.
+    The given `level` is set **for the handler**, not for the logger; however, this
+    function also sets the level of the given logger to the minimum of its current
+    effective level and the new handler level, ensuring that the handler will receive the
+    required log records, while minimizing the number of unnecessary log events. It also
+    sets the loggers `propagate` property according to the `propagate` argument.
+    The `formatter` argument can be used to set the formatter of the handler.
     """
     # get old stderr logger
     logr = getLogger(logger_name)
@@ -357,7 +360,8 @@ def attach_stderr_handler(
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(NOTSET)
+        min_level = min(logr.getEffectiveLevel(), level)
+        logr.setLevel(min_level)
         logr.propagate = propagate
 
 
