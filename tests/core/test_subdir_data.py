@@ -222,7 +222,9 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
         pytest.param({"auth": None, "token": "123456abcdef"}, id="with-token"),
     ),
 )
-def test_repodata_version_2_base_url(monkeypatch: pytest.MonkeyPatch, creds: dict[str, str], platform=OVERRIDE_PLATFORM):
+def test_repodata_version_2_base_url(
+    monkeypatch: pytest.MonkeyPatch, creds: dict[str, str], platform=OVERRIDE_PLATFORM
+):
     channel = Channel(url_path(join(CHANNEL_DIR_V2, platform)))
     channel_parts = channel.dump()
     base_url = f"https://repo.anaconda.com/pkgs/main/{platform}"
@@ -249,6 +251,7 @@ def test_repodata_version_2_base_url(monkeypatch: pytest.MonkeyPatch, creds: dic
                 repodata_fn=self.repodata_fn,
                 cache=self.repo_cache,
             )
+
         monkeypatch.setattr(RepodataFetch, "_repo", property(_no_auth_repo))
 
     # clear, to see our testing class
