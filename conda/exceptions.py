@@ -1173,7 +1173,7 @@ class EnvironmentFileNotFound(CondaEnvException):
 
 class EnvironmentFileExtensionNotValid(CondaEnvException):
     def __init__(self, filename, *args, **kwargs):
-        msg = f"'{filename}' file extension must be one of '.txt', '.yaml' or '.yml'"
+        msg = f"'{filename}' file extension must be one of '.txt', '.json', '.yaml' or '.yml'"
         self.filename = filename
         super().__init__(msg, *args, **kwargs)
 

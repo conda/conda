@@ -97,8 +97,8 @@ use the ``--no-default-packages`` flag:
 
 .. _create-env-from-file:
 
-Creating an environment from an environment.yml file
-====================================================
+Creating an environment from an environment file
+================================================
 
 Use the terminal for the following steps:
 
@@ -123,6 +123,11 @@ Use the terminal for the following steps:
 
    You can also use ``conda info --envs``.
 
+
+.. note::
+
+   You can also use the ``json`` data format to describe the environment and
+   then use ``conda env create -f environment.json`` to create the environment.
 
 .. _specifying-location:
 
@@ -754,6 +759,10 @@ Exporting the environment.yml file
 
 #. Email or copy the exported ``environment.yml`` file to the
    other person.
+
+.. note::
+   To export the environment in ``json`` format use
+   ``conda env export --json > environment.json``
 
 .. _export-platform:
 

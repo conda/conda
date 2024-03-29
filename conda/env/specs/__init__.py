@@ -13,9 +13,9 @@ from ...exceptions import (
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 from .binstar import BinstarSpec
 from .requirements import RequirementsSpec
-from .yaml_file import YamlFileSpec
+from .env_file import EnvironmentFileSpec
 
-FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+FileSpecTypes = Union[Type[EnvironmentFileSpec], Type[RequirementsSpec]]
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
@@ -25,7 +25,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
     # Check extensions
-    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    all_valid_exts = EnvironmentFileSpec.extensions.union(RequirementsSpec.extensions)
     _, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
@@ -35,15 +35,15 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     if file_exists:
         if ext == "" or ext not in all_valid_exts:
             raise EnvironmentFileExtensionNotValid(filename)
-        elif ext in YamlFileSpec.extensions:
-            return YamlFileSpec
+        elif ext in EnvironmentFileSpec.extensions:
+            return EnvironmentFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
     else:
         raise EnvironmentFileNotFound(filename=filename)
 
 
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
+SpecTypes = Union[BinstarSpec, EnvironmentFileSpec, RequirementsSpec]
 
 
 def detect(

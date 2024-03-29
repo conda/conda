@@ -53,6 +53,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             conda env create -n envname
             conda env create folder/envname
             conda env create -f /path/to/environment.yml
+            conda env create -f /path/to/environment.json
             conda env create -f /path/to/requirements.txt -n envname
             conda env create -f /path/to/requirements.txt -p /home/user/envname
 

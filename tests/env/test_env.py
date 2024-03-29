@@ -43,6 +43,10 @@ def get_simple_environment():
     return get_environment("simple.yml")
 
 
+def get_simple_environment_json():
+    return get_environment("simple.json")
+
+
 def get_valid_keys_environment():
     return get_environment("valid_keys.yml")
 
@@ -59,6 +63,11 @@ def test_returns_Environment():
 def test_retains_full_filename():
     e = get_simple_environment()
     assert support_file("simple.yml") == e.filename
+
+
+def test_retains_full_filename_json():
+    e = get_simple_environment_json()
+    assert support_file("simple.json") == e.filename
 
 
 def test_with_pip():
@@ -85,6 +94,15 @@ def test_http():
         "https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml"
     )
     assert e.dependencies == f.dependencies
+    assert e.dependencies == f.dependencies
+
+
+@pytest.mark.integration
+def test_http_json():
+    e = get_simple_environment_json()
+    f = from_file(
+        "https://raw.githubusercontent.com/swaldhoer/conda/gh-12942/tests/env/support/simple.json"
+    )
     assert e.dependencies == f.dependencies
 
 

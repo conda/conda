@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Environment object describing the conda environment.yaml file."""
+"""Environment object describing the conda environment.<json/yaml> file."""
 
 import json
 import os
@@ -137,6 +137,16 @@ def from_environment(
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml`` string"""
     data = yaml_safe_load(yamlstr)
+    return validated_env(data, **kwargs)
+
+
+def from_json(jsonstr, **kwargs):
+    """Load and return a ``Environment`` from a given ``json`` string"""
+    data = json.loads(jsonstr)
+    return validated_env(data, **kwargs)
+
+
+def validated_env(data, **kwargs):
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
@@ -160,17 +170,27 @@ def from_file(filename):
     """Load and return an ``Environment`` from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
-        yamlstr = download_text(filename)
+        envstr = download_text(filename)
+        if filename.endswith((".yaml", ".yml")):
+            return from_yaml(envstr, filename=filename)
+        elif filename.endswith("json"):
+            return from_json(envstr, filename=filename)
+        else:
+            raise TypeError
     elif not os.path.exists(filename):
         raise EnvironmentFileNotFound(filename)
-    else:
+    elif filename.endswith((".yaml", ".yml")):
         with open(filename, "rb") as fp:
             yamlb = fp.read()
             try:
                 yamlstr = yamlb.decode("utf-8")
             except UnicodeDecodeError:
                 yamlstr = yamlb.decode("utf-16")
-    return from_yaml(yamlstr, filename=filename)
+        return from_yaml(yamlstr, filename=filename)
+    elif filename.endswith("json"):
+        with open(filename, "r", encoding="utf-8") as fp:
+            envstr = fp.read()
+        return from_json(envstr, filename=filename)
 
 
 class Dependencies(dict):

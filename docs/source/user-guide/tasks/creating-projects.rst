@@ -7,6 +7,12 @@ using an ``environment.yml`` file. This file will help you keep track of your
 dependencies and share your project with others. We cover how to create your
 project, add a simple Python program and update it with new dependencies.
 
+.. note::
+   Instead of using a ``environment.yml`` file you can also use
+   ``environment.json`` file.
+   It works in the same way as the ``environment.yml`` file, i.e., it uses the
+   same keys, but instead of the yaml data format, it is uses json.
+
 Requirements
 ============
 
