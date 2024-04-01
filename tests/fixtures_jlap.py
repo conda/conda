@@ -18,7 +18,7 @@ from pathlib import Path
 
 import flask
 import pytest
-from werkzeug.serving import WSGIRequestHandler, generate_adhoc_ssl_context, make_server
+from werkzeug.serving import WSGIRequestHandler, load_ssl_context, make_server
 
 app = flask.Flask(__name__)
 
@@ -66,7 +66,10 @@ def make_server_with_socket(socket: socket.socket, base_: Path = base, ssl=False
 
     if ssl:
         # openssl may fail when mixing defaults + conda-forge
-        ssl_context = generate_adhoc_ssl_context()
+        cert = Path(__file__).parent / "adhoc"
+        ssl_context = load_ssl_context(
+            str(cert.with_suffix(".crt")), str(cert.with_suffix(".key"))
+        )
 
     server = make_server(
         "127.0.0.1",
