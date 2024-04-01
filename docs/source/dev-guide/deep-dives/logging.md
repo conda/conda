@@ -75,7 +75,7 @@ The `'auxlib'` logger get's a {class}`conda.auxlib.NullHandler`.
 
 ## Open questions
 
-### Potential affect of other loggers
+### Potential effect on other loggers
 
 There are three other functions that use {func}`logging.getLogger` and hence might affect other loggers. They are {func}`conda.gateways.logging.set_file_logging` that is never used in the code base and the context managers {func}`conda.common.io.disable_logger` and {func}`conda.common.io.stderr_log_level`, which are only used in testing.
 
