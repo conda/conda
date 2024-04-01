@@ -37,12 +37,28 @@ The root logger is not used directly as a logging target, but it is used as a bu
 
 The `conda` subhierarchy consists of all loggers whose name starts with `conda.` and it is mostly configured via the `conda` logger itself in {func}`conda.gateways.logging.initialize_logging`.
 
-Additionally, the following five loggers are used when logging output is immediately destined for the console, regardless of any other logging configuration that may happen in Conda or in user code.
+Additionally, the following five loggers are used for other output.
+These are likely to be replaced and should not be used in new code.
 - `conda.stdout`
+  - conda/exceptions.py:1255 -> print_conda_exception
+  - conda/cli/common.py:201 -> stdout_json
+  - conda/cli/main_config.py:322 -> print_config_item
+  - conda/cli/main_config.py:365 -> execute_config
 - `conda.stderr`
+  - conda/exceptions.py:1255 -> print_conda_exception
+  - conda/exceptions.py:1261 -> print_conda_exception
+  - conda/cli/main_config.py:366 -> execute_config
+  - conda/cli/install.py:53 -> check_prefix
+  - conda/exception_handler.py:29 -> ExceptionHandler.write_out
 - `conda.stdoutlog`
+  - conda/resolve.py:47 -> Resolve.solve
+  - conda/gateways/disk/create.py:79 -> make_menu (exception reporting)
 - `conda.stderrlog`
+  - conda/gateways/connection/adapters/s3.py:20 -> S3Adapter.send (reporting of import boto3 error)
+  - conda/gateways/repodata/jlap/interface.py:50 -> Not used
+  - conda/gateways/repodata/__init__.py:58 -> conda_http_errors
 - `conda.stdout.verbose`
+  - conda/instructions.py:50 -> PRINT_CMD
 
 ### Other loggers
 
