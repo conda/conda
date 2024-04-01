@@ -66,12 +66,3 @@ There are three other functions that use {func}`logging.getLogger` and hence mig
 ### Root logger in auxlib
 
 In {module}`conda.auxlib.logz`, the root logger is modified.
-
-(full-module-loggers)=
-## Full module level logger hierarchy
-
-```{mermaid} loggers.mmd
-:caption: All loggers used in the `conda` package and its subpackages.
-:zoom:
-
-```
