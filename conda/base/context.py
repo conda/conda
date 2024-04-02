@@ -76,7 +76,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal, Sequence
+    from typing import Literal
 
     from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
@@ -1177,7 +1177,7 @@ class Context(Configuration):
         property_name="_reporters",
         allowed_keys={"json", "stdlib"},
     )
-    def reporters(self) -> Sequence[Mapping[str, str]]:
+    def reporters(self) -> tuple[Mapping[str, str]]:
         """
         Determine the value of reporters based on other settings and the ``self._reporters``
         value itself.
