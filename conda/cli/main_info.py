@@ -406,7 +406,7 @@ def display_manager(args, context, info_dict):
         for option in options:
             setattr(args, option, True)
 
-    def rich_display(info_dict, args):
+    def rich_display(info_dict):
         table = Table(
             title="conda info", show_header=False, show_lines=True, style="black"
         )
@@ -419,13 +419,11 @@ def display_manager(args, context, info_dict):
         console = Console()
         console.print(table)
 
-    def std_display(info_dict, args):
+    def std_display(info_dict):
         if args.base:
             print(f"{context.root_prefix}")
-
         if args.unsafe_channels:
             print("\n".join(context.channels))
-
         if args.system:
             from .find_commands import find_commands, find_executable
 
@@ -448,14 +446,13 @@ def display_manager(args, context, info_dict):
             for name, value in sorted(info_dict["env_vars"].items()):
                 print(f"{name}: {value}")
             print()
-
-        if context.verbose or all(not getattr(args, opt) for opt in options):
+        elif context.verbose or all(not getattr(args, opt) for opt in options):
             output_string = "\n".join(
                 ("", *(f"{key:>23} : {value}" for key, value in builder(info_dict)), "")
             )
             print(output_string)
 
-    def json_display(info_dict, args):
+    def json_display(info_dict):
         from .common import stdout_json
 
         if args.base:
@@ -467,11 +464,11 @@ def display_manager(args, context, info_dict):
         stdout_json(info_dict)
 
     if context.json:
-        json_display(info_dict, args)
+        json_display(info_dict)
     elif context.rich:
-        rich_display(info_dict, args)
+        rich_display(info_dict)
     else:
-        std_display(info_dict, args)
+        std_display(info_dict)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
