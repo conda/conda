@@ -351,61 +351,62 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict: dict[str, Any], context):
-    """
-    Returns a printable string of the contents of ``info_dict``.
+def flatten(lines: Iterable[str]) -> str:
+    return ("\n" + 26 * " ").join(map(str, lines))
 
-    :param info_dict:  The output of ``get_info_dict()``.
-    :returns:  String to print.
-    """
 
-    from ..common.compat import on_win
+from ..common.compat import on_win
 
-    def flatten(lines: Iterable[str]) -> str:
-        return ("\n" + 26 * " ").join(map(str, lines))
 
-    def builder():
-        if info_dict["active_prefix_name"]:
-            yield ("active environment", info_dict["active_prefix_name"])
-            yield ("active env location", info_dict["active_prefix"])
-        else:
-            yield ("active environment", info_dict["active_prefix"])
+def builder(info_dict: dict[str, Any]):
+    if info_dict["active_prefix_name"]:
+        yield ("active environment", info_dict["active_prefix_name"])
+        yield ("active env location", info_dict["active_prefix"])
+    else:
+        yield ("active environment", info_dict["active_prefix"])
 
-        if info_dict["conda_shlvl"] >= 0:
-            yield ("shell level", info_dict["conda_shlvl"])
+    if info_dict["conda_shlvl"] >= 0:
+        yield ("shell level", info_dict["conda_shlvl"])
 
-        yield ("user config file", info_dict["user_rc_path"])
-        yield ("populated config files", flatten(info_dict["config_files"]))
-        yield ("conda version", info_dict["conda_version"])
-        yield ("conda-build version", info_dict["conda_build_version"])
-        yield ("python version", info_dict["python_version"])
-        yield (
-            "solver",
-            f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}",
-        )
-        yield (
-            "virtual packages",
-            flatten("=".join(pkg) for pkg in info_dict["virtual_pkgs"]),
-        )
-        writable = "writable" if info_dict["root_writable"] else "read only"
-        yield ("base environment", f"{info_dict['root_prefix']}  ({writable})")
-        yield ("conda av data dir", info_dict["av_data_dir"])
-        yield ("conda av metadata url", info_dict["av_metadata_url_base"])
-        yield ("channel URLs", flatten(info_dict["channels"]))
-        yield ("package cache", flatten(info_dict["pkgs_dirs"]))
-        yield ("envs directories", flatten(info_dict["envs_dirs"]))
-        yield ("platform", info_dict["platform"])
-        yield ("user-agent", info_dict["user_agent"])
+    yield ("user config file", info_dict["user_rc_path"])
+    yield ("populated config files", flatten(info_dict["config_files"]))
+    yield ("conda version", info_dict["conda_version"])
+    yield ("conda-build version", info_dict["conda_build_version"])
+    yield ("python version", info_dict["python_version"])
+    yield (
+        "solver",
+        f"{info_dict['solver']['name']}{' (default)' if info_dict['solver']['default'] else ''}",
+    )
+    yield (
+        "virtual packages",
+        flatten("=".join(pkg) for pkg in info_dict["virtual_pkgs"]),
+    )
+    writable = "writable" if info_dict["root_writable"] else "read only"
+    yield ("base environment", f"{info_dict['root_prefix']}  ({writable})")
+    yield ("conda av data dir", info_dict["av_data_dir"])
+    yield ("conda av metadata url", info_dict["av_metadata_url_base"])
+    yield ("channel URLs", flatten(info_dict["channels"]))
+    yield ("package cache", flatten(info_dict["pkgs_dirs"]))
+    yield ("envs directories", flatten(info_dict["envs_dirs"]))
+    yield ("platform", info_dict["platform"])
+    yield ("user-agent", info_dict["user_agent"])
 
-        if on_win:
-            yield ("administrator", info_dict["is_windows_admin"])
-        else:
-            yield ("UID:GID", f"{info_dict['UID']}:{info_dict['GID']}")
+    if on_win:
+        yield ("administrator", info_dict["is_windows_admin"])
+    else:
+        yield ("UID:GID", f"{info_dict['UID']}:{info_dict['GID']}")
 
-        yield ("netrc file", info_dict["netrc_file"])
-        yield ("offline mode", info_dict["offline"])
+    yield ("netrc file", info_dict["netrc_file"])
+    yield ("offline mode", info_dict["offline"])
 
-    if context.rich:
+
+def display_manager(args, context, info_dict):
+    options = "envs", "system"
+    if context.verbose or context.json:
+        for option in options:
+            setattr(args, option, True)
+
+    def rich_display(info_dict, args):
         table = Table(
             title="conda info", show_header=False, show_lines=True, style="black"
         )
@@ -413,67 +414,19 @@ def get_main_info_str(info_dict: dict[str, Any], context):
         table.add_column("", no_wrap=False)
         table.add_column("", no_wrap=False)
 
-        for k, v in builder():
+        for k, v in builder(info_dict):
             table.add_row(str(k), str(v))
         console = Console()
         console.print(table)
-    else:
-        output_string = "\n".join(
-            ("", *(f"{key:>23} : {value}" for key, value in builder()), "")
-        )
-        print(output_string)
 
-
-def execute(args: Namespace, parser: ArgumentParser) -> int:
-    """
-    Implements ``conda info`` commands.
-
-     * ``conda info``
-     * ``conda info --base``
-     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
-     * ``conda info --unsafe-channels``
-     * ``conda info --envs`` (deprecated) (no ``--json``)
-     * ``conda info --system`` (deprecated) (no ``--json``)
-    """
-
-    from .common import print_envs_list, stdout_json
-
-    if args.base:
-        if context.json:
-            stdout_json({"root_prefix": context.root_prefix})
-        else:
+    def std_display(info_dict, args):
+        if args.base:
             print(f"{context.root_prefix}")
-        return 0
 
-    if args.unsafe_channels:
-        if not context.json:
+        if args.unsafe_channels:
             print("\n".join(context.channels))
-        else:
-            print(json.dumps({"channels": context.channels}))
-        return 0
 
-    options = "envs", "system"
-
-    if context.verbose or context.json:
-        for option in options:
-            setattr(args, option, True)
-    info_dict = get_info_dict()
-
-    if (
-        context.verbose or all(not getattr(args, opt) for opt in options)
-    ) and not context.json:
-        # print(get_main_info_str(info_dict) + "\n")
-        get_main_info_str(info_dict, context)
-        print("\n")
-
-    if args.envs:
-        from ..core.envs_manager import list_all_known_prefixes
-
-        info_dict["envs"] = list_all_known_prefixes()
-        print_envs_list(info_dict["envs"], not context.json)
-
-    if args.system:
-        if not context.json:
+        if args.system:
             from .find_commands import find_commands, find_executable
 
             print("sys.version: %s..." % (sys.version[:40]))
@@ -496,6 +449,43 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 print(f"{name}: {value}")
             print()
 
-    if context.json:
+        if context.verbose or all(not getattr(args, opt) for opt in options):
+            output_string = "\n".join(
+                ("", *(f"{key:>23} : {value}" for key, value in builder(info_dict)), "")
+            )
+            print(output_string)
+
+    def json_display(info_dict, args):
+        from .common import stdout_json
+
+        if args.base:
+            stdout_json({"root_prefix": context.root_prefix})
+
+        if args.unsafe_channels:
+            print(json.dumps({"channels": context.channels}))
+
         stdout_json(info_dict)
+
+    if context.json:
+        json_display(info_dict, args)
+    elif context.rich:
+        rich_display(info_dict, args)
+    else:
+        std_display(info_dict, args)
+
+
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    """
+    Implements ``conda info`` commands.
+
+     * ``conda info``
+     * ``conda info --base``
+     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
+     * ``conda info --unsafe-channels``
+     * ``conda info --envs`` (deprecated) (no ``--json``)
+     * ``conda info --system`` (deprecated) (no ``--json``)
+    """
+    info_dict = get_info_dict()
+    display_manager(args, context, info_dict)
+
     return 0
