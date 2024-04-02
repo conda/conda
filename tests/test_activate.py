@@ -111,41 +111,35 @@ HDF5_VERSION = "1.12.1"
 
 
 @lru_cache(maxsize=None)
-def bash_unsupported_because():
-    bash = which("bash")
-    reason = ""
-    if not bash:
-        reason = "bash: was not found on PATH"
+def bash_unsupported() -> str | None:
+    if not (bash := which("bash")):
+        return "bash: was not found on PATH"
     elif on_win:
         try:
-            output = check_output(bash + " -c " + '"uname -v"')
+            output = check_output(f'{bash} -c "uname -v"')
         except CalledProcessError as exc:
-            reason = f"bash: something went wrong while running bash, output:\n{exc.output}\n"
+            return f"bash: something went wrong while running bash, output:\n{exc.output}\n"
         else:
             if b"Microsoft" in output:
-                reason = "bash: WSL is not yet supported. Pull requests welcome."
+                return "bash: WSL is not yet supported. Pull requests welcome."
             else:
-                output = check_output(bash + " --version")
+                output = check_output(f"{bash} --version")
                 if b"msys" not in output and b"cygwin" not in output:
-                    reason = f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output}\n"
-    return reason
+                    return f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output!r}\n"
+    return None
 
 
-def bash_unsupported():
-    return True if bash_unsupported_because() else False
-
-
-def bash_unsupported_win_because():
-    if on_win:
-        return (
-            "You are using Windows. These tests involve setting PATH to POSIX values\n"
-            "but our Python is a Windows program and Windows doesn't understand POSIX values."
-        )
-    return bash_unsupported_because()
-
-
-def bash_unsupported_win():
-    return True if bash_unsupported_win_because() else False
+skip_unsupported_bash = pytest.mark.skipif(
+    bash_unsupported(),
+    reason=bash_unsupported() or "bash: supported!",
+)
+skip_unsupported_posix_path = pytest.mark.skipif(
+    on_win,
+    reason=(
+        "You are using Windows. These tests involve setting PATH to POSIX values\n"
+        "but our Python is a Windows program and Windows doesn't understand POSIX values."
+    ),
+)
 
 
 # a unique prompt (makes it easy to know that our values are showing up correctly)
@@ -520,7 +514,7 @@ def test_build_activate_shlvl_0(monkeypatch: MonkeyPatch):
         assert builder["deactivate_scripts"] == ()
 
 
-@pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
+@skip_unsupported_posix_path
 def test_build_activate_shlvl_1(monkeypatch: MonkeyPatch):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
@@ -613,7 +607,7 @@ def test_build_activate_shlvl_1(monkeypatch: MonkeyPatch):
         assert builder["deactivate_scripts"] == ()
 
 
-@pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
+@skip_unsupported_posix_path
 def test_build_stack_shlvl_1(monkeypatch: MonkeyPatch):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
@@ -744,7 +738,7 @@ def test_activate_same_environment(monkeypatch: MonkeyPatch):
         )
 
 
-@pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
+@skip_unsupported_posix_path
 def test_build_deactivate_shlvl_2_from_stack(monkeypatch: MonkeyPatch):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
@@ -843,7 +837,7 @@ def test_build_deactivate_shlvl_2_from_stack(monkeypatch: MonkeyPatch):
         )
 
 
-@pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
+@skip_unsupported_posix_path
 def test_build_deactivate_shlvl_2_from_activate(monkeypatch: MonkeyPatch):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
@@ -1016,7 +1010,7 @@ def test_get_env_vars_empty_file(reset_environ: None):
         assert env_vars == {}
 
 
-@pytest.mark.skipif(bash_unsupported_win(), reason=bash_unsupported_win_because())
+@skip_unsupported_posix_path
 def test_build_activate_restore_unset_env_vars(monkeypatch: MonkeyPatch):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
@@ -2577,9 +2571,7 @@ def basic_csh(shell, prefix, prefix2, prefix3):
             "bash",
             basic_posix,
             marks=[
-                pytest.mark.skipif(
-                    bash_unsupported(), reason=bash_unsupported_because()
-                ),
+                skip_unsupported_bash,
                 pytest.mark.skipif(
                     on_win, reason="Temporary skip, larger refactor necessary"
                 ),
@@ -2828,7 +2820,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+@skip_unsupported_bash
 @pytest.mark.skipif(on_win, reason="Temporary skip, larger refactor necessary")
 @pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
@@ -2866,7 +2858,7 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
         shell.expect("usage: conda activate")
 
 
-@pytest.mark.skipif(bash_unsupported(), reason=bash_unsupported_because())
+@skip_unsupported_bash
 @pytest.mark.integration
 def test_legacy_activate_deactivate_bash(
     shell_wrapper_integration: tuple[str, str, str],
@@ -2975,9 +2967,7 @@ def prefix():
     [
         pytest.param(
             "bash",
-            marks=pytest.mark.skipif(
-                bash_unsupported(), reason=bash_unsupported_because()
-            ),
+            marks=skip_unsupported_bash,
         ),
         pytest.param(
             "cmd.exe",

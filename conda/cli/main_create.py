@@ -5,11 +5,18 @@
 Creates new conda environments with the specified packages.
 """
 
-from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
+from __future__ import annotations
+
+from argparse import _StoreTrueAction
 from logging import getLogger
 from os.path import isdir
+from typing import TYPE_CHECKING
 
+from ..deprecations import deprecated
 from ..notices import notices
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 log = getLogger(__name__)
 
@@ -70,8 +77,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-m",
         "--mkdir",
-        action="store_true",
-        help=SUPPRESS,
+        action=deprecated.action(
+            "24.9",
+            "25.3",
+            _StoreTrueAction,
+            addendum="Redundant argument.",
+        ),
     )
     p.add_argument(
         "--dev",
