@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for modifying existing files or directories."""
+
 from __future__ import annotations
 
 import os
@@ -79,10 +80,8 @@ def rename(source_path, destination_path, force=False):
                     stdout, stderr = p.communicate()
                 else:
                     log.debug(
-                        "{} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo.".format(
-                            rename_script
-                        )
+                        f"{rename_script} is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo."
                     )
             elif e.errno in (EINVAL, EXDEV, EPERM):
                 # https://github.com/conda/conda/issues/6811

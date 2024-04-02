@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Conda command line interface parsers."""
+
 from __future__ import annotations
 
 import argparse

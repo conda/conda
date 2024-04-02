@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for modifying file and directory permissions."""
+
 from errno import EACCES, ENOENT, EPERM, EROFS
 from itertools import chain
 from logging import getLogger

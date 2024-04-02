@@ -5,6 +5,7 @@
 The context aggregates all configuration files, environment variables, and command line arguments
 into one global stateful object to be used across all of conda.
 """
+
 from __future__ import annotations
 
 import logging
@@ -1171,6 +1172,7 @@ class Context(Configuration):
             "Channel Configuration": (
                 "channels",
                 "channel_alias",
+                "channel_settings",
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
@@ -1272,7 +1274,6 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
-                "channel_settings",
                 "debug",
                 "trace",
                 "dev",

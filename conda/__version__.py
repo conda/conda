@@ -6,6 +6,7 @@ The logic here is used during development installs only so keep it simple. Since
 abides by CEP-8, which outlines using CalVer, our development version is simply:
     YY.MM.MICRO.devN+gHASH[.dirty]
 """
+
 try:
     from setuptools_scm import get_version
 

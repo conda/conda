@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Handles all display/view logic."""
+
 import json
 from typing import Sequence
 

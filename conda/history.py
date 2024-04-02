@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools interfacing with conda's history file."""
+
 from __future__ import annotations
 
 import codecs

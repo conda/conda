@@ -4,6 +4,7 @@
 
 Display information about current conda installation.
 """
+
 from __future__ import annotations
 
 import json

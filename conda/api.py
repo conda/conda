@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of conda's high-level APIs."""
+
 from .base.constants import DepsModifier as _DepsModifier
 from .base.constants import UpdateModifier as _UpdateModifier
 from .base.context import context
