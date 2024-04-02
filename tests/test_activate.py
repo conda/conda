@@ -777,17 +777,7 @@ def test_build_deactivate_shlvl_2_from_stack(
     env_activate: tuple[str, str, str],
     env_deactivate: tuple[str, str, str],
 ):
-    prefix, deactivate_sh, _ = env_deactivate
     old_prefix, activate_sh, _ = env_activate
-
-    activate_env_vars = join(prefix, PREFIX_STATE_FILE)
-    with open(activate_env_vars, "w") as f:
-        f.write(ENV_VARS_FILE)
-
-    activate_pkg_env_vars_a = join(prefix, PACKAGE_ENV_VARS_DIR)
-    mkdir_p(activate_pkg_env_vars_a)
-    with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
-        f.write(PKG_A_ENV_VARS)
 
     activate_env_vars_old = join(old_prefix, PREFIX_STATE_FILE)
     with open(activate_env_vars_old, "w") as f:
@@ -806,6 +796,17 @@ def test_build_deactivate_shlvl_2_from_stack(
     mkdir_p(activate_pkg_env_vars_b)
     with open(join(activate_pkg_env_vars_b, "pkg_b.json"), "w") as f:
         f.write(PKG_B_ENV_VARS)
+
+    prefix, deactivate_sh, _ = env_deactivate
+
+    activate_env_vars = join(prefix, PREFIX_STATE_FILE)
+    with open(activate_env_vars, "w") as f:
+        f.write(ENV_VARS_FILE)
+
+    activate_pkg_env_vars_a = join(prefix, PACKAGE_ENV_VARS_DIR)
+    mkdir_p(activate_pkg_env_vars_a)
+    with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
+        f.write(PKG_A_ENV_VARS)
 
     activator = PosixActivator()
     original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
@@ -863,17 +864,7 @@ def test_build_deactivate_shlvl_2_from_activate(
     env_activate: tuple[str, str, str],
     env_deactivate: tuple[str, str, str],
 ):
-    prefix, deactivate_sh, _ = env_deactivate
     old_prefix, activate_sh, _ = env_activate
-
-    activate_env_vars = join(prefix, PREFIX_STATE_FILE)
-    with open(activate_env_vars, "w") as f:
-        f.write(ENV_VARS_FILE)
-
-    activate_pkg_env_vars_a = join(prefix, PACKAGE_ENV_VARS_DIR)
-    mkdir_p(activate_pkg_env_vars_a)
-    with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
-        f.write(PKG_A_ENV_VARS)
 
     activate_env_vars_old = join(old_prefix, PREFIX_STATE_FILE)
     with open(activate_env_vars_old, "w") as f:
@@ -892,6 +883,17 @@ def test_build_deactivate_shlvl_2_from_activate(
     mkdir_p(activate_pkg_env_vars_b)
     with open(join(activate_pkg_env_vars_b, "pkg_b.json"), "w") as f:
         f.write(PKG_B_ENV_VARS)
+
+    prefix, deactivate_sh, _ = env_deactivate
+
+    activate_env_vars = join(prefix, PREFIX_STATE_FILE)
+    with open(activate_env_vars, "w") as f:
+        f.write(ENV_VARS_FILE)
+
+    activate_pkg_env_vars_a = join(prefix, PACKAGE_ENV_VARS_DIR)
+    mkdir_p(activate_pkg_env_vars_a)
+    with open(join(activate_pkg_env_vars_a, "pkg_a.json"), "w") as f:
+        f.write(PKG_A_ENV_VARS)
 
     activator = PosixActivator()
     original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
