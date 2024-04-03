@@ -238,6 +238,21 @@ def env_deactivate(tmp_env: TmpEnvFixture) -> tuple[str, str, str]:
         return str(prefix), str(deactivate_sh), str(deactivate_bat)
 
 
+def get_scripts_export_unset_vars(
+    activator: _Activator,
+    **kwargs: str,
+) -> tuple[str, str]:
+    export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
+    return (
+        activator.command_join(
+            activator.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
+        ),
+        activator.command_join(
+            activator.unset_var_tmpl % (k) for k in (unset_vars or [])
+        ),
+    )
+
+
 def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
@@ -396,21 +411,6 @@ def test_default_env(tmp_path: Path):
     prefix = tmp_path / "envs" / "named-env"
     prefix.mkdir(parents=True)
     assert prefix.name == activator._default_env(str(prefix))
-
-
-def get_scripts_export_unset_vars(
-    activator: _Activator,
-    **kwargs: str,
-) -> tuple[str, str]:
-    export_vars, unset_vars = activator.get_export_unset_vars(**kwargs)
-    return (
-        activator.command_join(
-            activator.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
-        ),
-        activator.command_join(
-            activator.unset_var_tmpl % (k) for k in (unset_vars or [])
-        ),
-    )
 
 
 def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
