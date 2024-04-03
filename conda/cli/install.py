@@ -200,28 +200,25 @@ def install(args, parser, command="install"):
                 "Creating new environment for a non-native platform %s",
                 context.subdir,
             )
-    else:
-        if isdir(prefix):
-            delete_trash(prefix)
-            if not isfile(join(prefix, "conda-meta", "history")):
-                if paths_equal(prefix, context.conda_prefix):
-                    raise NoBaseEnvironmentError()
-                else:
-                    if not path_is_clean(prefix):
-                        raise DirectoryNotACondaEnvironmentError(prefix)
+    elif isdir(prefix):
+        delete_trash(prefix)
+        if not isfile(join(prefix, "conda-meta", "history")):
+            if paths_equal(prefix, context.conda_prefix):
+                raise NoBaseEnvironmentError()
             else:
-                # fall-through expected under normal operation
-                pass
+                if not path_is_clean(prefix):
+                    raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            if hasattr(args, "mkdir") and args.mkdir:
-                try:
-                    mkdir_p(prefix)
-                except OSError as e:
-                    raise CondaOSError(
-                        "Could not create directory: %s" % prefix, caused_by=e
-                    )
-            else:
-                raise EnvironmentLocationNotFound(prefix)
+            # fall-through expected under normal operation
+            pass
+    elif getattr(args, "mkdir", False):
+        # --mkdir is deprecated and marked for removal in conda 25.3
+        try:
+            mkdir_p(prefix)
+        except OSError as e:
+            raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+    else:
+        raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:

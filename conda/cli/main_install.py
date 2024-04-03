@@ -5,10 +5,17 @@
 Installs the specified packages into an existing environment.
 """
 
-import sys
-from argparse import ArgumentParser, Namespace, _SubParsersAction
+from __future__ import annotations
 
+import sys
+from argparse import _StoreTrueAction
+from typing import TYPE_CHECKING
+
+from ..deprecations import deprecated
 from ..notices import notices
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -99,8 +106,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     package_install_options.add_argument(
         "-m",
         "--mkdir",
-        action="store_true",
-        help="Create the environment directory, if necessary.",
+        action=deprecated.action(
+            "24.9",
+            "25.3",
+            _StoreTrueAction,
+            addendum="Use `conda create` instead.",
+        ),
     )
     package_install_options.add_argument(
         "--clobber",
