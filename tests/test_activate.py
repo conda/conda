@@ -392,9 +392,6 @@ def test_build_activate_dont_activate_unset_var(monkeypatch: MonkeyPatch):
 
         write_pkg_env_vars(td)
 
-        monkeypatch.setenv("CONDA_SHLVL", "0")
-        monkeypatch.setenv("CONDA_PREFIX", "")
-
         activator = PosixActivator()
         builder = activator.build_activate(td)
         new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
@@ -444,9 +441,6 @@ def test_build_activate_shlvl_warn_clobber_vars(monkeypatch: MonkeyPatch):
 
         write_pkg_env_vars(td)
 
-        monkeypatch.setenv("CONDA_SHLVL", "0")
-        monkeypatch.setenv("CONDA_PREFIX", "")
-
         activator = PosixActivator()
         builder = activator.build_activate(td)
         new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
@@ -485,9 +479,6 @@ def test_build_activate_shlvl_0(monkeypatch: MonkeyPatch):
             f.write(ENV_VARS_FILE)
 
         write_pkg_env_vars(td)
-
-        monkeypatch.setenv("CONDA_SHLVL", "0")
-        monkeypatch.setenv("CONDA_PREFIX", "")
 
         activator = PosixActivator()
         builder = activator.build_activate(td)
