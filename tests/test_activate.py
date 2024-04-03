@@ -274,10 +274,7 @@ def test_PS1(tmp_path: Path):
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == f"({ROOT_ENV_NAME}) "
 
 
-def test_PS1_no_changeps1(
-    monkeypatch: MonkeyPatch,
-    tmp_path: Path,
-):
+def test_PS1_no_changeps1(monkeypatch: MonkeyPatch, tmp_path: Path):
     monkeypatch.setenv("CONDA_CHANGEPS1", "false")
     reset_context()
     assert not context.changeps1
