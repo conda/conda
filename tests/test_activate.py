@@ -138,6 +138,23 @@ def reset_environ(monkeypatch: MonkeyPatch) -> None:
     assert context.changeps1
 
 
+def write_pkg_A(prefix: str | os.PathLike | Path) -> None:
+    activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
+    activate_pkg_env_vars.mkdir(exist_ok=True)
+    (activate_pkg_env_vars / "pkg_a.json").write_text('{"PKG_A_ENV": "pkg_a"}')
+
+
+def write_pkg_B(prefix: str | os.PathLike | Path) -> None:
+    activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
+    activate_pkg_env_vars.mkdir(exist_ok=True)
+    (activate_pkg_env_vars / "pkg_b.json").write_text('{"PKG_B_ENV": "pkg_b"}')
+
+
+def write_pkgs(prefix: str | os.PathLike | Path) -> None:
+    write_pkg_A(prefix)
+    write_pkg_B(prefix)
+
+
 def write_state_file(
     prefix: str | os.PathLike | Path,
     **envvars,
@@ -159,23 +176,6 @@ def write_state_file(
             }
         )
     )
-
-
-def write_pkg_A(prefix: str | os.PathLike | Path) -> None:
-    activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
-    activate_pkg_env_vars.mkdir(exist_ok=True)
-    (activate_pkg_env_vars / "pkg_a.json").write_text('{"PKG_A_ENV": "pkg_a"}')
-
-
-def write_pkg_B(prefix: str | os.PathLike | Path) -> None:
-    activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
-    activate_pkg_env_vars.mkdir(exist_ok=True)
-    (activate_pkg_env_vars / "pkg_b.json").write_text('{"PKG_B_ENV": "pkg_b"}')
-
-
-def write_pkgs(prefix: str | os.PathLike | Path) -> None:
-    write_pkg_A(prefix)
-    write_pkg_B(prefix)
 
 
 @pytest.fixture
@@ -416,7 +416,7 @@ def test_default_env(tmp_path: Path):
 def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
-    write_pkgs(prefix)  # pkg_a & pkg_b
+    write_pkgs(prefix)
     write_state_file(
         prefix,
         ENV_ONE="one",
@@ -453,7 +453,7 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
 def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
-    write_pkgs(prefix)  # pkg_a & pkg_b
+    write_pkgs(prefix)
     write_state_file(
         prefix,
         ENV_ONE="one",
@@ -492,7 +492,7 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
 def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
-    write_pkgs(prefix)  # pkg_a & pkg_b
+    write_pkgs(prefix)
     write_state_file(prefix)
 
     activator = PosixActivator()
@@ -530,7 +530,7 @@ def test_build_activate_shlvl_1(
 ):
     prefix, acivate_sh, _ = env_activate
 
-    write_pkgs(prefix)  # pkg_a & pkg_b
+    write_pkgs(prefix)
     write_state_file(prefix)
 
     activator = PosixActivator()
@@ -622,7 +622,7 @@ def test_build_stack_shlvl_1(
 ):
     prefix, activate_sh, _ = env_activate
 
-    write_pkgs(prefix)  # pkg_a & pkg_b
+    write_pkgs(prefix)
     write_state_file(prefix)
 
     activator = PosixActivator()
@@ -742,17 +742,17 @@ def test_build_deactivate_shlvl_2_from_stack(
 ):
     old_prefix, activate_sh, _ = env_activate
 
+    write_pkg_B(old_prefix)
     write_state_file(
         old_prefix,
         ENV_FOUR="four",
         ENV_FIVE="five",
     )
-    write_pkg_B(old_prefix)
 
     prefix, deactivate_sh, _ = env_deactivate
 
-    write_state_file(prefix)
     write_pkg_A(prefix)
+    write_state_file(prefix)
 
     activator = PosixActivator()
     original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
@@ -809,17 +809,17 @@ def test_build_deactivate_shlvl_2_from_activate(
 ):
     old_prefix, activate_sh, _ = env_activate
 
+    write_pkg_B(old_prefix)
     write_state_file(
         old_prefix,
         ENV_FOUR="four",
         ENV_FIVE="five",
     )
-    write_pkg_B(old_prefix)
 
     prefix, deactivate_sh, _ = env_deactivate
 
-    write_state_file(prefix)
     write_pkg_A(prefix)
+    write_state_file(prefix)
 
     activator = PosixActivator()
     original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
