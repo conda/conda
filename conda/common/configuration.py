@@ -1626,22 +1626,23 @@ def unique_sequence_map(
                 if unique_key_value is None:
                     log.error(
                         f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
-                        f"{unique_key} not present on mapping"
+                        f'"{unique_key}" not present on mapping'
                     )
                     continue
 
                 if unique_key_value in known_keys:
                     log.error(
                         f'Configuration: skipping {mapping} for "{func.__name__}"; value '
-                        f"{unique_key_value} already present"
+                        f'"{unique_key_value}" already present'
                     )
                     continue
 
                 if allowed_keys is not None and unique_key_value not in allowed_keys:
+                    quoted_allowed_keys = sorted(f'"{value}"' for value in allowed_keys)
                     log.error(
                         f"Configuration: skipping {mapping} for \"{func.__name__}\"; value "
-                        f"{unique_key_value} not allowed; allowed values are: "
-                        f"{', '.join(allowed_keys)}"
+                        f"\"{unique_key_value}\" not allowed; allowed values are: "
+                        f"{', '.join(quoted_allowed_keys)}"
                     )
                     continue
 

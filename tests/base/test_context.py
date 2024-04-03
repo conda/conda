@@ -786,7 +786,12 @@ def test_reporters_json_is_true(testdata):
     reset_context((), args)
 
     assert context.reporters == (
-        {"backend": "json", "output": "stdout", "verbosity": context.verbosity},
+        {
+            "backend": "json",
+            "output": "stdout",
+            "quiet": False,
+            "verbosity": context.verbosity,
+        },
     )
 
     reset_context()
@@ -818,5 +823,10 @@ def test_reporters_default_value():
     values from configuration files.
     """
     assert context.reporters == (
-        {"backend": "stdlib", "output": "stdout", "verbosity": context.verbosity},
+        {
+            "backend": "stdlib",
+            "output": "stdout",
+            "quiet": False,
+            "verbosity": context.verbosity,
+        },
     )

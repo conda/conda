@@ -1182,32 +1182,13 @@ class Context(Configuration):
         Determine the value of reporters based on other settings and the ``self._reporters``
         value itself.
         """
-        if context.json:
-            return (
-                {
-                    "backend": "json",
-                    "output": "stdout",
-                    "verbosity": self.verbosity,
-                },
-            )
-
-        if context.quiet:
-            return (
-                {
-                    "backend": "stdlib",
-                    "output": "stdout",
-                    "verbosity": self.verbosity,
-                    "quiet": True,
-                },
-            )
-
-        # Default setting when nothing else has been provided
         if not self._reporters:
             return (
                 {
-                    "backend": "stdlib",
+                    "backend": "json" if self.json else "stdlib",
                     "output": "stdout",
-                    "verbosity": context.verbosity,
+                    "verbosity": self.verbosity,
+                    "quiet": self.quiet,
                 },
             )
 
