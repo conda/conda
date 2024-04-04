@@ -348,8 +348,6 @@ def test_add_prefix_to_path_cmdexe():
     assert len(path_dirs) == 3
     test_prefix = "/usr/mytest/prefix"
     added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-    if isinstance(added_paths, str):
-        added_paths = (added_paths,)
 
     new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
     assert new_path[: len(added_paths)] == added_paths
