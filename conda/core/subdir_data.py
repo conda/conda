@@ -430,38 +430,11 @@ class SubdirData(metaclass=SubdirDataType):
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
-        maybe_base_url = repodata.get("info", {}).get("base_url")
-        if maybe_base_url:
-            try:
-                base_url_parts = Channel(maybe_base_url).dump()
-            except ValueError as exc:
-                raise ChannelError(
-                    f"Subdir for {schannel} at url '{self.url_w_subdir}' has invalid 'base_url'"
-                ) from exc
-            if self.url_w_credentials != self.url_w_subdir:  # has credentials
-                # base_url should carry the same credentials as the original channel
-                channel_parts = self.channel.dump()
-                for key in "auth", "token":
-                    if base_url_parts.get(key):
-                        raise ChannelError(
-                            f"'{self.url_w_subdir}' has 'base_url' with credentials"
-                        )
-                    channel_creds = channel_parts.get(key)
-                    if channel_creds:
-                        base_url_parts[key] = channel_creds
-                base_url = maybe_base_url
-                base_url_w_credentials = Channel(**base_url_parts).url(
-                    with_credentials=True
-                )
-            else:
-                base_url = base_url_w_credentials = maybe_base_url
-        else:
-            base_url = self.url_w_subdir
-            base_url_w_credentials = self.url_w_credentials
-
         self._package_records = _package_records = PackageRecordList()
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
+        base_url = self._get_base_url(repodata, with_credentials=False)
+        base_url_w_credentials = self._get_base_url(repodata, with_credentials=True)
 
         _internal_state = {
             "channel": self.channel,
@@ -553,6 +526,45 @@ class SubdirData(metaclass=SubdirDataType):
 
         self._internal_state = _internal_state
         return _internal_state
+
+    def _get_base_url(self, repodata: dict, with_credentials: bool = True) -> str:
+        """
+        In repodata_version=1, .tar.bz2 and .conda artifacts are assumed to
+        be colocated next to repodata.json, in the same server and directory.
+
+        In repodata_version=2, repodata.json files can define a 'base_url' field
+        to override that default assumption. See CEP-15 for more details.
+
+        This method deals with both cases and returns the appropriate value.
+        """
+        maybe_base_url = repodata.get("info", {}).get("base_url")
+        if maybe_base_url:  # repodata defines base_url field
+            try:
+                base_url_parts = Channel(maybe_base_url).dump()
+            except ValueError as exc:
+                raise ChannelError(
+                    f"Subdir for {self.channel.canonical_name} at url '{self.url_w_subdir}' "
+                    "has invalid 'base_url'"
+                ) from exc
+            if with_credentials and self.url_w_credentials != self.url_w_subdir:
+                # We don't check for .token or .auth because those are not well defined
+                # in multichannel objects. It's safer to compare the resulting URLs.
+                # Note that base_url is assumed to have the same authentication as the repodata
+                channel_parts = self.channel.dump()
+                for key in "auth", "token":
+                    if base_url_parts.get(key):
+                        raise ChannelError(
+                            f"'{self.url_w_subdir}' has 'base_url' with credentials. "
+                            "This is not supported."
+                        )
+                    channel_creds = channel_parts.get(key)
+                    if channel_creds:
+                        base_url_parts[key] = channel_creds
+                return Channel(**base_url_parts).url(with_credentials=True)
+            return maybe_base_url
+        if with_credentials:
+            return self.url_w_credentials
+        return self.url_w_subdir
 
 
 def make_feature_record(feature_name):
