@@ -20,7 +20,6 @@ from os.path import basename, dirname, isdir, isfile, join, lexists
 from posixpath import normpath as posix_normpath
 
 from ... import CondaError
-from ..._vendor.frozendict import frozendict
 from ...auxlib.decorators import memoizedproperty
 from ..compat import open
 from ..iterators import groupby_to_dict as groupby
@@ -30,6 +29,11 @@ from ..path import (
     pyc_path,
     win_path_ok,
 )
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
