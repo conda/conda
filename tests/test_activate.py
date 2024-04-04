@@ -436,10 +436,7 @@ def test_default_env(tmp_path: Path):
     assert "named-env" == activator._default_env(str(prefix))
 
 
-def test_build_activate_dont_activate_unset_var(
-    monkeypatch: MonkeyPatch,
-    env_activate: tuple[str, str, str],
-):
+def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
     write_pkgs(prefix)
@@ -475,10 +472,7 @@ def test_build_activate_dont_activate_unset_var(
     assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_warn_clobber_vars(
-    monkeypatch: MonkeyPatch,
-    env_activate: tuple[str, str, str],
-):
+def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
     write_pkgs(prefix)
@@ -516,10 +510,7 @@ def test_build_activate_shlvl_warn_clobber_vars(
     assert builder["deactivate_scripts"] == ()
 
 
-def test_build_activate_shlvl_0(
-    monkeypatch: MonkeyPatch,
-    env_activate: tuple[str, str, str],
-):
+def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
     write_pkgs(prefix)
