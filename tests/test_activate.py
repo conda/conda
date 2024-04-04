@@ -360,12 +360,12 @@ def test_remove_prefix_from_path_1():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + original_path
+    final_path = (keep_path, *original_path)
     final_path = activator.path_conversion(final_path)
 
     test_prefix = join(os.getcwd(), "mytestpath")
     new_paths = tuple(activator._get_path_dirs(test_prefix))
-    prefix_added_path = (keep_path,) + new_paths + original_path
+    prefix_added_path = (keep_path, *new_paths, *original_path)
     new_path = activator._remove_prefix_from_path(test_prefix, prefix_added_path)
     assert final_path == new_path
 
