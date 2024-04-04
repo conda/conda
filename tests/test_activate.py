@@ -390,15 +390,13 @@ def test_replace_prefix_in_path_1():
     original_path = tuple(activator._get_starting_path_list())
     new_prefix = join(os.getcwd(), "mytestpath-new")
     new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
-    if isinstance(new_paths, str):
-        new_paths = (new_paths,)
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + new_paths + original_path
+    final_path = (keep_path, *new_paths, *original_path)
     final_path = activator.path_conversion(final_path)
 
     replace_prefix = join(os.getcwd(), "mytestpath")
     replace_paths = tuple(activator._get_path_dirs(replace_prefix))
-    prefix_added_path = (keep_path,) + replace_paths + original_path
+    prefix_added_path = (keep_path, *replace_paths, *original_path)
     new_path = activator._replace_prefix_in_path(
         replace_prefix, new_prefix, prefix_added_path
     )
