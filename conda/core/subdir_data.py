@@ -551,7 +551,7 @@ class SubdirData(metaclass=SubdirDataType):
                 # in multichannel objects. It's safer to compare the resulting URLs.
                 # Note that base_url is assumed to have the same authentication as the repodata
                 channel_parts = self.channel.dump()
-                for key in "auth", "token":
+                for key in ("auth", "token"):
                     if base_url_parts.get(key):
                         raise ChannelError(
                             f"'{self.url_w_subdir}' has 'base_url' with credentials. "
