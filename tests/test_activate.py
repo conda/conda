@@ -84,7 +84,24 @@ if on_win:
 else:
     PYTHONIOENCODING = None
 
+# hdf5 version to use in tests
 HDF5_VERSION = "1.12.1"
+
+# a unique prompt (makes it easy to know that our values are showing up correctly)
+DEFAULT_PROMPT = " >>(testing)>> "
+
+# a unique context.env_prompt (makes it easy to know that our values are showing up correctly)
+DEFAULT_ENV_PROMPT = "-- ==({default_env})== --"
+
+# unique environment variables to set via packages and state files
+PKG_A_ENV = "pkg_a-" + uuid4().hex
+PKG_B_ENV = "pkg_b-" + uuid4().hex
+ENV_ONE = "one-" + uuid4().hex
+ENV_TWO = "two-" + uuid4().hex
+ENV_THREE = "three-" + uuid4().hex
+ENV_WITH_SAME_VALUE = "with_same_value-" + uuid4().hex
+ENV_FOUR = "four-" + uuid4().hex
+ENV_FIVE = "five-" + uuid4().hex
 
 
 @lru_cache(maxsize=None)
@@ -117,13 +134,6 @@ skip_unsupported_posix_path = pytest.mark.skipif(
         "but our Python is a Windows program and Windows doesn't understand POSIX values."
     ),
 )
-
-
-# a unique prompt (makes it easy to know that our values are showing up correctly)
-DEFAULT_PROMPT = " >>(testing)>> "
-
-# a unique context.env_prompt (makes it easy to know that our values are showing up correctly)
-DEFAULT_ENV_PROMPT = "-- ==({default_env})== --"
 
 
 def get_prompt_modifier(default_env: str | os.PathLike | Path) -> str:
@@ -160,13 +170,17 @@ def reset_environ(monkeypatch: MonkeyPatch) -> None:
 def write_pkg_A(prefix: str | os.PathLike | Path) -> None:
     activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
     activate_pkg_env_vars.mkdir(exist_ok=True)
-    (activate_pkg_env_vars / "pkg_a.json").write_text('{"PKG_A_ENV": "pkg_a"}')
+    (activate_pkg_env_vars / "pkg_a.json").write_text(
+        json.dumps({"PKG_A_ENV": PKG_A_ENV})
+    )
 
 
 def write_pkg_B(prefix: str | os.PathLike | Path) -> None:
     activate_pkg_env_vars = Path(prefix, PACKAGE_ENV_VARS_DIR)
     activate_pkg_env_vars.mkdir(exist_ok=True)
-    (activate_pkg_env_vars / "pkg_b.json").write_text('{"PKG_B_ENV": "pkg_b"}')
+    (activate_pkg_env_vars / "pkg_b.json").write_text(
+        json.dumps({"PKG_B_ENV": PKG_B_ENV})
+    )
 
 
 def write_pkgs(prefix: str | os.PathLike | Path) -> None:
@@ -185,10 +199,10 @@ def write_state_file(
                 "env_vars": (
                     envvars
                     or {
-                        "ENV_ONE": "one",
-                        "ENV_TWO": "two",
-                        "ENV_THREE": "three",
-                        "ENV_WITH_SAME_VALUE": "with_same_value",
+                        "ENV_ONE": ENV_ONE,
+                        "ENV_TWO": ENV_TWO,
+                        "ENV_THREE": ENV_THREE,
+                        "ENV_WITH_SAME_VALUE": ENV_WITH_SAME_VALUE,
                     }
                 ),
             }
@@ -440,8 +454,8 @@ def test_build_activate_dont_activate_unset_var(
     write_pkgs(prefix)
     write_state_file(
         prefix,
-        ENV_ONE="one",
-        ENV_TWO="two",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
         ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
     )
 
@@ -457,11 +471,11 @@ def test_build_activate_dont_activate_unset_var(
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
         # write_pkgs
-        PKG_A_ENV="pkg_a",
-        PKG_B_ENV="pkg_b",
+        PKG_A_ENV=PKG_A_ENV,
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file
-        ENV_ONE="one",
-        ENV_TWO="two",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
     )
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
@@ -479,10 +493,10 @@ def test_build_activate_shlvl_warn_clobber_vars(
     write_pkgs(prefix)
     write_state_file(
         prefix,
-        ENV_ONE="one",
-        ENV_TWO="two",
-        ENV_THREE="three",
-        PKG_A_ENV="overwrite_a",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=ENV_THREE,
+        PKG_A_ENV=(overwrite_a := "overwrite_a"),
     )
 
     activator = PosixActivator()
@@ -497,12 +511,12 @@ def test_build_activate_shlvl_warn_clobber_vars(
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
         # write_pkgs
-        PKG_B_ENV="pkg_b",
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file
-        ENV_ONE="one",
-        ENV_TWO="two",
-        ENV_THREE="three",
-        PKG_A_ENV="overwrite_a",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=ENV_THREE,
+        PKG_A_ENV=overwrite_a,
     )
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
@@ -532,13 +546,13 @@ def test_build_activate_shlvl_0(
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
         # write_pkgs
-        PKG_A_ENV="pkg_a",
-        PKG_B_ENV="pkg_b",
+        PKG_A_ENV=PKG_A_ENV,
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file
-        ENV_ONE="one",
-        ENV_TWO="two",
-        ENV_THREE="three",
-        ENV_WITH_SAME_VALUE="with_same_value",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=ENV_THREE,
+        ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
@@ -583,13 +597,13 @@ def test_build_activate_shlvl_1(
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(conda_prompt_modifier := get_prompt_modifier(prefix)),
         # write_pkgs
-        PKG_A_ENV="pkg_a",
-        PKG_B_ENV="pkg_b",
+        PKG_A_ENV=PKG_A_ENV,
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file
-        ENV_ONE="one",
-        ENV_TWO="two",
-        ENV_THREE="three",
-        ENV_WITH_SAME_VALUE="with_same_value",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=ENV_THREE,
+        ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
@@ -604,13 +618,13 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     # write_pkgs
-    monkeypatch.setenv("PKG_A_ENV", "pkg_a")
-    monkeypatch.setenv("PKG_B_ENV", "pkg_b")
+    monkeypatch.setenv("PKG_A_ENV", PKG_A_ENV)
+    monkeypatch.setenv("PKG_B_ENV", PKG_B_ENV)
     # write_state_file
-    monkeypatch.setenv("ENV_ONE", "one")
-    monkeypatch.setenv("ENV_TWO", "two")
-    monkeypatch.setenv("ENV_THREE", "three")
-    monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
+    monkeypatch.setenv("ENV_ONE", ENV_ONE)
+    monkeypatch.setenv("ENV_TWO", ENV_TWO)
+    monkeypatch.setenv("ENV_THREE", ENV_THREE)
+    monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
     activator = PosixActivator()
     builder = activator.build_deactivate()
@@ -675,13 +689,13 @@ def test_build_stack_shlvl_1(
         CONDA_PROMPT_MODIFIER=(conda_prompt_modifier := get_prompt_modifier(prefix)),
         CONDA_STACKED_2="true",
         # write_pkgs
-        PKG_A_ENV="pkg_a",
-        PKG_B_ENV="pkg_b",
+        PKG_A_ENV=PKG_A_ENV,
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file
-        ENV_ONE="one",
-        ENV_TWO="two",
-        ENV_THREE="three",
-        ENV_WITH_SAME_VALUE="with_same_value",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=ENV_THREE,
+        ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
     assert builder["unset_vars"] == unset_vars
     assert builder["set_vars"] == set_vars
@@ -697,12 +711,12 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     monkeypatch.setenv("CONDA_STACKED_2", "true")
     # write_pkgs
-    monkeypatch.setenv("PKG_A_ENV", "pkg_a")
-    monkeypatch.setenv("PKG_B_ENV", "pkg_b")
+    monkeypatch.setenv("PKG_A_ENV", PKG_A_ENV)
+    monkeypatch.setenv("PKG_B_ENV", PKG_B_ENV)
     # write_state_file
-    monkeypatch.setenv("ENV_ONE", "one")
-    monkeypatch.setenv("ENV_TWO", "two")
-    monkeypatch.setenv("ENV_THREE", "three")
+    monkeypatch.setenv("ENV_ONE", ENV_ONE)
+    monkeypatch.setenv("ENV_TWO", ENV_TWO)
+    monkeypatch.setenv("ENV_THREE", ENV_THREE)
 
     activator = PosixActivator()
     builder = activator.build_deactivate()
@@ -770,8 +784,8 @@ def test_build_deactivate_shlvl_2_from_stack(
     write_pkg_B(old_prefix)
     write_state_file(
         old_prefix,
-        ENV_FOUR="four",
-        ENV_FIVE="five",
+        ENV_FOUR=ENV_FOUR,
+        ENV_FIVE=ENV_FIVE,
     )
 
     prefix, deactivate_sh, _ = env_deactivate
@@ -793,17 +807,17 @@ def test_build_deactivate_shlvl_2_from_stack(
     monkeypatch.setenv("CONDA_STACKED_2", "true")
     monkeypatch.setenv("PATH", starting_path)
     # write_pkg_B (old_prefix)
-    monkeypatch.setenv("PKG_B_ENV", "pkg_b")
+    monkeypatch.setenv("PKG_B_ENV", PKG_B_ENV)
     # write_state_file (old_prefix)
-    monkeypatch.setenv("ENV_FOUR", "four")
-    monkeypatch.setenv("ENV_FIVE", "five")
+    monkeypatch.setenv("ENV_FOUR", ENV_FOUR)
+    monkeypatch.setenv("ENV_FIVE", ENV_FIVE)
     # write_pkg_A (prefix)
-    monkeypatch.setenv("PKG_A_ENV", "pkg_a")
+    monkeypatch.setenv("PKG_A_ENV", PKG_A_ENV)
     # write_state_file (prefix)
-    monkeypatch.setenv("ENV_ONE", "one")
-    monkeypatch.setenv("ENV_TWO", "two")
-    monkeypatch.setenv("ENV_THREE", "three")
-    monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
+    monkeypatch.setenv("ENV_ONE", ENV_ONE)
+    monkeypatch.setenv("ENV_TWO", ENV_TWO)
+    monkeypatch.setenv("ENV_THREE", ENV_THREE)
+    monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
     activator = PosixActivator()
     builder = activator.build_deactivate()
@@ -818,10 +832,10 @@ def test_build_deactivate_shlvl_2_from_stack(
         CONDA_PREFIX_1=None,
         CONDA_STACKED_2=None,
         # write_pkg_B (old_prefix)
-        PKG_B_ENV="pkg_b",
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file (old_prefix)
-        ENV_FOUR="four",
-        ENV_FIVE="five",
+        ENV_FOUR=ENV_FOUR,
+        ENV_FIVE=ENV_FIVE,
         # write_pkg_A (prefix)
         PKG_A_ENV=None,
         # write_state_file (prefix)
@@ -849,8 +863,8 @@ def test_build_deactivate_shlvl_2_from_activate(
     write_pkg_B(old_prefix)
     write_state_file(
         old_prefix,
-        ENV_FOUR="four",
-        ENV_FIVE="five",
+        ENV_FOUR=ENV_FOUR,
+        ENV_FIVE=ENV_FIVE,
     )
 
     prefix, deactivate_sh, _ = env_deactivate
@@ -867,12 +881,12 @@ def test_build_deactivate_shlvl_2_from_activate(
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("PATH", new_path)
     # write_pkg_A (prefix)
-    monkeypatch.setenv("PKG_A_ENV", "pkg_a")
+    monkeypatch.setenv("PKG_A_ENV", PKG_A_ENV)
     # write_state_file (prefix)
-    monkeypatch.setenv("ENV_ONE", "one")
-    monkeypatch.setenv("ENV_TWO", "two")
-    monkeypatch.setenv("ENV_THREE", "three")
-    monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
+    monkeypatch.setenv("ENV_ONE", ENV_ONE)
+    monkeypatch.setenv("ENV_TWO", ENV_TWO)
+    monkeypatch.setenv("ENV_THREE", ENV_THREE)
+    monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
     activator = PosixActivator()
     builder = activator.build_deactivate()
@@ -886,10 +900,10 @@ def test_build_deactivate_shlvl_2_from_activate(
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(old_prefix),
         CONDA_PREFIX_1=None,
         # write_pkg_B (old_prefix)
-        PKG_B_ENV="pkg_b",
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file (old_prefix)
-        ENV_FOUR="four",
-        ENV_FIVE="five",
+        ENV_FOUR=ENV_FOUR,
+        ENV_FIVE=ENV_FIVE,
         # write_pkg_A (prefix)
         PKG_A_ENV=None,
         # write_state_file (prefix)
@@ -949,16 +963,16 @@ def test_build_deactivate_shlvl_1(
 
 def test_get_env_vars_big_whitespace(tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
-        write_state_file(
-            prefix,
-            ENV_ONE="one",
-            ENV_TWO="two",
-            ENV_THREE="three",
-        )
+        write_state_file(prefix)
 
         activator = PosixActivator()
         env_vars = activator._get_environment_env_vars(prefix)
-        assert env_vars == {"ENV_ONE": "one", "ENV_TWO": "two", "ENV_THREE": "three"}
+        assert env_vars == {
+            "ENV_ONE": ENV_ONE,
+            "ENV_TWO": ENV_TWO,
+            "ENV_THREE": ENV_THREE,
+            "ENV_WITH_SAME_VALUE": ENV_WITH_SAME_VALUE,
+        }
 
 
 def test_get_env_vars_empty_file(tmp_env: TmpEnvFixture):
@@ -988,7 +1002,7 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("CONDA_PREFIX", old_prefix)
     monkeypatch.setenv("PATH", old_path)
     monkeypatch.setenv("ENV_ONE", "already_set_env_var")
-    monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
+    monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
     activator = PosixActivator()
     builder = activator.build_activate(prefix)
@@ -1008,15 +1022,15 @@ def test_build_activate_restore_unset_env_vars(
         CONDA_DEFAULT_ENV=prefix,
         CONDA_PROMPT_MODIFIER=(conda_prompt_modifier := get_prompt_modifier(prefix)),
         __CONDA_SHLVL_1_ENV_ONE="already_set_env_var",
-        __CONDA_SHLVL_1_ENV_WITH_SAME_VALUE="with_same_value",
+        __CONDA_SHLVL_1_ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
         # write_pkgs
-        PKG_A_ENV="pkg_a",
-        PKG_B_ENV="pkg_b",
+        PKG_A_ENV=PKG_A_ENV,
+        PKG_B_ENV=PKG_B_ENV,
         # write_state_file
-        ENV_ONE="one",
-        ENV_TWO="two",
-        ENV_THREE="three",
-        ENV_WITH_SAME_VALUE="with_same_value",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=ENV_THREE,
+        ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
     assert builder["unset_vars"] == unset_vars
@@ -1033,13 +1047,13 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     monkeypatch.setenv("__CONDA_SHLVL_1_ENV_ONE", "already_set_env_var")
     # write_pkgs
-    monkeypatch.setenv("PKG_A_ENV", "pkg_a")
-    monkeypatch.setenv("PKG_B_ENV", "pkg_b")
+    monkeypatch.setenv("PKG_A_ENV", PKG_A_ENV)
+    monkeypatch.setenv("PKG_B_ENV", PKG_B_ENV)
     # write_state_file
-    monkeypatch.setenv("ENV_ONE", "one")
-    monkeypatch.setenv("ENV_TWO", "two")
-    monkeypatch.setenv("ENV_THREE", "three")
-    monkeypatch.setenv("ENV_WITH_SAME_VALUE", "with_same_value")
+    monkeypatch.setenv("ENV_ONE", ENV_ONE)
+    monkeypatch.setenv("ENV_TWO", ENV_TWO)
+    monkeypatch.setenv("ENV_THREE", ENV_THREE)
+    monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
     activator = PosixActivator()
     builder = activator.build_deactivate()
