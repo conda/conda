@@ -287,7 +287,7 @@ def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
     with pytest.raises(EnvironmentLocationNotFound):
-        activator.build_activate(tmp_path)
+        activator.build_activate(str(tmp_path))
 
     with pytest.raises(EnvironmentLocationNotFound):
         activator.build_activate("/not/an/environment")
@@ -721,7 +721,7 @@ def test_build_stack_shlvl_1(
     )
 
     assert activator.build_deactivate() == {
-        # "export_path": {},
+        "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(old_prefix)},
@@ -2895,11 +2895,12 @@ def prefix(tmp_path_factory: TempPathFactory) -> Iterator[Path]:
     name = f"{uuid4().hex[:4]}{SPACER_CHARACTER}{uuid4().hex[:4]}"
     root = tmp_path_factory.mktemp(name)
 
-    (root / "conda-meta").mkdir()
+    (root / "conda-meta").mkdir(parents=True)
     (root / "conda-meta" / "history").touch()
 
     prefix = root / "envs" / "charizard"
-    (prefix / "conda-meta").mkdir()
+
+    (prefix / "conda-meta").mkdir(parents=True)
     (prefix / "conda-meta" / "history").touch()
 
     yield prefix
