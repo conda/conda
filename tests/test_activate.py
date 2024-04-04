@@ -9,13 +9,12 @@ import sys
 from functools import lru_cache
 from itertools import chain
 from logging import getLogger
-from os.path import dirname, isdir, join
+from os.path import dirname, join
 from pathlib import Path
 from re import escape
 from shutil import which
 from signal import SIGINT
 from subprocess import CalledProcessError, check_output
-from tempfile import gettempdir
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -49,14 +48,13 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-from conda.testing.helpers import tempdir
 from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable
+    from typing import Callable, Iterable, Iterator
 
-    from pytest import MonkeyPatch
+    from pytest import MonkeyPatch, TempPathFactory
 
     from conda.activate import _Activator
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -285,12 +283,11 @@ def get_scripts_export_unset_vars(
     )
 
 
-def test_activate_environment_not_found(reset_environ: None):
+def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
-    with tempdir() as td:
-        with pytest.raises(EnvironmentLocationNotFound):
-            activator.build_activate(td)
+    with pytest.raises(EnvironmentLocationNotFound):
+        activator.build_activate(tmp_path)
 
     with pytest.raises(EnvironmentLocationNotFound):
         activator.build_activate("/not/an/environment")
@@ -434,15 +431,14 @@ def test_replace_prefix_in_path_2(monkeypatch: MonkeyPatch):
     assert len(path_elements) == len(old_path.split(";"))
 
 
-def test_default_env(reset_environ: None):
+def test_default_env(tmp_path: Path):
     activator = PosixActivator()
     assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
-    with tempdir() as td:
-        assert td == activator._default_env(td)
+    assert str(tmp_path) == activator._default_env(str(tmp_path))
 
-        p = mkdir_p(join(td, "envs", "named-env"))
-        assert "named-env" == activator._default_env(p)
+    (prefix := tmp_path / "envs" / "named-env").mkdir(parents=True)
+    assert "named-env" == activator._default_env(str(prefix))
 
 
 def test_build_activate_dont_activate_unset_var(
@@ -1901,12 +1897,9 @@ def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 
 def test_unicode(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PS1", "%{\xc2\xbb".encode())
+    monkeypatch.setenv("prompt", "%{\xc2\xbb".encode())
 
-    # use a file as output stream to simulate PY2 default stdout
-    with tempdir() as td:
-        with open(join(td, "stdout"), "w") as stdout:
-            with captured(stdout=stdout):
-                main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
+    main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
 
 
 def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
@@ -2917,22 +2910,18 @@ def test_legacy_activate_deactivate_cmd_exe(
 
 
 @pytest.fixture(scope="module")
-def prefix():
-    tempdirdir = gettempdir()
+def prefix(tmp_path_factory: TempPathFactory) -> Iterator[Path]:
+    name = f"{uuid4().hex[:4]}{SPACER_CHARACTER}{uuid4().hex[:4]}"
+    root = tmp_path_factory.mktemp(name)
 
-    root_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
-    root = join(tempdirdir, root_dirname)
-    mkdir_p(join(root, "conda-meta"))
-    assert isdir(root)
-    touch(join(root, "conda-meta", "history"))
+    (root / "conda-meta").mkdir()
+    (root / "conda-meta" / "history").touch()
 
-    prefix = join(root, "envs", "charizard")
-    mkdir_p(join(prefix, "conda-meta"))
-    touch(join(prefix, "conda-meta", "history"))
+    prefix = root / "envs" / "charizard"
+    (prefix / "conda-meta").mkdir()
+    (prefix / "conda-meta" / "history").touch()
 
     yield prefix
-
-    rm_rf(root)
 
 
 @pytest.mark.integration
