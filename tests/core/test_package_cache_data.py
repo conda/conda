@@ -288,7 +288,8 @@ def test_tar_bz2_in_cache_not_extracted(tmp_pkgs_dir: Path):
     .conda package is requested, the .tar.bz2 package in the cache is used by default.
     """
     copy(
-        join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn), join(tmp_pkgs_dir, zlib_tar_bz2_fn)
+        join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn),
+        join(tmp_pkgs_dir, zlib_tar_bz2_fn),
     )
     pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
     pfe.prepare()
