@@ -43,4 +43,4 @@ test-report.xml
 rever/
 
 # setuptools-scm
-conda_build/_version.py
+conda/_version.py
