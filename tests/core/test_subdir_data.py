@@ -24,7 +24,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.testing.helpers import CHANNEL_DIR, CHANNEL_DIR_V2
+from conda.testing.helpers import CHANNEL_DIR_V1, CHANNEL_DIR_V2
 from conda.testing.integration import make_temp_env
 
 log = getLogger(__name__)
@@ -96,7 +96,7 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         {"CONDA_OFFLINE": "yes", "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        local_channel = Channel(join(CHANNEL_DIR, platform))
+        local_channel = Channel(join(CHANNEL_DIR_V1, platform))
         sd = SubdirData(channel=local_channel)
         assert len(sd.query_all("zlib", channels=[local_channel])) > 0
         assert len(sd.query_all("zlib")) == 0
@@ -149,14 +149,14 @@ def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
         {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        channel = Channel(join(CHANNEL_DIR, platform))
+        channel = Channel(join(CHANNEL_DIR_V1, platform))
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
 
 
 def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(CHANNEL_DIR, platform))
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
     with env_var(
         "CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -186,7 +186,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
         {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        channel = Channel(url_path(join(CHANNEL_DIR, platform)))
+        channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
 
         sd = SubdirData(channel)
         sd.load()
@@ -199,7 +199,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
 
 
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
-    channel = Channel(url_path(join(CHANNEL_DIR, platform)))
+    channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
 
     # clear, to see our testing class
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
@@ -266,7 +266,7 @@ def test_repodata_version_2_base_url(
 
 
 def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(CHANNEL_DIR, platform))
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
 
     # Sadly, on Windows, st_mtime resolution is limited to 2 seconds. (See note in Python docs
@@ -299,7 +299,7 @@ def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
 
 
 def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(CHANNEL_DIR, platform))
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
 
     RepoInterface = get_repo_interface()
@@ -328,7 +328,7 @@ def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
 
 
 def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
-    local_channel = Channel(join(CHANNEL_DIR, platform))
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
 
     # test slow "check against all packages" query
@@ -343,7 +343,7 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
     SubdirData has a ValueError exception handler, that is hard to invoke
     currently.
     """
-    local_channel = Channel(join(CHANNEL_DIR, platform))
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
 
     bad_cache = tmp_path / "not_json.json"
     bad_cache.write_text("{}")
@@ -378,6 +378,6 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
 
 def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     """SubdirData can accept a dict instead of a RepodataState, for compatibility."""
-    local_channel = Channel(join(CHANNEL_DIR, platform))
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore

@@ -31,7 +31,7 @@ from ..resolve import Resolve
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
-CHANNEL_DIR = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR = CHANNEL_DIR_V1 = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
 CHANNEL_DIR_V2 = abspath(join(TEST_DATA_DIR, "base_url_channel"))
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
