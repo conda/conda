@@ -317,10 +317,11 @@ def test_PS1_no_changeps1(monkeypatch: MonkeyPatch, tmp_path: Path):
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
 
 
+@pytest.mark.skipif(
+    on_win and "PWD" not in os.environ,
+    reason="This test cannot be run from the cmd.exe shell.",
+)
 def test_add_prefix_to_path_posix():
-    if on_win and "PWD" not in os.environ:
-        pytest.skip("This test cannot be run from the cmd.exe shell.")
-
     activator = PosixActivator()
 
     path_dirs = activator.path_conversion(
@@ -329,14 +330,12 @@ def test_add_prefix_to_path_posix():
     assert len(path_dirs) == 5
     test_prefix = "/usr/mytest/prefix"
     added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-    if isinstance(added_paths, str):
-        added_paths = (added_paths,)
 
     new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
     condabin_dir = activator.path_conversion(
         os.path.join(context.conda_prefix, "condabin")
     )
-    assert new_path == added_paths + (condabin_dir,) + path_dirs
+    assert new_path == (*added_paths, condabin_dir, *path_dirs)
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
