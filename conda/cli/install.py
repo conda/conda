@@ -223,14 +223,10 @@ def install(args, parser, command="install"):
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
-        # TODO: rework in 4.4 branch using MatchSpec
-        args_packages_names = [
-            pkg.replace(" ", "=").split("=", 1)[0] for pkg in args_packages
-        ]
-        for default_pkg in context.create_default_packages:
-            default_pkg_name = default_pkg.replace(" ", "=").split("=", 1)[0]
-            if default_pkg_name not in args_packages_names:
-                args_packages.append(default_pkg)
+        names = [MatchSpec(pkg).name for pkg in args_packages]
+        for default_package in context.create_default_packages:
+            if MatchSpec(default_package).name not in names:
+                args_packages.append(default_package)
 
     index_args = {
         "use_cache": args.use_index_cache,
