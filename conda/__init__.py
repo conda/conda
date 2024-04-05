@@ -24,6 +24,11 @@ except ImportError:
         __version__ = "0.0.0.dev0+placeholder"
 
 
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ._vendor.frozendict import frozendict
+
 __all__ = (
     "__name__",
     "__version__",
@@ -157,7 +162,11 @@ def conda_signal_handler(signum, frame):
 
 
 def _default(self, obj):
-    return getattr(obj.__class__, "to_json", _default.default)(obj)
+    if isinstance(obj, frozendict):
+        return dict(obj)
+    if hasattr(obj, "to_json"):
+        return obj.to_json()
+    return _default.default(obj)
 
 
 _default.default = JSONEncoder().default

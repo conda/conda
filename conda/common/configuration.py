@@ -42,7 +42,6 @@ from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from .._vendor.frozendict import frozendict
 from ..auxlib.collection import AttrDict, first, last, make_immutable
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
@@ -50,6 +49,11 @@ from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
