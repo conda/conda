@@ -67,7 +67,7 @@ local_scheme = "dirty-tag"
 include = ["conda", "conda_env"]
 
 [tool.hatch.build.hooks.vcs]
-version-file = "conda/__version__.py"
+version-file = "conda/_version.py"
 
 [tool.coverage.run]
 # store relative paths in coverage information
