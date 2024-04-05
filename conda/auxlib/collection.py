@@ -3,8 +3,12 @@ from functools import reduce
 from collections.abc import Mapping, Set
 
 from .compat import isiterable
-from .._vendor.frozendict import frozendict
 from ..deprecations import deprecated
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
 
 
 def make_immutable(value):

@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda.core.index
-from conda import plugins
-from conda.__version__ import __version__
+from conda import __version__, plugins
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.exceptions import PluginError

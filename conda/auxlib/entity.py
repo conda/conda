@@ -246,13 +246,17 @@ from pathlib import Path
 from boltons.timeutils import isoparse
 
 from . import NULL
-from .._vendor.frozendict import frozendict
 from .collection import AttrDict, make_immutable
 from .compat import isiterable, odict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
 from .type_coercion import maybecall
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
