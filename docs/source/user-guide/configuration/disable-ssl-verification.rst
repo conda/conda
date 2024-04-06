@@ -53,3 +53,14 @@ Using this option will cause ``requests`` to emit warnings to STDERR about
 insecure settings. If you know that what you're doing is safe, or have been
 advised by your IT department that what you're doing is safe, you may ignore
 these warnings.
+=============================================
+Disabling SSL verification via conda settings
+=============================================
+
+If the above doesn't work use 
+
+.. code-block:: bash
+
+   conda config --set ssl_verify False
+   # Do conda commands
+   conda config --set ssl_verify True
