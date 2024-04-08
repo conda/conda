@@ -189,6 +189,54 @@ def test_get_session_with_channel_settings(mocker):
     )
 
 
+@pytest.mark.parametrize(
+    "channel_url, channel_settings_url",
+    [
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
+            "https://repo.some-hostname.com/channel-name",
+            id="exact-url",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
+            "https://repo.some-hostname.com/*",
+            id="url-prefix",
+        ),
+    ],
+)
+def test_get_session_with_channel_settings_prefix(
+    mocker, channel_url, channel_settings_url
+):
+    """
+    For channels specified by URL, we can configure channel_settings with a URL containing
+    either an exact URL match or with a wildcard suffix to match the URL prefix.
+    """
+    url = channel_url
+
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        return_value=url,
+    )
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.channel_settings = (
+        {"channel": channel_settings_url, "auth": "dummy_one"},
+    )
+
+    session_obj = get_session(url)
+    get_session.cache_clear()  # ensuring cleanup
+
+    assert type(session_obj) is CondaSession
+
+    # For session objects with a custom auth handler it will not be set to CondaHttpAuth
+    assert type(session_obj.auth) is not CondaHttpAuth
+
+    # Make sure we tried to retrieve our auth handler in this function
+    assert (
+        mocker.call("dummy_one")
+        in mock_context.plugin_manager.get_auth_handler.mock_calls
+    )
+
+
 def test_get_session_with_channel_settings_multiple(mocker):
     """
     Tests to make sure the get_session function works when ``channel_settings``
