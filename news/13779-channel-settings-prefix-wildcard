@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Allow specification of URL prefix for channel matching with auth handler plugins
+* In custom channel settings allow specification of channel URLs using a prefix, e.g. for user with auth handler plugins. (#13778 via #13779)
 
 ### Bug fixes
 
