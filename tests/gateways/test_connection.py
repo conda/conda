@@ -220,7 +220,7 @@ def test_get_session_with_channel_settings_prefix(
         {"channel": channel_settings_url, "auth": "dummy_one"},
     )
 
-    session_obj = get_session(url)
+    session_obj = get_session(channel_url)
     get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
