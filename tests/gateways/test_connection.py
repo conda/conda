@@ -211,11 +211,9 @@ def test_get_session_with_channel_settings_prefix(
     For channels specified by URL, we can configure channel_settings with a URL containing
     either an exact URL match or with a wildcard suffix to match the URL prefix.
     """
-    url = channel_url
-
     mocker.patch(
         "conda.gateways.connection.session.get_channel_name_from_url",
-        return_value=url,
+        return_value=channel_url,
     )
     mock_context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.channel_settings = (
