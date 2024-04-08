@@ -89,8 +89,15 @@ def get_session(url: str):
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        if settings.get("channel") == channel_name:
+        channel = settings.get("channel", "")
+        if channel == channel_name:
+            # First we check for exact match
             channel_settings = settings
+        elif channel.endswith("/*"):
+            # We allow wildcard suffix to match URL prefix, defined as everything before '*'
+            prefix = channel[:-1]
+            if channel_name.startswith(prefix):
+                channel_settings = settings
 
     auth_handler = channel_settings.get("auth", "").strip() or None
 
