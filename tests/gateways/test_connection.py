@@ -309,20 +309,37 @@ def test_accept_range_none(package_server, tmp_path):
     """
     Ensure when "accept-ranges" is "none" we are able to truncate a partially downloaded file.
     """
+    test_content = "test content test content test content"
+
     host, port = package_server.getsockname()
     url = f"http://{host}:{port}/none-accept-ranges"
-    expected_sha256 = hashlib.sha256(
-        b"test content test content test content"
-    ).hexdigest()
+    expected_sha256 = hashlib.sha256(test_content.encode("utf-8")).hexdigest()
+
+    # assert range request not supported
+    response = CondaSession().get(url, headers={"Range": "bytes=10-"})
+    assert response.status_code == 200
 
     tmp_dir = tmp_path / "sub"
     tmp_dir.mkdir()
     filename = "test-file"
 
-    with (tmp_dir / f"{filename}.partial").open("w") as fp:
-        fp.write("test content")
+    partial_file = Path(tmp_dir / f"{filename}.partial")
+    complete_file = Path(tmp_dir / filename)
 
-    download_inner(url, tmp_dir / filename, "md5", expected_sha256, 38, lambda x: x)
+    partial_file.write_text(test_content[:12])
 
-    with (tmp_dir / filename).open("r") as fp:
-        assert fp.read() == "test content test content test content"
+    download_inner(url, complete_file, "md5", expected_sha256, 38, lambda x: x)
+
+    assert complete_file.read_text() == test_content
+    assert not partial_file.exists()
+
+    # What if the partial file was wrong? (Since this endpoint always returns
+    # 200 not 206, this doesn't test complete-download, then hash mismatch.
+    # Another test in test_fetch.py asserts that we check the hash.)
+    complete_file.unlink()
+    partial_file.write_text("wrong content")
+
+    download_inner(url, complete_file, None, expected_sha256, len(test_content), None)
+
+    assert complete_file.read_text() == test_content
+    assert not partial_file.exists()
