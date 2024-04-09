@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import hashlib
 from logging import getLogger
 from pathlib import Path
 from unittest.mock import patch
@@ -14,6 +15,7 @@ from conda.common.io import env_vars
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
+from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
@@ -301,3 +303,26 @@ def test_get_channel_name_from_url(url, channels, expected, monkeypatch):
     channel_name = get_channel_name_from_url(url)
 
     assert expected == channel_name
+
+
+def test_accept_range_none(package_server, tmp_path):
+    """
+    Ensure when "accept-ranges" is "none" we are able to truncate a partially downloaded file.
+    """
+    host, port = package_server.getsockname()
+    url = f"http://{host}:{port}/none-accept-ranges"
+    expected_sha256 = hashlib.sha256(
+        b"test content test content test content"
+    ).hexdigest()
+
+    tmp_dir = tmp_path / "sub"
+    tmp_dir.mkdir()
+    filename = "test-file"
+
+    with (tmp_dir / f"{filename}.partial").open("w") as fp:
+        fp.write("test content")
+
+    download_inner(url, tmp_dir / filename, "md5", expected_sha256, 38, lambda x: x)
+
+    with (tmp_dir / filename).open("r") as fp:
+        assert fp.read() == "test content test content test content"
