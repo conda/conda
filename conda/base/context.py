@@ -1174,7 +1174,6 @@ class Context(Configuration):
     @memoizedproperty
     @unique_sequence_map(
         unique_key="backend",
-        property_name="_reporters",
         allowed_keys={"json", "stdlib"},
     )
     def reporters(self) -> tuple[Mapping[str, str]]:

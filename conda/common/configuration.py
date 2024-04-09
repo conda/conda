@@ -1603,9 +1603,7 @@ class Configuration(metaclass=ConfigurationType):
         raise NotImplementedError()
 
 
-def unique_sequence_map(
-    *, unique_key: str, property_name: str, allowed_keys: set | None = None
-):
+def unique_sequence_map(*, unique_key: str, allowed_keys: set | None = None):
     """
     Used to validate properties on :class:`Configuration` subclasses defined as a
     ``SequenceParameter(MapParameter())`` where the map contains a single key that
@@ -1615,8 +1613,8 @@ def unique_sequence_map(
 
     def inner_wrap(func):
         @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            sequence_map = func(self, *args, **kwargs)
+        def wrapper(*args, **kwargs):
+            sequence_map = func(*args, **kwargs)
             known_keys = set()
             new_sequence_mapping = []
 
