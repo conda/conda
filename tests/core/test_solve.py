@@ -3076,9 +3076,7 @@ def test_freeze_deps_1(tmpdir):
             (
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
-                # LIBMAMBA ADJUSTMENT
-                # libmamba doesn't remove xz in this solve
-                *(() if context.solver == "libmamba" else ("channel-2::xz-5.2.3-0",)),
+                "channel-2::xz-5.2.3-0",
             )
         )
         link_order = add_subdir_to_iter(
