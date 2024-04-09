@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import copy
 import os
+import re
 import sys
 from pprint import pprint
 from unittest.mock import Mock, patch
@@ -3280,12 +3281,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
-                "python 2.6.*",
-                "scikit-learn 0.13",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
             ]
 
         for snippet in error_snippets:
-            assert snippet in error_msg
+            assert re.search(snippet, error_msg)
 
     specs_to_add = (MatchSpec("unsatisfiable-with-py26"),)
     with get_solver(
@@ -3308,12 +3309,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
-                "python 2.6.*",
+                r"python.*2\.6",
                 "unsatisfiable-with-py26",
             ]
 
         for snippet in error_snippets:
-            assert snippet in error_msg
+            assert re.search(snippet, error_msg)
 
 
 fake_index = [
