@@ -190,54 +190,47 @@ def test_get_session_with_channel_settings(mocker):
 
 
 @pytest.mark.parametrize(
-    "channel_url, channel_settings_url, expect_match",
+    "channel_settings_url, expect_match",
     [
         pytest.param(
-            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/channel-name",
             True,
             id="exact-url",
         ),
         pytest.param(
-            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/*",
             True,
             id="url-prefix",
         ),
         pytest.param(
-            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/another-channel",
             False,
             id="no-match",
         ),
         pytest.param(
-            "https://repo.some-hostname.com/channel-name",
             "https://*.com/*",
             True,
             id="wildcard-match-same-schema",
         ),
         pytest.param(
-            "https://repo.some-hostname.com/channel-name",
             "http://*.com/*",
             False,
             id="wildcard-no-match-different-scheme",
         ),
         pytest.param(
-            "https://repo.some-hostname.com/channel-name",
             "*",
             False,
             id="wildcard-no-match-missing-scheme",
         ),
     ],
 )
-def test_get_session_with_url_pattern(
-    mocker, channel_url, channel_settings_url, expect_match
-):
+def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match):
     """
     For channels specified by URL, we can configure channel_settings with a URL containing
     either an exact URL match or with a glob-like pattern. In the latter case we require the
     HTTP schemes to be identical.
     """
+    channel_url = "https://repo.some-hostname.com/channel-name"
     mocker.patch(
         "conda.gateways.connection.session.get_channel_name_from_url",
         return_value=channel_url,
