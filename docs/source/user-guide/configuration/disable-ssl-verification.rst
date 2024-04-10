@@ -58,7 +58,7 @@ these warnings.
 Disabling SSL verification via conda settings
 =============================================
 
-In addition to disabling SSL via environment variables, you can disable it by setting `ssl_verify` to `false` in your config files. To do so, run the following commands to disable and enable it: 
+In addition to disabling SSL via environment variables, you can disable it by setting `ssl_verify` to `false` in your config files. To do so, run the following commands to disable and enable it:
 
 .. code-block:: bash
 
