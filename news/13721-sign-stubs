@@ -1,0 +1,19 @@
+### Enhancements
+
+* For Windows users, the stub-exe's that are used for Python entrypoints in packages are now codesigned. (#13721)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
