@@ -124,7 +124,7 @@ def bash_unsupported() -> str | None:
 
 
 skip_unsupported_bash = pytest.mark.skipif(
-    bash_unsupported(),
+    bool(bash_unsupported()),
     reason=bash_unsupported() or "bash: supported!",
 )
 skip_unsupported_posix_path = pytest.mark.skipif(
