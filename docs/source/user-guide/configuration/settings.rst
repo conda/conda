@@ -93,7 +93,8 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
 
    Each entry in ``channel_settings`` needs to define the ``channel`` attribute so that
    the configuration knows which channel these settings are associated with. The ``channel``
-   attribute may specify a URL prefix for matching by including a ``/*`` suffix.
+   attribute may specify a glob-like URL pattern for matching. Note that in this case, the HTTP
+   schema must match exactly to the channel URL, so a pattern like ``*`` is not valid.
 
 
 ``auto_update_conda``: Update conda automatically
