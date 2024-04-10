@@ -1615,8 +1615,7 @@ def unique_sequence_map(*, unique_key: str, allowed_keys: set | None = None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             sequence_map = func(*args, **kwargs)
-            known_keys = set()
-            new_sequence_mapping = []
+            new_sequence_mapping = {}
 
             for mapping in sequence_map:
                 unique_key_value = mapping.get(unique_key)
@@ -1628,7 +1627,7 @@ def unique_sequence_map(*, unique_key: str, allowed_keys: set | None = None):
                     )
                     continue
 
-                if unique_key_value in known_keys:
+                if unique_key_value in new_sequence_mapping:
                     log.error(
                         f'Configuration: skipping {mapping} for "{func.__name__}"; value '
                         f'"{unique_key_value}" already present'
@@ -1644,10 +1643,9 @@ def unique_sequence_map(*, unique_key: str, allowed_keys: set | None = None):
                     )
                     continue
 
-                known_keys.add(unique_key_value)
-                new_sequence_mapping.append(mapping)
+                new_sequence_mapping[unique_key_value] = mapping
 
-            return tuple(new_sequence_mapping)
+            return tuple(new_sequence_mapping.values())
 
         return wrapper
 
