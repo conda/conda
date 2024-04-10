@@ -188,22 +188,30 @@ def test_get_session_with_channel_settings(mocker):
 
 
 @pytest.mark.parametrize(
-    "channel_url, channel_settings_url",
+    "channel_url, channel_settings_url, expect_match",
     [
         pytest.param(
             "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/channel-name",
+            True,
             id="exact-url",
         ),
         pytest.param(
             "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/*",
+            True,
             id="url-prefix",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
+            "https://repo.some-hostname.com/another-channel",
+            False,
+            id="no-match",
         ),
     ],
 )
-def test_get_session_with_channel_settings_prefix(
-    mocker, channel_url, channel_settings_url
+def test_get_session_with_url_pattern(
+    mocker, channel_url, channel_settings_url, expect_match
 ):
     """
     For channels specified by URL, we can configure channel_settings with a URL containing
@@ -221,16 +229,24 @@ def test_get_session_with_channel_settings_prefix(
     session_obj = get_session(channel_url)
     get_session.cache_clear()  # ensuring cleanup
 
+    # In all cases, the returned type is CondaSession
     assert type(session_obj) is CondaSession
 
-    # For session objects with a custom auth handler it will not be set to CondaHttpAuth
-    assert type(session_obj.auth) is not CondaHttpAuth
+    if expect_match:
+        # For session objects with a custom auth handler it will not be set to CondaHttpAuth
+        assert type(session_obj.auth) is not CondaHttpAuth
 
-    # Make sure we tried to retrieve our auth handler in this function
-    assert (
-        mocker.call("dummy_one")
-        in mock_context.plugin_manager.get_auth_handler.mock_calls
-    )
+        # Make sure we tried to retrieve our auth handler in this function
+        assert (
+            mocker.call("dummy_one")
+            in mock_context.plugin_manager.get_auth_handler.mock_calls
+        )
+    else:
+        # If we do not match, then we default to CondaHttpAuth
+        assert type(session_obj.auth) is CondaHttpAuth
+
+        # We have not tried to retrieve our auth handler
+        assert not mock_context.plugin_manager.get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_multiple(mocker):
