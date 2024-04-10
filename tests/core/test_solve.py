@@ -2693,6 +2693,14 @@ def test_timestamps_1(tmpdir):
 
 
 def test_channel_priority_churn_minimized(tmpdir):
+    """
+    get_solver_aggregate_2 has [channel-4, channel-2].
+    When the channels are reverted in the second operation, we put
+    channel-2 first. Under these circumstances, reinstalling
+    'itsdangerous' should pick the noarch version from channel-2
+    instead of the non-noarch variant in channel-4. Everything
+    else should stay the same due to FREEZE_INSTALLED.
+    """
     specs = (
         MatchSpec("conda-build"),
         MatchSpec("itsdangerous"),
@@ -2702,6 +2710,12 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
+    if context.solver == "libmamba":
+        # With libmamba v2, we need this extra flag to make this test pass
+        # Otherwise, the solver considers the current state as satisfying.
+        solver_kwargs = {"force_reinstall": True}
+    else:
+        solver_kwargs = {}
     with get_solver_aggregate_2(
         tmpdir,
         [MatchSpec("itsdangerous")],
@@ -2710,7 +2724,8 @@ def test_channel_priority_churn_minimized(tmpdir):
     ) as solver:
         solver.channels.reverse()
         unlink_dists, link_dists = solver.solve_for_diff(
-            update_modifier=UpdateModifier.FREEZE_INSTALLED
+            update_modifier=UpdateModifier.FREEZE_INSTALLED,
+            **solver_kwargs,
         )
         pprint(convert_to_dist_str(unlink_dists))
         pprint(convert_to_dist_str(link_dists))
