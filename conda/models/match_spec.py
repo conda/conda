@@ -16,7 +16,6 @@ from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 
-from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
@@ -28,6 +27,11 @@ from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..auxlib.collection import frozendict
 
 log = getLogger(__name__)
 

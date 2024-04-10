@@ -26,7 +26,6 @@ from boltons.setutils import IndexedSet
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
-from .._vendor.frozendict import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..common._os.linux import linux_get_libc_version
@@ -73,13 +72,17 @@ from .constants import (
     UpdateModifier,
 )
 
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
+
 if TYPE_CHECKING:
     from pathlib import Path
     from typing import Literal
 
     from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
-
 
 try:
     os.getcwd()
