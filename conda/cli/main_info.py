@@ -7,7 +7,6 @@ Display information about current conda installation.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
@@ -403,16 +402,12 @@ def builder(info_dict: dict[str, Any]):
     yield ("offline mode", info_dict["offline"])
 
 
-def final_info_dict_from_builder(info_dict: dict) -> dict:
-    dict(builder(info_dict))
-    final_info_dict = {}
-    for k, v in builder(info_dict):
-        final_info_dict[k] = v
-
-    return final_info_dict
-
-
-def dict_based_on_args(final_info_dict: dict, args, context) -> dict:
+def dict_based_on_args(info_dict: dict, args, context) -> dict:
+    """
+    Based on which flags are used with `conda info`, the output changes.
+    This functions takes the "info_dict" dictionary as a parameter and depending on which args are used,
+    returns a trimmed version of info_dict dictionary.
+    """
     if args.base:
         return {"root_prefix": context.root_prefix}
     elif args.unsafe_channels:
@@ -421,17 +416,29 @@ def dict_based_on_args(final_info_dict: dict, args, context) -> dict:
         from ..core.envs_manager import list_all_known_prefixes
 
         content_dict = {"envs": list_all_known_prefixes()}
-    if args.system:
+    if args.system and not context.json:
         from .find_commands import find_commands, find_executable
 
         content_dict = {}
         content_dict["sys.version"] = sys.version
         content_dict["sys.prefix"] = sys.prefix
         content_dict["sys.executable"] = sys.executable
-        content_dict["conda location"] = final_info_dict["conda_location"]
+        content_dict["conda location"] = info_dict["conda_location"]
         for cmd in sorted(set(find_commands() + ("build",))):
             content_dict["conda-{}"] = find_executable("conda-" + cmd)
-        content_dict["user site dirs"] = final_info_dict["site_dirs"]
+        content_dict["user site dirs"] = info_dict["site_dirs"]
+        for name, value in sorted(info_dict["env_vars"].items()):
+            content_dict[name] = value
+
+    if (
+        context.verbose
+        or all(not getattr(args, opt) for opt in ("envs", "system"))
+        and not context.json
+    ):
+        content_dict = dict(builder(info_dict))
+
+    if context.json:
+        content_dict = info_dict
 
     return content_dict
 
@@ -454,55 +461,13 @@ class Tabular(DisplayManager):
     """If data needs to be printed in a table like form"""
 
     def std(self, args, context, content_dict: dict):
-        if args.base:
-            print(f"{context.root_prefix}")
-        elif args.unsafe_channels:
-            print("\n".join(context.channels))
-        elif args.envs:
-            from ..core.envs_manager import list_all_known_prefixes
-            from .common import print_envs_list
-
-            content_dict["envs"] = list_all_known_prefixes()
-            print_envs_list(content_dict["envs"], not context.json)
-        elif args.system:
-            from .find_commands import find_commands, find_executable
-
-            print("sys.version: %s..." % (sys.version[:40]))
-            print("sys.prefix: %s" % sys.prefix)
-            print("sys.executable: %s" % sys.executable)
-            print("conda location: %s" % content_dict["conda_location"])
-            for cmd in sorted(set(find_commands() + ("build",))):
-                print("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
-            print("user site dirs: ", end="")
-            site_dirs = content_dict["site_dirs"]
-            if site_dirs:
-                print(site_dirs[0])
-            else:
-                print()
-            for site_dir in site_dirs[1:]:
-                print("                %s" % site_dir)
-            print()
-
-            for name, value in sorted(content_dict["env_vars"].items()):
-                print(f"{name}: {value}")
-            print()
-            # elif context.verbose or all(not getattr(args, opt) for opt in options):
-            #     output_string = "\n".join(
-            #         (
-            #             "",
-            #             *(f"{key:>23} : {value}" for key, value in content_dict.items()),
-            #             "",
-            #         )
-            #     )
-            # print(output_string)
+        conda_info_string = "\n".join(
+            ("", *(f"{key:>23} : {value}" for key, value in content_dict.items()), "")
+        )
+        print(conda_info_string)
 
     def json(self, args, context, content_dict: dict):
-        if args.base:
-            stdout_json({"root_prefix": context.root_prefix})
-        elif args.unsafe_channels:
-            print(json.dumps({"channels": context.channels}))
-        else:
-            stdout_json(content_dict)
+        stdout_json(content_dict)
 
     def rich(self, args, context, content_dict: dict):
         table = Table(
@@ -528,82 +493,6 @@ class Tabular(DisplayManager):
             self.std(args, context, content_dict)
 
 
-# class RegularString(DisplayManager):
-
-#     def std(self, args, context, string):
-
-
-# def display_manager(args, context, info_dict):
-#     options = "envs", "system"
-#     if context.verbose or context.json:
-#         for option in options:
-#             setattr(args, option, True)
-
-#     def rich_display(info_dict):
-#         table = Table(
-#             title="conda info", show_header=False, show_lines=True, style="black"
-#         )
-
-#         table.add_column("", no_wrap=False)
-#         table.add_column("", no_wrap=False)
-
-#         for k, v in builder(info_dict):
-#             table.add_row(str(k), str(v))
-#         console = Console()
-#         console.print(table)
-
-#     def std_display(info_dict):
-#         if args.base:
-#             print(f"{context.root_prefix}")
-#         if args.unsafe_channels:
-#             print("\n".join(context.channels))
-#         if args.system:
-#             from .find_commands import find_commands, find_executable
-
-#             print("sys.version: %s..." % (sys.version[:40]))
-#             print("sys.prefix: %s" % sys.prefix)
-#             print("sys.executable: %s" % sys.executable)
-#             print("conda location: %s" % info_dict["conda_location"])
-#             for cmd in sorted(set(find_commands() + ("build",))):
-#                 print("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
-#             print("user site dirs: ", end="")
-#             site_dirs = info_dict["site_dirs"]
-#             if site_dirs:
-#                 print(site_dirs[0])
-#             else:
-#                 print()
-#             for site_dir in site_dirs[1:]:
-#                 print("                %s" % site_dir)
-#             print()
-
-#             for name, value in sorted(info_dict["env_vars"].items()):
-#                 print(f"{name}: {value}")
-#             print()
-#         elif context.verbose or all(not getattr(args, opt) for opt in options):
-#             output_string = "\n".join(
-#                 ("", *(f"{key:>23} : {value}" for key, value in builder(info_dict)), "")
-#             )
-#             print(output_string)
-
-#     def json_display(info_dict):
-#         from .common import stdout_json
-
-#         if args.base:
-#             stdout_json({"root_prefix": context.root_prefix})
-
-#         if args.unsafe_channels:
-#             print(json.dumps({"channels": context.channels}))
-
-#         stdout_json(info_dict)
-
-#     if context.json:
-#         json_display(info_dict)
-#     elif context.rich:
-#         rich_display(info_dict)
-#     else:
-#         std_display(info_dict)
-
-
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
     Implements ``conda info`` commands.
@@ -616,20 +505,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
      * ``conda info --system`` (deprecated) (no ``--json``)
     """
 
-    if args.base:
-        if context.json:
-            stdout_json({"root_prefix": context.root_prefix})
-        else:
-            print(f"{context.root_prefix}")
-        return 0
-
-    options = "envs", "system"
-    if context.verbose or context.json:
-        for option in options:
-            setattr(args, option, True)
-
     info_dict = get_info_dict()
-    final_info_dict = final_info_dict_from_builder(info_dict)
+    final_info_dict = dict_based_on_args(info_dict, args, context)
 
     conda_info_table = Tabular()
     conda_info_table.display(args, context, final_info_dict)
