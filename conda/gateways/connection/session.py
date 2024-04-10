@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from functools import lru_cache
 from logging import getLogger
 from threading import local
@@ -93,11 +94,21 @@ def get_session(url: str):
         if channel == channel_name:
             # First we check for exact match
             channel_settings = settings
-        elif channel.endswith("/*"):
-            # We allow wildcard suffix to match URL prefix, defined as everything before '*'
-            prefix = channel[:-1]
-            if channel_name.startswith(prefix):
-                channel_settings = settings
+            continue
+
+        # If we don't have an exact match, we attempt to match a URL pattern
+        parsed_url = urlparse(url)
+        parsed_setting = urlparse(channel)
+
+        # We require that the schemes must be identical to prevent downgrade attacks.
+        # This includes the case of a scheme-less pattern like "*", which is not allowed.
+        if parsed_setting.scheme != parsed_url.scheme:
+            continue
+
+        url_without_schema = parsed_url.netloc + parsed_url.path
+        pattern = parsed_setting.netloc + parsed_setting.path
+        if fnmatch(url_without_schema, pattern):
+            channel_settings = settings
 
     auth_handler = channel_settings.get("auth", "").strip() or None
 
