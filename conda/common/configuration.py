@@ -1603,7 +1603,7 @@ class Configuration(metaclass=ConfigurationType):
         raise NotImplementedError()
 
 
-def unique_sequence_map(*, unique_key: str, allowed_keys: set | None = None):
+def unique_sequence_map(*, unique_key: str):
     """
     Used to validate properties on :class:`Configuration` subclasses defined as a
     ``SequenceParameter(MapParameter())`` where the map contains a single key that
@@ -1631,15 +1631,6 @@ def unique_sequence_map(*, unique_key: str, allowed_keys: set | None = None):
                     log.error(
                         f'Configuration: skipping {mapping} for "{func.__name__}"; value '
                         f'"{unique_key_value}" already present'
-                    )
-                    continue
-
-                if allowed_keys is not None and unique_key_value not in allowed_keys:
-                    quoted_allowed_keys = sorted(f'"{value}"' for value in allowed_keys)
-                    log.error(
-                        f"Configuration: skipping {mapping} for \"{func.__name__}\"; value "
-                        f"\"{unique_key_value}\" not allowed; allowed values are: "
-                        f"{', '.join(quoted_allowed_keys)}"
                     )
                     continue
 

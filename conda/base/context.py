@@ -1172,10 +1172,7 @@ class Context(Configuration):
         return info["flags"]
 
     @memoizedproperty
-    @unique_sequence_map(
-        unique_key="backend",
-        allowed_keys={"json", "stdlib"},
-    )
+    @unique_sequence_map(unique_key="backend")
     def reporters(self) -> tuple[Mapping[str, str]]:
         """
         Determine the value of reporters based on other settings and the ``self._reporters``

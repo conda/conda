@@ -852,11 +852,7 @@ def unique_sequence_map_test_class():
     """
 
     class UniqueSequenceMapTestObject(SimpleNamespace):
-        @unique_sequence_map(
-            unique_key="backend",
-            property_name="_test_prop",
-            allowed_keys={"json", "stdlib"},
-        )
+        @unique_sequence_map(unique_key="backend")
         def test_prop(self):
             return self._test_prop
 
@@ -901,24 +897,5 @@ def test_unique_sequence_map_error_with_unique_key(
         mocker.call(
             "Configuration: skipping {'value': 'test'} for \"test_prop\"; "
             'unique key "backend" not present on mapping'
-        )
-    ]
-
-
-def test_unique_sequence_map_error_with_allow_values(
-    unique_sequence_map_test_class, mocker
-):
-    """
-    Ensure the correct errors are logged when no unique key is present
-    """
-    log_mock = mocker.patch("conda.common.configuration.log")
-
-    test_obj = unique_sequence_map_test_class(_test_prop=({"backend": "test"},))
-
-    assert test_obj.test_prop() == tuple()
-    assert log_mock.error.mock_calls == [
-        mocker.call(
-            "Configuration: skipping {'backend': 'test'} for \"test_prop\"; "
-            'value "test" not allowed; allowed values are: "json", "stdlib"'
         )
     ]
