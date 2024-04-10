@@ -41,7 +41,9 @@ from conda.models.channel import Channel
 
 
 def test_server_available(package_server: socket):
-    """Is the server available"""
+    """
+    Check that the package_server test fixture is running.
+    """
     port = package_server.getsockname()[1]
     response = requests.get(f"http://127.0.0.1:{port}/notfound")
     assert response.status_code == 404
