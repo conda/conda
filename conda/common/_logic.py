@@ -591,7 +591,7 @@ class Clauses:
         if nterms and coeffs[-1] > hi:
             nprune = sum(c > hi for c in coeffs)
             log.log(
-                TRACE, "Eliminating %d/%d terms for bound violation" % (nprune, nterms)
+                TRACE, "Eliminating %d/%d terms for bound violation", nprune, nterms
             )
             nterms -= nprune
         else:
@@ -710,7 +710,7 @@ class Clauses:
             if trymax and not peak:
                 try0 = hi - 1
 
-            log.log(TRACE, "Initial range (%d,%d)" % (lo, hi))
+            log.log(TRACE, "Initial range (%d,%d)", lo, hi)
             while True:
                 if try0 is None:
                     mid = (lo + hi) // 2
@@ -728,13 +728,13 @@ class Clauses:
                 if log.isEnabledFor(DEBUG):
                     log.log(
                         TRACE,
-                        "Bisection attempt: (%d,%d), (%d+%d) clauses"
-                        % (lo, mid, nz, self.get_clause_count() - nz),
+                        "Bisection attempt: (%d,%d), (%d+%d) clauses",
+                        lo, mid, nz, self.get_clause_count() - nz,
                     )
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
-                    log.log(TRACE, "Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    log.log(TRACE, "Bisection failure, new range=(%d,%d)", lo, hi)
                     if lo > hi:
                         # FIXME: This is not supposed to happen!
                         # TODO: Investigate and fix the cause.
