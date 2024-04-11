@@ -747,7 +747,7 @@ class Clauses:
                     bestsol = newsol
                     bestval = objval(newsol, objective_dict)
                     hi = bestval
-                    log.log(TRACE, "Bisection success, new range=(%d,%d)" % (lo, hi))
+                    log.log(TRACE, "Bisection success, new range=(%d,%d)", lo, hi)
                     if done:
                         break
                 self.m = m_orig
