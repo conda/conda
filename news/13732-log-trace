@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Deprecate `Logger.trace(msg)` patch. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
