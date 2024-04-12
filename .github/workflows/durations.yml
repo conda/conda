@@ -18,7 +18,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
       - name: download recent artifacts
         run: |
@@ -37,7 +37,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: '3.11'
 
@@ -45,7 +45,7 @@ jobs:
         run: python ./tools/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@70a41aba780001da0a30141984ae2a0c95d8704e
         with:
           push-to-fork: conda-bot/conda
           token: ${{ secrets.DURATIONS_TOKEN }}
