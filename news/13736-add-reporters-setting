@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds a new `reporters` setting for configure output
+* Adds a new `reporters` setting for configure output. (#13736)
 
 ### Bug fixes
 
