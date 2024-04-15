@@ -30,30 +30,30 @@ from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
-
-if TYPE_CHECKING:  # pragma: no cover
-    from re import Match
-    from typing import Any, Hashable, Iterable, Sequence
-
 from boltons.setutils import IndexedSet
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from ..auxlib.collection import AttrDict, first, last, make_immutable
+from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
+from ..deprecations import deprecated
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
 
 try:
-    from frozendict import frozendict
+    from frozendict import deepfreeze, frozendict
 except ImportError:
     from .._vendor.frozendict import frozendict
+    from ..auxlib.collection import make_immutable as deepfreeze
+
+if TYPE_CHECKING:
+    from re import Match
+    from typing import Any, Hashable, Iterable, Sequence
 
 log = getLogger(__name__)
 
@@ -266,7 +266,7 @@ class ArgParseRawParameter(RawParameter):
                 )
             return tuple(children_values)
         else:
-            return make_immutable(self._raw_value)
+            return deepfreeze(self._raw_value)
 
     def keyflag(self):
         return None

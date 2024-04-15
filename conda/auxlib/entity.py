@@ -246,7 +246,6 @@ from pathlib import Path
 from boltons.timeutils import isoparse
 
 from . import NULL
-from .collection import AttrDict, make_immutable
 from .compat import isiterable, odict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
@@ -254,9 +253,10 @@ from .logz import DumpEncoder
 from .type_coercion import maybecall
 
 try:
-    from frozendict import frozendict
+    from frozendict import deepfreeze, frozendict
 except ImportError:
     from .._vendor.frozendict import frozendict
+    from ..auxlib.collection import make_immutable as deepfreeze
 
 log = getLogger(__name__)
 
@@ -599,7 +599,7 @@ class ListField(Field):
             if isinstance(et, type) and issubclass(et, Entity):
                 return self._type(v if isinstance(v, et) else et(**v) for v in val)
             else:
-                return make_immutable(val) if self.immutable else self._type(val)
+                return deepfreeze(val) if self.immutable else self._type(val)
         else:
             raise ValidationError(
                 val, msg=f"Cannot assign a non-iterable value to {self.name}"
@@ -650,7 +650,7 @@ class MapField(Field):
         if val is None:
             return self._type()
         elif isiterable(val):
-            val = make_immutable(val)
+            val = deepfreeze(val)
             if not isinstance(val, Mapping):
                 raise ValidationError(
                     val, msg=f"Cannot assign a non-iterable value to {self.name}"
