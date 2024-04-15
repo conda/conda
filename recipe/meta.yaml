@@ -40,6 +40,7 @@ requirements:
     - conda-libmamba-solver >=23.11.0
     - conda-package-handling >=2.2.0
     - distro >=1.5.0
+    - frozendict >=1.2
     - jsonpatch >=1.32
     - menuinst >=2
     - packaging >=23.0
