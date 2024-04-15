@@ -234,6 +234,11 @@ def set_log_level(log_level: int):
     log.debug("log_level set to %d", log_level)
 
 
+@deprecated(
+    "24.5",
+    "24.11",
+    addendum="Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead.",
+)
 def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
         self._log(TRACE, message, args, **kwargs)

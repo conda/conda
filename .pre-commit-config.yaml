@@ -21,7 +21,7 @@ exclude: |
 repos:
   # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -61,7 +61,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.4
+    rev: v0.3.5
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff
