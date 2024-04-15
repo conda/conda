@@ -278,7 +278,9 @@ def print_result(args, prefix, result):
     """Print the result of an install operation"""
     if context.json:
         if result["conda"] is None and result["pip"] is None:
-            common.stdout_json_success(message="All requested packages already installed.")
+            common.stdout_json_success(
+                message="All requested packages already installed."
+            )
         else:
             if result["conda"] is not None:
                 actions = result["conda"]
