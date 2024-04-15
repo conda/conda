@@ -37,7 +37,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+      - uses: actions/setup-python@b64ffcaf5b410884ad320a9cfac8866006a109aa
         with:
           python-version: '3.11'
 
@@ -45,7 +45,7 @@ jobs:
         run: python ./tools/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
-        uses: peter-evans/create-pull-request@70a41aba780001da0a30141984ae2a0c95d8704e
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38
         with:
           push-to-fork: conda-bot/conda
           token: ${{ secrets.DURATIONS_TOKEN }}
