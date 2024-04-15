@@ -247,6 +247,7 @@ from boltons.timeutils import isoparse
 
 from . import NULL
 from .compat import isiterable, odict
+from .collection import AttrDict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
