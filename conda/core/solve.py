@@ -17,7 +17,6 @@ from genericpath import exists
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
-from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
@@ -42,6 +41,11 @@ from .index import _supplement_index_with_system, get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..auxlib.collection import frozendict
 
 if TYPE_CHECKING:
     from typing import Iterable

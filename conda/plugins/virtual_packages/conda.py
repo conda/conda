@@ -7,6 +7,6 @@ from .. import CondaVirtualPackage, hookimpl
 
 @hookimpl
 def conda_virtual_packages():
-    from ...__version__ import __version__
+    from ... import __version__
 
     yield CondaVirtualPackage("conda", __version__, None)

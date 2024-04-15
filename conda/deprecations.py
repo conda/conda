@@ -353,7 +353,9 @@ class DeprecationHandler:
                 # AttributeError: frame.f_code.co_filename is undefined
                 pass
             else:
-                for loaded in sys.modules.values():
+                # use a copy of sys.modules to avoid RuntimeError during iteration
+                # see https://github.com/conda/conda/issues/13754
+                for loaded in tuple(sys.modules.values()):
                     if not isinstance(loaded, ModuleType):
                         continue
                     if not hasattr(loaded, "__file__"):
