@@ -9,7 +9,7 @@ from itertools import chain
 from os.path import abspath, expanduser, expandvars
 
 from ..base.context import context
-from ..cli import common
+from ..cli import common, install
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.serialize import yaml_safe_dump, yaml_safe_load
@@ -275,14 +275,10 @@ def get_filename(filename):
 
 
 def print_result(args, prefix, result):
-    from ..base.context import context
-    from ..cli import install
-    from ..cli.common import stdout_json_success
-
     """Print the result of an install operation"""
     if context.json:
         if result["conda"] is None and result["pip"] is None:
-            stdout_json_success(message="All requested packages already installed.")
+            common.stdout_json_success(message="All requested packages already installed.")
         else:
             if result["conda"] is not None:
                 actions = result["conda"]
@@ -290,6 +286,6 @@ def print_result(args, prefix, result):
                 actions = {}
             if result["pip"] is not None:
                 actions["PIP"] = result["pip"]
-            stdout_json_success(prefix=prefix, actions=actions)
+            common.stdout_json_success(prefix=prefix, actions=actions)
     else:
         install.print_activate(args.name or prefix)
