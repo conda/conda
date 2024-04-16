@@ -2112,7 +2112,7 @@ def _first_writable_envs_dir():
                 open(envs_dir_magic_file, "a").close()
                 return envs_dir
             except OSError:
-                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory
 
