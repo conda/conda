@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Remove build label
-        uses: actions/github-script@v6
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           github-token: ${{ secrets.CANARY_ACTION_TOKEN }}
           script: |
@@ -46,14 +46,14 @@ jobs:
 
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@v23.10.0
+        uses: conda/actions/canary-release@dd4ac84de3d7e96348e09fef478e80aafa7c259a
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
