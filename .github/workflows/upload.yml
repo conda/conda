@@ -23,8 +23,6 @@ jobs:
   upload:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     env:
       ARCHIVE_NAME: "${{ github.event.repository.name }}-${{ github.ref_name }}"
     steps:
