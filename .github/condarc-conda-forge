@@ -1,2 +1,3 @@
 channels:
   - conda-forge
+anaconda_anon_usage: false
