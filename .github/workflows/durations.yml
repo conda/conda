@@ -45,7 +45,7 @@ jobs:
         run: python ./tools/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
-        uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5
+        uses: peter-evans/create-pull-request@c55203cfde3e5c11a452d352b4393e68b85b4533
         with:
           push-to-fork: conda-bot/conda
           token: ${{ secrets.DURATIONS_TOKEN }}
