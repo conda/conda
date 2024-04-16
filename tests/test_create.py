@@ -72,6 +72,7 @@ from conda.gateways.subprocess import (
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.resolve import Resolve
+from conda.testing.helpers import CHANNEL_DIR_V2
 from conda.testing.integration import (
     BIN_DIRECTORY,
     PYTHON_BINARY,
@@ -2554,3 +2555,40 @@ def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
 
     assert filename.exists()
     assert tmp_path.exists()
+
+
+def test_repodata_v2_base_url(
+    tmp_path: Path,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    request: FixtureRequest,
+):
+    if context.solver == "libmamba":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "libmamba",
+                reason="Libmamba does not support CEP-15 yet.",
+                strict=True,
+                run=True,
+            )
+        )
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    reset_context()
+    prefix = tmp_path / "env"
+    platform = (
+        "linux-64"
+        if context.subdir not in ("win-64", "linux-64", "osx-64")
+        else context.subdir
+    )
+    conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--yes",
+        "--override-channels",
+        "-c",
+        CHANNEL_DIR_V2,
+        "ca-certificates",
+        "--platform",
+        platform,
+    )
+    assert package_is_installed(prefix, "ca-certificates")

@@ -26,12 +26,12 @@ from conda.exports import MatchSpec, url_path
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
-from conda.testing.helpers import CHANNEL_DIR
+from conda.testing.helpers import CHANNEL_DIR_V1
 
-assert CHANNEL_DIR == abspath(
+assert CHANNEL_DIR_V1 == abspath(
     join(dirname(__file__), "..", "data", "conda_format_repo")
 )
-CONDA_PKG_REPO = url_path(CHANNEL_DIR)
+CONDA_PKG_REPO = url_path(CHANNEL_DIR_V1)
 
 subdir = "win-64"
 zlib_base_fn = "zlib-1.2.11-h62dcd97_3"
@@ -288,7 +288,8 @@ def test_tar_bz2_in_cache_not_extracted(tmp_pkgs_dir: Path):
     .conda package is requested, the .tar.bz2 package in the cache is used by default.
     """
     copy(
-        join(CHANNEL_DIR, subdir, zlib_tar_bz2_fn), join(tmp_pkgs_dir, zlib_tar_bz2_fn)
+        join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn),
+        join(tmp_pkgs_dir, zlib_tar_bz2_fn),
     )
     pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
     pfe.prepare()
