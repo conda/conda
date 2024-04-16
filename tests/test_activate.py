@@ -3107,6 +3107,7 @@ def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
 # conda will pass a Windows pathname prefix but conda-build will pass
 # a Unix pathname prefix (in particular, an MSYS2 pathname).
 
+
 def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
     with tempdir() as td:
         mkdir_p(join(td, "conda-meta"))
@@ -3142,7 +3143,7 @@ def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
         if no_paths:
             for dir in no_paths:
                 exp_dir = join(library_dir, dir, "bin")
-                assert not ce_act.path_conversion(exp_dir) in paths
+                assert ce_act.path_conversion(exp_dir) not in paths
 
         ps_act = PowerShellActivator()
         builder = ps_act.build_activate(td)
@@ -3156,13 +3157,14 @@ def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
         if no_paths:
             for dir in no_paths:
                 exp_dir = join(library_dir, dir, "bin")
-                assert not ps_act.path_conversion(exp_dir) in paths
+                assert ps_act.path_conversion(exp_dir) not in paths
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
 def test_MSYS2_PATH_from_nothing(reset_environ: None):
     # No Library/* => Library/mingw-w64/bin
     assert_MSYS2_PATH(None, ["mingw-w64"], ["ucrt64"])
+
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
 def test_MSYS2_PATH_from_legacy(reset_environ: None):

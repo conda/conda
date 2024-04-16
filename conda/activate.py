@@ -628,12 +628,12 @@ class _Activator(metaclass=abc.ABCMeta):
             #
             # We could include clang32 and mingw32 variants
             variants = []
-            for pmsystem in ['ucrt64', 'clang64', 'mingw64', 'clangarm64']:
+            for pmsystem in ["ucrt64", "clang64", "mingw64", "clangarm64"]:
                 pdir = self.sep.join((prefix, "Library", pmsystem))
 
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
-                if re.match ("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
                     pdir = unix_path_to_native(pdir)
 
                 if isdir(pdir):
@@ -642,8 +642,14 @@ class _Activator(metaclass=abc.ABCMeta):
                         msystem = pmsystem
 
             if len(variants) > 1:
-                print(f"WARNING: {prefix}: {variants} MSYS2 envs exist: please check your dependencies", file=sys.stderr)
-                print(f"WARNING: conda list -n {self._default_env(prefix)}", file=sys.stderr)
+                print(
+                    f"WARNING: {prefix}: {variants} MSYS2 envs exist: please check your dependencies",
+                    file=sys.stderr,
+                )
+                print(
+                    f"WARNING: conda list -n {self._default_env(prefix)}",
+                    file=sys.stderr,
+                )
 
             if msystem:
                 yield self.sep.join((prefix, "Library", msystem, "bin"))
