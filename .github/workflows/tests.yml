@@ -40,13 +40,13 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         # dorny/paths-filter needs git clone for non-PR events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
 
       - name: Filter Changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: filter
         with:
           filters: |
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         with:
           fetch-depth: 0
 
@@ -96,13 +96,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@030178870c779d9e5e1b4e563269f3aa69b04081
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -139,13 +139,13 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: test-results-${{ env.HASH }}
           path: |
@@ -192,7 +192,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         with:
           fetch-depth: 0
 
@@ -200,13 +200,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@030178870c779d9e5e1b4e563269f3aa69b04081
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -240,13 +240,13 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: test-results-${{ env.HASH }}
           path: |
@@ -275,7 +275,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         with:
           fetch-depth: 0
 
@@ -283,13 +283,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@030178870c779d9e5e1b4e563269f3aa69b04081
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -318,7 +318,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@v2
+        uses: CodSpeedHQ/action@1dbf41f0ae41cebfe61e084e535aebe533409b4d
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/pytest --codspeed
@@ -353,12 +353,12 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         with:
           fetch-depth: 0
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3
 
       - name: Run Tests
         run: docker run
@@ -426,7 +426,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         with:
           fetch-depth: 0
 
@@ -434,13 +434,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@030178870c779d9e5e1b4e563269f3aa69b04081
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -477,13 +477,13 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: test-results-${{ env.HASH }}
           path: |
@@ -503,18 +503,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
 
       - name: Upload Combined Test Results
         # provides one downloadable archive of all matrix run test results for further analysis
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: test-results-${{ github.sha }}-all
           path: test-results-*
           retention-days: 7  # for durations.yml workflow
 
       - name: Test Summary
-        uses: test-summary/action@v2
+        uses: test-summary/action@032c8a9cec6aaa3c20228112cae6ca10a3b29336
         with:
           paths: test-results-*/test-report.xml
 
@@ -526,7 +526,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Determine Success
-        uses: re-actors/alls-green@v1.2.2
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
         id: alls-green
         with:
           # permit jobs to be skipped if there are no code changes (see changes job)
@@ -535,12 +535,12 @@ jobs:
 
       # CONDA-LIBMAMBA-SOLVER CHANGE
       - name: Checkout our source
-        uses: actions/checkout@v3
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         if: always() && github.event_name != 'pull_request' && steps.alls-green.outputs.result == 'failure'
 
       - name: Report failures
         if: always() && github.event_name != 'pull_request' && steps.alls-green.outputs.result == 'failure'
-        uses: JasonEtco/create-an-issue@v2
+        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5
         env:
           GITHUB_TOKEN: ${{ secrets.CONDA_ISSUES }}
           RUN_ID: ${{ github.run_id }}
@@ -580,7 +580,7 @@ jobs:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
         with:
           ref: ${{ github.ref }}
           clean: true
@@ -588,7 +588,7 @@ jobs:
 
       # Explicitly use Python 3.11 since each of the OSes has a different default Python
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: '3.11'
 
@@ -614,7 +614,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@v24.2.0
+        uses: conda/actions/canary-release@f46142e89fa703cc69f0421ca1d313ab2d5bfff6
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1

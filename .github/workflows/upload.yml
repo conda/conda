@@ -23,13 +23,11 @@ jobs:
   upload:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     env:
       ARCHIVE_NAME: "${{ github.event.repository.name }}-${{ github.ref_name }}"
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
 
       - name: Create Release Directory
         run: mkdir -p release
