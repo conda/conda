@@ -3117,11 +3117,7 @@ def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
         touch(join(activate_d_1))
         touch(join(activate_d_2))
 
-        activate_env_vars = join(td, PREFIX_STATE_FILE)
-        with open(activate_env_vars, "w") as f:
-            f.write(ENV_VARS_FILE)
-
-        write_pkg_env_vars(td)
+        write_state_file(td)
 
         library_dir = join(td, "Library")
         mkdir_p(dirname(library_dir))
@@ -3134,6 +3130,22 @@ def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
         ce_act = CmdExeActivator()
         builder = ce_act.build_activate(td)
         paths = ce_act._replace_prefix_in_path(td, td)
+        new_path = ce_act.pathsep_join(paths)
+
+        export_vars, unset_vars = ce_act.get_export_unset_vars(
+            PATH=new_path,
+            CONDA_PREFIX=td,
+            CONDA_SHLVL=1,
+            CONDA_DEFAULT_ENV=td,
+            CONDA_PROMPT_MODIFIER=get_prompt_modifier(td),
+            # write_state_file
+            ENV_ONE=ENV_ONE,
+            ENV_TWO=ENV_TWO,
+            ENV_THREE=ENV_THREE,
+            ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
+        )
+        assert builder["unset_vars"] == unset_vars
+        assert builder["export_vars"] == export_vars
 
         if exp_paths:
             for dir in exp_paths:
@@ -3148,6 +3160,22 @@ def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
         ps_act = PowerShellActivator()
         builder = ps_act.build_activate(td)
         paths = ps_act._replace_prefix_in_path(td, td)
+        new_path = ps_act.pathsep_join(paths)
+
+        export_vars, unset_vars = ps_act.get_export_unset_vars(
+            PATH=new_path,
+            CONDA_PREFIX=td,
+            CONDA_SHLVL=1,
+            CONDA_DEFAULT_ENV=td,
+            CONDA_PROMPT_MODIFIER=get_prompt_modifier(td),
+            # write_state_file
+            ENV_ONE=ENV_ONE,
+            ENV_TWO=ENV_TWO,
+            ENV_THREE=ENV_THREE,
+            ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
+        )
+        assert builder["unset_vars"] == unset_vars
+        assert builder["export_vars"] == export_vars
 
         if exp_paths:
             for dir in exp_paths:
