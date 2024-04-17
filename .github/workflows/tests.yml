@@ -1,3 +1,4 @@
+---
 name: Tests
 
 on:
@@ -108,7 +109,8 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Conda Install
-        run: conda install
+        run: >
+          conda install
           --yes
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
@@ -130,7 +132,8 @@ jobs:
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
-        run: pytest
+        run: >
+          pytest
           --cov=conda
           --basetemp=${{ runner.temp }}
           --durations-path=tools\durations\${{ runner.os }}.json
@@ -212,7 +215,8 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Conda Install
-        run: conda install
+        run: >
+          conda install
           --yes
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
@@ -232,7 +236,8 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Tests
-        run: pytest
+        run: >
+          pytest
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -295,7 +300,8 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Conda Install
-        run: conda install
+        run: >
+          conda install
           --yes
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
@@ -343,12 +349,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.12']
-        image: ['continuumio/miniconda3:latest', 'condaforge/miniforge3:latest']
+        image:
+          - continuumio/miniconda3:latest
+          - condaforge/miniforge3:latest
         platform: [arm64, ppc64le, s390x]
         exclude:
-          - image: 'continuumio/miniconda3:latest'
+          - image: continuumio/miniconda3:latest
             platform: ppc64le
-          - image: 'condaforge/miniforge3:latest'
+          - image: condaforge/miniforge3:latest
             platform: s390x
 
     steps:
@@ -361,7 +369,8 @@ jobs:
         uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3
 
       - name: Run Tests
-        run: docker run
+        run: >
+          docker run
           --rm
           --volume ${PWD}:/opt/conda-src
           --workdir /opt/conda-src
@@ -371,12 +380,12 @@ jobs:
           ". /opt/conda/etc/profile.d/conda.sh
           && set -x
           && conda create
-            --name test
-            --yes
-            --file tests/requirements.txt
-            --file tests/requirements-${{ runner.os }}.txt
-            --file tests/requirements-ci.txt
-            python=${{ matrix.python-version }}
+          --name test
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          python=${{ matrix.python-version }}
           && conda activate test
           && python -m conda info --verbose
           && conda config --show-sources
@@ -450,7 +459,8 @@ jobs:
           architecture: ${{ runner.arch }}
 
       - name: Conda Install
-        run: conda install
+        run: >
+          conda install
           --yes
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
@@ -469,7 +479,8 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Tests
-        run: pytest
+        run: >
+          pytest
           --cov=conda
           --durations-path=tools/durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -544,7 +555,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CONDA_ISSUES }}
           RUN_ID: ${{ github.run_id }}
-          TITLE: "Tests failed"
+          TITLE: Tests failed
         with:
           filename: .github/TEST_FAILURE_REPORT_TEMPLATE.md
           update_existing: false
