@@ -21,7 +21,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
@@ -607,7 +607,7 @@ class Solver:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
-                log.trace("using PrefixGraph to remove records for %s", spec)
+                log.log(TRACE, "using PrefixGraph to remove records for %s", spec)
                 removed_records = graph.remove_spec(spec)
                 if removed_records:
                     all_removed_records.extend(removed_records)

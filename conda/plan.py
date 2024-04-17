@@ -18,6 +18,7 @@ from boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
+from .common.constants import TRACE
 from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
@@ -367,10 +368,10 @@ def _plan_from_actions(actions, index):  # pragma: no cover
     log.debug(f"Adding plans for operations: {op_order}")
     for op in op_order:
         if op not in actions:
-            log.trace(f"action {op} not in actions")
+            log.log(TRACE, f"action {op} not in actions")
             continue
         if not actions[op]:
-            log.trace(f"action {op} has None value")
+            log.log(TRACE, f"action {op} has None value")
             continue
         if "_" not in op:
             plan.append((PRINT, "%sing packages ..." % op.capitalize()))
